@@ -16,7 +16,6 @@ use core::cell::UnsafeCell;
 use std::ops::{Deref, DerefMut};
 
 pub trait Actor {
-    //type Context;
 }
 
 pub struct ActorContext<A: Actor> {

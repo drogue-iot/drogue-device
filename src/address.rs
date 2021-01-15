@@ -9,6 +9,15 @@ pub struct Address<A: Actor> {
     actor: UnsafeCell<*const ActorContext<A>>,
 }
 
+impl<A:Actor> Clone for Address<A> {
+    fn clone(&self) -> Self {
+        Self {
+            actor: unsafe { UnsafeCell::new( &**self.actor.get() ) }
+        }
+    }
+}
+
+// TODO critical sections around ask/tell
 impl<A: Actor> Address<A> {
     pub(crate) fn new(actor: &ActorContext<A>) -> Self {
         Self {
