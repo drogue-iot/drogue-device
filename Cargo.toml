@@ -1,0 +1,15 @@
+[package]
+name = "drogue-msg"
+version = "0.1.0"
+authors = ["Bob McWhirter <bmcwhirt@redhat.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[dependencies.heapless]
+version = "0.5.6"
+
+[dependencies.drogue-async]
+path = "../drogue-async"
