@@ -1,11 +1,6 @@
 use core::future::Future;
-use core::cell::{UnsafeCell, RefCell};
-use core::marker::PhantomData;
-use core::pin::Pin;
-use core::ops::Deref;
-use crate::actor::{Actor, ActorContext, CompletionHandle};
-use core::sync::atomic::{AtomicBool, Ordering};
-use crate::supervisor::{Box, alloc_box, alloc};
+use crate::actor::Actor;
+use crate::alloc::{Box, alloc};
 
 pub enum Response<T> {
     Immediate(T),

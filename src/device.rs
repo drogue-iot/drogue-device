@@ -1,7 +1,7 @@
-
+use crate::supervisor::Supervisor;
 
 pub trait Device {
-    fn start(&'static self);
+    fn start(&'static mut self, supervisor: &mut Supervisor);
 }
 
 pub struct DeviceContext<D:Device> {
@@ -15,7 +15,7 @@ impl<D:Device> DeviceContext<D> {
         }
     }
 
-    pub fn start(&'static self) {
-        self.device.start();
+    pub fn start(&'static mut self, supervisor: &mut Supervisor) {
+        self.device.start( supervisor );
     }
 }

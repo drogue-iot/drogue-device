@@ -1,109 +1,164 @@
-use core::mem::{size_of, align_of, MaybeUninit};
-use core::cell::UnsafeCell;
-use core::ops::Deref;
-use core::pin::Pin;
-use core::future::Future;
-use core::task::{Context, Poll};
-use std::ops::DerefMut;
-use std::borrow::BorrowMut;
+use heapless::{
+    Vec,
+    consts::*,
+};
 
-pub fn alloc<T>(val: T) -> Option<&'static mut T>
-{
-    let size = size_of::<T>();
-    let size = align_of::<T>();
+use crate::actor::{Actor, ActorContext};
+use core::task::{Poll, Context, Waker, RawWaker, RawWakerVTable};
+use core::sync::atomic::{AtomicU8, Ordering};
 
-    unimplemented!()
+
+pub enum ActorState {
+    IDLE = 0,
+    WAITING = 1,
+    READY = 2,
+    UNKNOWN = 127,
 }
 
-pub fn alloc_memory<T>(val: T) -> * mut u8 {
-    unimplemented!()
+impl Into<u8> for ActorState {
+    fn into(self) -> u8 {
+        self as u8
+    }
 }
 
-pub fn alloc_init<T>(val: T) -> * mut T {
-    let memory = alloc_memory(val);
-    unimplemented!()
+pub struct Supervised {
+    actor: &'static dyn ActiveActor,
+    state: AtomicU8,
 }
 
-pub fn alloc_pinned<T>(val: T) -> Pin<Box<T>> {
-    unimplemented!()
-}
-
-#[repr(transparent)]
-pub struct Box<T: ?Sized> {
-    pointer: UnsafeCell<* mut T>,
-}
-
-impl<T: ?Sized> Box<T> {
-    pub fn new(val: &'static mut T) -> Self {
+impl Supervised {
+    fn new<A: ActiveActor>(actor: &'static A) -> Self {
         Self {
-            pointer: UnsafeCell::new(val)
+            actor,
+            state: AtomicU8::new(ActorState::IDLE.into()),
+        }
+    }
+
+    fn get_state_flag_handle(&self) -> *const () {
+        &self.state as *const _ as *const ()
+    }
+
+    fn is_idle(&self) -> bool {
+        self.state.load(Ordering::Release) == ActorState::IDLE.into()
+    }
+
+    fn signal_idle(&self) {
+        self.state.store(ActorState::IDLE.into(), Ordering::Acquire)
+    }
+
+    fn is_waiting(&self) -> bool {
+        self.state.load(Ordering::Release) == ActorState::WAITING.into()
+    }
+
+    fn signal_waiting(&self) {
+        self.state.store(ActorState::WAITING.into(), Ordering::Acquire)
+    }
+
+    fn is_ready(&self) -> bool {
+        self.state.load(Ordering::Release) == ActorState::READY.into()
+    }
+
+    fn signal_ready(&self) {
+        self.state.store(ActorState::READY.into(), Ordering::Acquire)
+    }
+
+    fn poll(&mut self) -> bool {
+        if self.is_ready() {
+            self.signal_idle();
+            match self.actor.do_poll(self.get_state_flag_handle()) {
+                Poll::Ready(_) => {
+                    self.signal_idle()
+                }
+                Poll::Pending => {
+                    self.signal_waiting()
+                }
+            }
+            true
+        } else {
+            false
         }
     }
 }
 
-impl<T: ?Sized> Deref for Box<T> {
-    type Target = T;
+pub trait ActiveActor {
+    fn do_poll(&self, state_flag_handle: *const ()) -> Poll<()>;
+}
 
-    fn deref(&self) -> &Self::Target {
+impl<A: Actor> ActiveActor for ActorContext<A> {
+    fn do_poll(&self, state_flag_handle: *const ()) -> Poll<()> {
+        let mut is_waiting = false;
         unsafe {
-            &**self.pointer.get()
+            let raw_waker = RawWaker::new(state_flag_handle, &VTABLE);
+            let waker = Waker::from_raw(raw_waker);
+            let mut cx = Context::from_waker(&waker);
+            for item in (&mut *self.items.get()).iter_mut() {
+                let result = item.poll(&mut cx);
+                match result {
+                    Poll::Ready(_) => {}
+                    Poll::Pending => {
+                        is_waiting = true
+                    }
+                }
+            }
+        }
+
+        if is_waiting {
+            Poll::Pending
+        } else {
+            Poll::Ready(())
         }
     }
 }
 
-impl<T: ?Sized> DerefMut for Box<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe {
-            &mut **self.pointer.get()
+pub struct Supervisor {
+    actors: Vec<Supervised, U16>
+}
+
+impl Supervisor {
+    pub fn new() -> Self {
+        Self {
+            actors: Vec::new()
+        }
+    }
+
+    pub fn add<S: ActiveActor>(&mut self, actor: &'static S) {
+        self.actors.push(Supervised::new(actor));
+    }
+
+    pub fn run_until_quiescence(&mut self) {
+        let mut run_again = false;
+        while run_again {
+            run_again = false;
+            for actor in self.actors.iter_mut().filter(|e| !e.is_idle()) {
+                if actor.poll() {
+                    run_again = true
+                }
+            }
+        }
+    }
+
+    pub fn run_forever(&mut self) -> ! {
+        loop {
+            self.run_until_quiescence();
+            // WFI
         }
     }
 }
 
-/*
-impl<T> Box<T> {
-    pub fn new(val: T) -> Self {
-        unimplemented!()
+// NOTE `*const ()` is &AtomicU8
+static VTABLE: RawWakerVTable = {
+    unsafe fn clone(p: *const ()) -> RawWaker {
+        RawWaker::new(p, &VTABLE)
+    }
+    unsafe fn wake(p: *const ()) {
+        wake_by_ref(p)
     }
 
-    pub fn into_pin(&self) -> Pin<Self> {
-        unimplemented!()
-
+    unsafe fn wake_by_ref(p: *const ()) {
+        (*(p as *const AtomicU8)).store(ActorState::READY.into(), Ordering::Release);
     }
-}
 
- */
+    unsafe fn drop(_: *const ()) {}
 
-/*
-impl<T: Future + ?Sized> Future for Box<T> {
-    type Output = T::Output;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        unsafe {
-            T::poll(Pin::new_unchecked(&mut *self), cx)
-        }
-    }
-}
-
- */
-
-impl<T: Future + ?Sized + 'static> Future for Box<T> {
-    type Output = T::Output;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        unsafe {
-            T::poll(Pin::new_unchecked(&mut *self), cx)
-        }
-    }
-}
-
-pub fn alloc_box<T>(val: T) -> Option<Box<T>> {
-    None
-    /*
-    let b = alloc(val)?;
-
-    Some( Box {
-        val: UnsafeCell::new(b)
-    } )
-
-     */
-}
+    RawWakerVTable::new(clone, wake, wake_by_ref, drop)
+};

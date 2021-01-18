@@ -1,26 +1,24 @@
 use crate::address::Address;
 use core::pin::Pin;
-use core::borrow::BorrowMut;
 use crate::handler::{AskHandler, TellHandler, Response, Completion};
-use core::marker::PhantomData;
-use core::future::{Future, Ready};
+use core::future::Future;
 use core::task::{Context, Poll, Waker};
-use core::ptr::replace;
 
 use heapless::{
     Vec,
     consts::*,
 };
-use crate::supervisor::{Box, alloc_box, alloc};
+use crate::alloc::{Box, alloc};
 use core::cell::UnsafeCell;
-use std::ops::{Deref, DerefMut};
+use crate::supervisor::Supervisor;
+
 
 pub trait Actor {
 }
 
 pub struct ActorContext<A: Actor> {
     pub(crate) actor: UnsafeCell<A>,
-    items: UnsafeCell<Vec<Box<dyn ActorFuture<A>>, U16>>,
+    pub(crate) items: UnsafeCell<Vec<Box<dyn ActorFuture<A>>, U16>>,
 }
 
 impl<A: Actor> ActorContext<A> {
@@ -37,8 +35,9 @@ impl<A: Actor> ActorContext<A> {
         }
     }
 
-    pub fn start(&'static self) -> Address<A> {
-        drogue_async::task::spawn("actor", self);
+
+    pub fn start(&'static self, supervisor: &mut Supervisor) -> Address<A> {
+        supervisor.add( self );
         Address::new(self)
     }
 
@@ -75,24 +74,6 @@ impl<A: Actor> ActorContext<A> {
 
 }
 
-impl<A: Actor> Future for &'static ActorContext<A> {
-    type Output = ();
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        unsafe {
-            for item in (&mut *self.items.get()).iter_mut() {
-                let result = item.poll(cx);
-                match result {
-                    Poll::Ready(_) => {}
-                    Poll::Pending => {}
-                }
-            }
-        }
-
-        Poll::Pending
-    }
-}
-
 pub trait ActorFuture<A: Actor> : Future<Output=()>{
     fn poll(&mut self, cx: &mut Context<'_>) -> Poll<()> {
         unsafe {
@@ -124,7 +105,8 @@ impl<A: Actor + TellHandler<M>, M> ActorFuture<A> for Tell<A, M> {
 
 impl<A, M> Unpin for Tell<A, M>
     where A: TellHandler<M>
-{}
+{
+}
 
 impl<A: Actor, M> Future for Tell<A, M>
     where A: TellHandler<M>
@@ -132,11 +114,21 @@ impl<A: Actor, M> Future for Tell<A, M>
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        //unsafe {
-        //let mut handler_context = TellHandlerContext::new(self.actor);
-        //self.actor.actor_mut().on_message(self.as_mut().message.take().unwrap(), &mut handler_context);
-        //}
-        Poll::Ready(())
+        if self.message.is_some() {
+            let mut result = self.actor.actor_mut().on_message(self.as_mut().message.take().unwrap() );
+            match result {
+                Completion::Immediate() => {
+                    Poll::Ready(())
+                }
+                Completion::Defer(ref mut f) => {
+                    unsafe {
+                        Pin::new_unchecked(f).poll(cx)
+                    }
+                }
+            }
+        } else {
+            Poll::Ready(())
+        }
     }
 }
 
@@ -180,7 +172,7 @@ impl<A, M> Future for Ask<A, M>
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.message.is_some() {
-            let mut response = self.actor.actor_mut().on_message(self.as_mut().message.take().unwrap());
+            let response = self.actor.actor_mut().on_message(self.as_mut().message.take().unwrap());
             if let Response::Immediate(response) = response {
                 self.sender.send(response);
                 return Poll::Ready(());

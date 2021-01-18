@@ -1,20 +1,20 @@
-//#![no_std]
+#![no_std]
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 mod handler;
 mod actor;
 mod address;
 mod device;
 mod supervisor;
+mod alloc;
 
 #[cfg(test)]
 mod tests {
     use crate::device::{Device, DeviceContext};
     use crate::actor::{ActorContext, Actor};
     use crate::handler::{AskHandler, TellHandler, Response, Completion};
-    use core::pin::Pin;
-    use std::future::Future;
-    use crate::supervisor::alloc;
-    use crate::supervisor::Box;
-    use heapless::consts::*;
+    use crate::supervisor::Supervisor;
 
     struct MyDevice {
         led: ActorContext<LED>,
@@ -22,11 +22,10 @@ mod tests {
     }
 
     impl Device for MyDevice {
-        fn start(&'static self) {
-            let led_addr = self.led.start();
+        fn start(&'static mut self, supervisor: &mut Supervisor) {
+            let led_addr = self.led.start( supervisor );
             led_addr.tell(LEDState::On);
             led_addr.ask( LEDState::Off );
-            //self.button.start();
         }
     }
 
@@ -80,17 +79,19 @@ mod tests {
     fn the_api() {
         static mut DEVICE: Option<DeviceContext<MyDevice>> = None;
         let led = LED{};
-        let device = MyDevice {
+        let mut device = MyDevice {
             led: ActorContext::new( led ),
             button: Button{}
         };
 
         let device = unsafe {
             DEVICE.replace( DeviceContext::new( device ) );
-            DEVICE.as_ref().unwrap()
+            DEVICE.as_mut().unwrap()
         };
 
-        device.start();
+        let mut supervisor = Supervisor::new();
+
+        device.start( &mut supervisor );
     }
 }
 

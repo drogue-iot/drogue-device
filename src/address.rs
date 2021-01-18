@@ -1,9 +1,6 @@
-use crate::actor::{Actor, ActorContext, ActorFuture};
-use core::marker::PhantomData;
-use core::pin::Pin;
+use crate::actor::{Actor, ActorContext};
 use core::cell::UnsafeCell;
 use crate::handler::{AskHandler, TellHandler};
-use heapless::ArrayLength;
 
 pub struct Address<A: Actor> {
     actor: UnsafeCell<*const ActorContext<A>>,
