@@ -21,12 +21,12 @@ impl<T> Response<T> {
     }
 }
 
-pub trait AskHandler<M>
+pub trait RequestHandler<M>
     where Self: Actor + Sized
 {
     type Response: 'static;
 
-    fn on_message(&'static mut self, message: M) -> Response<Self::Response>;
+    fn on_request(&'static mut self, message: M) -> Response<Self::Response>;
 }
 
 pub enum Completion {
@@ -47,9 +47,9 @@ impl Completion {
 
 }
 
-pub trait TellHandler<M>
+pub trait NotificationHandler<M>
     where Self: Actor + Sized
 {
-    fn on_message(&'static mut self, message: M) -> Completion;
+    fn on_notification(&'static mut self, message: M) -> Completion;
 }
 

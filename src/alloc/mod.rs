@@ -5,15 +5,30 @@ use core::pin::Pin;
 use core::future::Future;
 use core::task::{Context, Poll};
 use core::ops::DerefMut;
+use crate::alloc::cortex_m::CortexMHeap;
 
-mod cortex_m;
+pub mod cortex_m;
+
+pub static mut HEAP: Option<CortexMHeap> = None;
+
+#[macro_export]
+macro_rules! init_heap {
+    ($size:literal) => {
+        static mut HEAP_MEMORY: [u8; $size] = [0; $size];
+        unsafe {
+            $crate::alloc::HEAP.replace( $crate::alloc::cortex_m::CortexMHeap::new( &HEAP_MEMORY ));
+        }
+    }
+}
 
 pub fn alloc<T>(val: T) -> Option<&'static mut T>
 {
     let size = size_of::<T>();
     let size = align_of::<T>();
 
-    unimplemented!()
+    unsafe {
+        HEAP.as_mut().unwrap().alloc_init(val)
+    }
 }
 
 #[repr(transparent)]

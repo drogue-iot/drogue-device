@@ -1,6 +1,6 @@
 use crate::actor::{Actor, ActorContext};
 use core::cell::UnsafeCell;
-use crate::handler::{AskHandler, TellHandler};
+use crate::handler::{RequestHandler, NotificationHandler};
 
 pub struct Address<A: Actor> {
     actor: UnsafeCell<*const ActorContext<A>>,
@@ -22,21 +22,21 @@ impl<A: Actor> Address<A> {
         }
     }
 
-    pub fn tell<M>(&self, message: M)
-        where A: TellHandler<M> + 'static,
+    pub fn notify<M>(&self, message: M)
+        where A: NotificationHandler<M> + 'static,
               M: 'static
     {
         unsafe {
-            (&**self.actor.get()).tell(message);
+            (&**self.actor.get()).notify(message);
         }
     }
 
-    pub async fn ask<M>(&self, message: M) -> <A as AskHandler<M>>::Response
-        where A: AskHandler<M> + 'static,
+    pub async fn request<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
+        where A: RequestHandler<M> + 'static,
               M: 'static
     {
         unsafe {
-            (&**self.actor.get()).ask(message).await
+            (&**self.actor.get()).request(message).await
         }
     }
 }

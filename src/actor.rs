@@ -1,16 +1,18 @@
 use crate::address::Address;
 use core::pin::Pin;
-use crate::handler::{AskHandler, TellHandler, Response, Completion};
+use crate::handler::{RequestHandler, NotificationHandler, Response, Completion};
 use core::future::Future;
 use core::task::{Context, Poll, Waker};
 
 use heapless::{
     Vec,
+    spsc::Queue,
     consts::*,
 };
 use crate::alloc::{Box, alloc};
 use core::cell::UnsafeCell;
-use crate::supervisor::Supervisor;
+use crate::supervisor::{Supervisor, ActorState};
+use core::sync::atomic::{AtomicU8, Ordering};
 
 
 pub trait Actor {
@@ -18,14 +20,18 @@ pub trait Actor {
 
 pub struct ActorContext<A: Actor> {
     pub(crate) actor: UnsafeCell<A>,
-    pub(crate) items: UnsafeCell<Vec<Box<dyn ActorFuture<A>>, U16>>,
+    pub(crate) current: UnsafeCell<Option<Box<dyn ActorFuture<A>>>>,
+    pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>>, U16>>,
+    pub(crate) state_flag_handle: UnsafeCell<Option<* const ()>>,
 }
 
 impl<A: Actor> ActorContext<A> {
     pub fn new(actor: A) -> Self {
         Self {
             actor: UnsafeCell::new(actor),
-            items: UnsafeCell::new(Vec::new()),
+            current: UnsafeCell::new(None),
+            items: UnsafeCell::new(Queue::new()),
+            state_flag_handle: UnsafeCell::new(None),
         }
     }
 
@@ -37,36 +43,38 @@ impl<A: Actor> ActorContext<A> {
 
 
     pub fn start(&'static self, supervisor: &mut Supervisor) -> Address<A> {
-        supervisor.add( self );
+        supervisor.activate_actor( self );
         Address::new(self)
     }
 
-    pub(crate) fn tell<M>(&'static self, message: M)
-        where A: TellHandler<M>,
+    pub(crate) fn notify<M>(&'static self, message: M)
+        where A: NotificationHandler<M>,
               M: 'static
     {
-        let tell = alloc(Tell::new(self, message)).unwrap();
-        let tell: Box<dyn ActorFuture<A>> = Box::new(tell);
+        let notify = alloc(Notify::new(self, message)).unwrap();
+        let notify: Box<dyn ActorFuture<A>> = Box::new(notify);
         unsafe {
-            //let tell = Pin::new_unchecked(tell);
-            (&mut *self.items.get()).push(tell);
+            (&mut *self.items.get()).enqueue(notify);
+            let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
+            (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
         }
     }
 
-    pub(crate) async fn ask<M>(&'static self, message: M) -> <A as AskHandler<M>>::Response
-        where A: AskHandler<M>,
+    pub(crate) async fn request<M>(&'static self, message: M) -> <A as RequestHandler<M>>::Response
+        where A: RequestHandler<M>,
               M: 'static
     {
         let signal = alloc(CompletionHandle::new()).unwrap();
         let (sender, receiver) = signal.split();
-        let ask = alloc(Ask::new(self, message, sender)).unwrap();
-        let response = AskResponseFuture::new(receiver);
+        let request = alloc(Request::new(self, message, sender)).unwrap();
+        let response = RequestResponseFuture::new(receiver);
 
-        let ask: Box<dyn ActorFuture<A>> = Box::new(ask);
+        let request: Box<dyn ActorFuture<A>> = Box::new(request);
 
         unsafe {
-            //let ask = Pin::new_unchecked(ask);
-            (&mut *self.items.get()).push(ask);
+            (&mut *self.items.get()).enqueue(request);
+            let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
+            (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
         }
 
         response.await
@@ -82,15 +90,15 @@ pub trait ActorFuture<A: Actor> : Future<Output=()>{
     }
 }
 
-pub struct Tell<A: Actor, M>
-    where A: TellHandler<M> + 'static
+pub struct Notify<A: Actor, M>
+    where A: NotificationHandler<M> + 'static
 {
     actor: &'static ActorContext<A>,
     message: Option<M>,
 }
 
-impl<A: Actor, M> Tell<A, M>
-    where A: TellHandler<M>
+impl<A: Actor, M> Notify<A, M>
+    where A: NotificationHandler<M>
 {
     pub fn new(actor: &'static ActorContext<A>, message: M) -> Self {
         Self {
@@ -100,22 +108,22 @@ impl<A: Actor, M> Tell<A, M>
     }
 }
 
-impl<A: Actor + TellHandler<M>, M> ActorFuture<A> for Tell<A, M> {
+impl<A: Actor + NotificationHandler<M>, M> ActorFuture<A> for Notify<A, M> {
 }
 
-impl<A, M> Unpin for Tell<A, M>
-    where A: TellHandler<M>
+impl<A, M> Unpin for Notify<A, M>
+    where A: NotificationHandler<M>
 {
 }
 
-impl<A: Actor, M> Future for Tell<A, M>
-    where A: TellHandler<M>
+impl<A: Actor, M> Future for Notify<A, M>
+    where A: NotificationHandler<M>
 {
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.message.is_some() {
-            let mut result = self.actor.actor_mut().on_message(self.as_mut().message.take().unwrap() );
+            let mut result = self.actor.actor_mut().on_notification(self.as_mut().message.take().unwrap() );
             match result {
                 Completion::Immediate() => {
                     Poll::Ready(())
@@ -132,8 +140,8 @@ impl<A: Actor, M> Future for Tell<A, M>
     }
 }
 
-pub struct Ask<A, M>
-    where A: Actor + AskHandler<M> + 'static,
+pub struct Request<A, M>
+    where A: Actor + RequestHandler<M> + 'static,
 {
     actor: &'static ActorContext<A>,
     message: Option<M>,
@@ -141,8 +149,8 @@ pub struct Ask<A, M>
     defer: Option<Response<A::Response>>,
 }
 
-impl<A, M> Ask<A, M>
-    where A: Actor + AskHandler<M> + 'static,
+impl<A, M> Request<A, M>
+    where A: Actor + RequestHandler<M> + 'static,
 {
     pub fn new(actor: &'static ActorContext<A>, message: M, sender: CompletionSender<A::Response>) -> Self {
         Self {
@@ -154,25 +162,25 @@ impl<A, M> Ask<A, M>
     }
 }
 
-impl<A, M> Ask<A, M>
-    where A: Actor + AskHandler<M> + 'static,
+impl<A, M> Request<A, M>
+    where A: Actor + RequestHandler<M> + 'static,
 {}
 
-impl<A: Actor + AskHandler<M>, M> ActorFuture<A> for Ask<A, M> {
+impl<A: Actor + RequestHandler<M>, M> ActorFuture<A> for Request<A, M> {
 }
 
-impl<A, M> Unpin for Ask<A, M>
-    where A: Actor + AskHandler<M> + 'static,
+impl<A, M> Unpin for Request<A, M>
+    where A: Actor + RequestHandler<M> + 'static,
 {}
 
-impl<A, M> Future for Ask<A, M>
-    where A: Actor + AskHandler<M> + 'static,
+impl<A, M> Future for Request<A, M>
+    where A: Actor + RequestHandler<M> + 'static,
 {
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.message.is_some() {
-            let response = self.actor.actor_mut().on_message(self.as_mut().message.take().unwrap());
+            let response = self.actor.actor_mut().on_request(self.as_mut().message.take().unwrap());
             if let Response::Immediate(response) = response {
                 self.sender.send(response);
                 return Poll::Ready(());
@@ -202,13 +210,13 @@ impl<A, M> Future for Ask<A, M>
     }
 }
 
-pub struct AskResponseFuture<R>
+pub struct RequestResponseFuture<R>
     where R: 'static
 {
     receiver: CompletionReceiver<R>,
 }
 
-impl<R> AskResponseFuture<R> {
+impl<R> RequestResponseFuture<R> {
     pub fn new(receiver: CompletionReceiver<R>) -> Self {
         Self {
             receiver,
@@ -216,7 +224,7 @@ impl<R> AskResponseFuture<R> {
     }
 }
 
-impl<R> Future for AskResponseFuture<R> {
+impl<R> Future for RequestResponseFuture<R> {
     type Output = R;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {

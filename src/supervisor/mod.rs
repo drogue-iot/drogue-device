@@ -6,6 +6,7 @@ use heapless::{
 use crate::actor::{Actor, ActorContext};
 use core::task::{Poll, Context, Waker, RawWaker, RawWakerVTable};
 use core::sync::atomic::{AtomicU8, Ordering};
+use crate::interrupt::{Interrupt, InterruptContext};
 
 
 pub enum ActorState {
@@ -30,46 +31,53 @@ impl Supervised {
     fn new<A: ActiveActor>(actor: &'static A) -> Self {
         Self {
             actor,
-            state: AtomicU8::new(ActorState::IDLE.into()),
+            state: AtomicU8::new(ActorState::READY.into()),
         }
     }
 
     fn get_state_flag_handle(&self) -> *const () {
+        log::info!("my handle {:x}", &self.state as *const _ as u32);
         &self.state as *const _ as *const ()
     }
 
     fn is_idle(&self) -> bool {
-        self.state.load(Ordering::Release) == ActorState::IDLE.into()
+        self.state.load(Ordering::Acquire) == ActorState::IDLE.into()
     }
 
     fn signal_idle(&self) {
-        self.state.store(ActorState::IDLE.into(), Ordering::Acquire)
+        self.state.store(ActorState::IDLE.into(), Ordering::Release)
     }
 
     fn is_waiting(&self) -> bool {
-        self.state.load(Ordering::Release) == ActorState::WAITING.into()
+        self.state.load(Ordering::Acquire) == ActorState::WAITING.into()
     }
 
     fn signal_waiting(&self) {
-        self.state.store(ActorState::WAITING.into(), Ordering::Acquire)
+        self.state.store(ActorState::WAITING.into(), Ordering::Release)
     }
 
     fn is_ready(&self) -> bool {
-        self.state.load(Ordering::Release) == ActorState::READY.into()
+        //log::info!(" {:x} --> {}", (&self.state ) as * const _ as u32, self.state.load( Ordering::Acquire) as u8);
+        self.state.load(Ordering::Acquire) == ActorState::READY.into()
     }
 
     fn signal_ready(&self) {
-        self.state.store(ActorState::READY.into(), Ordering::Acquire)
+        self.state.store(ActorState::READY.into(), Ordering::Release)
     }
 
     fn poll(&mut self) -> bool {
         if self.is_ready() {
-            self.signal_idle();
+            log::info!("actor is ready" );
+            //self.signal_idle();
+            //log::info!("actor signalling idle pre" );
             match self.actor.do_poll(self.get_state_flag_handle()) {
                 Poll::Ready(_) => {
+                    log::info!("actor signalling idle actual" );
+                    // this is actually stopped
                     self.signal_idle()
                 }
                 Poll::Pending => {
+                    log::info!("actor signalling waiting actual" );
                     self.signal_waiting()
                 }
             }
@@ -86,47 +94,111 @@ pub trait ActiveActor {
 
 impl<A: Actor> ActiveActor for ActorContext<A> {
     fn do_poll(&self, state_flag_handle: *const ()) -> Poll<()> {
-        let mut is_waiting = false;
+        log::info!("do poll");
         unsafe {
-            let raw_waker = RawWaker::new(state_flag_handle, &VTABLE);
-            let waker = Waker::from_raw(raw_waker);
-            let mut cx = Context::from_waker(&waker);
-            for item in (&mut *self.items.get()).iter_mut() {
-                let result = item.poll(&mut cx);
-                match result {
-                    Poll::Ready(_) => {}
-                    Poll::Pending => {
-                        is_waiting = true
+            // wire stuff up first time through
+            if (&*self.state_flag_handle.get()).is_none() {
+                log::info!(" set handle {:x}", state_flag_handle as u32);
+                (&mut *self.state_flag_handle.get()).replace(state_flag_handle);
+            }
+        }
+
+        loop {
+            unsafe {
+                //log::info!("items: {}, current={}", (&*self.items.get()).len(), (&*self.current.get()).is_some());
+                if let None = (&mut *self.current.get()) {
+                    if let Some(next) = (&mut *self.items.get()).dequeue() {
+                        log::info!("setting current" );
+                        (&mut *self.current.get()).replace(next );
                     }
+                }
+
+                if let Some(item) = (&mut *self.current.get()) {
+                    log::info!("polling current" );
+                    let raw_waker = RawWaker::new(state_flag_handle, &VTABLE);
+                    let waker = Waker::from_raw(raw_waker);
+                    let mut cx = Context::from_waker(&waker);
+
+                    let result = item.poll(&mut cx);
+                    match result {
+                        Poll::Ready(_) => {
+                            // "dequeue" it and allow it to drop
+                            log::info!("current complete, clearing" );
+                            (&mut *self.current.get()).take();
+                        }
+                        Poll::Pending => {
+                            log::info!("current pending, breaking" );
+                            break;
+                        }
+                    }
+                } else {
+                    log::info!("no current");
+                    break;
                 }
             }
         }
 
-        if is_waiting {
-            Poll::Pending
-        } else {
-            Poll::Ready(())
+        Poll::Pending
+    }
+}
+
+pub trait ActiveInterrupt {
+    fn irq(&self) -> u8;
+    fn interrupt(&self);
+}
+
+impl<I: Interrupt> ActiveInterrupt for InterruptContext<I> {
+    fn irq(&self) -> u8 {
+        unsafe {
+            (&*self.interrupt.get()).irq()
+        }
+    }
+
+    fn interrupt(&self) {
+        unsafe {
+            (&mut *self.interrupt.get()).on_interrupt();
+        }
+    }
+}
+
+pub struct Interruptable {
+    irq: u8,
+    interrupt: &'static dyn ActiveInterrupt,
+}
+
+impl Interruptable {
+    pub fn new(interrupt: &'static dyn ActiveInterrupt) -> Self {
+        Self {
+            irq: interrupt.irq(),
+            interrupt,
         }
     }
 }
 
 pub struct Supervisor {
-    actors: Vec<Supervised, U16>
+    actors: Vec<Supervised, U16>,
+    interrupts: Vec<Interruptable, U16>,
 }
 
 impl Supervisor {
     pub fn new() -> Self {
         Self {
-            actors: Vec::new()
+            actors: Vec::new(),
+            interrupts: Vec::new(),
         }
     }
 
-    pub fn add<S: ActiveActor>(&mut self, actor: &'static S) {
+    pub fn activate_actor<S: ActiveActor>(&mut self, actor: &'static S) {
         self.actors.push(Supervised::new(actor));
     }
 
+    pub fn activate_interrupt<I: ActiveInterrupt>(&mut self, interrupt: &'static I) {
+        self.interrupts.push(Interruptable::new(interrupt));
+    }
+
     pub fn run_until_quiescence(&mut self) {
-        let mut run_again = false;
+        //log::info!("run until quiescence");
+        let mut run_again = true;
         while run_again {
             run_again = false;
             for actor in self.actors.iter_mut().filter(|e| !e.is_idle()) {
@@ -143,6 +215,13 @@ impl Supervisor {
             // WFI
         }
     }
+
+    pub fn on_interrupt(&self, irqn: i16) {
+        for interrupt in self.interrupts.iter().filter(|e| e.irq == irqn as u8) {
+            log::info!("send along irq");
+            interrupt.interrupt.interrupt();
+        }
+    }
 }
 
 // NOTE `*const ()` is &AtomicU8
@@ -151,10 +230,12 @@ static VTABLE: RawWakerVTable = {
         RawWaker::new(p, &VTABLE)
     }
     unsafe fn wake(p: *const ()) {
+        log::info!("wake");
         wake_by_ref(p)
     }
 
     unsafe fn wake_by_ref(p: *const ()) {
+        log::info!("wake by ref");
         (*(p as *const AtomicU8)).store(ActorState::READY.into(), Ordering::Release);
     }
 
