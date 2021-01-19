@@ -13,6 +13,9 @@ use crate::alloc::{Box, alloc};
 use core::cell::UnsafeCell;
 use crate::supervisor::{Supervisor, ActorState};
 use core::sync::atomic::{AtomicU8, Ordering};
+use crate::interrupt::Interrupt;
+use cortex_m::peripheral::NVIC;
+use cortex_m::interrupt::Nr;
 
 
 pub trait Actor {
@@ -26,6 +29,7 @@ pub struct ActorContext<A: Actor> {
     pub(crate) current: UnsafeCell<Option<Box<dyn ActorFuture<A>>>>,
     pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>>, U16>>,
     pub(crate) state_flag_handle: UnsafeCell<Option<*const ()>>,
+    pub(crate) irq: Option<u8>,
 }
 
 impl<A: Actor> ActorContext<A> {
@@ -35,6 +39,19 @@ impl<A: Actor> ActorContext<A> {
             current: UnsafeCell::new(None),
             items: UnsafeCell::new(Queue::new()),
             state_flag_handle: UnsafeCell::new(None),
+            irq: None,
+        }
+    }
+
+    pub(crate) fn new_interrupt(actor: A, irq: u8) -> Self
+        where A: Interrupt
+    {
+        Self {
+            actor: UnsafeCell::new(actor),
+            current: UnsafeCell::new(None),
+            items: UnsafeCell::new(Queue::new()),
+            state_flag_handle: UnsafeCell::new(None),
+            irq: Some(irq),
         }
     }
 
@@ -47,9 +64,32 @@ impl<A: Actor> ActorContext<A> {
 
     pub fn start(&'static self, supervisor: &mut Supervisor) -> Address<A> {
         let addr = Address::new(self);
-        supervisor.activate_actor(self);
+        let state_flag_handle = supervisor.activate_actor(self);
         unsafe {
+            (&mut *self.state_flag_handle.get()).replace(state_flag_handle);
             (&mut *self.actor.get()).start(addr.clone());
+        }
+
+        addr
+    }
+
+    pub(crate) fn start_interrupt(&'static self, supervisor: &mut Supervisor) -> Address<A>
+        where A: Interrupt
+    {
+        let addr = self.start(supervisor);
+        supervisor.activate_interrupt(self, self.irq.unwrap());
+
+        if let Some(irq) = self.irq {
+            struct IrqNr(u8);
+            unsafe impl Nr for IrqNr {
+                fn nr(&self) -> u8 {
+                    self.0
+                }
+            }
+            unsafe {
+                log::info!("unmask {}", irq);
+                NVIC::unmask(IrqNr(irq))
+            }
         }
 
         addr
@@ -62,8 +102,10 @@ impl<A: Actor> ActorContext<A> {
         let notify = alloc(Notify::new(self, message)).unwrap();
         let notify: Box<dyn ActorFuture<A>> = Box::new(notify);
         unsafe {
+            log::info!("enqueue notify");
             (&mut *self.items.get()).enqueue(notify);
             let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
+            log::info!("--> {:x}", flag_ptr as u32);
             (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
         }
     }

@@ -6,7 +6,7 @@ use heapless::{
 use crate::actor::{Actor, ActorContext};
 use core::task::{Poll, Context, Waker, RawWaker, RawWakerVTable};
 use core::sync::atomic::{AtomicU8, Ordering};
-use crate::interrupt::{Interrupt, InterruptContext};
+use crate::interrupt::Interrupt;
 
 
 pub enum ActorState {
@@ -95,6 +95,7 @@ pub trait ActiveActor {
 impl<A: Actor> ActiveActor for ActorContext<A> {
     fn do_poll(&self, state_flag_handle: *const ()) -> Poll<()> {
         log::info!("do poll");
+        /*
         unsafe {
             // wire stuff up first time through
             if (&*self.state_flag_handle.get()).is_none() {
@@ -102,6 +103,7 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
                 (&mut *self.state_flag_handle.get()).replace(state_flag_handle);
             }
         }
+         */
 
         loop {
             unsafe {
@@ -143,20 +145,14 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
 }
 
 pub trait ActiveInterrupt {
-    fn irq(&self) -> u8;
-    fn interrupt(&self);
+    fn on_interrupt(&self);
 }
 
-impl<I: Interrupt> ActiveInterrupt for InterruptContext<I> {
-    fn irq(&self) -> u8 {
+impl<I: Actor + Interrupt> ActiveInterrupt for ActorContext<I> {
+    fn on_interrupt(&self) {
+        log::info!( "--->");
         unsafe {
-            (&*self.interrupt.get()).irq()
-        }
-    }
-
-    fn interrupt(&self) {
-        unsafe {
-            (&mut *self.interrupt.get()).on_interrupt();
+            (&mut *self.actor.get()).on_interrupt();
         }
     }
 }
@@ -167,9 +163,9 @@ pub struct Interruptable {
 }
 
 impl Interruptable {
-    pub fn new(interrupt: &'static dyn ActiveInterrupt) -> Self {
+    pub fn new(interrupt: &'static dyn ActiveInterrupt, irq: u8) -> Self {
         Self {
-            irq: interrupt.irq(),
+            irq,
             interrupt,
         }
     }
@@ -188,12 +184,14 @@ impl Supervisor {
         }
     }
 
-    pub fn activate_actor<S: ActiveActor>(&mut self, actor: &'static S) {
-        self.actors.push(Supervised::new(actor));
+    pub fn activate_actor<S: ActiveActor>(&mut self, actor: &'static S) -> *const () {
+        let supervised = Supervised::new(actor);
+        self.actors.push(supervised);
+        self.actors[self.actors.len()-1].get_state_flag_handle()
     }
 
-    pub fn activate_interrupt<I: ActiveInterrupt>(&mut self, interrupt: &'static I) {
-        self.interrupts.push(Interruptable::new(interrupt));
+    pub fn activate_interrupt<I: ActiveInterrupt>(&mut self, interrupt: &'static I, irq: u8) {
+        self.interrupts.push(Interruptable::new(interrupt, irq));
     }
 
     pub fn run_until_quiescence(&mut self) {
@@ -219,7 +217,7 @@ impl Supervisor {
     pub fn on_interrupt(&self, irqn: i16) {
         for interrupt in self.interrupts.iter().filter(|e| e.irq == irqn as u8) {
             log::info!("send along irq");
-            interrupt.interrupt.interrupt();
+            interrupt.interrupt.on_interrupt();
         }
     }
 }
