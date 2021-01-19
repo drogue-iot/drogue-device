@@ -1,4 +1,4 @@
 
 pub trait Sink<M> {
-    fn tell(&self, message: M);
+    fn notify(&self, message: M);
 }

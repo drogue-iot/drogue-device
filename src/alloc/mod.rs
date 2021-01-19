@@ -6,6 +6,8 @@ use core::future::Future;
 use core::task::{Context, Poll};
 use core::ops::DerefMut;
 use crate::alloc::cortex_m::CortexMHeap;
+use core::mem;
+use crate::alloc::cortex_m::alloc::layout::Layout;
 
 pub mod cortex_m;
 
@@ -68,6 +70,17 @@ impl<T: Future + ?Sized + 'static> Future for Box<T> {
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         unsafe {
             T::poll(Pin::new_unchecked(&mut *self), cx)
+        }
+    }
+}
+
+impl<T: ?Sized> Drop for Box<T> {
+    fn drop(&mut self) {
+        log::info!("drop Box");
+        unsafe {
+            HEAP.as_ref().unwrap().dealloc_object(
+                *self.pointer.get() as *mut u8,
+            );
         }
     }
 }

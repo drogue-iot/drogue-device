@@ -7,7 +7,7 @@
 //!
 //! For a usage example, see `examples/global_alloc.rs`.
 
-mod alloc;
+pub(crate) mod alloc;
 
 use core::cell::RefCell;
 //use core::alloc::Layout;
@@ -89,15 +89,20 @@ impl CortexMHeap {
     }
 
     pub(crate) fn alloc_init<T>(&mut self, val: T) -> Option<&'static mut T> {
-        let layout = Layout::from_size_align(mem::size_of::<T>(), mem::align_of::<T>()).unwrap();
+        let layout = Layout::from_size_align(mem::size_of::<(Layout,T)>(), mem::align_of::<(Layout,T)>()).unwrap();
         unsafe {
             let mut allocation = self.alloc(layout);
             if allocation.is_null() {
                 None
             } else {
-                let mut allocation = &mut *(allocation as *mut MaybeUninit<T>);
-                allocation.as_mut_ptr().write(val);
-                Some(&mut *allocation.as_mut_ptr())
+                //let mut allocation = &mut *(allocation as *mut MaybeUninit<T>);
+                //allocation.as_mut_ptr().write( (layout, val ));
+                //Some(&mut *allocation.as_mut_ptr())
+                (allocation as *mut Layout).write(layout);
+                allocation = (allocation as *mut Layout).add(1) as *mut u8;
+                (allocation as *mut T).write(val);
+                Some( &mut *(allocation as *mut _ as *mut T))
+                //Some(&*allocation as *mut T)
             }
         }
     }
@@ -122,5 +127,11 @@ impl CortexMHeap {
                 .borrow_mut()
                 .deallocate(NonNull::new_unchecked(ptr), layout)
         });
+    }
+
+    pub unsafe fn dealloc_object(&self, ptr: *mut u8) {
+        let head_ptr = (ptr as *mut Layout).sub( 1 );
+        self.dealloc( head_ptr as *mut u8, head_ptr.read());
+
     }
 }
