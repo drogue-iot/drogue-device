@@ -17,7 +17,6 @@ use alloc::layout::Layout;
 use alloc::Heap;
 use cortex_m::interrupt::Mutex;
 use core::mem;
-use core::mem::MaybeUninit;
 
 pub struct CortexMHeap {
     heap: Mutex<RefCell<Heap>>,

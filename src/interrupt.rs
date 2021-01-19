@@ -1,9 +1,6 @@
 use crate::supervisor::Supervisor;
-use core::cell::UnsafeCell;
-use cortex_m::peripheral::NVIC;
 use cortex_m::interrupt::Nr;
 use crate::actor::{Actor, ActorContext};
-use core::marker::PhantomData;
 use crate::address::Address;
 
 pub trait Interrupt: Actor {

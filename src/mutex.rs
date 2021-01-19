@@ -12,6 +12,7 @@ use crate::handler::{RequestHandler, Response, NotificationHandler, Completion};
 use core::ops::{Deref, DerefMut};
 
 pub struct Lock;
+
 pub struct Unlock<T>(T);
 
 pub struct Mutex<T> {
@@ -22,7 +23,7 @@ pub struct Mutex<T> {
 
 impl<T> Actor for Mutex<T> {
     fn start(&mut self, addr: Address<Self>) {
-        self.address.replace( addr );
+        self.address.replace(addr);
     }
 }
 
@@ -30,7 +31,7 @@ impl<T: 'static> RequestHandler<Lock> for Mutex<T> {
     type Response = Exclusive<T>;
 
     fn on_request(&'static mut self, message: Lock) -> Response<Self::Response> {
-        Response::defer( async move {
+        Response::defer(async move {
             Exclusive {
                 address: self.address.as_ref().unwrap().clone(),
                 val: Some(self.lock().await),
@@ -41,7 +42,7 @@ impl<T: 'static> RequestHandler<Lock> for Mutex<T> {
 
 impl<T: 'static> NotificationHandler<Unlock<T>> for Mutex<T> {
     fn on_notification(&'static mut self, message: Unlock<T>) -> Completion {
-        self.unlock( message.0 );
+        self.unlock(message.0);
         Completion::immediate()
     }
 }
@@ -66,12 +67,14 @@ impl<T> Mutex<T> {
 
             fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
                 unsafe {
-                    if let Some(val) = (&mut **self.mutex.get()).val.take() {
-                        return Poll::Ready(val);
+                    //if let Some(val) = (&mut **self.mutex.get()).val.take() {
+                    if let Some(val) = (**self.mutex.get()).val.take() {
+                        Poll::Ready(val)
                     } else {
-                        if ! self.waiting {
+                        if !self.waiting {
                             self.waiting = true;
-                            (&mut **self.mutex.get()).waiters.enqueue(cx.waker().clone());
+                            (**self.mutex.get()).waiters.enqueue(cx.waker().clone()).unwrap_or_else(|_| panic!("too many waiters"))
+                            //(&mut **self.mutex.get()).waiters.enqueue(cx.waker().clone()).unwrap_or_else(|_| panic!("too many waiters"))
                         }
                         Poll::Pending
                     }
@@ -81,7 +84,7 @@ impl<T> Mutex<T> {
 
         LockFuture {
             waiting: false,
-            mutex: UnsafeCell::new(self)
+            mutex: UnsafeCell::new(self),
         }.await
     }
 
@@ -114,12 +117,12 @@ impl<T> DerefMut for Exclusive<T> {
 
 impl<T: 'static> Drop for Exclusive<T> {
     fn drop(&mut self) {
-        self.address.notify( Unlock( self.val.take().unwrap() ) )
+        self.address.notify(Unlock(self.val.take().unwrap()))
     }
 }
 
 impl<T> Address<Mutex<T>> {
     pub async fn lock(&'static mut self) -> Exclusive<T> {
-        self.request( Lock ).await
+        self.request(Lock).await
     }
 }

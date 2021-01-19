@@ -5,7 +5,6 @@ use core::future::Future;
 use core::task::{Context, Poll, Waker};
 
 use heapless::{
-    Vec,
     spsc::Queue,
     consts::*,
 };
@@ -103,7 +102,7 @@ impl<A: Actor> ActorContext<A> {
         let notify: Box<dyn ActorFuture<A>> = Box::new(notify);
         unsafe {
             log::info!("enqueue notify");
-            (&mut *self.items.get()).enqueue(notify);
+            (&mut *self.items.get()).enqueue(notify).unwrap_or_else(|_| panic!("too many messages"));
             let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
             log::info!("--> {:x}", flag_ptr as u32);
             (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
@@ -122,7 +121,7 @@ impl<A: Actor> ActorContext<A> {
         let request: Box<dyn ActorFuture<A>> = Box::new(request);
 
         unsafe {
-            (&mut *self.items.get()).enqueue(request);
+            (&mut *self.items.get()).enqueue(request).unwrap_or_else(|_| panic!("too many messages"));
             let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
             (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
         }
@@ -131,7 +130,7 @@ impl<A: Actor> ActorContext<A> {
     }
 }
 
-pub trait ActorFuture<A: Actor>: Future<Output=()> {
+pub(crate) trait ActorFuture<A: Actor>: Future<Output=()> {
     fn poll(&mut self, cx: &mut Context<'_>) -> Poll<()> {
         unsafe {
             Future::poll(Pin::new_unchecked(self), cx)
@@ -139,7 +138,7 @@ pub trait ActorFuture<A: Actor>: Future<Output=()> {
     }
 }
 
-pub struct Notify<A: Actor, M>
+struct Notify<A: Actor, M>
     where A: NotificationHandler<M> + 'static
 {
     actor: &'static ActorContext<A>,
@@ -187,7 +186,7 @@ impl<A: Actor, M> Future for Notify<A, M>
     }
 }
 
-pub struct Request<A, M>
+struct Request<A, M>
     where A: Actor + RequestHandler<M> + 'static,
 {
     actor: &'static ActorContext<A>,
@@ -256,7 +255,7 @@ impl<A, M> Future for Request<A, M>
     }
 }
 
-pub struct RequestResponseFuture<R>
+struct RequestResponseFuture<R>
     where R: 'static
 {
     receiver: CompletionReceiver<R>,
@@ -278,7 +277,7 @@ impl<R> Future for RequestResponseFuture<R> {
     }
 }
 
-pub struct CompletionHandle<T> {
+struct CompletionHandle<T> {
     value: UnsafeCell<Option<T>>,
     waker: UnsafeCell<Option<Waker>>,
 }
@@ -296,6 +295,12 @@ impl<T> CompletionHandle<T> {
             CompletionSender::new(self),
             CompletionReceiver::new(self),
         )
+    }
+}
+
+impl<T> Default for CompletionHandle<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -321,7 +326,7 @@ impl<T> CompletionHandle<T> {
     }
 }
 
-pub struct CompletionSender<T: 'static> {
+struct CompletionSender<T: 'static> {
     handle: &'static CompletionHandle<T>,
 }
 
@@ -337,7 +342,7 @@ impl<T: 'static> CompletionSender<T> {
     }
 }
 
-pub struct CompletionReceiver<T: 'static> {
+struct CompletionReceiver<T: 'static> {
     handle: &'static CompletionHandle<T>,
 }
 

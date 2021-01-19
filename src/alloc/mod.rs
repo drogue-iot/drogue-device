@@ -6,13 +6,12 @@ use core::future::Future;
 use core::task::{Context, Poll};
 use core::ops::DerefMut;
 use crate::alloc::cortex_m::CortexMHeap;
-use core::mem;
-use crate::alloc::cortex_m::alloc::layout::Layout;
 
 pub mod cortex_m;
 
 pub static mut HEAP: Option<CortexMHeap> = None;
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! init_heap {
     ($size:literal) => {
