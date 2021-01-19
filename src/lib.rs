@@ -10,6 +10,7 @@ pub mod supervisor;
 pub mod alloc;
 pub mod interrupt;
 pub mod sink;
+pub mod mutex;
 
 #[cfg(test)]
 mod tests;

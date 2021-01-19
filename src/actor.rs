@@ -16,13 +16,16 @@ use core::sync::atomic::{AtomicU8, Ordering};
 
 
 pub trait Actor {
+    fn start(&mut self, address: Address<Self>)
+        where Self: Sized
+    {}
 }
 
 pub struct ActorContext<A: Actor> {
     pub(crate) actor: UnsafeCell<A>,
     pub(crate) current: UnsafeCell<Option<Box<dyn ActorFuture<A>>>>,
     pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>>, U16>>,
-    pub(crate) state_flag_handle: UnsafeCell<Option<* const ()>>,
+    pub(crate) state_flag_handle: UnsafeCell<Option<*const ()>>,
 }
 
 impl<A: Actor> ActorContext<A> {
@@ -43,8 +46,13 @@ impl<A: Actor> ActorContext<A> {
 
 
     pub fn start(&'static self, supervisor: &mut Supervisor) -> Address<A> {
-        supervisor.activate_actor( self );
-        Address::new(self)
+        let addr = Address::new(self);
+        supervisor.activate_actor(self);
+        unsafe {
+            (&mut *self.actor.get()).start(addr.clone());
+        }
+
+        addr
     }
 
     pub(crate) fn notify<M>(&'static self, message: M)
@@ -79,13 +87,12 @@ impl<A: Actor> ActorContext<A> {
 
         response.await
     }
-
 }
 
-pub trait ActorFuture<A: Actor> : Future<Output=()>{
+pub trait ActorFuture<A: Actor>: Future<Output=()> {
     fn poll(&mut self, cx: &mut Context<'_>) -> Poll<()> {
         unsafe {
-            Future::poll( Pin::new_unchecked(self), cx)
+            Future::poll(Pin::new_unchecked(self), cx)
         }
     }
 }
@@ -108,13 +115,11 @@ impl<A: Actor, M> Notify<A, M>
     }
 }
 
-impl<A: Actor + NotificationHandler<M>, M> ActorFuture<A> for Notify<A, M> {
-}
+impl<A: Actor + NotificationHandler<M>, M> ActorFuture<A> for Notify<A, M> {}
 
 impl<A, M> Unpin for Notify<A, M>
     where A: NotificationHandler<M>
-{
-}
+{}
 
 impl<A: Actor, M> Future for Notify<A, M>
     where A: NotificationHandler<M>
@@ -123,7 +128,7 @@ impl<A: Actor, M> Future for Notify<A, M>
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.message.is_some() {
-            let mut result = self.actor.actor_mut().on_notification(self.as_mut().message.take().unwrap() );
+            let mut result = self.actor.actor_mut().on_notification(self.as_mut().message.take().unwrap());
             match result {
                 Completion::Immediate() => {
                     Poll::Ready(())
@@ -166,8 +171,7 @@ impl<A, M> Request<A, M>
     where A: Actor + RequestHandler<M> + 'static,
 {}
 
-impl<A: Actor + RequestHandler<M>, M> ActorFuture<A> for Request<A, M> {
-}
+impl<A: Actor + RequestHandler<M>, M> ActorFuture<A> for Request<A, M> {}
 
 impl<A, M> Unpin for Request<A, M>
     where A: Actor + RequestHandler<M> + 'static,
