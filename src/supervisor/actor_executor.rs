@@ -6,6 +6,7 @@ use heapless::{
 use crate::actor::{Actor, ActorContext};
 use core::task::{Poll, Context, Waker, RawWaker, RawWakerVTable};
 use core::sync::atomic::{AtomicU8, Ordering};
+use core::ops::Deref;
 
 
 pub(crate) enum ActorState {
@@ -64,6 +65,7 @@ impl Supervised {
 
     fn poll(&mut self) -> bool {
         if self.is_ready() {
+            log::info!("polling actor {:x}", &self.actor as * const _ as u32);
             match self.actor.do_poll(self.get_state_flag_handle()) {
                 Poll::Ready(_) => {
                     self.signal_idle()
@@ -89,11 +91,15 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
             unsafe {
                 if (&*self.current.get()).is_none() {
                     if let Some(next) = (&mut *self.items.get()).dequeue() {
-                        (&mut *self.current.get()).replace(next );
-                        self.in_flight.store( true, Ordering::Release );
+                        log::info!("setting current task");
+                        (&mut *self.current.get()).replace(next);
+                        self.in_flight.store(true, Ordering::Release);
                     } else {
-                        self.in_flight.store( false, Ordering::Release );
+                        log::info!("no current task to set");
+                        self.in_flight.store(false, Ordering::Release);
                     }
+                } else {
+                    log::info!("has current task");
                 }
 
                 if let Some(item) = &mut *self.current.get() {
@@ -104,10 +110,12 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
                     let result = item.poll(&mut cx);
                     match result {
                         Poll::Ready(_) => {
+                            log::info!("current task completed");
                             // "dequeue" it and allow it to drop
                             (&mut *self.current.get()).take();
                         }
                         Poll::Pending => {
+                            log::info!("current task pending");
                             break;
                         }
                     }
@@ -135,8 +143,8 @@ impl ActorExecutor {
 
     pub(crate) fn activate_actor<S: ActiveActor>(&mut self, actor: &'static S) -> *const () {
         let supervised = Supervised::new(actor);
-        self.actors.push(supervised).unwrap_or_else( |_| panic!("too many actors" ) );
-        self.actors[self.actors.len()-1].get_state_flag_handle()
+        self.actors.push(supervised).unwrap_or_else(|_| panic!("too many actors"));
+        self.actors[self.actors.len() - 1].get_state_flag_handle()
     }
 
     pub(crate) fn run_until_quiescence(&mut self) {

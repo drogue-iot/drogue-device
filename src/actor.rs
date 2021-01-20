@@ -12,12 +12,13 @@ use crate::alloc::{Box, alloc};
 use core::cell::UnsafeCell;
 use crate::supervisor::{
     Supervisor,
-    actor_executor::ActorState
+    actor_executor::ActorState,
 };
 use core::sync::atomic::{AtomicU8, Ordering, AtomicBool};
 use crate::interrupt::Interrupt;
 use cortex_m::peripheral::NVIC;
 use cortex_m::interrupt::Nr;
+use core::fmt::{Debug, Formatter};
 
 
 pub trait Actor {
@@ -118,6 +119,7 @@ impl<A: Actor> ActorContext<A> {
         where A: RequestHandler<M>,
               M: 'static
     {
+        // TODO: fix this leak on signals
         let signal = alloc(CompletionHandle::new()).unwrap();
         let (sender, receiver) = signal.split();
         let request = alloc(Request::new(self, message, sender)).unwrap();
@@ -133,11 +135,14 @@ impl<A: Actor> ActorContext<A> {
             (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
         }
 
-        response.await
+        log::info!("WAIT response");
+        let r = response.await;
+        log::info!("WAIT response FINISH");
+        r
     }
 }
 
-pub(crate) trait ActorFuture<A: Actor>: Future<Output=()> {
+pub(crate) trait ActorFuture<A: Actor>: Future<Output=()> + Debug {
     fn poll(&mut self, cx: &mut Context<'_>) -> Poll<()> {
         unsafe {
             Future::poll(Pin::new_unchecked(self), cx)
@@ -150,6 +155,7 @@ struct Notify<A: Actor, M>
 {
     actor: &'static ActorContext<A>,
     message: Option<M>,
+    defer: Option<Completion>,
 }
 
 impl<A: Actor, M> Notify<A, M>
@@ -159,11 +165,19 @@ impl<A: Actor, M> Notify<A, M>
         Self {
             actor,
             message: Some(message),
+            defer: None,
         }
     }
 }
 
 impl<A: Actor + NotificationHandler<M>, M> ActorFuture<A> for Notify<A, M> {}
+
+impl<A: Actor + NotificationHandler<M>, M> Debug for Notify<A, M> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.write_str("Notify")
+    }
+}
+
 
 impl<A, M> Unpin for Notify<A, M>
     where A: NotificationHandler<M>
@@ -176,20 +190,32 @@ impl<A: Actor, M> Future for Notify<A, M>
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.message.is_some() {
-            let mut result = self.actor.actor_mut().on_notification(self.as_mut().message.take().unwrap());
-            match result {
-                Completion::Immediate() => {
-                    Poll::Ready(())
-                }
-                Completion::Defer(ref mut f) => {
-                    unsafe {
-                        Pin::new_unchecked(f).poll(cx)
+            let mut completion = self.actor.actor_mut().on_notification(self.as_mut().message.take().unwrap());
+            if matches!( completion, Completion::Immediate() ) {
+                return Poll::Ready(());
+            }
+            self.defer.replace(completion);
+        }
+
+        if let Some(Completion::Defer(ref mut fut)) = &mut self.defer {
+            unsafe {
+                let fut = Pin::new_unchecked(fut);
+                let result = fut.poll(cx);
+                match result {
+                    Poll::Ready(response) => {
+                        //self.sender.send(response);
+                        Poll::Ready(())
+                    }
+                    Poll::Pending => {
+                        Poll::Pending
                     }
                 }
             }
         } else {
+            // should not actually get here ever
             Poll::Ready(())
         }
+
     }
 }
 
@@ -220,6 +246,12 @@ impl<A, M> Request<A, M>
 {}
 
 impl<A: Actor + RequestHandler<M>, M> ActorFuture<A> for Request<A, M> {}
+
+impl<A: Actor + RequestHandler<M>, M> Debug for Request<A, M> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.write_str("Request")
+    }
+}
 
 impl<A, M> Unpin for Request<A, M>
     where A: Actor + RequestHandler<M> + 'static,
@@ -280,13 +312,26 @@ impl<R> Future for RequestResponseFuture<R> {
     type Output = R;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.receiver.poll(cx)
+        log::info!("about to poll response receiver");
+        let result = self.receiver.poll(cx);
+        if result.is_ready() {
+            log::info!("result is ready");
+        } else {
+            log::info!("result is pending");
+        }
+        result
     }
 }
 
 struct CompletionHandle<T> {
     value: UnsafeCell<Option<T>>,
     waker: UnsafeCell<Option<Waker>>,
+}
+
+impl<T> Drop for CompletionHandle<T> {
+    fn drop(&mut self) {
+        log::info!("dropping CompletionHandle");
+    }
 }
 
 impl<T> CompletionHandle<T> {
@@ -315,7 +360,9 @@ impl<T> CompletionHandle<T> {
     pub fn send(&'static self, value: T) {
         unsafe {
             (&mut *self.value.get()).replace(value);
+            log::info!("sending a response");
             if let Some(waker) = (&mut *self.waker.get()).take() {
+                log::info!("waking a waker");
                 waker.wake()
             }
         }
@@ -323,10 +370,13 @@ impl<T> CompletionHandle<T> {
 
     pub fn poll(&'static self, cx: &mut Context<'_>) -> Poll<T> {
         unsafe {
+            log::info!("polling response");
             if (&*self.value.get()).is_none() {
+                log::info!("registering waker and pending");
                 (&mut *self.waker.get()).replace(cx.waker().clone());
                 Poll::Pending
             } else {
+                log::info!("saying is ready");
                 Poll::Ready((&mut *self.value.get()).take().unwrap())
             }
         }
@@ -361,6 +411,7 @@ impl<T: 'static> CompletionReceiver<T> {
     }
 
     pub(crate) fn poll(&self, cx: &mut Context) -> Poll<T> {
+        log::info!("polling a response receiver");
         self.handle.poll(cx)
     }
 }

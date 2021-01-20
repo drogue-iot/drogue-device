@@ -32,10 +32,12 @@ impl<T: 'static> RequestHandler<Lock> for Mutex<T> {
 
     fn on_request(&'static mut self, message: Lock) -> Response<Self::Response> {
         Response::defer(async move {
-            Exclusive {
+            let lock = Exclusive {
                 address: self.address.as_ref().unwrap().clone(),
                 val: Some(self.lock().await),
-            }
+            };
+            log::info!("returning Exclusive");
+            lock
         })
     }
 }
@@ -67,10 +69,12 @@ impl<T> Mutex<T> {
 
             fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
                 unsafe {
-                    //if let Some(val) = (&mut **self.mutex.get()).val.take() {
+                    log::info!("polling mutex");
                     if let Some(val) = (**self.mutex.get()).val.take() {
+                        log::info!("successful mutex lock");
                         Poll::Ready(val)
                     } else {
+                        log::info!("waiting mutex lock");
                         if !self.waiting {
                             self.waiting = true;
                             (**self.mutex.get()).waiters.enqueue(cx.waker().clone()).unwrap_or_else(|_| panic!("too many waiters"))
@@ -89,6 +93,7 @@ impl<T> Mutex<T> {
     }
 
     pub fn unlock(&mut self, val: T) {
+        log::info!("unlocking mutex");
         self.val.replace(val);
         if let Some(next) = self.waiters.dequeue() {
             next.wake()

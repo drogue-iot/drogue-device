@@ -6,6 +6,7 @@ use core::future::Future;
 use core::task::{Context, Poll};
 use core::ops::DerefMut;
 use crate::alloc::cortex_m::CortexMHeap;
+use core::fmt::{Debug, Formatter};
 
 pub mod cortex_m;
 
@@ -31,7 +32,7 @@ pub fn alloc<T>(val: T) -> Option<&'static mut T>
 
 #[repr(transparent)]
 pub struct Box<T: ?Sized> {
-    pointer: UnsafeCell<* mut T>,
+    pub(crate) pointer: UnsafeCell<* mut T>,
 }
 
 impl<T: ?Sized> Box<T> {
@@ -80,3 +81,11 @@ impl<T: ?Sized> Drop for Box<T> {
     }
 }
 
+impl<T: ?Sized + Debug> Debug for Box<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        log::info!("debug Box<{}>", stringify!(T));
+        unsafe {
+            (&(*self.pointer.get() as * const T)).fmt(f)
+        }
+    }
+}
