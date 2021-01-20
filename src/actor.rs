@@ -10,7 +10,10 @@ use heapless::{
 };
 use crate::alloc::{Box, alloc};
 use core::cell::UnsafeCell;
-use crate::supervisor::{Supervisor, ActorState};
+use crate::supervisor::{
+    Supervisor,
+    actor_executor::ActorState
+};
 use core::sync::atomic::{AtomicU8, Ordering};
 use crate::interrupt::Interrupt;
 use cortex_m::peripheral::NVIC;

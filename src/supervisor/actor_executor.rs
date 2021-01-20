@@ -6,7 +6,6 @@ use heapless::{
 use crate::actor::{Actor, ActorContext};
 use core::task::{Poll, Context, Waker, RawWaker, RawWakerVTable};
 use core::sync::atomic::{AtomicU8, Ordering};
-use crate::interrupt::Interrupt;
 
 
 pub(crate) enum ActorState {
@@ -131,43 +130,15 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
     }
 }
 
-pub(crate) trait ActiveInterrupt {
-    fn on_interrupt(&self);
-}
 
-impl<I: Actor + Interrupt> ActiveInterrupt for ActorContext<I> {
-    fn on_interrupt(&self) {
-        log::info!( "--->");
-        unsafe {
-            (&mut *self.actor.get()).on_interrupt();
-        }
-    }
-}
-
-struct Interruptable {
-    irq: u8,
-    interrupt: &'static dyn ActiveInterrupt,
-}
-
-impl Interruptable {
-    pub fn new(interrupt: &'static dyn ActiveInterrupt, irq: u8) -> Self {
-        Self {
-            irq,
-            interrupt,
-        }
-    }
-}
-
-pub struct Supervisor {
+pub struct ActorExecutor {
     actors: Vec<Supervised, U16>,
-    interrupts: Vec<Interruptable, U16>,
 }
 
-impl Supervisor {
+impl ActorExecutor {
     pub(crate) fn new() -> Self {
         Self {
             actors: Vec::new(),
-            interrupts: Vec::new(),
         }
     }
 
@@ -175,10 +146,6 @@ impl Supervisor {
         let supervised = Supervised::new(actor);
         self.actors.push(supervised).unwrap_or_else( |_| panic!("too many actors" ) );
         self.actors[self.actors.len()-1].get_state_flag_handle()
-    }
-
-    pub(crate) fn activate_interrupt<I: ActiveInterrupt>(&mut self, interrupt: &'static I, irq: u8) {
-        self.interrupts.push(Interruptable::new(interrupt, irq)).unwrap_or_else( |_| panic!( "too many interrupts" ) );
     }
 
     pub(crate) fn run_until_quiescence(&mut self) {
@@ -198,14 +165,6 @@ impl Supervisor {
         loop {
             self.run_until_quiescence();
             // WFI
-        }
-    }
-
-    #[doc(hidden)]
-    pub fn on_interrupt(&self, irqn: i16) {
-        for interrupt in self.interrupts.iter().filter(|e| e.irq == irqn as u8) {
-            log::info!("send along irq");
-            interrupt.interrupt.on_interrupt();
         }
     }
 }
