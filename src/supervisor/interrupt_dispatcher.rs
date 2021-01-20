@@ -15,9 +15,16 @@ pub(crate) trait ActiveInterrupt {
 
 impl<I: Actor + Interrupt> ActiveInterrupt for ActorContext<I> {
     fn on_interrupt(&self) {
-        log::info!( "--->");
-        unsafe {
-            (&mut *self.actor.get()).on_interrupt();
+        // Mask this interrupt handler (not the entire IRQ) if this
+        // actor currently has an in-flight async block.
+        //
+        // This does indeed mean that this interrupt will never be
+        // processed. Perhaps we should just queue it up and deliver
+        // after the async block has completed?
+        if !self.in_flight.load(Ordering::Acquire) {
+            unsafe {
+                (&mut *self.actor.get()).on_interrupt();
+            }
         }
     }
 }
@@ -48,7 +55,7 @@ impl InterruptDispatcher {
     }
 
     pub(crate) fn activate_interrupt<I: ActiveInterrupt>(&mut self, interrupt: &'static I, irq: u8) {
-        self.interrupts.push(Interruptable::new(interrupt, irq)).unwrap_or_else( |_| panic!( "too many interrupts" ) );
+        self.interrupts.push(Interruptable::new(interrupt, irq)).unwrap_or_else(|_| panic!("too many interrupts"));
     }
 
     #[doc(hidden)]

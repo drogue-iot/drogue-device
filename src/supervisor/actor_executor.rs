@@ -90,6 +90,9 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
                 if (&*self.current.get()).is_none() {
                     if let Some(next) = (&mut *self.items.get()).dequeue() {
                         (&mut *self.current.get()).replace(next );
+                        self.in_flight.store( true, Ordering::Release );
+                    } else {
+                        self.in_flight.store( false, Ordering::Release );
                     }
                 }
 

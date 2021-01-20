@@ -14,7 +14,7 @@ use crate::supervisor::{
     Supervisor,
     actor_executor::ActorState
 };
-use core::sync::atomic::{AtomicU8, Ordering};
+use core::sync::atomic::{AtomicU8, Ordering, AtomicBool};
 use crate::interrupt::Interrupt;
 use cortex_m::peripheral::NVIC;
 use cortex_m::interrupt::Nr;
@@ -32,6 +32,7 @@ pub struct ActorContext<A: Actor> {
     pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>>, U16>>,
     pub(crate) state_flag_handle: UnsafeCell<Option<*const ()>>,
     pub(crate) irq: Option<u8>,
+    pub(crate) in_flight: AtomicBool,
 }
 
 impl<A: Actor> ActorContext<A> {
@@ -42,6 +43,7 @@ impl<A: Actor> ActorContext<A> {
             items: UnsafeCell::new(Queue::new()),
             state_flag_handle: UnsafeCell::new(None),
             irq: None,
+            in_flight: AtomicBool::new(false),
         }
     }
 
@@ -54,6 +56,7 @@ impl<A: Actor> ActorContext<A> {
             items: UnsafeCell::new(Queue::new()),
             state_flag_handle: UnsafeCell::new(None),
             irq: Some(irq),
+            in_flight: AtomicBool::new(false),
         }
     }
 
