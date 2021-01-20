@@ -24,9 +24,6 @@ macro_rules! init_heap {
 
 pub fn alloc<T>(val: T) -> Option<&'static mut T>
 {
-    let size = size_of::<T>();
-    let size = align_of::<T>();
-
     unsafe {
         HEAP.as_mut().unwrap().alloc_init(val)
     }
@@ -75,7 +72,6 @@ impl<T: Future + ?Sized + 'static> Future for Box<T> {
 
 impl<T: ?Sized> Drop for Box<T> {
     fn drop(&mut self) {
-        log::info!("drop Box");
         unsafe {
             HEAP.as_ref().unwrap().dealloc_object(
                 *self.pointer.get() as *mut u8,

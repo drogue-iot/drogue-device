@@ -35,7 +35,6 @@ impl Supervised {
     }
 
     fn get_state_flag_handle(&self) -> *const () {
-        log::info!("my handle {:x}", &self.state as *const _ as u32);
         &self.state as *const _ as *const ()
     }
 
@@ -56,7 +55,6 @@ impl Supervised {
     }
 
     fn is_ready(&self) -> bool {
-        //log::info!(" {:x} --> {}", (&self.state ) as * const _ as u32, self.state.load( Ordering::Acquire) as u8);
         self.state.load(Ordering::Acquire) == ActorState::READY.into()
     }
 
@@ -66,17 +64,11 @@ impl Supervised {
 
     fn poll(&mut self) -> bool {
         if self.is_ready() {
-            log::info!("actor is ready" );
-            //self.signal_idle();
-            //log::info!("actor signalling idle pre" );
             match self.actor.do_poll(self.get_state_flag_handle()) {
                 Poll::Ready(_) => {
-                    log::info!("actor signalling idle actual" );
-                    // this is actually stopped
                     self.signal_idle()
                 }
                 Poll::Pending => {
-                    log::info!("actor signalling waiting actual" );
                     self.signal_waiting()
                 }
             }
@@ -95,7 +87,6 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
     fn do_poll(&self, state_flag_handle: *const ()) -> Poll<()> {
         loop {
             unsafe {
-                //log::info!("items: {}, current={}", (&*self.items.get()).len(), (&*self.current.get()).is_some());
                 if (&*self.current.get()).is_none() {
                     if let Some(next) = (&mut *self.items.get()).dequeue() {
                         (&mut *self.current.get()).replace(next );
@@ -111,16 +102,13 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
                     match result {
                         Poll::Ready(_) => {
                             // "dequeue" it and allow it to drop
-                            log::info!("current complete, clearing" );
                             (&mut *self.current.get()).take();
                         }
                         Poll::Pending => {
-                            log::info!("current pending, breaking" );
                             break;
                         }
                     }
                 } else {
-                    log::info!("no current");
                     break;
                 }
             }
@@ -149,7 +137,6 @@ impl ActorExecutor {
     }
 
     pub(crate) fn run_until_quiescence(&mut self) {
-        //log::info!("run until quiescence");
         let mut run_again = true;
         while run_again {
             run_again = false;
@@ -175,12 +162,10 @@ static VTABLE: RawWakerVTable = {
         RawWaker::new(p, &VTABLE)
     }
     unsafe fn wake(p: *const ()) {
-        log::info!("wake");
         wake_by_ref(p)
     }
 
     unsafe fn wake_by_ref(p: *const ()) {
-        log::info!("wake by ref");
         (*(p as *const AtomicU8)).store(ActorState::READY.into(), Ordering::Release);
     }
 

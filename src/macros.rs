@@ -16,7 +16,6 @@ macro_rules! device {
 
         #[exception]
         fn DefaultHandler(irqn: i16) {
-            log::info!("IRQ {}", irqn);
             unsafe {
                 DEVICE.as_ref().unwrap().on_interrupt(irqn);
             }

@@ -54,7 +54,6 @@ impl InterruptDispatcher {
     #[doc(hidden)]
     pub(crate) fn on_interrupt(&self, irqn: i16) {
         for interrupt in self.interrupts.iter().filter(|e| e.irq == irqn as u8) {
-            log::info!("send along irq");
             interrupt.interrupt.on_interrupt();
         }
     }

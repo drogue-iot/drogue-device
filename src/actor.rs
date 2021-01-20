@@ -89,7 +89,6 @@ impl<A: Actor> ActorContext<A> {
                 }
             }
             unsafe {
-                log::info!("unmask {}", irq);
                 NVIC::unmask(IrqNr(irq))
             }
         }
@@ -104,12 +103,10 @@ impl<A: Actor> ActorContext<A> {
         let notify = alloc(Notify::new(self, message)).unwrap();
         let notify: Box<dyn ActorFuture<A>> = Box::new(notify);
         unsafe {
-            log::info!("enqueue notify");
             cortex_m::interrupt::free(|cs| {
                 (&mut *self.items.get()).enqueue(notify).unwrap_or_else(|_| panic!("too many messages"));
             });
             let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
-            log::info!("--> {:x}", flag_ptr as u32);
             (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
         }
     }
