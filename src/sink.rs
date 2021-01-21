@@ -1,3 +1,5 @@
+use crate::actor::Actor;
+use crate::handler::{Completion, NotificationHandler};
 use heapless::{ArrayLength, Vec};
 
 pub trait Sink<M> {
@@ -43,3 +45,22 @@ where
         }
     }
 }
+
+pub struct AddSink<M: 'static>(&'static dyn Sink<M>);
+
+impl<M: Clone> AddSink<M> {
+    pub fn new(s: &'static dyn Sink<M>) -> Self {
+        AddSink(s)
+    }
+}
+
+impl<M: Clone, N: ArrayLength<&'static dyn Sink<M>>> NotificationHandler<AddSink<M>>
+    for MultiSink<M, N>
+{
+    fn on_notification(&'static mut self, m: AddSink<M>) -> Completion {
+        self.add(m.0);
+        Completion::immediate()
+    }
+}
+
+impl<M: Clone, N: ArrayLength<&'static dyn Sink<M>>> Actor for MultiSink<M, N> {}
