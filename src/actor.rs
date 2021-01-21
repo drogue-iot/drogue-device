@@ -9,7 +9,7 @@ use heapless::{
     consts::*,
 };
 use crate::alloc::{Box, alloc};
-use core::cell::UnsafeCell;
+use core::cell::{UnsafeCell, RefCell};
 use crate::supervisor::{
     Supervisor,
     actor_executor::ActorState,
@@ -29,57 +29,58 @@ pub trait Actor {
 
 pub struct ActorContext<A: Actor> {
     pub(crate) actor: UnsafeCell<A>,
-    pub(crate) current: UnsafeCell<Option<Box<dyn ActorFuture<A>>>>,
-    pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>>, U16>>,
-    pub(crate) state_flag_handle: UnsafeCell<Option<*const ()>>,
+    pub(crate) current: RefCell<Option<Box<dyn ActorFuture<A>>>>,
+    pub(crate) items: RefCell<Queue<Box<dyn ActorFuture<A>>, U16>>,
+    pub(crate) state_flag_handle: RefCell<Option<*const ()>>,
     pub(crate) irq: Option<u8>,
     pub(crate) in_flight: AtomicBool,
-    name: Option<&'static str>,
+    name: &'static str,
 }
 
 impl<A: Actor> ActorContext<A> {
-    pub fn new(actor: A) -> Self {
+    pub fn new(actor: A, name: &'static str) -> Self {
         Self {
             actor: UnsafeCell::new(actor),
-            current: UnsafeCell::new(None),
-            items: UnsafeCell::new(Queue::new()),
-            state_flag_handle: UnsafeCell::new(None),
+            current: RefCell::new(None),
+            items: RefCell::new(Queue::new()),
+            state_flag_handle: RefCell::new(None),
             irq: None,
             in_flight: AtomicBool::new(false),
-            name: None,
+            name,
         }
     }
 
-    pub(crate) fn new_interrupt(actor: A, irq: u8) -> Self
+    pub(crate) fn new_interrupt(actor: A, irq: u8, name: &'static str) -> Self
         where A: Interrupt
     {
         Self {
             actor: UnsafeCell::new(actor),
-            current: UnsafeCell::new(None),
-            items: UnsafeCell::new(Queue::new()),
-            state_flag_handle: UnsafeCell::new(None),
+            current: RefCell::new(None),
+            items: RefCell::new(Queue::new()),
+            state_flag_handle: RefCell::new(None),
             irq: Some(irq),
             in_flight: AtomicBool::new(false),
-            name: None,
+            name,
         }
     }
 
-    fn actor_mut(&'static self) -> &mut A {
-        unsafe {
-            &mut *self.actor.get()
-        }
+    pub fn name(&self) -> &str {
+        self.name
     }
 
-    pub fn with_name(mut self, name: &'static str) -> Self {
-        self.name.replace(name);
-        self
+    unsafe fn actor_mut(&'static self) -> &mut A {
+        &mut *self.actor.get()
     }
 
     pub fn start(&'static self, supervisor: &mut Supervisor) -> Address<A> {
         let addr = Address::new(self);
         let state_flag_handle = supervisor.activate_actor(self);
+        log::info!("[{}] == {:x}", self.name(), state_flag_handle as u32);
+        self.state_flag_handle.borrow_mut().replace(state_flag_handle);
+
+        // SAFETY: At this point, we are the only holder of the actor
         unsafe {
-            (&mut *self.state_flag_handle.get()).replace(state_flag_handle);
+            //(&mut *self.state_flag_handle.get()).replace(state_flag_handle);
             (&mut *self.actor.get()).start(addr.clone());
         }
 
@@ -111,13 +112,15 @@ impl<A: Actor> ActorContext<A> {
         where A: NotificationHandler<M>,
               M: 'static
     {
+        log::info!("[{}].notify(...)", self.name());
         let notify = alloc(Notify::new(self, message)).unwrap();
         let notify: Box<dyn ActorFuture<A>> = Box::new(notify);
+        cortex_m::interrupt::free(|cs| {
+            self.items.borrow_mut().enqueue(notify).unwrap_or_else(|_| panic!("too many messages"));
+        });
+
+        let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
         unsafe {
-            cortex_m::interrupt::free(|cs| {
-                (&mut *self.items.get()).enqueue(notify).unwrap_or_else(|_| panic!("too many messages"));
-            });
-            let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
             (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
         }
     }
@@ -136,9 +139,10 @@ impl<A: Actor> ActorContext<A> {
 
         unsafe {
             cortex_m::interrupt::free(|cs| {
-                (&mut *self.items.get()).enqueue(request).unwrap_or_else(|_| panic!("too many messages"));
+                self.items.borrow_mut().enqueue(request).unwrap_or_else(|_| panic!("too many messages"));
             });
-            let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
+            //let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
+            let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
             (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
         }
 
@@ -149,11 +153,9 @@ impl<A: Actor> ActorContext<A> {
     }
 }
 
-pub(crate) trait ActorFuture<A: Actor>: Future<Output=()> + Debug {
+pub(crate) trait ActorFuture<A: Actor>: Future<Output=()> + Debug + Unpin {
     fn poll(&mut self, cx: &mut Context<'_>) -> Poll<()> {
-        unsafe {
-            Future::poll(Pin::new_unchecked(self), cx)
-        }
+        Future::poll(Pin::new(self), cx)
     }
 }
 
@@ -196,33 +198,37 @@ impl<A: Actor, M> Future for Notify<A, M>
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        log::info!("[{}] Notify.poll()", self.actor.name());
         if self.message.is_some() {
-            let mut completion = self.actor.actor_mut().on_notification(self.as_mut().message.take().unwrap());
+            log::info!("[{}] Notify.poll() - dispatch on_notification", self.actor.name());
+            let mut completion = unsafe { self.actor.actor_mut() }.on_notification(self.as_mut().message.take().unwrap());
             if matches!( completion, Completion::Immediate() ) {
+                log::info!("[{}] Notify.poll() - immediate: Ready", self.actor.name());
                 return Poll::Ready(());
             }
             self.defer.replace(completion);
         }
 
+        log::info!("[{}] Notify.poll() - check defer", self.actor.name());
         if let Some(Completion::Defer(ref mut fut)) = &mut self.defer {
-            unsafe {
-                let fut = Pin::new_unchecked(fut);
-                let result = fut.poll(cx);
-                match result {
-                    Poll::Ready(response) => {
-                        //self.sender.send(response);
-                        Poll::Ready(())
-                    }
-                    Poll::Pending => {
-                        Poll::Pending
-                    }
+            let fut = Pin::new(fut);
+            let result = fut.poll(cx);
+            match result {
+                Poll::Ready(response) => {
+                    log::info!("[{}] Notify.poll() - defer: Ready", self.actor.name());
+                    //self.sender.send(response);
+                    Poll::Ready(())
+                }
+                Poll::Pending => {
+                    log::info!("[{}] Notify.poll() - defer: Pending", self.actor.name());
+                    Poll::Pending
                 }
             }
         } else {
+            log::info!("[{}] Notify.poll() - ERROR - no defer?", self.actor.name());
             // should not actually get here ever
             Poll::Ready(())
         }
-
     }
 }
 
@@ -270,8 +276,9 @@ impl<A, M> Future for Request<A, M>
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        log::info!("[{}] Request.poll()", self.actor.name());
         if self.message.is_some() {
-            let response = self.actor.actor_mut().on_request(self.as_mut().message.take().unwrap());
+            let response = unsafe { self.actor.actor_mut() }.on_request(self.as_mut().message.take().unwrap());
             if let Response::Immediate(response) = response {
                 self.sender.send(response);
                 return Poll::Ready(());
@@ -281,17 +288,15 @@ impl<A, M> Future for Request<A, M>
         }
 
         if let Some(Response::Defer(ref mut fut)) = &mut self.defer {
-            unsafe {
-                let fut = Pin::new_unchecked(fut);
-                let result = fut.poll(cx);
-                match result {
-                    Poll::Ready(response) => {
-                        self.sender.send(response);
-                        Poll::Ready(())
-                    }
-                    Poll::Pending => {
-                        Poll::Pending
-                    }
+            let fut = Pin::new(fut);
+            let result = fut.poll(cx);
+            match result {
+                Poll::Ready(response) => {
+                    self.sender.send(response);
+                    Poll::Ready(())
+                }
+                Poll::Pending => {
+                    Poll::Pending
                 }
             }
         } else {
@@ -331,8 +336,8 @@ impl<R> Future for RequestResponseFuture<R> {
 }
 
 struct CompletionHandle<T> {
-    value: UnsafeCell<Option<T>>,
-    waker: UnsafeCell<Option<Waker>>,
+    value: RefCell<Option<T>>,
+    waker: RefCell<Option<Waker>>,
 }
 
 impl<T> Drop for CompletionHandle<T> {
@@ -344,8 +349,8 @@ impl<T> Drop for CompletionHandle<T> {
 impl<T> CompletionHandle<T> {
     pub fn new() -> Self {
         Self {
-            value: UnsafeCell::new(None),
-            waker: UnsafeCell::new(None),
+            value: RefCell::new(None),
+            waker: RefCell::new(None),
         }
     }
 
@@ -365,27 +370,23 @@ impl<T> Default for CompletionHandle<T> {
 
 impl<T> CompletionHandle<T> {
     pub fn send(&'static self, value: T) {
-        unsafe {
-            (&mut *self.value.get()).replace(value);
-            log::info!("sending a response");
-            if let Some(waker) = (&mut *self.waker.get()).take() {
-                log::info!("waking a waker");
-                waker.wake()
-            }
+        self.value.borrow_mut().replace(value);
+        log::info!("sending a response");
+        if let Some(waker) = self.waker.borrow_mut().take() {
+            log::info!("waking a waker");
+            waker.wake()
         }
     }
 
     pub fn poll(&'static self, cx: &mut Context<'_>) -> Poll<T> {
-        unsafe {
-            log::info!("polling response");
-            if (&*self.value.get()).is_none() {
-                log::info!("registering waker and pending");
-                (&mut *self.waker.get()).replace(cx.waker().clone());
-                Poll::Pending
-            } else {
-                log::info!("saying is ready");
-                Poll::Ready((&mut *self.value.get()).take().unwrap())
-            }
+        log::info!("polling response");
+        if self.value.borrow().is_none() {
+            log::info!("registering waker and pending");
+            self.waker.borrow_mut().replace(cx.waker().clone());
+            Poll::Pending
+        } else {
+            log::info!("saying is ready");
+            Poll::Ready(self.value.borrow_mut().take().unwrap())
         }
     }
 }

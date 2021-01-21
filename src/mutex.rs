@@ -36,7 +36,7 @@ impl<T: 'static> RequestHandler<Lock> for Mutex<T> {
                 address: self.address.as_ref().unwrap().clone(),
                 val: Some(self.lock().await),
             };
-            log::info!("returning Exclusive");
+            log::info!("[Mutex<T> lock");
             lock
         })
     }
@@ -44,6 +44,7 @@ impl<T: 'static> RequestHandler<Lock> for Mutex<T> {
 
 impl<T: 'static> NotificationHandler<Unlock<T>> for Mutex<T> {
     fn on_notification(&'static mut self, message: Unlock<T>) -> Completion {
+        log::info!("[Mutex<T> unlock");
         self.unlock(message.0);
         Completion::immediate()
     }
@@ -122,6 +123,7 @@ impl<T> DerefMut for Exclusive<T> {
 
 impl<T: 'static> Drop for Exclusive<T> {
     fn drop(&mut self) {
+        log::info!("dropping Exclusive<T>");
         self.address.notify(Unlock(self.val.take().unwrap()))
     }
 }

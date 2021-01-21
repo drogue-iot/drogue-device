@@ -44,6 +44,7 @@ impl Supervised {
     }
 
     fn signal_idle(&self) {
+        log::info!("[{}] signal idle {:x}", self.actor.name(), &self.state as * const _ as u32);
         self.state.store(ActorState::IDLE.into(), Ordering::Release)
     }
 
@@ -52,6 +53,7 @@ impl Supervised {
     }
 
     fn signal_waiting(&self) {
+        log::info!("[{}] signal waiting {:x}", self.actor.name(), &self.state as * const _ as u32);
         self.state.store(ActorState::WAITING.into(), Ordering::Release)
     }
 
@@ -60,12 +62,13 @@ impl Supervised {
     }
 
     fn signal_ready(&self) {
+        log::info!("[{}] signal ready {:x}", self.actor.name(), &self.state as * const _ as u32);
         self.state.store(ActorState::READY.into(), Ordering::Release)
     }
 
     fn poll(&mut self) -> bool {
         if self.is_ready() {
-            log::info!("polling actor {:x}", &self.actor as * const _ as u32);
+            log::info!("polling actor {:x}", &self.actor as *const _ as u32);
             match self.actor.do_poll(self.get_state_flag_handle()) {
                 Poll::Ready(_) => {
                     self.signal_idle()
@@ -82,46 +85,62 @@ impl Supervised {
 }
 
 pub(crate) trait ActiveActor {
+    fn name(&self) -> &str;
     fn do_poll(&self, state_flag_handle: *const ()) -> Poll<()>;
 }
 
 impl<A: Actor> ActiveActor for ActorContext<A> {
+    fn name(&self) -> &str {
+        ActorContext::name(self)
+    }
+
     fn do_poll(&self, state_flag_handle: *const ()) -> Poll<()> {
+        log::info!("[{}] executor: do_poll", self.name());
         loop {
-            unsafe {
-                if (&*self.current.get()).is_none() {
-                    if let Some(next) = (&mut *self.items.get()).dequeue() {
-                        log::info!("setting current task");
-                        (&mut *self.current.get()).replace(next);
+            if self.current.borrow().is_none() {
+                log::info!("before cs");
+                cortex_m::interrupt::free(|cs| {
+                    if let Some(next) = self.items.borrow_mut().dequeue()  {
+                        log::info!("[{}] executor: set current task", self.name());
+                        //(&mut *self.current.get()).replace(next);
+                        self.current.borrow_mut().replace(next);
                         self.in_flight.store(true, Ordering::Release);
                     } else {
-                        log::info!("no current task to set");
+                        log::info!("[{}] executor: no current task", self.name());
                         self.in_flight.store(false, Ordering::Release);
                     }
-                } else {
-                    log::info!("has current task");
-                }
+                });
+                log::info!("after cs");
+            } else {
+                log::info!("[{}] executor: in-flight current task", self.name());
+            }
 
-                if let Some(item) = &mut *self.current.get() {
-                    let raw_waker = RawWaker::new(state_flag_handle, &VTABLE);
-                    let waker = Waker::from_raw(raw_waker);
-                    let mut cx = Context::from_waker(&waker);
+            let mut should_drop = false;
+            if let Some(item) = &mut *self.current.borrow_mut() { //&mut *self.current.get() {
+                let raw_waker = RawWaker::new(state_flag_handle, &VTABLE);
+                let waker = unsafe{ Waker::from_raw(raw_waker) };
+                let mut cx = Context::from_waker(&waker);
 
-                    let result = item.poll(&mut cx);
-                    match result {
-                        Poll::Ready(_) => {
-                            log::info!("current task completed");
-                            // "dequeue" it and allow it to drop
-                            (&mut *self.current.get()).take();
-                        }
-                        Poll::Pending => {
-                            log::info!("current task pending");
-                            break;
-                        }
+                let result = item.poll(&mut cx);
+                match result {
+                    Poll::Ready(_) => {
+                        log::info!("[{}] executor: task complete", self.name());
+                        should_drop = true;
+                        // "dequeue" it and allow it to drop
+                        //(&mut *self.current.get()).take();
+                        //self.current.borrow_mut().take();
                     }
-                } else {
-                    break;
+                    Poll::Pending => {
+                        log::info!("[{}] executor: task pending", self.name());
+                        break;
+                    }
                 }
+            } else {
+                break;
+            }
+            if should_drop {
+                log::info!("[{}] executor: task drop", self.name());
+                self.current.borrow_mut().take().unwrap();
             }
         }
 
@@ -177,6 +196,7 @@ static VTABLE: RawWakerVTable = {
     }
 
     unsafe fn wake_by_ref(p: *const ()) {
+        log::info!("[waker] signal ready {:x}", p as *const _ as u32);
         (*(p as *const AtomicU8)).store(ActorState::READY.into(), Ordering::Release);
     }
 

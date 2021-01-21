@@ -10,7 +10,7 @@ pub struct Address<A: Actor> {
 impl<A: Actor> Clone for Address<A> {
     fn clone(&self) -> Self {
         Self {
-            actor: unsafe { UnsafeCell::new(&**self.actor.get()) }
+            actor: unsafe { UnsafeCell::new(*self.actor.get()) }
         }
     }
 }
@@ -27,9 +27,11 @@ impl<A: Actor> Address<A> {
         where A: NotificationHandler<M> + 'static,
               M: 'static
     {
+        log::info!("addr::notify");
         unsafe {
             (&**self.actor.get()).notify(message);
         }
+        log::info!("addr::notify done");
     }
 
     pub async fn request<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
