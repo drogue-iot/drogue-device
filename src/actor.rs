@@ -8,7 +8,7 @@ use heapless::{
     spsc::Queue,
     consts::*,
 };
-use crate::alloc::{Box, alloc};
+use crate::alloc::{Box, Rc, alloc};
 use core::cell::{UnsafeCell, RefCell};
 use crate::supervisor::{
     Supervisor,
@@ -130,8 +130,11 @@ impl<A: Actor> ActorContext<A> {
               M: 'static
     {
         // TODO: fix this leak on signals
-        let signal = alloc(CompletionHandle::new()).unwrap();
-        let (sender, receiver) = signal.split();
+        //let signal = alloc(CompletionHandle::new()).unwrap();
+        let signal = Rc::new(CompletionHandle::new());
+        //let (sender, receiver) = signal.split();
+        let sender = CompletionSender::new(signal.clone());
+        let receiver = CompletionReceiver::new(signal );
         let request = alloc(Request::new(self, message, sender)).unwrap();
         let response = RequestResponseFuture::new(receiver);
 
@@ -217,6 +220,7 @@ impl<A: Actor, M> Future for Notify<A, M>
                 Poll::Ready(response) => {
                     log::info!("[{}] Notify.poll() - defer: Ready", self.actor.name());
                     //self.sender.send(response);
+                    self.defer.take();
                     Poll::Ready(())
                 }
                 Poll::Pending => {
@@ -293,6 +297,7 @@ impl<A, M> Future for Request<A, M>
             match result {
                 Poll::Ready(response) => {
                     self.sender.send(response);
+                    self.defer.take();
                     Poll::Ready(())
                 }
                 Poll::Pending => {
@@ -353,13 +358,6 @@ impl<T> CompletionHandle<T> {
             waker: RefCell::new(None),
         }
     }
-
-    pub fn split(&'static self) -> (CompletionSender<T>, CompletionReceiver<T>) {
-        (
-            CompletionSender::new(self),
-            CompletionReceiver::new(self),
-        )
-    }
 }
 
 impl<T> Default for CompletionHandle<T> {
@@ -369,7 +367,7 @@ impl<T> Default for CompletionHandle<T> {
 }
 
 impl<T> CompletionHandle<T> {
-    pub fn send(&'static self, value: T) {
+    pub fn send(&self, value: T) {
         self.value.borrow_mut().replace(value);
         log::info!("sending a response");
         if let Some(waker) = self.waker.borrow_mut().take() {
@@ -378,7 +376,7 @@ impl<T> CompletionHandle<T> {
         }
     }
 
-    pub fn poll(&'static self, cx: &mut Context<'_>) -> Poll<T> {
+    pub fn poll(&self, cx: &mut Context<'_>) -> Poll<T> {
         log::info!("polling response");
         if self.value.borrow().is_none() {
             log::info!("registering waker and pending");
@@ -392,11 +390,11 @@ impl<T> CompletionHandle<T> {
 }
 
 struct CompletionSender<T: 'static> {
-    handle: &'static CompletionHandle<T>,
+    handle: Rc<CompletionHandle<T>>,
 }
 
 impl<T: 'static> CompletionSender<T> {
-    pub(crate) fn new(handle: &'static CompletionHandle<T>) -> Self {
+    pub(crate) fn new(handle: Rc<CompletionHandle<T>>) -> Self {
         Self {
             handle
         }
@@ -408,11 +406,11 @@ impl<T: 'static> CompletionSender<T> {
 }
 
 struct CompletionReceiver<T: 'static> {
-    handle: &'static CompletionHandle<T>,
+    handle: Rc<CompletionHandle<T>>,
 }
 
 impl<T: 'static> CompletionReceiver<T> {
-    pub(crate) fn new(handle: &'static CompletionHandle<T>) -> Self {
+    pub(crate) fn new(handle: Rc<CompletionHandle<T>>) -> Self {
         Self {
             handle
         }
