@@ -8,7 +8,7 @@ use heapless::{
     spsc::Queue,
     consts::*,
 };
-use crate::alloc::{Box, Rc, alloc};
+use crate::alloc::{Box, alloc};
 use core::cell::UnsafeCell;
 use crate::supervisor::{
     Supervisor,
@@ -120,12 +120,8 @@ impl<A: Actor> ActorContext<A> {
               M: 'static
     {
         // TODO: fix this leak on signals
-        //let signal = alloc(CompletionHandle::new()).unwrap();
-        let signal = Rc::new( CompletionHandle::new() );
-        //let (sender, receiver) = signal.split();
-        let sender = CompletionSender::new(signal.clone());
-        let receiver = CompletionReceiver::new(signal);
-
+        let signal = alloc(CompletionHandle::new()).unwrap();
+        let (sender, receiver) = signal.split();
         let request = alloc(Request::new(self, message, sender)).unwrap();
         let response = RequestResponseFuture::new(receiver);
 
@@ -345,6 +341,13 @@ impl<T> CompletionHandle<T> {
             waker: UnsafeCell::new(None),
         }
     }
+
+    pub fn split(&'static self) -> (CompletionSender<T>, CompletionReceiver<T>) {
+        (
+            CompletionSender::new(self),
+            CompletionReceiver::new(self),
+        )
+    }
 }
 
 impl<T> Default for CompletionHandle<T> {
@@ -354,7 +357,7 @@ impl<T> Default for CompletionHandle<T> {
 }
 
 impl<T> CompletionHandle<T> {
-    pub fn send(&self, value: T) {
+    pub fn send(&'static self, value: T) {
         unsafe {
             (&mut *self.value.get()).replace(value);
             log::info!("sending a response");
@@ -365,7 +368,7 @@ impl<T> CompletionHandle<T> {
         }
     }
 
-    pub fn poll(&self, cx: &mut Context<'_>) -> Poll<T> {
+    pub fn poll(&'static self, cx: &mut Context<'_>) -> Poll<T> {
         unsafe {
             log::info!("polling response");
             if (&*self.value.get()).is_none() {
@@ -381,11 +384,11 @@ impl<T> CompletionHandle<T> {
 }
 
 struct CompletionSender<T: 'static> {
-    handle: Rc<CompletionHandle<T>>,
+    handle: &'static CompletionHandle<T>,
 }
 
 impl<T: 'static> CompletionSender<T> {
-    pub(crate) fn new(handle: Rc<CompletionHandle<T>>) -> Self {
+    pub(crate) fn new(handle: &'static CompletionHandle<T>) -> Self {
         Self {
             handle
         }
@@ -397,11 +400,11 @@ impl<T: 'static> CompletionSender<T> {
 }
 
 struct CompletionReceiver<T: 'static> {
-    handle: Rc<CompletionHandle<T>>,
+    handle: &'static CompletionHandle<T>,
 }
 
 impl<T: 'static> CompletionReceiver<T> {
-    pub(crate) fn new(handle: Rc<CompletionHandle<T>>) -> Self {
+    pub(crate) fn new(handle: &'static CompletionHandle<T>) -> Self {
         Self {
             handle
         }
