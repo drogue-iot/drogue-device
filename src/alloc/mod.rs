@@ -7,6 +7,7 @@ use core::task::{Context, Poll};
 use core::ops::DerefMut;
 use crate::alloc::cortex_m::CortexMHeap;
 use core::fmt::{Debug, Formatter};
+use core::ptr::drop_in_place;
 
 pub mod cortex_m;
 
@@ -32,7 +33,7 @@ pub fn alloc<T>(val: T) -> Option<&'static mut T>
 
 #[repr(transparent)]
 pub struct Box<T: ?Sized> {
-    pub(crate) pointer: UnsafeCell<* mut T>,
+    pub(crate) pointer: UnsafeCell<*mut T>,
 }
 
 impl<T: ?Sized> Box<T> {
@@ -81,11 +82,68 @@ impl<T: ?Sized> Drop for Box<T> {
     }
 }
 
-impl<T: ?Sized + Debug> Debug for Box<T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        log::info!("debug Box<{}>", stringify!(T));
-        unsafe {
-            (&(*self.pointer.get() as * const T)).fmt(f)
+struct RcBox<T: ?Sized> {
+    count: u8,
+    value: T,
+}
+
+impl<T> RcBox<T> {
+    pub fn new(value: T) -> Self {
+        Self {
+            count: 0,
+            value,
         }
     }
 }
+
+pub struct Rc<T> {
+    pointer: UnsafeCell<*mut RcBox<T>>,
+}
+
+impl<T: 'static> Rc<T> {
+    pub fn new(val: T) -> Self {
+        let rc_box = RcBox::new(val);
+        let rc_box = alloc(rc_box).unwrap_or_else(|| panic!("oom!"));
+        Self {
+            pointer: UnsafeCell::new(rc_box),
+        }
+    }
+}
+
+impl<T> Clone for Rc<T> {
+    fn clone(&self) -> Self {
+        unsafe {
+            // increment count
+            (&mut **self.pointer.get()).count += 1;
+            Self {
+                pointer: UnsafeCell::new(*self.pointer.get())
+            }
+        }
+    }
+}
+
+impl<T> Deref for Rc<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe {
+            &(&**self.pointer.get()).value
+        }
+    }
+}
+
+impl<T> Drop for Rc<T> {
+    fn drop(&mut self) {
+        unsafe {
+            (&mut **self.pointer.get()).count -= 1;
+            if (&**self.pointer.get()).count == 0 {
+                log::info!("dealloc RC");
+                HEAP.as_ref().unwrap().dealloc_object(
+                    *self.pointer.get() as *mut u8,
+                );
+            }
+        }
+    }
+}
+
+
