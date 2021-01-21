@@ -18,6 +18,11 @@ impl<I:Interrupt> InterruptContext<I> {
         }
     }
 
+    pub fn with_name(mut self, name: &'static str) -> Self {
+        self.actor_context = self.actor_context.with_name(name);
+        self
+    }
+
     pub fn start(&'static self, supervisor: &mut Supervisor) -> Address<I> {
         log::info!("starting IRQ");
         self.actor_context.start_interrupt(supervisor)
