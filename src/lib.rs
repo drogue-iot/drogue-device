@@ -35,7 +35,7 @@ pub mod prelude {
         Device,
     };
     pub use crate::address::Address;
-    pub use crate::sink::Sink;
+    pub use crate::sink::{Sink, MultiSink};
     pub use crate::supervisor::Supervisor;
     pub use crate::device;
 
