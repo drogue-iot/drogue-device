@@ -12,10 +12,15 @@ pub struct InterruptContext<I: Interrupt> {
 }
 
 impl<I:Interrupt> InterruptContext<I> {
-    pub fn new<N:Nr>(interrupt: I, irq: N, name: &'static str) -> Self {
+    pub fn new<N:Nr>(interrupt: I, irq: N) -> Self {
         Self {
-            actor_context: ActorContext::new_interrupt(interrupt, irq.nr(), name)
+            actor_context: ActorContext::new_interrupt(interrupt, irq.nr())
         }
+    }
+
+    pub fn with_name(mut self, name: &'static str) -> Self {
+        self.actor_context = self.actor_context.with_name(name);
+        self
     }
 
     pub fn start(&'static self, supervisor: &mut Supervisor) -> Address<I> {

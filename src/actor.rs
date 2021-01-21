@@ -34,11 +34,11 @@ pub struct ActorContext<A: Actor> {
     pub(crate) state_flag_handle: RefCell<Option<*const ()>>,
     pub(crate) irq: Option<u8>,
     pub(crate) in_flight: AtomicBool,
-    name: &'static str,
+    name: Option<&'static str>,
 }
 
 impl<A: Actor> ActorContext<A> {
-    pub fn new(actor: A, name: &'static str) -> Self {
+    pub fn new(actor: A) -> Self {
         Self {
             actor: UnsafeCell::new(actor),
             current: RefCell::new(None),
@@ -46,11 +46,11 @@ impl<A: Actor> ActorContext<A> {
             state_flag_handle: RefCell::new(None),
             irq: None,
             in_flight: AtomicBool::new(false),
-            name,
+            name: None,
         }
     }
 
-    pub(crate) fn new_interrupt(actor: A, irq: u8, name: &'static str) -> Self
+    pub(crate) fn new_interrupt(actor: A, irq: u8) -> Self
         where A: Interrupt
     {
         Self {
@@ -60,12 +60,17 @@ impl<A: Actor> ActorContext<A> {
             state_flag_handle: RefCell::new(None),
             irq: Some(irq),
             in_flight: AtomicBool::new(false),
-            name,
+            name: None,
         }
     }
 
+    pub fn with_name(mut self, name: &'static str) -> Self {
+        self.name.replace(name);
+        self
+    }
+
     pub fn name(&self) -> &str {
-        self.name
+        self.name.unwrap_or( "<unnamed>")
     }
 
     unsafe fn actor_mut(&'static self) -> &mut A {
