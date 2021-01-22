@@ -330,7 +330,7 @@ impl<I: WriteRead + Read + Write> NotificationHandler<TakeReading> for Hts221<I>
                     reg
                 });
                 let temp_degc = Self::calibrated_temperature_degc(&mut i2c);
-                log::info!("[hts221] temperature = {} °F", Self::c_to_f(temp_degc));
+                log::info!("[hts221] temperature is {} °F", Self::c_to_f(temp_degc));
             }
         })
     }
@@ -340,7 +340,7 @@ impl<I: WriteRead + Read + Write + 'static> Address<Hts221<I>>
     where <I as WriteRead>::Error: Debug,
           <I as Write>::Error: Debug
 {
-    pub fn read_temperature(&self) {
+    pub fn trigger_read_temperature(&self) {
         self.notify( TakeReading )
     }
 
