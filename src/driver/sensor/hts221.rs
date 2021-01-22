@@ -3,6 +3,7 @@ use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use crate::synchronization::Mutex;
 use core::fmt::{Debug};
 use crate::bind::Bind;
+use core::ops::Add;
 
 const ADDR: u8 = 0x5F;
 const WRITE: u8 = 0xBE;
@@ -310,21 +311,6 @@ impl<I: WriteRead + Read + Write> Bind<Mutex<I>> for Hts221<I>
     }
 }
 
-/*
-pub struct SetI2c<I: WriteRead + Read + Write>(pub Address<Mutex<I>>);
-
-impl<I: WriteRead + Read + Write> NotificationHandler<SetI2c<I>> for Hts221<I>
-    where <I as WriteRead>::Error: Debug,
-          <I as Write>::Error: Debug
-{
-    fn on_notification(&'static mut self, message: SetI2c<I>) -> Completion {
-        self.i2c.replace(message.0);
-        Completion::immediate()
-    }
-}
-
- */
-
 pub struct TakeReading;
 
 impl<I: WriteRead + Read + Write> NotificationHandler<TakeReading> for Hts221<I>
@@ -336,18 +322,26 @@ impl<I: WriteRead + Read + Write> NotificationHandler<TakeReading> for Hts221<I>
             if let Some(ref i2c) = self.i2c {
                 let mut i2c = i2c.lock().await;
                 Self::modify_ctrl_reg1(&mut i2c, |mut reg| {
-                    log::info!("ctrl-reg1: {:?}", reg);
                     reg.power_down = false;
                     reg
                 });
                 Self::modify_ctrl_reg2(&mut i2c, |mut reg| {
-                    log::info!("ctrl-reg2: {:?}", reg);
                     reg.one_shot = true;
                     reg
                 });
                 let temp_degc = Self::calibrated_temperature_degc(&mut i2c);
-                log::info!(" ** The temperature is {} °F", Self::c_to_f(temp_degc));
+                log::info!("[hts221] temperature = {} °F", Self::c_to_f(temp_degc));
             }
         })
     }
+}
+
+impl<I: WriteRead + Read + Write + 'static> Address<Hts221<I>>
+    where <I as WriteRead>::Error: Debug,
+          <I as Write>::Error: Debug
+{
+    pub fn read_temperature(&self) {
+        self.notify( TakeReading )
+    }
+
 }

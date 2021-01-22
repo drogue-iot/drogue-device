@@ -44,7 +44,7 @@ impl Supervised {
     }
 
     fn signal_idle(&self) {
-        log::info!("[{}] signal idle {:x}", self.actor.name(), &self.state as * const _ as u32);
+        log::trace!("[{}] signal idle {:x}", self.actor.name(), &self.state as * const _ as u32);
         self.state.store(ActorState::IDLE.into(), Ordering::Release)
     }
 
@@ -53,7 +53,7 @@ impl Supervised {
     }
 
     fn signal_waiting(&self) {
-        log::info!("[{}] signal waiting {:x}", self.actor.name(), &self.state as * const _ as u32);
+        log::trace!("[{}] signal waiting {:x}", self.actor.name(), &self.state as * const _ as u32);
         self.state.store(ActorState::WAITING.into(), Ordering::Release)
     }
 
@@ -62,13 +62,13 @@ impl Supervised {
     }
 
     fn signal_ready(&self) {
-        log::info!("[{}] signal ready {:x}", self.actor.name(), &self.state as * const _ as u32);
+        log::trace!("[{}] signal ready {:x}", self.actor.name(), &self.state as * const _ as u32);
         self.state.store(ActorState::READY.into(), Ordering::Release)
     }
 
     fn poll(&mut self) -> bool {
         if self.is_ready() {
-            log::info!("polling actor {:x}", &self.actor as *const _ as u32);
+            log::trace!("polling actor {:x}", &self.actor as *const _ as u32);
             match self.actor.do_poll(self.get_state_flag_handle()) {
                 Poll::Ready(_) => {
                     self.signal_idle()
@@ -95,24 +95,22 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
     }
 
     fn do_poll(&self, state_flag_handle: *const ()) -> Poll<()> {
-        log::info!("[{}] executor: do_poll", self.name());
+        log::trace!("[{}] executor: do_poll", self.name());
         loop {
             if self.current.borrow().is_none() {
-                log::info!("before cs");
                 cortex_m::interrupt::free(|cs| {
                     if let Some(next) = self.items.borrow_mut().dequeue()  {
-                        log::info!("[{}] executor: set current task", self.name());
+                        log::trace!("[{}] executor: set current task", self.name());
                         //(&mut *self.current.get()).replace(next);
                         self.current.borrow_mut().replace(next);
                         self.in_flight.store(true, Ordering::Release);
                     } else {
-                        log::info!("[{}] executor: no current task", self.name());
+                        log::trace!("[{}] executor: no current task", self.name());
                         self.in_flight.store(false, Ordering::Release);
                     }
                 });
-                log::info!("after cs");
             } else {
-                log::info!("[{}] executor: in-flight current task", self.name());
+                log::trace!("[{}] executor: in-flight current task", self.name());
             }
 
             let mut should_drop = false;
@@ -124,14 +122,14 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
                 let result = item.poll(&mut cx);
                 match result {
                     Poll::Ready(_) => {
-                        log::info!("[{}] executor: task complete", self.name());
+                        log::trace!("[{}] executor: task complete", self.name());
                         should_drop = true;
                         // "dequeue" it and allow it to drop
                         //(&mut *self.current.get()).take();
                         //self.current.borrow_mut().take();
                     }
                     Poll::Pending => {
-                        log::info!("[{}] executor: task pending", self.name());
+                        log::trace!("[{}] executor: task pending", self.name());
                         break;
                     }
                 }
@@ -139,7 +137,7 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
                 break;
             }
             if should_drop {
-                log::info!("[{}] executor: task drop", self.name());
+                log::trace!("[{}] executor: task drop", self.name());
                 self.current.borrow_mut().take().unwrap();
             }
         }
@@ -196,7 +194,7 @@ static VTABLE: RawWakerVTable = {
     }
 
     unsafe fn wake_by_ref(p: *const ()) {
-        log::info!("[waker] signal ready {:x}", p as *const _ as u32);
+        log::trace!("[waker] signal ready {:x}", p as *const _ as u32);
         (*(p as *const AtomicU8)).store(ActorState::READY.into(), Ordering::Release);
     }
 

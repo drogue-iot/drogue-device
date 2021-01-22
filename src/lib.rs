@@ -16,7 +16,7 @@ pub mod supervisor;
 pub mod macros;
 
 pub mod synchronization;
-pub mod drivers;
+pub mod driver;
 
 pub mod prelude {
     pub use crate::actor::{

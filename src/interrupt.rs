@@ -24,7 +24,6 @@ impl<I:Interrupt> InterruptContext<I> {
     }
 
     pub fn start(&'static self, supervisor: &mut Supervisor) -> Address<I> {
-        log::info!("starting IRQ");
         self.actor_context.start_interrupt(supervisor)
     }
 

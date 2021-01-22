@@ -74,7 +74,6 @@ impl<T: Future + ?Sized + 'static> Future for Box<T> {
 
 impl<T: ?Sized> Drop for Box<T> {
     fn drop(&mut self) {
-        log::info!("drop box");
         unsafe {
             drop_in_place( self.pointer.get() );
             HEAP.as_ref().unwrap().dealloc_object(
@@ -147,7 +146,6 @@ impl<T> Drop for Rc<T> {
         unsafe {
             (&mut **self.pointer.get()).count -= 1;
             if (&**self.pointer.get()).count == 0 {
-                log::info!("dealloc RC");
                 HEAP.as_ref().unwrap().dealloc_object(
                     *self.pointer.get() as *mut u8,
                 );

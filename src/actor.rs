@@ -81,7 +81,7 @@ impl<A: Actor> ActorContext<A> {
     pub fn start(&'static self, supervisor: &mut Supervisor) -> Address<A> {
         let addr = Address::new(self);
         let state_flag_handle = supervisor.activate_actor(self);
-        log::info!("[{}] == {:x}", self.name(), state_flag_handle as u32);
+        log::trace!("[{}] == {:x}", self.name(), state_flag_handle as u32);
         self.state_flag_handle.borrow_mut().replace(state_flag_handle);
 
         // SAFETY: At this point, we are the only holder of the actor
@@ -118,7 +118,7 @@ impl<A: Actor> ActorContext<A> {
         where A: BindTrait<OA>,
               OA: 'static
     {
-        log::info!("[{}].notify(...)", self.name());
+        log::trace!("[{}].notify(...)", self.name());
         let bind = alloc(Bind::new(self, address.clone())).unwrap();
         let notify: Box<dyn ActorFuture<A>> = Box::new(bind);
         cortex_m::interrupt::free(|cs| {
@@ -135,7 +135,7 @@ impl<A: Actor> ActorContext<A> {
         where A: NotificationHandler<M>,
               M: 'static
     {
-        log::info!("[{}].notify(...)", self.name());
+        log::trace!("[{}].notify(...)", self.name());
         let notify = alloc(Notify::new(self, message)).unwrap();
         let notify: Box<dyn ActorFuture<A>> = Box::new(notify);
         cortex_m::interrupt::free(|cs| {
@@ -172,10 +172,7 @@ impl<A: Actor> ActorContext<A> {
             (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
         }
 
-        log::info!("WAIT response");
-        let r = response.await;
-        log::info!("WAIT response FINISH");
-        r
+        response.await
     }
 }
 
@@ -211,7 +208,7 @@ impl<A: Actor + BindTrait<OA>, OA: Actor> Future for Bind<A, OA> {
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.address.is_some() {
-            log::info!("[{}] Bind.poll() - dispatch on_bind", self.actor.name());
+            log::trace!("[{}] Bind.poll() - dispatch on_bind", self.actor.name());
             unsafe { self.actor.actor_mut() }.on_bind(self.as_mut().address.take().unwrap());
         }
         Poll::Ready(())
@@ -250,35 +247,35 @@ impl<A: Actor, M> Future for Notify<A, M>
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        log::info!("[{}] Notify.poll()", self.actor.name());
+        log::trace!("[{}] Notify.poll()", self.actor.name());
         if self.message.is_some() {
-            log::info!("[{}] Notify.poll() - dispatch on_notification", self.actor.name());
+            log::trace!("[{}] Notify.poll() - dispatch on_notification", self.actor.name());
             let mut completion = unsafe { self.actor.actor_mut() }.on_notification(self.as_mut().message.take().unwrap());
             if matches!( completion, Completion::Immediate() ) {
-                log::info!("[{}] Notify.poll() - immediate: Ready", self.actor.name());
+                log::trace!("[{}] Notify.poll() - immediate: Ready", self.actor.name());
                 return Poll::Ready(());
             }
             self.defer.replace(completion);
         }
 
-        log::info!("[{}] Notify.poll() - check defer", self.actor.name());
+        log::trace!("[{}] Notify.poll() - check defer", self.actor.name());
         if let Some(Completion::Defer(ref mut fut)) = &mut self.defer {
             let fut = Pin::new(fut);
             let result = fut.poll(cx);
             match result {
                 Poll::Ready(response) => {
-                    log::info!("[{}] Notify.poll() - defer: Ready", self.actor.name());
+                    log::trace!("[{}] Notify.poll() - defer: Ready", self.actor.name());
                     //self.sender.send(response);
                     self.defer.take();
                     Poll::Ready(())
                 }
                 Poll::Pending => {
-                    log::info!("[{}] Notify.poll() - defer: Pending", self.actor.name());
+                    log::trace!("[{}] Notify.poll() - defer: Pending", self.actor.name());
                     Poll::Pending
                 }
             }
         } else {
-            log::info!("[{}] Notify.poll() - ERROR - no defer?", self.actor.name());
+            log::trace!("[{}] Notify.poll() - ERROR - no defer?", self.actor.name());
             // should not actually get here ever
             Poll::Ready(())
         }
@@ -323,7 +320,7 @@ impl<A, M> Future for Request<A, M>
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        log::info!("[{}] Request.poll()", self.actor.name());
+        log::trace!("[{}] Request.poll()", self.actor.name());
         if self.message.is_some() {
             let response = unsafe { self.actor.actor_mut() }.on_request(self.as_mut().message.take().unwrap());
             if let Response::Immediate(response) = response {
@@ -372,26 +369,13 @@ impl<R> Future for RequestResponseFuture<R> {
     type Output = R;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        log::info!("about to poll response receiver");
-        let result = self.receiver.poll(cx);
-        if result.is_ready() {
-            log::info!("result is ready");
-        } else {
-            log::info!("result is pending");
-        }
-        result
+        self.receiver.poll(cx)
     }
 }
 
 struct CompletionHandle<T> {
     value: RefCell<Option<T>>,
     waker: RefCell<Option<Waker>>,
-}
-
-impl<T> Drop for CompletionHandle<T> {
-    fn drop(&mut self) {
-        log::info!("dropping CompletionHandle");
-    }
 }
 
 impl<T> CompletionHandle<T> {
@@ -412,21 +396,16 @@ impl<T> Default for CompletionHandle<T> {
 impl<T> CompletionHandle<T> {
     pub fn send(&self, value: T) {
         self.value.borrow_mut().replace(value);
-        log::info!("sending a response");
         if let Some(waker) = self.waker.borrow_mut().take() {
-            log::info!("waking a waker");
             waker.wake()
         }
     }
 
     pub fn poll(&self, cx: &mut Context<'_>) -> Poll<T> {
-        log::info!("polling response");
         if self.value.borrow().is_none() {
-            log::info!("registering waker and pending");
             self.waker.borrow_mut().replace(cx.waker().clone());
             Poll::Pending
         } else {
-            log::info!("saying is ready");
             Poll::Ready(self.value.borrow_mut().take().unwrap())
         }
     }
@@ -460,7 +439,6 @@ impl<T: 'static> CompletionReceiver<T> {
     }
 
     pub(crate) fn poll(&self, cx: &mut Context) -> Poll<T> {
-        log::info!("polling a response receiver");
         self.handle.poll(cx)
     }
 }

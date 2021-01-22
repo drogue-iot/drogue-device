@@ -36,7 +36,7 @@ impl<T: 'static> RequestHandler<Lock> for Mutex<T> {
                 address: self.address.as_ref().unwrap().clone(),
                 val: Some(self.lock().await),
             };
-            log::info!("[Mutex<T> lock");
+            log::trace!("[Mutex<T> lock");
             lock
         })
     }
@@ -44,7 +44,7 @@ impl<T: 'static> RequestHandler<Lock> for Mutex<T> {
 
 impl<T: 'static> NotificationHandler<Unlock<T>> for Mutex<T> {
     fn on_notification(&'static mut self, message: Unlock<T>) -> Completion {
-        log::info!("[Mutex<T> unlock");
+        log::trace!("[Mutex<T> unlock");
         self.unlock(message.0);
         Completion::immediate()
     }
@@ -70,16 +70,12 @@ impl<T> Mutex<T> {
 
             fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
                 unsafe {
-                    log::info!("polling mutex");
                     if let Some(val) = (**self.mutex.get()).val.take() {
-                        log::info!("successful mutex lock");
                         Poll::Ready(val)
                     } else {
-                        log::info!("waiting mutex lock");
                         if !self.waiting {
                             self.waiting = true;
                             (**self.mutex.get()).waiters.enqueue(cx.waker().clone()).unwrap_or_else(|_| panic!("too many waiters"))
-                            //(&mut **self.mutex.get()).waiters.enqueue(cx.waker().clone()).unwrap_or_else(|_| panic!("too many waiters"))
                         }
                         Poll::Pending
                     }
@@ -94,7 +90,6 @@ impl<T> Mutex<T> {
     }
 
     pub fn unlock(&mut self, val: T) {
-        log::info!("unlocking mutex");
         self.val.replace(val);
         if let Some(next) = self.waiters.dequeue() {
             next.wake()
@@ -123,7 +118,6 @@ impl<T> DerefMut for Exclusive<T> {
 
 impl<T: 'static> Drop for Exclusive<T> {
     fn drop(&mut self) {
-        log::info!("dropping Exclusive<T>");
         self.address.notify(Unlock(self.val.take().unwrap()))
     }
 }
