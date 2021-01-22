@@ -6,6 +6,7 @@ pub mod actor;
 pub mod address;
 #[doc(hidden)]
 pub mod alloc;
+pub mod bind;
 pub mod device;
 pub mod handler;
 pub mod interrupt;

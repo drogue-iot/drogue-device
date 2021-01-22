@@ -2,6 +2,7 @@ use crate::actor::{Actor, ActorContext};
 use core::cell::UnsafeCell;
 use crate::handler::{RequestHandler, NotificationHandler};
 use crate::sink::Sink;
+use crate::bind::Bind;
 
 pub struct Address<A: Actor> {
     actor: UnsafeCell<*const ActorContext<A>>,
@@ -23,15 +24,21 @@ impl<A: Actor> Address<A> {
         }
     }
 
+    pub fn bind<OA: Actor>(&self, address: &Address<OA>)
+        where A: Bind<OA> + 'static,
+              OA: 'static {
+        unsafe {
+            (&**self.actor.get()).bind(address);
+        }
+    }
+
     pub fn notify<M>(&self, message: M)
         where A: NotificationHandler<M> + 'static,
               M: 'static
     {
-        log::info!("addr::notify");
         unsafe {
             (&**self.actor.get()).notify(message);
         }
-        log::info!("addr::notify done");
     }
 
     pub async fn request<M>(&self, message: M) -> <A as RequestHandler<M>>::Response

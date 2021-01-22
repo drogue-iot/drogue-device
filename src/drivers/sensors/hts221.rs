@@ -2,6 +2,7 @@ use crate::prelude::*;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use crate::synchronization::Mutex;
 use core::fmt::{Debug};
+use crate::bind::Bind;
 
 const ADDR: u8 = 0x5F;
 const WRITE: u8 = 0xBE;
@@ -300,6 +301,16 @@ impl<I: WriteRead + Read + Write> Actor for Hts221<I>
           <I as Write>::Error: Debug
 {}
 
+impl<I: WriteRead + Read + Write> Bind<Mutex<I>> for Hts221<I>
+    where <I as WriteRead>::Error: Debug,
+          <I as Write>::Error: Debug
+{
+    fn on_bind(&'static mut self, address: Address<Mutex<I>>) {
+        self.i2c.replace( address );
+    }
+}
+
+/*
 pub struct SetI2c<I: WriteRead + Read + Write>(pub Address<Mutex<I>>);
 
 impl<I: WriteRead + Read + Write> NotificationHandler<SetI2c<I>> for Hts221<I>
@@ -311,6 +322,8 @@ impl<I: WriteRead + Read + Write> NotificationHandler<SetI2c<I>> for Hts221<I>
         Completion::immediate()
     }
 }
+
+ */
 
 pub struct TakeReading;
 

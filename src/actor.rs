@@ -19,6 +19,7 @@ use crate::interrupt::Interrupt;
 use cortex_m::peripheral::NVIC;
 use cortex_m::interrupt::Nr;
 use core::fmt::{Debug, Formatter};
+use crate::bind::Bind as BindTrait;
 
 
 pub trait Actor {
@@ -70,7 +71,7 @@ impl<A: Actor> ActorContext<A> {
     }
 
     pub fn name(&self) -> &str {
-        self.name.unwrap_or( "<unnamed>")
+        self.name.unwrap_or("<unnamed>")
     }
 
     unsafe fn actor_mut(&'static self) -> &mut A {
@@ -113,6 +114,23 @@ impl<A: Actor> ActorContext<A> {
         addr
     }
 
+    pub(crate) fn bind<OA: Actor>(&'static self, address: &Address<OA>)
+        where A: BindTrait<OA>,
+              OA: 'static
+    {
+        log::info!("[{}].notify(...)", self.name());
+        let bind = alloc(Bind::new(self, address.clone())).unwrap();
+        let notify: Box<dyn ActorFuture<A>> = Box::new(bind);
+        cortex_m::interrupt::free(|cs| {
+            self.items.borrow_mut().enqueue(notify).unwrap_or_else(|_| panic!("too many messages"));
+        });
+
+        let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
+        unsafe {
+            (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
+        }
+    }
+
     pub(crate) fn notify<M>(&'static self, message: M)
         where A: NotificationHandler<M>,
               M: 'static
@@ -139,7 +157,7 @@ impl<A: Actor> ActorContext<A> {
         let signal = Rc::new(CompletionHandle::new());
         //let (sender, receiver) = signal.split();
         let sender = CompletionSender::new(signal.clone());
-        let receiver = CompletionReceiver::new(signal );
+        let receiver = CompletionReceiver::new(signal);
         let request = alloc(Request::new(self, message, sender)).unwrap();
         let response = RequestResponseFuture::new(receiver);
 
@@ -161,9 +179,42 @@ impl<A: Actor> ActorContext<A> {
     }
 }
 
-pub(crate) trait ActorFuture<A: Actor>: Future<Output=()> + Debug + Unpin {
+pub(crate) trait ActorFuture<A: Actor>: Future<Output=()> + Unpin {
     fn poll(&mut self, cx: &mut Context<'_>) -> Poll<()> {
         Future::poll(Pin::new(self), cx)
+    }
+}
+
+struct Bind<A: Actor, OA: Actor>
+    where A: BindTrait<OA> + 'static
+{
+    actor: &'static ActorContext<A>,
+    address: Option<Address<OA>>,
+}
+
+impl<A: Actor, OA: Actor> Bind<A, OA>
+    where A: BindTrait<OA> + 'static {
+    fn new(actor: &'static ActorContext<A>, address: Address<OA>) -> Self {
+        Self {
+            actor,
+            address: Some(address),
+        }
+    }
+}
+
+impl<A: Actor + BindTrait<OA>, OA: Actor> ActorFuture<A> for Bind<A, OA> {}
+
+impl<A: Actor + BindTrait<OA>, OA: Actor> Unpin for Bind<A, OA> {}
+
+impl<A: Actor + BindTrait<OA>, OA: Actor> Future for Bind<A, OA> {
+    type Output = ();
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        if self.address.is_some() {
+            log::info!("[{}] Bind.poll() - dispatch on_bind", self.actor.name());
+            unsafe { self.actor.actor_mut() }.on_bind(self.as_mut().address.take().unwrap());
+        }
+        Poll::Ready(())
     }
 }
 
@@ -188,13 +239,6 @@ impl<A: Actor, M> Notify<A, M>
 }
 
 impl<A: Actor + NotificationHandler<M>, M> ActorFuture<A> for Notify<A, M> {}
-
-impl<A: Actor + NotificationHandler<M>, M> Debug for Notify<A, M> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str("Notify")
-    }
-}
-
 
 impl<A, M> Unpin for Notify<A, M>
     where A: NotificationHandler<M>
@@ -268,12 +312,6 @@ impl<A, M> Request<A, M>
 {}
 
 impl<A: Actor + RequestHandler<M>, M> ActorFuture<A> for Request<A, M> {}
-
-impl<A: Actor + RequestHandler<M>, M> Debug for Request<A, M> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str("Request")
-    }
-}
 
 impl<A, M> Unpin for Request<A, M>
     where A: Actor + RequestHandler<M> + 'static,
