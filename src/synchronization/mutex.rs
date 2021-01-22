@@ -129,7 +129,7 @@ impl<T: 'static> Drop for Exclusive<T> {
 }
 
 impl<T> Address<Mutex<T>> {
-    pub async fn lock(&'static mut self) -> Exclusive<T> {
+    pub async fn lock(&'static self) -> Exclusive<T> {
         self.request(Lock).await
     }
 }

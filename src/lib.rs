@@ -14,7 +14,8 @@ pub mod supervisor;
 #[doc(hidden)]
 pub mod macros;
 
-pub mod mutex;
+pub mod synchronization;
+pub mod drivers;
 
 pub mod prelude {
     pub use crate::actor::{
