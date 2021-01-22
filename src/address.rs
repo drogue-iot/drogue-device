@@ -1,4 +1,5 @@
 use crate::actor::{Actor, ActorContext};
+use crate::sink::Message;
 use core::cell::UnsafeCell;
 use crate::handler::{RequestHandler, NotificationHandler};
 use crate::sink::Sink;
@@ -34,7 +35,7 @@ impl<A: Actor> Address<A> {
 
     pub fn notify<M>(&self, message: M)
         where A: NotificationHandler<M> + 'static,
-              M: 'static
+              M: Message
     {
         unsafe {
             (&**self.actor.get()).notify(message);
@@ -43,7 +44,7 @@ impl<A: Actor> Address<A> {
 
     pub async fn request<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
         where A: RequestHandler<M> + 'static,
-              M: 'static
+              M: Message
     {
         unsafe {
             (&**self.actor.get()).request(message).await
@@ -51,7 +52,7 @@ impl<A: Actor> Address<A> {
     }
 }
 
-impl<A: Actor + 'static, M: 'static> Sink<M> for Address<A>
+impl<A: Actor + 'static, M: Message> Sink<M> for Address<A>
     where A: NotificationHandler<M>
 {
     fn notify(&self, message: M) {

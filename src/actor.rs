@@ -2,6 +2,7 @@ use crate::address::Address;
 use core::pin::Pin;
 use crate::handler::{RequestHandler, NotificationHandler, Response, Completion};
 use core::future::Future;
+use crate::sink::{MultiSink, Sink, Message};
 use core::task::{Context, Poll, Waker};
 
 use heapless::{
@@ -39,6 +40,7 @@ pub struct ActorContext<A: Actor> {
     pub(crate) state_flag_handle: RefCell<Option<*const ()>>,
     pub(crate) irq: Option<u8>,
     pub(crate) in_flight: AtomicBool,
+    pub(crate) sink: MultiSink<Box<dyn Message>, U4>,
     name: Option<&'static str>,
 }
 
@@ -55,6 +57,7 @@ impl<A: Actor> ActorContext<A> {
             state_flag_handle: RefCell::new(None),
             irq: None,
             in_flight: AtomicBool::new(false),
+            sink: MultiSink::<_, U4>::new(),
             name: None,
         }
     }
@@ -104,6 +107,10 @@ impl<A: Actor> ActorContext<A> {
         }
 
         addr
+    }
+
+    pub fn subscribe(&'static self, source: &'static dyn Actor) {
+
     }
 
     pub(crate) fn start_interrupt(&'static self, supervisor: &mut Supervisor) -> Address<A>

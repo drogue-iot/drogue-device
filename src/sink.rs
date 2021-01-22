@@ -2,13 +2,15 @@ use crate::actor::Actor;
 use crate::handler::{Completion, NotificationHandler};
 use heapless::{ArrayLength, Vec};
 
-pub trait Sink<M> {
+pub trait Message: 'static + Clone {}
+
+pub trait Sink<M: Message> {
     fn notify(&self, message: M);
 }
 
 pub struct MultiSink<M, N>
 where
-    M: 'static + Clone,
+    M: Message,
     N: ArrayLength<&'static dyn Sink<M>>,
 {
     subscribers: Vec<&'static dyn Sink<M>, N>,
@@ -16,7 +18,7 @@ where
 
 impl<M, N> MultiSink<M, N>
 where
-    M: Clone,
+    M: Message,
     N: ArrayLength<&'static dyn Sink<M>>,
 {
     pub fn new() -> Self {
@@ -32,11 +34,17 @@ where
     pub fn len(&self) -> usize {
         self.subscribers.len()
     }
+
+    pub fn send(&self, message: M) {
+        for sub in self.subscribers.iter() {
+            sub.notify(message.clone());
+        }
+    }
 }
 
 impl<M, N> Sink<M> for MultiSink<M, N>
 where
-    M: Clone,
+    M: Message,
     N: ArrayLength<&'static dyn Sink<M>>,
 {
     fn notify(&self, message: M) {
@@ -46,15 +54,15 @@ where
     }
 }
 
-pub struct AddSink<M: 'static>(&'static dyn Sink<M>);
+pub struct AddSink<M: Message>(&'static dyn Sink<M>);
 
-impl<M: Clone> AddSink<M> {
+impl<M: Message> AddSink<M> {
     pub fn new(s: &'static dyn Sink<M>) -> Self {
         AddSink(s)
     }
 }
 
-impl<M: Clone, N: ArrayLength<&'static dyn Sink<M>>> NotificationHandler<AddSink<M>>
+impl<M: Message, N: ArrayLength<&'static dyn Sink<M>>> NotificationHandler<AddSink<M>>
     for MultiSink<M, N>
 {
     fn on_notification(&'static mut self, m: AddSink<M>) -> Completion {
@@ -63,4 +71,4 @@ impl<M: Clone, N: ArrayLength<&'static dyn Sink<M>>> NotificationHandler<AddSink
     }
 }
 
-impl<M: Clone, N: ArrayLength<&'static dyn Sink<M>>> Actor for MultiSink<M, N> {}
+impl<M: Message, N: ArrayLength<&'static dyn Sink<M>>> Actor for MultiSink<M, N> {}

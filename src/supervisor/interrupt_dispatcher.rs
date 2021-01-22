@@ -1,13 +1,9 @@
-use heapless::{
-    Vec,
-    consts::*,
-};
+use heapless::{consts::*, Vec};
 
 use crate::actor::{Actor, ActorContext};
-use core::task::{Poll, Context, Waker, RawWaker, RawWakerVTable};
-use core::sync::atomic::{AtomicU8, Ordering};
 use crate::interrupt::Interrupt;
-
+use core::sync::atomic::{AtomicU8, Ordering};
+use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
 pub(crate) trait ActiveInterrupt {
     fn on_interrupt(&self);
@@ -23,9 +19,9 @@ impl<I: Actor + Interrupt> ActiveInterrupt for ActorContext<I> {
         // after the async block has completed?
         if !self.in_flight.load(Ordering::Acquire) {
             unsafe {
-                //cortex_m::interrupt::free( |cs| {
-                    (&mut *self.actor.get()).on_interrupt();
-                //})
+                cortex_m::interrupt::free( |cs| {
+                    (&mut *self.actor.get()).on_interrupt(&self.sink);
+                })
             }
         }
     }
@@ -38,10 +34,7 @@ struct Interruptable {
 
 impl Interruptable {
     pub fn new(interrupt: &'static dyn ActiveInterrupt, irq: u8) -> Self {
-        Self {
-            irq,
-            interrupt,
-        }
+        Self { irq, interrupt }
     }
 }
 
@@ -56,8 +49,14 @@ impl InterruptDispatcher {
         }
     }
 
-    pub(crate) fn activate_interrupt<I: ActiveInterrupt>(&mut self, interrupt: &'static I, irq: u8) {
-        self.interrupts.push(Interruptable::new(interrupt, irq)).unwrap_or_else(|_| panic!("too many interrupts"));
+    pub(crate) fn activate_interrupt<I: ActiveInterrupt>(
+        &mut self,
+        interrupt: &'static I,
+        irq: u8,
+    ) {
+        self.interrupts
+            .push(Interruptable::new(interrupt, irq))
+            .unwrap_or_else(|_| panic!("too many interrupts"));
     }
 
     #[doc(hidden)]
