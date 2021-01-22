@@ -98,8 +98,8 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
         log::trace!("[{}] executor: do_poll", self.name());
         loop {
             if self.current.borrow().is_none() {
-                cortex_m::interrupt::free(|cs| {
-                    if let Some(next) = self.items.borrow_mut().dequeue()  {
+                //cortex_m::interrupt::free(|cs| {
+                    if let Some(next) = self.items_consumer.borrow_mut().as_mut().unwrap().dequeue()  {
                         log::trace!("[{}] executor: set current task", self.name());
                         //(&mut *self.current.get()).replace(next);
                         self.current.borrow_mut().replace(next);
@@ -108,7 +108,7 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
                         log::trace!("[{}] executor: no current task", self.name());
                         self.in_flight.store(false, Ordering::Release);
                     }
-                });
+                //});
             } else {
                 log::trace!("[{}] executor: in-flight current task", self.name());
             }

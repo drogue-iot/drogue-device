@@ -43,7 +43,6 @@ impl<P: OutputPin> SimpleLED<P, ActiveHigh> {
     }
 }
 
-
 impl<P: OutputPin> Switchable for SimpleLED<P, ActiveHigh> {
     fn turn_on(&mut self) {
         self.pin.set_high().ok().unwrap();

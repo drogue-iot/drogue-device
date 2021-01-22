@@ -9,7 +9,7 @@ use heapless::{
     consts::*,
 };
 use crate::alloc::{Box, Rc, alloc};
-use core::cell::{UnsafeCell, RefCell};
+use core::cell::{UnsafeCell, RefCell, Ref};
 use crate::supervisor::{
     Supervisor,
     actor_executor::ActorState,
@@ -20,6 +20,8 @@ use cortex_m::peripheral::NVIC;
 use cortex_m::interrupt::Nr;
 use core::fmt::{Debug, Formatter};
 use crate::bind::Bind as BindTrait;
+use heapless::spsc::{Producer, Consumer};
+use core::borrow::BorrowMut;
 
 
 pub trait Actor {
@@ -31,7 +33,9 @@ pub trait Actor {
 pub struct ActorContext<A: Actor> {
     pub(crate) actor: UnsafeCell<A>,
     pub(crate) current: RefCell<Option<Box<dyn ActorFuture<A>>>>,
-    pub(crate) items: RefCell<Queue<Box<dyn ActorFuture<A>>, U16>>,
+    pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>>, U16>>,
+    pub(crate) items_producer: RefCell<Option<Producer<'static, Box<dyn ActorFuture<A>>, U16>>>,
+    pub(crate) items_consumer: RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>>, U16>>>,
     pub(crate) state_flag_handle: RefCell<Option<*const ()>>,
     pub(crate) irq: Option<u8>,
     pub(crate) in_flight: AtomicBool,
@@ -40,10 +44,14 @@ pub struct ActorContext<A: Actor> {
 
 impl<A: Actor> ActorContext<A> {
     pub fn new(actor: A) -> Self {
+        //let mut items = Queue::new();
+        //let (producer, consumer) = items.split();
         Self {
             actor: UnsafeCell::new(actor),
             current: RefCell::new(None),
-            items: RefCell::new(Queue::new()),
+            items: UnsafeCell::new(Queue::new()),
+            items_producer: RefCell::new(None),
+            items_consumer: RefCell::new(None),
             state_flag_handle: RefCell::new(None),
             irq: None,
             in_flight: AtomicBool::new(false),
@@ -57,7 +65,9 @@ impl<A: Actor> ActorContext<A> {
         Self {
             actor: UnsafeCell::new(actor),
             current: RefCell::new(None),
-            items: RefCell::new(Queue::new()),
+            items: UnsafeCell::new(Queue::new()),
+            items_producer: RefCell::new(None),
+            items_consumer: RefCell::new(None),
             state_flag_handle: RefCell::new(None),
             irq: Some(irq),
             in_flight: AtomicBool::new(false),
@@ -83,6 +93,9 @@ impl<A: Actor> ActorContext<A> {
         let state_flag_handle = supervisor.activate_actor(self);
         log::trace!("[{}] == {:x}", self.name(), state_flag_handle as u32);
         self.state_flag_handle.borrow_mut().replace(state_flag_handle);
+        let (producer, consumer) = unsafe { (&mut *self.items.get()).split() };
+        self.items_producer.borrow_mut().replace(producer);
+        self.items_consumer.borrow_mut().replace(consumer);
 
         // SAFETY: At this point, we are the only holder of the actor
         unsafe {
@@ -122,7 +135,7 @@ impl<A: Actor> ActorContext<A> {
         let bind = alloc(Bind::new(self, address.clone())).unwrap();
         let notify: Box<dyn ActorFuture<A>> = Box::new(bind);
         cortex_m::interrupt::free(|cs| {
-            self.items.borrow_mut().enqueue(notify).unwrap_or_else(|_| panic!("too many messages"));
+            self.items_producer.borrow_mut().as_mut().unwrap().enqueue(notify).unwrap_or_else(|_| panic!("too many messages"));
         });
 
         let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
@@ -139,7 +152,7 @@ impl<A: Actor> ActorContext<A> {
         let notify = alloc(Notify::new(self, message)).unwrap();
         let notify: Box<dyn ActorFuture<A>> = Box::new(notify);
         cortex_m::interrupt::free(|cs| {
-            self.items.borrow_mut().enqueue(notify).unwrap_or_else(|_| panic!("too many messages"));
+            self.items_producer.borrow_mut().as_mut().unwrap().enqueue(notify).unwrap_or_else(|_| panic!("too many messages"));
         });
 
         let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
@@ -165,7 +178,8 @@ impl<A: Actor> ActorContext<A> {
 
         unsafe {
             cortex_m::interrupt::free(|cs| {
-                self.items.borrow_mut().enqueue(request).unwrap_or_else(|_| panic!("too many messages"));
+                //self.items.borrow_mut().enqueue(request).unwrap_or_else(|_| panic!("too many messages"));
+                self.items_producer.borrow_mut().as_mut().unwrap().enqueue(request).unwrap_or_else( |_| panic!("message queue full"));
             });
             //let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
             let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
