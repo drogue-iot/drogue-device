@@ -35,6 +35,18 @@ impl<A: Actor> Address<A> {
         }
     }
 
+    pub fn subscribe<I: Interrupt>(&self, address: &InterruptAddress<I>)
+    where
+        I: 'static,
+        A: Sink<I::Event> + 'static,
+    {
+        unsafe {
+            let source = &**address.actor.get();
+            let sink = &**self.actor.get();
+            source.add_subscriber(&*sink.actor.get());
+        }
+    }
+
     pub fn notify<M>(&self, message: M)
     where
         A: NotificationHandler<M> + 'static,
@@ -93,16 +105,6 @@ impl<I: Interrupt> InterruptAddress<I> {
         M: 'static,
     {
         self.address.notify(message);
-    }
-
-    pub fn add_subscriber<S>(&self, sink: &'static S)
-    where
-        I: 'static,
-        S: Sink<I::Event> + 'static,
-    {
-        unsafe {
-            (&**self.actor.get()).add_subscriber(sink);
-        }
     }
 
     pub async fn request<M>(&self, message: M) -> <I as RequestHandler<M>>::Response

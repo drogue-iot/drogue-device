@@ -84,17 +84,6 @@ impl<A: Actor> ActorContext<A> {
         addr
     }
 
-    pub fn subscribe<I: Interrupt>(&'static self, address: &InterruptAddress<I>)
-    where
-        I: 'static,
-        A: Sink<I::Event>,
-    {
-        //(&**address.actor.get()).add_subscriber(&**self.actor.get());
-        unsafe {
-            address.add_subscriber(&*self.actor.get());
-        }
-    }
-
     pub(crate) fn bind<OA: Actor>(&'static self, address: &Address<OA>)
     where
         A: BindTrait<OA>,
