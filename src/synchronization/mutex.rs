@@ -1,15 +1,12 @@
-use core::task::{Waker, Context, Poll};
-use heapless::{
-    spsc::Queue,
-    consts::*,
-};
-use core::cell::UnsafeCell;
-use core::future::Future;
-use core::pin::Pin;
 use crate::actor::Actor;
 use crate::address::Address;
-use crate::handler::{RequestHandler, Response, NotificationHandler, Completion};
+use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
+use core::cell::UnsafeCell;
+use core::future::Future;
 use core::ops::{Deref, DerefMut};
+use core::pin::Pin;
+use core::task::{Context, Poll, Waker};
+use heapless::{consts::*, spsc::Queue};
 
 pub struct Lock;
 
@@ -75,7 +72,10 @@ impl<T> Mutex<T> {
                     } else {
                         if !self.waiting {
                             self.waiting = true;
-                            (**self.mutex.get()).waiters.enqueue(cx.waker().clone()).unwrap_or_else(|_| panic!("too many waiters"))
+                            (**self.mutex.get())
+                                .waiters
+                                .enqueue(cx.waker().clone())
+                                .unwrap_or_else(|_| panic!("too many waiters"))
                         }
                         Poll::Pending
                     }
@@ -86,7 +86,8 @@ impl<T> Mutex<T> {
         LockFuture {
             waiting: false,
             mutex: UnsafeCell::new(self),
-        }.await
+        }
+        .await
     }
 
     pub fn unlock(&mut self, val: T) {

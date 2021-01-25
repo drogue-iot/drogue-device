@@ -1,13 +1,9 @@
-use heapless::{
-    Vec,
-    consts::*,
-};
+use heapless::{consts::*, Vec};
 
 use crate::actor::{Actor, ActorContext};
-use core::task::{Poll, Context, Waker, RawWaker, RawWakerVTable};
-use core::sync::atomic::{AtomicU8, Ordering};
 use core::ops::Deref;
-
+use core::sync::atomic::{AtomicU8, Ordering};
+use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
 pub(crate) enum ActorState {
     IDLE = 0,
@@ -44,7 +40,11 @@ impl Supervised {
     }
 
     fn signal_idle(&self) {
-        log::trace!("[{}] signal idle {:x}", self.actor.name(), &self.state as * const _ as u32);
+        log::trace!(
+            "[{}] signal idle {:x}",
+            self.actor.name(),
+            &self.state as *const _ as u32
+        );
         self.state.store(ActorState::IDLE.into(), Ordering::Release)
     }
 
@@ -53,8 +53,13 @@ impl Supervised {
     }
 
     fn signal_waiting(&self) {
-        log::trace!("[{}] signal waiting {:x}", self.actor.name(), &self.state as * const _ as u32);
-        self.state.store(ActorState::WAITING.into(), Ordering::Release)
+        log::trace!(
+            "[{}] signal waiting {:x}",
+            self.actor.name(),
+            &self.state as *const _ as u32
+        );
+        self.state
+            .store(ActorState::WAITING.into(), Ordering::Release)
     }
 
     fn is_ready(&self) -> bool {
@@ -62,20 +67,21 @@ impl Supervised {
     }
 
     fn signal_ready(&self) {
-        log::trace!("[{}] signal ready {:x}", self.actor.name(), &self.state as * const _ as u32);
-        self.state.store(ActorState::READY.into(), Ordering::Release)
+        log::trace!(
+            "[{}] signal ready {:x}",
+            self.actor.name(),
+            &self.state as *const _ as u32
+        );
+        self.state
+            .store(ActorState::READY.into(), Ordering::Release)
     }
 
     fn poll(&mut self) -> bool {
         if self.is_ready() {
             log::trace!("polling actor {:x}", &self.actor as *const _ as u32);
             match self.actor.do_poll(self.get_state_flag_handle()) {
-                Poll::Ready(_) => {
-                    self.signal_idle()
-                }
-                Poll::Pending => {
-                    self.signal_waiting()
-                }
+                Poll::Ready(_) => self.signal_idle(),
+                Poll::Pending => self.signal_waiting(),
             }
             true
         } else {
@@ -99,24 +105,25 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
         loop {
             if self.current.borrow().is_none() {
                 //cortex_m::interrupt::free(|cs| {
-                    if let Some(next) = self.items_consumer.borrow_mut().as_mut().unwrap().dequeue()  {
-                        log::trace!("[{}] executor: set current task", self.name());
-                        //(&mut *self.current.get()).replace(next);
-                        self.current.borrow_mut().replace(next);
-                        self.in_flight.store(true, Ordering::Release);
-                    } else {
-                        log::trace!("[{}] executor: no current task", self.name());
-                        self.in_flight.store(false, Ordering::Release);
-                    }
-                //});
+                if let Some(next) = self.items_consumer.borrow_mut().as_mut().unwrap().dequeue() {
+                    log::trace!("[{}] executor: set current task", self.name());
+                    //(&mut *self.current.get()).replace(next);
+                    self.current.borrow_mut().replace(next);
+                    self.in_flight.store(true, Ordering::Release);
+                } else {
+                    log::trace!("[{}] executor: no current task", self.name());
+                    self.in_flight.store(false, Ordering::Release);
+                }
+            //});
             } else {
                 log::trace!("[{}] executor: in-flight current task", self.name());
             }
 
             let mut should_drop = false;
-            if let Some(item) = &mut *self.current.borrow_mut() { //&mut *self.current.get() {
+            if let Some(item) = &mut *self.current.borrow_mut() {
+                //&mut *self.current.get() {
                 let raw_waker = RawWaker::new(state_flag_handle, &VTABLE);
-                let waker = unsafe{ Waker::from_raw(raw_waker) };
+                let waker = unsafe { Waker::from_raw(raw_waker) };
                 let mut cx = Context::from_waker(&waker);
 
                 let result = item.poll(&mut cx);
@@ -146,21 +153,20 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
     }
 }
 
-
 pub struct ActorExecutor {
     actors: Vec<Supervised, U16>,
 }
 
 impl ActorExecutor {
     pub(crate) fn new() -> Self {
-        Self {
-            actors: Vec::new(),
-        }
+        Self { actors: Vec::new() }
     }
 
     pub(crate) fn activate_actor<S: ActiveActor>(&mut self, actor: &'static S) -> *const () {
         let supervised = Supervised::new(actor);
-        self.actors.push(supervised).unwrap_or_else(|_| panic!("too many actors"));
+        self.actors
+            .push(supervised)
+            .unwrap_or_else(|_| panic!("too many actors"));
         self.actors[self.actors.len() - 1].get_state_flag_handle()
     }
 

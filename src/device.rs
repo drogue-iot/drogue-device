@@ -6,12 +6,12 @@ pub trait Device {
 }
 
 #[doc(hidden)]
-pub struct DeviceContext<D:Device> {
+pub struct DeviceContext<D: Device> {
     device: UnsafeCell<D>,
     supervisor: UnsafeCell<Supervisor>,
 }
 
-impl<D:Device> DeviceContext<D> {
+impl<D: Device> DeviceContext<D> {
     pub fn new(device: D) -> Self {
         Self {
             device: UnsafeCell::new(device),

@@ -12,38 +12,23 @@ pub mod handler;
 pub mod interrupt;
 pub mod sink;
 // pub mod broker;
-pub mod supervisor;
 #[doc(hidden)]
 pub mod macros;
+pub mod supervisor;
 
-pub mod synchronization;
 pub mod driver;
+pub mod synchronization;
 
 pub mod prelude {
-    pub use crate::actor::{
-        Actor,
-        ActorContext,
-    };
-    pub use crate::interrupt::{
-        Interrupt,
-        InterruptContext,
-    };
-    pub use crate::handler::{
-        NotificationHandler,
-        RequestHandler,
-        Completion,
-        Response,
-    };
-    pub use crate::device::{
-        Device,
-    };
+    pub use crate::actor::{Actor, ActorContext};
     pub use crate::address::Address;
-    pub use crate::sink::{Sink, MultiSink, AddSink};
-    pub use crate::supervisor::Supervisor;
     pub use crate::device;
-
+    pub use crate::device::Device;
+    pub use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
+    pub use crate::interrupt::{Interrupt, InterruptContext};
+    pub use crate::sink::{AddSink, Message, MultiSink, Sink};
+    pub use crate::supervisor::Supervisor;
 }
 
 #[cfg(test)]
 mod tests;
-

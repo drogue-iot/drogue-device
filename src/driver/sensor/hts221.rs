@@ -1,9 +1,9 @@
-use crate::prelude::*;
-use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
-use crate::synchronization::Mutex;
-use core::fmt::{Debug};
 use crate::bind::Bind;
+use crate::prelude::*;
+use crate::synchronization::Mutex;
+use core::fmt::Debug;
 use core::ops::Add;
+use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 
 const ADDR: u8 = 0x5F;
 const WRITE: u8 = 0xBE;
@@ -37,10 +37,11 @@ const T1_DEGC_X8: u8 = 0x33;
 const T1_T0_MSB: u8 = 0x35;
 
 pub struct Hts221<I: WriteRead + Read + Write>
-    where <I as WriteRead>::Error: Debug,
-          <I as Write>::Error: Debug
+where
+    <I as WriteRead>::Error: Debug,
+    <I as Write>::Error: Debug,
 {
-    i2c: Option<Address<Mutex<I>>>
+    i2c: Option<Address<Mutex<I>>>,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -62,12 +63,8 @@ impl From<bool> for BlockDataUpdate {
 impl From<BlockDataUpdate> for u8 {
     fn from(bdu: BlockDataUpdate) -> Self {
         match bdu {
-            BlockDataUpdate::Continuous => {
-                0
-            }
-            BlockDataUpdate::MsbLsbReading => {
-                0b00000100
-            }
+            BlockDataUpdate::Continuous => 0,
+            BlockDataUpdate::MsbLsbReading => 0b00000100,
         }
     }
 }
@@ -85,8 +82,8 @@ impl From<u8> for OutputDataRate {
         match val {
             1 => Self::Hz7,
             2 => Self::Hz7,
-            3 =>Self::Hz12p5,
-            _ => Self::OneShot
+            3 => Self::Hz12p5,
+            _ => Self::OneShot,
         }
     }
 }
@@ -147,9 +144,9 @@ impl From<CtrlReg2> for u8 {
 
 impl From<u8> for CtrlReg1 {
     fn from(val: u8) -> Self {
-        let power_down        = val & 0b10000000;
+        let power_down = val & 0b10000000;
         let block_data_update = val & 0b00000010;
-        let output_data_rate  = val & 0b00000011;
+        let output_data_rate = val & 0b00000011;
         Self {
             power_down: power_down != 0,
             block_data_update: BlockDataUpdate::from(block_data_update != 0),
@@ -162,7 +159,7 @@ impl From<CtrlReg1> for u8 {
     fn from(reg: CtrlReg1) -> Self {
         let mut val = 0;
         if reg.power_down {
-           val |= 0b10000000;
+            val |= 0b10000000;
         }
         val = val | u8::from(reg.block_data_update);
         val = val | u8::from(reg.output_data_rate);
@@ -170,15 +167,13 @@ impl From<CtrlReg1> for u8 {
     }
 }
 
-
 impl<I: WriteRead + Read + Write> Hts221<I>
-    where <I as WriteRead>::Error: Debug,
-          <I as Write>::Error: Debug
+where
+    <I as WriteRead>::Error: Debug,
+    <I as Write>::Error: Debug,
 {
     pub fn new() -> Self {
-        Self {
-            i2c: None
-        }
+        Self { i2c: None }
     }
 
     fn read_who_am_i(i2c: &mut I) -> u8 {
@@ -192,16 +187,16 @@ impl<I: WriteRead + Read + Write> Hts221<I>
     // ------------------------------------------------------------------------
 
     fn read_ctrl_reg1(i2c: &mut I) -> CtrlReg1 {
-        let mut buf = [0;1];
-        i2c.write_read( ADDR, &[CTRL_REG1], &mut buf);
+        let mut buf = [0; 1];
+        i2c.write_read(ADDR, &[CTRL_REG1], &mut buf);
         CtrlReg1::from(buf[0])
     }
 
     fn write_ctrl_reg1(i2c: &mut I, reg: CtrlReg1) {
-        i2c.write( ADDR, &[CTRL_REG1, reg.into() ]);
+        i2c.write(ADDR, &[CTRL_REG1, reg.into()]);
     }
 
-    fn modify_ctrl_reg1<F: FnOnce(CtrlReg1)->CtrlReg1>(i2c: &mut I, modify: F) {
+    fn modify_ctrl_reg1<F: FnOnce(CtrlReg1) -> CtrlReg1>(i2c: &mut I, modify: F) {
         let reg = Self::read_ctrl_reg1(i2c);
         let reg = modify(reg);
         Self::write_ctrl_reg1(i2c, reg)
@@ -212,16 +207,16 @@ impl<I: WriteRead + Read + Write> Hts221<I>
     // ------------------------------------------------------------------------
 
     fn read_ctrl_reg2(i2c: &mut I) -> CtrlReg2 {
-        let mut buf = [0;1];
-        i2c.write_read( ADDR, &[CTRL_REG2], &mut buf);
+        let mut buf = [0; 1];
+        i2c.write_read(ADDR, &[CTRL_REG2], &mut buf);
         CtrlReg2::from(buf[0])
     }
 
     fn write_ctrl_reg2(i2c: &mut I, reg: CtrlReg2) {
-        i2c.write( ADDR, &[CTRL_REG2, reg.into() ]);
+        i2c.write(ADDR, &[CTRL_REG2, reg.into()]);
     }
 
-    fn modify_ctrl_reg2<F: FnOnce(CtrlReg2)->CtrlReg2>(i2c: &mut I, modify: F) {
+    fn modify_ctrl_reg2<F: FnOnce(CtrlReg2) -> CtrlReg2>(i2c: &mut I, modify: F) {
         let reg = Self::read_ctrl_reg2(i2c);
         let reg = modify(reg);
         Self::write_ctrl_reg2(i2c, reg)
@@ -298,24 +293,28 @@ impl<I: WriteRead + Read + Write> Hts221<I>
 }
 
 impl<I: WriteRead + Read + Write> Actor for Hts221<I>
-    where <I as WriteRead>::Error: Debug,
-          <I as Write>::Error: Debug
-{}
+where
+    <I as WriteRead>::Error: Debug,
+    <I as Write>::Error: Debug,
+{
+}
 
 impl<I: WriteRead + Read + Write> Bind<Mutex<I>> for Hts221<I>
-    where <I as WriteRead>::Error: Debug,
-          <I as Write>::Error: Debug
+where
+    <I as WriteRead>::Error: Debug,
+    <I as Write>::Error: Debug,
 {
     fn on_bind(&'static mut self, address: Address<Mutex<I>>) {
-        self.i2c.replace( address );
+        self.i2c.replace(address);
     }
 }
 
 pub struct TakeReading;
 
 impl<I: WriteRead + Read + Write> NotificationHandler<TakeReading> for Hts221<I>
-    where <I as WriteRead>::Error: Debug,
-          <I as Write>::Error: Debug
+where
+    <I as WriteRead>::Error: Debug,
+    <I as Write>::Error: Debug,
 {
     fn on_notification(&'static mut self, message: TakeReading) -> Completion {
         Completion::defer(async move {
@@ -337,11 +336,11 @@ impl<I: WriteRead + Read + Write> NotificationHandler<TakeReading> for Hts221<I>
 }
 
 impl<I: WriteRead + Read + Write + 'static> Address<Hts221<I>>
-    where <I as WriteRead>::Error: Debug,
-          <I as Write>::Error: Debug
+where
+    <I as WriteRead>::Error: Debug,
+    <I as Write>::Error: Debug,
 {
     pub fn trigger_read_temperature(&self) {
-        self.notify( TakeReading )
+        self.notify(TakeReading)
     }
-
 }

@@ -1,11 +1,10 @@
+use crate::actor::{Actor, ActorContext};
 use crate::device::{Device, DeviceContext};
-use crate::actor::{ActorContext, Actor};
-use crate::handler::{RequestHandler, NotificationHandler, Response, Completion};
+use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
 use crate::supervisor::Supervisor;
 
 use crate::init_heap;
 use crate::interrupt::{Interrupt, InterruptContext};
-
 
 struct MyDevice {
     led: ActorContext<LED>,
@@ -38,8 +37,7 @@ impl Actor for LED {}
 impl RequestHandler<LEDState> for LED {
     type Response = u8;
 
-    fn on_request(&'static mut self, message: LEDState) -> Response<Self::Response>
-    {
+    fn on_request(&'static mut self, message: LEDState) -> Response<Self::Response> {
         Response::defer(async move {
             self.turn_off();
             42
@@ -49,15 +47,11 @@ impl RequestHandler<LEDState> for LED {
 
 impl NotificationHandler<LEDState> for LED {
     fn on_notification(&'static mut self, message: LEDState) -> Completion {
-        Completion::defer(async move {
-            self.turn_off()
-        })
+        Completion::defer(async move { self.turn_off() })
     }
 }
 
-struct Button {
-
-}
+struct Button {}
 
 impl Interrupt for Button {
     fn irq(&self) -> u8 {
@@ -71,14 +65,14 @@ impl Interrupt for Button {
 
 #[test]
 fn the_api() {
-    init_heap!( 1024 );
+    init_heap!(1024);
 
     static mut DEVICE: Option<DeviceContext<MyDevice>> = None;
     println!("A");
     let led = LED {};
     let mut device = MyDevice {
         led: ActorContext::new(led),
-        button: InterruptContext::new( Button {} ),
+        button: InterruptContext::new(Button {}),
     };
     println!("B");
 

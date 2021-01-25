@@ -1,7 +1,7 @@
-use crate::prelude::*;
-use embedded_hal::digital::v2::OutputPin;
-use core::marker::PhantomData;
 use crate::driver::{Active, ActiveHigh, ActiveLow};
+use crate::prelude::*;
+use core::marker::PhantomData;
+use embedded_hal::digital::v2::OutputPin;
 
 pub struct On;
 
@@ -21,17 +21,16 @@ impl<P: OutputPin, A: Active> SimpleLED<P, A> {
     pub fn into_active_low(self) -> SimpleLED<P, ActiveLow> {
         SimpleLED {
             pin: self.pin,
-            _active: PhantomData
+            _active: PhantomData,
         }
     }
 
     pub fn into_active_high(self) -> SimpleLED<P, ActiveHigh> {
         SimpleLED {
             pin: self.pin,
-            _active: PhantomData
+            _active: PhantomData,
         }
     }
-
 }
 
 impl<P: OutputPin> SimpleLED<P, ActiveHigh> {
@@ -66,7 +65,8 @@ impl<P: OutputPin> Switchable for SimpleLED<P, ActiveLow> {
 impl<P: OutputPin, A: Active> Actor for SimpleLED<P, A> {}
 
 impl<P: OutputPin, A: Active> NotificationHandler<On> for SimpleLED<P, A>
-    where Self: Switchable
+where
+    Self: Switchable,
 {
     fn on_notification(&'static mut self, message: On) -> Completion {
         self.turn_on();
@@ -75,7 +75,8 @@ impl<P: OutputPin, A: Active> NotificationHandler<On> for SimpleLED<P, A>
 }
 
 impl<P: OutputPin, A: Active> NotificationHandler<Off> for SimpleLED<P, A>
-    where Self: Switchable
+where
+    Self: Switchable,
 {
     fn on_notification(&'static mut self, message: Off) -> Completion {
         Completion::defer(async move {
@@ -85,10 +86,11 @@ impl<P: OutputPin, A: Active> NotificationHandler<Off> for SimpleLED<P, A>
 }
 
 impl<S> Address<S>
-    where S: Actor + 'static,
-          S: Switchable,
-          S: NotificationHandler<On>,
-          S: NotificationHandler<Off>,
+where
+    S: Actor + 'static,
+    S: Switchable,
+    S: NotificationHandler<On>,
+    S: NotificationHandler<Off>,
 {
     pub fn turn_on(&self) {
         self.notify(On);

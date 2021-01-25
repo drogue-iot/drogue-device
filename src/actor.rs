@@ -1,34 +1,27 @@
-use crate::address::Address;
-use core::pin::Pin;
-use crate::handler::{RequestHandler, NotificationHandler, Response, Completion};
+use crate::address::{Address, InterruptAddress};
+use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
+use crate::sink::{Message, MultiSink, Sink};
 use core::future::Future;
-use crate::sink::{MultiSink, Sink, Message};
+use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 
-use heapless::{
-    spsc::Queue,
-    consts::*,
-};
-use crate::alloc::{Box, Rc, alloc};
-use core::cell::{UnsafeCell, RefCell, Ref};
-use crate::supervisor::{
-    Supervisor,
-    actor_executor::ActorState,
-};
-use core::sync::atomic::{AtomicU8, Ordering, AtomicBool};
-use crate::interrupt::Interrupt;
-use cortex_m::peripheral::NVIC;
-use cortex_m::interrupt::Nr;
-use core::fmt::{Debug, Formatter};
+use crate::alloc::{alloc, Box, Rc};
 use crate::bind::Bind as BindTrait;
-use heapless::spsc::{Producer, Consumer};
+use crate::interrupt::Interrupt;
+use crate::supervisor::{actor_executor::ActorState, Supervisor};
 use core::borrow::BorrowMut;
-
+use core::cell::{Ref, RefCell, UnsafeCell};
+use core::fmt::{Debug, Formatter};
+use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use heapless::spsc::{Consumer, Producer};
+use heapless::{consts::*, spsc::Queue};
 
 pub trait Actor {
     fn start(&mut self, address: Address<Self>)
-        where Self: Sized
-    {}
+    where
+        Self: Sized,
+    {
+    }
 }
 
 pub struct ActorContext<A: Actor> {
@@ -38,9 +31,7 @@ pub struct ActorContext<A: Actor> {
     pub(crate) items_producer: RefCell<Option<Producer<'static, Box<dyn ActorFuture<A>>, U16>>>,
     pub(crate) items_consumer: RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>>, U16>>>,
     pub(crate) state_flag_handle: RefCell<Option<*const ()>>,
-    pub(crate) irq: Option<u8>,
     pub(crate) in_flight: AtomicBool,
-    pub(crate) sink: MultiSink<Box<dyn Message>, U4>,
     name: Option<&'static str>,
 }
 
@@ -55,24 +46,6 @@ impl<A: Actor> ActorContext<A> {
             items_producer: RefCell::new(None),
             items_consumer: RefCell::new(None),
             state_flag_handle: RefCell::new(None),
-            irq: None,
-            in_flight: AtomicBool::new(false),
-            sink: MultiSink::<_, U4>::new(),
-            name: None,
-        }
-    }
-
-    pub(crate) fn new_interrupt(actor: A, irq: u8) -> Self
-        where A: Interrupt
-    {
-        Self {
-            actor: UnsafeCell::new(actor),
-            current: RefCell::new(None),
-            items: UnsafeCell::new(Queue::new()),
-            items_producer: RefCell::new(None),
-            items_consumer: RefCell::new(None),
-            state_flag_handle: RefCell::new(None),
-            irq: Some(irq),
             in_flight: AtomicBool::new(false),
             name: None,
         }
@@ -95,7 +68,9 @@ impl<A: Actor> ActorContext<A> {
         let addr = Address::new(self);
         let state_flag_handle = supervisor.activate_actor(self);
         log::trace!("[{}] == {:x}", self.name(), state_flag_handle as u32);
-        self.state_flag_handle.borrow_mut().replace(state_flag_handle);
+        self.state_flag_handle
+            .borrow_mut()
+            .replace(state_flag_handle);
         let (producer, consumer) = unsafe { (&mut *self.items.get()).split() };
         self.items_producer.borrow_mut().replace(producer);
         self.items_consumer.borrow_mut().replace(consumer);
@@ -109,40 +84,32 @@ impl<A: Actor> ActorContext<A> {
         addr
     }
 
-    pub fn subscribe(&'static self, source: &'static dyn Actor) {
-
-    }
-
-    pub(crate) fn start_interrupt(&'static self, supervisor: &mut Supervisor) -> Address<A>
-        where A: Interrupt
+    pub fn subscribe<I: Interrupt>(&'static self, address: &InterruptAddress<I>)
+    where
+        I: 'static,
+        A: Sink<I::Event>,
     {
-        let addr = self.start(supervisor);
-        supervisor.activate_interrupt(self, self.irq.unwrap());
-
-        if let Some(irq) = self.irq {
-            struct IrqNr(u8);
-            unsafe impl Nr for IrqNr {
-                fn nr(&self) -> u8 {
-                    self.0
-                }
-            }
-            unsafe {
-                NVIC::unmask(IrqNr(irq))
-            }
+        //(&**address.actor.get()).add_subscriber(&**self.actor.get());
+        unsafe {
+            address.add_subscriber(&*self.actor.get());
         }
-
-        addr
     }
 
     pub(crate) fn bind<OA: Actor>(&'static self, address: &Address<OA>)
-        where A: BindTrait<OA>,
-              OA: 'static
+    where
+        A: BindTrait<OA>,
+        OA: 'static,
     {
         log::trace!("[{}].notify(...)", self.name());
         let bind = alloc(Bind::new(self, address.clone())).unwrap();
         let notify: Box<dyn ActorFuture<A>> = Box::new(bind);
         cortex_m::interrupt::free(|cs| {
-            self.items_producer.borrow_mut().as_mut().unwrap().enqueue(notify).unwrap_or_else(|_| panic!("too many messages"));
+            self.items_producer
+                .borrow_mut()
+                .as_mut()
+                .unwrap()
+                .enqueue(notify)
+                .unwrap_or_else(|_| panic!("too many messages"));
         });
 
         let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
@@ -152,14 +119,20 @@ impl<A: Actor> ActorContext<A> {
     }
 
     pub(crate) fn notify<M>(&'static self, message: M)
-        where A: NotificationHandler<M>,
-              M: 'static
+    where
+        A: NotificationHandler<M>,
+        M: 'static,
     {
         log::trace!("[{}].notify(...)", self.name());
         let notify = alloc(Notify::new(self, message)).unwrap();
         let notify: Box<dyn ActorFuture<A>> = Box::new(notify);
         cortex_m::interrupt::free(|cs| {
-            self.items_producer.borrow_mut().as_mut().unwrap().enqueue(notify).unwrap_or_else(|_| panic!("too many messages"));
+            self.items_producer
+                .borrow_mut()
+                .as_mut()
+                .unwrap()
+                .enqueue(notify)
+                .unwrap_or_else(|_| panic!("too many messages"));
         });
 
         let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
@@ -169,8 +142,9 @@ impl<A: Actor> ActorContext<A> {
     }
 
     pub(crate) async fn request<M>(&'static self, message: M) -> <A as RequestHandler<M>>::Response
-        where A: RequestHandler<M>,
-              M: 'static
+    where
+        A: RequestHandler<M>,
+        M: 'static,
     {
         // TODO: fix this leak on signals
         //let signal = alloc(CompletionHandle::new()).unwrap();
@@ -186,7 +160,12 @@ impl<A: Actor> ActorContext<A> {
         unsafe {
             cortex_m::interrupt::free(|cs| {
                 //self.items.borrow_mut().enqueue(request).unwrap_or_else(|_| panic!("too many messages"));
-                self.items_producer.borrow_mut().as_mut().unwrap().enqueue(request).unwrap_or_else( |_| panic!("message queue full"));
+                self.items_producer
+                    .borrow_mut()
+                    .as_mut()
+                    .unwrap()
+                    .enqueue(request)
+                    .unwrap_or_else(|_| panic!("message queue full"));
             });
             //let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
             let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
@@ -197,21 +176,24 @@ impl<A: Actor> ActorContext<A> {
     }
 }
 
-pub(crate) trait ActorFuture<A: Actor>: Future<Output=()> + Unpin {
+pub(crate) trait ActorFuture<A: Actor>: Future<Output = ()> + Unpin {
     fn poll(&mut self, cx: &mut Context<'_>) -> Poll<()> {
         Future::poll(Pin::new(self), cx)
     }
 }
 
 struct Bind<A: Actor, OA: Actor>
-    where A: BindTrait<OA> + 'static
+where
+    A: BindTrait<OA> + 'static,
 {
     actor: &'static ActorContext<A>,
     address: Option<Address<OA>>,
 }
 
 impl<A: Actor, OA: Actor> Bind<A, OA>
-    where A: BindTrait<OA> + 'static {
+where
+    A: BindTrait<OA> + 'static,
+{
     fn new(actor: &'static ActorContext<A>, address: Address<OA>) -> Self {
         Self {
             actor,
@@ -237,7 +219,8 @@ impl<A: Actor + BindTrait<OA>, OA: Actor> Future for Bind<A, OA> {
 }
 
 struct Notify<A: Actor, M>
-    where A: NotificationHandler<M> + 'static
+where
+    A: NotificationHandler<M> + 'static,
 {
     actor: &'static ActorContext<A>,
     message: Option<M>,
@@ -245,7 +228,8 @@ struct Notify<A: Actor, M>
 }
 
 impl<A: Actor, M> Notify<A, M>
-    where A: NotificationHandler<M>
+where
+    A: NotificationHandler<M>,
 {
     pub fn new(actor: &'static ActorContext<A>, message: M) -> Self {
         Self {
@@ -258,21 +242,24 @@ impl<A: Actor, M> Notify<A, M>
 
 impl<A: Actor + NotificationHandler<M>, M> ActorFuture<A> for Notify<A, M> {}
 
-impl<A, M> Unpin for Notify<A, M>
-    where A: NotificationHandler<M>
-{}
+impl<A, M> Unpin for Notify<A, M> where A: NotificationHandler<M> {}
 
 impl<A: Actor, M> Future for Notify<A, M>
-    where A: NotificationHandler<M>
+where
+    A: NotificationHandler<M>,
 {
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         log::trace!("[{}] Notify.poll()", self.actor.name());
         if self.message.is_some() {
-            log::trace!("[{}] Notify.poll() - dispatch on_notification", self.actor.name());
-            let mut completion = unsafe { self.actor.actor_mut() }.on_notification(self.as_mut().message.take().unwrap());
-            if matches!( completion, Completion::Immediate() ) {
+            log::trace!(
+                "[{}] Notify.poll() - dispatch on_notification",
+                self.actor.name()
+            );
+            let mut completion = unsafe { self.actor.actor_mut() }
+                .on_notification(self.as_mut().message.take().unwrap());
+            if matches!(completion, Completion::Immediate()) {
                 log::trace!("[{}] Notify.poll() - immediate: Ready", self.actor.name());
                 return Poll::Ready(());
             }
@@ -304,7 +291,8 @@ impl<A: Actor, M> Future for Notify<A, M>
 }
 
 struct Request<A, M>
-    where A: Actor + RequestHandler<M> + 'static,
+where
+    A: Actor + RequestHandler<M> + 'static,
 {
     actor: &'static ActorContext<A>,
     message: Option<M>,
@@ -313,9 +301,14 @@ struct Request<A, M>
 }
 
 impl<A, M> Request<A, M>
-    where A: Actor + RequestHandler<M> + 'static,
+where
+    A: Actor + RequestHandler<M> + 'static,
 {
-    pub fn new(actor: &'static ActorContext<A>, message: M, sender: CompletionSender<A::Response>) -> Self {
+    pub fn new(
+        actor: &'static ActorContext<A>,
+        message: M,
+        sender: CompletionSender<A::Response>,
+    ) -> Self {
         Self {
             actor,
             message: Some(message),
@@ -325,25 +318,23 @@ impl<A, M> Request<A, M>
     }
 }
 
-impl<A, M> Request<A, M>
-    where A: Actor + RequestHandler<M> + 'static,
-{}
+impl<A, M> Request<A, M> where A: Actor + RequestHandler<M> + 'static {}
 
 impl<A: Actor + RequestHandler<M>, M> ActorFuture<A> for Request<A, M> {}
 
-impl<A, M> Unpin for Request<A, M>
-    where A: Actor + RequestHandler<M> + 'static,
-{}
+impl<A, M> Unpin for Request<A, M> where A: Actor + RequestHandler<M> + 'static {}
 
 impl<A, M> Future for Request<A, M>
-    where A: Actor + RequestHandler<M> + 'static,
+where
+    A: Actor + RequestHandler<M> + 'static,
 {
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         log::trace!("[{}] Request.poll()", self.actor.name());
         if self.message.is_some() {
-            let response = unsafe { self.actor.actor_mut() }.on_request(self.as_mut().message.take().unwrap());
+            let response =
+                unsafe { self.actor.actor_mut() }.on_request(self.as_mut().message.take().unwrap());
             if let Response::Immediate(response) = response {
                 self.sender.send(response);
                 return Poll::Ready(());
@@ -361,9 +352,7 @@ impl<A, M> Future for Request<A, M>
                     self.defer.take();
                     Poll::Ready(())
                 }
-                Poll::Pending => {
-                    Poll::Pending
-                }
+                Poll::Pending => Poll::Pending,
             }
         } else {
             // should not actually get here ever
@@ -373,16 +362,15 @@ impl<A, M> Future for Request<A, M>
 }
 
 struct RequestResponseFuture<R>
-    where R: 'static
+where
+    R: 'static,
 {
     receiver: CompletionReceiver<R>,
 }
 
 impl<R> RequestResponseFuture<R> {
     pub fn new(receiver: CompletionReceiver<R>) -> Self {
-        Self {
-            receiver,
-        }
+        Self { receiver }
     }
 }
 
@@ -438,9 +426,7 @@ struct CompletionSender<T: 'static> {
 
 impl<T: 'static> CompletionSender<T> {
     pub(crate) fn new(handle: Rc<CompletionHandle<T>>) -> Self {
-        Self {
-            handle
-        }
+        Self { handle }
     }
 
     pub(crate) fn send(&self, response: T) {
@@ -454,9 +440,7 @@ struct CompletionReceiver<T: 'static> {
 
 impl<T: 'static> CompletionReceiver<T> {
     pub(crate) fn new(handle: Rc<CompletionHandle<T>>) -> Self {
-        Self {
-            handle
-        }
+        Self { handle }
     }
 
     pub(crate) fn poll(&self, cx: &mut Context) -> Poll<T> {

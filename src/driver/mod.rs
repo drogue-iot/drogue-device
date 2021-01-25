@@ -1,5 +1,5 @@
-pub mod sensor;
 pub mod led;
+pub mod sensor;
 
 pub struct ActiveHigh;
 

@@ -4,7 +4,7 @@ use heapless::{ArrayLength, Vec};
 
 pub trait Message: 'static + Clone {}
 
-pub trait Sink<M: Message> {
+pub trait Sink<M> {
     fn notify(&self, message: M);
 }
 

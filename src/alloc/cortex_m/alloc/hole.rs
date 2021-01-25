@@ -1,4 +1,3 @@
-
 #![allow(clippy::clone_on_copy)]
 
 use super::layout::Layout;
@@ -201,9 +200,7 @@ fn allocate_first_fit(mut previous: &mut Hole, layout: Layout) -> Result<Allocat
         let allocation: Option<Allocation> = previous
             .next
             .as_mut()
-            .and_then(|current| {
-                split_hole(current.info(), layout.clone())
-            } );
+            .and_then(|current| split_hole(current.info(), layout.clone()));
         match allocation {
             Some(allocation) => {
                 // hole is big enough, so remove it from the list by updating the previous pointer

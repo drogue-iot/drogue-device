@@ -1,10 +1,10 @@
-use core::future::Future;
 use crate::actor::Actor;
-use crate::alloc::{Box, alloc};
+use crate::alloc::{alloc, Box};
+use core::future::Future;
 
 pub enum Response<T> {
     Immediate(T),
-    Defer(Box<dyn Future<Output=T>>),
+    Defer(Box<dyn Future<Output = T>>),
 }
 
 impl<T> Response<T> {
@@ -12,17 +12,17 @@ impl<T> Response<T> {
         Self::Immediate(val)
     }
 
-    pub fn defer<F: Future<Output=T> + 'static>(f: F) -> Self
-        where T: 'static
+    pub fn defer<F: Future<Output = T> + 'static>(f: F) -> Self
+    where
+        T: 'static,
     {
-        Self::Defer(
-            Box::new(alloc(f).unwrap())
-        )
+        Self::Defer(Box::new(alloc(f).unwrap()))
     }
 }
 
 pub trait RequestHandler<M>
-    where Self: Actor + Sized
+where
+    Self: Actor + Sized,
 {
     type Response: 'static;
 
@@ -31,7 +31,7 @@ pub trait RequestHandler<M>
 
 pub enum Completion {
     Immediate(),
-    Defer(Box<dyn Future<Output=()>>)
+    Defer(Box<dyn Future<Output = ()>>),
 }
 
 impl Completion {
@@ -39,17 +39,14 @@ impl Completion {
         Self::Immediate()
     }
 
-    pub fn defer<F: Future<Output=()> + 'static>(f: F) -> Self {
-        Self::Defer(
-            Box::new( alloc( f ).unwrap() )
-        )
+    pub fn defer<F: Future<Output = ()> + 'static>(f: F) -> Self {
+        Self::Defer(Box::new(alloc(f).unwrap()))
     }
-
 }
 
 pub trait NotificationHandler<M>
-    where Self: Actor + Sized
+where
+    Self: Actor + Sized,
 {
     fn on_notification(&'static mut self, message: M) -> Completion;
 }
-

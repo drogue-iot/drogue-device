@@ -109,7 +109,6 @@ impl Heap {
     pub fn free(&self) -> usize {
         self.size - self.used
     }
-
 }
 
 /// Align downwards. Returns the greatest x with alignment `align`

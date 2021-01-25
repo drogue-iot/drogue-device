@@ -1,7 +1,7 @@
 use heapless::{consts::*, Vec};
 
 use crate::actor::{Actor, ActorContext};
-use crate::interrupt::Interrupt;
+use crate::interrupt::{Interrupt, InterruptContext};
 use core::sync::atomic::{AtomicU8, Ordering};
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
@@ -9,7 +9,7 @@ pub(crate) trait ActiveInterrupt {
     fn on_interrupt(&self);
 }
 
-impl<I: Actor + Interrupt> ActiveInterrupt for ActorContext<I> {
+impl<I: Actor + Interrupt> ActiveInterrupt for InterruptContext<I> {
     fn on_interrupt(&self) {
         // Mask this interrupt handler (not the entire IRQ) if this
         // actor currently has an in-flight async block.
@@ -17,10 +17,10 @@ impl<I: Actor + Interrupt> ActiveInterrupt for ActorContext<I> {
         // This does indeed mean that this interrupt will never be
         // processed. Perhaps we should just queue it up and deliver
         // after the async block has completed?
-        if !self.in_flight.load(Ordering::Acquire) {
+        if !self.actor_context.in_flight.load(Ordering::Acquire) {
             unsafe {
-                cortex_m::interrupt::free( |cs| {
-                    (&mut *self.actor.get()).on_interrupt(&self.sink);
+                cortex_m::interrupt::free(|cs| {
+                    (&mut *self.actor_context.actor.get()).on_interrupt(&*self.subscribers.get());
                 })
             }
         }
