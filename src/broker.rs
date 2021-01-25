@@ -1,5 +1,5 @@
 use crate::actor::{Actor, ActorContext};
-use crate::sink::{Message, MultiSink, Sink};
+use crate::sink::{MultiSink, Sink};
 
 use core::cell::{Ref, RefCell, UnsafeCell};
 use core::marker::PhantomData;

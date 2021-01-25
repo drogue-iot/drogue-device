@@ -2,7 +2,7 @@ use crate::actor::{Actor, ActorContext};
 use crate::bind::Bind;
 use crate::handler::{NotificationHandler, RequestHandler};
 use crate::interrupt::{Interrupt, InterruptContext};
-use crate::sink::{Message, Sink};
+use crate::sink::Sink;
 use core::cell::UnsafeCell;
 
 pub struct Address<A: Actor> {

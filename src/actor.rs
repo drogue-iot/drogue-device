@@ -1,7 +1,7 @@
 use crate::address::Address;
 use crate::broker::Broker;
 use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
-use crate::sink::{Message, MultiSink, Sink};
+use crate::sink::{MultiSink, Sink};
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
@@ -18,7 +18,7 @@ use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue};
 
 pub trait Actor {
-    type Event: Message;
+    type Event: Clone + 'static;
     fn start(&mut self, address: Address<Self>, broker: &'static Broker<Self>)
     where
         Self: Sized,

@@ -28,7 +28,7 @@ pub mod prelude {
     pub use crate::device::Device;
     pub use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
     pub use crate::interrupt::{Interrupt, InterruptContext};
-    pub use crate::sink::{Message, MultiSink, Sink};
+    pub use crate::sink::{MultiSink, Sink};
     pub use crate::supervisor::Supervisor;
 }
 

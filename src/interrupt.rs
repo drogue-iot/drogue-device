@@ -6,7 +6,6 @@ use heapless::consts::U4;
 use crate::actor::{Actor, ActorContext};
 use crate::address::Address;
 use crate::handler::NotificationHandler;
-use crate::sink::{Message, MultiSink, Sink};
 use crate::supervisor::Supervisor;
 
 pub trait Interrupt: Actor {
