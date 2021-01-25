@@ -21,3 +21,11 @@ version = "0.4.13"
 version = "0.2.4"
 features = ["unproven"]
 
+[dependencies.stm32l4xx-hal]
+path = "../stm32l4xx-hal"
+features = ["stm32l4x5", "rt"]
+optional = true
+
+[features]
+stm32l4xx = [ "stm32l4xx-hal" ]
+

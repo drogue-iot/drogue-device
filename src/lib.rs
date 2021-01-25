@@ -20,6 +20,8 @@ pub mod supervisor;
 pub mod driver;
 pub mod synchronization;
 
+pub mod hal;
+
 pub mod prelude {
     pub use crate::actor::{Actor, ActorContext};
     pub use crate::address::Address;

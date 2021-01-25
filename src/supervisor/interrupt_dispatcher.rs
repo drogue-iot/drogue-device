@@ -19,9 +19,9 @@ impl<I: Actor + Interrupt> ActiveInterrupt for InterruptContext<I> {
         // after the async block has completed?
         if !self.actor_context.in_flight.load(Ordering::Acquire) {
             unsafe {
-                cortex_m::interrupt::free(|cs| {
+                //cortex_m::interrupt::free(|cs| {
                     (&mut *self.actor_context.actor.get()).on_interrupt();
-                })
+                //})
             }
         }
     }

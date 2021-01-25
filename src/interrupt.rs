@@ -40,6 +40,7 @@ impl<I: Interrupt> InterruptContext<I> {
                 self.0
             }
         }
+        log::info!("[irq] unmask {}", self.irq);
         unsafe { NVIC::unmask(IrqNr(self.irq)) }
 
         addr

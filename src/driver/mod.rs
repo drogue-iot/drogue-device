@@ -9,3 +9,4 @@ pub trait Active {}
 
 impl Active for ActiveHigh {}
 impl Active for ActiveLow {}
+
