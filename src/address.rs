@@ -35,14 +35,15 @@ impl<A: Actor> Address<A> {
         }
     }
 
-    pub fn subscribe<OA: Actor>(&self, actor: &ActorContext<OA>)
+    pub fn subscribe<OA: Actor>(&self, address: &Address<OA>)
     where
-        A: 'static,
-        OA: Sink<A::Event> + 'static,
+        A: Sink<OA::Event> + 'static,
+        OA: 'static,
     {
         unsafe {
-            let a = &*actor.actor.get();
-            (&**self.actor.get()).broker.subscribe(a);
+            let source = &**address.actor.get();
+            let sink = &**self.actor.get();
+            source.broker.subscribe(&*sink.actor.get());
         }
     }
 
