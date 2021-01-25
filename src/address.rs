@@ -35,15 +35,14 @@ impl<A: Actor> Address<A> {
         }
     }
 
-    pub fn subscribe<I: Interrupt>(&self, address: &InterruptAddress<I>)
+    pub fn subscribe<OA: Actor>(&self, actor: &ActorContext<OA>)
     where
-        I: 'static,
-        A: Sink<I::Event> + 'static,
+        A: 'static,
+        OA: Sink<A::Event> + 'static,
     {
         unsafe {
-            let source = &**address.actor.get();
-            let sink = &**self.actor.get();
-            source.add_subscriber(&*sink.actor.get());
+            let a = &*actor.actor.get();
+            (&**self.actor.get()).broker.subscribe(a);
         }
     }
 
@@ -72,56 +71,5 @@ where
 {
     fn notify(&self, message: M) {
         Address::notify(self, message)
-    }
-}
-
-/// An interrupt address wraps an address providing interrupt context.
-
-pub struct InterruptAddress<I: Interrupt> {
-    address: Address<I>,
-    actor: UnsafeCell<*const InterruptContext<I>>,
-}
-
-// TODO critical sections around ask/tell
-impl<I: Interrupt> InterruptAddress<I> {
-    pub(crate) fn new(actor: &InterruptContext<I>, address: Address<I>) -> Self {
-        Self {
-            address,
-            actor: UnsafeCell::new(actor),
-        }
-    }
-
-    pub fn bind<OA: Actor>(&self, address: &Address<OA>)
-    where
-        I: Bind<OA> + 'static,
-        OA: 'static,
-    {
-        self.address.bind(address);
-    }
-
-    pub fn notify<M>(&self, message: M)
-    where
-        I: NotificationHandler<M> + 'static,
-        M: 'static,
-    {
-        self.address.notify(message);
-    }
-
-    pub async fn request<M>(&self, message: M) -> <I as RequestHandler<M>>::Response
-    where
-        I: RequestHandler<M> + 'static,
-        M: 'static,
-    {
-        self.address.request(message).await
-    }
-}
-
-impl<I: Interrupt + 'static, M: 'static> Sink<M> for InterruptAddress<I>
-where
-    M: Message,
-    I: NotificationHandler<M>,
-{
-    fn notify(&self, message: M) {
-        Address::notify(&self.address, message)
     }
 }

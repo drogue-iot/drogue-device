@@ -71,4 +71,8 @@ impl<M: Message, N: ArrayLength<&'static dyn Sink<M>>> NotificationHandler<AddSi
     }
 }
 
-impl<M: Message, N: ArrayLength<&'static dyn Sink<M>>> Actor for MultiSink<M, N> {}
+impl<M: Message, N: ArrayLength<&'static dyn Sink<M>>> Actor for MultiSink<M, N> {
+    type Event = M;
+}
+
+impl Message for () {}

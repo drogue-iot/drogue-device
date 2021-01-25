@@ -297,6 +297,7 @@ where
     <I as WriteRead>::Error: Debug,
     <I as Write>::Error: Debug,
 {
+    type Event = ();
 }
 
 impl<I: WriteRead + Read + Write> Bind<Mutex<I>> for Hts221<I>

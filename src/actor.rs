@@ -1,4 +1,5 @@
-use crate::address::{Address, InterruptAddress};
+use crate::address::Address;
+use crate::broker::Broker;
 use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
 use crate::sink::{Message, MultiSink, Sink};
 use core::future::Future;
@@ -17,7 +18,8 @@ use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue};
 
 pub trait Actor {
-    fn start(&mut self, address: Address<Self>)
+    type Event: Message;
+    fn start(&mut self, address: Address<Self>, broker: &'static Broker<Self>)
     where
         Self: Sized,
     {
@@ -32,6 +34,7 @@ pub struct ActorContext<A: Actor> {
     pub(crate) items_consumer: RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>>, U16>>>,
     pub(crate) state_flag_handle: RefCell<Option<*const ()>>,
     pub(crate) in_flight: AtomicBool,
+    pub(crate) broker: Broker<A>,
     name: Option<&'static str>,
 }
 
@@ -47,6 +50,7 @@ impl<A: Actor> ActorContext<A> {
             items_consumer: RefCell::new(None),
             state_flag_handle: RefCell::new(None),
             in_flight: AtomicBool::new(false),
+            broker: Broker::new(),
             name: None,
         }
     }
@@ -78,7 +82,7 @@ impl<A: Actor> ActorContext<A> {
         // SAFETY: At this point, we are the only holder of the actor
         unsafe {
             //(&mut *self.state_flag_handle.get()).replace(state_flag_handle);
-            (&mut *self.actor.get()).start(addr.clone());
+            (&mut *self.actor.get()).start(addr.clone(), &self.broker);
         }
 
         addr

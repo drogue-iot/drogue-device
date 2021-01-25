@@ -1,5 +1,6 @@
 use crate::actor::Actor;
 use crate::address::Address;
+use crate::broker::Broker;
 use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
 use core::cell::UnsafeCell;
 use core::future::Future;
@@ -19,7 +20,8 @@ pub struct Mutex<T> {
 }
 
 impl<T> Actor for Mutex<T> {
-    fn start(&mut self, addr: Address<Self>) {
+    type Event = ();
+    fn start(&mut self, addr: Address<Self>, _: &'static Broker<Self>) {
         self.address.replace(addr);
     }
 }

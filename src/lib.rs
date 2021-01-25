@@ -7,6 +7,7 @@ pub mod address;
 #[doc(hidden)]
 pub mod alloc;
 pub mod bind;
+pub mod broker;
 pub mod device;
 pub mod handler;
 pub mod interrupt;
@@ -22,11 +23,12 @@ pub mod synchronization;
 pub mod prelude {
     pub use crate::actor::{Actor, ActorContext};
     pub use crate::address::Address;
+    pub use crate::broker::Broker;
     pub use crate::device;
     pub use crate::device::Device;
     pub use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
     pub use crate::interrupt::{Interrupt, InterruptContext};
-    pub use crate::sink::{AddSink, Message, MultiSink, Sink};
+    pub use crate::sink::{Message, MultiSink, Sink};
     pub use crate::supervisor::Supervisor;
 }
 

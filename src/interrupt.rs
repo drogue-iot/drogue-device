@@ -4,18 +4,16 @@ use cortex_m::peripheral::NVIC;
 use heapless::consts::U4;
 
 use crate::actor::{Actor, ActorContext};
-use crate::address::{Address, InterruptAddress};
+use crate::address::Address;
 use crate::handler::NotificationHandler;
 use crate::sink::{Message, MultiSink, Sink};
 use crate::supervisor::Supervisor;
 
 pub trait Interrupt: Actor {
-    type Event: Message;
-    fn on_interrupt(&mut self, sink: &dyn Sink<Self::Event>);
+    fn on_interrupt(&mut self);
 }
 
 pub struct InterruptContext<I: Interrupt> {
-    pub(crate) subscribers: UnsafeCell<MultiSink<I::Event, U4>>,
     pub(crate) irq: u8,
     pub(crate) actor_context: ActorContext<I>,
 }
@@ -25,7 +23,6 @@ impl<I: Interrupt> InterruptContext<I> {
         Self {
             irq: irq.nr(),
             actor_context: ActorContext::new(interrupt),
-            subscribers: UnsafeCell::new(MultiSink::<_, U4>::new()),
         }
     }
 
@@ -34,13 +31,7 @@ impl<I: Interrupt> InterruptContext<I> {
         self
     }
 
-    pub(crate) fn add_subscriber(&'static self, sub: &'static dyn Sink<I::Event>) {
-        unsafe {
-            (&mut *self.subscribers.get()).add(sub);
-        }
-    }
-
-    pub fn start(&'static self, supervisor: &mut Supervisor) -> InterruptAddress<I> {
+    pub fn start(&'static self, supervisor: &mut Supervisor) -> Address<I> {
         let addr = self.actor_context.start(supervisor);
         supervisor.activate_interrupt(self, self.irq);
 
@@ -52,6 +43,6 @@ impl<I: Interrupt> InterruptContext<I> {
         }
         unsafe { NVIC::unmask(IrqNr(self.irq)) }
 
-        InterruptAddress::new(self, addr)
+        addr
     }
 }

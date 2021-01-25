@@ -62,7 +62,9 @@ impl<P: OutputPin> Switchable for SimpleLED<P, ActiveLow> {
     }
 }
 
-impl<P: OutputPin, A: Active> Actor for SimpleLED<P, A> {}
+impl<P: OutputPin, A: Active> Actor for SimpleLED<P, A> {
+    type Event = ();
+}
 
 impl<P: OutputPin, A: Active> NotificationHandler<On> for SimpleLED<P, A>
 where
