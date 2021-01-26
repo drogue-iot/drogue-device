@@ -59,7 +59,7 @@ impl<I: WriteRead + Read + Write + 'static> Sensor<I>
 
                 Ctrl1::modify( self.address, &mut i2c, |reg| {
                     reg.power_active()
-                        .output_data_rate( OutputDataRate::Hz7 )
+                        .output_data_rate( OutputDataRate::Hz1 )
                         .block_data_update( BlockDataUpdate::MsbLsbReading );
                 });
 
@@ -82,16 +82,13 @@ impl<I: WriteRead + Read + Write + 'static> Sensor<I>
 
     fn start(&'static mut self) -> Completion {
         Completion::defer(async move {
-            self.load_calibration().await;
+            if let Some(ref i2c) = self.i2c {
+                let mut i2c = i2c.lock().await;
+                self.calibration.replace(Calibration::read( self.address, &mut i2c));
+            }
         })
     }
 
-    async fn load_calibration(&'static mut self) {
-        if let Some(ref i2c) = self.i2c {
-            let mut i2c = i2c.lock().await;
-            self.calibration.replace(Calibration::read( self.address, &mut i2c));
-        }
-    }
 }
 
 impl<I: WriteRead + Read + Write> Actor for Sensor<I>
@@ -111,8 +108,6 @@ impl<I: WriteRead + Read + Write + 'static> Bind<Mutex<I>> for Sensor<I>
         self.i2c.replace(address);
     }
 }
-
-//pub struct Initialize;
 
 impl<I: WriteRead + Read + Write> NotificationHandler<Lifecycle> for Sensor<I>
     where
@@ -152,11 +147,6 @@ impl<I: WriteRead + Read + Write> NotificationHandler<DataReady> for Sensor<I>
                 } else {
                     log::info!("[hts221] no calibration data available")
                 }
-
-
-
-                //let temp_degc = self.calibrated_temperature_degc(&mut i2c);
-                //let humidity_rh = self.calibrated_humidity_rh(&mut i2c);
             }
         })
     }
