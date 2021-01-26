@@ -8,18 +8,26 @@ use embedded_hal::digital::v2::InputPin;
 use crate::hal::gpio::exti_pin::ExtiPin;
 use cortex_m::interrupt::Nr;
 use crate::driver::sensor::hts221::ready::{Ready, DataReady};
-use crate::driver::sensor::hts221::register::*;
-use crate::driver::sensor::hts221::calibration::{Calibration, TemperatureCalibration};
+use crate::driver::sensor::hts221::register::calibration::*;
 use core::default::Default;
+use crate::driver::sensor::hts221::register::who_am_i::WhoAmI;
+use crate::hal::i2c::I2cAddress;
+use crate::driver::sensor::hts221::register::status::Status;
+use crate::driver::sensor::hts221::register::t_out::Tout;
+use crate::driver::sensor::hts221::register::h_out::Hout;
+use crate::driver::sensor::hts221::register::ctrl1::{Ctrl1, OutputDataRate, BlockDataUpdate};
+use crate::driver::sensor::hts221::register::{CtrlReg2, CTRL_REG2, CtrlReg3, CTRL_REG3};
 
+pub const ADDR: u8 = 0x5F;
 
 pub struct Sensor<I: WriteRead + Read + Write + 'static>
     where
         <I as WriteRead>::Error: Debug,
         <I as Write>::Error: Debug,
 {
+    address: I2cAddress,
     i2c: Option<Address<Mutex<I>>>,
-    calibration: Calibration,
+    calibration: Option<Calibration>,
 }
 
 impl<I: WriteRead + Read + Write + 'static> Sensor<I>
@@ -29,8 +37,9 @@ impl<I: WriteRead + Read + Write + 'static> Sensor<I>
 {
     pub fn new() -> Self {
         Self {
+            address: I2cAddress::new( ADDR ),
             i2c: None,
-            calibration: Calibration::new(),
+            calibration: None,
         }
     }
 
@@ -43,17 +52,18 @@ impl<I: WriteRead + Read + Write + 'static> Sensor<I>
             if let Some(ref i2c) = self.i2c {
                 let mut i2c = i2c.lock().await;
 
+                /*
                 Self::modify_ctrl_reg2(&mut i2c, |mut reg| {
                     reg.boot = false;
                     reg.one_shot = true;
                     reg
                 });
+                 */
 
-                Self::modify_ctrl_reg1(&mut i2c, |mut reg| {
-                    reg.power_down = Power::Active;
-                    reg.output_data_rate = OutputDataRate::Hz7;
-                    reg.block_data_update = BlockDataUpdate::MsbLsbReading;
-                    reg
+                Ctrl1::modify( self.address, &mut i2c, |reg| {
+                    reg.power_active()
+                        .output_data_rate( OutputDataRate::Hz7 )
+                        .block_data_update( BlockDataUpdate::MsbLsbReading );
                 });
 
                 Self::modify_ctrl_reg3(&mut i2c, |mut reg| {
@@ -63,14 +73,13 @@ impl<I: WriteRead + Read + Write + 'static> Sensor<I>
                     reg
                 });
 
-                Self::read_who_am_i(&mut i2c);
-                //Self::read_status(&mut i2c);
+                log::info!("[hts221] address=0x{:X}", WhoAmI::read( self.address, &mut i2c) );
                 loop {
-                    if Self::read_status(&mut i2c) == 0 {
-                        break;
+                    if ! Status::read( self.address, &mut i2c).any_available() {
+                        break
                     }
-                    Self::read_h_out(&mut i2c);
-                    Self::read_t_out(&mut i2c);
+                    Hout::read(self.address, &mut i2c);
+                    Tout::read(self.address, &mut i2c);
                 }
             }
         })
@@ -85,58 +94,15 @@ impl<I: WriteRead + Read + Write + 'static> Sensor<I>
     async fn load_calibration(&'static mut self) {
         if let Some(ref i2c) = self.i2c {
             let mut i2c = i2c.lock().await;
-
-            let t0_out = Self::read_t0_out(&mut i2c);
-            let t1_out = Self::read_t1_out(&mut i2c);
-
-            let t0_degc = Self::read_t0_degc_x8(&mut i2c);
-            let t1_degc = Self::read_t1_degc_x8(&mut i2c);
-
-            let (t1_msb, t0_msb) = Self::read_t1_t0_msb(&mut i2c);
-
-            let t0_degc = i16::from_le_bytes([t0_degc, t0_msb]) as f32 / 8.0;
-            let t1_degc = i16::from_le_bytes([t1_degc, t1_msb]) as f32 / 8.0;
-
-            let slope = (t1_degc - t0_degc) / (t1_out - t0_out) as f32;
-
-            self.calibration.temperature.replace(
-                TemperatureCalibration {
-                    t0_out,
-                    t1_out,
-                    t0_degc,
-                    t1_degc,
-                    slope,
-                }
-            );
+            self.calibration.replace(Calibration::read( self.address, &mut i2c));
         }
-    }
-
-    // ------------------------------------------------------------------------
-    // WHO_AM_I
-    // ------------------------------------------------------------------------
-
-    fn read_who_am_i(i2c: &mut I) -> u8 {
-        let mut buf = [0; 1];
-        let result = i2c.write_read(ADDR, &[WHO_AM_I], &mut buf);
-        log::trace!("[read_who_am_i] result {:?} {:x}", result, buf[0]);
-        buf[0]
-    }
-
-    // ------------------------------------------------------------------------
-    // STATUS
-    // ------------------------------------------------------------------------
-
-    fn read_status(i2c: &mut I) -> u8 {
-        let mut buf = [0; 1];
-        let result = i2c.write_read(ADDR, &[STATUS], &mut buf);
-        log::trace!("[read_status] result {:?} {:b}", result, buf[0]);
-        buf[0]
     }
 
     // ------------------------------------------------------------------------
     // CTRL_REG1
     // ------------------------------------------------------------------------
 
+    /*
     fn read_ctrl_reg1(i2c: &mut I) -> CtrlReg1 {
         let mut buf = [0; 1];
         let result = i2c.write_read(ADDR, &[CTRL_REG1], &mut buf);
@@ -157,6 +123,7 @@ impl<I: WriteRead + Read + Write + 'static> Sensor<I>
         let reg = modify(reg);
         Self::write_ctrl_reg1(i2c, reg)
     }
+     */
 
     // ------------------------------------------------------------------------
     // CTRL_REG2
@@ -208,91 +175,6 @@ impl<I: WriteRead + Read + Write + 'static> Sensor<I>
         Self::write_ctrl_reg3(i2c, reg)
     }
 
-    // ------------------------------------------------------------------------
-    // Humidify
-    // ------------------------------------------------------------------------
-
-    fn read_h_out(i2c: &mut I) -> i16 {
-        let mut buf = [0; 2];
-        let result = i2c.write_read(ADDR, &[H_OUT], &mut buf);
-        log::trace!("[read_h_out] result {:?} - {:?}", result, buf);
-        i16::from_le_bytes(buf)
-    }
-
-    // ------------------------------------------------------------------------
-    // Temperature
-    // ------------------------------------------------------------------------
-
-    fn read_t_out(i2c: &mut I) -> i16 {
-        let mut buf = [0; 2];
-        let result = i2c.write_read(ADDR, &[T_OUT], &mut buf);
-        log::trace!("[read_t_out] result {:?} - {:?}", result, buf);
-        i16::from_le_bytes(buf)
-    }
-
-    fn read_t0_out(i2c: &mut I) -> i16 {
-        let mut buf = [0; 2];
-        let result = i2c.write_read(ADDR, &[T0_OUT], &mut buf);
-        log::trace!("[read_t0_out] result {:?}", result);
-        i16::from_le_bytes(buf)
-    }
-
-    fn read_t0_degc_x8(i2c: &mut I) -> u8 {
-        let mut buf = [0; 1];
-        let result = i2c.write_read(ADDR, &[T0_DEGC_X8], &mut buf);
-        log::trace!("[read_t0_degc] result {:?}", result);
-        buf[0]
-    }
-
-    fn read_t1_out(i2c: &mut I) -> i16 {
-        let mut buf = [0; 2];
-        let result = i2c.write_read(ADDR, &[T1_OUT], &mut buf);
-        log::trace!("[read_t1_out] result {:?}", result);
-        i16::from_le_bytes(buf)
-    }
-
-    fn read_t1_degc_x8(i2c: &mut I) -> u8 {
-        let mut buf = [0; 1];
-        let result = i2c.write_read(ADDR, &[T1_DEGC_X8], &mut buf);
-        log::trace!("[read_t1_degc_x8] result {:?}", result);
-        buf[0]
-    }
-
-    fn read_t1_t0_msb(i2c: &mut I) -> (u8, u8) {
-        let mut buf = [0; 1];
-        let result = i2c.write_read(ADDR, &[T1_T0_MSB], &mut buf);
-        log::trace!("[read_t1_t0_msb] result {:?}", result);
-
-        let t0_msb = (buf[0] & 0b00000011) >> 2;
-        let t1_msb = (buf[0] & 0b00001100) >> 2;
-
-        (t1_msb, t0_msb)
-    }
-
-    fn calibrated_temperature_degc(&self, i2c: &mut I) -> f32 {
-        if let Some(ref calibration) = self.calibration.temperature {
-            let t_out = Self::read_t_out(i2c);
-            let calibration = self.calibration.temperature.as_ref().unwrap();
-            let t_degc = calibration.t0_degc as f32 + (calibration.slope * (t_out - calibration.t0_out) as f32);
-            t_degc
-        } else {
-            f32::NAN
-        }
-    }
-
-    fn calibrated_humidity_rh(&self, i2c: &mut I) -> f32 {
-        let t_out = Self::read_h_out(i2c);
-
-        //let calibration = self.calibration.temperature.as_ref().unwrap();
-        //let t_degc = calibration.t0_degc as f32 + (calibration.slope * (t_out - calibration.t0_out) as f32);
-
-        //t_degc
-        0.0
-    }
-
-    fn c_to_f(c: f32) -> f32 {
-        c * (9.0 / 5.0) + 32.0
-    }
 }
 
 impl<I: WriteRead + Read + Write> Actor for Sensor<I>
@@ -341,25 +223,24 @@ impl<I: WriteRead + Read + Write> NotificationHandler<DataReady> for Sensor<I>
         Completion::defer(async move {
             if self.i2c.is_some() {
                 let mut i2c = self.i2c.as_ref().unwrap().lock().await;
-                let temp_degc = self.calibrated_temperature_degc(&mut i2c);
-                let humidity_rh = self.calibrated_humidity_rh(&mut i2c);
-                log::info!("[hts221] temperature is {} °F", Self::c_to_f(temp_degc));
+
+                if let Some(ref calibration) = self.calibration {
+                    let t_out = Tout::read(self.address, &mut i2c);
+                    let t = calibration.calibrated_temperature( t_out );
+
+                    let h_out = Hout::read(self.address, &mut i2c);
+                    let h = calibration.calibrated_humidity( h_out );
+
+                    log::info!("[hts221] temperature={:.2}°F humidity={:.2}%rh", t.into_fahrenheit(), h);
+                } else {
+                    log::info!("[hts221] no calibration data available")
+                }
+
+
+
+                //let temp_degc = self.calibrated_temperature_degc(&mut i2c);
+                //let humidity_rh = self.calibrated_humidity_rh(&mut i2c);
             }
-            /*
-            if let Some(ref i2c) = self.i2c {
-                let mut i2c = i2c.lock().await;
-                let h = Self::read_h_out(&mut i2c);
-                let temp_degc = Self::calibrated_temperature_degc(
-                    self.calibration.temperature.as_ref().unwrap(),
-                    &mut i2c
-                );
-                log::info!("[hts221] temperature is {} °F", Self::c_to_f(temp_degc));
-                Self::modify_ctrl_reg3(&mut i2c, |mut reg| {
-                    reg.enable = true;
-                    reg
-                });
-            }
-             */
         })
     }
 }

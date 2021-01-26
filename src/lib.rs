@@ -16,7 +16,7 @@ pub mod sink;
 #[doc(hidden)]
 pub mod macros;
 pub mod supervisor;
-
+pub mod domain;
 pub mod driver;
 pub mod synchronization;
 

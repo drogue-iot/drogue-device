@@ -1,7 +1,6 @@
 
 pub mod package;
 pub mod sensor;
-pub mod calibration;
 pub mod ready;
 pub mod register;
 
