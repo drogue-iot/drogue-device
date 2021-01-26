@@ -66,6 +66,14 @@ impl<P: OutputPin, A: Active> Actor for SimpleLED<P, A> {
     type Event = ();
 }
 
+impl<P: OutputPin, A: Active> NotificationHandler<Lifecycle> for SimpleLED<P, A>
+{
+    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
+        Completion::immediate()
+    }
+}
+
+
 impl<P: OutputPin, A: Active> NotificationHandler<On> for SimpleLED<P, A>
 where
     Self: Switchable,

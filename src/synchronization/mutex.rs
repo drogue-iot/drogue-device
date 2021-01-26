@@ -8,20 +8,21 @@ use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 use heapless::{consts::*, spsc::Queue};
+use crate::device::Lifecycle;
 
 pub struct Lock;
 
 pub struct Unlock<T>(T);
 
-pub struct Mutex<T> {
+pub struct Mutex<T: 'static> {
     address: Option<Address<Self>>,
     val: Option<T>,
     waiters: Queue<Waker, U16>,
 }
 
-impl<T> Actor for Mutex<T> {
+impl<T: 'static> Actor for Mutex<T> {
     type Event = ();
-    fn start(&mut self, addr: Address<Self>, _: &'static Broker<Self>) {
+    fn mount(&mut self, addr: Address<Self>, _: &'static Broker<Self>) {
         self.address.replace(addr);
     }
 }
@@ -38,6 +39,12 @@ impl<T: 'static> RequestHandler<Lock> for Mutex<T> {
             log::trace!("[Mutex<T> lock");
             lock
         })
+    }
+}
+
+impl<T: 'static> NotificationHandler<Lifecycle> for Mutex<T> {
+    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
+        Completion::immediate()
     }
 }
 

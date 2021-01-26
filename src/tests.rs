@@ -13,7 +13,7 @@ struct MyDevice {
 
 impl Device for MyDevice {
     fn start(&'static mut self, supervisor: &mut Supervisor) {
-        let led_addr = self.led.start(supervisor);
+        let led_addr = self.led.mount(supervisor);
         led_addr.notify(LEDState::On);
         led_addr.request(LEDState::Off);
     }

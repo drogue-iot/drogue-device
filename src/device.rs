@@ -1,6 +1,15 @@
 use crate::supervisor::Supervisor;
 use core::cell::UnsafeCell;
 
+#[derive(Copy, Clone, Debug)]
+pub enum Lifecycle {
+    Initialize,
+    Start,
+    Stop,
+    Sleep,
+    Hibernate,
+}
+
 pub trait Device {
     fn start(&'static mut self, supervisor: &mut Supervisor);
 }

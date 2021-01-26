@@ -31,7 +31,7 @@ impl<I: Interrupt> InterruptContext<I> {
     }
 
     pub fn start(&'static self, supervisor: &mut Supervisor) -> Address<I> {
-        let addr = self.actor_context.start(supervisor);
+        let addr = self.actor_context.mount(supervisor);
         supervisor.activate_interrupt(self, self.irq);
 
         struct IrqNr(u8);

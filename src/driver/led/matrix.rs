@@ -77,6 +77,17 @@ where
     type Event = ();
 }
 
+impl<P, ROWS, COLS> NotificationHandler<Lifecycle> for LEDMatrix<P, ROWS, COLS>
+    where
+        P: OutputPin,
+        ROWS: ArrayLength<P>,
+        COLS: ArrayLength<P>,
+{
+    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
+        Completion::immediate()
+    }
+}
+
 impl<P, ROWS, COLS> NotificationHandler<MatrixCommand> for LEDMatrix<P, ROWS, COLS>
 where
     P: OutputPin,

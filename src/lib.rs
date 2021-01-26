@@ -27,7 +27,10 @@ pub mod prelude {
     pub use crate::address::Address;
     pub use crate::broker::Broker;
     pub use crate::device;
-    pub use crate::device::Device;
+    pub use crate::device::{
+        Device,
+        Lifecycle,
+    };
     pub use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
     pub use crate::interrupt::{Interrupt, InterruptContext};
     pub use crate::sink::{MultiSink, Sink};

@@ -16,10 +16,11 @@ use core::fmt::{Debug, Formatter};
 use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue};
+use crate::prelude::Lifecycle;
 
-pub trait Actor {
+pub trait Actor : NotificationHandler<Lifecycle>{
     type Event: Clone + 'static;
-    fn start(&mut self, address: Address<Self>, broker: &'static Broker<Self>)
+    fn mount(&mut self, address: Address<Self>, broker: &'static Broker<Self>)
     where
         Self: Sized,
     {
@@ -68,7 +69,7 @@ impl<A: Actor> ActorContext<A> {
         &mut *self.actor.get()
     }
 
-    pub fn start(&'static self, supervisor: &mut Supervisor) -> Address<A> {
+    pub fn mount(&'static self, supervisor: &mut Supervisor) -> Address<A> {
         let addr = Address::new(self);
         let state_flag_handle = supervisor.activate_actor(self);
         log::trace!("[{}] == {:x}", self.name(), state_flag_handle as u32);
@@ -82,7 +83,7 @@ impl<A: Actor> ActorContext<A> {
         // SAFETY: At this point, we are the only holder of the actor
         unsafe {
             //(&mut *self.state_flag_handle.get()).replace(state_flag_handle);
-            (&mut *self.actor.get()).start(addr.clone(), &self.broker);
+            (&mut *self.actor.get()).mount(addr.clone(), &self.broker);
         }
 
         addr
@@ -235,7 +236,7 @@ where
 
 impl<A: Actor + NotificationHandler<M>, M> ActorFuture<A> for Notify<A, M> {}
 
-impl<A, M> Unpin for Notify<A, M> where A: NotificationHandler<M> {}
+impl<A, M> Unpin for Notify<A, M> where A: NotificationHandler<M> + Actor {}
 
 impl<A: Actor, M> Future for Notify<A, M>
 where

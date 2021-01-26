@@ -46,7 +46,7 @@ impl Completion {
 
 pub trait NotificationHandler<M>
 where
-    Self: Actor + Sized,
+    Self: Sized,
 {
     fn on_notification(&'static mut self, message: M) -> Completion;
 }
