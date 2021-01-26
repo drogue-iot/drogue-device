@@ -51,17 +51,6 @@ impl Temperature<Celsius> {
     }
 }
 
-/*
-impl Temperature<Fahrenheit> {
-    pub fn new(value: f32) -> Self {
-        Self {
-            value,
-            _marker:PhantomData
-        }
-    }
-}
- */
-
 impl Into<Temperature<Celsius>> for i16 {
     fn into(self) -> Temperature<Celsius> {
         Temperature::<Celsius>::new(self as f32)

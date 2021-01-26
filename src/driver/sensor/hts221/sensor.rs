@@ -16,7 +16,8 @@ use crate::driver::sensor::hts221::register::status::Status;
 use crate::driver::sensor::hts221::register::t_out::Tout;
 use crate::driver::sensor::hts221::register::h_out::Hout;
 use crate::driver::sensor::hts221::register::ctrl1::{Ctrl1, OutputDataRate, BlockDataUpdate};
-use crate::driver::sensor::hts221::register::{CtrlReg2, CTRL_REG2, CtrlReg3, CTRL_REG3};
+use crate::driver::sensor::hts221::register::ctrl2::Ctrl2;
+use crate::driver::sensor::hts221::register::ctrl3::Ctrl3;
 
 pub const ADDR: u8 = 0x5F;
 
@@ -52,13 +53,9 @@ impl<I: WriteRead + Read + Write + 'static> Sensor<I>
             if let Some(ref i2c) = self.i2c {
                 let mut i2c = i2c.lock().await;
 
-                /*
-                Self::modify_ctrl_reg2(&mut i2c, |mut reg| {
-                    reg.boot = false;
-                    reg.one_shot = true;
-                    reg
+                Ctrl2::modify( self.address, &mut i2c, |reg| {
+                    reg.boot();
                 });
-                 */
 
                 Ctrl1::modify( self.address, &mut i2c, |reg| {
                     reg.power_active()
@@ -66,15 +63,13 @@ impl<I: WriteRead + Read + Write + 'static> Sensor<I>
                         .block_data_update( BlockDataUpdate::MsbLsbReading );
                 });
 
-                Self::modify_ctrl_reg3(&mut i2c, |mut reg| {
-                    reg.enable = true;
-                    //reg.active = ActiveState::High;
-                    //reg.mode = ReadyMode::PushPull;
-                    reg
+                Ctrl3::modify( self.address, &mut i2c, |reg| {
+                    reg.enable(true);
                 });
 
                 log::info!("[hts221] address=0x{:X}", WhoAmI::read( self.address, &mut i2c) );
                 loop {
+                    // Ensure status is emptied
                     if ! Status::read( self.address, &mut i2c).any_available() {
                         break
                     }
@@ -97,84 +92,6 @@ impl<I: WriteRead + Read + Write + 'static> Sensor<I>
             self.calibration.replace(Calibration::read( self.address, &mut i2c));
         }
     }
-
-    // ------------------------------------------------------------------------
-    // CTRL_REG1
-    // ------------------------------------------------------------------------
-
-    /*
-    fn read_ctrl_reg1(i2c: &mut I) -> CtrlReg1 {
-        let mut buf = [0; 1];
-        let result = i2c.write_read(ADDR, &[CTRL_REG1], &mut buf);
-        log::trace!("[read_ctrl_reg1] result {:?} {}", result, buf[0]);
-        let reg = CtrlReg1::from(buf[0]);
-        log::trace!("[read_ctrl_reg1] reg {:?}", reg);
-        reg
-    }
-
-    fn write_ctrl_reg1(i2c: &mut I, reg: CtrlReg1) {
-        log::trace!("[write_ctrl_reg1] {:?} {}", reg, u8::from(reg));
-        let result = i2c.write(ADDR, &[CTRL_REG1, reg.into()]);
-        log::trace!("[write_ctrl_reg1] result {:?}", result);
-    }
-
-    fn modify_ctrl_reg1<F: FnOnce(CtrlReg1) -> CtrlReg1>(i2c: &mut I, modify: F) {
-        let reg = Self::read_ctrl_reg1(i2c);
-        let reg = modify(reg);
-        Self::write_ctrl_reg1(i2c, reg)
-    }
-     */
-
-    // ------------------------------------------------------------------------
-    // CTRL_REG2
-    // ------------------------------------------------------------------------
-
-    fn read_ctrl_reg2(i2c: &mut I) -> CtrlReg2 {
-        let mut buf = [0; 1];
-        let result = i2c.write_read(ADDR, &[CTRL_REG2], &mut buf);
-        log::trace!("[read_ctrl_reg2] result {:?} {}", result, buf[0]);
-        let reg = CtrlReg2::from(buf[0]);
-        log::trace!("[read_ctrl_reg2] reg {:?}", reg);
-        reg
-    }
-
-    fn write_ctrl_reg2(i2c: &mut I, reg: CtrlReg2) {
-        log::trace!("[write_ctrl_reg2] {:?} {}", reg, u8::from(reg));
-        let result = i2c.write(ADDR, &[CTRL_REG2, reg.into()]);
-        log::trace!("[write_ctrl_reg2] result {:?}", result);
-    }
-
-    fn modify_ctrl_reg2<F: FnOnce(CtrlReg2) -> CtrlReg2>(i2c: &mut I, modify: F) {
-        let reg = Self::read_ctrl_reg2(i2c);
-        let reg = modify(reg);
-        Self::write_ctrl_reg2(i2c, reg)
-    }
-
-    // ------------------------------------------------------------------------
-    // CTRL_REG3
-    // ------------------------------------------------------------------------
-
-    fn read_ctrl_reg3(i2c: &mut I) -> CtrlReg3 {
-        let mut buf = [0; 1];
-        let result = i2c.write_read(ADDR, &[CTRL_REG3], &mut buf);
-        log::trace!("[read_ctrl_reg3] result {:?} {}", result, buf[0]);
-        let reg = CtrlReg3::from(buf[0]);
-        log::trace!("[read_ctrl_reg3] reg {:?} {:b}", reg, buf[0]);
-        reg
-    }
-
-    fn write_ctrl_reg3(i2c: &mut I, reg: CtrlReg3) {
-        log::trace!("[write_ctrl_reg3] {:?} {}", reg, u8::from(reg));
-        let result = i2c.write(ADDR, &[CTRL_REG3, reg.into()]);
-        log::trace!("[write_ctrl_reg3] result {:?}", result);
-    }
-
-    fn modify_ctrl_reg3<F: FnOnce(CtrlReg3) -> CtrlReg3>(i2c: &mut I, modify: F) {
-        let reg = Self::read_ctrl_reg3(i2c);
-        let reg = modify(reg);
-        Self::write_ctrl_reg3(i2c, reg)
-    }
-
 }
 
 impl<I: WriteRead + Read + Write> Actor for Sensor<I>
