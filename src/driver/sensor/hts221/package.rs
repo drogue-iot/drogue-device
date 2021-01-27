@@ -39,7 +39,7 @@ where
         device: &'static D,
         supervisor: &mut Supervisor,
     ) -> Address<D, Sensor<D, I>> {
-        let ready_addr = self.ready.start(device, supervisor);
+        let ready_addr = self.ready.mount(device, supervisor);
         let sensor_addr = self.sensor.mount(device, supervisor);
         ready_addr.bind(&sensor_addr);
         self.sensor_addr.borrow_mut().replace(sensor_addr.clone());

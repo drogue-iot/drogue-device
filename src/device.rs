@@ -11,7 +11,7 @@ pub enum Lifecycle {
 }
 
 pub trait Device {
-    fn start(&'static mut self, supervisor: &mut Supervisor);
+    fn mount(&'static mut self, supervisor: &mut Supervisor);
 }
 
 #[doc(hidden)]
@@ -29,9 +29,9 @@ impl<D: Device> DeviceContext<D> {
         }
     }
 
-    pub fn start(&'static self) -> ! {
+    pub fn mount(&'static self) -> ! {
         unsafe {
-            (&mut *self.device.get()).start(&mut *self.supervisor.get());
+            (&mut *self.device.get()).mount(&mut *self.supervisor.get());
             (&*self.supervisor.get()).run_forever()
         }
     }

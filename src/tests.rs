@@ -12,7 +12,7 @@ struct MyDevice {
 }
 
 impl Device for MyDevice {
-    fn start(&'static mut self, supervisor: &mut Supervisor) {
+    fn mount(&'static mut self, supervisor: &mut Supervisor) {
         let led_addr = self.led.mount(supervisor);
         led_addr.notify(LEDState::On);
         led_addr.request(LEDState::Off);
@@ -85,5 +85,5 @@ fn the_api() {
     let mut supervisor = Supervisor::new();
     println!("D");
 
-    device.start(&mut supervisor);
+    device.mount(&mut supervisor);
 }

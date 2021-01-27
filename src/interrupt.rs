@@ -31,7 +31,7 @@ impl<D: Device, I: Interrupt<D>> InterruptContext<D, I> {
         self
     }
 
-    pub fn start(&'static self, device: &'static D, supervisor: &mut Supervisor) -> Address<D, I> {
+    pub fn mount(&'static self, device: &'static D, supervisor: &mut Supervisor) -> Address<D, I> {
         let addr = self.actor_context.mount(device, supervisor);
         supervisor.activate_interrupt(self, self.irq);
 

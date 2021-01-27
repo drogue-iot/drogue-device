@@ -9,7 +9,7 @@ macro_rules! device {
 
         $crate::init_heap!($memory);
 
-        device.start();
+        device.mount();
 
         #[exception]
         fn DefaultHandler(irqn: i16) {

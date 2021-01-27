@@ -13,7 +13,6 @@ use crate::hal::i2c::I2cAddress;
 use crate::prelude::*;
 use crate::synchronization::Mutex;
 use core::default::Default;
-use core::fmt::Debug;
 use core::ops::Add;
 use cortex_m::interrupt::Nr;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
@@ -22,9 +21,6 @@ use embedded_hal::digital::v2::InputPin;
 pub const ADDR: u8 = 0x5F;
 
 pub struct Sensor<D: Device, I: WriteRead + Read + Write + 'static>
-where
-    <I as WriteRead>::Error: Debug,
-    <I as Write>::Error: Debug,
 {
     address: I2cAddress,
     i2c: Option<Address<D, Mutex<D, I>>>,
@@ -32,9 +28,6 @@ where
 }
 
 impl<D: Device, I: WriteRead + Read + Write + 'static> Sensor<D, I>
-where
-    <I as WriteRead>::Error: Debug,
-    <I as Write>::Error: Debug,
 {
     pub fn new() -> Self {
         Self {
@@ -95,16 +88,10 @@ where
 }
 
 impl<D: Device, I: WriteRead + Read + Write> Actor<D> for Sensor<D, I>
-where
-    <I as WriteRead>::Error: Debug,
-    <I as Write>::Error: Debug,
 {
 }
 
 impl<D: Device, I: WriteRead + Read + Write + 'static> Bind<D, Mutex<D, I>> for Sensor<D, I>
-where
-    <I as WriteRead>::Error: Debug,
-    <I as Write>::Error: Debug,
 {
     fn on_bind(&'static mut self, address: Address<D, Mutex<D, I>>) {
         self.i2c.replace(address);
@@ -112,9 +99,6 @@ where
 }
 
 impl<D: Device, I: WriteRead + Read + Write> NotificationHandler<Lifecycle> for Sensor<D, I>
-where
-    <I as WriteRead>::Error: Debug,
-    <I as Write>::Error: Debug,
 {
     fn on_notification(&'static mut self, event: Lifecycle) -> Completion {
         log::info!("[hts221] Lifecycle: {:?}", event);
@@ -129,9 +113,6 @@ where
 }
 
 impl<D: Device, I: WriteRead + Read + Write> NotificationHandler<DataReady> for Sensor<D, I>
-where
-    <I as WriteRead>::Error: Debug,
-    <I as Write>::Error: Debug,
 {
     fn on_notification(&'static mut self, message: DataReady) -> Completion {
         Completion::defer(async move {
@@ -158,10 +139,7 @@ where
     }
 }
 
-impl<D: Device + 'static, I: WriteRead + Read + Write + 'static> Address<D, Sensor<D, I>>
-where
-    <I as WriteRead>::Error: Debug,
-    <I as Write>::Error: Debug,
+impl<D: Device + 'static, I: WriteRead + Read + Write > Address<D, Sensor<D, I>>
 {
     pub fn signal_data_ready(&self) {
         self.notify(DataReady)
