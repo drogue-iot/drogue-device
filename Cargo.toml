@@ -26,6 +26,14 @@ path = "../stm32l4xx-hal"
 features = ["stm32l4x5", "rt"]
 optional = true
 
+# ----------------------------------------
+# embedded_time dependencies
+# ----------------------------------------
+
+[dependencies.num]
+version = "0.3.0"
+default-features = false
+
 [features]
 stm32l4xx = [ "stm32l4xx-hal" ]
 
