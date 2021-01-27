@@ -17,6 +17,8 @@ use core::ops::Add;
 use cortex_m::interrupt::Nr;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
+use crate::driver::timer::{Timer, Delay, HardwareTimer};
+use crate::domain::time::duration::Milliseconds;
 
 pub const ADDR: u8 = 0x5F;
 
@@ -62,6 +64,8 @@ impl<D: Device, I: WriteRead + Read + Write + 'static> Sensor<D, I> {
                     "[hts221] address=0x{:X}",
                     WhoAmI::read(self.address, &mut i2c)
                 );
+
+                //let result = self.timer.as_ref().unwrap().request( Delay( Milliseconds(85u32))).await;
                 loop {
                     // Ensure status is emptied
                     if !Status::read(self.address, &mut i2c).any_available() {

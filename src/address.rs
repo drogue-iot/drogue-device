@@ -18,7 +18,6 @@ impl<D: Device, A: Actor<D>> Clone for Address<D, A> {
     }
 }
 
-// TODO critical sections around ask/tell
 impl<D: Device + 'static, A: Actor<D>> Address<D, A> {
     pub(crate) fn new(actor: &ActorContext<D, A>) -> Self {
         Self {

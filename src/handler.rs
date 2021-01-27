@@ -6,6 +6,7 @@ use core::future::Future;
 pub enum Response<T> {
     Immediate(T),
     Defer(Box<dyn Future<Output = T>>),
+    ImmediateFuture(Box<dyn Future<Output = T>>),
 }
 
 impl<T> Response<T> {
@@ -18,6 +19,13 @@ impl<T> Response<T> {
         T: 'static,
     {
         Self::Defer(Box::new(alloc(f).unwrap()))
+    }
+
+    pub fn immediate_future<F: Future<Output = T> + 'static>(f: F) -> Self
+        where
+            T: 'static,
+    {
+        Self::ImmediateFuture(Box::new(alloc(f).unwrap()))
     }
 }
 

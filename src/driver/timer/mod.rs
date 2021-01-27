@@ -1,0 +1,165 @@
+#[cfg(feature = "stm32l4xx")]
+pub mod stm32l4xx;
+
+use crate::prelude::*;
+use crate::domain::time::duration::{Duration, Milliseconds};
+use core::marker::PhantomData;
+use crate::domain::time::rate::Hertz;
+use core::future::Future;
+use core::task::{Context, Poll, Waker};
+use core::pin::Pin;
+use core::sync::atomic::{AtomicBool, Ordering};
+use core::cell::UnsafeCell;
+
+pub trait HardwareTimer<TIM> {
+    fn start(&mut self, duration: Milliseconds);
+    fn free(self) -> TIM;
+    fn clear_update_interrupt_flag(&mut self);
+}
+
+
+#[derive(Copy, Clone, Debug)]
+pub struct Delay<D: Duration + Into<Milliseconds>>(pub D);
+
+pub struct Timer<D: Device, TIM, T: HardwareTimer<TIM>> {
+    timer: T,
+    current_delay_deadline: Option<Milliseconds>,
+    delay_deadlines: [Option<DelayDeadline>; 16],
+    _tim: PhantomData<TIM>,
+    _device: PhantomData<D>,
+}
+
+
+impl<D: Device, TIM, T: HardwareTimer<TIM>> Timer<D, TIM, T> {
+    pub fn new(timer: T) -> Self {
+        Self {
+            timer,
+            current_delay_deadline: None,
+            delay_deadlines: Default::default(),
+            _tim: PhantomData,
+            _device: PhantomData,
+        }
+    }
+
+    fn has_expired(&mut self, index: usize) -> bool {
+        let expired = self.delay_deadlines[index].as_ref().unwrap().expiration == Milliseconds(0u32);
+        if expired {
+            self.delay_deadlines[index].take();
+        }
+
+        expired
+    }
+
+    fn register_waker(&mut self, index: usize, waker: Waker) {
+        self.delay_deadlines[index].as_mut().unwrap().waker.replace(waker);
+    }
+}
+
+impl<D: Device, TIM, T: HardwareTimer<TIM>> Actor<D> for Timer<D, TIM, T> {}
+
+impl<D: Device, TIM, T: HardwareTimer<TIM>> NotificationHandler<Lifecycle> for Timer<D, TIM, T> {
+    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
+        Completion::immediate()
+    }
+}
+
+impl<D: Device, TIM, T: HardwareTimer<TIM>, DUR: Duration + Into<Milliseconds>> RequestHandler<D, Delay<DUR>> for Timer<D, TIM, T> {
+    type Response = ();
+
+    fn on_request(&'static mut self, message: Delay<DUR>) -> Response<Self::Response> {
+        let ms: Milliseconds = message.0.into();
+        self.current_delay_deadline.replace(ms);
+        if let Some((index, slot)) = self.delay_deadlines.iter_mut().enumerate().find(|e| matches!(e, (_, None))) {
+            self.delay_deadlines[index].replace(DelayDeadline::new(ms));
+            self.timer.start(ms);
+            Response::immediate_future(DelayFuture::new(index, self))
+        } else {
+            Response::immediate(())
+        }
+    }
+}
+
+impl<D: Device, TIM, T: HardwareTimer<TIM>> Interrupt<D> for Timer<D, TIM, T> {
+    fn on_interrupt(&mut self) {
+        self.timer.clear_update_interrupt_flag();
+        let expired = self.current_delay_deadline.unwrap();
+        //log::info!("timer expired! {:?}", expired);
+        for slot in self.delay_deadlines.iter_mut() {
+            if let Some(deadline) = slot {
+                deadline.expiration = deadline.expiration - expired;
+                if deadline.expiration == Milliseconds(0u32) {
+                    deadline.waker.take().unwrap().wake();
+                }
+            }
+        }
+    }
+}
+
+impl<D: Device + 'static, TIM: 'static, T: HardwareTimer<TIM> + 'static> Address<D, Timer<D, TIM, T>> {
+    pub async fn delay<DUR: Duration + Into<Milliseconds> + 'static>(&self, duration: DUR) {
+        self.request(Delay(duration)).await
+    }
+}
+
+
+struct DelayDeadline {
+    expiration: Milliseconds,
+    waker: Option<Waker>,
+}
+
+impl DelayDeadline {
+    fn new(expiration: Milliseconds) -> Self {
+        Self {
+            expiration,
+            waker: None,
+        }
+    }
+}
+
+struct DelayFuture<D: Device, TIM, T: HardwareTimer<TIM>> {
+    index: usize,
+    timer: UnsafeCell<*mut Timer<D, TIM, T>>,
+    expired: bool,
+}
+
+impl<D: Device, TIM, T: HardwareTimer<TIM>> DelayFuture<D, TIM, T> {
+    fn new(index: usize, timer: &mut Timer<D, TIM, T>) -> Self {
+        Self {
+            index,
+            timer: UnsafeCell::new(timer),
+            expired: false,
+        }
+    }
+
+    fn has_expired(&mut self) -> bool {
+        if !self.expired {
+            self.expired = unsafe {
+                // critical section to avoid being trampled by the timer's own IRQ
+                cortex_m::interrupt::free(|cs| {
+                    (&mut **self.timer.get()).has_expired(self.index)
+                })
+            }
+        }
+
+        self.expired
+    }
+
+    fn register_waker(&self, waker: &Waker) {
+        unsafe {
+            (&mut **self.timer.get()).register_waker(self.index, waker.clone());
+        }
+    }
+}
+
+impl<D: Device, TIM, T: HardwareTimer<TIM>> Future for DelayFuture<D, TIM, T> {
+    type Output = ();
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        if self.has_expired() {
+            Poll::Ready(())
+        } else {
+            self.register_waker(cx.waker());
+            Poll::Pending
+        }
+    }
+}
