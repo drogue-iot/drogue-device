@@ -14,10 +14,9 @@ impl<D: Device + 'static> EventBus<D> {
         }
     }
 
-    pub fn publish<P, E>(&self, event: E)
+    pub fn publish<E>(&self, event: E)
     where
         D: EventConsumer<E>,
-        P: EventProducer<D, E>,
     {
         unsafe {
             (&**self.device.get()).on_event(event);
@@ -25,7 +24,7 @@ impl<D: Device + 'static> EventBus<D> {
     }
 }
 
-pub trait EventProducer<D: Device, M>: Actor<D> {}
+// pub trait EventProducer<D: Device, M>: Actor<D> {}
 
 pub trait EventConsumer<M> {
     fn on_event(&'static self, message: M)

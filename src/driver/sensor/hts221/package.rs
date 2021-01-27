@@ -4,12 +4,12 @@ use crate::driver::sensor::hts221::sensor::Sensor;
 use crate::hal::gpio::exti_pin::ExtiPin;
 use crate::prelude::*;
 use crate::synchronization::Mutex;
+use core::cell::RefCell;
 use core::fmt::Debug;
 use core::ops::Add;
 use cortex_m::interrupt::Nr;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
-use core::cell::RefCell;
 
 pub struct Hts221<D: Device + 'static, P: InputPin + ExtiPin, I: WriteRead + Read + Write + 'static>
 where

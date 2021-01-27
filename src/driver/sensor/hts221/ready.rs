@@ -10,14 +10,12 @@ use embedded_hal::digital::v2::InputPin;
 
 pub struct DataReady;
 
-pub struct Ready<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write + 'static>
-{
+pub struct Ready<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write + 'static> {
     pin: P,
     sensor: Option<Address<D, Sensor<D, I>>>,
 }
 
-impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write> Ready<D, P, I>
-{
+impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write> Ready<D, P, I> {
     pub fn new(pin: P) -> Self {
         Self { pin, sensor: None }
     }
