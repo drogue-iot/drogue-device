@@ -68,10 +68,22 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>, DUR: Duration + Into<Milliseconds>> 
 
     fn on_request(&'static mut self, message: Delay<DUR>) -> Response<Self::Response> {
         let ms: Milliseconds = message.0.into();
-        self.current_delay_deadline.replace(ms);
+        log::info!("delay request {:?}", ms);
         if let Some((index, slot)) = self.delay_deadlines.iter_mut().enumerate().find(|e| matches!(e, (_, None))) {
             self.delay_deadlines[index].replace(DelayDeadline::new(ms));
-            self.timer.start(ms);
+            if let Some(current_deadline) = self.current_delay_deadline {
+                if current_deadline > ms {
+                    self.current_delay_deadline.replace(ms);
+                    log::info!("start shorter timer for {:?}", ms);
+                    self.timer.start(ms);
+                } else {
+                    log::info!("timer already running for {:?}", current_deadline );
+                }
+            } else {
+                self.current_delay_deadline.replace(ms);
+                log::info!("start new timer for {:?}", ms);
+                self.timer.start(ms);
+            }
             Response::immediate_future(DelayFuture::new(index, self))
         } else {
             Response::immediate(())
@@ -83,14 +95,45 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>> Interrupt<D> for Timer<D, TIM, T> {
     fn on_interrupt(&mut self) {
         self.timer.clear_update_interrupt_flag();
         let expired = self.current_delay_deadline.unwrap();
-        //log::info!("timer expired! {:?}", expired);
+
+        let mut next_deadline = None;
+        log::info!("timer expired! {:?}", expired);
         for slot in self.delay_deadlines.iter_mut() {
             if let Some(deadline) = slot {
-                deadline.expiration = deadline.expiration - expired;
+                if deadline.expiration >= expired {
+                    deadline.expiration = deadline.expiration - expired;
+                } else {
+                    deadline.expiration = Milliseconds(0u32);
+                }
+
                 if deadline.expiration == Milliseconds(0u32) {
                     deadline.waker.take().unwrap().wake();
+                } else {
+                    match next_deadline {
+                        None => {
+                            next_deadline.replace(deadline.expiration);
+                        }
+                        Some(soonest)  if soonest > deadline.expiration => {
+                            next_deadline.replace( deadline.expiration );
+                        }
+                        _ => { /* ignore */ }
+                    }
                 }
             }
+        }
+
+        log::info!("next deadline {:?}", next_deadline );
+
+        if let Some(next_deadline) = next_deadline {
+            if next_deadline > Milliseconds(0u32) {
+                self.current_delay_deadline.replace( next_deadline );
+                self.timer.start(next_deadline);
+            } else {
+                self.current_delay_deadline.take();
+            }
+        } else {
+            self.current_delay_deadline.take();
+
         }
     }
 }
@@ -156,8 +199,10 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>> Future for DelayFuture<D, TIM, T> {
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.has_expired() {
+            log::info!("delay poll - ready {}", self.index);
             Poll::Ready(())
         } else {
+            log::info!("delay poll - pending {}", self.index);
             self.register_waker(cx.waker());
             Poll::Pending
         }

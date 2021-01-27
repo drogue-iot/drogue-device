@@ -6,20 +6,21 @@ use embedded_hal::digital::v2::OutputPin;
 use crate::prelude::*;
 use core::marker::PhantomData;
 use crate::driver::timer::{HardwareTimer, Timer, Delay};
-use crate::domain::time::duration::Milliseconds;
+use crate::domain::time::duration::{Milliseconds, Duration};
 use crate::bind::Bind;
 
 pub struct Blinker<D: Device, P: OutputPin, TIM, T: HardwareTimer<TIM>> {
     led: Option<Address<D, SimpleLED<D, P>>>,
     timer: Option<Address<D, Timer<D, TIM, T>>>,
+    delay: Milliseconds,
 }
 
 impl<D: Device, P: OutputPin, TIM, T: HardwareTimer<TIM>> Blinker<D, P, TIM, T> {
-    pub fn new() -> Self {
+    pub fn new<DUR: Into<Milliseconds>>(delay: DUR) -> Self {
         Self {
             led: None,
             timer: None,
-
+            delay: delay.into(),
         }
     }
 }
@@ -43,10 +44,11 @@ impl<D: Device, P: OutputPin, TIM, T: HardwareTimer<TIM>> NotificationHandler<Li
         if let Lifecycle::Start = message {
             Completion::defer(async move {
                 loop {
+                    log::info!("LED {:?}", self.delay);
                     self.led.as_ref().unwrap().turn_on();
-                    self.timer.as_ref().unwrap().delay(Milliseconds(200u32)).await;
+                    self.timer.as_ref().unwrap().delay(self.delay).await;
                     self.led.as_ref().unwrap().turn_off();
-                    self.timer.as_ref().unwrap().delay(Milliseconds(200u32)).await;
+                    self.timer.as_ref().unwrap().delay(self.delay).await;
                 }
             })
         } else {
