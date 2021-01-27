@@ -62,17 +62,13 @@ impl<P: OutputPin> Switchable for SimpleLED<P, ActiveLow> {
     }
 }
 
-impl<P: OutputPin, A: Active> Actor for SimpleLED<P, A> {
-    type Event = ();
-}
+impl<D: Device, P: OutputPin, A: Active> Actor<D> for SimpleLED<P, A> {}
 
-impl<P: OutputPin, A: Active> NotificationHandler<Lifecycle> for SimpleLED<P, A>
-{
+impl<P: OutputPin, A: Active> NotificationHandler<Lifecycle> for SimpleLED<P, A> {
     fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
         Completion::immediate()
     }
 }
-
 
 impl<P: OutputPin, A: Active> NotificationHandler<On> for SimpleLED<P, A>
 where
@@ -95,9 +91,9 @@ where
     }
 }
 
-impl<S> Address<S>
+impl<D: Device + 'static, S> Address<D, S>
 where
-    S: Actor + 'static,
+    S: Actor<D> + 'static,
     S: Switchable,
     S: NotificationHandler<On>,
     S: NotificationHandler<Off>,

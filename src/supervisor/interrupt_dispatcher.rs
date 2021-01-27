@@ -1,6 +1,7 @@
 use heapless::{consts::*, Vec};
 
 use crate::actor::{Actor, ActorContext};
+use crate::device::Device;
 use crate::interrupt::{Interrupt, InterruptContext};
 use core::sync::atomic::{AtomicU8, Ordering};
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
@@ -9,7 +10,7 @@ pub(crate) trait ActiveInterrupt {
     fn on_interrupt(&self);
 }
 
-impl<I: Actor + Interrupt> ActiveInterrupt for InterruptContext<I> {
+impl<D: Device, I: Actor<D> + Interrupt<D>> ActiveInterrupt for InterruptContext<D, I> {
     fn on_interrupt(&self) {
         // Mask this interrupt handler (not the entire IRQ) if this
         // actor currently has an in-flight async block.
@@ -20,7 +21,7 @@ impl<I: Actor + Interrupt> ActiveInterrupt for InterruptContext<I> {
         if !self.actor_context.in_flight.load(Ordering::Acquire) {
             unsafe {
                 //cortex_m::interrupt::free(|cs| {
-                    (&mut *self.actor_context.actor.get()).on_interrupt();
+                (&mut *self.actor_context.actor.get()).on_interrupt();
                 //})
             }
         }

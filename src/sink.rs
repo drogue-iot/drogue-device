@@ -39,10 +39,3 @@ where
         }
     }
 }
-
-/*
-impl<M: Clone, N: ArrayLength<&'static dyn Sink<M>>> Actor for MultiSink<M, N> {
-    type Event = M;
-}
-
- */

@@ -1,7 +1,7 @@
-use embedded_hal::blocking::i2c::WriteRead;
 use crate::hal::i2c::I2cAddress;
 use core::cell::Ref;
 use core::ops::{DerefMut, Not};
+use embedded_hal::blocking::i2c::WriteRead;
 
 const STATUS: u8 = 0x27;
 
@@ -11,9 +11,12 @@ pub struct Status {
 }
 
 impl Status {
-    pub fn read<I: DerefMut<Target=I2C>, I2C: WriteRead>(address: I2cAddress, i2c: &mut I) -> Status {
-        let mut buf = [0;1];
-        let result = i2c.write_read( address.into(), &[STATUS], &mut buf);
+    pub fn read<I: DerefMut<Target = I2C>, I2C: WriteRead>(
+        address: I2cAddress,
+        i2c: &mut I,
+    ) -> Status {
+        let mut buf = [0; 1];
+        let result = i2c.write_read(address.into(), &[STATUS], &mut buf);
         buf[0].into()
     }
 
@@ -38,7 +41,3 @@ impl Into<Status> for u8 {
         }
     }
 }
-
-
-
-

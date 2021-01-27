@@ -5,7 +5,8 @@ pub trait ExtiPin {
 
 #[cfg(feature = "stm32l4xx")]
 impl<P> ExtiPin for P
-    where P: stm32l4xx_hal::gpio::ExtiPin
+where
+    P: stm32l4xx_hal::gpio::ExtiPin,
 {
     fn check_interrupt(&mut self) -> bool {
         (self as &mut dyn stm32l4xx_hal::gpio::ExtiPin).check_interrupt()

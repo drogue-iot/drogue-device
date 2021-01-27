@@ -1,4 +1,4 @@
-use core::fmt::{LowerHex, Formatter, UpperHex};
+use core::fmt::{Formatter, LowerHex, UpperHex};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct I2cAddress(u8);
@@ -23,12 +23,12 @@ impl Into<I2cAddress> for u8 {
 
 impl LowerHex for I2cAddress {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        LowerHex::fmt( &self.0, f)
+        LowerHex::fmt(&self.0, f)
     }
 }
 
 impl UpperHex for I2cAddress {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        UpperHex::fmt( &self.0, f)
+        UpperHex::fmt(&self.0, f)
     }
 }

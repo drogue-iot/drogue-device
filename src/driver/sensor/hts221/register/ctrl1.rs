@@ -1,7 +1,7 @@
-use embedded_hal::blocking::i2c::{WriteRead, Write};
 use crate::hal::i2c::I2cAddress;
 use core::cell::Ref;
 use core::ops::DerefMut;
+use embedded_hal::blocking::i2c::{Write, WriteRead};
 
 const CTRL_REG1: u8 = 0x20;
 
@@ -33,17 +33,28 @@ pub struct Ctrl1 {
 }
 
 impl Ctrl1 {
-    pub fn read<I: DerefMut<Target=I2C>, I2C: WriteRead>(address: I2cAddress, i2c: &mut I) -> Self {
+    pub fn read<I: DerefMut<Target = I2C>, I2C: WriteRead>(
+        address: I2cAddress,
+        i2c: &mut I,
+    ) -> Self {
         let mut buf = [0; 1];
         let result = i2c.write_read(address.into(), &[CTRL_REG1], &mut buf);
         buf[0].into()
     }
 
-    pub fn write<I: DerefMut<Target=I2C>, I2C: Write>(address: I2cAddress, i2c: &mut I, reg: Ctrl1) {
-        let result = i2c.write(address.into(), &[CTRL_REG1, reg.into()] );
+    pub fn write<I: DerefMut<Target = I2C>, I2C: Write>(
+        address: I2cAddress,
+        i2c: &mut I,
+        reg: Ctrl1,
+    ) {
+        let result = i2c.write(address.into(), &[CTRL_REG1, reg.into()]);
     }
 
-    pub fn modify<I: DerefMut<Target=I2C>, I2C: WriteRead + Write, F: FnOnce(&mut Ctrl1)>(address: I2cAddress, i2c: &mut I, modify: F)  {
+    pub fn modify<I: DerefMut<Target = I2C>, I2C: WriteRead + Write, F: FnOnce(&mut Ctrl1)>(
+        address: I2cAddress,
+        i2c: &mut I,
+        modify: F,
+    ) {
         let mut reg = Self::read(address, i2c);
         modify(&mut reg);
         Self::write(address, i2c, reg);
@@ -84,7 +95,7 @@ impl From<Power> for u8 {
     fn from(p: Power) -> Self {
         match p {
             Power::PowerDown => 0b00000000,
-            Power::Active => 0b10000000
+            Power::Active => 0b10000000,
         }
     }
 }
@@ -149,4 +160,3 @@ impl Into<u8> for Ctrl1 {
             | u8::from(self.block_data_update)
     }
 }
-

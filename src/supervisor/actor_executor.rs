@@ -1,10 +1,11 @@
 use heapless::{consts::*, Vec};
 
 use crate::actor::{Actor, ActorContext};
+use crate::device::Device;
+use crate::prelude::Lifecycle;
 use core::ops::Deref;
 use core::sync::atomic::{AtomicU8, Ordering};
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
-use crate::prelude::Lifecycle;
 
 pub(crate) enum ActorState {
     IDLE = 0,
@@ -92,7 +93,6 @@ impl Supervised {
 
     fn dispatch_lifecycle_event(&self, event: Lifecycle) {
         self.actor.dispatch_lifecycle_event(event);
-
     }
 }
 
@@ -102,7 +102,7 @@ pub(crate) trait ActiveActor {
     fn dispatch_lifecycle_event(&'static self, event: Lifecycle);
 }
 
-impl<A: Actor> ActiveActor for ActorContext<A> {
+impl<D: Device, A: Actor<D>> ActiveActor for ActorContext<D, A> {
     fn name(&self) -> &str {
         ActorContext::name(self)
     }
@@ -175,7 +175,7 @@ impl ActorExecutor {
 
     pub(crate) fn dispatch_lifecycle_event(&mut self, event: Lifecycle) {
         for actor in self.actors.iter().filter(|e| !e.is_idle()) {
-            actor.dispatch_lifecycle_event( event );
+            actor.dispatch_lifecycle_event(event);
         }
     }
 
@@ -200,8 +200,8 @@ impl ActorExecutor {
     }
 
     pub fn run_forever(&mut self) -> ! {
-        self.dispatch_lifecycle_event( Lifecycle::Initialize );
-        self.dispatch_lifecycle_event( Lifecycle::Start );
+        self.dispatch_lifecycle_event(Lifecycle::Initialize);
+        self.dispatch_lifecycle_event(Lifecycle::Start);
         loop {
             self.run_until_quiescence();
             // self.dispatch_lifecycle_event( Lifecycle::Sleep );

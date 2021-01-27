@@ -1,6 +1,7 @@
 use crate::actor::Actor;
 use crate::address::Address;
-use crate::broker::Broker;
+use crate::bus::EventBus;
+use crate::device::{Device, Lifecycle};
 use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
 use core::cell::UnsafeCell;
 use core::future::Future;
@@ -8,27 +9,25 @@ use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 use heapless::{consts::*, spsc::Queue};
-use crate::device::Lifecycle;
 
 pub struct Lock;
 
 pub struct Unlock<T>(T);
 
-pub struct Mutex<T: 'static> {
-    address: Option<Address<Self>>,
+pub struct Mutex<D: Device, T: 'static> {
+    address: Option<Address<D, Self>>,
     val: Option<T>,
     waiters: Queue<Waker, U16>,
 }
 
-impl<T: 'static> Actor for Mutex<T> {
-    type Event = ();
-    fn mount(&mut self, addr: Address<Self>, _: &'static Broker<Self>) {
+impl<D: Device, T: 'static> Actor<D> for Mutex<D, T> {
+    fn mount(&mut self, addr: Address<D, Self>, _: EventBus<D>) {
         self.address.replace(addr);
     }
 }
 
-impl<T: 'static> RequestHandler<Lock> for Mutex<T> {
-    type Response = Exclusive<T>;
+impl<D: Device + 'static, T: 'static> RequestHandler<D, Lock> for Mutex<D, T> {
+    type Response = Exclusive<D, T>;
 
     fn on_request(&'static mut self, message: Lock) -> Response<Self::Response> {
         Response::defer(async move {
@@ -42,13 +41,13 @@ impl<T: 'static> RequestHandler<Lock> for Mutex<T> {
     }
 }
 
-impl<T: 'static> NotificationHandler<Lifecycle> for Mutex<T> {
+impl<D: Device, T: 'static> NotificationHandler<Lifecycle> for Mutex<D, T> {
     fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
         Completion::immediate()
     }
 }
 
-impl<T: 'static> NotificationHandler<Unlock<T>> for Mutex<T> {
+impl<D: Device, T: 'static> NotificationHandler<Unlock<T>> for Mutex<D, T> {
     fn on_notification(&'static mut self, message: Unlock<T>) -> Completion {
         log::trace!("[Mutex<T> unlock");
         self.unlock(message.0);
@@ -56,7 +55,7 @@ impl<T: 'static> NotificationHandler<Unlock<T>> for Mutex<T> {
     }
 }
 
-impl<T> Mutex<T> {
+impl<D: Device, T> Mutex<D, T> {
     pub fn new(val: T) -> Self {
         Self {
             address: None,
@@ -66,12 +65,12 @@ impl<T> Mutex<T> {
     }
 
     pub async fn lock(&'static mut self) -> T {
-        struct LockFuture<TT: 'static> {
+        struct LockFuture<D: Device, TT: 'static> {
             waiting: bool,
-            mutex: UnsafeCell<*mut Mutex<TT>>,
+            mutex: UnsafeCell<*mut Mutex<D, TT>>,
         }
 
-        impl<TT> Future for LockFuture<TT> {
+        impl<D: Device, TT> Future for LockFuture<D, TT> {
             type Output = TT;
 
             fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -107,12 +106,12 @@ impl<T> Mutex<T> {
     }
 }
 
-pub struct Exclusive<T: 'static> {
+pub struct Exclusive<D: Device + 'static, T: 'static> {
     val: Option<T>,
-    address: Address<Mutex<T>>,
+    address: Address<D, Mutex<D, T>>,
 }
 
-impl<T> Deref for Exclusive<T> {
+impl<D: Device, T> Deref for Exclusive<D, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -120,20 +119,20 @@ impl<T> Deref for Exclusive<T> {
     }
 }
 
-impl<T> DerefMut for Exclusive<T> {
+impl<D: Device, T> DerefMut for Exclusive<D, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.val.as_mut().unwrap()
     }
 }
 
-impl<T: 'static> Drop for Exclusive<T> {
+impl<D: Device + 'static, T: 'static> Drop for Exclusive<D, T> {
     fn drop(&mut self) {
         self.address.notify(Unlock(self.val.take().unwrap()))
     }
 }
 
-impl<T> Address<Mutex<T>> {
-    pub async fn lock(&'static self) -> Exclusive<T> {
+impl<D: Device, T> Address<D, Mutex<D, T>> {
+    pub async fn lock(&'static self) -> Exclusive<D, T> {
         self.request(Lock).await
     }
 }

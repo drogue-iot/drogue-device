@@ -1,7 +1,7 @@
+use crate::domain::temperature::{Celsius, Temperature};
+use crate::hal::i2c::I2cAddress;
 use core::ops::DerefMut;
 use embedded_hal::blocking::i2c::WriteRead;
-use crate::hal::i2c::I2cAddress;
-use crate::domain::temperature::{Temperature, Celsius};
 
 // 16-byte block of calibration at 0x30 with high bit for auto-increment
 const CALIBRATION_16: u8 = 0xB0;
@@ -12,18 +12,21 @@ pub struct Calibration {
 }
 
 impl Calibration {
-    pub fn read<I: DerefMut<Target=I2C>, I2C: WriteRead>(address: I2cAddress, i2c: &mut I) -> Calibration {
+    pub fn read<I: DerefMut<Target = I2C>, I2C: WriteRead>(
+        address: I2cAddress,
+        i2c: &mut I,
+    ) -> Calibration {
         let mut buf = [0; 16];
         let result = i2c.write_read(address.into(), &[CALIBRATION_16], &mut buf);
         buf.into()
     }
 
     pub fn calibrated_temperature(&self, t_out: i16) -> Temperature<Celsius> {
-        self.temperature.calibrated( t_out )
+        self.temperature.calibrated(t_out)
     }
 
     pub fn calibrated_humidity(&self, h_out: i16) -> f32 {
-        self.humidity.calibrated( h_out )
+        self.humidity.calibrated(h_out)
     }
 }
 
@@ -37,7 +40,7 @@ pub struct TemperatureCalibration {
 
 impl TemperatureCalibration {
     pub fn calibrated(&self, t_out: i16) -> Temperature<Celsius> {
-        (self.t0_degc + ( self.slope * ( t_out - self.t0_out ) as f32))
+        (self.t0_degc + (self.slope * (t_out - self.t0_out) as f32))
     }
 }
 
@@ -51,21 +54,15 @@ pub struct HumidityCalibration {
 
 impl HumidityCalibration {
     pub fn calibrated(&self, h_out: i16) -> f32 {
-        self.h0_rh + ( self.slope * (h_out - self.h0_out ) as f32)
+        self.h0_rh + (self.slope * (h_out - self.h0_out) as f32)
     }
 }
 
 impl Into<Calibration> for [u8; 16] {
     fn into(self) -> Calibration {
-        let t0_out = i16::from_le_bytes([
-            self[12],
-            self[13],
-        ]);
+        let t0_out = i16::from_le_bytes([self[12], self[13]]);
 
-        let t1_out = i16::from_le_bytes([
-            self[14],
-            self[15],
-        ]);
+        let t1_out = i16::from_le_bytes([self[14], self[15]]);
 
         let t0_degc = self[2];
         let t1_degc = self[3];
@@ -91,15 +88,9 @@ impl Into<Calibration> for [u8; 16] {
         let h0_rh = self[0] as f32 / 2.0;
         let h1_rh = self[1] as f32 / 2.0;
 
-        let h0_out = i16::from_le_bytes([
-            self[6],
-            self[7]
-        ]);
+        let h0_out = i16::from_le_bytes([self[6], self[7]]);
 
-        let h1_out = i16::from_le_bytes([
-            self[10],
-            self[11]
-        ]);
+        let h1_out = i16::from_le_bytes([self[10], self[11]]);
 
         let slope = (h1_rh - h0_rh) / ((h1_out - h0_out) as f32);
 
@@ -117,4 +108,3 @@ impl Into<Calibration> for [u8; 16] {
         }
     }
 }
-

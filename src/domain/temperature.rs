@@ -1,6 +1,6 @@
-use core::marker::PhantomData;
-use core::ops::{Sub, Div, Add};
 use core::fmt::{Display, Formatter};
+use core::marker::PhantomData;
+use core::ops::{Add, Div, Sub};
 
 pub trait TemperatureScale {}
 
@@ -15,7 +15,6 @@ impl TemperatureScale for Celsius {}
 pub struct Fahrenheit;
 
 impl TemperatureScale for Fahrenheit {}
-
 
 #[derive(Debug)]
 pub struct Temperature<S: TemperatureScale> {
@@ -45,9 +44,7 @@ impl<S: TemperatureScale> Temperature<S> {
 
 impl Temperature<Celsius> {
     pub fn into_fahrenheit(self) -> Temperature<Fahrenheit> {
-        Temperature::new(
-            (self.value * 9.0/5.0) + 32.0
-        )
+        Temperature::new((self.value * 9.0 / 5.0) + 32.0)
     }
 }
 
@@ -100,5 +97,3 @@ impl<S: TemperatureScale> Display for Temperature<S> {
         Display::fmt(&self.value, f)
     }
 }
-
-

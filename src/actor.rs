@@ -1,5 +1,5 @@
 use crate::address::Address;
-use crate::broker::Broker;
+use crate::bus::EventBus;
 use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
 use crate::sink::{MultiSink, Sink};
 use core::future::Future;
@@ -8,7 +8,9 @@ use core::task::{Context, Poll, Waker};
 
 use crate::alloc::{alloc, Box, Rc};
 use crate::bind::Bind as BindTrait;
+use crate::device::Device;
 use crate::interrupt::Interrupt;
+use crate::prelude::Lifecycle;
 use crate::supervisor::{actor_executor::ActorState, Supervisor};
 use core::borrow::BorrowMut;
 use core::cell::{Ref, RefCell, UnsafeCell};
@@ -16,30 +18,27 @@ use core::fmt::{Debug, Formatter};
 use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue};
-use crate::prelude::Lifecycle;
 
-pub trait Actor : NotificationHandler<Lifecycle>{
-    type Event: Clone + 'static;
-    fn mount(&mut self, address: Address<Self>, broker: &'static Broker<Self>)
+pub trait Actor<D: Device>: NotificationHandler<Lifecycle> {
+    fn mount(&mut self, address: Address<D, Self>, bus: EventBus<D>)
     where
         Self: Sized,
     {
     }
 }
 
-pub struct ActorContext<A: Actor> {
+pub struct ActorContext<D: Device, A: Actor<D>> {
     pub(crate) actor: UnsafeCell<A>,
-    pub(crate) current: RefCell<Option<Box<dyn ActorFuture<A>>>>,
-    pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>>, U16>>,
-    pub(crate) items_producer: RefCell<Option<Producer<'static, Box<dyn ActorFuture<A>>, U16>>>,
-    pub(crate) items_consumer: RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>>, U16>>>,
+    pub(crate) current: RefCell<Option<Box<dyn ActorFuture<D, A>>>>,
+    pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<D, A>>, U16>>,
+    pub(crate) items_producer: RefCell<Option<Producer<'static, Box<dyn ActorFuture<D, A>>, U16>>>,
+    pub(crate) items_consumer: RefCell<Option<Consumer<'static, Box<dyn ActorFuture<D, A>>, U16>>>,
     pub(crate) state_flag_handle: RefCell<Option<*const ()>>,
     pub(crate) in_flight: AtomicBool,
-    pub(crate) broker: Broker<A>,
     name: Option<&'static str>,
 }
 
-impl<A: Actor> ActorContext<A> {
+impl<D: Device, A: Actor<D>> ActorContext<D, A> {
     pub fn new(actor: A) -> Self {
         //let mut items = Queue::new();
         //let (producer, consumer) = items.split();
@@ -51,7 +50,6 @@ impl<A: Actor> ActorContext<A> {
             items_consumer: RefCell::new(None),
             state_flag_handle: RefCell::new(None),
             in_flight: AtomicBool::new(false),
-            broker: Broker::new(),
             name: None,
         }
     }
@@ -69,7 +67,8 @@ impl<A: Actor> ActorContext<A> {
         &mut *self.actor.get()
     }
 
-    pub fn mount(&'static self, supervisor: &mut Supervisor) -> Address<A> {
+    pub fn mount(&'static self, device: &'static D, supervisor: &mut Supervisor) -> Address<D, A> {
+        let bus = EventBus::new(device);
         let addr = Address::new(self);
         let state_flag_handle = supervisor.activate_actor(self);
         log::trace!("[{}] == {:x}", self.name(), state_flag_handle as u32);
@@ -83,20 +82,20 @@ impl<A: Actor> ActorContext<A> {
         // SAFETY: At this point, we are the only holder of the actor
         unsafe {
             //(&mut *self.state_flag_handle.get()).replace(state_flag_handle);
-            (&mut *self.actor.get()).mount(addr.clone(), &self.broker);
+            (&mut *self.actor.get()).mount(addr.clone(), bus);
         }
 
         addr
     }
 
-    pub(crate) fn bind<OA: Actor>(&'static self, address: &Address<OA>)
+    pub(crate) fn bind<OA: Actor<D>>(&'static self, address: &Address<D, OA>)
     where
-        A: BindTrait<OA>,
+        A: BindTrait<D, OA>,
         OA: 'static,
     {
         log::trace!("[{}].notify(...)", self.name());
         let bind = alloc(Bind::new(self, address.clone())).unwrap();
-        let notify: Box<dyn ActorFuture<A>> = Box::new(bind);
+        let notify: Box<dyn ActorFuture<D, A>> = Box::new(bind);
         cortex_m::interrupt::free(|cs| {
             self.items_producer
                 .borrow_mut()
@@ -119,7 +118,7 @@ impl<A: Actor> ActorContext<A> {
     {
         log::trace!("[{}].notify(...)", self.name());
         let notify = alloc(Notify::new(self, message)).unwrap();
-        let notify: Box<dyn ActorFuture<A>> = Box::new(notify);
+        let notify: Box<dyn ActorFuture<D, A>> = Box::new(notify);
         cortex_m::interrupt::free(|cs| {
             self.items_producer
                 .borrow_mut()
@@ -135,9 +134,12 @@ impl<A: Actor> ActorContext<A> {
         }
     }
 
-    pub(crate) async fn request<M>(&'static self, message: M) -> <A as RequestHandler<M>>::Response
+    pub(crate) async fn request<M>(
+        &'static self,
+        message: M,
+    ) -> <A as RequestHandler<D, M>>::Response
     where
-        A: RequestHandler<M>,
+        A: RequestHandler<D, M>,
         M: 'static,
     {
         // TODO: fix this leak on signals
@@ -149,7 +151,7 @@ impl<A: Actor> ActorContext<A> {
         let request = alloc(Request::new(self, message, sender)).unwrap();
         let response = RequestResponseFuture::new(receiver);
 
-        let request: Box<dyn ActorFuture<A>> = Box::new(request);
+        let request: Box<dyn ActorFuture<D, A>> = Box::new(request);
 
         unsafe {
             cortex_m::interrupt::free(|cs| {
@@ -170,25 +172,25 @@ impl<A: Actor> ActorContext<A> {
     }
 }
 
-pub(crate) trait ActorFuture<A: Actor>: Future<Output = ()> + Unpin {
+pub(crate) trait ActorFuture<D: Device, A: Actor<D>>: Future<Output = ()> + Unpin {
     fn poll(&mut self, cx: &mut Context<'_>) -> Poll<()> {
         Future::poll(Pin::new(self), cx)
     }
 }
 
-struct Bind<A: Actor, OA: Actor>
+struct Bind<D: Device + 'static, A: Actor<D>, OA: Actor<D>>
 where
-    A: BindTrait<OA> + 'static,
+    A: BindTrait<D, OA> + 'static,
 {
-    actor: &'static ActorContext<A>,
-    address: Option<Address<OA>>,
+    actor: &'static ActorContext<D, A>,
+    address: Option<Address<D, OA>>,
 }
 
-impl<A: Actor, OA: Actor> Bind<A, OA>
+impl<D: Device, A: Actor<D>, OA: Actor<D>> Bind<D, A, OA>
 where
-    A: BindTrait<OA> + 'static,
+    A: BindTrait<D, OA> + 'static,
 {
-    fn new(actor: &'static ActorContext<A>, address: Address<OA>) -> Self {
+    fn new(actor: &'static ActorContext<D, A>, address: Address<D, OA>) -> Self {
         Self {
             actor,
             address: Some(address),
@@ -196,11 +198,11 @@ where
     }
 }
 
-impl<A: Actor + BindTrait<OA>, OA: Actor> ActorFuture<A> for Bind<A, OA> {}
+impl<D: Device, A: Actor<D> + BindTrait<D, OA>, OA: Actor<D>> ActorFuture<D, A> for Bind<D, A, OA> {}
 
-impl<A: Actor + BindTrait<OA>, OA: Actor> Unpin for Bind<A, OA> {}
+impl<D: Device, A: Actor<D> + BindTrait<D, OA>, OA: Actor<D>> Unpin for Bind<D, A, OA> {}
 
-impl<A: Actor + BindTrait<OA>, OA: Actor> Future for Bind<A, OA> {
+impl<D: Device, A: Actor<D> + BindTrait<D, OA>, OA: Actor<D>> Future for Bind<D, A, OA> {
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -212,20 +214,20 @@ impl<A: Actor + BindTrait<OA>, OA: Actor> Future for Bind<A, OA> {
     }
 }
 
-struct Notify<A: Actor, M>
+struct Notify<D: Device + 'static, A: Actor<D>, M>
 where
     A: NotificationHandler<M> + 'static,
 {
-    actor: &'static ActorContext<A>,
+    actor: &'static ActorContext<D, A>,
     message: Option<M>,
     defer: Option<Completion>,
 }
 
-impl<A: Actor, M> Notify<A, M>
+impl<D: Device, A: Actor<D>, M> Notify<D, A, M>
 where
     A: NotificationHandler<M>,
 {
-    pub fn new(actor: &'static ActorContext<A>, message: M) -> Self {
+    pub fn new(actor: &'static ActorContext<D, A>, message: M) -> Self {
         Self {
             actor,
             message: Some(message),
@@ -234,11 +236,11 @@ where
     }
 }
 
-impl<A: Actor + NotificationHandler<M>, M> ActorFuture<A> for Notify<A, M> {}
+impl<D: Device, A: Actor<D> + NotificationHandler<M>, M> ActorFuture<D, A> for Notify<D, A, M> {}
 
-impl<A, M> Unpin for Notify<A, M> where A: NotificationHandler<M> + Actor {}
+impl<D: Device, A, M> Unpin for Notify<D, A, M> where A: NotificationHandler<M> + Actor<D> {}
 
-impl<A: Actor, M> Future for Notify<A, M>
+impl<D: Device, A: Actor<D>, M> Future for Notify<D, A, M>
 where
     A: NotificationHandler<M>,
 {
@@ -284,22 +286,24 @@ where
     }
 }
 
-struct Request<A, M>
+struct Request<D, A, M>
 where
-    A: Actor + RequestHandler<M> + 'static,
+    D: Device + 'static,
+    A: Actor<D> + RequestHandler<D, M> + 'static,
 {
-    actor: &'static ActorContext<A>,
+    actor: &'static ActorContext<D, A>,
     message: Option<M>,
     sender: CompletionSender<A::Response>,
     defer: Option<Response<A::Response>>,
 }
 
-impl<A, M> Request<A, M>
+impl<D, A, M> Request<D, A, M>
 where
-    A: Actor + RequestHandler<M> + 'static,
+    D: Device,
+    A: Actor<D> + RequestHandler<D, M> + 'static,
 {
     pub fn new(
-        actor: &'static ActorContext<A>,
+        actor: &'static ActorContext<D, A>,
         message: M,
         sender: CompletionSender<A::Response>,
     ) -> Self {
@@ -312,15 +316,15 @@ where
     }
 }
 
-impl<A, M> Request<A, M> where A: Actor + RequestHandler<M> + 'static {}
+impl<D: Device, A, M> Request<D, A, M> where A: Actor<D> + RequestHandler<D, M> + 'static {}
 
-impl<A: Actor + RequestHandler<M>, M> ActorFuture<A> for Request<A, M> {}
+impl<D: Device, A: Actor<D> + RequestHandler<D, M>, M> ActorFuture<D, A> for Request<D, A, M> {}
 
-impl<A, M> Unpin for Request<A, M> where A: Actor + RequestHandler<M> + 'static {}
+impl<D: Device, A, M> Unpin for Request<D, A, M> where A: Actor<D> + RequestHandler<D, M> + 'static {}
 
-impl<A, M> Future for Request<A, M>
+impl<D: Device, A, M> Future for Request<D, A, M>
 where
-    A: Actor + RequestHandler<M> + 'static,
+    A: Actor<D> + RequestHandler<D, M> + 'static,
 {
     type Output = ();
 

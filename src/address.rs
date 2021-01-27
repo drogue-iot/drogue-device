@@ -1,15 +1,16 @@
 use crate::actor::{Actor, ActorContext};
 use crate::bind::Bind;
+use crate::device::Device;
 use crate::handler::{NotificationHandler, RequestHandler};
 use crate::interrupt::{Interrupt, InterruptContext};
 use crate::sink::Sink;
 use core::cell::UnsafeCell;
 
-pub struct Address<A: Actor> {
-    actor: UnsafeCell<*const ActorContext<A>>,
+pub struct Address<D: Device, A: Actor<D>> {
+    actor: UnsafeCell<*const ActorContext<D, A>>,
 }
 
-impl<A: Actor> Clone for Address<A> {
+impl<D: Device, A: Actor<D>> Clone for Address<D, A> {
     fn clone(&self) -> Self {
         Self {
             actor: unsafe { UnsafeCell::new(*self.actor.get()) },
@@ -18,16 +19,16 @@ impl<A: Actor> Clone for Address<A> {
 }
 
 // TODO critical sections around ask/tell
-impl<A: Actor> Address<A> {
-    pub(crate) fn new(actor: &ActorContext<A>) -> Self {
+impl<D: Device + 'static, A: Actor<D>> Address<D, A> {
+    pub(crate) fn new(actor: &ActorContext<D, A>) -> Self {
         Self {
             actor: UnsafeCell::new(actor),
         }
     }
 
-    pub fn bind<OA: Actor>(&self, address: &Address<OA>)
+    pub fn bind<OA: Actor<D>>(&self, address: &Address<D, OA>)
     where
-        A: Bind<OA> + 'static,
+        A: Bind<D, OA> + 'static,
         OA: 'static,
     {
         unsafe {
@@ -35,6 +36,7 @@ impl<A: Actor> Address<A> {
         }
     }
 
+    /*
     pub fn subscribe<OA: Actor>(&self, address: &Address<OA>)
     where
         A: Sink<OA::Event> + 'static,
@@ -45,7 +47,7 @@ impl<A: Actor> Address<A> {
             let sink = &**self.actor.get();
             source.broker.subscribe(&*sink.actor.get());
         }
-    }
+    }*/
 
     pub fn notify<M>(&self, message: M)
     where
@@ -57,16 +59,16 @@ impl<A: Actor> Address<A> {
         }
     }
 
-    pub async fn request<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
+    pub async fn request<M>(&self, message: M) -> <A as RequestHandler<D, M>>::Response
     where
-        A: RequestHandler<M> + 'static,
+        A: RequestHandler<D, M> + 'static,
         M: 'static,
     {
         unsafe { (&**self.actor.get()).request(message).await }
     }
 }
 
-impl<A: Actor + 'static, M: 'static> Sink<M> for Address<A>
+impl<D: Device + 'static, A: Actor<D> + 'static, M: 'static> Sink<M> for Address<D, A>
 where
     A: NotificationHandler<M>,
 {

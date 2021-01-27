@@ -5,19 +5,20 @@ use heapless::consts::U4;
 
 use crate::actor::{Actor, ActorContext};
 use crate::address::Address;
+use crate::device::Device;
 use crate::handler::NotificationHandler;
 use crate::supervisor::Supervisor;
 
-pub trait Interrupt: Actor {
+pub trait Interrupt<D: Device>: Actor<D> {
     fn on_interrupt(&mut self);
 }
 
-pub struct InterruptContext<I: Interrupt> {
+pub struct InterruptContext<D: Device, I: Interrupt<D>> {
     pub(crate) irq: u8,
-    pub(crate) actor_context: ActorContext<I>,
+    pub(crate) actor_context: ActorContext<D, I>,
 }
 
-impl<I: Interrupt> InterruptContext<I> {
+impl<D: Device, I: Interrupt<D>> InterruptContext<D, I> {
     pub fn new<N: Nr>(interrupt: I, irq: N) -> Self {
         Self {
             irq: irq.nr(),
@@ -30,8 +31,8 @@ impl<I: Interrupt> InterruptContext<I> {
         self
     }
 
-    pub fn start(&'static self, supervisor: &mut Supervisor) -> Address<I> {
-        let addr = self.actor_context.mount(supervisor);
+    pub fn start(&'static self, device: &'static D, supervisor: &mut Supervisor) -> Address<D, I> {
+        let addr = self.actor_context.mount(device, supervisor);
         supervisor.activate_interrupt(self, self.irq);
 
         struct IrqNr(u8);

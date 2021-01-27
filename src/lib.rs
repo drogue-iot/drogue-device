@@ -7,17 +7,16 @@ pub mod address;
 #[doc(hidden)]
 pub mod alloc;
 pub mod bind;
-pub mod broker;
+pub mod bus;
 pub mod device;
-pub mod handler;
-pub mod interrupt;
-pub mod sink;
-// pub mod broker;
-#[doc(hidden)]
-pub mod macros;
-pub mod supervisor;
 pub mod domain;
 pub mod driver;
+pub mod handler;
+pub mod interrupt;
+#[doc(hidden)]
+pub mod macros;
+pub mod sink;
+pub mod supervisor;
 pub mod synchronization;
 
 pub mod hal;
@@ -25,12 +24,9 @@ pub mod hal;
 pub mod prelude {
     pub use crate::actor::{Actor, ActorContext};
     pub use crate::address::Address;
-    pub use crate::broker::Broker;
+    pub use crate::bus::{EventBus, EventConsumer, EventProducer};
     pub use crate::device;
-    pub use crate::device::{
-        Device,
-        Lifecycle,
-    };
+    pub use crate::device::{Device, Lifecycle};
     pub use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
     pub use crate::interrupt::{Interrupt, InterruptContext};
     pub use crate::sink::{MultiSink, Sink};

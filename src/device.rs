@@ -25,6 +25,7 @@ impl<D: Device> DeviceContext<D> {
         Self {
             device: UnsafeCell::new(device),
             supervisor: UnsafeCell::new(Supervisor::new()),
+            //            registry: AddressRegistry::new(),
         }
     }
 

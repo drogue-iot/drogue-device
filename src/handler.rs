@@ -1,5 +1,6 @@
 use crate::actor::Actor;
 use crate::alloc::{alloc, Box};
+use crate::device::Device;
 use core::future::Future;
 
 pub enum Response<T> {
@@ -20,9 +21,9 @@ impl<T> Response<T> {
     }
 }
 
-pub trait RequestHandler<M>
+pub trait RequestHandler<D: Device, M>
 where
-    Self: Actor + Sized,
+    Self: Actor<D> + Sized,
 {
     type Response: 'static;
 

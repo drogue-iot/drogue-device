@@ -68,20 +68,19 @@ where
     }
 }
 
-impl<P, ROWS, COLS> Actor for LEDMatrix<P, ROWS, COLS>
+impl<D: Device, P, ROWS, COLS> Actor<D> for LEDMatrix<P, ROWS, COLS>
 where
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
 {
-    type Event = ();
 }
 
 impl<P, ROWS, COLS> NotificationHandler<Lifecycle> for LEDMatrix<P, ROWS, COLS>
-    where
-        P: OutputPin,
-        ROWS: ArrayLength<P>,
-        COLS: ArrayLength<P>,
+where
+    P: OutputPin,
+    ROWS: ArrayLength<P>,
+    COLS: ArrayLength<P>,
 {
     fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
         Completion::immediate()
