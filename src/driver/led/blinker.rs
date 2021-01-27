@@ -44,7 +44,7 @@ impl<D: Device, P: OutputPin, TIM, T: HardwareTimer<TIM>> NotificationHandler<Li
         if let Lifecycle::Start = message {
             Completion::defer(async move {
                 loop {
-                    log::info!("LED {:?}", self.delay);
+                    //log::info!("LED {:?}", self.delay);
                     self.led.as_ref().unwrap().turn_on();
                     self.timer.as_ref().unwrap().delay(self.delay).await;
                     self.led.as_ref().unwrap().turn_off();
