@@ -7,7 +7,7 @@ pub struct EventBus<D: Device> {
     device: UnsafeCell<*const D>,
 }
 
-impl<D: Device> EventBus<D> {
+impl<D: Device + 'static> EventBus<D> {
     pub fn new(device: &'static D) -> Self {
         Self {
             device: UnsafeCell::new(device),
@@ -28,7 +28,7 @@ impl<D: Device> EventBus<D> {
 pub trait EventProducer<D: Device, M>: Actor<D> {}
 
 pub trait EventConsumer<M> {
-    fn on_event(&self, message: M)
+    fn on_event(&'static self, message: M)
     where
         Self: Sized,
     {

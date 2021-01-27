@@ -67,6 +67,10 @@ impl<D: Device, A: Actor<D>> ActorContext<D, A> {
         &mut *self.actor.get()
     }
 
+    pub fn address(&'static self) -> Address<D, A> {
+        Address::new(self)
+    }
+
     pub fn mount(&'static self, device: &'static D, supervisor: &mut Supervisor) -> Address<D, A> {
         let bus = EventBus::new(device);
         let addr = Address::new(self);
