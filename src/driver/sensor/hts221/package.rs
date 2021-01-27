@@ -9,6 +9,7 @@ use core::ops::Add;
 use cortex_m::interrupt::Nr;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
+use core::cell::RefCell;
 
 pub struct Hts221<D: Device + 'static, P: InputPin + ExtiPin, I: WriteRead + Read + Write + 'static>
 where
@@ -17,7 +18,7 @@ where
 {
     sensor: ActorContext<D, Sensor<D, I>>,
     ready: InterruptContext<D, Ready<D, P, I>>,
-    sensor_addr: Option<Address<D, Sensor<D, I>>>,
+    sensor_addr: RefCell<Option<Address<D, Sensor<D, I>>>>,
 }
 
 impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write> Hts221<D, P, I>
@@ -29,19 +30,19 @@ where
         Self {
             sensor: ActorContext::new(Sensor::new()),
             ready: InterruptContext::new(Ready::new(ready), irq),
-            sensor_addr: None,
+            sensor_addr: RefCell::new(None),
         }
     }
 
     pub fn mount(
-        &'static mut self,
-        device: &'static mut D,
+        &'static self,
+        device: &'static D,
         supervisor: &mut Supervisor,
     ) -> Address<D, Sensor<D, I>> {
         let ready_addr = self.ready.start(device, supervisor);
         let sensor_addr = self.sensor.mount(device, supervisor);
         ready_addr.bind(&sensor_addr);
-        self.sensor_addr.replace(sensor_addr.clone());
+        self.sensor_addr.borrow_mut().replace(sensor_addr.clone());
         sensor_addr
     }
 }
@@ -53,6 +54,6 @@ where
     <I as Write>::Error: Debug,
 {
     fn on_bind(&'static mut self, address: Address<D, Mutex<D, I>>) {
-        self.sensor_addr.as_ref().unwrap().bind(&address);
+        self.sensor_addr.borrow().as_ref().unwrap().bind(&address);
     }
 }
