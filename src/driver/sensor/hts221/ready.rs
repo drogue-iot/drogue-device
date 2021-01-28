@@ -7,32 +7,53 @@ use embedded_hal::digital::v2::InputPin;
 
 pub struct DataReady;
 
-pub struct Ready<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write + 'static> {
+pub struct Ready<D, P, I>
+    where
+        D: Device,
+        P: InputPin + ExtiPin,
+        I: WriteRead + Read + Write + 'static
+{
     pin: P,
     sensor: Option<Address<D, Sensor<D, I>>>,
 }
 
-impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write> Ready<D, P, I> {
+impl<D, P, I> Ready<D, P, I>
+    where
+        D: Device,
+        P: InputPin + ExtiPin,
+        I: WriteRead + Read + Write
+{
     pub fn new(pin: P) -> Self {
         Self { pin, sensor: None }
     }
 }
 
-impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write + 'static> Actor<D>
-    for Ready<D, P, I>
-{
-}
+impl<D, P, I> Actor<D>
+for Ready<D, P, I>
+    where
+        D: Device,
+        P: InputPin + ExtiPin,
+        I: WriteRead + Read + Write + 'static
+{}
 
-impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write> NotificationHandler<Lifecycle>
-    for Ready<D, P, I>
+impl<D, P, I> NotificationHandler<Lifecycle>
+for Ready<D, P, I>
+    where
+        D: Device,
+        P: InputPin + ExtiPin,
+        I: WriteRead + Read + Write
 {
     fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
         Completion::immediate()
     }
 }
 
-impl<D: Device + 'static, P: InputPin + ExtiPin, I: WriteRead + Read + Write + 'static> Interrupt<D>
-    for Ready<D, P, I>
+impl<D, P, I> Interrupt<D>
+for Ready<D, P, I>
+    where
+        D: Device + 'static,
+        P: InputPin + ExtiPin,
+        I: WriteRead + Read + Write + 'static
 {
     fn on_interrupt(&mut self) {
         if self.pin.check_interrupt() {
@@ -45,8 +66,12 @@ impl<D: Device + 'static, P: InputPin + ExtiPin, I: WriteRead + Read + Write + '
     }
 }
 
-impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write> Bind<D, Sensor<D, I>>
-    for Ready<D, P, I>
+impl<D, P, I> Bind<D, Sensor<D, I>>
+for Ready<D, P, I>
+    where
+        D: Device,
+        P: InputPin + ExtiPin,
+        I: WriteRead + Read + Write
 {
     fn on_bind(&'static mut self, address: Address<D, Sensor<D, I>>) {
         self.sensor.replace(address);

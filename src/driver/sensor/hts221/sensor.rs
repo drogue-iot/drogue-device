@@ -15,13 +15,21 @@ use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 
 pub const ADDR: u8 = 0x5F;
 
-pub struct Sensor<D: Device, I: WriteRead + Read + Write + 'static> {
+pub struct Sensor<D, I>
+    where
+        D: Device,
+        I: WriteRead + Read + Write + 'static
+{
     address: I2cAddress,
     i2c: Option<Address<D, Mutex<D, I>>>,
     calibration: Option<Calibration>,
 }
 
-impl<D: Device, I: WriteRead + Read + Write + 'static> Sensor<D, I> {
+impl<D, I> Sensor<D, I>
+    where
+        D: Device,
+        I: WriteRead + Read + Write + 'static
+{
     pub fn new() -> Self {
         Self {
             address: I2cAddress::new(ADDR),
@@ -82,15 +90,28 @@ impl<D: Device, I: WriteRead + Read + Write + 'static> Sensor<D, I> {
     }
 }
 
-impl<D: Device, I: WriteRead + Read + Write> Actor<D> for Sensor<D, I> {}
+impl<D, I> Actor<D> for Sensor<D, I>
+    where D: Device,
+          I: WriteRead + Read + Write
+{}
 
-impl<D: Device, I: WriteRead + Read + Write + 'static> Bind<D, Mutex<D, I>> for Sensor<D, I> {
+impl<D, I> Bind<D, Mutex<D, I>>
+for Sensor<D, I>
+    where
+        D: Device,
+        I: WriteRead + Read + Write + 'static
+{
     fn on_bind(&'static mut self, address: Address<D, Mutex<D, I>>) {
         self.i2c.replace(address);
     }
 }
 
-impl<D: Device, I: WriteRead + Read + Write> NotificationHandler<Lifecycle> for Sensor<D, I> {
+impl<D, I> NotificationHandler<Lifecycle>
+for Sensor<D, I>
+    where
+        D: Device,
+        I: WriteRead + Read + Write
+{
     fn on_notification(&'static mut self, event: Lifecycle) -> Completion {
         log::info!("[hts221] Lifecycle: {:?}", event);
         match event {
@@ -103,7 +124,12 @@ impl<D: Device, I: WriteRead + Read + Write> NotificationHandler<Lifecycle> for 
     }
 }
 
-impl<D: Device, I: WriteRead + Read + Write> NotificationHandler<DataReady> for Sensor<D, I> {
+impl<D, I> NotificationHandler<DataReady>
+for Sensor<D, I>
+    where
+        D: Device,
+        I: WriteRead + Read + Write
+{
     fn on_notification(&'static mut self, message: DataReady) -> Completion {
         Completion::defer(async move {
             if self.i2c.is_some() {
@@ -129,7 +155,11 @@ impl<D: Device, I: WriteRead + Read + Write> NotificationHandler<DataReady> for 
     }
 }
 
-impl<D: Device + 'static, I: WriteRead + Read + Write> Address<D, Sensor<D, I>> {
+impl<D, I> Address<D, Sensor<D, I>>
+    where
+        D: Device + 'static,
+        I: WriteRead + Read + Write
+{
     pub fn signal_data_ready(&self) {
         self.notify(DataReady)
     }

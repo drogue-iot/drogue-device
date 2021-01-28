@@ -6,13 +6,22 @@ use cortex_m::interrupt::Nr;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
 
-pub struct Hts221<D: Device + 'static, P: InputPin + ExtiPin, I: WriteRead + Read + Write + 'static>
+pub struct Hts221<D, P, I>
+    where
+        D: Device + 'static,
+        P: InputPin + ExtiPin,
+        I: WriteRead + Read + Write + 'static
 {
     sensor: ActorContext<D, Sensor<D, I>>,
     ready: InterruptContext<D, Ready<D, P, I>>,
 }
 
-impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write> Hts221<D, P, I> {
+impl<D, P, I> Hts221<D, P, I>
+    where
+        D: Device,
+        P: InputPin + ExtiPin,
+        I: WriteRead + Read + Write
+{
     pub fn new<N: Nr>(ready: P, irq: N) -> Self {
         Self {
             sensor: ActorContext::new(Sensor::new()),
