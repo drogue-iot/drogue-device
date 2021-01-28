@@ -5,6 +5,7 @@ use heapless::consts::U4;
 
 use crate::actor::{Actor, ActorContext};
 use crate::address::Address;
+use crate::bus::EventBus;
 use crate::device::Device;
 use crate::handler::NotificationHandler;
 use crate::supervisor::Supervisor;
@@ -31,8 +32,8 @@ impl<D: Device, I: Interrupt<D>> InterruptContext<D, I> {
         self
     }
 
-    pub fn mount(&'static self, device: &'static D, supervisor: &mut Supervisor) -> Address<D, I> {
-        let addr = self.actor_context.mount(device, supervisor);
+    pub fn mount(&'static self, bus: &EventBus<D>, supervisor: &mut Supervisor) -> Address<D, I> {
+        let addr = self.actor_context.mount(bus, supervisor);
         supervisor.activate_interrupt(self, self.irq);
 
         struct IrqNr(u8);

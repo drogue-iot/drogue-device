@@ -1,3 +1,4 @@
+use crate::bus::{EventBus, EventConsumer};
 use crate::supervisor::Supervisor;
 use core::cell::UnsafeCell;
 
@@ -11,7 +12,9 @@ pub enum Lifecycle {
 }
 
 pub trait Device {
-    fn mount(&'static mut self, supervisor: &mut Supervisor);
+    fn mount(&'static mut self, bus: &EventBus<Self>, supervisor: &mut Supervisor)
+    where
+        Self: Sized;
 }
 
 #[doc(hidden)]
@@ -29,8 +32,9 @@ impl<D: Device> DeviceContext<D> {
     }
 
     pub fn mount(&'static self) -> ! {
+        let bus = EventBus::new(self);
         unsafe {
-            (&mut *self.device.get()).mount(&mut *self.supervisor.get());
+            (&mut *self.device.get()).mount(&bus, &mut *self.supervisor.get());
             (&*self.supervisor.get()).run_forever()
         }
     }
@@ -38,6 +42,15 @@ impl<D: Device> DeviceContext<D> {
     pub fn on_interrupt(&'static self, irqn: i16) {
         unsafe {
             (&*self.supervisor.get()).on_interrupt(irqn);
+        }
+    }
+
+    pub fn on_event<E>(&'static self, event: E)
+    where
+        D: EventConsumer<E>,
+    {
+        unsafe {
+            (&mut *self.device.get()).on_event(event);
         }
     }
 }

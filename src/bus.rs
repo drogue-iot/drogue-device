@@ -4,11 +4,19 @@ use crate::device::{Device, DeviceContext};
 use core::cell::UnsafeCell;
 
 pub struct EventBus<D: Device> {
-    device: UnsafeCell<*const D>,
+    device: UnsafeCell<*const DeviceContext<D>>,
+}
+
+impl<D: Device> Clone for EventBus<D> {
+    fn clone(&self) -> Self {
+        Self {
+            device: unsafe { UnsafeCell::new(*self.device.get()) },
+        }
+    }
 }
 
 impl<D: Device + 'static> EventBus<D> {
-    pub fn new(device: &'static D) -> Self {
+    pub fn new(device: &DeviceContext<D>) -> Self {
         Self {
             device: UnsafeCell::new(device),
         }

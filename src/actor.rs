@@ -8,7 +8,7 @@ use core::task::{Context, Poll, Waker};
 
 use crate::alloc::{alloc, Box, Rc};
 use crate::bind::Bind as BindTrait;
-use crate::device::Device;
+use crate::device::{Device, DeviceContext};
 use crate::interrupt::Interrupt;
 use crate::prelude::Lifecycle;
 use crate::supervisor::{actor_executor::ActorState, Supervisor};
@@ -21,9 +21,10 @@ use heapless::{consts::*, spsc::Queue};
 
 pub trait Actor<D: Device>: NotificationHandler<Lifecycle> {
     fn mount(&mut self, address: Address<D, Self>, bus: EventBus<D>)
-        where
-            Self: Sized,
-    {}
+    where
+        Self: Sized,
+    {
+    }
 }
 
 pub struct ActorContext<D: Device, A: Actor<D>> {
@@ -70,8 +71,7 @@ impl<D: Device, A: Actor<D>> ActorContext<D, A> {
         Address::new(self)
     }
 
-    pub fn mount(&'static self, device: &'static D, supervisor: &mut Supervisor) -> Address<D, A> {
-        let bus = EventBus::new(device);
+    pub fn mount(&'static self, bus: &EventBus<D>, supervisor: &mut Supervisor) -> Address<D, A> {
         let addr = Address::new(self);
         let state_flag_handle = supervisor.activate_actor(self);
         log::trace!("[{}] == {:x}", self.name(), state_flag_handle as u32);
@@ -85,16 +85,16 @@ impl<D: Device, A: Actor<D>> ActorContext<D, A> {
         // SAFETY: At this point, we are the only holder of the actor
         unsafe {
             //(&mut *self.state_flag_handle.get()).replace(state_flag_handle);
-            (&mut *self.actor.get()).mount(addr.clone(), bus);
+            (&mut *self.actor.get()).mount(addr.clone(), bus.clone());
         }
 
         addr
     }
 
     pub(crate) fn bind<OA: Actor<D>>(&'static self, address: &Address<D, OA>)
-        where
-            A: BindTrait<D, OA>,
-            OA: 'static,
+    where
+        A: BindTrait<D, OA>,
+        OA: 'static,
     {
         log::trace!("[{}].notify(...)", self.name());
         let bind = alloc(Bind::new(self, address.clone())).unwrap();
@@ -115,9 +115,9 @@ impl<D: Device, A: Actor<D>> ActorContext<D, A> {
     }
 
     pub(crate) fn notify<M>(&'static self, message: M)
-        where
-            A: NotificationHandler<M>,
-            M: 'static,
+    where
+        A: NotificationHandler<M>,
+        M: 'static,
     {
         log::trace!("[{}].notify(...)", self.name());
         let notify = alloc(Notify::new(self, message)).unwrap();
@@ -141,9 +141,9 @@ impl<D: Device, A: Actor<D>> ActorContext<D, A> {
         &'static self,
         message: M,
     ) -> <A as RequestHandler<D, M>>::Response
-        where
-            A: RequestHandler<D, M>,
-            M: 'static,
+    where
+        A: RequestHandler<D, M>,
+        M: 'static,
     {
         // TODO: fix this leak on signals
         //let signal = alloc(CompletionHandle::new()).unwrap();
@@ -175,23 +175,23 @@ impl<D: Device, A: Actor<D>> ActorContext<D, A> {
     }
 }
 
-pub(crate) trait ActorFuture<D: Device, A: Actor<D>>: Future<Output=()> + Unpin {
+pub(crate) trait ActorFuture<D: Device, A: Actor<D>>: Future<Output = ()> + Unpin {
     fn poll(&mut self, cx: &mut Context<'_>) -> Poll<()> {
         Future::poll(Pin::new(self), cx)
     }
 }
 
 struct Bind<D: Device + 'static, A: Actor<D>, OA: Actor<D>>
-    where
-        A: BindTrait<D, OA> + 'static,
+where
+    A: BindTrait<D, OA> + 'static,
 {
     actor: &'static ActorContext<D, A>,
     address: Option<Address<D, OA>>,
 }
 
 impl<D: Device, A: Actor<D>, OA: Actor<D>> Bind<D, A, OA>
-    where
-        A: BindTrait<D, OA> + 'static,
+where
+    A: BindTrait<D, OA> + 'static,
 {
     fn new(actor: &'static ActorContext<D, A>, address: Address<D, OA>) -> Self {
         Self {
@@ -218,8 +218,8 @@ impl<D: Device, A: Actor<D> + BindTrait<D, OA>, OA: Actor<D>> Future for Bind<D,
 }
 
 struct Notify<D: Device + 'static, A: Actor<D>, M>
-    where
-        A: NotificationHandler<M> + 'static,
+where
+    A: NotificationHandler<M> + 'static,
 {
     actor: &'static ActorContext<D, A>,
     message: Option<M>,
@@ -227,8 +227,8 @@ struct Notify<D: Device + 'static, A: Actor<D>, M>
 }
 
 impl<D: Device, A: Actor<D>, M> Notify<D, A, M>
-    where
-        A: NotificationHandler<M>,
+where
+    A: NotificationHandler<M>,
 {
     pub fn new(actor: &'static ActorContext<D, A>, message: M) -> Self {
         Self {
@@ -244,8 +244,8 @@ impl<D: Device, A: Actor<D> + NotificationHandler<M>, M> ActorFuture<D, A> for N
 impl<D: Device, A, M> Unpin for Notify<D, A, M> where A: NotificationHandler<M> + Actor<D> {}
 
 impl<D: Device, A: Actor<D>, M> Future for Notify<D, A, M>
-    where
-        A: NotificationHandler<M>,
+where
+    A: NotificationHandler<M>,
 {
     type Output = ();
 
@@ -290,9 +290,9 @@ impl<D: Device, A: Actor<D>, M> Future for Notify<D, A, M>
 }
 
 struct Request<D, A, M>
-    where
-        D: Device + 'static,
-        A: Actor<D> + RequestHandler<D, M> + 'static,
+where
+    D: Device + 'static,
+    A: Actor<D> + RequestHandler<D, M> + 'static,
 {
     actor: &'static ActorContext<D, A>,
     message: Option<M>,
@@ -301,9 +301,9 @@ struct Request<D, A, M>
 }
 
 impl<D, A, M> Request<D, A, M>
-    where
-        D: Device,
-        A: Actor<D> + RequestHandler<D, M> + 'static,
+where
+    D: Device,
+    A: Actor<D> + RequestHandler<D, M> + 'static,
 {
     pub fn new(
         actor: &'static ActorContext<D, A>,
@@ -326,8 +326,8 @@ impl<D: Device, A: Actor<D> + RequestHandler<D, M>, M> ActorFuture<D, A> for Req
 impl<D: Device, A, M> Unpin for Request<D, A, M> where A: Actor<D> + RequestHandler<D, M> + 'static {}
 
 impl<D: Device, A, M> Future for Request<D, A, M>
-    where
-        A: Actor<D> + RequestHandler<D, M> + 'static,
+where
+    A: Actor<D> + RequestHandler<D, M> + 'static,
 {
     type Output = ();
 
@@ -379,8 +379,8 @@ impl<D: Device, A, M> Future for Request<D, A, M>
 }
 
 struct RequestResponseFuture<R>
-    where
-        R: 'static,
+where
+    R: 'static,
 {
     receiver: CompletionReceiver<R>,
 }
@@ -406,7 +406,7 @@ struct CompletionHandle<T> {
 
 enum CompletionValue<T> {
     Immediate(T),
-    Future(Box<dyn Future<Output=T>>),
+    Future(Box<dyn Future<Output = T>>),
 }
 
 impl<T> CompletionHandle<T> {
@@ -426,14 +426,18 @@ impl<T> Default for CompletionHandle<T> {
 
 impl<T: 'static> CompletionHandle<T> {
     pub fn send_value(&self, value: T) {
-        self.value.borrow_mut().replace(CompletionValue::Immediate(value));
+        self.value
+            .borrow_mut()
+            .replace(CompletionValue::Immediate(value));
         if let Some(waker) = self.waker.borrow_mut().take() {
             waker.wake()
         }
     }
 
-    pub fn send_future(&self, value: Box<dyn Future<Output=T>>) {
-        self.value.borrow_mut().replace(CompletionValue::Future(value));
+    pub fn send_future(&self, value: Box<dyn Future<Output = T>>) {
+        self.value
+            .borrow_mut()
+            .replace(CompletionValue::Future(value));
         if let Some(waker) = self.waker.borrow_mut().take() {
             waker.wake()
         }
@@ -446,9 +450,7 @@ impl<T: 'static> CompletionHandle<T> {
         } else {
             let mut v = self.value.borrow_mut().take().unwrap();
             match v {
-                CompletionValue::Immediate(val) => {
-                    Poll::Ready(val)
-                }
+                CompletionValue::Immediate(val) => Poll::Ready(val),
                 CompletionValue::Future(ref mut fut) => {
                     let fut = Pin::new(fut);
                     let result = fut.poll(cx);
@@ -476,9 +478,8 @@ impl<T: 'static> CompletionSender<T> {
         self.handle.send_value(response);
     }
 
-    pub(crate) fn send_future(&self, response: Box<dyn Future<Output=T>>) {
-        self.handle.send_future( response );
-
+    pub(crate) fn send_future(&self, response: Box<dyn Future<Output = T>>) {
+        self.handle.send_future(response);
     }
 }
 

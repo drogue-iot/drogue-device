@@ -15,8 +15,7 @@ pub struct Hts221<D: Device + 'static, P: InputPin + ExtiPin, I: WriteRead + Rea
     ready: InterruptContext<D, Ready<D, P, I>>,
 }
 
-impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write> Hts221<D, P, I>
-{
+impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write> Hts221<D, P, I> {
     pub fn new<N: Nr>(ready: P, irq: N) -> Self {
         Self {
             sensor: ActorContext::new(Sensor::new()),
@@ -26,13 +25,12 @@ impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write> Hts221<D, P,
 
     pub fn mount(
         &'static self,
-        device: &'static D,
+        bus: &EventBus<D>,
         supervisor: &mut Supervisor,
     ) -> Address<D, Sensor<D, I>> {
-        let ready_addr = self.ready.mount(device, supervisor);
-        let sensor_addr = self.sensor.mount(device, supervisor);
+        let ready_addr = self.ready.mount(bus, supervisor);
+        let sensor_addr = self.sensor.mount(bus, supervisor);
         ready_addr.bind(&sensor_addr);
         sensor_addr
     }
 }
-
