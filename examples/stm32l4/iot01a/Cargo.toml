@@ -1,0 +1,62 @@
+[package]
+name = "stm32l4"
+version = "0.1.0"
+authors = ["Bob McWhirter <bmcwhirt@redhat.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+#[dependencies.drogue-async]
+#path = "../drogue-async"
+#default-features = false
+#features = ["cortex-m"]
+
+[dependencies.drogue-device]
+path = "../drogue-device"
+features = [ "stm32l4xx" ]
+
+[dependencies.cortex-m]
+version = "0.6"
+
+[dependencies.cortex-m-rt]
+version = "0.6"
+features = ["device"]
+
+[dependencies.nb]
+version = "1.0.0"
+
+[dependencies.rtt-target]
+version = "0.2.2"
+features = ["cortex-m"]
+
+[dependencies.panic-rtt-target]
+version = "0.1.1"
+features = ["cortex-m"]
+
+[dependencies.log]
+version = "0.4.11"
+
+[dependencies.rtt-logger]
+version = "0.1.0"
+
+[dependencies.stm32l4xx-hal]
+path = "../stm32l4xx-hal"
+features = ["stm32l4x5", "rt" ]
+
+[dependencies.embedded-hal]
+version = "0.2.4"
+features = ["unproven"]
+
+[dependencies.heapless]
+version = "0.5.6"
+
+[dependencies.embedded-time]
+#version = "0.10.1"
+path = "../embedded-time"
+
+#[dependencies.bare-metal]
+#version = "0.2.5"
+
+[profile.release]
+opt-level = "z"
+lto = true
