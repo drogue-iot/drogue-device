@@ -1,22 +1,27 @@
 #[cfg(feature = "stm32l4xx")]
 pub mod stm32l4xx;
 
-use crate::prelude::*;
+#[cfg(any(
+    feature = "nrf52832",
+    feature = "nrf52833",
+    feature = "nrf52840",
+    feature = "nrf9160"
+))]
+pub mod nrf;
+
 use crate::domain::time::duration::{Duration, Milliseconds};
-use core::marker::PhantomData;
-use crate::domain::time::rate::Hertz;
-use core::future::Future;
-use core::task::{Context, Poll, Waker};
-use core::pin::Pin;
-use core::sync::atomic::{AtomicBool, Ordering};
+use crate::prelude::*;
 use core::cell::UnsafeCell;
+use core::future::Future;
+use core::marker::PhantomData;
+use core::pin::Pin;
+use core::task::{Context, Poll, Waker};
 
 pub trait HardwareTimer<TIM> {
     fn start(&mut self, duration: Milliseconds);
     fn free(self) -> TIM;
     fn clear_update_interrupt_flag(&mut self);
 }
-
 
 #[derive(Copy, Clone, Debug)]
 pub struct Delay<D: Duration + Into<Milliseconds>>(pub D);
@@ -28,7 +33,6 @@ pub struct Timer<D: Device, TIM, T: HardwareTimer<TIM>> {
     _tim: PhantomData<TIM>,
     _device: PhantomData<D>,
 }
-
 
 impl<D: Device, TIM, T: HardwareTimer<TIM>> Timer<D, TIM, T> {
     pub fn new(timer: T) -> Self {
@@ -42,7 +46,8 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>> Timer<D, TIM, T> {
     }
 
     fn has_expired(&mut self, index: usize) -> bool {
-        let expired = self.delay_deadlines[index].as_ref().unwrap().expiration == Milliseconds(0u32);
+        let expired =
+            self.delay_deadlines[index].as_ref().unwrap().expiration == Milliseconds(0u32);
         if expired {
             self.delay_deadlines[index].take();
         }
@@ -51,7 +56,11 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>> Timer<D, TIM, T> {
     }
 
     fn register_waker(&mut self, index: usize, waker: Waker) {
-        self.delay_deadlines[index].as_mut().unwrap().waker.replace(waker);
+        self.delay_deadlines[index]
+            .as_mut()
+            .unwrap()
+            .waker
+            .replace(waker);
     }
 }
 
@@ -63,13 +72,20 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>> NotificationHandler<Lifecycle> for T
     }
 }
 
-impl<D: Device, TIM, T: HardwareTimer<TIM>, DUR: Duration + Into<Milliseconds>> RequestHandler<D, Delay<DUR>> for Timer<D, TIM, T> {
+impl<D: Device, TIM, T: HardwareTimer<TIM>, DUR: Duration + Into<Milliseconds>>
+    RequestHandler<D, Delay<DUR>> for Timer<D, TIM, T>
+{
     type Response = ();
 
     fn on_request(&'static mut self, message: Delay<DUR>) -> Response<Self::Response> {
         let ms: Milliseconds = message.0.into();
         //log::info!("delay request {:?}", ms);
-        if let Some((index, slot)) = self.delay_deadlines.iter_mut().enumerate().find(|e| matches!(e, (_, None))) {
+        if let Some((index, slot)) = self
+            .delay_deadlines
+            .iter_mut()
+            .enumerate()
+            .find(|e| matches!(e, (_, None)))
+        {
             self.delay_deadlines[index].replace(DelayDeadline::new(ms));
             if let Some(current_deadline) = self.current_delay_deadline {
                 if current_deadline > ms {
@@ -113,8 +129,8 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>> Interrupt<D> for Timer<D, TIM, T> {
                         None => {
                             next_deadline.replace(deadline.expiration);
                         }
-                        Some(soonest)  if soonest > deadline.expiration => {
-                            next_deadline.replace( deadline.expiration );
+                        Some(soonest) if soonest > deadline.expiration => {
+                            next_deadline.replace(deadline.expiration);
                         }
                         _ => { /* ignore */ }
                     }
@@ -126,24 +142,24 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>> Interrupt<D> for Timer<D, TIM, T> {
 
         if let Some(next_deadline) = next_deadline {
             if next_deadline > Milliseconds(0u32) {
-                self.current_delay_deadline.replace( next_deadline );
+                self.current_delay_deadline.replace(next_deadline);
                 self.timer.start(next_deadline);
             } else {
                 self.current_delay_deadline.take();
             }
         } else {
             self.current_delay_deadline.take();
-
         }
     }
 }
 
-impl<D: Device + 'static, TIM: 'static, T: HardwareTimer<TIM> + 'static> Address<D, Timer<D, TIM, T>> {
+impl<D: Device + 'static, TIM: 'static, T: HardwareTimer<TIM> + 'static>
+    Address<D, Timer<D, TIM, T>>
+{
     pub async fn delay<DUR: Duration + Into<Milliseconds> + 'static>(&self, duration: DUR) {
         self.request(Delay(duration)).await
     }
 }
-
 
 struct DelayDeadline {
     expiration: Milliseconds,
@@ -178,9 +194,7 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>> DelayFuture<D, TIM, T> {
         if !self.expired {
             self.expired = unsafe {
                 // critical section to avoid being trampled by the timer's own IRQ
-                cortex_m::interrupt::free(|cs| {
-                    (&mut **self.timer.get()).has_expired(self.index)
-                })
+                cortex_m::interrupt::free(|cs| (&mut **self.timer.get()).has_expired(self.index))
             }
         }
 

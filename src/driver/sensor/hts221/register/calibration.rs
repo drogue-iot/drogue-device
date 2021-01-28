@@ -40,7 +40,7 @@ pub struct TemperatureCalibration {
 
 impl TemperatureCalibration {
     pub fn calibrated(&self, t_out: i16) -> Temperature<Celsius> {
-        (self.t0_degc + (self.slope * (t_out - self.t0_out) as f32))
+        self.t0_degc + (self.slope * (t_out - self.t0_out) as f32)
     }
 }
 

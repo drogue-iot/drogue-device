@@ -1,10 +1,7 @@
-use crate::bind::Bind;
 use crate::driver::sensor::hts221::ready::Ready;
 use crate::driver::sensor::hts221::sensor::Sensor;
 use crate::hal::gpio::exti_pin::ExtiPin;
 use crate::prelude::*;
-use crate::synchronization::Mutex;
-use core::ops::Add;
 use cortex_m::interrupt::Nr;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;

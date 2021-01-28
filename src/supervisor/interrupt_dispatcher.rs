@@ -1,10 +1,9 @@
 use heapless::{consts::*, Vec};
 
-use crate::actor::{Actor, ActorContext};
+use crate::actor::Actor;
 use crate::device::Device;
 use crate::interrupt::{Interrupt, InterruptContext};
-use core::sync::atomic::{AtomicU8, Ordering};
-use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
+use core::sync::atomic::Ordering;
 
 pub(crate) trait ActiveInterrupt {
     fn on_interrupt(&self);

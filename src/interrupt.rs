@@ -1,13 +1,10 @@
-use core::cell::UnsafeCell;
 use cortex_m::interrupt::Nr;
 use cortex_m::peripheral::NVIC;
-use heapless::consts::U4;
 
 use crate::actor::{Actor, ActorContext};
 use crate::address::Address;
 use crate::bus::EventBus;
 use crate::device::Device;
-use crate::handler::NotificationHandler;
 use crate::supervisor::Supervisor;
 
 pub trait Interrupt<D: Device>: Actor<D> {

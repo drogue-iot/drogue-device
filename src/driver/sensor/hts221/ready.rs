@@ -2,16 +2,12 @@ use crate::bind::Bind;
 use crate::driver::sensor::hts221::sensor::Sensor;
 use crate::hal::gpio::exti_pin::ExtiPin;
 use crate::prelude::*;
-use crate::synchronization::Mutex;
-use core::ops::Add;
-use cortex_m::interrupt::Nr;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
-use crate::driver::timer::HardwareTimer;
 
 pub struct DataReady;
 
-pub struct Ready<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write + 'static,> {
+pub struct Ready<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write + 'static> {
     pin: P,
     sensor: Option<Address<D, Sensor<D, I>>>,
 }
@@ -27,7 +23,8 @@ impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write + 'static> Ac
 {
 }
 
-impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write> NotificationHandler<Lifecycle> for Ready<D, P, I>
+impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write> NotificationHandler<Lifecycle>
+    for Ready<D, P, I>
 {
     fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
         Completion::immediate()
@@ -48,7 +45,8 @@ impl<D: Device + 'static, P: InputPin + ExtiPin, I: WriteRead + Read + Write + '
     }
 }
 
-impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write> Bind<D, Sensor<D, I>> for Ready<D, P, I>
+impl<D: Device, P: InputPin + ExtiPin, I: WriteRead + Read + Write> Bind<D, Sensor<D, I>>
+    for Ready<D, P, I>
 {
     fn on_bind(&'static mut self, address: Address<D, Sensor<D, I>>) {
         self.sensor.replace(address);

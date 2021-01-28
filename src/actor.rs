@@ -1,20 +1,17 @@
 use crate::address::Address;
 use crate::bus::EventBus;
 use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
-use crate::sink::{MultiSink, Sink};
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 
 use crate::alloc::{alloc, Box, Rc};
 use crate::bind::Bind as BindTrait;
-use crate::device::{Device, DeviceContext};
-use crate::interrupt::Interrupt;
+use crate::device::Device;
 use crate::prelude::Lifecycle;
 use crate::supervisor::{actor_executor::ActorState, Supervisor};
-use core::borrow::BorrowMut;
-use core::cell::{Ref, RefCell, UnsafeCell};
-use core::fmt::{Debug, Formatter};
+use core::cell::{RefCell, UnsafeCell};
+// use core::fmt::{Debug, Formatter};
 use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue};
@@ -256,7 +253,7 @@ where
                 "[{}] Notify.poll() - dispatch on_notification",
                 self.actor.name()
             );
-            let mut completion = unsafe { self.actor.actor_mut() }
+            let completion = unsafe { self.actor.actor_mut() }
                 .on_notification(self.as_mut().message.take().unwrap());
             if matches!(completion, Completion::Immediate()) {
                 log::trace!("[{}] Notify.poll() - immediate: Ready", self.actor.name());

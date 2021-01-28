@@ -1,5 +1,3 @@
-use crate::actor::Actor;
-use crate::handler::{Completion, NotificationHandler};
 use heapless::{ArrayLength, Vec};
 
 pub trait Sink<M> {

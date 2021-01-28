@@ -1,34 +1,47 @@
+use crate::bind::Bind;
+use crate::domain::time::duration::Milliseconds;
+use crate::domain::time::rate::{Hertz, Rate};
+
+use crate::driver::timer::{HardwareTimer, Timer};
 use crate::prelude::*;
 use embedded_hal::digital::v2::OutputPin;
 use heapless::{ArrayLength, Vec};
 
 // Led matrix driver supporting up to 32x32 led matrices.
-pub struct LEDMatrix<P, ROWS, COLS>
+pub struct LEDMatrix<D, P, ROWS, COLS, TIM, T>
 where
+    D: Device,
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
+    T: HardwareTimer<TIM>,
 {
     pin_rows: Vec<P, ROWS>,
     pin_cols: Vec<P, COLS>,
     frame_buffer: FrameBuffer,
     row_p: usize,
+    timer: Option<Address<D, Timer<D, TIM, T>>>,
+    refresh_rate: Hertz,
 }
 
 struct FrameBuffer(u32, u32);
 
-impl<P, ROWS, COLS> LEDMatrix<P, ROWS, COLS>
+impl<D, P, ROWS, COLS, TIM, T> LEDMatrix<D, P, ROWS, COLS, TIM, T>
 where
+    D: Device,
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
+    T: HardwareTimer<TIM>,
 {
-    pub fn new(pin_rows: Vec<P, ROWS>, pin_cols: Vec<P, COLS>) -> Self {
+    pub fn new(pin_rows: Vec<P, ROWS>, pin_cols: Vec<P, COLS>, refresh_rate: Hertz) -> Self {
         LEDMatrix {
             pin_rows,
             pin_cols,
             frame_buffer: FrameBuffer(0, 0),
             row_p: 0,
+            refresh_rate,
+            timer: None,
         }
     }
 
@@ -68,30 +81,64 @@ where
     }
 }
 
-impl<D: Device, P, ROWS, COLS> Actor<D> for LEDMatrix<P, ROWS, COLS>
+impl<D, P, ROWS, COLS, TIM, T> Bind<D, Timer<D, TIM, T>> for LEDMatrix<D, P, ROWS, COLS, TIM, T>
 where
+    D: Device,
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
+    T: HardwareTimer<TIM>,
 {
-}
-
-impl<P, ROWS, COLS> NotificationHandler<Lifecycle> for LEDMatrix<P, ROWS, COLS>
-where
-    P: OutputPin,
-    ROWS: ArrayLength<P>,
-    COLS: ArrayLength<P>,
-{
-    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
-        Completion::immediate()
+    fn on_bind(&'static mut self, address: Address<D, Timer<D, TIM, T>>) {
+        self.timer.replace(address);
     }
 }
 
-impl<P, ROWS, COLS> NotificationHandler<MatrixCommand> for LEDMatrix<P, ROWS, COLS>
+impl<D, P, ROWS, COLS, TIM, T> Actor<D> for LEDMatrix<D, P, ROWS, COLS, TIM, T>
 where
+    D: Device,
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
+    T: HardwareTimer<TIM>,
+{
+}
+
+impl<D, P, ROWS, COLS, TIM, T> NotificationHandler<Lifecycle>
+    for LEDMatrix<D, P, ROWS, COLS, TIM, T>
+where
+    D: Device,
+    P: OutputPin,
+    ROWS: ArrayLength<P>,
+    COLS: ArrayLength<P>,
+    T: HardwareTimer<TIM>,
+{
+    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
+        if let Lifecycle::Start = message {
+            Completion::defer(async move {
+                loop {
+                    self.render();
+                    self.timer
+                        .as_ref()
+                        .unwrap()
+                        .delay(self.refresh_rate.to_duration::<Milliseconds>().unwrap())
+                        .await;
+                }
+            })
+        } else {
+            Completion::immediate()
+        }
+    }
+}
+
+impl<D, P, ROWS, COLS, TIM, T> NotificationHandler<MatrixCommand>
+    for LEDMatrix<D, P, ROWS, COLS, TIM, T>
+where
+    D: Device,
+    P: OutputPin,
+    ROWS: ArrayLength<P>,
+    COLS: ArrayLength<P>,
+    T: HardwareTimer<TIM>,
 {
     fn on_notification(&'static mut self, command: MatrixCommand) -> Completion {
         match command {
@@ -100,9 +147,6 @@ where
             }
             MatrixCommand::Off(x, y) => {
                 self.off(x, y);
-            }
-            MatrixCommand::Render => {
-                self.render();
             }
         }
         Completion::immediate()
@@ -113,5 +157,4 @@ where
 pub enum MatrixCommand {
     On(usize, usize),
     Off(usize, usize),
-    Render,
 }

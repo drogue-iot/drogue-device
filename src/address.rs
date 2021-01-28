@@ -2,7 +2,6 @@ use crate::actor::{Actor, ActorContext};
 use crate::bind::Bind;
 use crate::device::Device;
 use crate::handler::{NotificationHandler, RequestHandler};
-use crate::interrupt::{Interrupt, InterruptContext};
 use crate::sink::Sink;
 use core::cell::UnsafeCell;
 

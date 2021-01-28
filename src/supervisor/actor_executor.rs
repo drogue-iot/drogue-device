@@ -3,10 +3,11 @@ use heapless::{consts::*, Vec};
 use crate::actor::{Actor, ActorContext};
 use crate::device::Device;
 use crate::prelude::Lifecycle;
-use core::ops::Deref;
+use core::cmp::PartialEq;
 use core::sync::atomic::{AtomicU8, Ordering};
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
+#[derive(PartialEq)]
 pub(crate) enum ActorState {
     IDLE = 0,
     WAITING = 1,
@@ -38,7 +39,7 @@ impl Supervised {
     }
 
     fn is_idle(&self) -> bool {
-        self.state.load(Ordering::Acquire) == ActorState::IDLE.into()
+        self.state.load(Ordering::Acquire) == ActorState::IDLE as u8
     }
 
     fn signal_idle(&self) {
@@ -51,7 +52,7 @@ impl Supervised {
     }
 
     fn is_waiting(&self) -> bool {
-        self.state.load(Ordering::Acquire) == ActorState::WAITING.into()
+        self.state.load(Ordering::Acquire) == ActorState::WAITING as u8
     }
 
     fn signal_waiting(&self) {
@@ -65,7 +66,7 @@ impl Supervised {
     }
 
     fn is_ready(&self) -> bool {
-        self.state.load(Ordering::Acquire) == ActorState::READY.into()
+        self.state.load(Ordering::Acquire) == ActorState::READY as u8
     }
 
     fn signal_ready(&self) {
@@ -126,7 +127,7 @@ impl<D: Device, A: Actor<D>> ActiveActor for ActorContext<D, A> {
                 log::trace!("[{}] executor: in-flight current task", self.name());
             }
 
-            let mut should_drop = false;
+            let should_drop;
             if let Some(item) = &mut *self.current.borrow_mut() {
                 //&mut *self.current.get() {
                 let raw_waker = RawWaker::new(state_flag_handle, &VTABLE);

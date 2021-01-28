@@ -1,4 +1,3 @@
-use crate::domain::temperature::{Celsius, Temperature};
 use crate::hal::i2c::I2cAddress;
 use core::ops::DerefMut;
 use embedded_hal::blocking::i2c::WriteRead;

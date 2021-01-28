@@ -1,6 +1,5 @@
 use crate::hal::i2c::I2cAddress;
-use core::cell::Ref;
-use core::ops::{DerefMut, Not};
+use core::ops::DerefMut;
 use embedded_hal::blocking::i2c::WriteRead;
 
 const STATUS: u8 = 0x27;

@@ -26,6 +26,11 @@ path = "../stm32l4xx-hal"
 features = ["stm32l4x5", "rt"]
 optional = true
 
+[dependencies.nrf52833-hal]
+version = "0.12.0"
+features = ["rt"]
+optional = true
+
 # ----------------------------------------
 # embedded_time dependencies
 # ----------------------------------------
@@ -36,4 +41,5 @@ default-features = false
 
 [features]
 stm32l4xx = [ "stm32l4xx-hal" ]
+nrf52833 = [ "nrf52833-hal" ]
 

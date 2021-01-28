@@ -2,7 +2,6 @@ use crate::alloc::cortex_m::CortexMHeap;
 use core::cell::UnsafeCell;
 use core::fmt::{Debug, Formatter};
 use core::future::Future;
-use core::mem::{align_of, size_of};
 use core::ops::Deref;
 use core::ops::DerefMut;
 use core::pin::Pin;

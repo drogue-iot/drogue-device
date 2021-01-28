@@ -1,25 +1,19 @@
 //! Timers
 
-use stm32l4xx_hal::hal::timer::{CountDown, Periodic};
-use stm32l4xx_hal::stm32::{TIM15, TIM16, TIM2, TIM6, TIM7};
-#[cfg(any(feature = "stm32l4x5", feature = "stm32l4x6", ))]
+#[cfg(any(feature = "stm32l4x5", feature = "stm32l4x6",))]
 use crate::stm32::{TIM17, TIM4, TIM5};
+use stm32l4xx_hal::hal::timer::{CountDown, Periodic};
 use stm32l4xx_hal::pac::RCC;
+use stm32l4xx_hal::stm32::{TIM15, TIM16, TIM2, TIM6, TIM7};
 //use cast::{u16, u32};
 //use void::Void;
 
 use stm32l4xx_hal::rcc::{Clocks, APB1R1, APB2};
 
 use crate::domain::time::{
+    duration::{Duration, Milliseconds},
     fixed_point::FixedPoint,
-    duration::{
-        Duration,
-        Milliseconds,
-    },
-    rate::{
-        Hertz,
-        Millihertz,
-    },
+    rate::{Hertz, Millihertz},
 };
 
 /// Hardware timers
@@ -121,7 +115,7 @@ hal! {
     TIM16: (tim16, tim16en, tim16rst, APB2, apb2enr, apb2rstr),
 }
 
-#[cfg(any(feature = "stm32l4x5", feature = "stm32l4x6", ))]
+#[cfg(any(feature = "stm32l4x5", feature = "stm32l4x6",))]
 hal! {
     TIM4: (tim4, tim4en, tim4rst, APB1R1, apb1enr1, apb1rstr1),
     TIM5: (tim5, tim5en, tim5rst, APB1R1, apb1enr1, apb1rstr1),

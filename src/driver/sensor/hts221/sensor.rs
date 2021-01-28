@@ -1,5 +1,5 @@
 use crate::bind::Bind;
-use crate::driver::sensor::hts221::ready::{DataReady, Ready};
+use crate::driver::sensor::hts221::ready::DataReady;
 use crate::driver::sensor::hts221::register::calibration::*;
 use crate::driver::sensor::hts221::register::ctrl1::{BlockDataUpdate, Ctrl1, OutputDataRate};
 use crate::driver::sensor::hts221::register::ctrl2::Ctrl2;
@@ -8,17 +8,10 @@ use crate::driver::sensor::hts221::register::h_out::Hout;
 use crate::driver::sensor::hts221::register::status::Status;
 use crate::driver::sensor::hts221::register::t_out::Tout;
 use crate::driver::sensor::hts221::register::who_am_i::WhoAmI;
-use crate::hal::gpio::exti_pin::ExtiPin;
 use crate::hal::i2c::I2cAddress;
 use crate::prelude::*;
 use crate::synchronization::Mutex;
-use core::default::Default;
-use core::ops::Add;
-use cortex_m::interrupt::Nr;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
-use embedded_hal::digital::v2::InputPin;
-use crate::driver::timer::{Timer, Delay, HardwareTimer};
-use crate::domain::time::duration::Milliseconds;
 
 pub const ADDR: u8 = 0x5F;
 

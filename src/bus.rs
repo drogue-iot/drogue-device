@@ -1,4 +1,3 @@
-use crate::actor::{Actor, ActorContext};
 use crate::device::{Device, DeviceContext};
 
 use core::cell::UnsafeCell;
