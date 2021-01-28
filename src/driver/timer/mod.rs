@@ -1,5 +1,4 @@
-
-
+use crate::alloc::{alloc, Box};
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
@@ -9,19 +8,34 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 
-
-
 #[derive(Copy, Clone, Debug)]
 pub struct Delay<DUR: Duration + Into<Milliseconds>>(pub DUR);
 
+pub trait Schedulable {
+    fn run(&self);
+    fn get_expiration(&self) -> Milliseconds;
+    fn set_expiration(&mut self, expiration: Milliseconds);
+}
+
 #[derive(Clone)]
-pub struct Schedule<D: Device, A: Actor<D>, DUR: Duration + Into<Milliseconds>, E> {
+pub struct Schedule<
+    D: Device + 'static,
+    A: Actor<D> + NotificationHandler<E> + 'static,
+    DUR: Duration + Into<Milliseconds>,
+    E: Clone + 'static,
+> {
     delay: DUR,
     event: E,
     address: Address<D, A>,
 }
 
-impl<D: Device, A: Actor<D>, DUR: Duration + Into<Milliseconds>, E> Schedule<D, A, DUR, E> {
+impl<
+        D: Device + 'static,
+        A: Actor<D> + NotificationHandler<E> + 'static,
+        DUR: Duration + Into<Milliseconds>,
+        E: Clone + 'static,
+    > Schedule<D, A, DUR, E>
+{
     pub fn new(delay: DUR, event: E, address: Address<D, A>) -> Self {
         Self {
             delay,
@@ -33,8 +47,9 @@ impl<D: Device, A: Actor<D>, DUR: Duration + Into<Milliseconds>, E> Schedule<D, 
 
 pub struct Timer<D: Device, T: HalTimer> {
     timer: T,
-    current_delay_deadline: Option<Milliseconds>,
+    current_deadline: Option<Milliseconds>,
     delay_deadlines: [Option<DelayDeadline>; 16],
+    schedule_deadlines: [Option<Box<dyn Schedulable>>; 16],
     _device: PhantomData<D>,
 }
 
@@ -42,8 +57,9 @@ impl<D: Device, T: HalTimer> Timer<D, T> {
     pub fn new(timer: T) -> Self {
         Self {
             timer,
-            current_delay_deadline: None,
+            current_deadline: None,
             delay_deadlines: Default::default(),
+            schedule_deadlines: Default::default(),
             _device: PhantomData,
         }
     }
@@ -59,43 +75,12 @@ impl<D: Device, T: HalTimer> Timer<D, T> {
     }
 
     fn register_waker(&mut self, index: usize, waker: Waker) {
-        log::info!("Registering waker");
+        // log::info!("Registering waker");
         self.delay_deadlines[index]
             .as_mut()
             .unwrap()
             .waker
             .replace(waker);
-    }
-
-    fn configure_timer<R, F: FnOnce(&mut Timer<D, T>, Option<usize>) -> R>(
-        &mut self,
-        ms: Milliseconds,
-        f: F,
-    ) -> R {
-        if let Some((index, slot)) = self
-            .delay_deadlines
-            .iter_mut()
-            .enumerate()
-            .find(|e| matches!(e, (_, None)))
-        {
-            self.delay_deadlines[index].replace(DelayDeadline::new(ms));
-            if let Some(current_deadline) = self.current_delay_deadline {
-                if current_deadline > ms {
-                    self.current_delay_deadline.replace(ms);
-                    //log::info!("start shorter timer for {:?}", ms);
-                    self.timer.start(ms);
-                } else {
-                    //log::info!("timer already running for {:?}", current_deadline );
-                }
-            } else {
-                self.current_delay_deadline.replace(ms);
-                //log::info!("start new timer for {:?}", ms);
-                self.timer.start(ms);
-            }
-            (f)(self, Some(index))
-        } else {
-            (f)(self, None)
-        }
     }
 }
 
@@ -107,8 +92,8 @@ impl<D: Device, T: HalTimer> NotificationHandler<Lifecycle> for Timer<D, T> {
     }
 }
 
-impl<D: Device, T: HalTimer, DUR: Duration + Into<Milliseconds>>
-    RequestHandler<D, Delay<DUR>> for Timer<D, T>
+impl<D: Device, T: HalTimer, DUR: Duration + Into<Milliseconds>> RequestHandler<D, Delay<DUR>>
+    for Timer<D, T>
 {
     type Response = ();
 
@@ -116,46 +101,75 @@ impl<D: Device, T: HalTimer, DUR: Duration + Into<Milliseconds>>
         let ms: Milliseconds = message.0.into();
         //log::info!("delay request {:?}", ms);
 
-        self.configure_timer(ms, |timer, index| {
-            if let Some(index) = index {
-                Response::immediate_future(DelayFuture::new(index, timer))
+        if let Some((index, slot)) = self
+            .delay_deadlines
+            .iter_mut()
+            .enumerate()
+            .find(|e| matches!(e, (_, None)))
+        {
+            self.delay_deadlines[index].replace(DelayDeadline::new(ms));
+            if let Some(current_deadline) = self.current_deadline {
+                if current_deadline > ms {
+                    self.current_deadline.replace(ms);
+                    //log::info!("start shorter timer for {:?}", ms);
+                    self.timer.start(ms);
+                } else {
+                    //log::info!("timer already running for {:?}", current_deadline );
+                }
             } else {
-                Response::immediate(())
+                self.current_deadline.replace(ms);
+                //log::info!("start new timer for {:?}", ms);
+                self.timer.start(ms);
             }
-        })
+            Response::immediate_future(DelayFuture::new(index, self))
+        } else {
+            Response::immediate(())
+        }
     }
 }
 
 impl<
         D: Device,
         T: HalTimer,
-        E: 'static,
+        E: Clone + 'static,
         A: Actor<D> + NotificationHandler<E> + 'static,
         DUR: Duration + Into<Milliseconds> + 'static,
     > NotificationHandler<Schedule<D, A, DUR, E>> for Timer<D, T>
 {
     fn on_notification(&'static mut self, message: Schedule<D, A, DUR, E>) -> Completion {
         let ms: Milliseconds = message.delay.into();
-        self.configure_timer(ms, |timer, index| {
-            if let Some(index) = index {
-                let f = DelayFuture::new(index, timer);
-                Completion::defer(async move {
-                    log::info!("Awaiting future");
-                    f.await;
-                    log::info!("NOTIFYING");
-                    message.address.notify(message.event);
-                })
+        //log::info!("delay request {:?}", ms);
+
+        if let Some((index, slot)) = self
+            .schedule_deadlines
+            .iter_mut()
+            .enumerate()
+            .find(|e| matches!(e, (_, None)))
+        {
+            self.schedule_deadlines[index]
+                .replace(Box::new(alloc(ScheduleDeadline::new(ms, message)).unwrap()));
+            if let Some(current_deadline) = self.current_deadline {
+                if current_deadline > ms {
+                    self.current_deadline.replace(ms);
+                    //log::info!("start shorter timer for {:?}", ms);
+                    self.timer.start(ms);
+                } else {
+                    //log::info!("timer already running for {:?}", current_deadline );
+                }
             } else {
-                Completion::immediate()
+                self.current_deadline.replace(ms);
+                //log::info!("start new timer for {:?}", ms);
+                self.timer.start(ms);
             }
-        })
+        }
+        Completion::immediate()
     }
 }
 
 impl<D: Device, T: HalTimer> Interrupt<D> for Timer<D, T> {
     fn on_interrupt(&mut self) {
         self.timer.clear_update_interrupt_flag();
-        let expired = self.current_delay_deadline.unwrap();
+        let expired = self.current_deadline.unwrap();
 
         let mut next_deadline = None;
         //log::info!("timer expired! {:?}", expired);
@@ -183,31 +197,55 @@ impl<D: Device, T: HalTimer> Interrupt<D> for Timer<D, T> {
             }
         }
 
+        for slot in self.schedule_deadlines.iter_mut() {
+            if let Some(deadline) = slot {
+                let expiration = deadline.get_expiration();
+                if expiration >= expired {
+                    deadline.set_expiration(expiration - expired);
+                } else {
+                    deadline.set_expiration(Milliseconds(0u32));
+                }
+
+                if deadline.get_expiration() == Milliseconds(0u32) {
+                    deadline.run();
+                    slot.take();
+                } else {
+                    match next_deadline {
+                        None => {
+                            next_deadline.replace(deadline.get_expiration());
+                        }
+                        Some(soonest) if soonest > deadline.get_expiration() => {
+                            next_deadline.replace(deadline.get_expiration());
+                        }
+                        _ => { /* ignore */ }
+                    }
+                }
+            }
+        }
+
         //log::info!("next deadline {:?}", next_deadline );
 
         if let Some(next_deadline) = next_deadline {
             if next_deadline > Milliseconds(0u32) {
-                self.current_delay_deadline.replace(next_deadline);
+                self.current_deadline.replace(next_deadline);
                 self.timer.start(next_deadline);
             } else {
-                self.current_delay_deadline.take();
+                self.current_deadline.take();
             }
         } else {
-            self.current_delay_deadline.take();
+            self.current_deadline.take();
         }
     }
 }
 
-impl<D: Device + 'static, T: HalTimer+ 'static>
-    Address<D, Timer<D, T>>
-{
+impl<D: Device + 'static, T: HalTimer + 'static> Address<D, Timer<D, T>> {
     pub async fn delay<DUR: Duration + Into<Milliseconds> + 'static>(&self, duration: DUR) {
         self.request(Delay(duration)).await
     }
 
     pub fn schedule<
         DUR: Duration + Into<Milliseconds> + 'static,
-        E: 'static,
+        E: Clone + 'static,
         A: Actor<D> + NotificationHandler<E> + 'static,
     >(
         &self,
@@ -229,6 +267,51 @@ impl DelayDeadline {
         Self {
             expiration,
             waker: None,
+        }
+    }
+}
+
+pub struct ScheduleDeadline<
+    D: Device + 'static,
+    A: Actor<D> + NotificationHandler<E> + 'static,
+    DUR: Duration + Into<Milliseconds>,
+    E: Clone + 'static,
+> {
+    expiration: Milliseconds,
+    schedule: Schedule<D, A, DUR, E>,
+}
+
+impl<
+        D: Device + 'static,
+        A: Actor<D> + NotificationHandler<E> + 'static,
+        DUR: Duration + Into<Milliseconds>,
+        E: Clone + 'static,
+    > Schedulable for ScheduleDeadline<D, A, DUR, E>
+{
+    fn run(&self) {
+        self.schedule.address.notify(self.schedule.event.clone());
+    }
+
+    fn set_expiration(&mut self, expiration: Milliseconds) {
+        self.expiration = expiration;
+    }
+
+    fn get_expiration(&self) -> Milliseconds {
+        self.expiration
+    }
+}
+
+impl<
+        D: Device + 'static,
+        A: Actor<D> + NotificationHandler<E> + 'static,
+        DUR: Duration + Into<Milliseconds>,
+        E: Clone + 'static,
+    > ScheduleDeadline<D, A, DUR, E>
+{
+    fn new(expiration: Milliseconds, schedule: Schedule<D, A, DUR, E>) -> Self {
+        Self {
+            expiration,
+            schedule,
         }
     }
 }

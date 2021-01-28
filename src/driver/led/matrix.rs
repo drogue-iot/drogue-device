@@ -2,8 +2,8 @@ use crate::bind::Bind;
 use crate::domain::time::duration::Milliseconds;
 use crate::domain::time::rate::{Hertz, Rate};
 
-use crate::hal::timer::Timer as HalTimer;
 use crate::driver::timer::Timer;
+use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
 use embedded_hal::digital::v2::OutputPin;
 use heapless::{ArrayLength, Vec};
@@ -110,8 +110,7 @@ where
     }
 }
 
-impl<D, P, ROWS, COLS, T> NotificationHandler<Lifecycle>
-    for LEDMatrix<D, P, ROWS, COLS, T>
+impl<D, P, ROWS, COLS, T> NotificationHandler<Lifecycle> for LEDMatrix<D, P, ROWS, COLS, T>
 where
     D: Device,
     P: OutputPin,
@@ -121,26 +120,12 @@ where
 {
     fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
         if let Lifecycle::Start = message {
-            /*
-            Completion::defer(async move {
-                loop {
-                    self.timer
-                        .as_ref()
-                        .unwrap()
-                        .delay(self.refresh_rate.to_duration::<Milliseconds>().unwrap())
-                        .await;
-                    log::info!("RENDER");
-                    self.render();
-                }
-            })*/
             if let Some(address) = &self.address {
-                log::info!("Scheduling event");
                 self.timer.as_ref().unwrap().schedule(
                     self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
                     MatrixCommand::Render,
                     address.clone(),
                 );
-                log::info!("Awaiting render");
             }
             Completion::immediate()
         } else {
@@ -149,8 +134,7 @@ where
     }
 }
 
-impl<D, P, ROWS, COLS, T> NotificationHandler<MatrixCommand>
-    for LEDMatrix<D, P, ROWS, COLS, T>
+impl<D, P, ROWS, COLS, T> NotificationHandler<MatrixCommand> for LEDMatrix<D, P, ROWS, COLS, T>
 where
     D: Device,
     P: OutputPin,
@@ -167,7 +151,6 @@ where
                 self.off(x, y);
             }
             MatrixCommand::Render => {
-                log::info!("Going to render!");
                 self.render();
                 if let Some(address) = &self.address {
                     self.timer.as_ref().unwrap().schedule(
@@ -175,7 +158,6 @@ where
                         MatrixCommand::Render,
                         address.clone(),
                     );
-                    log::info!("Scheduled again");
                 }
             }
         }
