@@ -1,4 +1,4 @@
-use core::fmt::{Display, Formatter};
+use core::fmt::{Display, Formatter, Debug};
 use core::marker::PhantomData;
 use core::ops::{Add, Div, Sub};
 
@@ -8,15 +8,32 @@ pub struct Kelvin;
 
 impl TemperatureScale for Kelvin {}
 
+impl Debug for Kelvin {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.write_str( "°K")
+    }
+}
+
 pub struct Celsius;
+
+impl Debug for Celsius {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.write_str( "°C")
+    }
+}
 
 impl TemperatureScale for Celsius {}
 
 pub struct Fahrenheit;
 
+impl Debug for Fahrenheit {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.write_str( "°F")
+    }
+}
+
 impl TemperatureScale for Fahrenheit {}
 
-#[derive(Debug)]
 pub struct Temperature<S: TemperatureScale> {
     value: f32,
     _marker: PhantomData<S>,
@@ -28,6 +45,27 @@ impl<S: TemperatureScale> Clone for Temperature<S> {
             value: self.value,
             _marker: PhantomData::default(),
         }
+    }
+}
+
+impl Debug for Temperature<Celsius> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        Debug::fmt( &self.value, f );
+        write!(f, "°C")
+    }
+}
+
+impl Debug for Temperature<Fahrenheit> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        Debug::fmt( &self.value, f );
+        write!(f, "°F")
+    }
+}
+
+impl Debug for Temperature<Kelvin> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        Debug::fmt( &self.value, f );
+        write!(f, "°K")
     }
 }
 

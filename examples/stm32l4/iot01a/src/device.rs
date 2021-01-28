@@ -14,7 +14,7 @@ use stm32l4xx_hal::{
         PB11,
         PD15,
         PullDown,
-        PB14
+        PB14,
     },
     i2c::I2c,
     pac::TIM15,
@@ -38,10 +38,11 @@ use drogue_device::{
     },
     hal::timer::stm32l4xx::Timer as McuTimer,
 };
+use drogue_device::driver::sensor::hts221::SensorAcquisition;
 
 type Ld1Actor = SimpleLED<MyDevice, PA5<Output<PushPull>>>;
 type Ld2Actor = SimpleLED<MyDevice, PB14<Output<PushPull>>>;
-type ButtonInterrupt = Button<MyDevice,PC13<Input<PullUp>>>;
+type ButtonInterrupt = Button<MyDevice, PC13<Input<PullUp>>>;
 
 type I2cScl = PB10<Alternate<AF4, Output<OpenDrain>>>;
 type I2cSda = PB11<Alternate<AF4, Output<OpenDrain>>>;
@@ -106,4 +107,11 @@ impl EventConsumer<ButtonEvent> for MyDevice {
     }
 }
 
+impl EventConsumer<SensorAcquisition> for MyDevice {
+    fn on_event(&'static mut self, message: SensorAcquisition)
+        where
+            Self: Sized, {
+        log::info!("[event-bus] {:?}", message);
+    }
+}
 

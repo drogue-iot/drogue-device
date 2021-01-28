@@ -4,12 +4,13 @@ use crate::hal::gpio::exti_pin::ExtiPin;
 use crate::prelude::*;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
+use crate::driver::sensor::hts221::SensorAcquisition;
 
 pub struct DataReady;
 
 pub struct Ready<D, P, I>
     where
-        D: Device,
+        D: Device + EventConsumer<SensorAcquisition>,
         P: InputPin + ExtiPin,
         I: WriteRead + Read + Write + 'static
 {
@@ -19,7 +20,7 @@ pub struct Ready<D, P, I>
 
 impl<D, P, I> Ready<D, P, I>
     where
-        D: Device,
+        D: Device + EventConsumer<SensorAcquisition>,
         P: InputPin + ExtiPin,
         I: WriteRead + Read + Write
 {
@@ -31,7 +32,7 @@ impl<D, P, I> Ready<D, P, I>
 impl<D, P, I> Actor<D>
 for Ready<D, P, I>
     where
-        D: Device,
+        D: Device + EventConsumer<SensorAcquisition>,
         P: InputPin + ExtiPin,
         I: WriteRead + Read + Write + 'static
 {}
@@ -39,7 +40,7 @@ for Ready<D, P, I>
 impl<D, P, I> NotificationHandler<Lifecycle>
 for Ready<D, P, I>
     where
-        D: Device,
+        D: Device + EventConsumer<SensorAcquisition>,
         P: InputPin + ExtiPin,
         I: WriteRead + Read + Write
 {
@@ -51,7 +52,7 @@ for Ready<D, P, I>
 impl<D, P, I> Interrupt<D>
 for Ready<D, P, I>
     where
-        D: Device + 'static,
+        D: Device + EventConsumer<SensorAcquisition> + 'static,
         P: InputPin + ExtiPin,
         I: WriteRead + Read + Write + 'static
 {
@@ -69,7 +70,7 @@ for Ready<D, P, I>
 impl<D, P, I> Bind<D, Sensor<D, I>>
 for Ready<D, P, I>
     where
-        D: Device,
+        D: Device + EventConsumer<SensorAcquisition>,
         P: InputPin + ExtiPin,
         I: WriteRead + Read + Write
 {

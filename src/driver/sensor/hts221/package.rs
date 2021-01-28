@@ -5,10 +5,11 @@ use crate::prelude::*;
 use cortex_m::interrupt::Nr;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
+use crate::driver::sensor::hts221::SensorAcquisition;
 
 pub struct Hts221<D, P, I>
     where
-        D: Device + 'static,
+        D: Device + EventConsumer<SensorAcquisition> + 'static,
         P: InputPin + ExtiPin,
         I: WriteRead + Read + Write + 'static
 {
@@ -18,7 +19,7 @@ pub struct Hts221<D, P, I>
 
 impl<D, P, I> Hts221<D, P, I>
     where
-        D: Device,
+        D: Device + EventConsumer<SensorAcquisition>,
         P: InputPin + ExtiPin,
         I: WriteRead + Read + Write
 {

@@ -12,22 +12,24 @@ use crate::hal::i2c::I2cAddress;
 use crate::prelude::*;
 use crate::synchronization::Mutex;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
+use crate::driver::sensor::hts221::SensorAcquisition;
 
 pub const ADDR: u8 = 0x5F;
 
 pub struct Sensor<D, I>
     where
-        D: Device,
+        D: Device + EventConsumer<SensorAcquisition>,
         I: WriteRead + Read + Write + 'static
 {
     address: I2cAddress,
     i2c: Option<Address<D, Mutex<D, I>>>,
     calibration: Option<Calibration>,
+    bus: Option<EventBus<D>>,
 }
 
 impl<D, I> Sensor<D, I>
     where
-        D: Device,
+        D: Device + EventConsumer<SensorAcquisition>,
         I: WriteRead + Read + Write + 'static
 {
     pub fn new() -> Self {
@@ -35,6 +37,7 @@ impl<D, I> Sensor<D, I>
             address: I2cAddress::new(ADDR),
             i2c: None,
             calibration: None,
+            bus: None,
         }
     }
 
@@ -90,9 +93,9 @@ impl<D, I> Sensor<D, I>
     }
 }
 
-impl<D,I> Default for Sensor<D, I>
+impl<D, I> Default for Sensor<D, I>
     where
-        D: Device,
+        D: Device + EventConsumer<SensorAcquisition>,
         I: WriteRead + Read + Write + 'static
 {
     fn default() -> Self {
@@ -101,14 +104,21 @@ impl<D,I> Default for Sensor<D, I>
 }
 
 impl<D, I> Actor<D> for Sensor<D, I>
-    where D: Device,
+    where D: Device + EventConsumer<SensorAcquisition>,
           I: WriteRead + Read + Write
-{}
+{
+    fn mount(&mut self, address: Address<D, Self>, bus: EventBus<D>)
+        where
+            Self: Sized,
+    {
+        self.bus.replace(bus);
+    }
+}
 
 impl<D, I> Bind<D, Mutex<D, I>>
 for Sensor<D, I>
     where
-        D: Device,
+        D: Device + EventConsumer<SensorAcquisition>,
         I: WriteRead + Read + Write + 'static
 {
     fn on_bind(&'static mut self, address: Address<D, Mutex<D, I>>) {
@@ -119,7 +129,7 @@ for Sensor<D, I>
 impl<D, I> NotificationHandler<Lifecycle>
 for Sensor<D, I>
     where
-        D: Device,
+        D: Device + EventConsumer<SensorAcquisition>,
         I: WriteRead + Read + Write
 {
     fn on_notification(&'static mut self, event: Lifecycle) -> Completion {
@@ -137,7 +147,7 @@ for Sensor<D, I>
 impl<D, I> NotificationHandler<DataReady>
 for Sensor<D, I>
     where
-        D: Device,
+        D: Device + EventConsumer<SensorAcquisition>,
         I: WriteRead + Read + Write
 {
     fn on_notification(&'static mut self, message: DataReady) -> Completion {
@@ -147,15 +157,19 @@ for Sensor<D, I>
 
                 if let Some(ref calibration) = self.calibration {
                     let t_out = Tout::read(self.address, &mut i2c);
-                    let t = calibration.calibrated_temperature(t_out);
+                    let temperature = calibration.calibrated_temperature(t_out);
 
                     let h_out = Hout::read(self.address, &mut i2c);
-                    let h = calibration.calibrated_humidity(h_out);
+                    let relative_humidity = calibration.calibrated_humidity(h_out);
 
+                    self.bus.as_ref().unwrap().publish(SensorAcquisition {
+                        temperature,
+                        relative_humidity,
+                    });
                     log::info!(
                         "[hts221] temperature={:.2}°F humidity={:.2}%rh",
-                        t.into_fahrenheit(),
-                        h
+                        temperature.into_fahrenheit(),
+                        relative_humidity
                     );
                 } else {
                     log::info!("[hts221] no calibration data available")
@@ -167,7 +181,7 @@ for Sensor<D, I>
 
 impl<D, I> Address<D, Sensor<D, I>>
     where
-        D: Device + 'static,
+        D: Device + EventConsumer<SensorAcquisition> + 'static,
         I: WriteRead + Read + Write
 {
     pub fn signal_data_ready(&self) {
