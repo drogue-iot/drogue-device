@@ -39,6 +39,7 @@ use drogue_device::{
     hal::timer::stm32l4xx::Timer as McuTimer,
 };
 use drogue_device::driver::sensor::hts221::SensorAcquisition;
+use drogue_device::domain::time::duration::Milliseconds;
 
 type Ld1Actor = SimpleLED<MyDevice, PA5<Output<PushPull>>>;
 type Ld2Actor = SimpleLED<MyDevice, PB14<Output<PushPull>>>;
@@ -99,9 +100,11 @@ impl EventConsumer<ButtonEvent> for MyDevice {
         match message {
             ButtonEvent::Pressed => {
                 log::info!("[event-bus] button pressed");
+                self.blinker1.address().adjust_delay(Milliseconds(250u32));
             }
             ButtonEvent::Released => {
                 log::info!("[event-bus] button released");
+                self.blinker1.address().adjust_delay(Milliseconds(500u32));
             }
         }
     }

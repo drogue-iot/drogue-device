@@ -6,6 +6,7 @@ use crate::driver::timer::Timer;
 use crate::prelude::*;
 use embedded_hal::digital::v2::OutputPin;
 
+
 pub struct Blinker<D, P, T>
     where
         D: Device,
@@ -15,6 +16,7 @@ pub struct Blinker<D, P, T>
     led: Option<Address<D, SimpleLED<D, P>>>,
     timer: Option<Address<D, Timer<D, T>>>,
     delay: Milliseconds,
+    address: Option<Address<D, Self>>,
 }
 
 impl<D, P, T> Blinker<D, P, T>
@@ -28,6 +30,7 @@ impl<D, P, T> Blinker<D, P, T>
             led: None,
             timer: None,
             delay: delay.into(),
+            address: None,
         }
     }
 }
@@ -60,7 +63,13 @@ for Blinker<D, P, T>
     where
         D: Device,
         P: OutputPin,
-        T: HalTimer {}
+        T: HalTimer {
+    fn mount(&mut self, address: Address<D, Self>, bus: EventBus<D>)
+        where
+            Self: Sized, {
+        self.address.replace(address);
+    }
+}
 
 impl<D, P, T> NotificationHandler<Lifecycle>
 for Blinker<D, P, T>
@@ -70,18 +79,63 @@ for Blinker<D, P, T>
         T: HalTimer,
 {
     fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
-        if let Lifecycle::Start = message {
-            Completion::defer(async move {
-                loop {
-                    //log::info!("LED {:?}", self.delay);
-                    self.led.as_ref().unwrap().turn_on();
-                    self.timer.as_ref().unwrap().delay(self.delay).await;
-                    self.led.as_ref().unwrap().turn_off();
-                    self.timer.as_ref().unwrap().delay(self.delay).await;
-                }
-            })
-        } else {
-            Completion::immediate()
+        self.timer.as_ref().unwrap().schedule(self.delay, State::On, self.address.as_ref().unwrap().clone());
+        Completion::immediate()
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+enum State {
+    On,
+    Off,
+}
+
+impl<D, P, T> NotificationHandler<State>
+for Blinker<D, P, T>
+    where
+        D: Device,
+        P: OutputPin,
+        T: HalTimer,
+{
+    fn on_notification(&'static mut self, message: State) -> Completion {
+        match message {
+            State::On => {
+                self.led.as_ref().unwrap().turn_on();
+                self.timer.as_ref().unwrap().schedule(self.delay, State::Off, self.address.as_ref().unwrap().clone());
+            }
+            State::Off => {
+                self.led.as_ref().unwrap().turn_off();
+                self.timer.as_ref().unwrap().schedule(self.delay, State::On, self.address.as_ref().unwrap().clone());
+            }
         }
+        Completion::immediate()
+    }
+}
+
+pub struct AdjustDelay(Milliseconds);
+
+impl<D, P, T> NotificationHandler<AdjustDelay>
+for Blinker<D, P, T>
+    where
+        D: Device,
+        P: OutputPin,
+        T: HalTimer,
+{
+    fn on_notification(&'static mut self, message: AdjustDelay) -> Completion {
+        self.delay = message.0;
+        Completion::immediate()
+    }
+}
+
+
+impl<D, P, T> Address<D, Blinker<D, P, T>>
+    where
+        Self: 'static,
+        D: Device,
+        P: OutputPin,
+        T: HalTimer,
+{
+    pub fn adjust_delay(&self, delay: Milliseconds) {
+        self.notify(AdjustDelay(delay))
     }
 }

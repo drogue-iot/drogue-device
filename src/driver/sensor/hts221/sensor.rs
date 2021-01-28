@@ -64,10 +64,10 @@ impl<D, I> Sensor<D, I>
                     reg.enable(true);
                 });
 
-                log::info!(
-                    "[hts221] address=0x{:X}",
-                    WhoAmI::read(self.address, &mut i2c)
-                );
+                //log::info!(
+                    //"[hts221] address=0x{:X}",
+                    //WhoAmI::read(self.address, &mut i2c)
+                //);
 
                 //let result = self.timer.as_ref().unwrap().request( Delay( Milliseconds(85u32))).await;
                 loop {
@@ -133,7 +133,7 @@ for Sensor<D, I>
         I: WriteRead + Read + Write
 {
     fn on_notification(&'static mut self, event: Lifecycle) -> Completion {
-        log::info!("[hts221] Lifecycle: {:?}", event);
+        //log::info!("[hts221] Lifecycle: {:?}", event);
         match event {
             Lifecycle::Initialize => self.initialize(),
             Lifecycle::Start => self.start(),
@@ -166,11 +166,11 @@ for Sensor<D, I>
                         temperature,
                         relative_humidity,
                     });
-                    log::info!(
-                        "[hts221] temperature={:.2}°F humidity={:.2}%rh",
-                        temperature.into_fahrenheit(),
-                        relative_humidity
-                    );
+                    //log::info!(
+                        //"[hts221] temperature={:.2}°F humidity={:.2}%rh",
+                        //temperature.into_fahrenheit(),
+                        //relative_humidity
+                    //);
                 } else {
                     log::info!("[hts221] no calibration data available")
                 }
