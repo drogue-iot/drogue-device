@@ -35,7 +35,7 @@ impl<D: Device + 'static> EventBus<D> {
 // pub trait EventProducer<D: Device, M>: Actor<D> {}
 
 pub trait EventConsumer<M> {
-    fn on_event(&'static self, message: M)
+    fn on_event(&'static mut self, message: M)
     where
         Self: Sized,
     {
