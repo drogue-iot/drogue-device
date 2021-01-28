@@ -1,3 +1,5 @@
+//! Actor-related types and traits.
+
 use crate::address::Address;
 use crate::bus::EventBus;
 use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
@@ -16,7 +18,20 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue};
 
+/// Trait that each actor must implement.
+///
+/// Each actor must also implement `NotificationHandler<Lifecycle>`.
+///
+/// See also `NotificationHandler<...>` and `RequestHandler<...>`.
 pub trait Actor<D: Device>: NotificationHandler<Lifecycle> {
+
+    /// Called to mount an actor into the system.
+    ///
+    /// The actor will be present with both its own `Address<...>`
+    /// and an instance of the `EventBus<...>` which may be used
+    /// to publish messages and events wider.
+    ///
+    /// The default implementation does nothing.
     fn mount(&mut self, address: Address<D, Self>, bus: EventBus<D>)
     where
         Self: Sized,
@@ -27,6 +42,8 @@ pub trait Actor<D: Device>: NotificationHandler<Lifecycle> {
 type ItemsProducer<D,A> = RefCell<Option<Producer<'static, Box<dyn ActorFuture<D, A>>, U16>>>;
 type ItemsConsumer<D,A> = RefCell<Option<Consumer<'static, Box<dyn ActorFuture<D, A>>, U16>>>;
 
+/// Struct which is capable of holding an `Actor` instance
+/// and connects it to the actor system.
 pub struct ActorContext<D: Device, A: Actor<D>> {
     pub(crate) actor: UnsafeCell<A>,
     pub(crate) current: RefCell<Option<Box<dyn ActorFuture<D, A>>>>,
@@ -39,9 +56,11 @@ pub struct ActorContext<D: Device, A: Actor<D>> {
 }
 
 impl<D: Device, A: Actor<D>> ActorContext<D, A> {
+
+    /// Create a new context, taking ownership of the provided
+    /// actor instance. When mounted, the context and the
+    /// contained actor will be moved to the `static` lifetime.
     pub fn new(actor: A) -> Self {
-        //let mut items = Queue::new();
-        //let (producer, consumer) = items.split();
         Self {
             actor: UnsafeCell::new(actor),
             current: RefCell::new(None),
@@ -54,11 +73,13 @@ impl<D: Device, A: Actor<D>> ActorContext<D, A> {
         }
     }
 
+    /// Provide an optional name for the actor.
     pub fn with_name(mut self, name: &'static str) -> Self {
         self.name.replace(name);
         self
     }
 
+    /// Retrieve the name of the actor.
     pub fn name(&self) -> &str {
         self.name.unwrap_or("<unnamed>")
     }
@@ -67,6 +88,7 @@ impl<D: Device, A: Actor<D>> ActorContext<D, A> {
         &mut *self.actor.get()
     }
 
+    /// Retrieve an instance of the actor's address.
     pub fn address(&'static self) -> Address<D, A> {
         Address::new(self)
     }

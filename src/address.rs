@@ -1,9 +1,18 @@
+//! Actor addresses
+
+
 use crate::actor::{Actor, ActorContext};
 use crate::bind::Bind;
 use crate::device::Device;
 use crate::handler::{NotificationHandler, RequestHandler};
 use core::cell::UnsafeCell;
 
+/// A handle to another actor for dispatching notifications and requests.
+///
+/// Individual actor implementations may augment the `Address` object
+/// when appropriate bounds are met to provide method-like invocations
+/// of either non-blocking synchronous `notify(...)` type behaviour or
+/// asynchronous `request(...)` type behaviour.
 pub struct Address<D: Device, A: Actor<D>> {
     actor: UnsafeCell<*const ActorContext<D, A>>,
 }
@@ -23,6 +32,10 @@ impl<D: Device + 'static, A: Actor<D>> Address<D, A> {
         }
     }
 
+    /// Bind or inject another address into the actor behind this address.
+    ///
+    /// To accept bound addresses, the target must implement `Bind<...>`
+    /// for the appropriate type of address being injected.
     pub fn bind<OA: Actor<D>>(&self, address: &Address<D, OA>)
     where
         A: Bind<D, OA> + 'static,
@@ -33,19 +46,10 @@ impl<D: Device + 'static, A: Actor<D>> Address<D, A> {
         }
     }
 
-    /*
-    pub fn subscribe<OA: Actor>(&self, address: &Address<OA>)
-    where
-        A: Sink<OA::Event> + 'static,
-        OA: 'static,
-    {
-        unsafe {
-            let source = &**address.actor.get();
-            let sink = &**self.actor.get();
-            source.broker.subscribe(&*sink.actor.get());
-        }
-    }*/
-
+    /// Send a non-blocking notification to the actor behind this address.
+    ///
+    /// To accept the message, the target must implement `NotificationHandler<...>`
+    /// for the appropriate type of message being sent.
     pub fn notify<M>(&self, message: M)
     where
         A: NotificationHandler<M> + 'static,
@@ -56,6 +60,10 @@ impl<D: Device + 'static, A: Actor<D>> Address<D, A> {
         }
     }
 
+    /// Perform an _async_ request to the actor behind this address.
+    ///
+    /// To accept the request and provide a response, the target must implement
+    /// `RequestHandler<...>` for the appropriate type of message.
     pub async fn request<M>(&self, message: M) -> <A as RequestHandler<D, M>>::Response
     where
         A: RequestHandler<D, M> + 'static,

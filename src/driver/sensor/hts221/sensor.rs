@@ -179,6 +179,7 @@ for Sensor<D, I>
     }
 }
 
+#[doc(hidden)]
 impl<D, I> Address<D, Sensor<D, I>>
     where
         D: Device + EventConsumer<SensorAcquisition> + 'static,

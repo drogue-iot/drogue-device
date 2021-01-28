@@ -20,6 +20,7 @@ pub mod synchronization;
 
 pub mod hal;
 
+/// Easy imports for common types and traits.
 pub mod prelude {
     pub use crate::actor::{Actor, ActorContext};
     pub use crate::address::Address;
