@@ -2,11 +2,8 @@
 
 #[cfg(any(feature = "stm32l4x5", feature = "stm32l4x6",))]
 use crate::stm32::{TIM17, TIM4, TIM5};
-use stm32l4xx_hal::hal::timer::{CountDown, Periodic};
 use stm32l4xx_hal::pac::RCC;
 use stm32l4xx_hal::stm32::{TIM15, TIM16, TIM2, TIM6, TIM7};
-//use cast::{u16, u32};
-//use void::Void;
 
 use stm32l4xx_hal::rcc::{Clocks, APB1R1, APB2};
 

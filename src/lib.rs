@@ -15,7 +15,6 @@ pub mod handler;
 pub mod interrupt;
 #[doc(hidden)]
 pub mod macros;
-pub mod sink;
 pub mod supervisor;
 pub mod synchronization;
 
@@ -29,7 +28,6 @@ pub mod prelude {
     pub use crate::device::{Device, Lifecycle};
     pub use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
     pub use crate::interrupt::{Interrupt, InterruptContext};
-    pub use crate::sink::{MultiSink, Sink};
     pub use crate::supervisor::Supervisor;
 }
 

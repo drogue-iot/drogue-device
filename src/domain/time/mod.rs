@@ -272,7 +272,6 @@
 //!   implementations for primitive integers)
 #![doc(html_root_url = "https://docs.rs/embedded-time/0.10.1")]
 #![deny(unsafe_code)]
-#![cfg_attr(not(test), no_std)]
 #![warn(missing_docs)]
 #![deny(broken_intra_doc_links)]
 

@@ -2,7 +2,6 @@ use crate::actor::{Actor, ActorContext};
 use crate::bind::Bind;
 use crate::device::Device;
 use crate::handler::{NotificationHandler, RequestHandler};
-use crate::sink::Sink;
 use core::cell::UnsafeCell;
 
 pub struct Address<D: Device, A: Actor<D>> {
@@ -66,11 +65,3 @@ impl<D: Device + 'static, A: Actor<D>> Address<D, A> {
     }
 }
 
-impl<D: Device + 'static, A: Actor<D> + 'static, M: 'static> Sink<M> for Address<D, A>
-where
-    A: NotificationHandler<M>,
-{
-    fn notify(&self, message: M) {
-        Address::notify(self, message)
-    }
-}

@@ -4,17 +4,14 @@ use crate::bus::EventBus;
 use core::future::Future;
 use core::task::{Context, Poll, Waker};
 use core::pin::Pin;
-use core::marker::PhantomData;
 use core::cell::UnsafeCell;
 
 use heapless::{
     spsc::Queue,
     consts::*,
 };
-use core::ops::Sub;
 
 pub struct Acquire;
-
 pub struct Release;
 
 pub struct Semaphore<D>
@@ -54,19 +51,19 @@ impl<D> Semaphore<D>
 
             fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
                 unsafe {
-                    if (&**self.semaphore.get()).permits == 0 {
+                    if (**self.semaphore.get()).permits == 0 {
                         if !self.waiting {
-                            (&mut **self.semaphore.get())
+                            (**self.semaphore.get())
                                 .waiters
                                 .enqueue(cx.waker().clone())
                                 .unwrap_or_else(|_| panic!("too many waiters"))
                         }
                         Poll::Pending
                     } else {
-                        (&mut **self.semaphore.get()).permits -= 1;
+                        (**self.semaphore.get()).permits -= 1;
                         Poll::Ready(
                             Permit {
-                                address: unsafe { (**self.semaphore.get()).address.as_ref().unwrap().clone() },
+                                address: (**self.semaphore.get()).address.as_ref().unwrap().clone(),
                             }
                         )
                     }

@@ -42,3 +42,9 @@ impl Supervisor {
         }
     }
 }
+
+impl Default for Supervisor {
+    fn default() -> Self {
+        Supervisor::new()
+    }
+}

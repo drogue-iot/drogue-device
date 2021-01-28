@@ -90,6 +90,16 @@ impl<D, I> Sensor<D, I>
     }
 }
 
+impl<D,I> Default for Sensor<D, I>
+    where
+        D: Device,
+        I: WriteRead + Read + Write + 'static
+{
+    fn default() -> Self {
+        Sensor::new()
+    }
+}
+
 impl<D, I> Actor<D> for Sensor<D, I>
     where D: Device,
           I: WriteRead + Read + Write

@@ -1,43 +1,46 @@
 #![no_std]
 #![no_main]
 
-//mod button;
-//mod led;
 mod device;
-//mod hts221;
+use device::MyDevice;
 
 use cortex_m_rt::{entry, exception};
-use stm32l4xx_hal::{prelude::*, rcc::RccExt, stm32::Peripherals};
+use stm32l4xx_hal::{
+    prelude::*,
+    gpio::Edge,
+    i2c::I2c,
+    rcc::RccExt,
+    stm32::Peripherals,
+    time::Hertz,
+    pac::interrupt::{
+        EXTI15_10,
+        TIM15,
+    }
+};
 
 use log::LevelFilter;
 use panic_rtt_target as _;
 use rtt_logger::RTTLogger;
 use rtt_target::rtt_init_print;
 
-use stm32l4xx_hal::gpio::{Edge, Input, Output, PullUp, PushPull, PA5, PC13};
-
-use device::MyDevice;
-
-use stm32l4xx_hal::pac::Interrupt::{EXTI15_10, TIM15};
 use drogue_device::{
     prelude::*,
     synchronization::Mutex,
     driver::{
         sensor::hts221::Hts221,
-        led::SimpleLED,
+        led::{
+            SimpleLED,
+            Blinker,
+        },
         button::Button,
+        timer::Timer,
     },
+    hal::{
+        Active,
+        timer::stm32l4xx::Timer as McuTimer,
+    },
+    domain::time::duration::Milliseconds,
 };
-use stm32l4xx_hal::pac::{I2C2, RCC};
-use stm32l4xx_hal::i2c::I2c;
-use stm32l4xx_hal::time::Hertz;
-use drogue_device::driver::timer::{
-    Timer,
-};
-use drogue_device::hal::timer::stm32l4xx::Timer as McuTimer;
-use drogue_device::driver::led::Blinker;
-use drogue_device::hal::Active;
-use drogue_device::domain::time::duration::Milliseconds;
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
 
@@ -47,11 +50,10 @@ fn main() -> ! {
     rtt_init_print!();
     log::set_logger(&LOGGER).unwrap();
     log::set_max_level(log::LevelFilter::Debug);
-    log::info!("Init");
 
     let mut device = Peripherals::take().unwrap();
 
-    log::info!("initializing");
+    log::info!("[main] Initializing");
     let mut flash = device.FLASH.constrain();
     let mut rcc = device.RCC.constrain();
     let mut pwr = device.PWR.constrain(&mut rcc.apb1r1);
@@ -128,8 +130,6 @@ fn main() -> ! {
     let mcu_timer = McuTimer::tim15( device.TIM15, clocks, &mut rcc.apb2);
     let timer = Timer::new(mcu_timer );
 
-
-
     // == Device ==
 
     let device = MyDevice {
@@ -139,7 +139,6 @@ fn main() -> ! {
         blinker2: ActorContext::new(blinker2) .with_name("blinker2"),
 
         i2c: ActorContext::new(i2c).with_name("i2c"),
-        //hts221: ActorContext::new(hts221).with_name("hts221" ),
         hts221,
         button: InterruptContext::new(button, EXTI15_10).with_name("button"),
         timer: InterruptContext::new( timer, TIM15 ).with_name( "timer"),

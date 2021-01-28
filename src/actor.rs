@@ -24,12 +24,15 @@ pub trait Actor<D: Device>: NotificationHandler<Lifecycle> {
     }
 }
 
+type ItemsProducer<D,A> = RefCell<Option<Producer<'static, Box<dyn ActorFuture<D, A>>, U16>>>;
+type ItemsConsumer<D,A> = RefCell<Option<Consumer<'static, Box<dyn ActorFuture<D, A>>, U16>>>;
+
 pub struct ActorContext<D: Device, A: Actor<D>> {
     pub(crate) actor: UnsafeCell<A>,
     pub(crate) current: RefCell<Option<Box<dyn ActorFuture<D, A>>>>,
     pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<D, A>>, U16>>,
-    pub(crate) items_producer: RefCell<Option<Producer<'static, Box<dyn ActorFuture<D, A>>, U16>>>,
-    pub(crate) items_consumer: RefCell<Option<Consumer<'static, Box<dyn ActorFuture<D, A>>, U16>>>,
+    pub(crate) items_producer: ItemsProducer<D,A>,
+    pub(crate) items_consumer: ItemsConsumer<D,A>,
     pub(crate) state_flag_handle: RefCell<Option<*const ()>>,
     pub(crate) in_flight: AtomicBool,
     name: Option<&'static str>,

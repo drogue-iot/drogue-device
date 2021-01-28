@@ -108,7 +108,7 @@ impl<T> Clone for Rc<T> {
     fn clone(&self) -> Self {
         unsafe {
             // increment count
-            (&mut **self.pointer.get()).count += 1;
+            (**self.pointer.get()).count += 1;
             Self {
                 pointer: UnsafeCell::new(*self.pointer.get()),
             }
@@ -120,15 +120,15 @@ impl<T> Deref for Rc<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { &(&**self.pointer.get()).value }
+        unsafe { &(**self.pointer.get()).value }
     }
 }
 
 impl<T> Drop for Rc<T> {
     fn drop(&mut self) {
         unsafe {
-            (&mut **self.pointer.get()).count -= 1;
-            if (&**self.pointer.get()).count == 0 {
+            (**self.pointer.get()).count -= 1;
+            if (**self.pointer.get()).count == 0 {
                 HEAP.as_ref()
                     .unwrap()
                     .dealloc_object(*self.pointer.get() as *mut u8);
