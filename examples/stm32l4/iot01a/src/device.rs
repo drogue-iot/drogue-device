@@ -100,7 +100,7 @@ impl EventConsumer<ButtonEvent> for MyDevice {
         match message {
             ButtonEvent::Pressed => {
                 log::info!("[event-bus] button pressed");
-                self.blinker1.address().adjust_delay(Milliseconds(250u32));
+                self.blinker1.address().adjust_delay(Milliseconds(100u32));
             }
             ButtonEvent::Released => {
                 log::info!("[event-bus] button released");
