@@ -29,9 +29,13 @@ where
             timer: hal::timer::Timer::new(timer),
         }
     }
+
+    fn free(self) -> T {
+        self.timer.free()
+    }
 }
 
-impl<T> crate::driver::timer::HardwareTimer<T> for Timer<T>
+impl<T> crate::hal::timer::Timer for Timer<T>
 where
     T: hal::timer::Instance,
 {
@@ -42,10 +46,6 @@ where
         let cycles = *clock_rate.integer() / *deadline.integer() as u32;
         self.timer.enable_interrupt();
         self.timer.start(cycles);
-    }
-
-    fn free(self) -> T {
-        self.timer.free()
     }
 
     fn clear_update_interrupt_flag(&mut self) {

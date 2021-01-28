@@ -49,9 +49,16 @@ macro_rules! hal {
                 fn arr(&self) -> u32 {
                     self.tim.arr.read().bits() & 0xFFFF
                 }
+
+                /// Releases the TIM peripheral
+                pub fn free(self) -> $TIM {
+                    // pause counter
+                    self.tim.cr1.modify(|_, w| w.cen().clear_bit());
+                    self.tim
+                }
             }
 
-            impl $crate::driver::timer::HardwareTimer<$TIM> for Timer<$TIM> {
+            impl $crate::hal::timer::Timer for Timer<$TIM> {
 
                 // NOTE(allow) `w.psc().bits()` is safe for TIM{6,7} but not for TIM{2,3,4} due to
                 // some SVD omission
@@ -88,13 +95,6 @@ macro_rules! hal {
 
                     // start counter
                     self.tim.cr1.modify(|_, w| w.cen().set_bit().opm().set_bit() );
-                }
-
-                /// Releases the TIM peripheral
-                fn free(self) -> $TIM {
-                    // pause counter
-                    self.tim.cr1.modify(|_, w| w.cen().clear_bit());
-                    self.tim
                 }
 
                 /// Clears Update Interrupt Flag

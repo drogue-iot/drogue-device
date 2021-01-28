@@ -1,15 +1,7 @@
-#[cfg(feature = "stm32l4xx")]
-pub mod stm32l4xx;
 
-#[cfg(any(
-    feature = "nrf52832",
-    feature = "nrf52833",
-    feature = "nrf52840",
-    feature = "nrf9160"
-))]
-pub mod nrf;
 
 use crate::domain::time::duration::{Duration, Milliseconds};
+use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::future::Future;
@@ -17,11 +9,7 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 
-pub trait HardwareTimer<TIM> {
-    fn start(&mut self, duration: Milliseconds);
-    fn free(self) -> TIM;
-    fn clear_update_interrupt_flag(&mut self);
-}
+
 
 #[derive(Copy, Clone, Debug)]
 pub struct Delay<DUR: Duration + Into<Milliseconds>>(pub DUR);
@@ -43,21 +31,19 @@ impl<D: Device, A: Actor<D>, DUR: Duration + Into<Milliseconds>, E> Schedule<D, 
     }
 }
 
-pub struct Timer<D: Device, TIM, T: HardwareTimer<TIM>> {
+pub struct Timer<D: Device, T: HalTimer> {
     timer: T,
     current_delay_deadline: Option<Milliseconds>,
     delay_deadlines: [Option<DelayDeadline>; 16],
-    _tim: PhantomData<TIM>,
     _device: PhantomData<D>,
 }
 
-impl<D: Device, TIM, T: HardwareTimer<TIM>> Timer<D, TIM, T> {
+impl<D: Device, T: HalTimer> Timer<D, T> {
     pub fn new(timer: T) -> Self {
         Self {
             timer,
             current_delay_deadline: None,
             delay_deadlines: Default::default(),
-            _tim: PhantomData,
             _device: PhantomData,
         }
     }
@@ -81,7 +67,7 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>> Timer<D, TIM, T> {
             .replace(waker);
     }
 
-    fn configure_timer<R, F: FnOnce(&mut Timer<D, TIM, T>, Option<usize>) -> R>(
+    fn configure_timer<R, F: FnOnce(&mut Timer<D, T>, Option<usize>) -> R>(
         &mut self,
         ms: Milliseconds,
         f: F,
@@ -113,16 +99,16 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>> Timer<D, TIM, T> {
     }
 }
 
-impl<D: Device, TIM, T: HardwareTimer<TIM>> Actor<D> for Timer<D, TIM, T> {}
+impl<D: Device, T: HalTimer> Actor<D> for Timer<D, T> {}
 
-impl<D: Device, TIM, T: HardwareTimer<TIM>> NotificationHandler<Lifecycle> for Timer<D, TIM, T> {
+impl<D: Device, T: HalTimer> NotificationHandler<Lifecycle> for Timer<D, T> {
     fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
         Completion::immediate()
     }
 }
 
-impl<D: Device, TIM, T: HardwareTimer<TIM>, DUR: Duration + Into<Milliseconds>>
-    RequestHandler<D, Delay<DUR>> for Timer<D, TIM, T>
+impl<D: Device, T: HalTimer, DUR: Duration + Into<Milliseconds>>
+    RequestHandler<D, Delay<DUR>> for Timer<D, T>
 {
     type Response = ();
 
@@ -142,12 +128,11 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>, DUR: Duration + Into<Milliseconds>>
 
 impl<
         D: Device,
-        TIM,
-        T: HardwareTimer<TIM>,
+        T: HalTimer,
         E: 'static,
         A: Actor<D> + NotificationHandler<E> + 'static,
         DUR: Duration + Into<Milliseconds> + 'static,
-    > NotificationHandler<Schedule<D, A, DUR, E>> for Timer<D, TIM, T>
+    > NotificationHandler<Schedule<D, A, DUR, E>> for Timer<D, T>
 {
     fn on_notification(&'static mut self, message: Schedule<D, A, DUR, E>) -> Completion {
         let ms: Milliseconds = message.delay.into();
@@ -167,7 +152,7 @@ impl<
     }
 }
 
-impl<D: Device, TIM, T: HardwareTimer<TIM>> Interrupt<D> for Timer<D, TIM, T> {
+impl<D: Device, T: HalTimer> Interrupt<D> for Timer<D, T> {
     fn on_interrupt(&mut self) {
         self.timer.clear_update_interrupt_flag();
         let expired = self.current_delay_deadline.unwrap();
@@ -213,8 +198,8 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>> Interrupt<D> for Timer<D, TIM, T> {
     }
 }
 
-impl<D: Device + 'static, TIM: 'static, T: HardwareTimer<TIM> + 'static>
-    Address<D, Timer<D, TIM, T>>
+impl<D: Device + 'static, T: HalTimer+ 'static>
+    Address<D, Timer<D, T>>
 {
     pub async fn delay<DUR: Duration + Into<Milliseconds> + 'static>(&self, duration: DUR) {
         self.request(Delay(duration)).await
@@ -248,14 +233,14 @@ impl DelayDeadline {
     }
 }
 
-struct DelayFuture<D: Device, TIM, T: HardwareTimer<TIM>> {
+struct DelayFuture<D: Device, T: HalTimer> {
     index: usize,
-    timer: UnsafeCell<*mut Timer<D, TIM, T>>,
+    timer: UnsafeCell<*mut Timer<D, T>>,
     expired: bool,
 }
 
-impl<D: Device, TIM, T: HardwareTimer<TIM>> DelayFuture<D, TIM, T> {
-    fn new(index: usize, timer: &mut Timer<D, TIM, T>) -> Self {
+impl<D: Device, T: HalTimer> DelayFuture<D, T> {
+    fn new(index: usize, timer: &mut Timer<D, T>) -> Self {
         Self {
             index,
             timer: UnsafeCell::new(timer),
@@ -281,7 +266,7 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>> DelayFuture<D, TIM, T> {
     }
 }
 
-impl<D: Device, TIM, T: HardwareTimer<TIM>> Future for DelayFuture<D, TIM, T> {
+impl<D: Device, T: HalTimer> Future for DelayFuture<D, T> {
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
