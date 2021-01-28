@@ -1,4 +1,3 @@
-use cortex_m::interrupt::Nr;
 use stm32l4xx_hal::gpio::ExtiPin;
 use stm32l4xx_hal::hal::digital::v2::InputPin;
 use drogue_device::prelude::*;

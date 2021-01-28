@@ -31,7 +31,6 @@ use drogue_device::{
 use stm32l4xx_hal::pac::{I2C2, RCC};
 use stm32l4xx_hal::i2c::I2c;
 use stm32l4xx_hal::time::Hertz;
-use cortex_m::peripheral::NVIC;
 use drogue_device::driver::timer::{
     Timer,
 };

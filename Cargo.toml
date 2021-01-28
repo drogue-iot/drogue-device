@@ -22,8 +22,10 @@ version = "0.2.4"
 features = ["unproven"]
 
 [dependencies.stm32l4xx-hal]
-path = "../stm32l4xx-hal"
-features = ["stm32l4x5", "rt"]
+#path = "../stm32l4xx-hal"
+version = "0.6.0"
+#features = ["stm32l4x5", "rt"]
+features = ["rt"]
 optional = true
 
 [dependencies.nrf52833-hal]
