@@ -1,6 +1,5 @@
 use stm32l4xx_hal::pac::{Interrupt, I2C2};
 use stm32l4xx_hal::gpio::{PA5, Output, PushPull, PC13, Input, PullUp, OpenDrain, AF4, Alternate, PB10, PB11, PD15, PullDown, Floating, PB14};
-use crate::button::{Button, ButtonEvent};
 use drogue_device::{
     prelude::*,
     synchronization::Mutex,
@@ -9,6 +8,7 @@ use drogue_device::{
             Hts221,
         },
         led::SimpleLED,
+        button::Button,
     },
 };
 use stm32l4xx_hal::i2c::I2c;
@@ -17,7 +17,7 @@ use drogue_device::driver::timer::Timer;
 
 type Ld1Actor = SimpleLED<MyDevice, PA5<Output<PushPull>>>;
 type Ld2Actor = SimpleLED<MyDevice, PB14<Output<PushPull>>>;
-type ButtonInterrupt = Button<PC13<Input<PullUp>>>;
+type ButtonInterrupt = Button<MyDevice,PC13<Input<PullUp>>>;
 
 type I2cScl = PB10<Alternate<AF4, Output<OpenDrain>>>;
 type I2cSda = PB11<Alternate<AF4, Output<OpenDrain>>>;
@@ -27,6 +27,7 @@ type I2cActor = Mutex<MyDevice, I2cPeriph>;
 use drogue_device::hal::timer::stm32l4xx::Timer as McuTimer;
 use stm32l4xx_hal::pac::TIM15;
 use drogue_device::driver::led::Blinker;
+use drogue_device::driver::button::ButtonEvent;
 
 type Blinker1Actor = Blinker<MyDevice, PA5<Output<PushPull>>, McuTimer<TIM15>>;
 type Blinker2Actor = Blinker<MyDevice, PB14<Output<PushPull>>, McuTimer<TIM15>>;
@@ -72,34 +73,18 @@ impl Device for MyDevice {
     }
 }
 
-pub struct ButtonToLed {
-    ld1: Address<MyDevice, Ld1Actor>,
-    hts221: Address<MyDevice, Hts221Sensor>,
-}
-
-impl ButtonToLed {
-    pub fn new(ld1: Address<MyDevice, Ld1Actor>, hts221: Address<MyDevice, Hts221Sensor>) -> Self {
-        Self {
-            ld1,
-            hts221,
-        }
-    }
-}
-
-/*
-impl Sink<ButtonEvent> for ButtonToLed {
-    fn notify(&self, message: ButtonEvent) {
+impl EventConsumer<ButtonEvent> for MyDevice {
+    fn on_event(&'static mut self, message: ButtonEvent) where
+        Self: Sized, {
         match message {
             ButtonEvent::Pressed => {
-                self.ld1.turn_on();
-                self.hts221.trigger_read_temperature();
+                log::info!("[event-bus] button pressed");
             }
             ButtonEvent::Released => {
-                self.ld1.turn_off();
+                log::info!("[event-bus] button released");
             }
         }
     }
 }
 
- */
 

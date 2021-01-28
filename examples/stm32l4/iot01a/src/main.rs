@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-mod button;
+//mod button;
 //mod led;
 mod device;
 //mod hts221;
@@ -16,7 +16,6 @@ use rtt_target::rtt_init_print;
 
 use stm32l4xx_hal::gpio::{Edge, Input, Output, PullUp, PushPull, PA5, PC13};
 
-use button::Button;
 use device::MyDevice;
 
 use stm32l4xx_hal::pac::Interrupt::{EXTI15_10, TIM15};
@@ -26,6 +25,7 @@ use drogue_device::{
     driver::{
         sensor::hts221::Hts221,
         led::SimpleLED,
+        button::Button,
     },
 };
 use stm32l4xx_hal::pac::{I2C2, RCC};
@@ -96,7 +96,7 @@ fn main() -> ! {
     button.enable_interrupt(&mut device.EXTI);
     button.trigger_on_edge(&mut device.EXTI, Edge::RISING_FALLING);
 
-    let button = Button::new(button);
+    let button = Button::new(button, Active::Low);
 
     // == i2c
 
