@@ -22,8 +22,8 @@ impl<T> Response<T> {
     }
 
     pub fn immediate_future<F: Future<Output = T> + 'static>(f: F) -> Self
-        where
-            T: 'static,
+    where
+        T: 'static,
     {
         Self::ImmediateFuture(Box::new(alloc(f).unwrap()))
     }

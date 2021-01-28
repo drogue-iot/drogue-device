@@ -24,7 +24,24 @@ pub trait HardwareTimer<TIM> {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub struct Delay<D: Duration + Into<Milliseconds>>(pub D);
+pub struct Delay<DUR: Duration + Into<Milliseconds>>(pub DUR);
+
+#[derive(Clone)]
+pub struct Schedule<D: Device, A: Actor<D>, DUR: Duration + Into<Milliseconds>, E> {
+    delay: DUR,
+    event: E,
+    address: Address<D, A>,
+}
+
+impl<D: Device, A: Actor<D>, DUR: Duration + Into<Milliseconds>, E> Schedule<D, A, DUR, E> {
+    pub fn new(delay: DUR, event: E, address: Address<D, A>) -> Self {
+        Self {
+            delay,
+            event,
+            address,
+        }
+    }
+}
 
 pub struct Timer<D: Device, TIM, T: HardwareTimer<TIM>> {
     timer: T,
@@ -56,30 +73,19 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>> Timer<D, TIM, T> {
     }
 
     fn register_waker(&mut self, index: usize, waker: Waker) {
+        log::info!("Registering waker");
         self.delay_deadlines[index]
             .as_mut()
             .unwrap()
             .waker
             .replace(waker);
     }
-}
 
-impl<D: Device, TIM, T: HardwareTimer<TIM>> Actor<D> for Timer<D, TIM, T> {}
-
-impl<D: Device, TIM, T: HardwareTimer<TIM>> NotificationHandler<Lifecycle> for Timer<D, TIM, T> {
-    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
-        Completion::immediate()
-    }
-}
-
-impl<D: Device, TIM, T: HardwareTimer<TIM>, DUR: Duration + Into<Milliseconds>>
-    RequestHandler<D, Delay<DUR>> for Timer<D, TIM, T>
-{
-    type Response = ();
-
-    fn on_request(&'static mut self, message: Delay<DUR>) -> Response<Self::Response> {
-        let ms: Milliseconds = message.0.into();
-        //log::info!("delay request {:?}", ms);
+    fn configure_timer<R, F: FnOnce(&mut Timer<D, TIM, T>, Option<usize>) -> R>(
+        &mut self,
+        ms: Milliseconds,
+        f: F,
+    ) -> R {
         if let Some((index, slot)) = self
             .delay_deadlines
             .iter_mut()
@@ -100,10 +106,64 @@ impl<D: Device, TIM, T: HardwareTimer<TIM>, DUR: Duration + Into<Milliseconds>>
                 //log::info!("start new timer for {:?}", ms);
                 self.timer.start(ms);
             }
-            Response::immediate_future(DelayFuture::new(index, self))
+            (f)(self, Some(index))
         } else {
-            Response::immediate(())
+            (f)(self, None)
         }
+    }
+}
+
+impl<D: Device, TIM, T: HardwareTimer<TIM>> Actor<D> for Timer<D, TIM, T> {}
+
+impl<D: Device, TIM, T: HardwareTimer<TIM>> NotificationHandler<Lifecycle> for Timer<D, TIM, T> {
+    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
+        Completion::immediate()
+    }
+}
+
+impl<D: Device, TIM, T: HardwareTimer<TIM>, DUR: Duration + Into<Milliseconds>>
+    RequestHandler<D, Delay<DUR>> for Timer<D, TIM, T>
+{
+    type Response = ();
+
+    fn on_request(&'static mut self, message: Delay<DUR>) -> Response<Self::Response> {
+        let ms: Milliseconds = message.0.into();
+        //log::info!("delay request {:?}", ms);
+
+        self.configure_timer(ms, |timer, index| {
+            if let Some(index) = index {
+                Response::immediate_future(DelayFuture::new(index, timer))
+            } else {
+                Response::immediate(())
+            }
+        })
+    }
+}
+
+impl<
+        D: Device,
+        TIM,
+        T: HardwareTimer<TIM>,
+        E: 'static,
+        A: Actor<D> + NotificationHandler<E> + 'static,
+        DUR: Duration + Into<Milliseconds> + 'static,
+    > NotificationHandler<Schedule<D, A, DUR, E>> for Timer<D, TIM, T>
+{
+    fn on_notification(&'static mut self, message: Schedule<D, A, DUR, E>) -> Completion {
+        let ms: Milliseconds = message.delay.into();
+        self.configure_timer(ms, |timer, index| {
+            if let Some(index) = index {
+                let f = DelayFuture::new(index, timer);
+                Completion::defer(async move {
+                    log::info!("Awaiting future");
+                    f.await;
+                    log::info!("NOTIFYING");
+                    message.address.notify(message.event);
+                })
+            } else {
+                Completion::immediate()
+            }
+        })
     }
 }
 
@@ -158,6 +218,19 @@ impl<D: Device + 'static, TIM: 'static, T: HardwareTimer<TIM> + 'static>
 {
     pub async fn delay<DUR: Duration + Into<Milliseconds> + 'static>(&self, duration: DUR) {
         self.request(Delay(duration)).await
+    }
+
+    pub fn schedule<
+        DUR: Duration + Into<Milliseconds> + 'static,
+        E: 'static,
+        A: Actor<D> + NotificationHandler<E> + 'static,
+    >(
+        &self,
+        delay: DUR,
+        event: E,
+        address: Address<D, A>,
+    ) {
+        self.notify(Schedule::new(delay, event, address));
     }
 }
 

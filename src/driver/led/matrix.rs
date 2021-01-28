@@ -16,6 +16,7 @@ where
     COLS: ArrayLength<P>,
     T: HardwareTimer<TIM>,
 {
+    address: Option<Address<D, Self>>,
     pin_rows: Vec<P, ROWS>,
     pin_cols: Vec<P, COLS>,
     frame_buffer: FrameBuffer,
@@ -36,6 +37,7 @@ where
 {
     pub fn new(pin_rows: Vec<P, ROWS>, pin_cols: Vec<P, COLS>, refresh_rate: Hertz) -> Self {
         LEDMatrix {
+            address: None,
             pin_rows,
             pin_cols,
             frame_buffer: FrameBuffer(0, 0),
@@ -102,6 +104,9 @@ where
     COLS: ArrayLength<P>,
     T: HardwareTimer<TIM>,
 {
+    fn mount(&mut self, address: Address<D, Self>, _: EventBus<D>) {
+        self.address.replace(address);
+    }
 }
 
 impl<D, P, ROWS, COLS, TIM, T> NotificationHandler<Lifecycle>
@@ -115,16 +120,28 @@ where
 {
     fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
         if let Lifecycle::Start = message {
+            /*
             Completion::defer(async move {
                 loop {
-                    self.render();
                     self.timer
                         .as_ref()
                         .unwrap()
                         .delay(self.refresh_rate.to_duration::<Milliseconds>().unwrap())
                         .await;
+                    log::info!("RENDER");
+                    self.render();
                 }
-            })
+            })*/
+            if let Some(address) = &self.address {
+                log::info!("Scheduling event");
+                self.timer.as_ref().unwrap().schedule(
+                    self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
+                    MatrixCommand::Render,
+                    address.clone(),
+                );
+                log::info!("Awaiting render");
+            }
+            Completion::immediate()
         } else {
             Completion::immediate()
         }
@@ -148,6 +165,18 @@ where
             MatrixCommand::Off(x, y) => {
                 self.off(x, y);
             }
+            MatrixCommand::Render => {
+                log::info!("Going to render!");
+                self.render();
+                if let Some(address) = &self.address {
+                    self.timer.as_ref().unwrap().schedule(
+                        self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
+                        MatrixCommand::Render,
+                        address.clone(),
+                    );
+                    log::info!("Scheduled again");
+                }
+            }
         }
         Completion::immediate()
     }
@@ -157,4 +186,5 @@ where
 pub enum MatrixCommand {
     On(usize, usize),
     Off(usize, usize),
+    Render,
 }
