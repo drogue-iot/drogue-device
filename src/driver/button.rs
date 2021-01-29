@@ -1,9 +1,9 @@
-use embedded_hal::digital::v2::InputPin;
-use crate::prelude::*;
+use crate::bind::Bind;
 use crate::hal::gpio::exti_pin::ExtiPin;
 use crate::hal::Active;
-use crate::bind::Bind;
 use crate::handler::EventHandler;
+use crate::prelude::*;
+use embedded_hal::digital::v2::InputPin;
 
 #[derive(Copy, Clone)]
 pub enum ButtonEvent {
@@ -11,30 +11,28 @@ pub enum ButtonEvent {
     Released,
 }
 
-pub struct Button<D: Device, PIN>
-{
+pub struct Button<D: Device, PIN> {
     pin: PIN,
     active: Active,
     bus: Option<Address<EventBus<D>>>,
 }
 
-impl<D, PIN> Actor
-for Button<D, PIN>
-    where
-        D: Device,
-        PIN: InputPin + ExtiPin
+impl<D, PIN> Actor for Button<D, PIN>
+where
+    D: Device,
+    PIN: InputPin + ExtiPin,
 {
-    fn mount(&mut self, address: Address<Self>) where
+    fn mount(&mut self, address: Address<Self>)
+    where
         Self: Sized,
     {
         //self.bus.replace(bus);
     }
 }
 
-impl<D, PIN> Bind<EventBus<D>>
-for Button<D, PIN>
-    where
-        D: Device
+impl<D, PIN> Bind<EventBus<D>> for Button<D, PIN>
+where
+    D: Device,
 {
     fn on_bind(&'static mut self, address: Address<EventBus<D>>) {
         self.bus.replace(address);
@@ -42,9 +40,9 @@ for Button<D, PIN>
 }
 
 impl<D, PIN> Button<D, PIN>
-    where
-        D: Device,
-        PIN: InputPin + ExtiPin
+where
+    D: Device,
+    PIN: InputPin + ExtiPin,
 {
     pub fn new(pin: PIN, active: Active) -> Self {
         Self {
@@ -55,11 +53,10 @@ impl<D, PIN> Button<D, PIN>
     }
 }
 
-
 impl<D, PIN> Interrupt for Button<D, PIN>
-    where
-        D: Device + EventHandler<ButtonEvent> + 'static,
-        PIN: InputPin + ExtiPin
+where
+    D: Device + EventHandler<ButtonEvent> + 'static,
+    PIN: InputPin + ExtiPin,
 {
     fn on_interrupt(&mut self) {
         if self.pin.check_interrupt() {

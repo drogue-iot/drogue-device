@@ -117,7 +117,6 @@ where
     }
 }
 
-
 impl<P, ROWS, COLS, T> NotifyHandler<MatrixCommand> for LEDMatrix<P, ROWS, COLS, T>
 where
     P: OutputPin,

@@ -1,6 +1,5 @@
 //! Binding actors to other actors
 
-
 use crate::actor::Actor;
 use crate::address::Address;
 
@@ -10,7 +9,6 @@ use crate::address::Address;
 /// May be implemented several times per actor in order to bind multiple
 /// dependencies.
 pub trait Bind<A: Actor> {
-
     /// Perform the binding of the passed in address.
     fn on_bind(&'static mut self, address: Address<A>);
 }

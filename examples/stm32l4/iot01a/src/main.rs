@@ -6,16 +6,13 @@ use device::MyDevice;
 
 use cortex_m_rt::{entry, exception};
 use stm32l4xx_hal::{
-    prelude::*,
     gpio::Edge,
     i2c::I2c,
+    pac::interrupt::{EXTI15_10, TIM15},
+    prelude::*,
     rcc::RccExt,
     stm32::Peripherals,
     time::Hertz,
-    pac::interrupt::{
-        EXTI15_10,
-        TIM15,
-    }
 };
 
 use log::LevelFilter;
@@ -24,22 +21,16 @@ use rtt_logger::RTTLogger;
 use rtt_target::rtt_init_print;
 
 use drogue_device::{
-    prelude::*,
-    synchronization::Mutex,
+    domain::time::duration::Milliseconds,
     driver::{
-        sensor::hts221::Hts221,
-        led::{
-            SimpleLED,
-            Blinker,
-        },
         button::Button,
+        led::{Blinker, SimpleLED},
+        sensor::hts221::Hts221,
         timer::Timer,
     },
-    hal::{
-        Active,
-        timer::stm32l4xx::Timer as McuTimer,
-    },
-    domain::time::duration::Milliseconds,
+    hal::{timer::stm32l4xx::Timer as McuTimer, Active},
+    prelude::*,
+    synchronization::Mutex,
 };
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
@@ -107,17 +98,26 @@ fn main() -> ! {
         .into_open_drain_output(&mut gpiob.moder, &mut gpiob.otyper)
         .into_af4(&mut gpiob.moder, &mut gpiob.afrh);
 
-    let sda = gpiob.pb11
+    let sda = gpiob
+        .pb11
         .into_open_drain_output(&mut gpiob.moder, &mut gpiob.otyper)
         .into_af4(&mut gpiob.moder, &mut gpiob.afrh);
 
-    let i2c = I2c::i2c2(device.I2C2, (scl, sda), Hertz(100_000u32), clocks, &mut rcc.apb1r1);
+    let i2c = I2c::i2c2(
+        device.I2C2,
+        (scl, sda),
+        Hertz(100_000u32),
+        clocks,
+        &mut rcc.apb1r1,
+    );
 
     let i2c = Mutex::new(i2c);
 
     // == HTS221 ==
 
-    let mut ready = gpiod.pd15.into_pull_down_input(&mut gpiod.moder, &mut gpiod.pupdr);
+    let mut ready = gpiod
+        .pd15
+        .into_pull_down_input(&mut gpiod.moder, &mut gpiod.pupdr);
     //let mut ready = gpiod.pd15;
     ready.enable_interrupt(&mut device.EXTI);
     ready.make_interrupt_source(&mut device.SYSCFG, &mut rcc.apb2);
@@ -127,23 +127,22 @@ fn main() -> ! {
 
     // == Timer ==
 
-    let mcu_timer = McuTimer::tim15( device.TIM15, clocks, &mut rcc.apb2);
-    let timer = Timer::new(mcu_timer );
+    let mcu_timer = McuTimer::tim15(device.TIM15, clocks, &mut rcc.apb2);
+    let timer = Timer::new(mcu_timer);
 
     // == Device ==
 
     let device = MyDevice {
         ld1: ActorContext::new(ld1).with_name("ld1"),
         ld2: ActorContext::new(ld2).with_name("ld2"),
-        blinker1: ActorContext::new(blinker1) .with_name("blinker1"),
-        blinker2: ActorContext::new(blinker2) .with_name("blinker2"),
+        blinker1: ActorContext::new(blinker1).with_name("blinker1"),
+        blinker2: ActorContext::new(blinker2).with_name("blinker2"),
 
         i2c: ActorContext::new(i2c).with_name("i2c"),
         hts221,
         button: InterruptContext::new(button, EXTI15_10).with_name("button"),
-        timer: InterruptContext::new( timer, TIM15 ).with_name( "timer"),
+        timer: InterruptContext::new(timer, TIM15).with_name("timer"),
     };
 
     device!( MyDevice = device; 1024 );
 }
-

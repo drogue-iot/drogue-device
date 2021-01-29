@@ -1,49 +1,48 @@
 use crate::bind::Bind;
 use crate::driver::sensor::hts221::sensor::Sensor;
+use crate::driver::sensor::hts221::SensorAcquisition;
 use crate::hal::gpio::exti_pin::ExtiPin;
+use crate::handler::EventHandler;
 use crate::prelude::*;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
-use crate::driver::sensor::hts221::SensorAcquisition;
-use crate::handler::EventHandler;
 
 pub struct DataReady;
 
 pub struct Ready<D, P, I>
-    where
-        D: Device,
-        P: InputPin + ExtiPin,
-        I: WriteRead + Read + Write + 'static
+where
+    D: Device,
+    P: InputPin + ExtiPin,
+    I: WriteRead + Read + Write + 'static,
 {
     pin: P,
     sensor: Option<Address<Sensor<D, I>>>,
 }
 
 impl<D, P, I> Ready<D, P, I>
-    where
-        D: Device,
-        P: InputPin + ExtiPin,
-        I: WriteRead + Read + Write
+where
+    D: Device,
+    P: InputPin + ExtiPin,
+    I: WriteRead + Read + Write,
 {
     pub fn new(pin: P) -> Self {
         Self { pin, sensor: None }
     }
 }
 
-impl<D, P, I> Actor
-for Ready<D, P, I>
-    where
-        D: Device,
-        P: InputPin + ExtiPin,
-        I: WriteRead + Read + Write + 'static
-{}
+impl<D, P, I> Actor for Ready<D, P, I>
+where
+    D: Device,
+    P: InputPin + ExtiPin,
+    I: WriteRead + Read + Write + 'static,
+{
+}
 
-impl<D, P, I> Interrupt
-for Ready<D, P, I>
-    where
-        D: Device + EventHandler<SensorAcquisition> + 'static,
-        P: InputPin + ExtiPin,
-        I: WriteRead + Read + Write + 'static
+impl<D, P, I> Interrupt for Ready<D, P, I>
+where
+    D: Device + EventHandler<SensorAcquisition> + 'static,
+    P: InputPin + ExtiPin,
+    I: WriteRead + Read + Write + 'static,
 {
     fn on_interrupt(&mut self) {
         if self.pin.check_interrupt() {
@@ -56,12 +55,11 @@ for Ready<D, P, I>
     }
 }
 
-impl<D, P, I> Bind<Sensor<D, I>>
-for Ready<D, P, I>
-    where
-        D: Device,
-        P: InputPin + ExtiPin,
-        I: WriteRead + Read + Write
+impl<D, P, I> Bind<Sensor<D, I>> for Ready<D, P, I>
+where
+    D: Device,
+    P: InputPin + ExtiPin,
+    I: WriteRead + Read + Write,
 {
     fn on_bind(&'static mut self, address: Address<Sensor<D, I>>) {
         self.sensor.replace(address);

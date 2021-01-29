@@ -1,10 +1,9 @@
 //! Traits and types for notify, request and event handlers.
 
-
 use core::future::Future;
 
-use crate::prelude::Actor;
 use crate::alloc::{alloc, Box};
+use crate::prelude::Actor;
 
 /// Return value from a `RequestHandler` to allow for synchronous or
 /// asynchronous handling of the request.
@@ -24,7 +23,6 @@ pub enum Response<T> {
 }
 
 impl<T> Response<T> {
-
     /// Return an immediate value, synchronously, as the response
     /// to the request.
     pub fn immediate(val: T) -> Self {
@@ -66,7 +64,6 @@ where
 /// Return value from a `NotifyHandler` to allow for immediate synchronous handling
 /// of the notification or asynchronous handling.
 pub enum Completion {
-
     /// See `immediate()`
     Immediate(),
 
@@ -75,7 +72,6 @@ pub enum Completion {
 }
 
 impl Completion {
-
     /// Indicates the notification has been immediately handled.
     pub fn immediate() -> Self {
         Self::Immediate()
@@ -88,7 +84,6 @@ impl Completion {
     }
 }
 
-
 /// Trait denoting the capability of being notified.
 pub trait NotifyHandler<M>
 where
@@ -98,7 +93,6 @@ where
     fn on_notify(&'static mut self, message: M) -> Completion;
 }
 
-
 /// Trait to be implemented by a `Device` implementation in order to receive
 /// messages for the `EventBus`.
 ///
@@ -106,7 +100,6 @@ where
 /// `<D:Device>` parameters with `+ EventHandler<MyEventType>` for whatever
 /// events they wish to emit.
 pub trait EventHandler<E> {
-
     /// Receive an event message for the bus.
     ///
     /// This should be a non-blocked synchronous blob of logic, usually
@@ -114,7 +107,5 @@ pub trait EventHandler<E> {
     /// actors held by the device.
     ///
     /// The default implementation simply drops the event.
-    fn on_event(&'static mut self, event: E) {
-
-    }
+    fn on_event(&'static mut self, event: E) {}
 }

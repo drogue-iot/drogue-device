@@ -1,5 +1,3 @@
-#[cfg(feature = "stm32l4xx")]
-pub mod stm32l4xx;
 #[cfg(any(
     feature = "nrf52832",
     feature = "nrf52833",
@@ -7,6 +5,8 @@ pub mod stm32l4xx;
     feature = "nrf9160"
 ))]
 pub mod nrf;
+#[cfg(feature = "stm32l4xx")]
+pub mod stm32l4xx;
 
 use crate::domain::time::duration::Milliseconds;
 

@@ -1,6 +1,5 @@
 //! Macros
 
-
 /// Macro to start a system.
 ///
 /// It takes the type of your device which implements `Device` along with

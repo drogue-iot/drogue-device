@@ -35,7 +35,9 @@ pub struct Timer<'a, Type, State, Clock: crate::domain::time::Clock, Dur: Durati
     _state: PhantomData<State>,
 }
 
-impl<'a, Clock: crate::domain::time::Clock, Dur: Duration> Timer<'_, param::None, param::None, Clock, Dur> {
+impl<'a, Clock: crate::domain::time::Clock, Dur: Duration>
+    Timer<'_, param::None, param::None, Clock, Dur>
+{
     /// Construct a new, `OneShot` `Timer`
     #[allow(clippy::new_ret_no_self)]
     pub fn new(clock: &Clock, duration: Dur) -> Timer<OneShot, Armed, Clock, Dur> {
@@ -49,7 +51,9 @@ impl<'a, Clock: crate::domain::time::Clock, Dur: Duration> Timer<'_, param::None
     }
 }
 
-impl<'a, Type, State, Clock: crate::domain::time::Clock, Dur: Duration> Timer<'a, Type, State, Clock, Dur> {
+impl<'a, Type, State, Clock: crate::domain::time::Clock, Dur: Duration>
+    Timer<'a, Type, State, Clock, Dur>
+{
     /// Change timer type to one-shot
     pub fn into_oneshot(self) -> Timer<'a, OneShot, State, Clock, Dur> {
         Timer::<OneShot, State, Clock, Dur> {
@@ -73,7 +77,9 @@ impl<'a, Type, State, Clock: crate::domain::time::Clock, Dur: Duration> Timer<'a
     }
 }
 
-impl<'a, Type, Clock: crate::domain::time::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock, Dur> {
+impl<'a, Type, Clock: crate::domain::time::Clock, Dur: Duration>
+    Timer<'a, Type, Armed, Clock, Dur>
+{
     /// Start the timer from this instant
     pub fn start(self) -> Result<Timer<'a, Type, Running, Clock, Dur>, TimeError>
     where

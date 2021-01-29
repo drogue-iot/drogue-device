@@ -3,12 +3,6 @@
 mod mutex;
 mod sempahore;
 
-pub use mutex::{
-    Mutex,
-    Exclusive,
-};
+pub use mutex::{Exclusive, Mutex};
 
-pub use sempahore::{
-    Semaphore,
-    Permit
-};
+pub use sempahore::{Permit, Semaphore};

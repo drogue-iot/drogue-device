@@ -1,6 +1,5 @@
 //! General HAL types and traits.
 
-
 pub mod gpio;
 pub mod i2c;
 pub mod timer;

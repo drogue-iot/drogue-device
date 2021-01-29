@@ -543,7 +543,8 @@ pub mod units {
                 }
             }
 
-            impl<T: TimeInt, Clock: crate::domain::time::Clock> ops::Add<crate::domain::time::Instant<Clock>> for $name<T>
+            impl<T: TimeInt, Clock: crate::domain::time::Clock>
+                ops::Add<crate::domain::time::Instant<Clock>> for $name<T>
             where
                 Clock::T: TryFrom<T>,
             {

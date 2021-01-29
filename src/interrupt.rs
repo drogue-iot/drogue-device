@@ -1,6 +1,5 @@
 //! Types and traits for interrupt-capable actors.
 
-
 use cortex_m::interrupt::Nr;
 use cortex_m::peripheral::NVIC;
 
@@ -11,7 +10,6 @@ use crate::supervisor::Supervisor;
 /// Additional trait applicable to `Actor`s indicating their ability
 /// to respond to hardware interrupts.
 pub trait Interrupt: Actor {
-
     /// Process the interrupt.
     ///
     /// This method operates within the context of the actor, and
@@ -32,7 +30,6 @@ pub struct InterruptContext<I: Interrupt> {
 }
 
 impl<I: Interrupt> InterruptContext<I> {
-
     /// Create a new context, taking ownership of the provided actor instance.
     /// When mounted, the context and the contained actor will be moved to the static lifetime.
     pub fn new<N: Nr>(interrupt: I, irq: N) -> Self {

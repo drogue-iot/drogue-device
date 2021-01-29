@@ -81,9 +81,7 @@ impl<T: HalTimer> Timer<T> {
 
 impl<T: HalTimer> Actor for Timer<T> {}
 
-impl<T: HalTimer, DUR: Duration + Into<Milliseconds>> RequestHandler<Delay<DUR>>
-    for Timer<T>
-{
+impl<T: HalTimer, DUR: Duration + Into<Milliseconds>> RequestHandler<Delay<DUR>> for Timer<T> {
     type Response = ();
 
     fn on_request(&'static mut self, message: Delay<DUR>) -> Response<Self::Response> {

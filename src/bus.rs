@@ -22,7 +22,7 @@ pub struct EventBus<D: Device> {
 impl<D: Device> EventBus<D> {
     pub(crate) fn new(device: &DeviceContext<D>) -> Self {
         Self {
-            device: UnsafeCell::new(device)
+            device: UnsafeCell::new(device),
         }
     }
 }
@@ -30,19 +30,19 @@ impl<D: Device> EventBus<D> {
 impl<D: Device> Actor for EventBus<D> {}
 
 impl<D: Device, M> NotifyHandler<M> for EventBus<D>
-    where D: EventHandler<M>
+where
+    D: EventHandler<M>,
 {
     fn on_notify(&'static mut self, message: M) -> Completion {
-        unsafe {
-            (&**self.device.get()).on_event(message)
-        }
+        unsafe { (&**self.device.get()).on_event(message) }
         Completion::immediate()
     }
 }
 
 impl<D: Device> Address<EventBus<D>> {
     pub fn publish<E: 'static>(&self, message: E)
-        where D: EventHandler<E> + 'static
+    where
+        D: EventHandler<E> + 'static,
     {
         self.notify(message)
     }

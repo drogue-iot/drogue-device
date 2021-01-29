@@ -1,45 +1,25 @@
-use stm32l4xx_hal::{
-    pac::{I2C2},
-    gpio::{
-        PA5,
-        Output,
-        PushPull,
-        PC13,
-        Input,
-        PullUp,
-        OpenDrain,
-        AF4,
-        Alternate,
-        PB10,
-        PB11,
-        PD15,
-        PullDown,
-        PB14,
-    },
-    i2c::I2c,
-    pac::TIM15,
-};
+use drogue_device::domain::time::duration::Milliseconds;
+use drogue_device::driver::sensor::hts221::SensorAcquisition;
 use drogue_device::{
-    prelude::*,
-    synchronization::Mutex,
     driver::{
-        sensor::hts221::{
-            Hts221,
-        },
-        led::{
-            SimpleLED,
-            Blinker,
-        },
-        button::{
-            Button,
-            ButtonEvent,
-        },
+        button::{Button, ButtonEvent},
+        led::{Blinker, SimpleLED},
+        sensor::hts221::Hts221,
         timer::Timer,
     },
     hal::timer::stm32l4xx::Timer as McuTimer,
+    prelude::*,
+    synchronization::Mutex,
 };
-use drogue_device::driver::sensor::hts221::SensorAcquisition;
-use drogue_device::domain::time::duration::Milliseconds;
+use stm32l4xx_hal::{
+    gpio::{
+        Alternate, Input, OpenDrain, Output, PullDown, PullUp, PushPull, AF4, PA5, PB10, PB11,
+        PB14, PC13, PD15,
+    },
+    i2c::I2c,
+    pac::I2C2,
+    pac::TIM15,
+};
 
 type Ld1Actor = SimpleLED<PA5<Output<PushPull>>>;
 type Ld2Actor = SimpleLED<PB14<Output<PushPull>>>;
@@ -70,7 +50,11 @@ pub struct MyDevice {
 }
 
 impl Device for MyDevice {
-    fn mount(&'static mut self, bus_address: &Address<EventBus<Self>>, supervisor: &mut Supervisor) {
+    fn mount(
+        &'static mut self,
+        bus_address: &Address<EventBus<Self>>,
+        supervisor: &mut Supervisor,
+    ) {
         let ld1_addr = self.ld1.mount(supervisor);
         let ld2_addr = self.ld2.mount(supervisor);
 
@@ -87,7 +71,6 @@ impl Device for MyDevice {
         blinker2_addr.bind(&timer_addr);
         blinker2_addr.bind(&ld2_addr);
 
-
         hts221_addr.bind(&i2c_addr);
 
         let button_addr = self.button.mount(supervisor);
@@ -96,11 +79,13 @@ impl Device for MyDevice {
 }
 
 impl EventHandler<ButtonEvent> for MyDevice {
-    fn on_event(&'static mut self, message: ButtonEvent) where
-        Self: Sized, {
+    fn on_event(&'static mut self, message: ButtonEvent)
+    where
+        Self: Sized,
+    {
         match message {
             ButtonEvent::Pressed => {
-                log::info!("[{}] button pressed", ActorInfo::name() );
+                log::info!("[{}] button pressed", ActorInfo::name());
                 self.blinker1.address().adjust_delay(Milliseconds(100u32));
             }
             ButtonEvent::Released => {
@@ -113,9 +98,9 @@ impl EventHandler<ButtonEvent> for MyDevice {
 
 impl EventHandler<SensorAcquisition> for MyDevice {
     fn on_event(&'static mut self, message: SensorAcquisition)
-        where
-            Self: Sized, {
+    where
+        Self: Sized,
+    {
         log::info!("[event-bus] {:?}", message);
     }
 }
-

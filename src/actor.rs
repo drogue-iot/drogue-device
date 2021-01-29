@@ -20,17 +20,16 @@ use heapless::{consts::*, spsc::Queue};
 ///
 /// See also `NotifyHandler<...>` and `RequestHandler<...>`.
 pub trait Actor {
-
     /// Called to mount an actor into the system.
     ///
     /// The actor will be presented with both its own `Address<...>`.
     ///
     /// The default implementation does nothing.
     fn mount(&mut self, address: Address<Self>)
-        where
-            Self: Sized,
-    {}
-
+    where
+        Self: Sized,
+    {
+    }
 
     /// Lifecycle event of *initialize*.
     fn initialize(&'static mut self) -> Completion {
@@ -56,9 +55,7 @@ pub trait Actor {
     fn stop(&'static mut self) -> Completion {
         Completion::immediate()
     }
-
 }
-
 
 /// Global methods for acquiring the current actor's infomation.
 pub struct ActorInfo {
@@ -66,18 +63,13 @@ pub struct ActorInfo {
 }
 
 impl ActorInfo {
-
     /// Retrieve the current actor's name, if set, else probably just `"<unnamed>"`
     pub fn name() -> &'static str {
-        unsafe {
-            CURRENT.name.unwrap_or( "<unnamed>" )
-        }
+        unsafe { CURRENT.name.unwrap_or("<unnamed>") }
     }
 }
 
-pub(crate) static mut CURRENT: ActorInfo = ActorInfo {
-    name: None
-};
+pub(crate) static mut CURRENT: ActorInfo = ActorInfo { name: None };
 
 type ItemsProducer<A> = RefCell<Option<Producer<'static, Box<dyn ActorFuture<A>>, U16>>>;
 type ItemsConsumer<A> = RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>>, U16>>>;
@@ -154,8 +146,7 @@ impl<A: Actor> ActorContext<A> {
     }
 
     /// Dispatch a lifecycle event.
-    pub(crate) fn lifecycle(&'static self, event: Lifecycle)
-    {
+    pub(crate) fn lifecycle(&'static self, event: Lifecycle) {
         log::trace!("[{}].lifecycle(...)", self.name());
         let lifecycle = alloc(OnLifecycle::new(self, event)).unwrap();
         let lifecycle: Box<dyn ActorFuture<A>> = Box::new(lifecycle);
@@ -176,9 +167,9 @@ impl<A: Actor> ActorContext<A> {
 
     /// Dispatch a bind injection.
     pub(crate) fn bind<OA: Actor>(&'static self, address: &Address<OA>)
-        where
-            A: Bind<OA>,
-            OA: 'static,
+    where
+        A: Bind<OA>,
+        OA: 'static,
     {
         log::trace!("[{}].bind(...)", self.name());
         let bind = alloc(OnBind::new(self, address.clone())).unwrap();
@@ -200,9 +191,9 @@ impl<A: Actor> ActorContext<A> {
 
     /// Dispatch a notification.
     pub(crate) fn notify<M>(&'static self, message: M)
-        where
-            A: NotifyHandler<M>,
-            M: 'static,
+    where
+        A: NotifyHandler<M>,
+        M: 'static,
     {
         log::trace!("[{}].notify(...)", self.name());
         let notify = alloc(OnNotify::new(self, message)).unwrap();
@@ -223,10 +214,10 @@ impl<A: Actor> ActorContext<A> {
     }
 
     /// Dispatch an async request.
-    pub(crate) async fn request<M>( &'static self, message: M) -> <A as RequestHandler<M>>::Response
-        where
-            A: RequestHandler<M>,
-            M: 'static,
+    pub(crate) async fn request<M>(&'static self, message: M) -> <A as RequestHandler<M>>::Response
+    where
+        A: RequestHandler<M>,
+        M: 'static,
     {
         // TODO: fix this leak on signals
         //let signal = alloc(CompletionHandle::new()).unwrap();
@@ -258,14 +249,13 @@ impl<A: Actor> ActorContext<A> {
     }
 }
 
-pub(crate) trait ActorFuture<A: Actor>: Future<Output=()> + Unpin {
+pub(crate) trait ActorFuture<A: Actor>: Future<Output = ()> + Unpin {
     fn poll(&mut self, cx: &mut Context<'_>) -> Poll<()> {
         Future::poll(Pin::new(self), cx)
     }
 }
 
-struct OnLifecycle<A: Actor + 'static>
-{
+struct OnLifecycle<A: Actor + 'static> {
     actor: &'static ActorContext<A>,
     event: Lifecycle,
     defer: Option<Completion>,
@@ -287,8 +277,7 @@ impl<A: Actor> ActorFuture<A> for OnLifecycle<A> {}
 
 impl<A: Actor> Unpin for OnLifecycle<A> {}
 
-impl<A: Actor> Future for OnLifecycle<A>
-{
+impl<A: Actor> Future for OnLifecycle<A> {
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -298,17 +287,19 @@ impl<A: Actor> Future for OnLifecycle<A>
                 "[{}] Lifecycle.poll() - dispatch on_notification",
                 self.actor.name()
             );
-            let completion =
-                match self.event {
-                    Lifecycle::Initialize => unsafe { self.actor.actor_mut() }.initialize(),
-                    Lifecycle::Start => unsafe { self.actor.actor_mut() }.start(),
-                    Lifecycle::Stop => unsafe { self.actor.actor_mut() }.stop(),
-                    Lifecycle::Sleep => unsafe { self.actor.actor_mut() }.sleep(),
-                    Lifecycle::Hibernate => unsafe { self.actor.actor_mut() }.hibernate(),
-                };
+            let completion = match self.event {
+                Lifecycle::Initialize => unsafe { self.actor.actor_mut() }.initialize(),
+                Lifecycle::Start => unsafe { self.actor.actor_mut() }.start(),
+                Lifecycle::Stop => unsafe { self.actor.actor_mut() }.stop(),
+                Lifecycle::Sleep => unsafe { self.actor.actor_mut() }.sleep(),
+                Lifecycle::Hibernate => unsafe { self.actor.actor_mut() }.hibernate(),
+            };
             self.dispatched = true;
             if matches!(completion, Completion::Immediate()) {
-                log::trace!("[{}] Lifecycle.poll() - immediate: Ready", self.actor.name());
+                log::trace!(
+                    "[{}] Lifecycle.poll() - immediate: Ready",
+                    self.actor.name()
+                );
                 return Poll::Ready(());
             }
             self.defer.replace(completion);
@@ -331,25 +322,27 @@ impl<A: Actor> Future for OnLifecycle<A>
                 }
             }
         } else {
-            log::trace!("[{}] Lifecycle.poll() - ERROR - no defer?", self.actor.name());
+            log::trace!(
+                "[{}] Lifecycle.poll() - ERROR - no defer?",
+                self.actor.name()
+            );
             // should not actually get here ever
             Poll::Ready(())
         }
     }
 }
 
-
 struct OnBind<A: Actor, OA: Actor>
-    where
-        A: Bind<OA> + 'static,
+where
+    A: Bind<OA> + 'static,
 {
     actor: &'static ActorContext<A>,
     address: Option<Address<OA>>,
 }
 
 impl<A: Actor, OA: Actor> OnBind<A, OA>
-    where
-        A: Bind<OA> + 'static,
+where
+    A: Bind<OA> + 'static,
 {
     fn new(actor: &'static ActorContext<A>, address: Address<OA>) -> Self {
         Self {
@@ -376,8 +369,8 @@ impl<A: Actor + Bind<OA>, OA: Actor> Future for OnBind<A, OA> {
 }
 
 struct OnNotify<A: Actor, M>
-    where
-        A: NotifyHandler<M> + 'static,
+where
+    A: NotifyHandler<M> + 'static,
 {
     actor: &'static ActorContext<A>,
     message: Option<M>,
@@ -385,8 +378,8 @@ struct OnNotify<A: Actor, M>
 }
 
 impl<A: Actor, M> OnNotify<A, M>
-    where
-        A: NotifyHandler<M>,
+where
+    A: NotifyHandler<M>,
 {
     pub fn new(actor: &'static ActorContext<A>, message: M) -> Self {
         Self {
@@ -402,8 +395,8 @@ impl<A: Actor + NotifyHandler<M>, M> ActorFuture<A> for OnNotify<A, M> {}
 impl<A, M> Unpin for OnNotify<A, M> where A: NotifyHandler<M> + Actor {}
 
 impl<A: Actor, M> Future for OnNotify<A, M>
-    where
-        A: NotifyHandler<M>,
+where
+    A: NotifyHandler<M>,
 {
     type Output = ();
 
@@ -414,8 +407,8 @@ impl<A: Actor, M> Future for OnNotify<A, M>
                 "[{}] Notify.poll() - dispatch on_notification",
                 self.actor.name()
             );
-            let completion = unsafe { self.actor.actor_mut() }
-                .on_notify(self.as_mut().message.take().unwrap());
+            let completion =
+                unsafe { self.actor.actor_mut() }.on_notify(self.as_mut().message.take().unwrap());
             if matches!(completion, Completion::Immediate()) {
                 log::trace!("[{}] Notify.poll() - immediate: Ready", self.actor.name());
                 return Poll::Ready(());
@@ -448,8 +441,8 @@ impl<A: Actor, M> Future for OnNotify<A, M>
 }
 
 struct OnRequest<A, M>
-    where
-        A: Actor + RequestHandler<M> + 'static,
+where
+    A: Actor + RequestHandler<M> + 'static,
 {
     actor: &'static ActorContext<A>,
     message: Option<M>,
@@ -458,8 +451,8 @@ struct OnRequest<A, M>
 }
 
 impl<A, M> OnRequest<A, M>
-    where
-        A: Actor + RequestHandler<M> + 'static,
+where
+    A: Actor + RequestHandler<M> + 'static,
 {
     pub fn new(
         actor: &'static ActorContext<A>,
@@ -482,8 +475,8 @@ impl<A: Actor + RequestHandler<M>, M> ActorFuture<A> for OnRequest<A, M> {}
 impl<A, M> Unpin for OnRequest<A, M> where A: Actor + RequestHandler<M> + 'static {}
 
 impl<A, M> Future for OnRequest<A, M>
-    where
-        A: Actor + RequestHandler<M> + 'static,
+where
+    A: Actor + RequestHandler<M> + 'static,
 {
     type Output = ();
 
@@ -527,8 +520,8 @@ impl<A, M> Future for OnRequest<A, M>
 }
 
 struct RequestResponseFuture<R>
-    where
-        R: 'static,
+where
+    R: 'static,
 {
     receiver: CompletionReceiver<R>,
 }
@@ -554,7 +547,7 @@ struct CompletionHandle<T> {
 
 enum CompletionValue<T> {
     Immediate(T),
-    Future(Box<dyn Future<Output=T>>),
+    Future(Box<dyn Future<Output = T>>),
 }
 
 impl<T> CompletionHandle<T> {
@@ -582,7 +575,7 @@ impl<T: 'static> CompletionHandle<T> {
         }
     }
 
-    pub fn send_future(&self, value: Box<dyn Future<Output=T>>) {
+    pub fn send_future(&self, value: Box<dyn Future<Output = T>>) {
         self.value
             .borrow_mut()
             .replace(CompletionValue::Future(value));
@@ -626,7 +619,7 @@ impl<T: 'static> CompletionSender<T> {
         self.handle.send_value(response);
     }
 
-    pub(crate) fn send_future(&self, response: Box<dyn Future<Output=T>>) {
+    pub(crate) fn send_future(&self, response: Box<dyn Future<Output = T>>) {
         self.handle.send_future(response);
     }
 }

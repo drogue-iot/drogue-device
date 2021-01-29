@@ -1,10 +1,10 @@
 use heapless::{consts::*, Vec};
 
 use crate::actor::{Actor, ActorContext, CURRENT};
+use crate::prelude::device::Lifecycle;
 use core::cmp::PartialEq;
 use core::sync::atomic::{AtomicU8, Ordering};
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
-use crate::prelude::device::Lifecycle;
 
 #[derive(PartialEq)]
 pub(crate) enum ActorState {
@@ -81,7 +81,7 @@ impl Supervised {
     fn poll(&mut self) -> bool {
         if self.is_ready() {
             unsafe {
-                CURRENT.name.replace( self.actor.name() );
+                CURRENT.name.replace(self.actor.name());
             }
             log::trace!("polling actor {:x}", &self.actor as *const _ as u32);
             match self.actor.do_poll(self.get_state_flag_handle()) {

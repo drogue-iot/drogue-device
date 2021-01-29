@@ -7,7 +7,7 @@ pub use package::Hts221;
 pub use ready::Ready;
 pub use sensor::Sensor;
 
-use crate::domain::temperature::{Temperature, Celsius};
+use crate::domain::temperature::{Celsius, Temperature};
 use core::fmt::{Debug, Formatter};
 
 #[derive(Copy, Clone)]

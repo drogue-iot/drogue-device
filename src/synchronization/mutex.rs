@@ -27,8 +27,8 @@ pub struct Unlock<T>(T);
 /// to the underlying resource until dropped, at which point the lock will be
 /// released.
 pub struct Mutex<T>
-    where
-        T: 'static
+where
+    T: 'static,
 {
     address: Option<Address<Self>>,
     val: Option<T>,
@@ -36,18 +36,17 @@ pub struct Mutex<T>
 }
 
 impl<T> Actor for Mutex<T>
-    where
-        T: 'static
+where
+    T: 'static,
 {
     fn mount(&mut self, addr: Address<Self>) {
         self.address.replace(addr);
     }
 }
 
-impl<T> RequestHandler<Lock>
-for Mutex<T>
-    where
-        T: 'static
+impl<T> RequestHandler<Lock> for Mutex<T>
+where
+    T: 'static,
 {
     type Response = Exclusive<T>;
 
@@ -63,10 +62,9 @@ for Mutex<T>
     }
 }
 
-impl<T> NotifyHandler<Unlock<T>>
-for Mutex<T>
-    where
-        T: 'static
+impl<T> NotifyHandler<Unlock<T>> for Mutex<T>
+where
+    T: 'static,
 {
     fn on_notify(&'static mut self, message: Unlock<T>) -> Completion {
         log::trace!("[Mutex<T> unlock");
@@ -75,8 +73,7 @@ for Mutex<T>
     }
 }
 
-impl<T> Mutex<T>
-{
+impl<T> Mutex<T> {
     pub fn new(val: T) -> Self {
         Self {
             address: None,
@@ -117,7 +114,7 @@ impl<T> Mutex<T>
             waiting: false,
             mutex: UnsafeCell::new(self),
         }
-            .await
+        .await
     }
 
     #[doc(hidden)]
@@ -134,16 +131,14 @@ impl<T> Mutex<T>
 /// When the exclusive instance is dropped, the lock will be returned to the
 /// mutex and the next waiter, if any, will be provide the resource.
 pub struct Exclusive<T>
-    where
-        T: 'static
+where
+    T: 'static,
 {
     val: Option<T>,
     address: Address<Mutex<T>>,
 }
 
-impl<T> Deref
-for Exclusive<T>
-{
+impl<T> Deref for Exclusive<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -151,25 +146,22 @@ for Exclusive<T>
     }
 }
 
-impl<T> DerefMut
-for Exclusive<T>
-{
+impl<T> DerefMut for Exclusive<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.val.as_mut().unwrap()
     }
 }
 
 impl<T> Drop for Exclusive<T>
-    where
-        T: 'static
+where
+    T: 'static,
 {
     fn drop(&mut self) {
         self.address.notify(Unlock(self.val.take().unwrap()))
     }
 }
 
-impl<T> Address<Mutex<T>>
-{
+impl<T> Address<Mutex<T>> {
     pub async fn lock(&'static self) -> Exclusive<T> {
         self.request(Lock).await
     }

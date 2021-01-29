@@ -1,6 +1,5 @@
 //! Actor addresses
 
-
 use crate::actor::{Actor, ActorContext};
 use crate::bind::Bind;
 use crate::handler::{NotifyHandler, RequestHandler};
@@ -24,7 +23,7 @@ impl<A: Actor> Clone for Address<A> {
     }
 }
 
-impl<A:Actor> Address<A> {
+impl<A: Actor> Address<A> {
     pub(crate) fn new(actor: &ActorContext<A>) -> Self {
         Self {
             actor: UnsafeCell::new(actor),
@@ -71,4 +70,3 @@ impl<A:Actor> Address<A> {
         unsafe { (&**self.actor.get()).request(message).await }
     }
 }
-

@@ -1,7 +1,6 @@
 //! Types and traits related to temperature.
 
-
-use core::fmt::{Display, Formatter, Debug};
+use core::fmt::{Debug, Display, Formatter};
 use core::marker::PhantomData;
 use core::ops::{Add, Div, Sub};
 
@@ -15,7 +14,7 @@ impl TemperatureScale for Kelvin {}
 
 impl Debug for Kelvin {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str( "°K")
+        f.write_str("°K")
     }
 }
 
@@ -24,7 +23,7 @@ pub struct Celsius;
 
 impl Debug for Celsius {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str( "°C")
+        f.write_str("°C")
     }
 }
 
@@ -35,12 +34,11 @@ pub struct Fahrenheit;
 
 impl Debug for Fahrenheit {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str( "°F")
+        f.write_str("°F")
     }
 }
 
 impl TemperatureScale for Fahrenheit {}
-
 
 /// A temperature value with its associated scale.
 pub struct Temperature<S: TemperatureScale> {
@@ -59,21 +57,21 @@ impl<S: TemperatureScale> Clone for Temperature<S> {
 
 impl Debug for Temperature<Celsius> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        Debug::fmt( &self.value, f )?;
+        Debug::fmt(&self.value, f)?;
         write!(f, "°C")
     }
 }
 
 impl Debug for Temperature<Fahrenheit> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        Debug::fmt( &self.value, f )?;
+        Debug::fmt(&self.value, f)?;
         write!(f, "°F")
     }
 }
 
 impl Debug for Temperature<Kelvin> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        Debug::fmt( &self.value, f )?;
+        Debug::fmt(&self.value, f)?;
         write!(f, "°K")
     }
 }

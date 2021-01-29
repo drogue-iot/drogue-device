@@ -39,8 +39,8 @@ pub trait Device {
     /// for each child in order to inject all required dependencies, including
     /// possible the `EventBus` address which is provided.
     fn mount(&'static mut self, bus_address: &Address<EventBus<Self>>, supervisor: &mut Supervisor)
-        where
-            Self: Sized;
+    where
+        Self: Sized;
 }
 
 #[doc(hidden)]
@@ -79,12 +79,11 @@ impl<D: Device> DeviceContext<D> {
     }
 
     pub fn on_event<E>(&'static self, event: E)
-        where
-            D: EventHandler<E>,
+    where
+        D: EventHandler<E>,
     {
         unsafe {
             (&mut *self.device.get()).on_event(event);
         }
     }
 }
-
