@@ -23,12 +23,12 @@ pub mod hal;
 
 /// Easy imports for common types and traits.
 pub mod prelude {
-    pub use crate::actor::{Actor, ActorContext};
+    pub use crate::actor::{Actor, ActorContext, ActorInfo};
     pub use crate::address::Address;
-    pub use crate::bus::{EventBus, EventConsumer};
+    pub use crate::bus::{EventBus, EventHandler};
     pub use crate::device;
     pub use crate::device::{Device};
-    pub use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
+    pub use crate::handler::{Completion, NotifyHandler, RequestHandler, Response};
     pub use crate::interrupt::{Interrupt, InterruptContext};
     pub use crate::supervisor::Supervisor;
     pub use crate::package::Package;

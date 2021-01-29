@@ -1,9 +1,9 @@
 //! Types and traits related to the root-level device and system-wide lifecycle events.
 
-use crate::bus::{EventBus, EventConsumer};
+use crate::bus::{EventBus, EventHandler};
 use crate::supervisor::Supervisor;
 use core::cell::UnsafeCell;
-use crate::prelude::{NotificationHandler, Address};
+use crate::prelude::{NotifyHandler, Address};
 use crate::actor::ActorContext;
 
 /// System-wide lifecycle events.
@@ -56,7 +56,7 @@ impl<D: Device> DeviceContext<D> {
     }
 
     pub fn mount(&'static self) -> ! {
-        let bus = ActorContext::new(EventBus::new(self));
+        let bus = ActorContext::new(EventBus::new(self)).with_name("event-bus");
         unsafe {
             (&mut *self.bus.get()).replace(bus);
             let bus = (&*self.bus.get()).as_ref().unwrap();
@@ -76,7 +76,7 @@ impl<D: Device> DeviceContext<D> {
 
     pub fn on_event<E>(&'static self, event: E)
         where
-            D: EventConsumer<E>,
+            D: EventHandler<E>,
     {
         unsafe {
             (&mut *self.device.get()).on_event(event);

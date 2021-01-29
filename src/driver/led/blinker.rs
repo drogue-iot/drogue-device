@@ -77,13 +77,13 @@ enum State {
     Off,
 }
 
-impl<P, T> NotificationHandler<State>
+impl<P, T> NotifyHandler<State>
 for Blinker<P, T>
     where
         P: OutputPin,
         T: HalTimer,
 {
-    fn on_notification(&'static mut self, message: State) -> Completion {
+    fn on_notify(&'static mut self, message: State) -> Completion {
         match message {
             State::On => {
                 self.led.as_ref().unwrap().turn_on();
@@ -100,13 +100,13 @@ for Blinker<P, T>
 
 pub struct AdjustDelay(Milliseconds);
 
-impl<P, T> NotificationHandler<AdjustDelay>
+impl<P, T> NotifyHandler<AdjustDelay>
 for Blinker<P, T>
     where
         P: OutputPin,
         T: HalTimer,
 {
-    fn on_notification(&'static mut self, message: AdjustDelay) -> Completion {
+    fn on_notify(&'static mut self, message: AdjustDelay) -> Completion {
         self.delay = message.0;
         Completion::immediate()
     }

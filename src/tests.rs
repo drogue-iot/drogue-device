@@ -1,6 +1,6 @@
 use crate::actor::{Actor, ActorContext};
 use crate::device::{Device, DeviceContext};
-use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
+use crate::handler::{Completion, NotifyHandler, RequestHandler, Response};
 use crate::supervisor::Supervisor;
 
 use crate::init_heap;
@@ -45,8 +45,8 @@ impl RequestHandler<LEDState> for LED {
     }
 }
 
-impl NotificationHandler<LEDState> for LED {
-    fn on_notification(&'static mut self, message: LEDState) -> Completion {
+impl NotifyHandler<LEDState> for LED {
+    fn on_notify(&'static mut self, message: LEDState) -> Completion {
         Completion::defer(async move { self.turn_off() })
     }
 }

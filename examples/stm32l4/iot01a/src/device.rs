@@ -95,23 +95,23 @@ impl Device for MyDevice {
     }
 }
 
-impl EventConsumer<ButtonEvent> for MyDevice {
+impl EventHandler<ButtonEvent> for MyDevice {
     fn on_event(&'static mut self, message: ButtonEvent) where
         Self: Sized, {
         match message {
             ButtonEvent::Pressed => {
-                log::info!("[event-bus] button pressed");
+                log::info!("[{}] button pressed", ActorInfo::name() );
                 self.blinker1.address().adjust_delay(Milliseconds(100u32));
             }
             ButtonEvent::Released => {
-                log::info!("[event-bus] button released");
+                log::info!("[{}] button released", ActorInfo::name());
                 self.blinker1.address().adjust_delay(Milliseconds(500u32));
             }
         }
     }
 }
 
-impl EventConsumer<SensorAcquisition> for MyDevice {
+impl EventHandler<SensorAcquisition> for MyDevice {
     fn on_event(&'static mut self, message: SensorAcquisition)
         where
             Self: Sized, {

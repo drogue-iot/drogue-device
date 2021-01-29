@@ -7,7 +7,7 @@ pub struct On;
 
 pub struct Off;
 
-pub trait Switchable: Actor + NotificationHandler<On> + NotificationHandler<Off>
+pub trait Switchable: Actor + NotifyHandler<On> + NotifyHandler<Off>
 {
     fn turn_on(&mut self);
     fn turn_off(&mut self);
@@ -65,23 +65,23 @@ impl<P> Actor for SimpleLED<P>
     where
         P: OutputPin {}
 
-impl<P> NotificationHandler<On> for SimpleLED<P>
+impl<P> NotifyHandler<On> for SimpleLED<P>
     where
         Self: Switchable,
         P: OutputPin
 {
-    fn on_notification(&'static mut self, message: On) -> Completion {
+    fn on_notify(&'static mut self, message: On) -> Completion {
         self.turn_on();
         Completion::immediate()
     }
 }
 
-impl<P> NotificationHandler<Off> for SimpleLED<P>
+impl<P> NotifyHandler<Off> for SimpleLED<P>
     where
         Self: Switchable,
         P: OutputPin
 {
-    fn on_notification(&'static mut self, message: Off) -> Completion {
+    fn on_notify(&'static mut self, message: Off) -> Completion {
         Completion::defer(async move {
             self.turn_off();
         })
@@ -90,10 +90,10 @@ impl<P> NotificationHandler<Off> for SimpleLED<P>
 
 impl<S> Address<S>
     where
-        S: NotificationHandler<Off>,
+        S: NotifyHandler<Off>,
         S: Actor + 'static,
         S: Switchable,
-        S: NotificationHandler<On>,
+        S: NotifyHandler<On>,
 {
     pub fn turn_on(&self) {
         self.notify(On);

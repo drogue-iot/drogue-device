@@ -5,7 +5,7 @@ use crate::prelude::*;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
 use crate::driver::sensor::hts221::SensorAcquisition;
-use crate::bus::EventConsumer;
+use crate::bus::EventHandler;
 
 pub struct DataReady;
 
@@ -41,7 +41,7 @@ for Ready<D, P, I>
 impl<D, P, I> Interrupt
 for Ready<D, P, I>
     where
-        D: Device + EventConsumer<SensorAcquisition> + 'static,
+        D: Device + EventHandler<SensorAcquisition> + 'static,
         P: InputPin + ExtiPin,
         I: WriteRead + Read + Write + 'static
 {

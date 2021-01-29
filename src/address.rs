@@ -4,7 +4,7 @@
 use crate::actor::{Actor, ActorContext};
 use crate::bind::Bind;
 use crate::device::Device;
-use crate::handler::{NotificationHandler, RequestHandler};
+use crate::handler::{NotifyHandler, RequestHandler};
 use core::cell::UnsafeCell;
 
 /// A handle to another actor for dispatching notifications and requests.
@@ -52,7 +52,7 @@ impl<A:Actor> Address<A> {
     /// for the appropriate type of message being sent.
     pub fn notify<M>(&self, message: M)
     where
-        A: NotificationHandler<M> + 'static,
+        A: NotifyHandler<M> + 'static,
         M: 'static,
     {
         unsafe {

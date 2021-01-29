@@ -2,7 +2,7 @@ use crate::actor::Actor;
 use crate::address::Address;
 use crate::bus::EventBus;
 use crate::device::{Device};
-use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
+use crate::handler::{Completion, NotifyHandler, RequestHandler, Response};
 use core::cell::UnsafeCell;
 use core::future::Future;
 use core::ops::{Deref, DerefMut};
@@ -51,12 +51,12 @@ for Mutex<T>
     }
 }
 
-impl<T> NotificationHandler<Unlock<T>>
+impl<T> NotifyHandler<Unlock<T>>
 for Mutex<T>
     where
         T: 'static
 {
-    fn on_notification(&'static mut self, message: Unlock<T>) -> Completion {
+    fn on_notify(&'static mut self, message: Unlock<T>) -> Completion {
         log::trace!("[Mutex<T> unlock");
         self.unlock(message.0);
         Completion::immediate()

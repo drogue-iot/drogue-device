@@ -1,6 +1,6 @@
 use heapless::{consts::*, Vec};
 
-use crate::actor::{Actor, ActorContext};
+use crate::actor::{Actor, ActorContext, CURRENT};
 use crate::device::Device;
 use core::cmp::PartialEq;
 use core::sync::atomic::{AtomicU8, Ordering};
@@ -81,10 +81,16 @@ impl Supervised {
 
     fn poll(&mut self) -> bool {
         if self.is_ready() {
+            unsafe {
+                CURRENT.name.replace( self.actor.name() );
+            }
             log::trace!("polling actor {:x}", &self.actor as *const _ as u32);
             match self.actor.do_poll(self.get_state_flag_handle()) {
                 Poll::Ready(_) => self.signal_idle(),
                 Poll::Pending => self.signal_waiting(),
+            }
+            unsafe {
+                CURRENT.name.take();
             }
             true
         } else {

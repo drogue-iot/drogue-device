@@ -118,14 +118,14 @@ where
 }
 
 
-impl<P, ROWS, COLS, T> NotificationHandler<MatrixCommand> for LEDMatrix<P, ROWS, COLS, T>
+impl<P, ROWS, COLS, T> NotifyHandler<MatrixCommand> for LEDMatrix<P, ROWS, COLS, T>
 where
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
     T: HalTimer,
 {
-    fn on_notification(&'static mut self, command: MatrixCommand) -> Completion {
+    fn on_notify(&'static mut self, command: MatrixCommand) -> Completion {
         match command {
             MatrixCommand::On(x, y) => {
                 self.on(x, y);

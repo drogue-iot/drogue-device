@@ -53,9 +53,9 @@ impl Completion {
     }
 }
 
-pub trait NotificationHandler<M>
+pub trait NotifyHandler<M>
 where
     Self: Sized,
 {
-    fn on_notification(&'static mut self, message: M) -> Completion;
+    fn on_notify(&'static mut self, message: M) -> Completion;
 }

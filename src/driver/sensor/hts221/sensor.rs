@@ -13,7 +13,7 @@ use crate::prelude::*;
 use crate::synchronization::Mutex;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use crate::driver::sensor::hts221::SensorAcquisition;
-use crate::bus::EventConsumer;
+use crate::bus::EventHandler;
 
 pub const ADDR: u8 = 0x5F;
 
@@ -127,13 +127,13 @@ for Sensor<D, I>
     }
 }
 
-impl<D, I> NotificationHandler<DataReady>
+impl<D, I> NotifyHandler<DataReady>
 for Sensor<D, I>
     where
-        D: Device + EventConsumer<SensorAcquisition>,
+        D: Device + EventHandler<SensorAcquisition>,
         I: WriteRead + Read + Write
 {
-    fn on_notification(&'static mut self, message: DataReady) -> Completion {
+    fn on_notify(&'static mut self, message: DataReady) -> Completion {
         Completion::defer(async move {
             if self.i2c.is_some() {
                 let mut i2c = self.i2c.as_ref().unwrap().lock().await;
@@ -165,7 +165,7 @@ for Sensor<D, I>
 #[doc(hidden)]
 impl<D, I> Address<Sensor<D, I>>
     where
-        D: Device + EventConsumer<SensorAcquisition> + 'static,
+        D: Device + EventHandler<SensorAcquisition> + 'static,
         I: WriteRead + Read + Write
 {
     pub fn signal_data_ready(&self) {

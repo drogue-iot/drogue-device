@@ -1,4 +1,4 @@
-use crate::prelude::{Actor, Device, NotificationHandler, Address};
+use crate::prelude::{Actor, Device, NotifyHandler, Address};
 use crate::handler::{Completion, RequestHandler, Response};
 use crate::bus::EventBus;
 use core::future::Future;
@@ -96,10 +96,10 @@ for Semaphore
     }
 }
 
-impl NotificationHandler<Release>
+impl NotifyHandler<Release>
 for Semaphore
 {
-    fn on_notification(&'static mut self, message: Release) -> Completion {
+    fn on_notify(&'static mut self, message: Release) -> Completion {
         self.permits += 1;
         if let Some(next) = self.waiters.dequeue() {
             next.wake()

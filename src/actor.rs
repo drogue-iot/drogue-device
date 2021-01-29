@@ -2,7 +2,7 @@
 
 use crate::address::Address;
 use crate::bus::EventBus;
-use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
+use crate::handler::{Completion, NotifyHandler, RequestHandler, Response};
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
@@ -54,7 +54,24 @@ pub trait Actor {
     fn stop(&'static mut self) -> Completion {
         Completion::immediate()
     }
+
 }
+
+pub struct ActorInfo {
+    pub(crate) name: Option<&'static str>,
+}
+
+impl ActorInfo {
+    pub fn name() -> &'static str {
+        unsafe {
+            CURRENT.name.unwrap_or( "<unnamed>" )
+        }
+    }
+}
+
+pub(crate) static mut CURRENT: ActorInfo = ActorInfo {
+    name: None
+};
 
 type ItemsProducer<A> = RefCell<Option<Producer<'static, Box<dyn ActorFuture<A>>, U16>>>;
 type ItemsConsumer<A> = RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>>, U16>>>;
@@ -174,7 +191,7 @@ impl<A: Actor> ActorContext<A> {
 
     pub(crate) fn notify<M>(&'static self, message: M)
         where
-            A: NotificationHandler<M>,
+            A: NotifyHandler<M>,
             M: 'static,
     {
         log::trace!("[{}].notify(...)", self.name());
@@ -352,7 +369,7 @@ impl<A: Actor + Bind<OA>, OA: Actor> Future for OnBind<A, OA> {
 
 struct OnNotify<A: Actor, M>
     where
-        A: NotificationHandler<M> + 'static,
+        A: NotifyHandler<M> + 'static,
 {
     actor: &'static ActorContext<A>,
     message: Option<M>,
@@ -361,7 +378,7 @@ struct OnNotify<A: Actor, M>
 
 impl<A: Actor, M> OnNotify<A, M>
     where
-        A: NotificationHandler<M>,
+        A: NotifyHandler<M>,
 {
     pub fn new(actor: &'static ActorContext<A>, message: M) -> Self {
         Self {
@@ -372,13 +389,13 @@ impl<A: Actor, M> OnNotify<A, M>
     }
 }
 
-impl<A: Actor + NotificationHandler<M>, M> ActorFuture<A> for OnNotify<A, M> {}
+impl<A: Actor + NotifyHandler<M>, M> ActorFuture<A> for OnNotify<A, M> {}
 
-impl<A, M> Unpin for OnNotify<A, M> where A: NotificationHandler<M> + Actor {}
+impl<A, M> Unpin for OnNotify<A, M> where A: NotifyHandler<M> + Actor {}
 
 impl<A: Actor, M> Future for OnNotify<A, M>
     where
-        A: NotificationHandler<M>,
+        A: NotifyHandler<M>,
 {
     type Output = ();
 
@@ -390,7 +407,7 @@ impl<A: Actor, M> Future for OnNotify<A, M>
                 self.actor.name()
             );
             let completion = unsafe { self.actor.actor_mut() }
-                .on_notification(self.as_mut().message.take().unwrap());
+                .on_notify(self.as_mut().message.take().unwrap());
             if matches!(completion, Completion::Immediate()) {
                 log::trace!("[{}] Notify.poll() - immediate: Ready", self.actor.name());
                 return Poll::Ready(());

@@ -3,7 +3,7 @@ use crate::prelude::*;
 use crate::hal::gpio::exti_pin::ExtiPin;
 use crate::hal::Active;
 use crate::bind::Bind;
-use crate::bus::EventConsumer;
+use crate::bus::EventHandler;
 
 #[derive(Copy, Clone)]
 pub enum ButtonEvent {
@@ -58,7 +58,7 @@ impl<D, PIN> Button<D, PIN>
 
 impl<D, PIN> Interrupt for Button<D, PIN>
     where
-        D: Device + EventConsumer<ButtonEvent> + 'static,
+        D: Device + EventHandler<ButtonEvent> + 'static,
         PIN: InputPin + ExtiPin
 {
     fn on_interrupt(&mut self) {

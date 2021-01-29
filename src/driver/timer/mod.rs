@@ -19,7 +19,7 @@ pub trait Schedulable {
 
 #[derive(Clone)]
 pub struct Schedule<
-    A: Actor + NotificationHandler<E> + 'static,
+    A: Actor + NotifyHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds>,
     E: Clone + 'static,
 > {
@@ -29,7 +29,7 @@ pub struct Schedule<
 }
 
 impl<
-        A: Actor + NotificationHandler<E> + 'static,
+        A: Actor + NotifyHandler<E> + 'static,
         DUR: Duration + Into<Milliseconds>,
         E: Clone + 'static,
     > Schedule<A, DUR, E>
@@ -121,11 +121,11 @@ impl<T: HalTimer, DUR: Duration + Into<Milliseconds>> RequestHandler<Delay<DUR>>
 impl<
         T: HalTimer,
         E: Clone + 'static,
-        A: Actor + NotificationHandler<E> + 'static,
+        A: Actor + NotifyHandler<E> + 'static,
         DUR: Duration + Into<Milliseconds> + 'static,
-    > NotificationHandler<Schedule<A, DUR, E>> for Timer<T>
+    > NotifyHandler<Schedule<A, DUR, E>> for Timer<T>
 {
-    fn on_notification(&'static mut self, message: Schedule<A, DUR, E>) -> Completion {
+    fn on_notify(&'static mut self, message: Schedule<A, DUR, E>) -> Completion {
         let ms: Milliseconds = message.delay.into();
         //log::info!("delay request {:?}", ms);
 
@@ -235,7 +235,7 @@ impl<T: HalTimer + 'static> Address<Timer<T>> {
     pub fn schedule<
         DUR: Duration + Into<Milliseconds> + 'static,
         E: Clone + 'static,
-        A: Actor + NotificationHandler<E> + 'static,
+        A: Actor + NotifyHandler<E> + 'static,
     >(
         &self,
         delay: DUR,
@@ -261,7 +261,7 @@ impl DelayDeadline {
 }
 
 pub struct ScheduleDeadline<
-    A: Actor + NotificationHandler<E> + 'static,
+    A: Actor + NotifyHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds>,
     E: Clone + 'static,
 > {
@@ -270,7 +270,7 @@ pub struct ScheduleDeadline<
 }
 
 impl<
-        A: Actor + NotificationHandler<E> + 'static,
+        A: Actor + NotifyHandler<E> + 'static,
         DUR: Duration + Into<Milliseconds>,
         E: Clone + 'static,
     > Schedulable for ScheduleDeadline<A, DUR, E>
@@ -289,7 +289,7 @@ impl<
 }
 
 impl<
-        A: Actor + NotificationHandler<E> + 'static,
+        A: Actor + NotifyHandler<E> + 'static,
         DUR: Duration + Into<Milliseconds>,
         E: Clone + 'static,
     > ScheduleDeadline<A, DUR, E>
