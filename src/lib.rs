@@ -15,6 +15,7 @@ pub mod handler;
 pub mod interrupt;
 #[doc(hidden)]
 pub mod macros;
+pub mod package;
 pub mod supervisor;
 pub mod synchronization;
 
@@ -30,6 +31,7 @@ pub mod prelude {
     pub use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
     pub use crate::interrupt::{Interrupt, InterruptContext};
     pub use crate::supervisor::Supervisor;
+    pub use crate::package::Package;
 }
 
 #[cfg(test)]

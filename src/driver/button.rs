@@ -2,6 +2,8 @@ use embedded_hal::digital::v2::InputPin;
 use crate::prelude::*;
 use crate::hal::gpio::exti_pin::ExtiPin;
 use crate::hal::Active;
+use crate::bind::Bind;
+use crate::bus::EventConsumer;
 
 #[derive(Copy, Clone)]
 pub enum ButtonEvent {
@@ -9,32 +11,41 @@ pub enum ButtonEvent {
     Released,
 }
 
-pub struct Button<D, PIN>
-    where
-        D: Device + EventConsumer<ButtonEvent>,
+pub struct Button<D: Device, PIN>
 {
     pin: PIN,
     active: Active,
-    bus: Option<EventBus<D>>,
+    bus: Option<Address<EventBus<D>>>,
 }
 
-impl<D, PIN> Actor<D>
+impl<D, PIN> Actor
 for Button<D, PIN>
     where
-        D: Device + EventConsumer<ButtonEvent>,
+        D: Device,
         PIN: InputPin + ExtiPin
 {
-    fn mount(&mut self, address: Address<D, Self>, bus: EventBus<D>) where
+    fn mount(&mut self, address: Address<Self>) where
         Self: Sized,
     {
-        self.bus.replace(bus);
+        //self.bus.replace(bus);
     }
 }
+
+impl<D, PIN> Bind<EventBus<D>>
+for Button<D, PIN>
+    where
+        D: Device
+{
+    fn on_bind(&'static mut self, address: Address<EventBus<D>>) {
+        self.bus.replace(address);
+    }
+}
+
 
 impl<D, PIN> NotificationHandler<Lifecycle>
 for Button<D, PIN>
     where
-        D: Device + EventConsumer<ButtonEvent>,
+        D: Device,
         PIN: InputPin + ExtiPin
 {
     fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
@@ -44,7 +55,7 @@ for Button<D, PIN>
 
 impl<D, PIN> Button<D, PIN>
     where
-        D: Device + EventConsumer<ButtonEvent>,
+        D: Device,
         PIN: InputPin + ExtiPin
 {
     pub fn new(pin: PIN, active: Active) -> Self {
@@ -57,7 +68,7 @@ impl<D, PIN> Button<D, PIN>
 }
 
 
-impl<D, PIN> Interrupt<D> for Button<D, PIN>
+impl<D, PIN> Interrupt for Button<D, PIN>
     where
         D: Device + EventConsumer<ButtonEvent> + 'static,
         PIN: InputPin + ExtiPin
@@ -67,16 +78,16 @@ impl<D, PIN> Interrupt<D> for Button<D, PIN>
             match self.active {
                 Active::High => {
                     if self.pin.is_high().ok().unwrap() {
-                        self.bus.as_ref().unwrap().publish( ButtonEvent::Pressed );
+                        self.bus.as_ref().unwrap().publish(ButtonEvent::Pressed);
                     } else {
-                        self.bus.as_ref().unwrap().publish( ButtonEvent::Released );
+                        self.bus.as_ref().unwrap().publish(ButtonEvent::Released);
                     }
                 }
                 Active::Low => {
                     if self.pin.is_low().ok().unwrap() {
-                        self.bus.as_ref().unwrap().publish( ButtonEvent::Pressed );
+                        self.bus.as_ref().unwrap().publish(ButtonEvent::Pressed);
                     } else {
-                        self.bus.as_ref().unwrap().publish( ButtonEvent::Released );
+                        self.bus.as_ref().unwrap().publish(ButtonEvent::Released);
                     }
                 }
             }

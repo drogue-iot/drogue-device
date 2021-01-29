@@ -3,6 +3,8 @@
 use crate::bus::{EventBus, EventConsumer};
 use crate::supervisor::Supervisor;
 use core::cell::UnsafeCell;
+use crate::prelude::{NotificationHandler, Address};
+use crate::actor::ActorContext;
 
 /// System-wide lifecycle events.
 ///
@@ -26,22 +28,22 @@ pub enum Lifecycle {
 /// Trait which must be implemented by all top-level devices which
 /// subsequently contain `ActorContext` or `InterruptContext` or other
 /// packages.
-pub trait Device {
-
+pub trait Device: EventConsumer<Lifecycle> {
     /// Called when the device is mounted into the system.
     ///
     /// The device *must* propagate the call through to all children `ActorContext`
     /// and `InterruptContext`, either directly or indirectly, in order for them
     /// to be mounted into the system.
-    fn mount(&'static mut self, bus: &EventBus<Self>, supervisor: &mut Supervisor)
-    where
-        Self: Sized;
+    fn mount(&'static mut self, bus_address: &Address<EventBus<Self>>, supervisor: &mut Supervisor)
+        where
+            Self: Sized;
 }
 
 #[doc(hidden)]
 pub struct DeviceContext<D: Device> {
     device: UnsafeCell<D>,
     supervisor: UnsafeCell<Supervisor>,
+    bus: UnsafeCell<Option<ActorContext<EventBus<D>>>>,
 }
 
 impl<D: Device> DeviceContext<D> {
@@ -49,13 +51,19 @@ impl<D: Device> DeviceContext<D> {
         Self {
             device: UnsafeCell::new(device),
             supervisor: UnsafeCell::new(Supervisor::new()),
+            bus: UnsafeCell::new(None),
         }
     }
 
     pub fn mount(&'static self) -> ! {
-        let bus = EventBus::new(self);
+        let bus = ActorContext::new(EventBus::new(self));
         unsafe {
-            (&mut *self.device.get()).mount(&bus, &mut *self.supervisor.get());
+            (&mut *self.bus.get()).replace(bus);
+            let bus = (&*self.bus.get()).as_ref().unwrap();
+            bus.mount(&mut *self.supervisor.get());
+
+            let bus_address = bus.address();
+            (&mut *self.device.get()).mount(&bus_address, &mut *self.supervisor.get());
             (&*self.supervisor.get()).run_forever()
         }
     }
@@ -67,11 +75,12 @@ impl<D: Device> DeviceContext<D> {
     }
 
     pub fn on_event<E>(&'static self, event: E)
-    where
-        D: EventConsumer<E>,
+        where
+            D: EventConsumer<E>,
     {
         unsafe {
             (&mut *self.device.get()).on_event(event);
         }
     }
 }
+

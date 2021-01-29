@@ -7,16 +7,16 @@ use crate::bus::EventBus;
 use crate::device::Device;
 use crate::supervisor::Supervisor;
 
-pub trait Interrupt<D: Device>: Actor<D> {
+pub trait Interrupt: Actor {
     fn on_interrupt(&mut self);
 }
 
-pub struct InterruptContext<D: Device, I: Interrupt<D>> {
+pub struct InterruptContext<I: Interrupt> {
     pub(crate) irq: u8,
-    pub(crate) actor_context: ActorContext<D, I>,
+    pub(crate) actor_context: ActorContext<I>,
 }
 
-impl<D: Device, I: Interrupt<D>> InterruptContext<D, I> {
+impl<I: Interrupt> InterruptContext<I> {
     pub fn new<N: Nr>(interrupt: I, irq: N) -> Self {
         Self {
             irq: irq.nr(),
@@ -29,8 +29,8 @@ impl<D: Device, I: Interrupt<D>> InterruptContext<D, I> {
         self
     }
 
-    pub fn mount(&'static self, bus: &EventBus<D>, supervisor: &mut Supervisor) -> Address<D, I> {
-        let addr = self.actor_context.mount(bus, supervisor);
+    pub fn mount(&'static self, supervisor: &mut Supervisor) -> Address<I> {
+        let addr = self.actor_context.mount(supervisor);
         supervisor.activate_interrupt(self, self.irq);
 
         struct IrqNr(u8);

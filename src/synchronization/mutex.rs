@@ -14,33 +14,30 @@ pub struct Lock;
 
 pub struct Unlock<T>(T);
 
-pub struct Mutex<D, T>
+pub struct Mutex<T>
     where
-        D: Device,
         T: 'static
 {
-    address: Option<Address<D, Self>>,
+    address: Option<Address<Self>>,
     val: Option<T>,
     waiters: Queue<Waker, U16>,
 }
 
-impl<D, T> Actor<D> for Mutex<D, T>
+impl<T> Actor for Mutex<T>
     where
-        D: Device,
         T: 'static
 {
-    fn mount(&mut self, addr: Address<D, Self>, _: EventBus<D>) {
+    fn mount(&mut self, addr: Address<Self>) {
         self.address.replace(addr);
     }
 }
 
-impl<D, T> RequestHandler<D, Lock>
-for Mutex<D, T>
+impl<T> RequestHandler<Lock>
+for Mutex<T>
     where
-        D: Device + 'static,
         T: 'static
 {
-    type Response = Exclusive<D, T>;
+    type Response = Exclusive<T>;
 
     fn on_request(&'static mut self, message: Lock) -> Response<Self::Response> {
         Response::defer(async move {
@@ -54,10 +51,9 @@ for Mutex<D, T>
     }
 }
 
-impl<D, T> NotificationHandler<Lifecycle>
-for Mutex<D, T>
+impl<T> NotificationHandler<Lifecycle>
+for Mutex<T>
     where
-        D: Device,
         T: 'static
 {
     fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
@@ -65,10 +61,9 @@ for Mutex<D, T>
     }
 }
 
-impl<D, T> NotificationHandler<Unlock<T>>
-for Mutex<D, T>
+impl<T> NotificationHandler<Unlock<T>>
+for Mutex<T>
     where
-        D: Device,
         T: 'static
 {
     fn on_notification(&'static mut self, message: Unlock<T>) -> Completion {
@@ -78,8 +73,7 @@ for Mutex<D, T>
     }
 }
 
-impl<D, T> Mutex<D, T>
-    where D: Device
+impl<T> Mutex<T>
 {
     pub fn new(val: T) -> Self {
         Self {
@@ -90,12 +84,12 @@ impl<D, T> Mutex<D, T>
     }
 
     pub async fn lock(&'static mut self) -> T {
-        struct LockFuture<D: Device, TT: 'static> {
+        struct LockFuture<TT: 'static> {
             waiting: bool,
-            mutex: UnsafeCell<*mut Mutex<D, TT>>,
+            mutex: UnsafeCell<*mut Mutex<TT>>,
         }
 
-        impl<D: Device, TT> Future for LockFuture<D, TT> {
+        impl<TT> Future for LockFuture<TT> {
             type Output = TT;
 
             fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -131,18 +125,16 @@ impl<D, T> Mutex<D, T>
     }
 }
 
-pub struct Exclusive<D, T>
+pub struct Exclusive<T>
     where
-        D: Device + 'static,
         T: 'static
 {
     val: Option<T>,
-    address: Address<D, Mutex<D, T>>,
+    address: Address<Mutex<T>>,
 }
 
-impl<D, T> Deref
-for Exclusive<D, T>
-    where D: Device
+impl<T> Deref
+for Exclusive<T>
 {
     type Target = T;
 
@@ -151,19 +143,16 @@ for Exclusive<D, T>
     }
 }
 
-impl<D, T> DerefMut
-for Exclusive<D, T>
-    where
-        D: Device
+impl<T> DerefMut
+for Exclusive<T>
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.val.as_mut().unwrap()
     }
 }
 
-impl<D, T> Drop for Exclusive<D, T>
+impl<T> Drop for Exclusive<T>
     where
-        D: Device + 'static,
         T: 'static
 {
     fn drop(&mut self) {
@@ -171,10 +160,9 @@ impl<D, T> Drop for Exclusive<D, T>
     }
 }
 
-impl<D, T> Address<D, Mutex<D, T>>
-    where D: Device
+impl<T> Address<Mutex<T>>
 {
-    pub async fn lock(&'static self) -> Exclusive<D, T> {
+    pub async fn lock(&'static self) -> Exclusive<T> {
         self.request(Lock).await
     }
 }

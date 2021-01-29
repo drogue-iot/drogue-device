@@ -19,24 +19,22 @@ pub trait Schedulable {
 
 #[derive(Clone)]
 pub struct Schedule<
-    D: Device + 'static,
-    A: Actor<D> + NotificationHandler<E> + 'static,
+    A: Actor + NotificationHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds>,
     E: Clone + 'static,
 > {
     delay: DUR,
     event: E,
-    address: Address<D, A>,
+    address: Address<A>,
 }
 
 impl<
-        D: Device + 'static,
-        A: Actor<D> + NotificationHandler<E> + 'static,
+        A: Actor + NotificationHandler<E> + 'static,
         DUR: Duration + Into<Milliseconds>,
         E: Clone + 'static,
-    > Schedule<D, A, DUR, E>
+    > Schedule<A, DUR, E>
 {
-    pub fn new(delay: DUR, event: E, address: Address<D, A>) -> Self {
+    pub fn new(delay: DUR, event: E, address: Address<A>) -> Self {
         Self {
             delay,
             event,
@@ -45,22 +43,20 @@ impl<
     }
 }
 
-pub struct Timer<D: Device, T: HalTimer> {
+pub struct Timer<T: HalTimer> {
     timer: T,
     current_deadline: Option<Milliseconds>,
     delay_deadlines: [Option<DelayDeadline>; 16],
     schedule_deadlines: [Option<Box<dyn Schedulable>>; 16],
-    _device: PhantomData<D>,
 }
 
-impl<D: Device, T: HalTimer> Timer<D, T> {
+impl<T: HalTimer> Timer<T> {
     pub fn new(timer: T) -> Self {
         Self {
             timer,
             current_deadline: None,
             delay_deadlines: Default::default(),
             schedule_deadlines: Default::default(),
-            _device: PhantomData,
         }
     }
 
@@ -84,16 +80,16 @@ impl<D: Device, T: HalTimer> Timer<D, T> {
     }
 }
 
-impl<D: Device, T: HalTimer> Actor<D> for Timer<D, T> {}
+impl<T: HalTimer> Actor for Timer<T> {}
 
-impl<D: Device, T: HalTimer> NotificationHandler<Lifecycle> for Timer<D, T> {
+impl<T: HalTimer> NotificationHandler<Lifecycle> for Timer<T> {
     fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
         Completion::immediate()
     }
 }
 
-impl<D: Device, T: HalTimer, DUR: Duration + Into<Milliseconds>> RequestHandler<D, Delay<DUR>>
-    for Timer<D, T>
+impl<T: HalTimer, DUR: Duration + Into<Milliseconds>> RequestHandler<Delay<DUR>>
+    for Timer<T>
 {
     type Response = ();
 
@@ -129,14 +125,13 @@ impl<D: Device, T: HalTimer, DUR: Duration + Into<Milliseconds>> RequestHandler<
 }
 
 impl<
-        D: Device,
         T: HalTimer,
         E: Clone + 'static,
-        A: Actor<D> + NotificationHandler<E> + 'static,
+        A: Actor + NotificationHandler<E> + 'static,
         DUR: Duration + Into<Milliseconds> + 'static,
-    > NotificationHandler<Schedule<D, A, DUR, E>> for Timer<D, T>
+    > NotificationHandler<Schedule<A, DUR, E>> for Timer<T>
 {
-    fn on_notification(&'static mut self, message: Schedule<D, A, DUR, E>) -> Completion {
+    fn on_notification(&'static mut self, message: Schedule<A, DUR, E>) -> Completion {
         let ms: Milliseconds = message.delay.into();
         //log::info!("delay request {:?}", ms);
 
@@ -166,7 +161,7 @@ impl<
     }
 }
 
-impl<D: Device, T: HalTimer> Interrupt<D> for Timer<D, T> {
+impl<T: HalTimer> Interrupt for Timer<T> {
     fn on_interrupt(&mut self) {
         self.timer.clear_update_interrupt_flag();
         let expired = self.current_deadline.unwrap();
@@ -238,7 +233,7 @@ impl<D: Device, T: HalTimer> Interrupt<D> for Timer<D, T> {
     }
 }
 
-impl<D: Device + 'static, T: HalTimer + 'static> Address<D, Timer<D, T>> {
+impl<T: HalTimer + 'static> Address<Timer<T>> {
     pub async fn delay<DUR: Duration + Into<Milliseconds> + 'static>(&self, duration: DUR) {
         self.request(Delay(duration)).await
     }
@@ -246,12 +241,12 @@ impl<D: Device + 'static, T: HalTimer + 'static> Address<D, Timer<D, T>> {
     pub fn schedule<
         DUR: Duration + Into<Milliseconds> + 'static,
         E: Clone + 'static,
-        A: Actor<D> + NotificationHandler<E> + 'static,
+        A: Actor + NotificationHandler<E> + 'static,
     >(
         &self,
         delay: DUR,
         event: E,
-        address: Address<D, A>,
+        address: Address<A>,
     ) {
         self.notify(Schedule::new(delay, event, address));
     }
@@ -272,21 +267,19 @@ impl DelayDeadline {
 }
 
 pub struct ScheduleDeadline<
-    D: Device + 'static,
-    A: Actor<D> + NotificationHandler<E> + 'static,
+    A: Actor + NotificationHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds>,
     E: Clone + 'static,
 > {
     expiration: Milliseconds,
-    schedule: Schedule<D, A, DUR, E>,
+    schedule: Schedule<A, DUR, E>,
 }
 
 impl<
-        D: Device + 'static,
-        A: Actor<D> + NotificationHandler<E> + 'static,
+        A: Actor + NotificationHandler<E> + 'static,
         DUR: Duration + Into<Milliseconds>,
         E: Clone + 'static,
-    > Schedulable for ScheduleDeadline<D, A, DUR, E>
+    > Schedulable for ScheduleDeadline<A, DUR, E>
 {
     fn run(&self) {
         self.schedule.address.notify(self.schedule.event.clone());
@@ -302,13 +295,12 @@ impl<
 }
 
 impl<
-        D: Device + 'static,
-        A: Actor<D> + NotificationHandler<E> + 'static,
+        A: Actor + NotificationHandler<E> + 'static,
         DUR: Duration + Into<Milliseconds>,
         E: Clone + 'static,
-    > ScheduleDeadline<D, A, DUR, E>
+    > ScheduleDeadline<A, DUR, E>
 {
-    fn new(expiration: Milliseconds, schedule: Schedule<D, A, DUR, E>) -> Self {
+    fn new(expiration: Milliseconds, schedule: Schedule<A, DUR, E>) -> Self {
         Self {
             expiration,
             schedule,
@@ -316,14 +308,14 @@ impl<
     }
 }
 
-struct DelayFuture<D: Device, T: HalTimer> {
+struct DelayFuture<T: HalTimer> {
     index: usize,
-    timer: UnsafeCell<*mut Timer<D, T>>,
+    timer: UnsafeCell<*mut Timer<T>>,
     expired: bool,
 }
 
-impl<D: Device, T: HalTimer> DelayFuture<D, T> {
-    fn new(index: usize, timer: &mut Timer<D, T>) -> Self {
+impl<T: HalTimer> DelayFuture<T> {
+    fn new(index: usize, timer: &mut Timer<T>) -> Self {
         Self {
             index,
             timer: UnsafeCell::new(timer),
@@ -349,7 +341,7 @@ impl<D: Device, T: HalTimer> DelayFuture<D, T> {
     }
 }
 
-impl<D: Device, T: HalTimer> Future for DelayFuture<D, T> {
+impl<T: HalTimer> Future for DelayFuture<T> {
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {

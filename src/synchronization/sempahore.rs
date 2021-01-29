@@ -12,20 +12,17 @@ use heapless::{
 };
 
 pub struct Acquire;
+
 pub struct Release;
 
-pub struct Semaphore<D>
-    where
-        D: Device
+pub struct Semaphore
 {
-    address: Option<Address<D, Self>>,
+    address: Option<Address<Self>>,
     permits: usize,
     waiters: Queue<Waker, U16>,
 }
 
-impl<D> Semaphore<D>
-    where
-        D: Device + 'static,
+impl Semaphore
 {
     pub fn new(permits: usize) -> Self {
         Self {
@@ -35,19 +32,16 @@ impl<D> Semaphore<D>
         }
     }
 
-    pub async fn acquire(&mut self) -> Permit<D> {
-        struct Acquire<D>
-            where D: Device
+    pub async fn acquire(&mut self) -> Permit {
+        struct Acquire
         {
             waiting: bool,
-            semaphore: UnsafeCell<*mut Semaphore<D>>,
+            semaphore: UnsafeCell<*mut Semaphore>,
         }
 
-        impl<D> Future for Acquire<D>
-            where
-                D: Device + 'static
+        impl Future for Acquire
         {
-            type Output = Permit<D>;
+            type Output = Permit;
 
             fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
                 unsafe {
@@ -79,47 +73,38 @@ impl<D> Semaphore<D>
 
     pub fn release(&mut self) {
         self.permits += 1;
-
     }
 }
 
-impl<D> Actor<D> for Semaphore<D>
-    where
-        D: Device,
+impl Actor for Semaphore
 {
-    fn mount(&mut self, address: Address<D, Self>, bus: EventBus<D>) where
+    fn mount(&mut self, address: Address<Self>) where
         Self: Sized, {
         self.address.replace(address);
     }
 }
 
-impl<D> NotificationHandler<Lifecycle> for Semaphore<D>
-    where
-        D: Device,
+impl NotificationHandler<Lifecycle> for Semaphore
 {
     fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
         Completion::immediate()
     }
 }
 
-impl<D> RequestHandler<D, Acquire>
-for Semaphore<D>
-    where
-        D: Device + 'static,
+impl RequestHandler<Acquire>
+for Semaphore
 {
-    type Response = Permit<D>;
+    type Response = Permit;
 
     fn on_request(&'static mut self, message: Acquire) -> Response<Self::Response> {
-        Response::defer( async move {
+        Response::defer(async move {
             self.acquire().await
-        } )
+        })
     }
 }
 
-impl<D> NotificationHandler<Release>
-for Semaphore<D>
-    where
-        D: Device,
+impl NotificationHandler<Release>
+for Semaphore
 {
     fn on_notification(&'static mut self, message: Release) -> Completion {
         self.permits += 1;
@@ -130,29 +115,21 @@ for Semaphore<D>
     }
 }
 
-pub struct Permit<D>
-    where
-        D: Device + 'static,
+pub struct Permit
 {
-    address: Address<D, Semaphore<D>>,
+    address: Address<Semaphore>,
 }
 
-impl<D> Drop for Permit<D>
-    where
-        D: Device + 'static,
+impl Drop for Permit
 {
     fn drop(&mut self) {
-        self.address.notify( Release );
+        self.address.notify(Release);
     }
 }
 
-impl<D> Address<D, Semaphore<D>>
-    where
-        D: Device + 'static,
+impl Address<Semaphore>
 {
-
-    pub async fn acquire(&self) -> Permit<D> {
-        self.request( Acquire ).await
+    pub async fn acquire(&self) -> Permit {
+        self.request(Acquire).await
     }
-
 }

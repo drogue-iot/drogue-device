@@ -9,7 +9,7 @@ pub(crate) trait ActiveInterrupt {
     fn on_interrupt(&self);
 }
 
-impl<D: Device, I: Actor<D> + Interrupt<D>> ActiveInterrupt for InterruptContext<D, I> {
+impl<I: Actor + Interrupt> ActiveInterrupt for InterruptContext<I> {
     fn on_interrupt(&self) {
         // Mask this interrupt handler (not the entire IRQ) if this
         // actor currently has an in-flight async block.

@@ -103,7 +103,7 @@ pub(crate) trait ActiveActor {
     fn dispatch_lifecycle_event(&'static self, event: Lifecycle);
 }
 
-impl<D: Device, A: Actor<D>> ActiveActor for ActorContext<D, A> {
+impl<A: Actor> ActiveActor for ActorContext<A> {
     fn name(&self) -> &str {
         ActorContext::name(self)
     }

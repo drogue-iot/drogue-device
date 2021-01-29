@@ -6,6 +6,8 @@ use cortex_m::interrupt::Nr;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
 use crate::driver::sensor::hts221::SensorAcquisition;
+use crate::bus::EventConsumer;
+use crate::package::Package;
 
 pub struct Hts221<D, P, I>
     where
@@ -13,8 +15,8 @@ pub struct Hts221<D, P, I>
         P: InputPin + ExtiPin,
         I: WriteRead + Read + Write + 'static
 {
-    sensor: ActorContext<D, Sensor<D, I>>,
-    ready: InterruptContext<D, Ready<D, P, I>>,
+    sensor: ActorContext<Sensor<D, I>>,
+    ready: InterruptContext<Ready<D, P, I>>,
 }
 
 impl<D, P, I> Hts221<D, P, I>
@@ -30,13 +32,27 @@ impl<D, P, I> Hts221<D, P, I>
         }
     }
 
-    pub fn mount(
-        &'static self,
-        bus: &EventBus<D>,
-        supervisor: &mut Supervisor,
-    ) -> Address<D, Sensor<D, I>> {
-        let ready_addr = self.ready.mount(bus, supervisor);
-        let sensor_addr = self.sensor.mount(bus, supervisor);
+    /*
+    pub fn mount(&'static self, bus_address: &Address<EventBus<D>>, supervisor: &mut Supervisor) -> Address<Sensor<D, I>> {
+        let ready_addr = self.ready.mount(supervisor);
+        let sensor_addr = self.sensor.mount(supervisor);
+        sensor_addr.bind(bus_address);
+        ready_addr.bind(&sensor_addr);
+        sensor_addr
+    }
+     */
+}
+
+impl<D, P, I> Package<D, Sensor<D,I>> for Hts221<D, P, I>
+    where
+        D: Device + EventConsumer<SensorAcquisition>,
+        P: InputPin + ExtiPin,
+        I: WriteRead + Read + Write
+{
+    fn mount(&'static self, bus_address: &Address<EventBus<D>>, supervisor: &mut Supervisor) -> Address<Sensor<D,I>> {
+        let ready_addr = self.ready.mount(supervisor);
+        let sensor_addr = self.sensor.mount(supervisor);
+        sensor_addr.bind(bus_address);
         ready_addr.bind(&sensor_addr);
         sensor_addr
     }

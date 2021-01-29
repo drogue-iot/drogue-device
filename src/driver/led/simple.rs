@@ -7,36 +7,36 @@ pub struct On;
 
 pub struct Off;
 
-pub trait Switchable<D>: Actor<D> + NotificationHandler<On> + NotificationHandler<Off>
-    where D: Device
+pub trait Switchable: Actor + NotificationHandler<On> + NotificationHandler<Off>
 {
     fn turn_on(&mut self);
     fn turn_off(&mut self);
 }
 
-pub struct SimpleLED<D, P>
-    where D: Device, P: OutputPin
+pub struct SimpleLED<P>
+    where
+        P: OutputPin
 {
     active: Active,
     pin: P,
-    _marker: PhantomData<D>,
 }
 
 
-impl<D, P> SimpleLED<D, P>
-    where D: Device, P: OutputPin
+impl<P> SimpleLED<P>
+    where
+        P: OutputPin
 {
     pub fn new(pin: P, active: Active) -> Self {
         Self {
             active,
             pin,
-            _marker: PhantomData,
         }
     }
 }
 
-impl<D, P> Switchable<D> for SimpleLED<D, P>
-    where D: Device, P: OutputPin
+impl<P> Switchable for SimpleLED<P>
+    where
+        P: OutputPin
 {
     fn turn_on(&mut self) {
         match self.active {
@@ -61,20 +61,23 @@ impl<D, P> Switchable<D> for SimpleLED<D, P>
     }
 }
 
-impl<D, P> Actor<D> for SimpleLED<D, P>
-    where D: Device, P: OutputPin {}
+impl<P> Actor for SimpleLED<P>
+    where
+        P: OutputPin {}
 
-impl<D, P> NotificationHandler<Lifecycle> for SimpleLED<D, P>
-    where D: Device, P: OutputPin
+impl<P> NotificationHandler<Lifecycle> for SimpleLED<P>
+    where
+        P: OutputPin
 {
     fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
         Completion::immediate()
     }
 }
 
-impl<D, P> NotificationHandler<On> for SimpleLED<D, P>
+impl<P> NotificationHandler<On> for SimpleLED<P>
     where
-        Self: Switchable<D>, D: Device, P: OutputPin
+        Self: Switchable,
+        P: OutputPin
 {
     fn on_notification(&'static mut self, message: On) -> Completion {
         self.turn_on();
@@ -82,10 +85,9 @@ impl<D, P> NotificationHandler<On> for SimpleLED<D, P>
     }
 }
 
-impl<D, P> NotificationHandler<Off> for SimpleLED<D, P>
+impl<P> NotificationHandler<Off> for SimpleLED<P>
     where
-        Self: Switchable<D>,
-        D: Device,
+        Self: Switchable,
         P: OutputPin
 {
     fn on_notification(&'static mut self, message: Off) -> Completion {
@@ -95,11 +97,11 @@ impl<D, P> NotificationHandler<Off> for SimpleLED<D, P>
     }
 }
 
-impl<D, S> Address<D, S>
+impl<S> Address<S>
     where
-        S: NotificationHandler<Off>, D: Device + 'static,
-        S: Actor<D> + 'static,
-        S: Switchable<D>,
+        S: NotificationHandler<Off>,
+        S: Actor + 'static,
+        S: Switchable,
         S: NotificationHandler<On>,
 {
     pub fn turn_on(&self) {

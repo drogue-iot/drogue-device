@@ -29,9 +29,9 @@ impl<T> Response<T> {
     }
 }
 
-pub trait RequestHandler<D: Device, M>
+pub trait RequestHandler<M>
 where
-    Self: Actor<D> + Sized,
+    Self: Actor + Sized,
 {
     type Response: 'static;
 

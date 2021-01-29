@@ -7,21 +7,19 @@ use crate::prelude::*;
 use embedded_hal::digital::v2::OutputPin;
 
 
-pub struct Blinker<D, P, T>
+pub struct Blinker<P, T>
     where
-        D: Device,
         P: OutputPin,
         T: HalTimer,
 {
-    led: Option<Address<D, SimpleLED<D, P>>>,
-    timer: Option<Address<D, Timer<D, T>>>,
+    led: Option<Address<SimpleLED<P>>>,
+    timer: Option<Address<Timer<T>>>,
     delay: Milliseconds,
-    address: Option<Address<D, Self>>,
+    address: Option<Address<Self>>,
 }
 
-impl<D, P, T> Blinker<D, P, T>
+impl<P, T> Blinker<P, T>
     where
-        D: Device,
         P: OutputPin,
         T: HalTimer,
 {
@@ -35,46 +33,42 @@ impl<D, P, T> Blinker<D, P, T>
     }
 }
 
-impl<D, P, T> Bind<D, SimpleLED<D, P>>
-for Blinker<D, P, T>
+impl<P, T> Bind<SimpleLED<P>>
+for Blinker<P, T>
     where
-        D: Device,
         P: OutputPin,
         T: HalTimer,
 {
-    fn on_bind(&'static mut self, address: Address<D, SimpleLED<D, P>>) {
+    fn on_bind(&'static mut self, address: Address<SimpleLED<P>>) {
         self.led.replace(address);
     }
 }
 
-impl<D, P, T> Bind<D, Timer<D, T>>
-for Blinker<D, P, T>
+impl<P, T> Bind<Timer<T>>
+for Blinker<P, T>
     where
-        D: Device,
         P: OutputPin,
         T: HalTimer {
-    fn on_bind(&'static mut self, address: Address<D, Timer<D, T>>) {
+    fn on_bind(&'static mut self, address: Address<Timer<T>>) {
         self.timer.replace(address);
     }
 }
 
-impl<D, P, T> Actor<D>
-for Blinker<D, P, T>
+impl<P, T> Actor
+for Blinker<P, T>
     where
-        D: Device,
         P: OutputPin,
         T: HalTimer {
-    fn mount(&mut self, address: Address<D, Self>, bus: EventBus<D>)
+    fn mount(&mut self, address: Address<Self>)
         where
             Self: Sized, {
         self.address.replace(address);
     }
 }
 
-impl<D, P, T> NotificationHandler<Lifecycle>
-for Blinker<D, P, T>
+impl<P, T> NotificationHandler<Lifecycle>
+for Blinker<P, T>
     where
-        D: Device,
         P: OutputPin,
         T: HalTimer,
 {
@@ -90,10 +84,9 @@ enum State {
     Off,
 }
 
-impl<D, P, T> NotificationHandler<State>
-for Blinker<D, P, T>
+impl<P, T> NotificationHandler<State>
+for Blinker<P, T>
     where
-        D: Device,
         P: OutputPin,
         T: HalTimer,
 {
@@ -114,10 +107,9 @@ for Blinker<D, P, T>
 
 pub struct AdjustDelay(Milliseconds);
 
-impl<D, P, T> NotificationHandler<AdjustDelay>
-for Blinker<D, P, T>
+impl<P, T> NotificationHandler<AdjustDelay>
+for Blinker<P, T>
     where
-        D: Device,
         P: OutputPin,
         T: HalTimer,
 {
@@ -128,10 +120,9 @@ for Blinker<D, P, T>
 }
 
 
-impl<D, P, T> Address<D, Blinker<D, P, T>>
+impl<P, T> Address<Blinker<P, T>>
     where
         Self: 'static,
-        D: Device,
         P: OutputPin,
         T: HalTimer,
 {

@@ -5,22 +5,23 @@ use crate::prelude::*;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
 use crate::driver::sensor::hts221::SensorAcquisition;
+use crate::bus::EventConsumer;
 
 pub struct DataReady;
 
 pub struct Ready<D, P, I>
     where
-        D: Device + EventConsumer<SensorAcquisition>,
+        D: Device,
         P: InputPin + ExtiPin,
         I: WriteRead + Read + Write + 'static
 {
     pin: P,
-    sensor: Option<Address<D, Sensor<D, I>>>,
+    sensor: Option<Address<Sensor<D, I>>>,
 }
 
 impl<D, P, I> Ready<D, P, I>
     where
-        D: Device + EventConsumer<SensorAcquisition>,
+        D: Device,
         P: InputPin + ExtiPin,
         I: WriteRead + Read + Write
 {
@@ -29,10 +30,10 @@ impl<D, P, I> Ready<D, P, I>
     }
 }
 
-impl<D, P, I> Actor<D>
+impl<D, P, I> Actor
 for Ready<D, P, I>
     where
-        D: Device + EventConsumer<SensorAcquisition>,
+        D: Device,
         P: InputPin + ExtiPin,
         I: WriteRead + Read + Write + 'static
 {}
@@ -40,7 +41,7 @@ for Ready<D, P, I>
 impl<D, P, I> NotificationHandler<Lifecycle>
 for Ready<D, P, I>
     where
-        D: Device + EventConsumer<SensorAcquisition>,
+        D: Device,
         P: InputPin + ExtiPin,
         I: WriteRead + Read + Write
 {
@@ -49,7 +50,7 @@ for Ready<D, P, I>
     }
 }
 
-impl<D, P, I> Interrupt<D>
+impl<D, P, I> Interrupt
 for Ready<D, P, I>
     where
         D: Device + EventConsumer<SensorAcquisition> + 'static,
@@ -67,14 +68,14 @@ for Ready<D, P, I>
     }
 }
 
-impl<D, P, I> Bind<D, Sensor<D, I>>
+impl<D, P, I> Bind<Sensor<D, I>>
 for Ready<D, P, I>
     where
-        D: Device + EventConsumer<SensorAcquisition>,
+        D: Device,
         P: InputPin + ExtiPin,
         I: WriteRead + Read + Write
 {
-    fn on_bind(&'static mut self, address: Address<D, Sensor<D, I>>) {
+    fn on_bind(&'static mut self, address: Address<Sensor<D, I>>) {
         self.sensor.replace(address);
     }
 }
