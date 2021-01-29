@@ -1,10 +1,12 @@
 //! Types and traits related to the root-level device and system-wide lifecycle events.
 
-use crate::bus::{EventBus, EventHandler};
-use crate::supervisor::Supervisor;
 use core::cell::UnsafeCell;
-use crate::prelude::{NotifyHandler, Address};
+
 use crate::actor::ActorContext;
+use crate::bus::EventBus;
+use crate::handler::EventHandler;
+use crate::prelude::{Address, NotifyHandler};
+use crate::supervisor::Supervisor;
 
 /// System-wide lifecycle events.
 ///
@@ -34,6 +36,10 @@ pub trait Device {
     /// The device *must* propagate the call through to all children `ActorContext`
     /// and `InterruptContext`, either directly or indirectly, in order for them
     /// to be mounted into the system.
+    ///
+    /// During `mount(...)` the device should perform the appropriate `bind(...)`
+    /// for each child in order to inject all required dependencies, including
+    /// possible the `EventBus` address which is provided.
     fn mount(&'static mut self, bus_address: &Address<EventBus<Self>>, supervisor: &mut Supervisor)
         where
             Self: Sized;

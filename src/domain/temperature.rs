@@ -1,9 +1,14 @@
+//! Types and traits related to temperature.
+
+
 use core::fmt::{Display, Formatter, Debug};
 use core::marker::PhantomData;
 use core::ops::{Add, Div, Sub};
 
+/// Trait representing a temperature scale.
 pub trait TemperatureScale {}
 
+/// Discriminant for the _Kelvin_ temperature scale.
 pub struct Kelvin;
 
 impl TemperatureScale for Kelvin {}
@@ -14,6 +19,7 @@ impl Debug for Kelvin {
     }
 }
 
+/// Discriminant for the _Celsius_ temperature scale.
 pub struct Celsius;
 
 impl Debug for Celsius {
@@ -24,6 +30,7 @@ impl Debug for Celsius {
 
 impl TemperatureScale for Celsius {}
 
+/// Discriminant for the _Fahrenheit_ temperature scale.
 pub struct Fahrenheit;
 
 impl Debug for Fahrenheit {
@@ -34,6 +41,8 @@ impl Debug for Fahrenheit {
 
 impl TemperatureScale for Fahrenheit {}
 
+
+/// A temperature value with its associated scale.
 pub struct Temperature<S: TemperatureScale> {
     value: f32,
     _marker: PhantomData<S>,
@@ -50,21 +59,21 @@ impl<S: TemperatureScale> Clone for Temperature<S> {
 
 impl Debug for Temperature<Celsius> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        Debug::fmt( &self.value, f );
+        Debug::fmt( &self.value, f )?;
         write!(f, "°C")
     }
 }
 
 impl Debug for Temperature<Fahrenheit> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        Debug::fmt( &self.value, f );
+        Debug::fmt( &self.value, f )?;
         write!(f, "°F")
     }
 }
 
 impl Debug for Temperature<Kelvin> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        Debug::fmt( &self.value, f );
+        Debug::fmt( &self.value, f )?;
         write!(f, "°K")
     }
 }

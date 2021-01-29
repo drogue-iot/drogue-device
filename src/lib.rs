@@ -25,13 +25,14 @@ pub mod hal;
 pub mod prelude {
     pub use crate::actor::{Actor, ActorContext, ActorInfo};
     pub use crate::address::Address;
-    pub use crate::bus::{EventBus, EventHandler};
+    pub use crate::bus::EventBus;
     pub use crate::device;
-    pub use crate::device::{Device};
+    pub use crate::device::Device;
     pub use crate::handler::{Completion, NotifyHandler, RequestHandler, Response};
+    pub use crate::handler::EventHandler;
     pub use crate::interrupt::{Interrupt, InterruptContext};
-    pub use crate::supervisor::Supervisor;
     pub use crate::package::Package;
+    pub use crate::supervisor::Supervisor;
 }
 
 #[cfg(test)]

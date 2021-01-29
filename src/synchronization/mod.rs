@@ -1,4 +1,14 @@
-pub mod mutex;
-pub mod sempahore;
+//! Synchronization primitive actors.
 
-pub use mutex::Mutex;
+mod mutex;
+mod sempahore;
+
+pub use mutex::{
+    Mutex,
+    Exclusive,
+};
+
+pub use sempahore::{
+    Semaphore,
+    Permit
+};

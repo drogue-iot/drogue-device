@@ -1,3 +1,5 @@
+//! Opaque supervisor for internal operation.
+
 use crate::supervisor::actor_executor::{ActiveActor, ActorExecutor};
 use crate::supervisor::interrupt_dispatcher::{ActiveInterrupt, InterruptDispatcher};
 use core::cell::UnsafeCell;
@@ -5,12 +7,14 @@ use core::cell::UnsafeCell;
 pub(crate) mod actor_executor;
 pub(crate) mod interrupt_dispatcher;
 
+/// An opaque object used during the mounting of actors into the system.
 pub struct Supervisor {
     executor: UnsafeCell<ActorExecutor>,
     dispatcher: UnsafeCell<InterruptDispatcher>,
 }
 
 impl Supervisor {
+    #[doc(hidden)]
     pub fn new() -> Self {
         Self {
             executor: UnsafeCell::new(ActorExecutor::new()),

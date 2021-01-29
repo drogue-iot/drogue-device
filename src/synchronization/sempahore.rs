@@ -1,3 +1,5 @@
+//! A semaphore actor and supporting types.
+
 use crate::prelude::{Actor, Device, NotifyHandler, Address};
 use crate::handler::{Completion, RequestHandler, Response};
 use crate::bus::EventBus;

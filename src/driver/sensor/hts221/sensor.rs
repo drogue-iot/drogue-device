@@ -13,7 +13,7 @@ use crate::prelude::*;
 use crate::synchronization::Mutex;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use crate::driver::sensor::hts221::SensorAcquisition;
-use crate::bus::EventHandler;
+use crate::handler::EventHandler;
 
 pub const ADDR: u8 = 0x5F;
 

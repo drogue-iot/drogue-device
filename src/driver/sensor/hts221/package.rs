@@ -6,7 +6,7 @@ use cortex_m::interrupt::Nr;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
 use crate::driver::sensor::hts221::SensorAcquisition;
-use crate::bus::EventHandler;
+use crate::handler::EventHandler;
 use crate::package::Package;
 
 pub struct Hts221<D, P, I>

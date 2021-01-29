@@ -19,15 +19,12 @@ use heapless::{consts::*, spsc::Queue};
 
 /// Trait that each actor must implement.
 ///
-/// Each actor must also implement `NotificationHandler<Lifecycle>`.
-///
-/// See also `NotificationHandler<...>` and `RequestHandler<...>`.
+/// See also `NotifyHandler<...>` and `RequestHandler<...>`.
 pub trait Actor {
+
     /// Called to mount an actor into the system.
     ///
-    /// The actor will be present with both its own `Address<...>`
-    /// and an instance of the `EventBus<...>` which may be used
-    /// to publish messages and events wider.
+    /// The actor will be presented with both its own `Address<...>`.
     ///
     /// The default implementation does nothing.
     fn mount(&mut self, address: Address<Self>)
@@ -35,33 +32,43 @@ pub trait Actor {
             Self: Sized,
     {}
 
+
+    /// Lifecycle event of *initialize*.
     fn initialize(&'static mut self) -> Completion {
         Completion::immediate()
     }
 
+    /// Lifecycle event of *start*.
     fn start(&'static mut self) -> Completion {
         Completion::immediate()
     }
 
+    /// Lifecycle event of *sleep*. *Unused currently*.
     fn sleep(&'static mut self) -> Completion {
         Completion::immediate()
     }
 
+    /// Lifecycle event of *hibernate*. *Unused currently*.
     fn hibernate(&'static mut self) -> Completion {
         Completion::immediate()
     }
 
+    /// Lifecycle event of *stop*. *Unused currently*.
     fn stop(&'static mut self) -> Completion {
         Completion::immediate()
     }
 
 }
 
+
+/// Global methods for acquiring the current actor's infomation.
 pub struct ActorInfo {
     pub(crate) name: Option<&'static str>,
 }
 
 impl ActorInfo {
+
+    /// Retrieve the current actor's name, if set, else probably just `"<unnamed>"`
     pub fn name() -> &'static str {
         unsafe {
             CURRENT.name.unwrap_or( "<unnamed>" )
@@ -126,6 +133,7 @@ impl<A: Actor> ActorContext<A> {
         Address::new(self)
     }
 
+    /// Mount the context and its actor into the system.
     pub fn mount(&'static self, supervisor: &mut Supervisor) -> Address<A> {
         let addr = Address::new(self);
         let state_flag_handle = supervisor.activate_actor(self);
@@ -146,6 +154,7 @@ impl<A: Actor> ActorContext<A> {
         addr
     }
 
+    /// Dispatch a lifecycle event.
     pub(crate) fn lifecycle(&'static self, event: Lifecycle)
     {
         log::trace!("[{}].lifecycle(...)", self.name());
@@ -166,6 +175,7 @@ impl<A: Actor> ActorContext<A> {
         }
     }
 
+    /// Dispatch a bind injection.
     pub(crate) fn bind<OA: Actor>(&'static self, address: &Address<OA>)
         where
             A: Bind<OA>,
@@ -189,6 +199,7 @@ impl<A: Actor> ActorContext<A> {
         }
     }
 
+    /// Dispatch a notification.
     pub(crate) fn notify<M>(&'static self, message: M)
         where
             A: NotifyHandler<M>,
@@ -212,10 +223,8 @@ impl<A: Actor> ActorContext<A> {
         }
     }
 
-    pub(crate) async fn request<M>(
-        &'static self,
-        message: M,
-    ) -> <A as RequestHandler<M>>::Response
+    /// Dispatch an async request.
+    pub(crate) async fn request<M>( &'static self, message: M) -> <A as RequestHandler<M>>::Response
         where
             A: RequestHandler<M>,
             M: 'static,
@@ -498,14 +507,6 @@ impl<A, M> Future for OnRequest<A, M>
                     self.defer.replace(defer);
                 }
             }
-            /*
-            if let Response::Immediate(response) = response {
-                self.sender.send(response);
-                return Poll::Ready(());
-            } else {
-                self.defer.replace(response);
-            }
-             */
         }
 
         if let Some(Response::Defer(ref mut fut)) = &mut self.defer {

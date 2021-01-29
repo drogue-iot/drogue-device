@@ -5,7 +5,7 @@ use crate::prelude::*;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
 use crate::driver::sensor::hts221::SensorAcquisition;
-use crate::bus::EventHandler;
+use crate::handler::EventHandler;
 
 pub struct DataReady;
 

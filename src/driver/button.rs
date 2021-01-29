@@ -3,7 +3,7 @@ use crate::prelude::*;
 use crate::hal::gpio::exti_pin::ExtiPin;
 use crate::hal::Active;
 use crate::bind::Bind;
-use crate::bus::EventHandler;
+use crate::handler::EventHandler;
 
 #[derive(Copy, Clone)]
 pub enum ButtonEvent {

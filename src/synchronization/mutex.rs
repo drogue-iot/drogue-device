@@ -1,3 +1,5 @@
+//! A mutex-lock actor and supporting types.
+
 use crate::actor::Actor;
 use crate::address::Address;
 use crate::bus::EventBus;
@@ -10,10 +12,22 @@ use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 use heapless::{consts::*, spsc::Queue};
 
+/// The lock request message.
 pub struct Lock;
 
+#[doc(hidden)]
 pub struct Unlock<T>(T);
 
+/// A Mutex lock actor.
+///
+/// `<T>` is the type of object protected by the mutex.
+///
+/// The `Address<Mutex<T>>` provides an asynchronous `lock()` method
+/// which can be used to `.await` exclusive access to the underlying resource.
+///
+/// The result is an `Exclusive<T>` which provides exclusive mutable access
+/// to the underlying resource until dropped, at which point the lock will be
+/// released.
 pub struct Mutex<T>
     where
         T: 'static
@@ -73,6 +87,7 @@ impl<T> Mutex<T>
         }
     }
 
+    #[doc(hidden)]
     pub async fn lock(&'static mut self) -> T {
         struct LockFuture<TT: 'static> {
             waiting: bool,
@@ -107,6 +122,7 @@ impl<T> Mutex<T>
             .await
     }
 
+    #[doc(hidden)]
     pub fn unlock(&mut self, val: T) {
         self.val.replace(val);
         if let Some(next) = self.waiters.dequeue() {
@@ -115,6 +131,10 @@ impl<T> Mutex<T>
     }
 }
 
+/// A scope-limited exclusive reference to the underlying lockable resource.
+///
+/// When the exclusive instance is dropped, the lock will be returned to the
+/// mutex and the next waiter, if any, will be provide the resource.
 pub struct Exclusive<T>
     where
         T: 'static

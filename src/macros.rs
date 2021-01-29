@@ -1,3 +1,17 @@
+//! Macros
+
+
+/// Macro to start a system.
+///
+/// It takes the type of your device which implements `Device` along with
+/// an expression pointing to your device instance.
+///
+/// Additionally, the size of the async pool, in bytes, should be provided.
+///
+/// Usage:
+/// ```
+/// device!( MyDeviceType = my_device_instance; 1024 )
+/// ```
 #[macro_export]
 macro_rules! device {
     ($ty:ty = $device:expr; $memory:literal  ) => {

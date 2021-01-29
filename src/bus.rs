@@ -1,9 +1,20 @@
-use crate::device::{Device, DeviceContext};
+//! Shared device-level event-bus type and trait.
 
 use core::cell::UnsafeCell;
-use crate::prelude::{Actor, NotifyHandler, Address};
-use crate::handler::Completion;
 
+use crate::device::{Device, DeviceContext};
+use crate::handler::{Completion, EventHandler};
+use crate::prelude::{Actor, Address, NotifyHandler};
+
+/// The shared device-level event-bus actor.
+///
+/// The event-bus is ultimately dispatched through the `Device` implementation
+/// of a system using the `EventHandler<...>` trait, which is to be implemented
+/// for each expected type of event.
+///
+/// An `EventBus` may not be directly instantiated, but is created prior to the
+/// activation of any other actor within the system and may be bound into other
+/// actors that wish to `publish` events.
 pub struct EventBus<D: Device> {
     device: UnsafeCell<*const DeviceContext<D>>,
 }
@@ -14,16 +25,9 @@ impl<D: Device> EventBus<D> {
             device: UnsafeCell::new(device)
         }
     }
-
 }
 
 impl<D: Device> Actor for EventBus<D> {}
-
-pub trait EventHandler<E> {
-    fn on_event(&'static mut self, message: E) {
-
-    }
-}
 
 impl<D: Device, M> NotifyHandler<M> for EventBus<D>
     where D: EventHandler<M>

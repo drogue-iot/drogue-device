@@ -1,3 +1,5 @@
+//! Device drivers.
+
 pub mod led;
 pub mod sensor;
 pub mod timer;
