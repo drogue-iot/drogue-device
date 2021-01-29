@@ -1,7 +1,6 @@
 //! Actor-related types and traits.
 
 use crate::address::Address;
-use crate::bus::EventBus;
 use crate::handler::{Completion, NotifyHandler, RequestHandler, Response};
 use core::future::Future;
 use core::pin::Pin;
@@ -9,7 +8,7 @@ use core::task::{Context, Poll, Waker};
 
 use crate::alloc::{alloc, Box, Rc};
 use crate::bind::Bind;
-use crate::device::{Device, Lifecycle};
+use crate::device::Lifecycle;
 use crate::supervisor::{actor_executor::ActorState, Supervisor};
 use core::cell::{RefCell, UnsafeCell};
 // use core::fmt::{Debug, Formatter};

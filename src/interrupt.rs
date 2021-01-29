@@ -6,8 +6,6 @@ use cortex_m::peripheral::NVIC;
 
 use crate::actor::{Actor, ActorContext};
 use crate::address::Address;
-use crate::bus::EventBus;
-use crate::device::Device;
 use crate::supervisor::Supervisor;
 
 /// Additional trait applicable to `Actor`s indicating their ability

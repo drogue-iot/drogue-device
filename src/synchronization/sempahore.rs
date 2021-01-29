@@ -1,8 +1,7 @@
 //! A semaphore actor and supporting types.
 
-use crate::prelude::{Actor, Device, NotifyHandler, Address};
+use crate::prelude::{Actor, NotifyHandler, Address};
 use crate::handler::{Completion, RequestHandler, Response};
-use crate::bus::EventBus;
 use core::future::Future;
 use core::task::{Context, Poll, Waker};
 use core::pin::Pin;

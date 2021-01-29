@@ -3,7 +3,6 @@
 
 use crate::actor::{Actor, ActorContext};
 use crate::bind::Bind;
-use crate::device::Device;
 use crate::handler::{NotifyHandler, RequestHandler};
 use core::cell::UnsafeCell;
 

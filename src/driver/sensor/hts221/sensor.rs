@@ -7,7 +7,6 @@ use crate::driver::sensor::hts221::register::ctrl3::Ctrl3;
 use crate::driver::sensor::hts221::register::h_out::Hout;
 use crate::driver::sensor::hts221::register::status::Status;
 use crate::driver::sensor::hts221::register::t_out::Tout;
-use crate::driver::sensor::hts221::register::who_am_i::WhoAmI;
 use crate::hal::i2c::I2cAddress;
 use crate::prelude::*;
 use crate::synchronization::Mutex;

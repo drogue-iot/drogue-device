@@ -4,7 +4,6 @@ use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
 use core::cell::UnsafeCell;
 use core::future::Future;
-use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 

@@ -3,7 +3,6 @@
 
 use crate::actor::Actor;
 use crate::address::Address;
-use crate::device::Device;
 
 /// Trait denoting an actor wishes to have another actor's address
 /// bound into itself.

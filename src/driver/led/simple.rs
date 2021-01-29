@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use core::marker::PhantomData;
 use embedded_hal::digital::v2::OutputPin;
 use crate::hal::Active;
 

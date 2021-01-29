@@ -3,9 +3,8 @@
 
 use core::future::Future;
 
-use crate::actor::Actor;
+use crate::prelude::Actor;
 use crate::alloc::{alloc, Box};
-use crate::device::Device;
 
 /// Return value from a `RequestHandler` to allow for synchronous or
 /// asynchronous handling of the request.

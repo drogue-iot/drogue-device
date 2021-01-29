@@ -1,7 +1,6 @@
 use heapless::{consts::*, Vec};
 
 use crate::actor::{Actor, ActorContext, CURRENT};
-use crate::device::Device;
 use core::cmp::PartialEq;
 use core::sync::atomic::{AtomicU8, Ordering};
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};

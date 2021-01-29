@@ -2,8 +2,6 @@
 
 use crate::actor::Actor;
 use crate::address::Address;
-use crate::bus::EventBus;
-use crate::device::{Device};
 use crate::handler::{Completion, NotifyHandler, RequestHandler, Response};
 use core::cell::UnsafeCell;
 use core::future::Future;

@@ -3,9 +3,7 @@
 use core::cell::UnsafeCell;
 
 use crate::actor::ActorContext;
-use crate::bus::EventBus;
-use crate::handler::EventHandler;
-use crate::prelude::{Address, NotifyHandler};
+use crate::prelude::{Address, EventBus, EventHandler};
 use crate::supervisor::Supervisor;
 
 /// System-wide lifecycle events.

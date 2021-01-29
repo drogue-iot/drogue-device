@@ -1,7 +1,6 @@
 use heapless::{consts::*, Vec};
 
 use crate::actor::Actor;
-use crate::device::Device;
 use crate::interrupt::{Interrupt, InterruptContext};
 use core::sync::atomic::Ordering;
 
