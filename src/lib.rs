@@ -27,7 +27,7 @@ pub mod prelude {
     pub use crate::address::Address;
     pub use crate::bus::{EventBus, EventConsumer};
     pub use crate::device;
-    pub use crate::device::{Device, Lifecycle};
+    pub use crate::device::{Device};
     pub use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
     pub use crate::interrupt::{Interrupt, InterruptContext};
     pub use crate::supervisor::Supervisor;

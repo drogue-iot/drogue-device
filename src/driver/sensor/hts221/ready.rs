@@ -38,18 +38,6 @@ for Ready<D, P, I>
         I: WriteRead + Read + Write + 'static
 {}
 
-impl<D, P, I> NotificationHandler<Lifecycle>
-for Ready<D, P, I>
-    where
-        D: Device,
-        P: InputPin + ExtiPin,
-        I: WriteRead + Read + Write
-{
-    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
-        Completion::immediate()
-    }
-}
-
 impl<D, P, I> Interrupt
 for Ready<D, P, I>
     where

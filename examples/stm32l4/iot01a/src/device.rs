@@ -95,9 +95,6 @@ impl Device for MyDevice {
     }
 }
 
-impl EventConsumer<Lifecycle> for MyDevice {
-}
-
 impl EventConsumer<ButtonEvent> for MyDevice {
     fn on_event(&'static mut self, message: ButtonEvent) where
         Self: Sized, {

@@ -82,12 +82,6 @@ impl<T: HalTimer> Timer<T> {
 
 impl<T: HalTimer> Actor for Timer<T> {}
 
-impl<T: HalTimer> NotificationHandler<Lifecycle> for Timer<T> {
-    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
-        Completion::immediate()
-    }
-}
-
 impl<T: HalTimer, DUR: Duration + Into<Milliseconds>> RequestHandler<Delay<DUR>>
     for Timer<T>
 {

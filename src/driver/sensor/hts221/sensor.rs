@@ -41,11 +41,23 @@ impl<D, I> Sensor<D, I>
             bus: None,
         }
     }
+}
 
-    // ------------------------------------------------------------------------
-    // Lifecycle
-    // ------------------------------------------------------------------------
+impl<D, I> Default for Sensor<D, I>
+    where
+        D: Device,
+        I: WriteRead + Read + Write + 'static
+{
+    fn default() -> Self {
+        Sensor::new()
+    }
+}
 
+impl<D, I> Actor for Sensor<D, I>
+    where
+        D: Device,
+        I: WriteRead + Read + Write
+{
     fn initialize(&'static mut self) -> Completion {
         Completion::defer(async move {
             if let Some(ref i2c) = self.i2c {
@@ -94,29 +106,6 @@ impl<D, I> Sensor<D, I>
     }
 }
 
-impl<D, I> Default for Sensor<D, I>
-    where
-        D: Device,
-        I: WriteRead + Read + Write + 'static
-{
-    fn default() -> Self {
-        Sensor::new()
-    }
-}
-
-impl<D, I> Actor for Sensor<D, I>
-    where
-        D: Device,
-        I: WriteRead + Read + Write
-{
-    fn mount(&mut self, address: Address<Self>)
-        where
-            Self: Sized,
-    {
-        //self.bus.replace(bus);
-    }
-}
-
 impl<D, I> Bind<EventBus<D>> for Sensor<D, I>
     where
         D: Device,
@@ -135,24 +124,6 @@ for Sensor<D, I>
 {
     fn on_bind(&'static mut self, address: Address<Mutex<I>>) {
         self.i2c.replace(address);
-    }
-}
-
-impl<D, I> NotificationHandler<Lifecycle>
-for Sensor<D, I>
-    where
-        D: Device,
-        I: WriteRead + Read + Write
-{
-    fn on_notification(&'static mut self, event: Lifecycle) -> Completion {
-        //log::info!("[hts221] Lifecycle: {:?}", event);
-        match event {
-            Lifecycle::Initialize => self.initialize(),
-            Lifecycle::Start => self.start(),
-            Lifecycle::Stop => Completion::immediate(),
-            Lifecycle::Sleep => Completion::immediate(),
-            Lifecycle::Hibernate => Completion::immediate(),
-        }
     }
 }
 

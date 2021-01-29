@@ -12,7 +12,7 @@ use crate::actor::ActorContext;
 /// required to implement `NotificationHandler<Lifecycle>` but may opt to
 /// ignore any or all of the events.
 #[derive(Copy, Clone, Debug)]
-pub enum Lifecycle {
+pub(crate) enum Lifecycle {
     /// Called after mounting but prior to starting the async executor.
     Initialize,
     /// Called after `Initialize` but prior to starting the async executor.
@@ -28,7 +28,7 @@ pub enum Lifecycle {
 /// Trait which must be implemented by all top-level devices which
 /// subsequently contain `ActorContext` or `InterruptContext` or other
 /// packages.
-pub trait Device: EventConsumer<Lifecycle> {
+pub trait Device {
     /// Called when the device is mounted into the system.
     ///
     /// The device *must* propagate the call through to all children `ActorContext`

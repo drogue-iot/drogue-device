@@ -1,4 +1,4 @@
-use crate::prelude::{Actor, Device, NotificationHandler, Lifecycle, Address};
+use crate::prelude::{Actor, Device, NotificationHandler, Address};
 use crate::handler::{Completion, RequestHandler, Response};
 use crate::bus::EventBus;
 use core::future::Future;
@@ -81,13 +81,6 @@ impl Actor for Semaphore
     fn mount(&mut self, address: Address<Self>) where
         Self: Sized, {
         self.address.replace(address);
-    }
-}
-
-impl NotificationHandler<Lifecycle> for Semaphore
-{
-    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
-        Completion::immediate()
     }
 }
 

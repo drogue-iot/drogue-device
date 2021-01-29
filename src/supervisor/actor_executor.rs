@@ -2,10 +2,10 @@ use heapless::{consts::*, Vec};
 
 use crate::actor::{Actor, ActorContext};
 use crate::device::Device;
-use crate::prelude::Lifecycle;
 use core::cmp::PartialEq;
 use core::sync::atomic::{AtomicU8, Ordering};
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
+use crate::prelude::device::Lifecycle;
 
 #[derive(PartialEq)]
 pub(crate) enum ActorState {
@@ -161,7 +161,7 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
     }
 
     fn dispatch_lifecycle_event(&'static self, event: Lifecycle) {
-        self.notify(event)
+        self.lifecycle(event)
     }
 }
 

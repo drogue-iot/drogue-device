@@ -104,30 +104,19 @@ where
     fn mount(&mut self, address: Address<Self>) {
         self.address.replace(address);
     }
-}
 
-impl<P, ROWS, COLS, T> NotificationHandler<Lifecycle> for LEDMatrix<P, ROWS, COLS, T>
-where
-    P: OutputPin,
-    ROWS: ArrayLength<P>,
-    COLS: ArrayLength<P>,
-    T: HalTimer,
-{
-    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
-        if let Lifecycle::Start = message {
-            if let Some(address) = &self.address {
-                self.timer.as_ref().unwrap().schedule(
-                    self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
-                    MatrixCommand::Render,
-                    address.clone(),
-                );
-            }
-            Completion::immediate()
-        } else {
-            Completion::immediate()
+    fn start(&'static mut self) -> Completion {
+        if let Some(address) = &self.address {
+            self.timer.as_ref().unwrap().schedule(
+                self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
+                MatrixCommand::Render,
+                address.clone(),
+            );
         }
+        Completion::immediate()
     }
 }
+
 
 impl<P, ROWS, COLS, T> NotificationHandler<MatrixCommand> for LEDMatrix<P, ROWS, COLS, T>
 where

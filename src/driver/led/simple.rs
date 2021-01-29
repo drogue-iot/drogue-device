@@ -65,15 +65,6 @@ impl<P> Actor for SimpleLED<P>
     where
         P: OutputPin {}
 
-impl<P> NotificationHandler<Lifecycle> for SimpleLED<P>
-    where
-        P: OutputPin
-{
-    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
-        Completion::immediate()
-    }
-}
-
 impl<P> NotificationHandler<On> for SimpleLED<P>
     where
         Self: Switchable,

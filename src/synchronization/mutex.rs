@@ -1,7 +1,7 @@
 use crate::actor::Actor;
 use crate::address::Address;
 use crate::bus::EventBus;
-use crate::device::{Device, Lifecycle};
+use crate::device::{Device};
 use crate::handler::{Completion, NotificationHandler, RequestHandler, Response};
 use core::cell::UnsafeCell;
 use core::future::Future;
@@ -48,16 +48,6 @@ for Mutex<T>
             log::trace!("[Mutex<T> lock");
             lock
         })
-    }
-}
-
-impl<T> NotificationHandler<Lifecycle>
-for Mutex<T>
-    where
-        T: 'static
-{
-    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
-        Completion::immediate()
     }
 }
 

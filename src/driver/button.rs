@@ -41,18 +41,6 @@ for Button<D, PIN>
     }
 }
 
-
-impl<D, PIN> NotificationHandler<Lifecycle>
-for Button<D, PIN>
-    where
-        D: Device,
-        PIN: InputPin + ExtiPin
-{
-    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
-        Completion::immediate()
-    }
-}
-
 impl<D, PIN> Button<D, PIN>
     where
         D: Device,

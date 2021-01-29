@@ -1,4 +1,4 @@
-use crate::device::{Device, DeviceContext, Lifecycle};
+use crate::device::{Device, DeviceContext};
 
 use core::cell::UnsafeCell;
 use crate::prelude::{Actor, NotificationHandler, Address};

@@ -64,15 +64,8 @@ for Blinker<P, T>
             Self: Sized, {
         self.address.replace(address);
     }
-}
 
-impl<P, T> NotificationHandler<Lifecycle>
-for Blinker<P, T>
-    where
-        P: OutputPin,
-        T: HalTimer,
-{
-    fn on_notification(&'static mut self, message: Lifecycle) -> Completion {
+    fn start(&'static mut self) -> Completion {
         self.timer.as_ref().unwrap().schedule(self.delay, State::On, self.address.as_ref().unwrap().clone());
         Completion::immediate()
     }
