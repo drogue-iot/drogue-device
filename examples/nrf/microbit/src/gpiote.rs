@@ -5,25 +5,45 @@ use nrf52833_hal as hal;
 
 use hal::gpiote::GpioteInputPin;
 
-pub struct Gpiote<D: Device + EventConsumer<GpioteEvent>> {
+pub struct Gpiote<D>
+where
+    D: Device + EventHandler<GpioteEvent>,
+{
     gpiote: hal::gpiote::Gpiote,
-    bus: Option<EventBus<D>>,
+    bus: Option<Address<EventBus<D>>>,
 }
 
-pub struct GpioteChannel<
-    D: Device + EventConsumer<PinEvent>,
-    P: InputPin + GpioteInputPin + 'static,
-> {
-    bus: Option<EventBus<D>>,
+pub struct GpioteChannel<D, P>
+where
+    D: Device + EventHandler<PinEvent>,
+    P: InputPin + GpioteInputPin,
+{
+    bus: Option<Address<EventBus<D>>>,
     channel: Channel,
     pin: P,
 }
 
-impl<D: Device + EventConsumer<PinEvent>, P: InputPin + GpioteInputPin + Sized> Actor<D>
+impl<D: Device + EventHandler<PinEvent>, P: InputPin + GpioteInputPin + Sized> Actor
     for GpioteChannel<D, P>
 {
-    fn mount(&mut self, _: Address<D, Self>, bus: EventBus<D>) {
-        self.bus.replace(bus);
+}
+
+impl<D> Bind<EventBus<D>> for Gpiote<D>
+where
+    D: Device + EventHandler<GpioteEvent>,
+{
+    fn on_bind(&'static mut self, address: Address<EventBus<D>>) {
+        self.bus.replace(address);
+    }
+}
+
+impl<D, P> Bind<EventBus<D>> for GpioteChannel<D, P>
+where
+    D: Device + EventHandler<PinEvent>,
+    P: InputPin + GpioteInputPin,
+{
+    fn on_bind(&'static mut self, address: Address<EventBus<D>>) {
+        self.bus.replace(address);
     }
 }
 
@@ -43,7 +63,7 @@ pub enum Edge {
     Both,
 }
 
-impl<D: Device + EventConsumer<GpioteEvent>> Gpiote<D> {
+impl<D: Device + EventHandler<GpioteEvent>> Gpiote<D> {
     pub fn new(gpiote: hal::pac::GPIOTE) -> Self {
         let gpiote = hal::gpiote::Gpiote::new(gpiote);
         Self { gpiote, bus: None }
@@ -56,7 +76,7 @@ impl<D: Device + EventConsumer<GpioteEvent>> Gpiote<D> {
         edge: Edge,
     ) -> GpioteChannel<D, P>
     where
-        D: EventConsumer<PinEvent>,
+        D: EventHandler<PinEvent>,
     {
         let ch = match channel {
             Channel::Channel0 => self.gpiote.channel0(),
@@ -78,7 +98,7 @@ impl<D: Device + EventConsumer<GpioteEvent>> Gpiote<D> {
     }
 }
 
-impl<D: Device + EventConsumer<PinEvent>, P: InputPin + GpioteInputPin> GpioteChannel<D, P> {
+impl<D: Device + EventHandler<PinEvent>, P: InputPin + GpioteInputPin> GpioteChannel<D, P> {
     pub fn new(channel: Channel, pin: P) -> GpioteChannel<D, P> {
         GpioteChannel {
             channel,
@@ -88,13 +108,12 @@ impl<D: Device + EventConsumer<PinEvent>, P: InputPin + GpioteInputPin> GpioteCh
     }
 }
 
-impl<D: Device + EventConsumer<PinEvent>, P: InputPin + GpioteInputPin>
-    NotificationHandler<GpioteEvent> for GpioteChannel<D, P>
+impl<D: Device + EventHandler<PinEvent>, P: InputPin + GpioteInputPin> NotifyHandler<GpioteEvent>
+    for GpioteChannel<D, P>
 {
-    fn on_notification(&'static mut self, event: GpioteEvent) -> Completion {
+    fn on_notify(&'static mut self, event: GpioteEvent) -> Completion {
         match event {
             GpioteEvent(c) if c == self.channel => {
-                log::info!("Channel {:?} notified!", self.channel);
                 if let Some(bus) = &self.bus {
                     if self.pin.is_high().ok().unwrap() {
                         bus.publish(PinEvent(c, PinState::High));
@@ -109,9 +128,8 @@ impl<D: Device + EventConsumer<PinEvent>, P: InputPin + GpioteInputPin>
     }
 }
 
-impl<D: Device + EventConsumer<GpioteEvent> + 'static> Interrupt<D> for Gpiote<D> {
+impl<D: Device + EventHandler<GpioteEvent> + 'static> Interrupt for Gpiote<D> {
     fn on_interrupt(&mut self) {
-        log::info!("GPIOTE INTERRUPT");
         if let Some(bus) = &self.bus {
             if self.gpiote.channel0().is_event_triggered() {
                 bus.publish(GpioteEvent(Channel::Channel0));
@@ -133,33 +151,15 @@ impl<D: Device + EventConsumer<GpioteEvent> + 'static> Interrupt<D> for Gpiote<D
     }
 }
 
-impl<D: Device + EventConsumer<GpioteEvent>> Actor<D> for Gpiote<D> {
-    fn mount(&mut self, _: Address<D, Self>, bus: EventBus<D>) {
-        self.bus.replace(bus);
-    }
-}
-
-impl<D: Device + EventConsumer<GpioteEvent>> NotificationHandler<Lifecycle> for Gpiote<D> {
-    fn on_notification(&'static mut self, _: Lifecycle) -> Completion {
-        Completion::immediate()
-    }
-}
-
-impl<D: Device + EventConsumer<PinEvent>, P: InputPin + GpioteInputPin + 'static>
-    NotificationHandler<Lifecycle> for GpioteChannel<D, P>
-{
-    fn on_notification(&'static mut self, _: Lifecycle) -> Completion {
-        Completion::immediate()
-    }
-}
+impl<D: Device + EventHandler<GpioteEvent>> Actor for Gpiote<D> {}
 
 /*
-impl<D: Device + EventConsumer<PinEvent>, P: InputPin + GpioteInputPin + 'static>
+impl<D: Device + EventHandler<PinEvent>, P: InputPin + GpioteInputPin + 'static>
     EventProducer<D, PinEvent> for GpioteChannel<D, P>
 {
 }
 
-impl<D: Device + EventConsumer<GpioteEvent>> EventProducer<D, GpioteEvent> for Gpiote<D> {}
+impl<D: Device + EventHandler<GpioteEvent>> EventProducer<D, GpioteEvent> for Gpiote<D> {}
 */
 
 #[derive(Debug, PartialEq, Copy, Clone, Eq)]

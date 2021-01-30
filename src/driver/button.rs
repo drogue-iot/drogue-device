@@ -22,12 +22,6 @@ where
     D: Device,
     PIN: InputPin + ExtiPin,
 {
-    fn mount(&mut self, address: Address<Self>)
-    where
-        Self: Sized,
-    {
-        //self.bus.replace(bus);
-    }
 }
 
 impl<D, PIN> Bind<EventBus<D>> for Button<D, PIN>

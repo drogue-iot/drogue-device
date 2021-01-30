@@ -25,6 +25,7 @@ pub mod hal;
 pub mod prelude {
     pub use crate::actor::{Actor, ActorContext, ActorInfo};
     pub use crate::address::Address;
+    pub use crate::bind::Bind;
     pub use crate::bus::EventBus;
     pub use crate::device;
     pub use crate::device::Device;
