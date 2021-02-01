@@ -48,25 +48,32 @@ where
 }
 
 impl<SPI> Bind<Mutex<SpiPeripheral<SPI>>> for SpiInterrupt<SPI>
-    where
-        SPI: FullDuplex<u8>,
+where
+    SPI: FullDuplex<u8>,
 {
     fn on_bind(&'static mut self, address: Address<Mutex<SpiPeripheral<SPI>>>) {
-        address.notify( SetFlags {
+        address.notify(SetFlags {
             tx_ready: &self.tx_ready,
             rx_ready: &self.rx_ready,
         });
     }
 }
 
-
 impl<SPI> NotifyHandler<SetFlags> for Mutex<SpiPeripheral<SPI>>
-    where
-        SPI: FullDuplex<u8>,
+where
+    SPI: FullDuplex<u8>,
 {
     fn on_notify(&'static mut self, message: SetFlags) -> Completion {
-        self.val.as_mut().unwrap().tx_ready.replace( message.tx_ready );
-        self.val.as_mut().unwrap().rx_ready.replace( message.rx_ready );
+        self.val
+            .as_mut()
+            .unwrap()
+            .tx_ready
+            .replace(message.tx_ready);
+        self.val
+            .as_mut()
+            .unwrap()
+            .rx_ready
+            .replace(message.rx_ready);
         Completion::immediate()
     }
 }
@@ -84,7 +91,7 @@ where
         let periph_addr = self.mutex.mount(supervisor);
         let irq_addr = self.irq.mount(supervisor);
         periph_addr.bind(&irq_addr.clone());
-        irq_addr.bind( &periph_addr.clone());
+        irq_addr.bind(&periph_addr.clone());
         periph_addr
     }
 }
@@ -257,10 +264,33 @@ pub trait Transfer {
     ) -> Poll<()>;
 }
 
-async fn test<SPI: FullDuplex<u8>>(mut spi: SpiPeripheral<SPI>) {
-    let mut buf = [0; 16];
-    let result = spi.transfer(&mut buf).await;
-    use_it(&buf)
+// ------------------------------------------------------------------------
+// ------------------------------------------------------------------------
+
+struct TestActor<SPI>
+where
+    SPI: FullDuplex<u8> + 'static,
+{
+    spi: Address<Mutex<SpiPeripheral<SPI>>>,
+}
+
+impl<SPI> Actor for TestActor<SPI>
+    where
+        SPI: FullDuplex<u8> + 'static,
+{
+    fn start(&'static mut self) -> Completion {
+        Completion::defer( async move {
+            let mut periph = self.spi.lock().await;
+            let mut buf = [0; 16];
+            let result = periph.transfer(&mut buf).await;
+            // prove we can borrow immutable afterwards.
+            use_it(&buf);
+
+            // prove we can borrow mutable afterwards.
+            use_it_mut(&mut buf);
+        })
+    }
 }
 
 pub fn use_it(buf: &[u8]) {}
+pub fn use_it_mut(buf: &mut [u8]) {}
