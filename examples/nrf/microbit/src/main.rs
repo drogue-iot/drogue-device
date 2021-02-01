@@ -8,8 +8,8 @@ use panic_halt as _;
 
 use cortex_m_rt::{entry, exception};
 use drogue_device::{
-    domain::time::rate::Extensions, driver::timer::Timer, hal::timer::nrf::Timer as HalTimer,
-    prelude::*,
+    domain::time::rate::Extensions, driver::timer::Timer, driver::uart::Uart,
+    hal::timer::nrf::Timer as HalTimer, hal::uart::nrf::Uarte as HalUart, prelude::*,
 };
 use hal::gpio::Level;
 use heapless::{consts, Vec};
@@ -55,6 +55,9 @@ fn main() -> ! {
     // Timer
     let timer = Timer::new(HalTimer::new(device.TIMER0));
 
+    // Uart
+    let uart = Uart::new(HalUart::new(device.UARTE0));
+
     // LED Matrix
     let mut rows = Vec::<_, consts::U5>::new();
     rows.push(port0.p0_21.into_push_pull_output(Level::Low).degrade())
@@ -89,6 +92,7 @@ fn main() -> ! {
         gpiote: InterruptContext::new(gpiote, hal::pac::Interrupt::GPIOTE).with_name("gpiote"),
         led: ActorContext::new(led).with_name("matrix"),
         timer: InterruptContext::new(timer, hal::pac::Interrupt::TIMER0).with_name("timer"),
+        uart: InterruptContext::new(uart, hal::pac::Interrupt::UARTE0_UART0),
     };
 
     device!( MyDevice = device; 1024 );

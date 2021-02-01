@@ -3,8 +3,10 @@ use drogue_device::{
     driver::{
         led::{LEDMatrix, MatrixCommand},
         timer::Timer,
+        uart::Uart,
     },
     hal::timer::nrf::Timer as HalTimer,
+    hal::uart::nrf::Uarte as HalUart,
     prelude::*,
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
@@ -22,6 +24,7 @@ pub struct MyDevice {
     pub btn_fwd: ActorContext<Button>,
     pub btn_back: ActorContext<Button>,
     pub timer: InterruptContext<TimerActor>,
+    pub uart: InterruptContext<Uart<HalUart<hal::pac::UARTE0>>>,
 }
 
 impl Device for MyDevice {
