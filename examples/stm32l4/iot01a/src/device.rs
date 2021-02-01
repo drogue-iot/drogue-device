@@ -20,9 +20,13 @@ use stm32l4xx_hal::{
     pac::I2C2,
     pac::TIM15,
 };
+use drogue_device::hal::gpio::{ActiveOutput, ActiveHigh};
 
-type Ld1Actor = SimpleLED<PA5<Output<PushPull>>>;
-type Ld2Actor = SimpleLED<PB14<Output<PushPull>>>;
+type Ld1Pin = PA5<Output<PushPull>>;
+type Ld2Pin = PB14<Output<PushPull>>;
+
+type Ld1Actor = SimpleLED<Ld1Pin, ActiveHigh>;
+type Ld2Actor = SimpleLED<Ld2Pin, ActiveHigh>;
 type ButtonInterrupt = Button<MyDevice, PC13<Input<PullUp>>>;
 
 type I2cScl = PB10<Alternate<AF4, Output<OpenDrain>>>;
@@ -30,8 +34,8 @@ type I2cSda = PB11<Alternate<AF4, Output<OpenDrain>>>;
 type I2cPeriph = I2c<I2C2, (I2cScl, I2cSda)>;
 type I2cActor = Mutex<I2cPeriph>;
 
-type Blinker1Actor = Blinker<PA5<Output<PushPull>>, McuTimer<TIM15>>;
-type Blinker2Actor = Blinker<PB14<Output<PushPull>>, McuTimer<TIM15>>;
+type Blinker1Actor = Blinker<Ld1Actor, McuTimer<TIM15>>;
+type Blinker2Actor = Blinker<Ld2Actor, McuTimer<TIM15>>;
 
 type TimerActor = Timer<McuTimer<TIM15>>;
 

@@ -1,25 +1,25 @@
 use crate::bind::Bind;
 use crate::domain::time::duration::Milliseconds;
-use crate::driver::led::SimpleLED;
 use crate::driver::timer::Timer;
 use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
 use embedded_hal::digital::v2::OutputPin;
+use crate::driver::led::simple::Switchable;
 
-pub struct Blinker<P, T>
+pub struct Blinker<S, T>
 where
-    P: OutputPin,
+    S: Switchable,
     T: HalTimer,
 {
-    led: Option<Address<SimpleLED<P>>>,
+    led: Option<Address<S>>,
     timer: Option<Address<Timer<T>>>,
     delay: Milliseconds,
     address: Option<Address<Self>>,
 }
 
-impl<P, T> Blinker<P, T>
+impl<S, T> Blinker<S, T>
 where
-    P: OutputPin,
+    S: Switchable,
     T: HalTimer,
 {
     pub fn new<DUR: Into<Milliseconds>>(delay: DUR) -> Self {
@@ -32,19 +32,19 @@ where
     }
 }
 
-impl<P, T> Bind<SimpleLED<P>> for Blinker<P, T>
+impl<S, T> Bind<S> for Blinker<S, T>
 where
-    P: OutputPin,
+    S: Switchable,
     T: HalTimer,
 {
-    fn on_bind(&'static mut self, address: Address<SimpleLED<P>>) {
+    fn on_bind(&'static mut self, address: Address<S>) {
         self.led.replace(address);
     }
 }
 
-impl<P, T> Bind<Timer<T>> for Blinker<P, T>
+impl<S, T> Bind<Timer<T>> for Blinker<S, T>
 where
-    P: OutputPin,
+    S: Switchable,
     T: HalTimer,
 {
     fn on_bind(&'static mut self, address: Address<Timer<T>>) {
@@ -52,9 +52,9 @@ where
     }
 }
 
-impl<P, T> Actor for Blinker<P, T>
+impl<S, T> Actor for Blinker<S, T>
 where
-    P: OutputPin,
+    S: Switchable,
     T: HalTimer,
 {
     fn mount(&mut self, address: Address<Self>)
@@ -80,9 +80,9 @@ enum State {
     Off,
 }
 
-impl<P, T> NotifyHandler<State> for Blinker<P, T>
+impl<S, T> NotifyHandler<State> for Blinker<S, T>
 where
-    P: OutputPin,
+    S: Switchable,
     T: HalTimer,
 {
     fn on_notify(&'static mut self, message: State) -> Completion {
@@ -110,9 +110,9 @@ where
 
 pub struct AdjustDelay(Milliseconds);
 
-impl<P, T> NotifyHandler<AdjustDelay> for Blinker<P, T>
+impl<S, T> NotifyHandler<AdjustDelay> for Blinker<S, T>
 where
-    P: OutputPin,
+    S: Switchable,
     T: HalTimer,
 {
     fn on_notify(&'static mut self, message: AdjustDelay) -> Completion {
@@ -121,10 +121,10 @@ where
     }
 }
 
-impl<P, T> Address<Blinker<P, T>>
+impl<S, T> Address<Blinker<S, T>>
 where
     Self: 'static,
-    P: OutputPin,
+    S: Switchable,
     T: HalTimer,
 {
     pub fn adjust_delay(&self, delay: Milliseconds) {

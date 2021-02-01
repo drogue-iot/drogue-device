@@ -1,5 +1,7 @@
+use crate::hal::gpio::ActiveOutput;
 use crate::hal::Active;
 use crate::prelude::*;
+use core::marker::PhantomData;
 use embedded_hal::digital::v2::OutputPin;
 
 pub struct On;
@@ -11,56 +13,54 @@ pub trait Switchable: Actor + NotifyHandler<On> + NotifyHandler<Off> {
     fn turn_off(&mut self);
 }
 
-pub struct SimpleLED<P>
+pub struct SimpleLED<P, A>
 where
     P: OutputPin,
+    A: ActiveOutput,
 {
-    active: Active,
     pin: P,
+    _active: PhantomData<A>,
 }
 
-impl<P> SimpleLED<P>
+impl<P, A> SimpleLED<P, A>
 where
     P: OutputPin,
+    A: ActiveOutput,
 {
     pub fn new(pin: P, active: Active) -> Self {
-        Self { active, pin }
+        Self {
+            pin,
+            _active: PhantomData,
+        }
     }
 }
 
-impl<P> Switchable for SimpleLED<P>
+impl<P, A> Switchable for SimpleLED<P, A>
 where
     P: OutputPin,
+    A: ActiveOutput,
 {
     fn turn_on(&mut self) {
-        match self.active {
-            Active::High => {
-                self.pin.set_high().ok().unwrap();
-            }
-            Active::Low => {
-                self.pin.set_low().ok().unwrap();
-            }
-        }
+        A::set_active(&mut self.pin);
     }
 
     fn turn_off(&mut self) {
-        match self.active {
-            Active::High => {
-                self.pin.set_low().ok().unwrap();
-            }
-            Active::Low => {
-                self.pin.set_high().ok().unwrap();
-            }
-        }
+        A::set_inactive(&mut self.pin);
     }
 }
 
-impl<P> Actor for SimpleLED<P> where P: OutputPin {}
+impl<P, A> Actor for SimpleLED<P, A>
+where
+    P: OutputPin,
+    A: ActiveOutput,
+{
+}
 
-impl<P> NotifyHandler<On> for SimpleLED<P>
+impl<P,A> NotifyHandler<On> for SimpleLED<P,A>
 where
     Self: Switchable,
     P: OutputPin,
+    A: ActiveOutput,
 {
     fn on_notify(&'static mut self, message: On) -> Completion {
         self.turn_on();
@@ -68,10 +68,11 @@ where
     }
 }
 
-impl<P> NotifyHandler<Off> for SimpleLED<P>
+impl<P,A> NotifyHandler<Off> for SimpleLED<P,A>
 where
     Self: Switchable,
     P: OutputPin,
+    A: ActiveOutput,
 {
     fn on_notify(&'static mut self, message: Off) -> Completion {
         Completion::defer(async move {
