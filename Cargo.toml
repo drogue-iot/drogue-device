@@ -27,6 +27,9 @@ version = "0.4.13"
 version = "0.2.4"
 features = ["unproven"]
 
+[dependencies.nb]
+version = "1.0.0"
+
 [dependencies.stm32l4xx-hal]
 version = "0.6.0"
 features = ["rt"]

@@ -13,14 +13,8 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll, Waker};
 use cortex_m::interrupt::Nr;
 use embedded_hal::spi::FullDuplex;
+use nb::Error;
 
-struct Crap;
-
-unsafe impl Nr for Crap {
-    fn nr(&self) -> u8 {
-        unimplemented!()
-    }
-}
 pub struct Spi<SPI: FullDuplex<u8> + 'static> {
     mutex: ActorContext<Mutex<SpiPeripheral<SPI>>>,
     irq: InterruptContext<SpiInterrupt<SPI>>,
@@ -30,10 +24,10 @@ impl<SPI> Spi<SPI>
 where
     SPI: FullDuplex<u8>,
 {
-    pub fn new(spi: SPI) -> Self {
+    pub fn new<IRQ: Nr>(spi: SPI, irq: IRQ) -> Self {
         Self {
             mutex: ActorContext::new(Mutex::new(SpiPeripheral::new(spi))),
-            irq: InterruptContext::new(SpiInterrupt::new(), Crap {}),
+            irq: InterruptContext::new(SpiInterrupt::new(), irq),
         }
     }
 }
@@ -191,31 +185,70 @@ impl<SPI: FullDuplex<u8>> SpiPeripheral<SPI> {
 }
 
 impl<SPI: FullDuplex<u8>> Transfer for SpiPeripheral<SPI> {
+    type Error = SPI::Error;
+
     fn poll_transfer(
         self: &mut Self,
         cx: &mut Context<'_>,
         buf: &mut [u8],
         state: &mut State,
-    ) -> Poll<()> {
-        match state {
-            State::Write(ref index) => {
-                self.spi.send(buf[*index]);
-                replace(state, State::Read(*index));
-            }
-            State::Read(ref index) => {
-                let result = self.spi.read().unwrap_or(0);
-                buf[*index] = result;
-                replace(state, State::Write(*index + 1));
+    ) -> Poll<Result<(), SPI::Error>> {
+        loop {
+            match state {
+                State::Write(ref index) => {
+                    if index + 1 > buf.len() {
+                        return Poll::Ready(Ok(()));
+                    }
+                    let result = self.spi.send(buf[*index]);
+                    match result {
+                        Ok(_) => {
+                            // sent, next is read, keep going!
+                            replace(state, State::Read(*index));
+                        }
+                        Err(e) => {
+                            match e {
+                                Error::Other(e) => {
+                                    // failed.
+                                    return Poll::Ready( Err(e) );
+                                }
+                                Error::WouldBlock => {
+                                    // we made no progress,
+                                    self.irq
+                                        .as_ref()
+                                        .unwrap()
+                                        .notify(SetWaker(cx.waker().clone()));
+                                    return Poll::Pending;
+                                }
+                            }
+                        }
+                    }
+                }
+                State::Read(ref index) => {
+                    let result = self.spi.read();
+                    match result {
+                        Ok(word) => {
+                            buf[*index] = word;
+                            replace(state, State::Write(*index + 1));
+                        }
+                        Err(e) => {
+                            match e {
+                                Error::Other(e) => {
+                                    // failed.
+                                    return Poll::Ready( Err(e) );
+                                }
+                                Error::WouldBlock => {
+                                    self.irq
+                                        .as_ref()
+                                        .unwrap()
+                                        .notify(SetWaker(cx.waker().clone()));
+                                    return Poll::Pending;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
-
-        // send waker to the IRQ.
-        self.irq
-            .as_ref()
-            .unwrap()
-            .notify(SetWaker(cx.waker().clone()));
-
-        Poll::Pending
     }
 }
 
@@ -243,7 +276,7 @@ impl<'w, T: Transfer + Unpin + ?Sized> TransferFuture<'w, T> {
 }
 
 impl<T: Transfer + Unpin + ?Sized> Future for TransferFuture<'_, T> {
-    type Output = ();
+    type Output = Result<(), T::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let Self {
@@ -256,12 +289,13 @@ impl<T: Transfer + Unpin + ?Sized> Future for TransferFuture<'_, T> {
 }
 
 pub trait Transfer {
+    type Error;
     fn poll_transfer(
         self: &mut Self,
         cx: &mut Context<'_>,
         buf: &mut [u8],
         state: &mut State,
-    ) -> Poll<()>;
+    ) -> Poll<Result<(), Self::Error>>;
 }
 
 // ------------------------------------------------------------------------
@@ -275,11 +309,11 @@ where
 }
 
 impl<SPI> Actor for TestActor<SPI>
-    where
-        SPI: FullDuplex<u8> + 'static,
+where
+    SPI: FullDuplex<u8> + 'static,
 {
     fn start(&'static mut self) -> Completion {
-        Completion::defer( async move {
+        Completion::defer(async move {
             let mut periph = self.spi.lock().await;
             let mut buf = [0; 16];
             let result = periph.transfer(&mut buf).await;
