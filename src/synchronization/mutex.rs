@@ -31,7 +31,7 @@ where
     T: 'static,
 {
     address: Option<Address<Self>>,
-    val: Option<T>,
+    pub(crate) val: Option<T>,
     waiters: Queue<Waker, U16>,
 }
 
