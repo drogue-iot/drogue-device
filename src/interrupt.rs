@@ -45,6 +45,10 @@ impl<I: Interrupt> InterruptContext<I> {
         self
     }
 
+    pub fn address(&'static self) -> Address<I> {
+        self.actor_context.address()
+    }
+
     /// Mount the context and its actor into the system.
     pub fn mount(&'static self, supervisor: &mut Supervisor) -> Address<I> {
         let addr = self.actor_context.mount(supervisor);
