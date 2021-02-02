@@ -1,10 +1,9 @@
 use crate::bind::Bind;
 use crate::domain::time::duration::Milliseconds;
+use crate::driver::led::simple::Switchable;
 use crate::driver::timer::Timer;
 use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
-use embedded_hal::digital::v2::OutputPin;
-use crate::driver::led::simple::Switchable;
 
 pub struct Blinker<S, T>
 where

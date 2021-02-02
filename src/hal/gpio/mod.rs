@@ -1,5 +1,4 @@
 use embedded_hal::digital::v2::OutputPin;
-use core::marker::PhantomData;
 
 pub mod exti_pin;
 
@@ -8,8 +7,7 @@ pub trait ActiveOutput {
     fn set_inactive<P: OutputPin>(pin: &mut P) -> Result<(), P::Error>;
 }
 
-pub struct ActiveHigh {
-}
+pub struct ActiveHigh {}
 
 pub struct ActiveLow {}
 

@@ -41,11 +41,11 @@ where
     A: ActiveOutput,
 {
     fn turn_on(&mut self) {
-        A::set_active(&mut self.pin);
+        A::set_active(&mut self.pin).ok();
     }
 
     fn turn_off(&mut self) {
-        A::set_inactive(&mut self.pin);
+        A::set_inactive(&mut self.pin).ok();
     }
 }
 
@@ -56,7 +56,7 @@ where
 {
 }
 
-impl<P,A> NotifyHandler<On> for SimpleLED<P,A>
+impl<P, A> NotifyHandler<On> for SimpleLED<P, A>
 where
     Self: Switchable,
     P: OutputPin,
@@ -68,7 +68,7 @@ where
     }
 }
 
-impl<P,A> NotifyHandler<Off> for SimpleLED<P,A>
+impl<P, A> NotifyHandler<Off> for SimpleLED<P, A>
 where
     Self: Switchable,
     P: OutputPin,

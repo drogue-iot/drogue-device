@@ -1,20 +1,14 @@
 use crate::address::Address;
 use crate::bus::EventBus;
 use crate::prelude::*;
-use crate::synchronization::{Exclusive, Lock, Mutex, Unlock};
+use crate::synchronization::Mutex;
 
-use crate::handler::{RequestHandler, Response};
-use core::cell::UnsafeCell;
 use core::future::Future;
-use core::marker::PhantomData;
-use core::mem::replace;
 use core::pin::Pin;
-use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll, Waker};
 use cortex_m::interrupt::Nr;
 use embedded_hal::spi::FullDuplex;
 use nb::Error;
-use crate::hal::gpio::exti_pin::ExtiPin;
 
 pub struct Spi<SPI: FullDuplex<u8> + 'static> {
     mutex: ActorContext<Mutex<SpiPeripheral<SPI>>>,
@@ -59,17 +53,13 @@ where
     }
 }
 
-pub struct SpiInterrupt
-{
+pub struct SpiInterrupt {
     waker: Option<Waker>,
 }
 
-impl SpiInterrupt
-{
+impl SpiInterrupt {
     fn new() -> Self {
-        Self {
-            waker: None,
-        }
+        Self { waker: None }
     }
 
     fn signal(&mut self) {
@@ -81,18 +71,16 @@ impl SpiInterrupt
 
 struct SetWaker(Waker);
 
-impl NotifyHandler<SetWaker> for SpiInterrupt
-{
+impl NotifyHandler<SetWaker> for SpiInterrupt {
     fn on_notify(&'static mut self, message: SetWaker) -> Completion {
         self.waker.replace(message.0.clone());
         Completion::immediate()
     }
 }
 
-impl Actor for SpiInterrupt{}
+impl Actor for SpiInterrupt {}
 
-impl Interrupt for SpiInterrupt
-{
+impl Interrupt for SpiInterrupt {
     fn on_interrupt(&mut self) {
         self.signal();
     }
@@ -108,10 +96,7 @@ where
 
 impl<SPI: FullDuplex<u8>> SpiPeripheral<SPI> {
     pub fn new(spi: SPI) -> Self {
-        Self {
-            spi,
-            irq: None,
-        }
+        Self { spi, irq: None }
     }
 
     pub fn transfer<'w>(&'w mut self, buf: &'w mut [u8]) -> TransferFuture<'w, SPI> {
@@ -134,13 +119,13 @@ impl<SPI: FullDuplex<u8>> SpiPeripheral<SPI> {
                     match result {
                         Ok(_) => {
                             // sent, next is read, keep going!
-                            replace(state, State::Read(*index));
+                            *state = State::Read(*index);
                         }
                         Err(e) => {
                             match e {
                                 Error::Other(e) => {
                                     // failed.
-                                    return Poll::Ready( Err(e) );
+                                    return Poll::Ready(Err(e));
                                 }
                                 Error::WouldBlock => {
                                     // we made no progress,
@@ -159,13 +144,13 @@ impl<SPI: FullDuplex<u8>> SpiPeripheral<SPI> {
                     match result {
                         Ok(word) => {
                             buf[*index] = word;
-                            replace(state, State::Write(*index + 1));
+                            *state = State::Write(*index + 1);
                         }
                         Err(e) => {
                             match e {
                                 Error::Other(e) => {
                                     // failed.
-                                    return Poll::Ready( Err(e) );
+                                    return Poll::Ready(Err(e));
                                 }
                                 Error::WouldBlock => {
                                     self.irq
@@ -206,8 +191,7 @@ impl<'w, SPI: FullDuplex<u8>> TransferFuture<'w, SPI> {
     }
 }
 impl<'w, SPI: FullDuplex<u8>> Future for TransferFuture<'w, SPI> {
-
-    type Output = Result<(),SPI::Error>;
+    type Output = Result<(), SPI::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let Self {

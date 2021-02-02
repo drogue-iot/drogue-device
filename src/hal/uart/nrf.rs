@@ -18,12 +18,26 @@ use core::sync::atomic::{compiler_fence, Ordering::SeqCst};
 
 pub use hal::uarte::{Baudrate, Parity, Pins};
 
+#[derive(Clone)]
+enum TxState {
+    Ready,
+    InProgress,
+}
+
+#[derive(Clone)]
+enum RxState {
+    Ready,
+    InProgress,
+}
+
 pub struct Uarte<T>
 where
     T: Instance,
 {
     uart: T,
     pins: Pins,
+    tx_state: TxState,
+    rx_state: RxState,
 }
 
 impl<T> Uarte<T>
@@ -32,20 +46,15 @@ where
 {
     pub fn new(uart: T, pins: Pins, parity: Parity, baudrate: Baudrate) -> Self {
         let (uart, pins) = hal::uarte::Uarte::new(uart, pins, parity, baudrate).free();
-        uart.inten.modify(|_, w| {
-            w.endrx()
-                .set_bit()
-                /*.rxstarted()
-                .set_bit()*/
-                .rxto()
-                .set_bit()
-                .rxdrdy()
-                .set_bit()
-                .endtx()
-                .set_bit()
-        });
+        uart.inten
+            .modify(|_, w| w.endrx().set_bit().endtx().set_bit());
 
-        Self { uart, pins }
+        Self {
+            uart,
+            pins,
+            tx_state: TxState::Ready,
+            rx_state: RxState::Ready,
+        }
     }
 }
 
@@ -53,8 +62,7 @@ impl<T> crate::hal::uart::Uart for Uarte<T>
 where
     T: Instance,
 {
-    fn write_start(&mut self, tx_buffer: &[u8]) -> Result<(), Error> {
-        log::info!("WRITE START");
+    fn write_start(&self, tx_buffer: &[u8]) -> Result<(), Error> {
         if tx_buffer.len() > hal::target_constants::EASY_DMA_SIZE {
             return Err(Error::TxBufferTooLong);
         }
@@ -66,15 +74,36 @@ where
         Ok(())
     }
 
-    fn process_interrupt(&mut self) {}
+    fn process_interrupts(&self) -> (bool, bool) {
+        let tx_done = self.uart.events_endtx.read().bits() != 0
+            || self.uart.events_txstopped.read().bits() != 0;
 
-    fn write_done(&self) -> bool {
-        log::info!("WRITE DONE?");
-        self.uart.events_endtx.read().bits() != 0 || self.uart.events_txstopped.read().bits() != 0
+        let rx_done = self.uart.events_endrx.read().bits() != 0;
+
+        if self.uart.events_error.read().bits() != 0 {
+            self.uart.events_error.reset();
+        }
+
+        if self.uart.events_txstarted.read().bits() != 0 {
+            self.uart.events_txstarted.reset();
+        }
+
+        if self.uart.events_txstopped.read().bits() != 0 {
+            self.uart.events_txstopped.reset();
+        }
+
+        if self.uart.events_endtx.read().bits() != 0 {
+            self.uart.events_endtx.reset();
+        }
+
+        if self.uart.events_endrx.read().bits() != 0 {
+            self.uart.events_endrx.reset();
+        }
+
+        (tx_done, rx_done)
     }
 
-    fn write_finish(&mut self) -> Result<(), Error> {
-        log::info!("WRITE FINISH");
+    fn write_finish(&self) -> Result<(), Error> {
         // Conservative compiler fence to prevent optimizations that do not
         // take in to account actions by DMA. The fence has been placed here,
         // after all possible DMA actions have completed.
@@ -89,19 +118,14 @@ where
     }
 
     /// Start a read operation to receive data into rx_buffer.
-    fn read_start(&mut self, rx_buffer: &mut [u8]) -> Result<(), Error> {
+    fn read_start(&self, rx_buffer: &mut [u8]) -> Result<(), Error> {
         slice_in_ram_or(rx_buffer, crate::hal::uart::Error::BufferNotInRAM)?;
         start_read(&*self.uart, rx_buffer)?;
         Ok(())
     }
 
-    /// Check progress of a write operation.
-    fn read_done(&self) -> bool {
-        self.uart.events_endrx.read().bits() != 0
-    }
-
     /// Complete a read operation.
-    fn read_finish(&mut self) -> Result<usize, Error> {
+    fn read_finish(&self) -> Result<usize, Error> {
         finalize_read(&*self.uart);
 
         let bytes_read = self.uart.rxd.amount.read().bits() as usize;
@@ -110,7 +134,7 @@ where
     }
 
     /// Cancel a read operation
-    fn read_cancel(&mut self) -> Result<(), Error> {
+    fn read_cancel(&self) -> Result<(), Error> {
         cancel_read(&*self.uart);
         Ok(())
     }
@@ -173,7 +197,6 @@ fn start_read(uarte: &uarte0::RegisterBlock, rx_buffer: &mut [u8]) -> Result<(),
     if rx_buffer.len() > hal::target_constants::EASY_DMA_SIZE {
         return Err(Error::RxBufferTooLong);
     }
-    log::info!("START READ");
 
     // NOTE: RAM slice check is not necessary, as a mutable slice can only be
     // built from data located in RAM.
@@ -191,29 +214,19 @@ fn start_read(uarte: &uarte0::RegisterBlock, rx_buffer: &mut [u8]) -> Result<(),
         .ptr
         .write(|w| unsafe { w.ptr().bits(rx_buffer.as_ptr() as u32) });
 
-    log::info!("SET PTR");
-
     uarte
         .rxd
         .maxcnt
         .write(|w| unsafe { w.maxcnt().bits(rx_buffer.len() as _) });
 
-    log::info!(
-        "SET PTR {}, LEN of {}",
-        rx_buffer.as_ptr() as u32,
-        rx_buffer.len()
-    );
-
     // Start UARTE Receive transaction.
     uarte.tasks_startrx.write(|w| unsafe { w.bits(1) });
 
-    log::info!("GOING TO START RANS");
     Ok(())
 }
 
 /// Stop an unfinished UART read transaction and flush FIFO to DMA buffer.
 fn cancel_read(uarte: &uarte0::RegisterBlock) {
-    log::info!("CANCEL READ");
     // Stop reception.
     uarte.tasks_stoprx.write(|w| unsafe { w.bits(1) });
 
@@ -234,7 +247,6 @@ fn cancel_read(uarte: &uarte0::RegisterBlock) {
 
 /// Finalize a UARTE read transaction by clearing the event.
 fn finalize_read(uarte: &uarte0::RegisterBlock) {
-    log::info!("FINALIZE READ");
     // Reset the event, otherwise it will always read `1` from now on.
     uarte.events_endrx.write(|w| w);
 

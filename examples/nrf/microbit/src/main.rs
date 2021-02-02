@@ -100,7 +100,7 @@ fn main() -> ! {
     cols.push(port0.p0_30.into_push_pull_output(Level::Low).degrade())
         .ok();
 
-    // 60 Hz refresh
+    // Set refresh rate to avoid led flickering
     let led = LedMatrix::new(rows, cols, 150u32.Hz());
 
     let device = MyDevice {

@@ -1,9 +1,10 @@
 use crate::gpiote::*;
 use drogue_device::{
+    domain::time::duration::Milliseconds,
     driver::{
         led::{LEDMatrix, MatrixCommand},
         timer::Timer,
-        uart::{Error as UartError, Uart, UartPeripheral},
+        uart::{Uart, UartPeripheral},
     },
     hal::timer::nrf::Timer as HalTimer,
     hal::uart::nrf::Uarte as HalUart,
@@ -12,7 +13,7 @@ use drogue_device::{
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
 use hal::pac::TIMER0;
-use heapless::{consts, String};
+use heapless::consts;
 use nrf52833_hal as hal;
 
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
@@ -35,13 +36,12 @@ impl Device for MyDevice {
         self.gpiote.mount(supervisor).bind(bus);
         self.btn_fwd.mount(supervisor).bind(bus);
         self.btn_back.mount(supervisor).bind(bus);
-        self.app
-            .mount(supervisor)
-            .bind(&self.uart.mount(bus, supervisor));
+        let app = self.app.mount(supervisor);
 
-        self.led
-            .mount(supervisor)
-            .bind(&self.timer.mount(supervisor));
+        app.bind(&self.uart.mount(bus, supervisor));
+
+        let timer = self.timer.mount(supervisor);
+        self.led.mount(supervisor).bind(&timer);
     }
 }
 
@@ -78,8 +78,9 @@ impl App {
 }
 impl Actor for App {}
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SayHello;
+
 impl Bind<AppUart> for App {
     fn on_bind(&'static mut self, address: Address<AppUart>) {
         log::info!("Bound uart");
@@ -88,21 +89,29 @@ impl Bind<AppUart> for App {
 }
 
 impl NotifyHandler<SayHello> for App {
-    fn on_notify(&'static mut self, message: SayHello) -> Completion {
+    fn on_notify(&'static mut self, _: SayHello) -> Completion {
         Completion::defer(async move {
             if let Some(uart) = &mut self.uart {
                 let mut buf = [0; 128];
                 let mut uart = uart.lock().await;
 
-                let motd = "Welcome to UART Echo Service\r\n".as_bytes();
+                let motd = "Welcome to the Drogue Echo Service\r\n".as_bytes();
                 buf[..motd.len()].clone_from_slice(motd);
-                let result = uart.write(&buf[..motd.len()]).await;
-                log::info!("MOTD RESULT: {:?}", result);
+                uart.write(&buf[..motd.len()])
+                    .await
+                    .map_err(|e| log::error!("Error writing MOTD: {:?}", e))
+                    .ok();
 
-                let result = uart.read(&mut buf[..1]).await;
-                log::info!("RX RESULT: {:?}", result);
-                let result = uart.write(&buf[..1]).await;
-                log::info!("TX RESULT: {:?}", result);
+                loop {
+                    uart.read(&mut buf[..1])
+                        .await
+                        .map_err(|e| log::error!("Error reading from UART: {:?}", e))
+                        .ok();
+                    uart.write(&buf[..1])
+                        .await
+                        .map_err(|e| log::error!("Error writing to UART: {:?}", e))
+                        .ok();
+                }
             }
         })
     }
