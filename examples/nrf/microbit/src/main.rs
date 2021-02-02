@@ -8,8 +8,12 @@ use panic_halt as _;
 
 use cortex_m_rt::{entry, exception};
 use drogue_device::{
-    domain::time::rate::Extensions, driver::timer::Timer, driver::uart::Uart,
-    hal::timer::nrf::Timer as HalTimer, hal::uart::nrf::Uarte as HalUart, prelude::*,
+    domain::time::rate::Extensions,
+    driver::timer::Timer,
+    driver::uart::Uart,
+    hal::timer::nrf::Timer as HalTimer,
+    hal::uart::nrf::{Baudrate, Parity, Pins, Uarte as HalUart},
+    prelude::*,
 };
 use hal::gpio::Level;
 use heapless::{consts, Vec};
@@ -56,7 +60,17 @@ fn main() -> ! {
     let timer = Timer::new(HalTimer::new(device.TIMER0));
 
     // Uart
-    let uart = Uart::new(HalUart::new(device.UARTE0));
+    let uart = Uart::new(HalUart::new(
+        device.UARTE0,
+        Pins {
+            txd: port0.p0_01.into_push_pull_output(Level::High).degrade(),
+            rxd: port0.p0_13.into_floating_input().degrade(),
+            cts: None,
+            rts: None,
+        },
+        Parity::EXCLUDED,
+        Baudrate::BAUD115200,
+    ));
 
     // LED Matrix
     let mut rows = Vec::<_, consts::U5>::new();
@@ -92,7 +106,8 @@ fn main() -> ! {
         gpiote: InterruptContext::new(gpiote, hal::pac::Interrupt::GPIOTE).with_name("gpiote"),
         led: ActorContext::new(led).with_name("matrix"),
         timer: InterruptContext::new(timer, hal::pac::Interrupt::TIMER0).with_name("timer"),
-        uart: InterruptContext::new(uart, hal::pac::Interrupt::UARTE0_UART0),
+        uart: InterruptContext::new(Mutex::new(uart), hal::pac::Interrupt::UARTE0_UART0),
+        app: ActorContext::new(App::new()),
     };
 
     device!( MyDevice = device; 1024 );
