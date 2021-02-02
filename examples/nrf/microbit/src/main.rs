@@ -60,17 +60,20 @@ fn main() -> ! {
     let timer = Timer::new(HalTimer::new(device.TIMER0));
 
     // Uart
-    let uart = Uart::new(HalUart::new(
-        device.UARTE0,
-        Pins {
-            txd: port0.p0_01.into_push_pull_output(Level::High).degrade(),
-            rxd: port0.p0_13.into_floating_input().degrade(),
-            cts: None,
-            rts: None,
-        },
-        Parity::EXCLUDED,
-        Baudrate::BAUD115200,
-    ));
+    let uart = Uart::new(
+        HalUart::new(
+            device.UARTE0,
+            Pins {
+                txd: port0.p0_01.into_push_pull_output(Level::High).degrade(),
+                rxd: port0.p0_13.into_floating_input().degrade(),
+                cts: None,
+                rts: None,
+            },
+            Parity::EXCLUDED,
+            Baudrate::BAUD115200,
+        ),
+        hal::pac::Interrupt::UARTE0_UART0,
+    );
 
     // LED Matrix
     let mut rows = Vec::<_, consts::U5>::new();
@@ -106,7 +109,7 @@ fn main() -> ! {
         gpiote: InterruptContext::new(gpiote, hal::pac::Interrupt::GPIOTE).with_name("gpiote"),
         led: ActorContext::new(led).with_name("matrix"),
         timer: InterruptContext::new(timer, hal::pac::Interrupt::TIMER0).with_name("timer"),
-        uart: InterruptContext::new(Mutex::new(uart), hal::pac::Interrupt::UARTE0_UART0),
+        uart,
         app: ActorContext::new(App::new()),
     };
 

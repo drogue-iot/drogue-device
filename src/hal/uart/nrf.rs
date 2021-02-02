@@ -35,8 +35,8 @@ where
         uart.inten.modify(|_, w| {
             w.endrx()
                 .set_bit()
-                .rxstarted()
-                .set_bit()
+                /*.rxstarted()
+                .set_bit()*/
                 .rxto()
                 .set_bit()
                 .rxdrdy()
