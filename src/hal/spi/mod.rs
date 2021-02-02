@@ -14,10 +14,11 @@ use core::task::{Context, Poll, Waker};
 use cortex_m::interrupt::Nr;
 use embedded_hal::spi::FullDuplex;
 use nb::Error;
+use crate::hal::gpio::exti_pin::ExtiPin;
 
 pub struct Spi<SPI: FullDuplex<u8> + 'static> {
     mutex: ActorContext<Mutex<SpiPeripheral<SPI>>>,
-    irq: InterruptContext<SpiInterrupt<SPI>>,
+    irq: InterruptContext<SpiInterrupt>,
 }
 
 impl<SPI> Spi<SPI>
@@ -32,43 +33,12 @@ where
     }
 }
 
-impl<SPI> Bind<SpiInterrupt<SPI>> for Mutex<SpiPeripheral<SPI>>
+impl<SPI> Bind<SpiInterrupt> for Mutex<SpiPeripheral<SPI>>
 where
     SPI: FullDuplex<u8>,
 {
-    fn on_bind(&'static mut self, address: Address<SpiInterrupt<SPI>>) {
+    fn on_bind(&'static mut self, address: Address<SpiInterrupt>) {
         self.val.as_mut().unwrap().irq.replace(address);
-    }
-}
-
-impl<SPI> Bind<Mutex<SpiPeripheral<SPI>>> for SpiInterrupt<SPI>
-where
-    SPI: FullDuplex<u8>,
-{
-    fn on_bind(&'static mut self, address: Address<Mutex<SpiPeripheral<SPI>>>) {
-        address.notify(SetFlags {
-            tx_ready: &self.tx_ready,
-            rx_ready: &self.rx_ready,
-        });
-    }
-}
-
-impl<SPI> NotifyHandler<SetFlags> for Mutex<SpiPeripheral<SPI>>
-where
-    SPI: FullDuplex<u8>,
-{
-    fn on_notify(&'static mut self, message: SetFlags) -> Completion {
-        self.val
-            .as_mut()
-            .unwrap()
-            .tx_ready
-            .replace(message.tx_ready);
-        self.val
-            .as_mut()
-            .unwrap()
-            .rx_ready
-            .replace(message.rx_ready);
-        Completion::immediate()
     }
 }
 
@@ -85,43 +55,24 @@ where
         let periph_addr = self.mutex.mount(supervisor);
         let irq_addr = self.irq.mount(supervisor);
         periph_addr.bind(&irq_addr.clone());
-        irq_addr.bind(&periph_addr.clone());
         periph_addr
     }
 }
 
-pub struct SpiInterrupt<SPI>
-where
-    SPI: FullDuplex<u8> + 'static,
+pub struct SpiInterrupt
 {
-    tx_ready: AtomicBool,
-    rx_ready: AtomicBool,
     waker: Option<Waker>,
-    _marker: PhantomData<SPI>,
 }
 
-impl<SPI> SpiInterrupt<SPI>
-where
-    SPI: FullDuplex<u8> + 'static,
+impl SpiInterrupt
 {
     fn new() -> Self {
         Self {
-            tx_ready: AtomicBool::new(true),
-            rx_ready: AtomicBool::new(false),
             waker: None,
-            _marker: PhantomData,
         }
     }
 
-    fn signal_rxne(&mut self) {
-        self.rx_ready.store(true, Ordering::Release);
-        if let Some(ref waker) = self.waker {
-            waker.wake_by_ref()
-        }
-    }
-
-    fn signal_txe(&mut self) {
-        self.tx_ready.store(true, Ordering::Release);
+    fn signal(&mut self) {
         if let Some(ref waker) = self.waker {
             waker.wake_by_ref()
         }
@@ -130,9 +81,7 @@ where
 
 struct SetWaker(Waker);
 
-impl<SPI> NotifyHandler<SetWaker> for SpiInterrupt<SPI>
-where
-    SPI: FullDuplex<u8> + 'static,
+impl NotifyHandler<SetWaker> for SpiInterrupt
 {
     fn on_notify(&'static mut self, message: SetWaker) -> Completion {
         self.waker.replace(message.0.clone());
@@ -140,23 +89,13 @@ where
     }
 }
 
-impl<SPI> Actor for SpiInterrupt<SPI> where SPI: FullDuplex<u8> {}
+impl Actor for SpiInterrupt{}
 
-impl<SPI> Interrupt for SpiInterrupt<SPI>
-where
-    SPI: FullDuplex<u8>,
+impl Interrupt for SpiInterrupt
 {
     fn on_interrupt(&mut self) {
-        // if rxne -> signal rx_ready
-        self.signal_rxne();
-        // if txe -> signal tx_ready
-        self.signal_txe();
+        self.signal();
     }
-}
-
-struct SetFlags {
-    tx_ready: &'static AtomicBool,
-    rx_ready: &'static AtomicBool,
 }
 
 pub struct SpiPeripheral<SPI>
@@ -164,9 +103,7 @@ where
     SPI: FullDuplex<u8> + 'static,
 {
     spi: SPI,
-    irq: Option<Address<SpiInterrupt<SPI>>>,
-    tx_ready: Option<&'static AtomicBool>,
-    rx_ready: Option<&'static AtomicBool>,
+    irq: Option<Address<SpiInterrupt>>,
 }
 
 impl<SPI: FullDuplex<u8>> SpiPeripheral<SPI> {
@@ -174,18 +111,12 @@ impl<SPI: FullDuplex<u8>> SpiPeripheral<SPI> {
         Self {
             spi,
             irq: None,
-            tx_ready: None,
-            rx_ready: None,
         }
     }
 
-    pub fn transfer<'w>(&'w mut self, buf: &'w mut [u8]) -> TransferFuture<'w, Self> {
+    pub fn transfer<'w>(&'w mut self, buf: &'w mut [u8]) -> TransferFuture<'w, SPI> {
         TransferFuture::new(self, buf)
     }
-}
-
-impl<SPI: FullDuplex<u8>> Transfer for SpiPeripheral<SPI> {
-    type Error = SPI::Error;
 
     fn poll_transfer(
         self: &mut Self,
@@ -259,43 +190,33 @@ pub enum State {
     Read(usize),
 }
 
-pub struct TransferFuture<'w, T: Transfer + Unpin + ?Sized> {
-    transfer: &'w mut T,
+pub struct TransferFuture<'w, SPI: FullDuplex<u8> + 'static> {
+    spi: &'w mut SpiPeripheral<SPI>,
     buf: &'w mut [u8],
     state: State,
 }
 
-impl<'w, T: Transfer + Unpin + ?Sized> TransferFuture<'w, T> {
-    pub fn new(transfer: &'w mut T, buf: &'w mut [u8]) -> Self {
+impl<'w, SPI: FullDuplex<u8>> TransferFuture<'w, SPI> {
+    pub fn new(spi: &'w mut SpiPeripheral<SPI>, buf: &'w mut [u8]) -> Self {
         Self {
-            transfer,
+            spi,
             buf,
             state: State::Write(0),
         }
     }
 }
+impl<'w, SPI: FullDuplex<u8>> Future for TransferFuture<'w, SPI> {
 
-impl<T: Transfer + Unpin + ?Sized> Future for TransferFuture<'_, T> {
-    type Output = Result<(), T::Error>;
+    type Output = Result<(),SPI::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let Self {
-            transfer,
+            spi: transfer,
             buf,
             state,
         } = &mut *self;
         transfer.poll_transfer(cx, buf, state)
     }
-}
-
-pub trait Transfer {
-    type Error;
-    fn poll_transfer(
-        self: &mut Self,
-        cx: &mut Context<'_>,
-        buf: &mut [u8],
-        state: &mut State,
-    ) -> Poll<Result<(), Self::Error>>;
 }
 
 // ------------------------------------------------------------------------
