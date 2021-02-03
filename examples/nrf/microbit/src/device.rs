@@ -35,12 +35,14 @@ impl Device for MyDevice {
         self.gpiote.mount(supervisor).bind(bus);
         self.btn_fwd.mount(supervisor).bind(bus);
         self.btn_back.mount(supervisor).bind(bus);
+        let timer = self.timer.mount(supervisor);
+        let led = self.led.mount(supervisor);
+        led.bind(&timer);
+
         let app = self.app.mount(supervisor);
 
         app.bind(&self.uart.mount(bus, supervisor));
-
-        let timer = self.timer.mount(supervisor);
-        self.led.mount(supervisor).bind(&timer);
+        app.bind(&led);
     }
 }
 
@@ -68,11 +70,15 @@ impl EventHandler<PinEvent> for MyDevice {
 
 pub struct App {
     uart: Option<Address<AppUart>>,
+    display: Option<Address<LedMatrix>>,
 }
 
 impl App {
     pub fn new() -> Self {
-        Self { uart: None }
+        Self {
+            uart: None,
+            display: None,
+        }
     }
 }
 impl Actor for App {}
@@ -87,9 +93,17 @@ impl Bind<AppUart> for App {
     }
 }
 
+impl Bind<LedMatrix> for App {
+    fn on_bind(&mut self, address: Address<LedMatrix>) {
+        log::info!("Bound display");
+        self.display.replace(address);
+    }
+}
+
 impl NotifyHandler<SayHello> for App {
     fn on_notify(&'static mut self, _: SayHello) -> Completion<Self> {
         Completion::defer(async move {
+            let led = self.display.as_ref().unwrap();
             if let Some(uart) = &mut self.uart {
                 let mut buf = [0; 128];
                 let mut uart = uart.lock().await;
@@ -106,6 +120,7 @@ impl NotifyHandler<SayHello> for App {
                         .await
                         .map_err(|e| log::error!("Error reading from UART: {:?}", e))
                         .ok();
+                    led.notify(MatrixCommand::ApplyAscii(buf[0] as char));
                     uart.write(&buf[..1])
                         .await
                         .map_err(|e| log::error!("Error writing to UART: {:?}", e))

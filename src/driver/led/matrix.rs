@@ -19,13 +19,42 @@ where
     address: Option<Address<Self>>,
     pin_rows: Vec<P, ROWS>,
     pin_cols: Vec<P, COLS>,
-    frame_buffer: FrameBuffer,
+    frame_buffer: Frame,
     row_p: usize,
     timer: Option<Address<Timer<T>>>,
     refresh_rate: Hertz,
 }
 
-struct FrameBuffer(u32, u32);
+/**
+ * A 32x32 bitmap that can be displayed on a LED matrix.
+ */
+pub struct Frame {
+    bitmap: [u32; 32],
+}
+
+impl Frame {
+    fn new(bitmap: [u32; 32]) -> Self {
+        Self { bitmap }
+    }
+
+    fn clear(&mut self) {
+        for m in self.bitmap.iter_mut() {
+            *m = 0;
+        }
+    }
+
+    fn set(&mut self, x: usize, y: usize) {
+        self.bitmap[x] |= (1 << y);
+    }
+
+    fn unset(&mut self, x: usize, y: usize) {
+        self.bitmap[x] &= !(1 << y);
+    }
+
+    fn is_set(&self, x: usize, y: usize) -> bool {
+        (self.bitmap[x] & (1u32 << y)) >> y == 1
+    }
+}
 
 impl<P, ROWS, COLS, T> LEDMatrix<P, ROWS, COLS, T>
 where
@@ -39,7 +68,7 @@ where
             address: None,
             pin_rows,
             pin_cols,
-            frame_buffer: FrameBuffer(0, 0),
+            frame_buffer: Frame::new([0; 32]),
             row_p: 0,
             refresh_rate,
             timer: None,
@@ -47,18 +76,19 @@ where
     }
 
     pub fn clear(&mut self) {
-        self.frame_buffer.0 = 0;
-        self.frame_buffer.1 = 0;
+        self.frame_buffer.clear();
     }
 
     pub fn on(&mut self, x: usize, y: usize) {
-        self.frame_buffer.0 |= 1 << x;
-        self.frame_buffer.1 |= 1 << y;
+        self.frame_buffer.set(x, y);
     }
 
     pub fn off(&mut self, x: usize, y: usize) {
-        self.frame_buffer.0 &= !(1 << x);
-        self.frame_buffer.1 &= !(1 << y);
+        self.frame_buffer.unset(x, y);
+    }
+
+    pub fn apply(&mut self, frame: Frame) {
+        self.frame_buffer = frame;
     }
 
     pub fn render(&mut self) {
@@ -68,9 +98,7 @@ where
 
         let mut cid = 0;
         for col in self.pin_cols.iter_mut() {
-            if (self.frame_buffer.0 & (1 << self.row_p) == 1)
-                && (self.frame_buffer.1 & (1 << cid) == 1)
-            {
+            if self.frame_buffer.is_set(self.row_p, cid) {
                 col.set_low().ok();
             } else {
                 col.set_high().ok();
@@ -132,6 +160,9 @@ where
             MatrixCommand::Off(x, y) => {
                 self.off(x, y);
             }
+            MatrixCommand::ApplyAscii(x) => {
+                self.apply(x.to_frame());
+            }
             MatrixCommand::Render => {
                 self.render();
                 if let Some(address) = &self.address {
@@ -151,5 +182,83 @@ where
 pub enum MatrixCommand {
     On(usize, usize),
     Off(usize, usize),
+    ApplyAscii(char),
     Render,
+}
+
+pub trait ToFrame {
+    fn to_frame(&self) -> Frame;
+}
+
+// These are for 5x5 only
+impl ToFrame for char {
+    fn to_frame(&self) -> Frame {
+        match self {
+            'd' | 'D' => Frame::new([
+                0x000F, 0x0011, 0x0011, 0x0011, 0x00F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ]),
+            'r' | 'R' => Frame::new([
+                0x001F, 0x0011, 0x001F, 0x0009, 0x0011, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ]),
+            'o' | 'O' => Frame::new([
+                0x001F, 0x0011, 0x0011, 0x0011, 0x001F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ]),
+            'u' | 'U' => Frame::new([
+                0x0011, 0x0011, 0x0011, 0x0011, 0x001F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ]),
+            'g' | 'G' => Frame::new([
+                0x001F, 0x0001, 0x001D, 0x0011, 0x001F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ]),
+            'e' | 'E' => Frame::new([
+                0x001F, 0x0001, 0x000F, 0x0001, 0x001F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ]),
+            _ => Frame::new([0; 32]),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_frame() {
+        let frame = 'D'.to_frame();
+
+        assert!(frame.is_set(0, 0));
+        assert!(frame.is_set(0, 1));
+        assert!(frame.is_set(0, 2));
+        assert!(frame.is_set(0, 3));
+        assert!(!frame.is_set(0, 4));
+
+        assert!(frame.is_set(1, 0));
+        assert!(!frame.is_set(1, 1));
+        assert!(!frame.is_set(1, 2));
+        assert!(!frame.is_set(1, 3));
+        assert!(frame.is_set(1, 4));
+
+        assert!(frame.is_set(2, 0));
+        assert!(!frame.is_set(2, 1));
+        assert!(!frame.is_set(2, 2));
+        assert!(!frame.is_set(2, 3));
+        assert!(frame.is_set(2, 4));
+
+        assert!(frame.is_set(3, 0));
+        assert!(!frame.is_set(3, 1));
+        assert!(!frame.is_set(3, 2));
+        assert!(!frame.is_set(3, 3));
+        assert!(frame.is_set(3, 4));
+
+        assert!(frame.is_set(4, 0));
+        assert!(frame.is_set(4, 1));
+        assert!(frame.is_set(4, 2));
+        assert!(frame.is_set(4, 3));
+        assert!(!frame.is_set(4, 4));
+    }
 }
