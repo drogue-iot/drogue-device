@@ -10,7 +10,7 @@ use crate::hal::uart::Uart as HalUart;
 use crate::handler::{Completion, NotifyHandler};
 use crate::interrupt::{Interrupt, InterruptContext};
 use crate::package::Package;
-use crate::synchronization::Mutex;
+use crate::synchronization::{Mutex, Signal};
 
 use core::cell::UnsafeCell;
 use core::future::Future;
@@ -126,7 +126,9 @@ where
     irq: Option<Address<UartInterrupt<U>>>,
     tx_state: TxState,
     rx_state: RxState,
-    ready: Option<&'static Ready>,
+
+    tx_done: Option<&'static Signal<Result<(), Error>>>,
+    rx_done: Option<&'static Signal<Result<usize, Error>>>,
 }
 
 impl<U> UartPeripheral<U>
@@ -135,7 +137,8 @@ where
 {
     pub fn new(ctx: UartContext<U>) -> Self {
         Self {
-            ready: None,
+            tx_done: None,
+            rx_done: None,
             ctx,
             irq: None,
             tx_state: TxState::Ready,
@@ -180,19 +183,11 @@ where
     fn poll_tx(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
         log::trace!("POLL TX");
         if let TxState::InProgress = self.tx_state {
-            if let Some(Ready { tx, rx }) = self.ready {
-                if tx.load(Ordering::SeqCst) {
-                    self.tx_state = TxState::Ready;
-                    let result = self.ctx.write_finish();
-                    tx.store(false, Ordering::SeqCst);
-                    log::trace!("Marking TX complete");
-                    return Poll::Ready(result);
-                } else {
-                    self.irq
-                        .as_ref()
-                        .unwrap()
-                        .notify(SetTxWaker(cx.waker().clone()));
-                }
+            let tx_done = self.tx_done.unwrap();
+            if let Poll::Ready(result) = tx_done.poll_wait(cx) {
+                self.tx_state = TxState::Ready;
+                log::trace!("Marking TX complete");
+                return Poll::Ready(result);
             }
         }
 
@@ -202,19 +197,11 @@ where
     fn poll_rx(&mut self, cx: &mut Context<'_>) -> Poll<Result<usize, Error>> {
         log::trace!("POLL RX");
         if let RxState::InProgress = self.rx_state {
-            if let Some(Ready { tx, rx }) = self.ready {
-                if rx.load(Ordering::SeqCst) {
-                    log::trace!("Marking RX complete");
-                    self.rx_state = RxState::Ready;
-                    let result = self.ctx.read_finish();
-                    rx.store(false, Ordering::SeqCst);
-                    return Poll::Ready(result);
-                } else {
-                    self.irq
-                        .as_ref()
-                        .unwrap()
-                        .notify(SetRxWaker(cx.waker().clone()));
-                }
+            let rx_done = self.rx_done.unwrap();
+            if let Poll::Ready(result) = rx_done.poll_wait(cx) {
+                log::trace!("Marking RX complete");
+                self.rx_state = RxState::Ready;
+                return Poll::Ready(result);
             }
         }
 
@@ -222,19 +209,13 @@ where
     }
 }
 
-pub struct Ready {
-    tx: AtomicBool,
-    rx: AtomicBool,
-}
-
 pub struct UartInterrupt<U>
 where
     U: HalUart,
 {
     ctx: UartContext<U>,
-    ready: Ready,
-    tx_waker: Option<Waker>,
-    rx_waker: Option<Waker>,
+    tx_done: Signal<Result<(), Error>>,
+    rx_done: Signal<Result<usize, Error>>,
 }
 
 impl<U> UartInterrupt<U>
@@ -244,12 +225,8 @@ where
     pub fn new(ctx: UartContext<U>) -> Self {
         Self {
             ctx,
-            ready: Ready {
-                tx: AtomicBool::new(false),
-                rx: AtomicBool::new(false),
-            },
-            tx_waker: None,
-            rx_waker: None,
+            tx_done: Signal::new(),
+            rx_done: Signal::new(),
         }
     }
 }
@@ -264,58 +241,39 @@ where
         let (tx_done, rx_done) = self.ctx.process_interrupts();
         log::trace!(
             "[UART ISR] TX WAKER: {}. RX WAKER: {}. TX DONE: {}. RX DONE: {}",
-            self.tx_waker.is_some(),
-            self.rx_waker.is_some(),
+            self.tx_done.signaled(),
+            self.rx_done.signaled(),
             tx_done,
             rx_done,
         );
 
         if tx_done {
-            self.ready.tx.store(true, Ordering::SeqCst);
+            self.tx_done.signal(self.ctx.write_finish());
         }
 
         if rx_done {
-            self.ready.rx.store(true, Ordering::SeqCst);
-        }
-
-        if let Some(ref waker) = self.tx_waker {
-            waker.wake_by_ref();
-            self.tx_waker.take();
-        }
-
-        if let Some(ref waker) = self.rx_waker {
-            waker.wake_by_ref();
-            self.rx_waker.take();
+            self.rx_done.signal(self.ctx.read_finish());
         }
     }
 }
 
-impl<U> NotifyHandler<&'static Ready> for Mutex<UartPeripheral<U>>
+impl<U>
+    NotifyHandler<(
+        &'static Signal<Result<(), Error>>,
+        &'static Signal<Result<usize, Error>>,
+    )> for Mutex<UartPeripheral<U>>
 where
     U: HalUart,
 {
-    fn on_notify(&'static mut self, ready: &'static Ready) -> Completion {
-        self.val.as_mut().unwrap().ready.replace(ready);
-        Completion::immediate()
-    }
-}
-
-impl<U> NotifyHandler<SetRxWaker> for UartInterrupt<U>
-where
-    U: HalUart,
-{
-    fn on_notify(&'static mut self, waker: SetRxWaker) -> Completion {
-        self.rx_waker.replace(waker.0);
-        Completion::immediate()
-    }
-}
-
-impl<U> NotifyHandler<SetTxWaker> for UartInterrupt<U>
-where
-    U: HalUart,
-{
-    fn on_notify(&'static mut self, waker: SetTxWaker) -> Completion {
-        self.tx_waker.replace(waker.0);
+    fn on_notify(
+        &'static mut self,
+        signals: (
+            &'static Signal<Result<(), Error>>,
+            &'static Signal<Result<usize, Error>>,
+        ),
+    ) -> Completion {
+        self.val.as_mut().unwrap().tx_done.replace(signals.0);
+        self.val.as_mut().unwrap().rx_done.replace(signals.1);
         Completion::immediate()
     }
 }
@@ -325,7 +283,7 @@ where
     U: HalUart,
 {
     fn on_bind(&'static mut self, address: Address<Mutex<UartPeripheral<U>>>) {
-        address.notify(&self.ready);
+        address.notify((&self.tx_done, &self.rx_done));
     }
 }
 
@@ -339,8 +297,6 @@ where
 }
 
 impl<U> Actor for UartPeripheral<U> where U: HalUart {}
-
-pub struct SetTxWaker(pub Waker);
 
 pub struct TxFuture<'a, U>
 where

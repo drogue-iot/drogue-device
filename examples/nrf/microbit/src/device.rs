@@ -1,6 +1,5 @@
 use crate::gpiote::*;
 use drogue_device::{
-    domain::time::duration::Milliseconds,
     driver::{
         led::{LEDMatrix, MatrixCommand},
         timer::Timer,

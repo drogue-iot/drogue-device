@@ -2,7 +2,10 @@
 
 mod mutex;
 mod sempahore;
+mod signal;
 
-pub use mutex::{Exclusive, Mutex, Lock, Unlock};
+pub use signal::Signal;
+
+pub use mutex::{Exclusive, Lock, Mutex, Unlock};
 
 pub use sempahore::{Permit, Semaphore};
