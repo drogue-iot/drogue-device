@@ -16,8 +16,7 @@ use core::cell::UnsafeCell;
 use core::future::Future;
 use core::ops::Deref;
 use core::pin::Pin;
-use core::sync::atomic::{AtomicBool, Ordering};
-use core::task::{Context, Poll, Waker};
+use core::task::{Context, Poll};
 use cortex_m::interrupt::Nr;
 
 pub struct Uart<U>
@@ -31,13 +30,7 @@ where
 }
 
 #[derive(Clone)]
-enum TxState {
-    Ready,
-    InProgress,
-}
-
-#[derive(Clone)]
-enum RxState {
+pub enum State {
     Ready,
     InProgress,
 }
@@ -112,7 +105,6 @@ where
         let peripheral = self.peripheral.mount(supervisor);
         let irq = self.irq.mount(supervisor);
 
-        peripheral.bind(&irq.clone());
         irq.bind(&peripheral.clone());
         peripheral
     }
@@ -123,9 +115,8 @@ where
     U: HalUart + 'static,
 {
     ctx: UartContext<U>,
-    irq: Option<Address<UartInterrupt<U>>>,
-    tx_state: TxState,
-    rx_state: RxState,
+    tx_state: State,
+    rx_state: State,
 
     tx_done: Option<&'static Signal<Result<(), Error>>>,
     rx_done: Option<&'static Signal<Result<usize, Error>>>,
@@ -140,72 +131,45 @@ where
             tx_done: None,
             rx_done: None,
             ctx,
-            irq: None,
-            tx_state: TxState::Ready,
-            rx_state: RxState::Ready,
+            tx_state: State::Ready,
+            rx_state: State::Ready,
         }
     }
 
-    pub fn read<'a>(&'a mut self, rx_buffer: &mut [u8]) -> RxFuture<'a, U> {
+    pub fn read<'a>(&'a mut self, rx_buffer: &mut [u8]) -> UartFuture<'a, usize> {
         match self.rx_state {
-            RxState::Ready => {
+            State::Ready => {
                 log::trace!("NO RX in progress");
+                self.rx_done.unwrap().reset();
+                self.rx_state = State::InProgress;
                 match self.ctx.read_start(rx_buffer) {
                     Ok(_) => {
                         log::trace!("Starting RX");
-                        self.rx_state = RxState::InProgress;
-                        RxFuture::new(self, None)
+                        UartFuture::Defer(&mut self.rx_state, self.rx_done)
                     }
-                    Err(e) => RxFuture::new(self, Some(e)),
+                    Err(e) => UartFuture::Error(e),
                 }
             }
-            _ => RxFuture::new(self, Some(Error::RxInProgress)),
+            _ => UartFuture::Error(Error::RxInProgress),
         }
     }
 
-    pub fn write<'a>(&'a mut self, tx_buffer: &[u8]) -> TxFuture<'a, U> {
+    pub fn write<'a>(&'a mut self, tx_buffer: &[u8]) -> UartFuture<'a, ()> {
         match self.tx_state {
-            TxState::Ready => {
+            State::Ready => {
                 log::trace!("NO TX in progress");
+                self.tx_done.unwrap().reset();
+                self.tx_state = State::InProgress;
                 match self.ctx.write_start(tx_buffer) {
                     Ok(_) => {
                         log::trace!("Starting TX");
-                        self.tx_state = TxState::InProgress;
-                        TxFuture::new(self, None)
+                        UartFuture::Defer(&mut self.tx_state, self.tx_done)
                     }
-                    Err(e) => TxFuture::new(self, Some(e)),
+                    Err(e) => UartFuture::Error(e),
                 }
             }
-            _ => TxFuture::new(self, Some(Error::TxInProgress)),
+            _ => UartFuture::Error(Error::TxInProgress),
         }
-    }
-
-    fn poll_tx(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
-        log::trace!("POLL TX");
-        if let TxState::InProgress = self.tx_state {
-            let tx_done = self.tx_done.unwrap();
-            if let Poll::Ready(result) = tx_done.poll_wait(cx) {
-                self.tx_state = TxState::Ready;
-                log::trace!("Marking TX complete");
-                return Poll::Ready(result);
-            }
-        }
-
-        return Poll::Pending;
-    }
-
-    fn poll_rx(&mut self, cx: &mut Context<'_>) -> Poll<Result<usize, Error>> {
-        log::trace!("POLL RX");
-        if let RxState::InProgress = self.rx_state {
-            let rx_done = self.rx_done.unwrap();
-            if let Poll::Ready(result) = rx_done.poll_wait(cx) {
-                log::trace!("Marking RX complete");
-                self.rx_state = RxState::Ready;
-                return Poll::Ready(result);
-            }
-        }
-
-        return Poll::Pending;
     }
 }
 
@@ -287,81 +251,32 @@ where
     }
 }
 
-impl<U> Bind<UartInterrupt<U>> for Mutex<UartPeripheral<U>>
-where
-    U: HalUart,
-{
-    fn on_bind(&'static mut self, address: Address<UartInterrupt<U>>) {
-        self.val.as_mut().unwrap().irq.replace(address);
-    }
-}
-
 impl<U> Actor for UartPeripheral<U> where U: HalUart {}
 
-pub struct TxFuture<'a, U>
+pub enum UartFuture<'a, R>
 where
-    U: HalUart + 'static,
+    R: 'static,
 {
-    uart: &'a mut UartPeripheral<U>,
-    error: Option<Error>,
+    Defer(&'a mut State, Option<&'static Signal<Result<R, Error>>>),
+    Error(Error),
 }
 
-impl<'a, U> TxFuture<'a, U>
-where
-    U: HalUart,
-{
-    fn new(uart: &'a mut UartPeripheral<U>, error: Option<Error>) -> Self {
-        Self { uart, error }
-    }
-}
-
-impl<'a, U> Future for TxFuture<'a, U>
-where
-    U: HalUart,
-{
-    type Output = Result<(), Error>;
+impl<'a, R> Future for UartFuture<'a, R> {
+    type Output = Result<R, Error>;
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let Self { uart, error } = &mut *self;
-
-        if let Some(e) = &error {
-            return Poll::Ready(Err(e.clone()));
+        match &mut *self {
+            UartFuture::Defer(ref mut state, ref done) => {
+                if let State::InProgress = state {
+                    let done = done.unwrap();
+                    if let Poll::Ready(result) = done.poll_wait(cx) {
+                        **state = State::Ready;
+                        log::trace!("Marking future complete");
+                        return Poll::Ready(result);
+                    }
+                }
+                return Poll::Pending;
+            }
+            UartFuture::Error(err) => return Poll::Ready(Err(err.clone())),
         }
-
-        uart.poll_tx(cx)
-    }
-}
-
-pub struct SetRxWaker(pub Waker);
-
-pub struct RxFuture<'a, U>
-where
-    U: HalUart + 'static,
-{
-    uart: &'a mut UartPeripheral<U>,
-    error: Option<Error>,
-}
-
-impl<'a, U> RxFuture<'a, U>
-where
-    U: HalUart,
-{
-    fn new(uart: &'a mut UartPeripheral<U>, error: Option<Error>) -> Self {
-        Self { uart, error }
-    }
-}
-
-impl<'a, U> Future for RxFuture<'a, U>
-where
-    U: HalUart,
-{
-    type Output = Result<usize, Error>;
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let Self { uart, error } = &mut *self;
-
-        if let Some(e) = &error {
-            return Poll::Ready(Err(e.clone()));
-        }
-
-        uart.poll_rx(cx)
     }
 }
