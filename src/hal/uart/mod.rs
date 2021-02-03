@@ -8,22 +8,22 @@ pub mod nrf;
 
 pub trait Uart {
     /// Start a write operation to transmit the provided buffer.
-    fn write_start(&self, tx_buffer: &[u8]) -> Result<(), Error>;
+    fn start_write(&self, tx_buffer: &[u8]) -> Result<(), Error>;
 
     /// Complete a write operation.
-    fn write_finish(&self) -> Result<(), Error>;
+    fn finish_write(&self) -> Result<(), Error>;
 
     /// Process interrupts for the peripheral. Implementations may need to use this to initiate
     fn process_interrupts(&self) -> (bool, bool);
 
     /// Start a read operation to receive data into rx_buffer.
-    fn read_start(&self, rx_buffer: &mut [u8]) -> Result<(), Error>;
+    fn start_read(&self, rx_buffer: &mut [u8]) -> Result<(), Error>;
 
     /// Complete a read operation.
-    fn read_finish(&self) -> Result<usize, Error>;
+    fn finish_read(&self) -> Result<usize, Error>;
 
     /// Cancel a read operation
-    fn read_cancel(&self) -> Result<(), Error>;
+    fn cancel_read(&self) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone)]

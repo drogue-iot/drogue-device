@@ -62,7 +62,7 @@ impl<T> crate::hal::uart::Uart for Uarte<T>
 where
     T: Instance,
 {
-    fn write_start(&self, tx_buffer: &[u8]) -> Result<(), Error> {
+    fn start_write(&self, tx_buffer: &[u8]) -> Result<(), Error> {
         if tx_buffer.len() > hal::target_constants::EASY_DMA_SIZE {
             return Err(Error::TxBufferTooLong);
         }
@@ -103,7 +103,7 @@ where
         (tx_done, rx_done)
     }
 
-    fn write_finish(&self) -> Result<(), Error> {
+    fn finish_write(&self) -> Result<(), Error> {
         // Conservative compiler fence to prevent optimizations that do not
         // take in to account actions by DMA. The fence has been placed here,
         // after all possible DMA actions have completed.
@@ -118,14 +118,14 @@ where
     }
 
     /// Start a read operation to receive data into rx_buffer.
-    fn read_start(&self, rx_buffer: &mut [u8]) -> Result<(), Error> {
+    fn start_read(&self, rx_buffer: &mut [u8]) -> Result<(), Error> {
         slice_in_ram_or(rx_buffer, crate::hal::uart::Error::BufferNotInRAM)?;
         start_read(&*self.uart, rx_buffer)?;
         Ok(())
     }
 
     /// Complete a read operation.
-    fn read_finish(&self) -> Result<usize, Error> {
+    fn finish_read(&self) -> Result<usize, Error> {
         finalize_read(&*self.uart);
 
         let bytes_read = self.uart.rxd.amount.read().bits() as usize;
@@ -134,7 +134,7 @@ where
     }
 
     /// Cancel a read operation
-    fn read_cancel(&self) -> Result<(), Error> {
+    fn cancel_read(&self) -> Result<(), Error> {
         cancel_read(&*self.uart);
         Ok(())
     }

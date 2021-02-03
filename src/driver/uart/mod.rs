@@ -142,7 +142,7 @@ where
                 log::trace!("NO RX in progress");
                 self.rx_done.unwrap().reset();
                 self.rx_state = State::InProgress;
-                match self.ctx.read_start(rx_buffer) {
+                match self.ctx.start_read(rx_buffer) {
                     Ok(_) => {
                         log::trace!("Starting RX");
                         UartFuture::Defer(&mut self.rx_state, self.rx_done)
@@ -160,7 +160,7 @@ where
                 log::trace!("NO TX in progress");
                 self.tx_done.unwrap().reset();
                 self.tx_state = State::InProgress;
-                match self.ctx.write_start(tx_buffer) {
+                match self.ctx.start_write(tx_buffer) {
                     Ok(_) => {
                         log::trace!("Starting TX");
                         UartFuture::Defer(&mut self.tx_state, self.tx_done)
@@ -212,11 +212,11 @@ where
         );
 
         if tx_done {
-            self.tx_done.signal(self.ctx.write_finish());
+            self.tx_done.signal(self.ctx.finish_write());
         }
 
         if rx_done {
-            self.rx_done.signal(self.ctx.read_finish());
+            self.rx_done.signal(self.ctx.finish_read());
         }
     }
 }
