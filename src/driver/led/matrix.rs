@@ -89,7 +89,7 @@ where
     COLS: ArrayLength<P>,
     T: HalTimer,
 {
-    fn on_bind(&mut self, address: Address<Timer<T>>) {
+    fn on_bind(&'static mut self, address: Address<Timer<T>>) {
         self.timer.replace(address);
     }
 }

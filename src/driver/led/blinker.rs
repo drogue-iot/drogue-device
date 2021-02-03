@@ -36,7 +36,7 @@ where
     S: Switchable,
     T: HalTimer,
 {
-    fn on_bind(&mut self, address: Address<S>) {
+    fn on_bind(&'static mut self, address: Address<S>) {
         self.led.replace(address);
     }
 }
@@ -46,7 +46,7 @@ where
     S: Switchable,
     T: HalTimer,
 {
-    fn on_bind(&mut self, address: Address<Timer<T>>) {
+    fn on_bind(&'static mut self, address: Address<Timer<T>>) {
         self.timer.replace(address);
     }
 }

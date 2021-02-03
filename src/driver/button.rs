@@ -28,7 +28,7 @@ impl<D, PIN> Bind<EventBus<D>> for Button<D, PIN>
 where
     D: Device,
 {
-    fn on_bind(&mut self, address: Address<EventBus<D>>) {
+    fn on_bind(&'static mut self, address: Address<EventBus<D>>) {
         self.bus.replace(address);
     }
 }
@@ -57,28 +57,16 @@ where
             match self.active {
                 Active::High => {
                     if self.pin.is_high().ok().unwrap() {
-                        self.bus
-                            .as_ref()
-                            .unwrap()
-                            .publish(ButtonEvent::Pressed);
+                        self.bus.as_ref().unwrap().publish(ButtonEvent::Pressed);
                     } else {
-                        self.bus
-                            .as_ref()
-                            .unwrap()
-                            .publish(ButtonEvent::Released);
+                        self.bus.as_ref().unwrap().publish(ButtonEvent::Released);
                     }
                 }
                 Active::Low => {
                     if self.pin.is_low().ok().unwrap() {
-                        self.bus
-                            .as_ref()
-                            .unwrap()
-                            .publish(ButtonEvent::Pressed);
+                        self.bus.as_ref().unwrap().publish(ButtonEvent::Pressed);
                     } else {
-                        self.bus
-                            .as_ref()
-                            .unwrap()
-                            .publish(ButtonEvent::Released);
+                        self.bus.as_ref().unwrap().publish(ButtonEvent::Released);
                     }
                 }
             }
