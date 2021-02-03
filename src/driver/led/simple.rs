@@ -75,7 +75,7 @@ where
     fn on_notify(&'static mut self, message: Off) -> Completion<Self> {
         Completion::defer(async move {
             self.turn_off();
-            (self)
+            self
         })
     }
 }

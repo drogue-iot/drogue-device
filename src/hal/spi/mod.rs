@@ -48,7 +48,7 @@ where
     ) -> Address<Mutex<SpiPeripheral<SPI>>> {
         let periph_addr = self.mutex.mount(supervisor);
         let irq_addr = self.irq.mount(supervisor);
-        periph_addr.bind(&irq_addr.clone());
+        periph_addr.bind(&irq_addr);
         periph_addr
     }
 }
@@ -73,7 +73,7 @@ struct SetWaker(Waker);
 
 impl NotifyHandler<SetWaker> for SpiInterrupt {
     fn on_notify(&'static mut self, message: SetWaker) -> Completion<Self> {
-        self.waker.replace(message.0.clone());
+        self.waker.replace(message.0);
         Completion::immediate(self)
     }
 }
@@ -104,7 +104,7 @@ impl<SPI: FullDuplex<u8>> SpiPeripheral<SPI> {
     }
 
     fn poll_transfer(
-        self: &mut Self,
+        &mut self,
         cx: &mut Context<'_>,
         buf: &mut [u8],
         state: &mut State,
@@ -227,7 +227,7 @@ where
 
             // prove we can borrow mutable afterwards.
             use_it_mut(&mut buf);
-            (self)
+            self
         })
     }
 }

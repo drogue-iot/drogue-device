@@ -91,7 +91,7 @@ where
                     Tout::read(self.address, &mut i2c);
                 }
             }
-            (self)
+            self
         })
     }
 
@@ -102,7 +102,7 @@ where
                 self.calibration
                     .replace(Calibration::read(self.address, &mut i2c));
             }
-            (self)
+            self
         })
     }
 }
@@ -157,7 +157,7 @@ where
                     log::info!("[hts221] no calibration data available")
                 }
             }
-            (self)
+            self
         })
     }
 }

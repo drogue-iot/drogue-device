@@ -166,7 +166,7 @@ impl<A: Actor> ActorContext<A> {
 
         // SAFETY: At this point, we are the only holder of the actor
         unsafe {
-            (&mut *self.actor_ref.get()).replace((&mut *self.actor.get()));
+            (&mut *self.actor_ref.get()).replace(&mut *self.actor.get());
             (&mut *self.actor.get()).mount(addr.clone());
         }
 

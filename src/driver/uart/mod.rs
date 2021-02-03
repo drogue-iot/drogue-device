@@ -6,7 +6,6 @@ use crate::prelude::*;
 
 pub use crate::hal::uart::Error;
 use crate::hal::uart::Uart as HalUart;
-use crate::handler::{Completion, NotifyHandler};
 use crate::interrupt::{Interrupt, InterruptContext};
 use crate::package::Package;
 use crate::synchronization::{Mutex, Signal};

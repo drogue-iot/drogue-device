@@ -4,7 +4,6 @@ use core::future::Future;
 
 use crate::alloc::{alloc, Box};
 use crate::prelude::Actor;
-use num::Complex;
 
 /// Return value from a `RequestHandler` to allow for synchronous or
 /// asynchronous handling of the request.
@@ -76,7 +75,7 @@ pub enum Completion<A: Actor + 'static> {
     Immediate(&'static mut A),
 
     /// See `defer(future)`
-    Defer(Box<dyn Future<Output = (&'static mut A)>>),
+    Defer(Box<dyn Future<Output = &'static mut A>>),
 }
 
 impl<A: Actor> Completion<A> {
@@ -87,7 +86,7 @@ impl<A: Actor> Completion<A> {
 
     /// Provide a future for asynchronous handling of the notification
     /// within this actor's context.
-    pub fn defer<F: Future<Output = (&'static mut A)> + 'static>(f: F) -> Self {
+    pub fn defer<F: Future<Output = &'static mut A> + 'static>(f: F) -> Self {
         Self::Defer(Box::new(alloc(f).unwrap()))
     }
 }
