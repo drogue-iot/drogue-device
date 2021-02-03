@@ -32,7 +32,7 @@ impl<D> Bind<EventBus<D>> for Gpiote<D>
 where
     D: Device + EventHandler<GpioteEvent>,
 {
-    fn on_bind(&'static mut self, address: Address<EventBus<D>>) {
+    fn on_bind(&mut self, address: Address<EventBus<D>>) {
         self.bus.replace(address);
     }
 }
@@ -42,7 +42,7 @@ where
     D: Device + EventHandler<PinEvent>,
     P: InputPin + GpioteInputPin,
 {
-    fn on_bind(&'static mut self, address: Address<EventBus<D>>) {
+    fn on_bind(&mut self, address: Address<EventBus<D>>) {
         self.bus.replace(address);
     }
 }
@@ -111,7 +111,7 @@ impl<D: Device + EventHandler<PinEvent>, P: InputPin + GpioteInputPin> GpioteCha
 impl<D: Device + EventHandler<PinEvent>, P: InputPin + GpioteInputPin> NotifyHandler<GpioteEvent>
     for GpioteChannel<D, P>
 {
-    fn on_notify(&'static mut self, event: GpioteEvent) -> Completion {
+    fn on_notify(&'static mut self, event: GpioteEvent) -> Completion<Self> {
         match event {
             GpioteEvent(c) if c == self.channel => {
                 if let Some(bus) = &self.bus {
@@ -124,7 +124,7 @@ impl<D: Device + EventHandler<PinEvent>, P: InputPin + GpioteInputPin> NotifyHan
             }
             _ => {}
         }
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 

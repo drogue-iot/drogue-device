@@ -81,14 +81,14 @@ impl Actor for App {}
 pub struct SayHello;
 
 impl Bind<AppUart> for App {
-    fn on_bind(&'static mut self, address: Address<AppUart>) {
+    fn on_bind(&mut self, address: Address<AppUart>) {
         log::info!("Bound uart");
         self.uart.replace(address);
     }
 }
 
 impl NotifyHandler<SayHello> for App {
-    fn on_notify(&'static mut self, _: SayHello) -> Completion {
+    fn on_notify(&'static mut self, _: SayHello) -> Completion<Self> {
         Completion::defer(async move {
             if let Some(uart) = &mut self.uart {
                 let mut buf = [0; 128];
@@ -112,6 +112,7 @@ impl NotifyHandler<SayHello> for App {
                         .ok();
                 }
             }
+            self
         })
     }
 }
