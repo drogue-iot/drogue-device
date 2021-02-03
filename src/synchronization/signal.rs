@@ -1,3 +1,6 @@
+// Copyright The Embassy Project (https://github.com/akiles/embassy). Licensed under the Apache 2.0
+// license
+
 use core::cell::UnsafeCell;
 use core::mem;
 use core::task::{Context, Poll, Waker};
