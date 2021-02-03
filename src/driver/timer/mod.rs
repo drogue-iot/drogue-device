@@ -115,12 +115,12 @@ impl<T: HalTimer, DUR: Duration + Into<Milliseconds>> RequestHandler<Delay<DUR>>
     }
 }
 
-impl<
-        T: HalTimer,
-        E: Clone + 'static,
-        A: Actor + NotifyHandler<E> + 'static,
-        DUR: Duration + Into<Milliseconds> + 'static,
-    > NotifyHandler<Schedule<A, DUR, E>> for Timer<T>
+impl<T, E, A, DUR> NotifyHandler<Schedule<A, DUR, E>> for Timer<T>
+where
+    T: HalTimer,
+    E: Clone + 'static,
+    A: Actor + NotifyHandler<E> + 'static,
+    DUR: Duration + Into<Milliseconds> + 'static,
 {
     fn on_notify(&'static mut self, message: Schedule<A, DUR, E>) -> Completion {
         let ms: Milliseconds = message.delay.into();

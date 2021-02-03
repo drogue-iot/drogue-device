@@ -58,7 +58,6 @@ where
 
 impl<P,A> NotifyHandler<On> for SimpleLED<P,A>
 where
-    Self: Switchable,
     P: OutputPin,
     A: ActiveOutput,
 {
@@ -70,7 +69,6 @@ where
 
 impl<P,A> NotifyHandler<Off> for SimpleLED<P,A>
 where
-    Self: Switchable,
     P: OutputPin,
     A: ActiveOutput,
 {
@@ -83,10 +81,8 @@ where
 
 impl<S> Address<S>
 where
-    S: NotifyHandler<Off>,
+    S: NotifyHandler<Off> + NotifyHandler<On>,
     S: Actor + 'static,
-    S: Switchable,
-    S: NotifyHandler<On>,
 {
     pub fn turn_on(&self) {
         self.notify(On);

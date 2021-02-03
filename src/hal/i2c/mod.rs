@@ -32,3 +32,13 @@ impl UpperHex for I2cAddress {
         UpperHex::fmt(&self.0, f)
     }
 }
+
+pub struct I2c {
+
+}
+
+
+
+
+
+
