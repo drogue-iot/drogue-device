@@ -150,16 +150,16 @@ where
     }
 }
 
-impl<U> Configurable for Mutex<UartPeripheral<U>>
+impl<U> Configurable for UartPeripheral<U>
 where
     U: HalUart + 'static,
 {
     type Configuration = Shared<U>;
 
     fn configure(&mut self, config: &'static Self::Configuration) {
-        self.val.as_mut().unwrap().uart.replace(&config.uart);
-        self.val.as_mut().unwrap().tx_done.replace(&config.tx_done);
-        self.val.as_mut().unwrap().rx_done.replace(&config.rx_done);
+        self.uart.replace(&config.uart);
+        self.tx_done.replace(&config.tx_done);
+        self.rx_done.replace(&config.rx_done);
     }
 }
 

@@ -1,6 +1,6 @@
 //! A mutex-lock actor and supporting types.
 
-use crate::actor::Actor;
+use crate::actor::{Actor, Configurable};
 use crate::address::Address;
 use crate::handler::{Completion, NotifyHandler, RequestHandler, Response};
 use core::cell::UnsafeCell;
@@ -41,6 +41,14 @@ where
 {
     fn mount(&mut self, addr: Address<Self>) {
         self.address.replace(addr);
+    }
+}
+
+impl<T> Configurable for Mutex<T> where T: Configurable {
+    type Configuration = T::Configuration;
+
+    fn configure(&mut self, config: &'static Self::Configuration) {
+        self.val.as_mut().unwrap().configure(config)
     }
 }
 

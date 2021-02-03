@@ -337,18 +337,6 @@ impl<A: Actor> Future for OnLifecycle<A> {
                     self.defer.replace(completion);
                 }
             }
-            /*
-            if matches!(completion, Completion::Immediate(actor)) {
-                self.actor.replace_actor(actor);
-                log::trace!(
-                    "[{}] Lifecycle.poll() - immediate: Ready",
-                    self.actor.name()
-                );
-                return Poll::Ready(());
-            }
-            self.defer.replace(completion);
-
-             */
         }
 
         log::trace!("[{}] Lifecycle.poll() - check defer", self.actor.name());
