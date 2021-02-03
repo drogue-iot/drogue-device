@@ -71,8 +71,7 @@ impl SpiInterrupt {
 
 struct SetWaker(Waker);
 
-impl NotifyHandler<SetWaker> for SpiInterrupt
-{
+impl NotifyHandler<SetWaker> for SpiInterrupt {
     fn on_notify(&'static mut self, message: SetWaker) -> Completion<Self> {
         self.waker.replace(message.0.clone());
         Completion::immediate(self)

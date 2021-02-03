@@ -33,12 +33,4 @@ impl UpperHex for I2cAddress {
     }
 }
 
-pub struct I2c {
-
-}
-
-
-
-
-
-
+pub struct I2c {}

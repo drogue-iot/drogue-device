@@ -60,14 +60,17 @@ where
     /// Response to the request.
     fn on_request(&'static mut self, message: M) -> Response<Self, Self::Response>;
 
-    fn response_with(&'static mut self, response: Self::Response) -> (&'static mut Self, Self::Response) {
-        ( &mut *self, response)
+    fn response_with(
+        &'static mut self,
+        response: Self::Response,
+    ) -> (&'static mut Self, Self::Response) {
+        (&mut *self, response)
     }
 }
 
 /// Return value from a `NotifyHandler` to allow for immediate synchronous handling
 /// of the notification or asynchronous handling.
-pub enum Completion<A:Actor + 'static> {
+pub enum Completion<A: Actor + 'static> {
     /// See `immediate()`
     Immediate(&'static mut A),
 
@@ -75,7 +78,7 @@ pub enum Completion<A:Actor + 'static> {
     Defer(Box<dyn Future<Output = (&'static mut A)>>),
 }
 
-impl<A:Actor> Completion<A> {
+impl<A: Actor> Completion<A> {
     /// Indicates the notification has been immediately handled.
     pub fn immediate(actor: &'static mut A) -> Self {
         Self::Immediate(actor)

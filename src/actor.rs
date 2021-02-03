@@ -19,7 +19,7 @@ use heapless::{consts::*, spsc::Queue};
 /// Trait that each actor must implement.
 ///
 /// See also `NotifyHandler<...>` and `RequestHandler<...>`.
-pub trait Actor : Sized {
+pub trait Actor: Sized {
     /// Called to mount an actor into the system.
     ///
     /// The actor will be presented with both its own `Address<...>`.
@@ -118,12 +118,12 @@ impl<A: Actor> ActorContext<A> {
     }
 
     //unsafe fn actor_mut(&'static self) -> &mut A {
-        //&mut *self.actor.get()
+    //&mut *self.actor.get()
     //}
     fn take_actor(&'static self) -> Option<&'static mut A> {
         unsafe {
             if let Some(actor_ptr) = (&mut *self.actor_ref.get()).take() {
-                Some( &mut *actor_ptr)
+                Some(&mut *actor_ptr)
             } else {
                 None
             }
@@ -132,7 +132,7 @@ impl<A: Actor> ActorContext<A> {
 
     fn replace_actor(&'static self, actor: &'static mut A) {
         unsafe {
-            (&mut *self.actor_ref.get()).replace( actor );
+            (&mut *self.actor_ref.get()).replace(actor);
         }
     }
 
@@ -153,10 +153,9 @@ impl<A: Actor> ActorContext<A> {
         self.items_producer.borrow_mut().replace(producer);
         self.items_consumer.borrow_mut().replace(consumer);
 
-
         // SAFETY: At this point, we are the only holder of the actor
         unsafe {
-            (&mut *self.actor_ref.get()).replace( (&mut *self.actor.get()));
+            (&mut *self.actor_ref.get()).replace((&mut *self.actor.get()));
             (&mut *self.actor.get()).mount(addr.clone());
         }
 
@@ -301,7 +300,7 @@ impl<A: Actor> Future for OnLifecycle<A> {
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         log::trace!("[{}] Lifecycle.poll()", self.actor.name());
         if !self.dispatched {
-            let actor = self.actor.take_actor().expect( "actor is missing");
+            let actor = self.actor.take_actor().expect("actor is missing");
             log::trace!(
                 "[{}] Lifecycle.poll() - dispatch on_notification",
                 self.actor.name()
@@ -447,8 +446,7 @@ where
                 "[{}] Notify.poll() - dispatch on_notification",
                 self.actor.name()
             );
-            let completion =
-                actor.on_notify(self.as_mut().message.take().unwrap());
+            let completion = actor.on_notify(self.as_mut().message.take().unwrap());
 
             match completion {
                 Completion::Immediate(actor) => {
@@ -540,8 +538,7 @@ where
         log::trace!("[{}] Request.poll()", self.actor.name());
         if self.message.is_some() {
             let actor = self.actor.take_actor().expect("actor is missing");
-            let response =
-                actor.on_request(self.as_mut().message.take().unwrap());
+            let response = actor.on_request(self.as_mut().message.take().unwrap());
 
             match response {
                 Response::Immediate(actor, val) => {
