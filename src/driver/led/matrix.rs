@@ -44,7 +44,7 @@ impl Frame {
     }
 
     fn set(&mut self, x: usize, y: usize) {
-        self.bitmap[x] |= (1 << y);
+        self.bitmap[x] |= 1 << y;
     }
 
     fn unset(&mut self, x: usize, y: usize) {
