@@ -16,6 +16,11 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue};
 
+pub trait Configurable {
+    type Configuration;
+    fn configure(&mut self, config: Self::Configuration);
+}
+
 /// Trait that each actor must implement.
 ///
 /// See also `NotifyHandler<...>` and `RequestHandler<...>`.
@@ -117,9 +122,6 @@ impl<A: Actor> ActorContext<A> {
         self.name.unwrap_or("<unnamed>")
     }
 
-    //unsafe fn actor_mut(&'static self) -> &mut A {
-    //&mut *self.actor.get()
-    //}
     fn take_actor(&'static self) -> Option<&'static mut A> {
         unsafe {
             if let Some(actor_ptr) = (&mut *self.actor_ref.get()).take() {
@@ -139,6 +141,15 @@ impl<A: Actor> ActorContext<A> {
     /// Retrieve an instance of the actor's address.
     pub fn address(&'static self) -> Address<A> {
         Address::new(self)
+    }
+
+    pub fn configure(&'static self, config: A::Configuration)
+    where
+        A: Configurable,
+    {
+        unsafe {
+            (&mut *self.actor.get()).configure(config);
+        }
     }
 
     /// Mount the context and its actor into the system.
