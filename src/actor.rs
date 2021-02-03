@@ -18,7 +18,7 @@ use heapless::{consts::*, spsc::Queue};
 
 pub trait Configurable {
     type Configuration;
-    fn configure(&mut self, config: Self::Configuration);
+    fn configure(&mut self, config: &'static Self::Configuration);
 }
 
 /// Trait that each actor must implement.
@@ -143,7 +143,7 @@ impl<A: Actor> ActorContext<A> {
         Address::new(self)
     }
 
-    pub fn configure(&'static self, config: A::Configuration)
+    pub fn configure(&'static self, config: &'static A::Configuration)
     where
         A: Configurable,
     {
@@ -408,10 +408,10 @@ impl<A: Actor + Bind<OA>, OA: Actor> Future for OnBind<A, OA> {
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.address.is_some() {
-            let actor = unsafe { (&mut *self.actor.actor.get()) };
             log::trace!("[{}] Bind.poll() - dispatch on_bind", self.actor.name());
+            let actor = self.actor.take_actor().expect("actor is missing");
             actor.on_bind(self.as_mut().address.take().unwrap());
-            //self.actor.replace_actor(actor);
+            self.actor.replace_actor(actor);
         }
         Poll::Ready(())
     }

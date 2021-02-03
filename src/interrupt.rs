@@ -3,7 +3,7 @@
 use cortex_m::interrupt::Nr;
 use cortex_m::peripheral::NVIC;
 
-use crate::actor::{Actor, ActorContext};
+use crate::actor::{Actor, ActorContext, Configurable};
 use crate::address::Address;
 use crate::supervisor::Supervisor;
 
@@ -47,6 +47,13 @@ impl<I: Interrupt> InterruptContext<I> {
 
     pub fn address(&'static self) -> Address<I> {
         self.actor_context.address()
+    }
+
+    pub fn configure(&'static self, config: &'static I::Configuration)
+        where
+            I: Configurable,
+    {
+        self.actor_context.configure(config)
     }
 
     /// Mount the context and its actor into the system.

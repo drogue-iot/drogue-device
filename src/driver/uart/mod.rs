@@ -1,6 +1,5 @@
-use crate::actor::{Actor, ActorContext};
+use crate::actor::{Actor, ActorContext, Configurable};
 use crate::address::Address;
-use crate::bind::Bind;
 use crate::bus::EventBus;
 use crate::device::Device;
 use crate::prelude::*;
@@ -17,13 +16,22 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use cortex_m::interrupt::Nr;
 
-pub struct Uart<U>
+pub struct Shared<U>
 where
     U: HalUart + 'static,
 {
     uart: U,
+    tx_done: Signal<Result<(), Error>>,
+    rx_done: Signal<Result<usize, Error>>,
+}
+
+pub struct Uart<U>
+where
+    U: HalUart + 'static,
+{
     peripheral: ActorContext<Mutex<UartPeripheral<U>>>,
     irq: InterruptContext<UartInterrupt<U>>,
+    shared: Shared<U>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -41,9 +49,13 @@ where
         IRQ: Nr,
     {
         Self {
-            uart,
             peripheral: ActorContext::new(Mutex::new(UartPeripheral::new())),
             irq: InterruptContext::new(UartInterrupt::new(), irq),
+            shared: Shared {
+                uart,
+                tx_done: Signal::new(),
+                rx_done: Signal::new(),
+            },
         }
     }
 }
@@ -61,9 +73,11 @@ where
         let peripheral = self.peripheral.mount(supervisor);
         let irq = self.irq.mount(supervisor);
 
-        irq.bind(&peripheral.clone());
-        peripheral.notify(&self.uart);
-        irq.notify(&self.uart);
+        //irq.bind(&peripheral.clone());
+        //peripheral.notify(&self.uart);
+        //irq.notify(&self.uart);
+        self.peripheral.configure(&self.shared);
+        self.irq.configure(&self.shared);
 
         peripheral
     }
@@ -137,13 +151,26 @@ where
     }
 }
 
+impl<U> Configurable for Mutex<UartPeripheral<U>>
+where
+    U: HalUart + 'static,
+{
+    type Configuration = Shared<U>;
+
+    fn configure(&mut self, config: &'static Self::Configuration) {
+        self.val.as_mut().unwrap().uart.replace(&config.uart);
+        self.val.as_mut().unwrap().tx_done.replace(&config.tx_done);
+        self.val.as_mut().unwrap().rx_done.replace(&config.rx_done);
+    }
+}
+
 pub struct UartInterrupt<U>
 where
     U: HalUart + 'static,
 {
     uart: Option<&'static U>,
-    tx_done: Signal<Result<(), Error>>,
-    rx_done: Signal<Result<usize, Error>>,
+    tx_done: Option<&'static Signal<Result<(), Error>>>,
+    rx_done: Option<&'static Signal<Result<usize, Error>>>,
 }
 
 impl<U> UartInterrupt<U>
@@ -153,9 +180,22 @@ where
     pub fn new() -> Self {
         Self {
             uart: None,
-            tx_done: Signal::new(),
-            rx_done: Signal::new(),
+            tx_done: None,
+            rx_done: None,
         }
+    }
+}
+
+impl<U> Configurable for UartInterrupt<U>
+    where
+        U: HalUart + 'static,
+{
+    type Configuration = Shared<U>;
+
+    fn configure(&mut self, config: &'static Self::Configuration) {
+        self.uart.replace(&config.uart);
+        self.tx_done.replace(&config.tx_done);
+        self.rx_done.replace(&config.rx_done);
     }
 }
 
@@ -170,69 +210,19 @@ where
         let (tx_done, rx_done) = uart.process_interrupts();
         log::trace!(
             "[UART ISR] TX WAKER: {}. RX WAKER: {}. TX DONE: {}. RX DONE: {}",
-            self.tx_done.signaled(),
-            self.rx_done.signaled(),
+            self.tx_done.as_ref().unwrap().signaled(),
+            self.rx_done.as_ref().unwrap().signaled(),
             tx_done,
             rx_done,
         );
 
         if tx_done {
-            self.tx_done.signal(uart.finish_write());
+            self.tx_done.as_ref().unwrap().signal(uart.finish_write());
         }
 
         if rx_done {
-            self.rx_done.signal(uart.finish_read());
+            self.rx_done.as_ref().unwrap().signal(uart.finish_read());
         }
-    }
-}
-
-impl<U> NotifyHandler<&'static U> for Mutex<UartPeripheral<U>>
-where
-    U: HalUart + 'static,
-{
-    fn on_notify(&'static mut self, uart: &'static U) -> Completion<Self> {
-        self.val.as_mut().unwrap().uart.replace(uart);
-        Completion::immediate(self)
-    }
-}
-
-impl<U>
-    NotifyHandler<(
-        &'static Signal<Result<(), Error>>,
-        &'static Signal<Result<usize, Error>>,
-    )> for Mutex<UartPeripheral<U>>
-where
-    U: HalUart,
-{
-    fn on_notify(
-        &'static mut self,
-        signals: (
-            &'static Signal<Result<(), Error>>,
-            &'static Signal<Result<usize, Error>>,
-        ),
-    ) -> Completion<Self> {
-        self.val.as_mut().unwrap().tx_done.replace(signals.0);
-        self.val.as_mut().unwrap().rx_done.replace(signals.1);
-        Completion::immediate(self)
-    }
-}
-
-impl<U> Bind<Mutex<UartPeripheral<U>>> for UartInterrupt<U>
-where
-    U: HalUart,
-{
-    fn on_bind(&'static mut self, address: Address<Mutex<UartPeripheral<U>>>) {
-        address.notify((&self.tx_done, &self.rx_done));
-    }
-}
-
-impl<U> NotifyHandler<&'static U> for UartInterrupt<U>
-where
-    U: HalUart + 'static,
-{
-    fn on_notify(&'static mut self, uart: &'static U) -> Completion<Self> {
-        self.uart.replace(uart);
-        Completion::immediate(self)
     }
 }
 

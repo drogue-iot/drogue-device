@@ -112,7 +112,7 @@ where
     D: Device,
     I: WriteRead + Read + Write,
 {
-    fn on_bind(&'static mut self, address: Address<EventBus<D>>) {
+    fn on_bind(&mut self, address: Address<EventBus<D>>) {
         self.bus.replace(address);
     }
 }
@@ -122,7 +122,7 @@ where
     D: Device,
     I: WriteRead + Read + Write + 'static,
 {
-    fn on_bind(&'static mut self, address: Address<Mutex<I>>) {
+    fn on_bind(&mut self, address: Address<Mutex<I>>) {
         self.i2c.replace(address);
     }
 }
