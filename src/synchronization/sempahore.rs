@@ -70,7 +70,7 @@ impl Semaphore {
 }
 
 impl Actor for Semaphore {
-    fn mount(&mut self, address: Address<Self>)
+    fn on_mount(&mut self, address: Address<Self>)
     where
         Self: Sized,
     {

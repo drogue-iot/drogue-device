@@ -101,11 +101,11 @@ where
     COLS: ArrayLength<P>,
     T: HalTimer,
 {
-    fn mount(&mut self, address: Address<Self>) {
+    fn on_mount(&mut self, address: Address<Self>) {
         self.address.replace(address);
     }
 
-    fn start(&'static mut self) -> Completion<Self> {
+    fn on_start(&'static mut self) -> Completion<Self> {
         if let Some(address) = &self.address {
             self.timer.as_ref().unwrap().schedule(
                 self.refresh_rate.to_duration::<Milliseconds>().unwrap(),

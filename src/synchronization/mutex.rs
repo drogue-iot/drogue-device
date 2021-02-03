@@ -40,7 +40,7 @@ impl<T> Actor for Mutex<T>
 where
     T: 'static,
 {
-    fn mount(&mut self, addr: Address<Self>) {
+    fn on_mount(&mut self, addr: Address<Self>) {
         self.address.replace(addr);
     }
 }

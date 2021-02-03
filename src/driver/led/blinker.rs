@@ -56,14 +56,14 @@ where
     S: Switchable,
     T: HalTimer,
 {
-    fn mount(&mut self, address: Address<Self>)
+    fn on_mount(&mut self, address: Address<Self>)
     where
         Self: Sized,
     {
         self.address.replace(address);
     }
 
-    fn start(&'static mut self) -> Completion<Self> {
+    fn on_start(&'static mut self) -> Completion<Self> {
         self.timer.as_ref().unwrap().schedule(
             self.delay,
             State::On,

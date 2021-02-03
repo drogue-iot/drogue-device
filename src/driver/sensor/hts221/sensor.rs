@@ -57,7 +57,7 @@ where
     D: Device,
     I: WriteRead + Read + Write,
 {
-    fn initialize(&'static mut self) -> Completion<Self> {
+    fn on_initialize(&'static mut self) -> Completion<Self> {
         Completion::defer(async move {
             if let Some(ref i2c) = self.i2c {
                 let mut i2c = i2c.lock().await;
@@ -95,7 +95,7 @@ where
         })
     }
 
-    fn start(&'static mut self) -> Completion<Self> {
+    fn on_start(&'static mut self) -> Completion<Self> {
         Completion::defer(async move {
             if let Some(ref i2c) = self.i2c {
                 let mut i2c = i2c.lock().await;

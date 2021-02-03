@@ -30,34 +30,34 @@ pub trait Actor: Sized {
     /// The actor will be presented with both its own `Address<...>`.
     ///
     /// The default implementation does nothing.
-    fn mount(&mut self, address: Address<Self>)
+    fn on_mount(&mut self, address: Address<Self>)
     where
         Self: Sized,
     {
     }
 
     /// Lifecycle event of *initialize*.
-    fn initialize(&'static mut self) -> Completion<Self> {
+    fn on_initialize(&'static mut self) -> Completion<Self> {
         Completion::immediate(self)
     }
 
     /// Lifecycle event of *start*.
-    fn start(&'static mut self) -> Completion<Self> {
+    fn on_start(&'static mut self) -> Completion<Self> {
         Completion::immediate(self)
     }
 
     /// Lifecycle event of *sleep*. *Unused currently*.
-    fn sleep(&'static mut self) -> Completion<Self> {
+    fn on_sleep(&'static mut self) -> Completion<Self> {
         Completion::immediate(self)
     }
 
     /// Lifecycle event of *hibernate*. *Unused currently*.
-    fn hibernate(&'static mut self) -> Completion<Self> {
+    fn on_hibernate(&'static mut self) -> Completion<Self> {
         Completion::immediate(self)
     }
 
     /// Lifecycle event of *stop*. *Unused currently*.
-    fn stop(&'static mut self) -> Completion<Self> {
+    fn on_stop(&'static mut self) -> Completion<Self> {
         Completion::immediate(self)
     }
 }
@@ -167,7 +167,7 @@ impl<A: Actor> ActorContext<A> {
         // SAFETY: At this point, we are the only holder of the actor
         unsafe {
             (&mut *self.actor_ref.get()).replace(&mut *self.actor.get());
-            (&mut *self.actor.get()).mount(addr.clone());
+            (&mut *self.actor.get()).on_mount(addr.clone());
         }
 
         addr
@@ -317,11 +317,11 @@ impl<A: Actor> Future for OnLifecycle<A> {
                 self.actor.name()
             );
             let completion = match self.event {
-                Lifecycle::Initialize => actor.initialize(),
-                Lifecycle::Start => actor.start(),
-                Lifecycle::Stop => actor.stop(),
-                Lifecycle::Sleep => actor.sleep(),
-                Lifecycle::Hibernate => actor.hibernate(),
+                Lifecycle::Initialize => actor.on_initialize(),
+                Lifecycle::Start => actor.on_start(),
+                Lifecycle::Stop => actor.on_stop(),
+                Lifecycle::Sleep => actor.on_sleep(),
+                Lifecycle::Hibernate => actor.on_hibernate(),
             };
             self.dispatched = true;
             match completion {
