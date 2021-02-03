@@ -7,7 +7,8 @@
 pub mod nrf;
 
 pub trait Uart {
-    /// Start a write operation to transmit the provided buffer.
+    /// Start a write operation to transmit the provided buffer. Implementations can return
+    /// TxBufferTooLong if buffer is too big.
     fn start_write(&self, tx_buffer: &[u8]) -> Result<(), Error>;
 
     /// Complete a write operation.
@@ -16,10 +17,8 @@ pub trait Uart {
     /// Cancel a write operation.
     fn cancel_write(&self);
 
-    /// Process interrupts for the peripheral. Implementations may need to use this to initiate
-    fn process_interrupts(&self) -> (bool, bool);
-
-    /// Start a read operation to receive data into rx_buffer.
+    /// Start a read operation to receive data into rx_buffer. Implementations can return
+    /// RxBufferTooLong if buffer is too big for implementations.
     fn start_read(&self, rx_buffer: &mut [u8]) -> Result<(), Error>;
 
     /// Complete a read operation.
@@ -27,6 +26,9 @@ pub trait Uart {
 
     /// Cancel a read operation
     fn cancel_read(&self);
+
+    /// Process interrupts for the peripheral.
+    fn process_interrupts(&self) -> (bool, bool);
 }
 
 #[derive(Debug, Clone)]
