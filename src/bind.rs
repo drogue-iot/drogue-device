@@ -10,5 +10,5 @@ use crate::address::Address;
 /// dependencies.
 pub trait Bind<A: Actor> {
     /// Perform the binding of the passed in address.
-    fn on_bind(&'static mut self, address: Address<A>);
+    fn on_bind(&mut self, address: Address<A>);
 }

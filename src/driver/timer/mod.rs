@@ -84,7 +84,7 @@ impl<T: HalTimer> Actor for Timer<T> {}
 impl<T: HalTimer, DUR: Duration + Into<Milliseconds>> RequestHandler<Delay<DUR>> for Timer<T> {
     type Response = ();
 
-    fn on_request(&'static mut self, message: Delay<DUR>) -> Response<Self::Response> {
+    fn on_request(&'static mut self, message: Delay<DUR>) -> Response<Self, Self::Response> {
         let ms: Milliseconds = message.0.into();
         //log::info!("delay request {:?}", ms);
 
@@ -108,9 +108,10 @@ impl<T: HalTimer, DUR: Duration + Into<Milliseconds>> RequestHandler<Delay<DUR>>
                 //log::info!("start new timer for {:?}", ms);
                 self.timer.start(ms);
             }
-            Response::immediate_future(DelayFuture::new(index, self))
+            let future = DelayFuture::new(index, self);
+            Response::immediate_future(self, future)
         } else {
-            Response::immediate(())
+            Response::immediate(self, ())
         }
     }
 }
@@ -122,7 +123,7 @@ where
     A: Actor + NotifyHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds> + 'static,
 {
-    fn on_notify(&'static mut self, message: Schedule<A, DUR, E>) -> Completion {
+    fn on_notify(&'static mut self, message: Schedule<A, DUR, E>) -> Completion<Self> {
         let ms: Milliseconds = message.delay.into();
         //log::info!("delay request {:?}", ms);
 
@@ -148,7 +149,7 @@ where
                 self.timer.start(ms);
             }
         }
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 

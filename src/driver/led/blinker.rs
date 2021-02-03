@@ -37,7 +37,7 @@ where
     S: Switchable,
     T: HalTimer,
 {
-    fn on_bind(&'static mut self, address: Address<S>) {
+    fn on_bind(&mut self, address: Address<S>) {
         self.led.replace(address);
     }
 }
@@ -47,7 +47,7 @@ where
     S: Switchable,
     T: HalTimer,
 {
-    fn on_bind(&'static mut self, address: Address<Timer<T>>) {
+    fn on_bind(&mut self, address: Address<Timer<T>>) {
         self.timer.replace(address);
     }
 }
@@ -64,13 +64,13 @@ where
         self.address.replace(address);
     }
 
-    fn start(&'static mut self) -> Completion {
+    fn start(&'static mut self) -> Completion<Self> {
         self.timer.as_ref().unwrap().schedule(
             self.delay,
             State::On,
             self.address.as_ref().unwrap().clone(),
         );
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 
@@ -85,7 +85,7 @@ where
     S: Switchable,
     T: HalTimer,
 {
-    fn on_notify(&'static mut self, message: State) -> Completion {
+    fn on_notify(&'static mut self, message: State) -> Completion<Self> {
         match message {
             State::On => {
                 self.led.as_ref().unwrap().turn_on();
@@ -104,7 +104,7 @@ where
                 );
             }
         }
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 
@@ -115,9 +115,9 @@ where
     S: Switchable,
     T: HalTimer,
 {
-    fn on_notify(&'static mut self, message: AdjustDelay) -> Completion {
+    fn on_notify(&'static mut self, message: AdjustDelay) -> Completion<Self> {
         self.delay = message.0;
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 

@@ -61,9 +61,9 @@ where
     P: OutputPin,
     A: ActiveOutput,
 {
-    fn on_notify(&'static mut self, message: On) -> Completion {
+    fn on_notify(&'static mut self, message: On) -> Completion<Self> {
         self.turn_on();
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 
@@ -72,9 +72,10 @@ where
     P: OutputPin,
     A: ActiveOutput,
 {
-    fn on_notify(&'static mut self, message: Off) -> Completion {
+    fn on_notify(&'static mut self, message: Off) -> Completion<Self> {
         Completion::defer(async move {
             self.turn_off();
+            (self)
         })
     }
 }

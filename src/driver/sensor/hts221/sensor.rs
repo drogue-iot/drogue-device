@@ -57,7 +57,7 @@ where
     D: Device,
     I: WriteRead + Read + Write,
 {
-    fn initialize(&'static mut self) -> Completion {
+    fn initialize(&'static mut self) -> Completion<Self> {
         Completion::defer(async move {
             if let Some(ref i2c) = self.i2c {
                 let mut i2c = i2c.lock().await;
@@ -91,16 +91,18 @@ where
                     Tout::read(self.address, &mut i2c);
                 }
             }
+            (self)
         })
     }
 
-    fn start(&'static mut self) -> Completion {
+    fn start(&'static mut self) -> Completion<Self> {
         Completion::defer(async move {
             if let Some(ref i2c) = self.i2c {
                 let mut i2c = i2c.lock().await;
                 self.calibration
                     .replace(Calibration::read(self.address, &mut i2c));
             }
+            (self)
         })
     }
 }
@@ -110,7 +112,7 @@ where
     D: Device,
     I: WriteRead + Read + Write,
 {
-    fn on_bind(&'static mut self, address: Address<EventBus<D>>) {
+    fn on_bind(&mut self, address: Address<EventBus<D>>) {
         self.bus.replace(address);
     }
 }
@@ -120,7 +122,7 @@ where
     D: Device,
     I: WriteRead + Read + Write + 'static,
 {
-    fn on_bind(&'static mut self, address: Address<Mutex<I>>) {
+    fn on_bind(&mut self, address: Address<Mutex<I>>) {
         self.i2c.replace(address);
     }
 }
@@ -130,7 +132,7 @@ where
     D: Device + EventHandler<SensorAcquisition>,
     I: WriteRead + Read + Write,
 {
-    fn on_notify(&'static mut self, message: DataReady) -> Completion {
+    fn on_notify(&'static mut self, message: DataReady) -> Completion<Self> {
         Completion::defer(async move {
             if self.i2c.is_some() {
                 let mut i2c = self.i2c.as_ref().unwrap().lock().await;
@@ -155,6 +157,7 @@ where
                     log::info!("[hts221] no calibration data available")
                 }
             }
+            (self)
         })
     }
 }

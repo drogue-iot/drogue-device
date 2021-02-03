@@ -204,18 +204,18 @@ impl Interrupt for UartInterrupt {
 }
 
 impl NotifyHandler<SetRxWaker> for UartInterrupt {
-    fn on_notify(&'static mut self, waker: SetRxWaker) -> Completion {
+    fn on_notify(&'static mut self, waker: SetRxWaker) -> Completion<Self> {
         log::info!("SET RX WAKER");
         self.rx_waker.replace(waker.0);
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 
 impl NotifyHandler<SetTxWaker> for UartInterrupt {
-    fn on_notify(&'static mut self, waker: SetTxWaker) -> Completion {
+    fn on_notify(&'static mut self, waker: SetTxWaker) -> Completion<Self> {
         log::info!("SET TX WAKER");
         self.tx_waker.replace(waker.0);
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 
@@ -233,7 +233,7 @@ impl<U> Bind<UartInterrupt> for Mutex<UartPeripheral<U>>
 where
     U: HalUart,
 {
-    fn on_bind(&'static mut self, address: Address<UartInterrupt>) {
+    fn on_bind(&mut self, address: Address<UartInterrupt>) {
         self.val.as_mut().unwrap().irq.replace(address);
     }
 }

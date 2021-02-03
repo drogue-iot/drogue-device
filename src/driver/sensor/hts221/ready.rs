@@ -61,7 +61,7 @@ where
     P: InputPin + ExtiPin,
     I: WriteRead + Read + Write,
 {
-    fn on_bind(&'static mut self, address: Address<Sensor<D, I>>) {
+    fn on_bind(&mut self, address: Address<Sensor<D, I>>) {
         self.sensor.replace(address);
     }
 }
