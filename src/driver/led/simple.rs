@@ -58,35 +58,32 @@ where
 
 impl<P, A> NotifyHandler<On> for SimpleLED<P, A>
 where
-    Self: Switchable,
     P: OutputPin,
     A: ActiveOutput,
 {
-    fn on_notify(&'static mut self, message: On) -> Completion {
+    fn on_notify(&'static mut self, message: On) -> Completion<Self> {
         self.turn_on();
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 
 impl<P, A> NotifyHandler<Off> for SimpleLED<P, A>
 where
-    Self: Switchable,
     P: OutputPin,
     A: ActiveOutput,
 {
-    fn on_notify(&'static mut self, message: Off) -> Completion {
+    fn on_notify(&'static mut self, message: Off) -> Completion<Self> {
         Completion::defer(async move {
             self.turn_off();
+            (self)
         })
     }
 }
 
 impl<S> Address<S>
 where
-    S: NotifyHandler<Off>,
+    S: NotifyHandler<Off> + NotifyHandler<On>,
     S: Actor + 'static,
-    S: Switchable,
-    S: NotifyHandler<On>,
 {
     pub fn turn_on(&self) {
         self.notify(On);

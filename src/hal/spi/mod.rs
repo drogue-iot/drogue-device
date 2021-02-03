@@ -31,7 +31,7 @@ impl<SPI> Bind<SpiInterrupt> for Mutex<SpiPeripheral<SPI>>
 where
     SPI: FullDuplex<u8>,
 {
-    fn on_bind(&'static mut self, address: Address<SpiInterrupt>) {
+    fn on_bind(&mut self, address: Address<SpiInterrupt>) {
         self.val.as_mut().unwrap().irq.replace(address);
     }
 }
@@ -71,10 +71,11 @@ impl SpiInterrupt {
 
 struct SetWaker(Waker);
 
-impl NotifyHandler<SetWaker> for SpiInterrupt {
-    fn on_notify(&'static mut self, message: SetWaker) -> Completion {
+impl NotifyHandler<SetWaker> for SpiInterrupt
+{
+    fn on_notify(&'static mut self, message: SetWaker) -> Completion<Self> {
         self.waker.replace(message.0.clone());
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 
@@ -217,7 +218,7 @@ impl<SPI> Actor for TestActor<SPI>
 where
     SPI: FullDuplex<u8> + 'static,
 {
-    fn start(&'static mut self) -> Completion {
+    fn start(&'static mut self) -> Completion<Self> {
         Completion::defer(async move {
             let mut periph = self.spi.lock().await;
             let mut buf = [0; 16];
@@ -227,6 +228,7 @@ where
 
             // prove we can borrow mutable afterwards.
             use_it_mut(&mut buf);
+            (self)
         })
     }
 }

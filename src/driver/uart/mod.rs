@@ -190,9 +190,9 @@ impl<U> NotifyHandler<&'static U> for Mutex<UartPeripheral<U>>
 where
     U: HalUart + 'static,
 {
-    fn on_notify(&'static mut self, uart: &'static U) -> Completion {
+    fn on_notify(&'static mut self, uart: &'static U) -> Completion<Self> {
         self.val.as_mut().unwrap().uart.replace(uart);
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 
@@ -210,10 +210,10 @@ where
             &'static Signal<Result<(), Error>>,
             &'static Signal<Result<usize, Error>>,
         ),
-    ) -> Completion {
+    ) -> Completion<Self> {
         self.val.as_mut().unwrap().tx_done.replace(signals.0);
         self.val.as_mut().unwrap().rx_done.replace(signals.1);
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 
@@ -230,9 +230,9 @@ impl<U> NotifyHandler<&'static U> for UartInterrupt<U>
 where
     U: HalUart + 'static,
 {
-    fn on_notify(&'static mut self, uart: &'static U) -> Completion {
+    fn on_notify(&'static mut self, uart: &'static U) -> Completion<Self> {
         self.uart.replace(uart);
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 

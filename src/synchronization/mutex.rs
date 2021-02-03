@@ -50,14 +50,14 @@ where
 {
     type Response = Exclusive<T>;
 
-    fn on_request(&'static mut self, message: Lock) -> Response<Self::Response> {
+    fn on_request(&'static mut self, message: Lock) -> Response<Self, Self::Response> {
         Response::defer(async move {
             let lock = Exclusive {
                 address: self.address.as_ref().unwrap().clone(),
                 val: Some(self.lock().await),
             };
             log::trace!("[Mutex<T> lock");
-            lock
+            self.response_with(lock)
         })
     }
 }
@@ -66,10 +66,10 @@ impl<T> NotifyHandler<Unlock<T>> for Mutex<T>
 where
     T: 'static,
 {
-    fn on_notify(&'static mut self, message: Unlock<T>) -> Completion {
+    fn on_notify(&'static mut self, message: Unlock<T>) -> Completion<Self> {
         log::trace!("[Mutex<T> unlock");
         self.unlock(message.0);
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 
@@ -83,7 +83,7 @@ impl<T> Mutex<T> {
     }
 
     #[doc(hidden)]
-    pub async fn lock(&'static mut self) -> T {
+    pub async fn lock(&mut self) -> T {
         struct LockFuture<TT: 'static> {
             waiting: bool,
             mutex: UnsafeCell<*mut Mutex<TT>>,
@@ -162,7 +162,7 @@ where
 }
 
 impl<T> Address<Mutex<T>> {
-    pub async fn lock(&'static self) -> Exclusive<T> {
+    pub async fn lock(&self) -> Exclusive<T> {
         self.request(Lock).await
     }
 }

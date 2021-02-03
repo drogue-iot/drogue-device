@@ -19,7 +19,7 @@ use heapless::{consts::*, spsc::Queue};
 /// Trait that each actor must implement.
 ///
 /// See also `NotifyHandler<...>` and `RequestHandler<...>`.
-pub trait Actor {
+pub trait Actor : Sized {
     /// Called to mount an actor into the system.
     ///
     /// The actor will be presented with both its own `Address<...>`.
@@ -32,28 +32,28 @@ pub trait Actor {
     }
 
     /// Lifecycle event of *initialize*.
-    fn initialize(&'static mut self) -> Completion {
-        Completion::immediate()
+    fn initialize(&'static mut self) -> Completion<Self> {
+        Completion::immediate(self)
     }
 
     /// Lifecycle event of *start*.
-    fn start(&'static mut self) -> Completion {
-        Completion::immediate()
+    fn start(&'static mut self) -> Completion<Self> {
+        Completion::immediate(self)
     }
 
     /// Lifecycle event of *sleep*. *Unused currently*.
-    fn sleep(&'static mut self) -> Completion {
-        Completion::immediate()
+    fn sleep(&'static mut self) -> Completion<Self> {
+        Completion::immediate(self)
     }
 
     /// Lifecycle event of *hibernate*. *Unused currently*.
-    fn hibernate(&'static mut self) -> Completion {
-        Completion::immediate()
+    fn hibernate(&'static mut self) -> Completion<Self> {
+        Completion::immediate(self)
     }
 
     /// Lifecycle event of *stop*. *Unused currently*.
-    fn stop(&'static mut self) -> Completion {
-        Completion::immediate()
+    fn stop(&'static mut self) -> Completion<Self> {
+        Completion::immediate(self)
     }
 }
 
@@ -78,6 +78,7 @@ type ItemsConsumer<A> = RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>>
 /// and connects it to the actor system.
 pub struct ActorContext<A: Actor> {
     pub(crate) actor: UnsafeCell<A>,
+    actor_ref: UnsafeCell<Option<*mut A>>,
     pub(crate) current: RefCell<Option<Box<dyn ActorFuture<A>>>>,
     pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>>, U16>>,
     pub(crate) items_producer: ItemsProducer<A>,
@@ -94,6 +95,7 @@ impl<A: Actor> ActorContext<A> {
     pub fn new(actor: A) -> Self {
         Self {
             actor: UnsafeCell::new(actor),
+            actor_ref: UnsafeCell::new(None),
             current: RefCell::new(None),
             items: UnsafeCell::new(Queue::new()),
             items_producer: RefCell::new(None),
@@ -115,8 +117,23 @@ impl<A: Actor> ActorContext<A> {
         self.name.unwrap_or("<unnamed>")
     }
 
-    unsafe fn actor_mut(&'static self) -> &mut A {
-        &mut *self.actor.get()
+    //unsafe fn actor_mut(&'static self) -> &mut A {
+        //&mut *self.actor.get()
+    //}
+    fn take_actor(&'static self) -> Option<&'static mut A> {
+        unsafe {
+            if let Some(actor_ptr) = (&mut *self.actor_ref.get()).take() {
+                Some( &mut *actor_ptr)
+            } else {
+                None
+            }
+        }
+    }
+
+    fn replace_actor(&'static self, actor: &'static mut A) {
+        unsafe {
+            (&mut *self.actor_ref.get()).replace( actor );
+        }
     }
 
     /// Retrieve an instance of the actor's address.
@@ -136,9 +153,10 @@ impl<A: Actor> ActorContext<A> {
         self.items_producer.borrow_mut().replace(producer);
         self.items_consumer.borrow_mut().replace(consumer);
 
+
         // SAFETY: At this point, we are the only holder of the actor
         unsafe {
-            //(&mut *self.state_flag_handle.get()).replace(state_flag_handle);
+            (&mut *self.actor_ref.get()).replace( (&mut *self.actor.get()));
             (&mut *self.actor.get()).mount(addr.clone());
         }
 
@@ -258,7 +276,7 @@ pub(crate) trait ActorFuture<A: Actor>: Future<Output = ()> + Unpin {
 struct OnLifecycle<A: Actor + 'static> {
     actor: &'static ActorContext<A>,
     event: Lifecycle,
-    defer: Option<Completion>,
+    defer: Option<Completion<A>>,
     dispatched: bool,
 }
 
@@ -283,19 +301,35 @@ impl<A: Actor> Future for OnLifecycle<A> {
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         log::trace!("[{}] Lifecycle.poll()", self.actor.name());
         if !self.dispatched {
+            let actor = self.actor.take_actor().expect( "actor is missing");
             log::trace!(
                 "[{}] Lifecycle.poll() - dispatch on_notification",
                 self.actor.name()
             );
             let completion = match self.event {
-                Lifecycle::Initialize => unsafe { self.actor.actor_mut() }.initialize(),
-                Lifecycle::Start => unsafe { self.actor.actor_mut() }.start(),
-                Lifecycle::Stop => unsafe { self.actor.actor_mut() }.stop(),
-                Lifecycle::Sleep => unsafe { self.actor.actor_mut() }.sleep(),
-                Lifecycle::Hibernate => unsafe { self.actor.actor_mut() }.hibernate(),
+                Lifecycle::Initialize => actor.initialize(),
+                Lifecycle::Start => actor.start(),
+                Lifecycle::Stop => actor.stop(),
+                Lifecycle::Sleep => actor.sleep(),
+                Lifecycle::Hibernate => actor.hibernate(),
             };
             self.dispatched = true;
-            if matches!(completion, Completion::Immediate()) {
+            match completion {
+                Completion::Immediate(actor) => {
+                    self.actor.replace_actor(actor);
+                    log::trace!(
+                        "[{}] Lifecycle.poll() - immediate: Ready",
+                        self.actor.name()
+                    );
+                    return Poll::Ready(());
+                }
+                Completion::Defer(_) => {
+                    self.defer.replace(completion);
+                }
+            }
+            /*
+            if matches!(completion, Completion::Immediate(actor)) {
+                self.actor.replace_actor(actor);
                 log::trace!(
                     "[{}] Lifecycle.poll() - immediate: Ready",
                     self.actor.name()
@@ -303,6 +337,8 @@ impl<A: Actor> Future for OnLifecycle<A> {
                 return Poll::Ready(());
             }
             self.defer.replace(completion);
+
+             */
         }
 
         log::trace!("[{}] Lifecycle.poll() - check defer", self.actor.name());
@@ -310,8 +346,9 @@ impl<A: Actor> Future for OnLifecycle<A> {
             let fut = Pin::new(fut);
             let result = fut.poll(cx);
             match result {
-                Poll::Ready(response) => {
+                Poll::Ready(actor) => {
                     log::trace!("[{}] Lifecycle.poll() - defer: Ready", self.actor.name());
+                    self.actor.replace_actor(actor);
                     //self.sender.send(response);
                     self.defer.take();
                     Poll::Ready(())
@@ -361,8 +398,10 @@ impl<A: Actor + Bind<OA>, OA: Actor> Future for OnBind<A, OA> {
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.address.is_some() {
+            let actor = unsafe { (&mut *self.actor.actor.get()) };
             log::trace!("[{}] Bind.poll() - dispatch on_bind", self.actor.name());
-            unsafe { self.actor.actor_mut() }.on_bind(self.as_mut().address.take().unwrap());
+            actor.on_bind(self.as_mut().address.take().unwrap());
+            //self.actor.replace_actor(actor);
         }
         Poll::Ready(())
     }
@@ -374,7 +413,7 @@ where
 {
     actor: &'static ActorContext<A>,
     message: Option<M>,
-    defer: Option<Completion>,
+    defer: Option<Completion<A>>,
 }
 
 impl<A: Actor, M> OnNotify<A, M>
@@ -403,17 +442,33 @@ where
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         log::trace!("[{}] Notify.poll()", self.actor.name());
         if self.message.is_some() {
+            let actor = self.actor.take_actor().expect("actor is missing");
             log::trace!(
                 "[{}] Notify.poll() - dispatch on_notification",
                 self.actor.name()
             );
             let completion =
-                unsafe { self.actor.actor_mut() }.on_notify(self.as_mut().message.take().unwrap());
-            if matches!(completion, Completion::Immediate()) {
+                actor.on_notify(self.as_mut().message.take().unwrap());
+
+            match completion {
+                Completion::Immediate(actor) => {
+                    self.actor.replace_actor(actor);
+                    log::trace!("[{}] Notify.poll() - immediate: Ready", self.actor.name());
+                    return Poll::Ready(());
+                }
+                Completion::Defer(_) => {
+                    self.defer.replace(completion);
+                }
+            }
+            /*
+            if matches!(completion, Completion::Immediate(actor)) {
+                self.actor.replace_actor(actor);
                 log::trace!("[{}] Notify.poll() - immediate: Ready", self.actor.name());
                 return Poll::Ready(());
             }
             self.defer.replace(completion);
+
+             */
         }
 
         log::trace!("[{}] Notify.poll() - check defer", self.actor.name());
@@ -421,8 +476,9 @@ where
             let fut = Pin::new(fut);
             let result = fut.poll(cx);
             match result {
-                Poll::Ready(response) => {
+                Poll::Ready(actor) => {
                     log::trace!("[{}] Notify.poll() - defer: Ready", self.actor.name());
+                    self.actor.replace_actor(actor);
                     //self.sender.send(response);
                     self.defer.take();
                     Poll::Ready(())
@@ -447,7 +503,7 @@ where
     actor: &'static ActorContext<A>,
     message: Option<M>,
     sender: CompletionSender<A::Response>,
-    defer: Option<Response<A::Response>>,
+    defer: Option<Response<A, A::Response>>,
 }
 
 impl<A, M> OnRequest<A, M>
@@ -483,15 +539,18 @@ where
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         log::trace!("[{}] Request.poll()", self.actor.name());
         if self.message.is_some() {
+            let actor = self.actor.take_actor().expect("actor is missing");
             let response =
-                unsafe { self.actor.actor_mut() }.on_request(self.as_mut().message.take().unwrap());
+                actor.on_request(self.as_mut().message.take().unwrap());
 
             match response {
-                Response::Immediate(val) => {
+                Response::Immediate(actor, val) => {
+                    self.actor.replace_actor(actor);
                     self.sender.send_value(val);
                     return Poll::Ready(());
                 }
-                Response::ImmediateFuture(fut) => {
+                Response::ImmediateFuture(actor, fut) => {
+                    self.actor.replace_actor(actor);
                     self.sender.send_future(fut);
                     return Poll::Ready(());
                 }
@@ -506,7 +565,9 @@ where
             let result = fut.poll(cx);
             match result {
                 Poll::Ready(response) => {
-                    self.sender.send_value(response);
+                    let actor = response.0;
+                    self.actor.replace_actor(actor);
+                    self.sender.send_value(response.1);
                     self.defer.take();
                     Poll::Ready(())
                 }

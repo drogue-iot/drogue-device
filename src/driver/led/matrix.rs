@@ -89,7 +89,7 @@ where
     COLS: ArrayLength<P>,
     T: HalTimer,
 {
-    fn on_bind(&'static mut self, address: Address<Timer<T>>) {
+    fn on_bind(&mut self, address: Address<Timer<T>>) {
         self.timer.replace(address);
     }
 }
@@ -105,7 +105,7 @@ where
         self.address.replace(address);
     }
 
-    fn start(&'static mut self) -> Completion {
+    fn start(&'static mut self) -> Completion<Self> {
         if let Some(address) = &self.address {
             self.timer.as_ref().unwrap().schedule(
                 self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
@@ -113,7 +113,7 @@ where
                 address.clone(),
             );
         }
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 
@@ -124,7 +124,7 @@ where
     COLS: ArrayLength<P>,
     T: HalTimer,
 {
-    fn on_notify(&'static mut self, command: MatrixCommand) -> Completion {
+    fn on_notify(&'static mut self, command: MatrixCommand) -> Completion<Self> {
         match command {
             MatrixCommand::On(x, y) => {
                 self.on(x, y);
@@ -143,7 +143,7 @@ where
                 }
             }
         }
-        Completion::immediate()
+        Completion::immediate(self)
     }
 }
 

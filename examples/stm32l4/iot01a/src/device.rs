@@ -40,7 +40,6 @@ type Blinker2Actor = Blinker<Ld2Actor, McuTimer<TIM15>>;
 type TimerActor = Timer<McuTimer<TIM15>>;
 
 type Hts221Package = Hts221<MyDevice, PD15<Input<PullDown>>, I2cPeriph>;
-//type Hts221Sensor = Sensor<MyDevice, I2cPeriph>;
 
 pub struct MyDevice {
     pub ld1: ActorContext<Ld1Actor>,
