@@ -12,9 +12,7 @@ use crate::interrupt::{Interrupt, InterruptContext};
 use crate::package::Package;
 use crate::synchronization::{Mutex, Signal};
 
-use core::cell::UnsafeCell;
 use core::future::Future;
-use core::ops::Deref;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use cortex_m::interrupt::Nr;
@@ -24,7 +22,6 @@ where
     U: HalUart + 'static,
 {
     uart: U,
-    ctx: UartContext<U>,
     peripheral: ActorContext<Mutex<UartPeripheral<U>>>,
     irq: InterruptContext<UartInterrupt<U>>,
 }
@@ -37,57 +34,16 @@ pub enum State {
 
 impl<U> Uart<U>
 where
-    U: HalUart,
+    U: HalUart + 'static,
 {
     pub fn new<IRQ>(uart: U, irq: IRQ) -> Self
     where
         IRQ: Nr,
     {
-        let ctx = UartContext::new(&uart);
         Self {
             uart,
-            ctx: ctx.clone(),
-            peripheral: ActorContext::new(Mutex::new(UartPeripheral::new(ctx.clone()))),
-            irq: InterruptContext::new(UartInterrupt::new(ctx.clone()), irq),
-        }
-    }
-}
-
-pub struct UartContext<U>
-where
-    U: HalUart,
-{
-    uart: UnsafeCell<*const U>,
-}
-
-impl<U> UartContext<U>
-where
-    U: HalUart,
-{
-    fn new(uart: &U) -> Self {
-        Self {
-            uart: UnsafeCell::new(uart),
-        }
-    }
-}
-
-impl<U> Deref for UartContext<U>
-where
-    U: HalUart,
-{
-    type Target = U;
-    fn deref(&self) -> &Self::Target {
-        unsafe { &**self.uart.get() }
-    }
-}
-
-impl<U> Clone for UartContext<U>
-where
-    U: HalUart,
-{
-    fn clone(&self) -> Self {
-        Self {
-            uart: unsafe { UnsafeCell::new(*self.uart.get()) },
+            peripheral: ActorContext::new(Mutex::new(UartPeripheral::new())),
+            irq: InterruptContext::new(UartInterrupt::new(), irq),
         }
     }
 }
@@ -106,6 +62,9 @@ where
         let irq = self.irq.mount(supervisor);
 
         irq.bind(&peripheral.clone());
+        peripheral.notify(&self.uart);
+        irq.notify(&self.uart);
+
         peripheral
     }
 }
@@ -114,9 +73,10 @@ pub struct UartPeripheral<U>
 where
     U: HalUart + 'static,
 {
-    ctx: UartContext<U>,
     tx_state: State,
     rx_state: State,
+
+    uart: Option<&'static U>,
 
     tx_done: Option<&'static Signal<Result<(), Error>>>,
     rx_done: Option<&'static Signal<Result<usize, Error>>>,
@@ -126,11 +86,11 @@ impl<U> UartPeripheral<U>
 where
     U: HalUart,
 {
-    pub fn new(ctx: UartContext<U>) -> Self {
+    pub fn new() -> Self {
         Self {
             tx_done: None,
             rx_done: None,
-            ctx,
+            uart: None,
             tx_state: State::Ready,
             rx_state: State::Ready,
         }
@@ -142,7 +102,8 @@ where
                 log::trace!("NO RX in progress");
                 self.rx_done.unwrap().reset();
                 self.rx_state = State::InProgress;
-                match self.ctx.start_read(rx_buffer) {
+                let uart = self.uart.unwrap();
+                match uart.start_read(rx_buffer) {
                     Ok(_) => {
                         log::trace!("Starting RX");
                         UartFuture::Defer(&mut self.rx_state, self.rx_done)
@@ -160,7 +121,8 @@ where
                 log::trace!("NO TX in progress");
                 self.tx_done.unwrap().reset();
                 self.tx_state = State::InProgress;
-                match self.ctx.start_write(tx_buffer) {
+                let uart = self.uart.unwrap();
+                match uart.start_write(tx_buffer) {
                     Ok(_) => {
                         log::trace!("Starting TX");
                         UartFuture::Defer(&mut self.tx_state, self.tx_done)
@@ -175,9 +137,9 @@ where
 
 pub struct UartInterrupt<U>
 where
-    U: HalUart,
+    U: HalUart + 'static,
 {
-    ctx: UartContext<U>,
+    uart: Option<&'static U>,
     tx_done: Signal<Result<(), Error>>,
     rx_done: Signal<Result<usize, Error>>,
 }
@@ -186,9 +148,9 @@ impl<U> UartInterrupt<U>
 where
     U: HalUart,
 {
-    pub fn new(ctx: UartContext<U>) -> Self {
+    pub fn new() -> Self {
         Self {
-            ctx,
+            uart: None,
             tx_done: Signal::new(),
             rx_done: Signal::new(),
         }
@@ -202,7 +164,8 @@ where
     U: HalUart,
 {
     fn on_interrupt(&mut self) {
-        let (tx_done, rx_done) = self.ctx.process_interrupts();
+        let uart = self.uart.unwrap();
+        let (tx_done, rx_done) = uart.process_interrupts();
         log::trace!(
             "[UART ISR] TX WAKER: {}. RX WAKER: {}. TX DONE: {}. RX DONE: {}",
             self.tx_done.signaled(),
@@ -212,12 +175,22 @@ where
         );
 
         if tx_done {
-            self.tx_done.signal(self.ctx.finish_write());
+            self.tx_done.signal(uart.finish_write());
         }
 
         if rx_done {
-            self.rx_done.signal(self.ctx.finish_read());
+            self.rx_done.signal(uart.finish_read());
         }
+    }
+}
+
+impl<U> NotifyHandler<&'static U> for Mutex<UartPeripheral<U>>
+where
+    U: HalUart + 'static,
+{
+    fn on_notify(&'static mut self, uart: &'static U) -> Completion {
+        self.val.as_mut().unwrap().uart.replace(uart);
+        Completion::immediate()
     }
 }
 
@@ -248,6 +221,16 @@ where
 {
     fn on_bind(&'static mut self, address: Address<Mutex<UartPeripheral<U>>>) {
         address.notify((&self.tx_done, &self.rx_done));
+    }
+}
+
+impl<U> NotifyHandler<&'static U> for UartInterrupt<U>
+where
+    U: HalUart + 'static,
+{
+    fn on_notify(&'static mut self, uart: &'static U) -> Completion {
+        self.uart.replace(uart);
+        Completion::immediate()
     }
 }
 
