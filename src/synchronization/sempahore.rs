@@ -84,7 +84,7 @@ impl RequestHandler<Acquire> for Semaphore {
     fn on_request(&'static mut self, message: Acquire) -> Response<Self, Self::Response> {
         Response::defer(async move {
             let sempaphore = self.acquire().await;
-            self.response_with(sempaphore)
+            self.respond_with(sempaphore)
         })
     }
 }

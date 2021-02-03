@@ -4,6 +4,7 @@ use core::future::Future;
 
 use crate::alloc::{alloc, Box};
 use crate::prelude::Actor;
+use num::Complex;
 
 /// Return value from a `RequestHandler` to allow for synchronous or
 /// asynchronous handling of the request.
@@ -60,7 +61,7 @@ where
     /// Response to the request.
     fn on_request(&'static mut self, message: M) -> Response<Self, Self::Response>;
 
-    fn response_with(
+    fn respond_with(
         &'static mut self,
         response: Self::Response,
     ) -> (&'static mut Self, Self::Response) {

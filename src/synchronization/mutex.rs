@@ -57,7 +57,7 @@ where
                 val: Some(self.lock().await),
             };
             log::trace!("[Mutex<T> lock");
-            self.response_with(lock)
+            self.respond_with(lock)
         })
     }
 }
