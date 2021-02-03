@@ -13,6 +13,9 @@ pub trait Uart {
     /// Complete a write operation.
     fn finish_write(&self) -> Result<(), Error>;
 
+    /// Cancel a write operation.
+    fn cancel_write(&self);
+
     /// Process interrupts for the peripheral. Implementations may need to use this to initiate
     fn process_interrupts(&self) -> (bool, bool);
 
@@ -23,7 +26,7 @@ pub trait Uart {
     fn finish_read(&self) -> Result<usize, Error>;
 
     /// Cancel a read operation
-    fn cancel_read(&self) -> Result<(), Error>;
+    fn cancel_read(&self);
 }
 
 #[derive(Debug, Clone)]

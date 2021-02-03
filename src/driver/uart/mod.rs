@@ -26,7 +26,7 @@ where
     irq: InterruptContext<UartInterrupt<U>>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum State {
     Ready,
     InProgress,
@@ -96,7 +96,8 @@ where
         }
     }
 
-    pub fn read<'a>(&'a mut self, rx_buffer: &mut [u8]) -> UartFuture<'a, usize> {
+    /// Receive bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
+    pub fn read<'a>(&'a mut self, rx_buffer: &mut [u8]) -> RxFuture<'a, U> {
         match self.rx_state {
             State::Ready => {
                 log::trace!("NO RX in progress");
@@ -106,16 +107,17 @@ where
                 match uart.start_read(rx_buffer) {
                     Ok(_) => {
                         log::trace!("Starting RX");
-                        UartFuture::Defer(&mut self.rx_state, self.rx_done)
+                        RxFuture::Defer(self)
                     }
-                    Err(e) => UartFuture::Error(e),
+                    Err(e) => RxFuture::Error(e),
                 }
             }
-            _ => UartFuture::Error(Error::RxInProgress),
+            _ => RxFuture::Error(Error::RxInProgress),
         }
     }
 
-    pub fn write<'a>(&'a mut self, tx_buffer: &[u8]) -> UartFuture<'a, ()> {
+    /// Transmit bytes from provided tx_buffer over UART. The memory pointed to by the buffer must be available until the return future is await'ed
+    pub fn write<'a>(&'a mut self, tx_buffer: &[u8]) -> TxFuture<'a, U> {
         match self.tx_state {
             State::Ready => {
                 log::trace!("NO TX in progress");
@@ -125,12 +127,12 @@ where
                 match uart.start_write(tx_buffer) {
                     Ok(_) => {
                         log::trace!("Starting TX");
-                        UartFuture::Defer(&mut self.tx_state, self.tx_done)
+                        TxFuture::Defer(self)
                     }
-                    Err(e) => UartFuture::Error(e),
+                    Err(e) => TxFuture::Error(e),
                 }
             }
-            _ => UartFuture::Error(Error::TxInProgress),
+            _ => TxFuture::Error(Error::TxInProgress),
         }
     }
 }
@@ -236,30 +238,96 @@ where
 
 impl<U> Actor for UartPeripheral<U> where U: HalUart {}
 
-pub enum UartFuture<'a, R>
+pub enum TxFuture<'a, U>
 where
-    R: 'static,
+    U: HalUart + 'static,
 {
-    Defer(&'a mut State, Option<&'static Signal<Result<R, Error>>>),
+    Defer(&'a mut UartPeripheral<U>),
     Error(Error),
 }
 
-impl<'a, R> Future for UartFuture<'a, R> {
-    type Output = Result<R, Error>;
+impl<'a, U> Future for TxFuture<'a, U>
+where
+    U: HalUart + 'static,
+{
+    type Output = Result<(), Error>;
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         match &mut *self {
-            UartFuture::Defer(ref mut state, ref done) => {
-                if let State::InProgress = state {
-                    let done = done.unwrap();
+            TxFuture::Defer(ref mut p) => {
+                if State::InProgress == p.tx_state {
+                    let done = p.tx_done.unwrap();
                     if let Poll::Ready(result) = done.poll_wait(cx) {
-                        **state = State::Ready;
+                        p.tx_state = State::Ready;
                         log::trace!("Marking future complete");
                         return Poll::Ready(result);
                     }
                 }
                 return Poll::Pending;
             }
-            UartFuture::Error(err) => return Poll::Ready(Err(err.clone())),
+            TxFuture::Error(err) => return Poll::Ready(Err(err.clone())),
+        }
+    }
+}
+
+impl<'a, U> Drop for TxFuture<'a, U>
+where
+    U: HalUart + 'static,
+{
+    fn drop(&mut self) {
+        match self {
+            TxFuture::Defer(ref mut p) => {
+                if State::InProgress == p.tx_state {
+                    p.uart.unwrap().cancel_write();
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+pub enum RxFuture<'a, U>
+where
+    U: HalUart + 'static,
+{
+    Defer(&'a mut UartPeripheral<U>),
+    Error(Error),
+}
+
+impl<'a, U> Future for RxFuture<'a, U>
+where
+    U: HalUart + 'static,
+{
+    type Output = Result<usize, Error>;
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match &mut *self {
+            RxFuture::Defer(ref mut p) => {
+                if State::InProgress == p.rx_state {
+                    let done = p.rx_done.unwrap();
+                    if let Poll::Ready(result) = done.poll_wait(cx) {
+                        p.rx_state = State::Ready;
+                        log::trace!("Marking future complete");
+                        return Poll::Ready(result);
+                    }
+                }
+                return Poll::Pending;
+            }
+            RxFuture::Error(err) => return Poll::Ready(Err(err.clone())),
+        }
+    }
+}
+
+impl<'a, U> Drop for RxFuture<'a, U>
+where
+    U: HalUart + 'static,
+{
+    fn drop(&mut self) {
+        match self {
+            RxFuture::Defer(ref mut p) => {
+                if State::InProgress == p.rx_state {
+                    p.uart.unwrap().cancel_read();
+                }
+            }
+            _ => {}
         }
     }
 }

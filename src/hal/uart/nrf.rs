@@ -117,6 +117,11 @@ where
         Ok(())
     }
 
+    /// Cancel a write operation
+    fn cancel_write(&self) {
+        cancel_write(&*self.uart);
+    }
+
     /// Start a read operation to receive data into rx_buffer.
     fn start_read(&self, rx_buffer: &mut [u8]) -> Result<(), Error> {
         slice_in_ram_or(rx_buffer, crate::hal::uart::Error::BufferNotInRAM)?;
@@ -134,9 +139,8 @@ where
     }
 
     /// Cancel a read operation
-    fn cancel_read(&self) -> Result<(), Error> {
+    fn cancel_read(&self) {
         cancel_read(&*self.uart);
-        Ok(())
     }
 }
 
@@ -223,6 +227,18 @@ fn start_read(uarte: &uarte0::RegisterBlock, rx_buffer: &mut [u8]) -> Result<(),
     uarte.tasks_startrx.write(|w| unsafe { w.bits(1) });
 
     Ok(())
+}
+
+/// Stop an unfinished UART write transaction.
+fn cancel_write(uarte: &uarte0::RegisterBlock) {
+    stop_write(uarte);
+
+    // Reset events
+    uarte.events_endtx.reset();
+    uarte.events_txstopped.reset();
+
+    // Ensure the above is done
+    compiler_fence(SeqCst);
 }
 
 /// Stop an unfinished UART read transaction and flush FIFO to DMA buffer.
