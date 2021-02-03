@@ -35,5 +35,3 @@ pub mod prelude {
     pub use crate::supervisor::Supervisor;
 }
 
-#[cfg(test)]
-mod tests;

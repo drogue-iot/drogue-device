@@ -203,34 +203,3 @@ impl<'w, SPI: FullDuplex<u8>> Future for TransferFuture<'w, SPI> {
     }
 }
 
-// ------------------------------------------------------------------------
-// ------------------------------------------------------------------------
-
-struct TestActor<SPI>
-where
-    SPI: FullDuplex<u8> + 'static,
-{
-    spi: Address<Mutex<SpiPeripheral<SPI>>>,
-}
-
-impl<SPI> Actor for TestActor<SPI>
-where
-    SPI: FullDuplex<u8> + 'static,
-{
-    fn start(&'static mut self) -> Completion<Self> {
-        Completion::defer(async move {
-            let mut periph = self.spi.lock().await;
-            let mut buf = [0; 16];
-            let result = periph.transfer(&mut buf).await;
-            // prove we can borrow immutable afterwards.
-            use_it(&buf);
-
-            // prove we can borrow mutable afterwards.
-            use_it_mut(&mut buf);
-            self
-        })
-    }
-}
-
-pub fn use_it(buf: &[u8]) {}
-pub fn use_it_mut(buf: &mut [u8]) {}
