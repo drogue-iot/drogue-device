@@ -27,12 +27,12 @@ where
     }
 }
 
-impl<SPI> Bind<SpiInterrupt> for Mutex<SpiPeripheral<SPI>>
+impl<SPI> Bind<SpiInterrupt> for SpiPeripheral<SPI>
 where
     SPI: FullDuplex<u8>,
 {
     fn on_bind(&mut self, address: Address<SpiInterrupt>) {
-        self.val.as_mut().unwrap().irq.replace(address);
+        self.irq.replace(address);
     }
 }
 

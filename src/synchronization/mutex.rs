@@ -9,6 +9,7 @@ use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 use heapless::{consts::*, spsc::Queue};
+use crate::prelude::Bind;
 
 /// The lock request message.
 pub struct Lock;
@@ -49,6 +50,12 @@ impl<T> Configurable for Mutex<T> where T: Configurable {
 
     fn configure(&mut self, config: &'static Self::Configuration) {
         self.val.as_mut().unwrap().configure(config)
+    }
+}
+
+impl<T,A:Actor> Bind<A> for Mutex<T> where T: Bind<A> {
+    fn on_bind(&mut self, address: Address<A>) {
+        self.val.as_mut().unwrap().on_bind( address );
     }
 }
 
