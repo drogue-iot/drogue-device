@@ -6,6 +6,8 @@
 
 An async, no-alloc actor framework for embedded devices.
 
+See [drivers](DRIVERS.md) for examples on how to write device drivers for drogue-device.
+
 ## Actor System
 
 An _actor system_ is a framework that allows for isolating state within narrow contexts, making it easier to reason about system.
