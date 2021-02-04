@@ -60,4 +60,4 @@ Once connected, press the 'A' button on the micro:bit to start the echo server, 
 
 Watch the video for a demonstration:
 
-[![Watch the video](https://img.youtube.com/vi/wtBmccLh4lw/maxresdefault.jpg)](https://www.youtube.com/watch?v=wtBmccLh4lw) for a demonstration.
+[![Watch the video](https://img.youtube.com/vi/wtBmccLh4lw/maxresdefault.jpg)](https://www.youtube.com/watch?v=wtBmccLh4lw)
