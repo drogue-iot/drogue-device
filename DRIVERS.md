@@ -41,6 +41,8 @@ A driver is the interface that the drogue-device framework and the embedded appl
 * Actor drivers
 * Packaged drivers
 
+Actor drivers are the simplest form of drivers, but requires that you can interact with your device by exchanging messages. For other cases, you can write a packaged driver.
+
 ## Actor drivers
 
 Actor drivers are a simple form of drivers that does not need to pass non-static references in its messages. As long as the message types that the driver support can be cloned or copied, this type of driver is the recommended, as it is simpler to write.
@@ -66,7 +68,7 @@ impl<T: MyHal> MyDriver<T> {
 
 With the basic datatypes set up, we can implement the Actor trait and some additional traits for handling requests:
 
-```
+```rust
 impl<T: MyHal> Actor for MyDriver<T> {}
 
 // Request types
