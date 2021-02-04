@@ -11,22 +11,24 @@ use core::cell::UnsafeCell;
 /// when appropriate bounds are met to provide method-like invocations
 /// of either non-blocking synchronous `notify(...)` type behaviour or
 /// asynchronous `request(...)` type behaviour.
-pub struct Address<A: Actor> {
-    actor: UnsafeCell<*const ActorContext<A>>,
+pub struct Address<A: Actor + 'static> {
+    //actor: UnsafeCell<*const ActorContext<A>>,
+    actor: &'static ActorContext<A>,
 }
 
 impl<A: Actor> Clone for Address<A> {
     fn clone(&self) -> Self {
         Self {
-            actor: unsafe { UnsafeCell::new(*self.actor.get()) },
+            actor: self.actor,
+            //actor: unsafe { UnsafeCell::new(*self.actor.get()) },
         }
     }
 }
 
-impl<A: Actor> Address<A> {
-    pub(crate) fn new(actor: &ActorContext<A>) -> Self {
+impl<A: Actor + 'static> Address<A> {
+    pub(crate) fn new(actor: &'static ActorContext<A>) -> Self {
         Self {
-            actor: UnsafeCell::new(actor),
+            actor,
         }
     }
 
@@ -39,9 +41,10 @@ impl<A: Actor> Address<A> {
         A: Bind<OA> + 'static,
         OA: 'static,
     {
-        unsafe {
-            (&**self.actor.get()).bind(address);
-        }
+        self.actor.bind(address);
+        //unsafe {
+            //(&**self.actor.get()).bind(address);
+        //}
     }
 
     /// Send a non-blocking notification to the actor behind this address.
@@ -50,12 +53,13 @@ impl<A: Actor> Address<A> {
     /// for the appropriate type of message being sent.
     pub fn notify<M>(&self, message: M)
     where
-        A: NotifyHandler<M> + 'static,
+        A: NotifyHandler<M>,
         M: 'static,
     {
-        unsafe {
-            (&**self.actor.get()).notify(message);
-        }
+        //unsafe {
+            //(&**self.actor.get()).notify(message);
+        //}
+        self.actor.notify(message)
     }
 
     /// Perform an _async_ request to the actor behind this address.
@@ -65,8 +69,8 @@ impl<A: Actor> Address<A> {
     pub async fn request<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
     where
         A: RequestHandler<M> + 'static,
-        M: 'static,
     {
-        unsafe { (&**self.actor.get()).request(message).await }
+        //unsafe { (&**self.actor.get()).request(message).await }
+        self.actor.request(message).await
     }
 }

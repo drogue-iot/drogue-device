@@ -18,7 +18,7 @@ pub const ADDR: u8 = 0x5F;
 
 pub struct Sensor<D, I>
 where
-    D: Device,
+    D: Device + 'static,
     I: WriteRead + Read + Write + 'static,
 {
     address: I2cAddress,
@@ -57,7 +57,7 @@ where
     D: Device,
     I: WriteRead + Read + Write,
 {
-    fn on_initialize(&'static mut self) -> Completion<Self> {
+    fn on_initialize(mut self) -> Completion<Self> {
         Completion::defer(async move {
             if let Some(ref i2c) = self.i2c {
                 let mut i2c = i2c.lock().await;
@@ -95,7 +95,7 @@ where
         })
     }
 
-    fn on_start(&'static mut self) -> Completion<Self> {
+    fn on_start(mut self) -> Completion<Self> {
         Completion::defer(async move {
             if let Some(ref i2c) = self.i2c {
                 let mut i2c = i2c.lock().await;
@@ -132,7 +132,7 @@ where
     D: Device + EventHandler<SensorAcquisition>,
     I: WriteRead + Read + Write,
 {
-    fn on_notify(&'static mut self, message: DataReady) -> Completion<Self> {
+    fn on_notify(mut self, message: DataReady) -> Completion<Self> {
         Completion::defer(async move {
             if self.i2c.is_some() {
                 let mut i2c = self.i2c.as_ref().unwrap().lock().await;

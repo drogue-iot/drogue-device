@@ -119,6 +119,7 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
             if self.current.borrow().is_none() {
                 //cortex_m::interrupt::free(|cs| {
                 if let Some(next) = self.items_consumer.borrow_mut().as_mut().unwrap().dequeue() {
+                //if let Some(next) = self.items.dequeue() {
                     log::trace!("[{}] executor: set current task", self.name());
                     //(&mut *self.current.get()).replace(next);
                     self.current.borrow_mut().replace(next);
@@ -185,12 +186,15 @@ impl ActorExecutor {
         }
     }
 
-    pub(crate) fn activate_actor<S: ActiveActor>(&mut self, actor: &'static S) -> *const () {
+    pub(crate) fn activate_actor<S: ActiveActor>(&mut self, actor: &'static S) -> (usize, *const ()) {
         let supervised = Supervised::new(actor);
         self.actors
             .push(supervised)
             .unwrap_or_else(|_| panic!("too many actors"));
-        self.actors[self.actors.len() - 1].get_state_flag_handle()
+        (
+            self.actors.len() -1,
+            self.actors[self.actors.len() - 1].get_state_flag_handle()
+        )
     }
 
     pub(crate) fn run_until_quiescence(&mut self) {

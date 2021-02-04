@@ -65,7 +65,7 @@ where
 {
     type Response = Exclusive<T>;
 
-    fn on_request(&'static mut self, message: Lock) -> Response<Self, Self::Response> {
+    fn on_request(mut self, message: Lock) -> Response<Self, Self::Response> {
         Response::defer(async move {
             let lock = Exclusive {
                 address: self.address.as_ref().unwrap().clone(),
@@ -81,7 +81,7 @@ impl<T> NotifyHandler<Unlock<T>> for Mutex<T>
 where
     T: 'static,
 {
-    fn on_notify(&'static mut self, message: Unlock<T>) -> Completion<Self> {
+    fn on_notify(mut self, message: Unlock<T>) -> Completion<Self> {
         log::trace!("[Mutex<T> unlock");
         self.unlock(message.0);
         Completion::immediate(self)

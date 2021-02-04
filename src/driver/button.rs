@@ -11,7 +11,7 @@ pub enum ButtonEvent {
     Released,
 }
 
-pub struct Button<D: Device, PIN> {
+pub struct Button<D: Device + 'static, PIN> {
     pin: PIN,
     active: Active,
     bus: Option<Address<EventBus<D>>>,

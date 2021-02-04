@@ -15,7 +15,7 @@ use crate::prelude::{Actor, Address, NotifyHandler};
 /// An `EventBus` may not be directly instantiated, but is created prior to the
 /// activation of any other actor within the system and may be bound into other
 /// actors that wish to `publish` events.
-pub struct EventBus<D: Device> {
+pub struct EventBus<D: Device + 'static> {
     device: UnsafeCell<*const DeviceContext<D>>,
 }
 
@@ -31,9 +31,9 @@ impl<D: Device> Actor for EventBus<D> {}
 
 impl<D: Device, M> NotifyHandler<M> for EventBus<D>
 where
-    D: EventHandler<M>,
+    D: EventHandler<M> + 'static,
 {
-    fn on_notify(&'static mut self, message: M) -> Completion<Self> {
+    fn on_notify(mut self, message: M) -> Completion<Self> {
         unsafe { (&**self.device.get()).on_event(message) }
         Completion::immediate(self)
     }

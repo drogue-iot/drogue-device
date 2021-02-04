@@ -1,17 +1,17 @@
 use crate::bind::Bind;
 use crate::domain::time::duration::Milliseconds;
 use crate::driver::led::simple::Switchable;
-use crate::driver::timer::Timer;
+use crate::driver::timer::TimerActor;
 use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
 
 pub struct Blinker<S, T>
 where
-    S: Switchable,
-    T: HalTimer,
+    S: Switchable + 'static,
+    T: HalTimer + 'static,
 {
     led: Option<Address<S>>,
-    timer: Option<Address<Timer<T>>>,
+    timer: Option<Address<TimerActor<T>>>,
     delay: Milliseconds,
     address: Option<Address<Self>>,
 }
@@ -41,12 +41,12 @@ where
     }
 }
 
-impl<S, T> Bind<Timer<T>> for Blinker<S, T>
+impl<S, T> Bind<TimerActor<T>> for Blinker<S, T>
 where
     S: Switchable,
     T: HalTimer,
 {
-    fn on_bind(&mut self, address: Address<Timer<T>>) {
+    fn on_bind(&mut self, address: Address<TimerActor<T>>) {
         self.timer.replace(address);
     }
 }
@@ -63,7 +63,7 @@ where
         self.address.replace(address);
     }
 
-    fn on_start(&'static mut self) -> Completion<Self> {
+    fn on_start(mut self) -> Completion<Self> {
         self.timer.as_ref().unwrap().schedule(
             self.delay,
             State::On,
@@ -84,7 +84,7 @@ where
     S: Switchable,
     T: HalTimer,
 {
-    fn on_notify(&'static mut self, message: State) -> Completion<Self> {
+    fn on_notify(mut self, message: State) -> Completion<Self> {
         match message {
             State::On => {
                 self.led.as_ref().unwrap().turn_on();
@@ -114,7 +114,7 @@ where
     S: Switchable,
     T: HalTimer,
 {
-    fn on_notify(&'static mut self, message: AdjustDelay) -> Completion<Self> {
+    fn on_notify(mut self, message: AdjustDelay) -> Completion<Self> {
         self.delay = message.0;
         Completion::immediate(self)
     }

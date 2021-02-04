@@ -2,7 +2,7 @@ use crate::bind::Bind;
 use crate::domain::time::duration::Milliseconds;
 use crate::domain::time::rate::{Hertz, Rate};
 
-use crate::driver::timer::Timer;
+use crate::driver::timer::TimerActor;
 use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
 use embedded_hal::digital::v2::OutputPin;
@@ -11,17 +11,17 @@ use heapless::{ArrayLength, Vec};
 // Led matrix driver supporting up to 32x32 led matrices.
 pub struct LEDMatrix<P, ROWS, COLS, T>
 where
-    P: OutputPin,
-    ROWS: ArrayLength<P>,
-    COLS: ArrayLength<P>,
-    T: HalTimer,
+    P: OutputPin + 'static,
+    ROWS: ArrayLength<P> + 'static,
+    COLS: ArrayLength<P> + 'static,
+    T: HalTimer + 'static,
 {
     address: Option<Address<Self>>,
     pin_rows: Vec<P, ROWS>,
     pin_cols: Vec<P, COLS>,
     frame_buffer: Frame,
     row_p: usize,
-    timer: Option<Address<Timer<T>>>,
+    timer: Option<Address<TimerActor<T>>>,
     refresh_rate: Hertz,
 }
 
@@ -110,14 +110,14 @@ where
     }
 }
 
-impl<P, ROWS, COLS, T> Bind<Timer<T>> for LEDMatrix<P, ROWS, COLS, T>
+impl<P, ROWS, COLS, T> Bind<TimerActor<T>> for LEDMatrix<P, ROWS, COLS, T>
 where
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
     T: HalTimer,
 {
-    fn on_bind(&mut self, address: Address<Timer<T>>) {
+    fn on_bind(&mut self, address: Address<TimerActor<T>>) {
         self.timer.replace(address);
     }
 }
@@ -133,7 +133,7 @@ where
         self.address.replace(address);
     }
 
-    fn on_start(&'static mut self) -> Completion<Self> {
+    fn on_start(mut self) -> Completion<Self> {
         if let Some(address) = &self.address {
             self.timer.as_ref().unwrap().schedule(
                 self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
@@ -152,7 +152,7 @@ where
     COLS: ArrayLength<P>,
     T: HalTimer,
 {
-    fn on_notify(&'static mut self, command: MatrixCommand) -> Completion<Self> {
+    fn on_notify(mut self, command: MatrixCommand) -> Completion<Self> {
         match command {
             MatrixCommand::On(x, y) => {
                 self.on(x, y);

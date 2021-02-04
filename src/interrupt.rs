@@ -24,7 +24,7 @@ pub trait Interrupt: Actor {
 
 /// Struct which is capable of holding an `Interrupt` actor instance
 /// and connecting it to the actor system.
-pub struct InterruptContext<I: Interrupt> {
+pub struct InterruptContext<I: Interrupt + 'static> {
     pub(crate) irq: u8,
     pub(crate) actor_context: ActorContext<I>,
 }

@@ -81,7 +81,7 @@ impl Actor for Semaphore {
 impl RequestHandler<Acquire> for Semaphore {
     type Response = Permit;
 
-    fn on_request(&'static mut self, message: Acquire) -> Response<Self, Self::Response> {
+    fn on_request(mut self, message: Acquire) -> Response<Self, Self::Response> {
         Response::defer(async move {
             let sempaphore = self.acquire().await;
             self.respond_with(sempaphore)
@@ -90,7 +90,7 @@ impl RequestHandler<Acquire> for Semaphore {
 }
 
 impl NotifyHandler<Release> for Semaphore {
-    fn on_notify(&'static mut self, message: Release) -> Completion<Self> {
+    fn on_notify(mut self, message: Release) -> Completion<Self> {
         self.permits += 1;
         if let Some(next) = self.waiters.dequeue() {
             next.wake()

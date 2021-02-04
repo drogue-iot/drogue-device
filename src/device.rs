@@ -44,7 +44,7 @@ pub trait Device {
 }
 
 #[doc(hidden)]
-pub struct DeviceContext<D: Device> {
+pub struct DeviceContext<D: Device + 'static> {
     device: UnsafeCell<D>,
     supervisor: UnsafeCell<Supervisor>,
     bus: UnsafeCell<Option<ActorContext<EventBus<D>>>>,

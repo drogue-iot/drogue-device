@@ -5,3 +5,4 @@ pub mod led;
 pub mod sensor;
 pub mod timer;
 pub mod uart;
+pub mod memory;

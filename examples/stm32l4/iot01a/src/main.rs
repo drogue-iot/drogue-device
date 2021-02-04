@@ -27,6 +27,7 @@ use drogue_device::{
         led::{Blinker, SimpleLED},
         sensor::hts221::Hts221,
         timer::Timer,
+        memory::Memory,
     },
     hal::{timer::stm32l4xx::Timer as McuTimer, Active},
     prelude::*,
@@ -37,9 +38,10 @@ static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
 
 #[entry]
 fn main() -> ! {
-    rtt_init_print!();
+    //rtt_init_print!();
+    rtt_init_print!( BlockIfFull );
     log::set_logger(&LOGGER).unwrap();
-    log::set_max_level(log::LevelFilter::Debug);
+    log::set_max_level(log::LevelFilter::Trace);
 
     let mut device = Peripherals::take().unwrap();
 
@@ -127,11 +129,12 @@ fn main() -> ! {
     // == Timer ==
 
     let mcu_timer = McuTimer::tim15(device.TIM15, clocks, &mut rcc.apb2);
-    let timer = Timer::new(mcu_timer);
+    let timer = Timer::new(mcu_timer, TIM15);
 
     // == Device ==
 
     let device = MyDevice {
+        memory: ActorContext::new(Memory::new()),
         ld1: ActorContext::new(ld1).with_name("ld1"),
         ld2: ActorContext::new(ld2).with_name("ld2"),
         blinker1: ActorContext::new(blinker1).with_name("blinker1"),
@@ -140,8 +143,8 @@ fn main() -> ! {
         i2c: ActorContext::new(i2c).with_name("i2c"),
         hts221,
         button: InterruptContext::new(button, EXTI15_10).with_name("button"),
-        timer: InterruptContext::new(timer, TIM15).with_name("timer"),
+        timer,
     };
 
-    device!( MyDevice = device; 1024 );
+    device!( MyDevice = device; 2048 );
 }
