@@ -40,7 +40,7 @@ impl TimeInt for u64 {}
 
 #[cfg(test)]
 mod tests {
-    use crate::{fraction::Fraction, time_int::TimeInt};
+    use crate::domain::time::{fraction::Fraction, time_int::TimeInt};
 
     #[test]
     fn checked_integer_mul_fraction() {

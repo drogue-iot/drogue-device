@@ -23,7 +23,7 @@ pub trait FixedPoint: Sized + Copy {
     /// Returns the integer part of the `FixedPoint` value
     ///
     /// ```rust
-    /// # use embedded_time::{ rate::*};
+    /// # use drogue_device::domain::time::{ rate::*};
     /// #
     /// assert_eq!(Hertz(45_u32).integer(), &45_u32);
     /// ```
@@ -85,7 +85,7 @@ pub trait FixedPoint: Sized + Copy {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction,  rate::*};
+    /// # use drogue_device::domain::time::{fraction::Fraction,  rate::*};
     /// #
     /// assert_eq!(Hertz(2_u32).into_ticks(Fraction::new(1, 1_000)), Ok(2_000_u32));
     /// ```
@@ -217,8 +217,8 @@ pub trait FixedPoint: Sized + Copy {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::duration::*;
-    use crate::fixed_point;
+    use crate::domain::time::duration::*;
+    use crate::domain::time::fixed_point;
 
     #[test]
     fn from_ticks() {

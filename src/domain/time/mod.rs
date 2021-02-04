@@ -6,7 +6,7 @@
 //! the types in this crate.
 //!
 //! ```rust
-//! use embedded_time::{duration::*, rate::*};
+//! use drogue_device::domain::time::{duration::*, rate::*};
 //! # use core::convert::TryInto;
 //!
 //! let micros = 200_000_u32.microseconds();                // 200_000 μs
@@ -113,11 +113,11 @@
 //! The suggested use statements are as follows depending on what is needed:
 //!
 //! ```rust
-//! use embedded_time::duration::*;    // imports all duration-related types and traits
-//! use embedded_time::rate::*;        // imports all rate-related types and traits
-//! use embedded_time::clock;
-//! use embedded_time::Instant;
-//! use embedded_time::Timer;
+//! use drogue_device::domain::time::duration::*;    // imports all duration-related types and traits
+//! use drogue_device::domain::time::rate::*;        // imports all rate-related types and traits
+//! use drogue_device::domain::time::clock;
+//! use drogue_device::domain::time::Instant;
+//! use drogue_device::domain::time::Timer;
 //! ```
 //!
 //! # Duration Types
@@ -133,7 +133,7 @@
 //!
 //! - Conversion from `Rate` types
 //! ```rust
-//! use embedded_time::{duration::*, rate::*};
+//! use drogue_device::domain::time::{duration::*, rate::*};
 //!
 //! # assert!(
 //! Microseconds(500_u32).to_rate() == Ok(Kilohertz(2_u32))
@@ -143,7 +143,7 @@
 //! - Conversion to/from `Generic` `Duration` type
 //!
 //! ```rust
-//! use embedded_time::{duration::*};
+//! use drogue_device::domain::time::{duration::*};
 //! # use core::convert::TryFrom;
 //!
 //! # assert!(
@@ -163,7 +163,7 @@
 //! #### Construct and Read Milliseconds
 //!
 //! ```rust
-//! use embedded_time::duration::*;
+//! use drogue_device::domain::time::duration::*;
 //!
 //! # let ms = 100;
 //! let duration = Milliseconds::<u64>(ms); // 8 bytes
@@ -226,7 +226,7 @@
 //! - Conversion from `Duration` types
 //!
 //! ```rust
-//! use embedded_time::{duration::*, rate::*};
+//! use drogue_device::domain::time::{duration::*, rate::*};
 //! # use core::convert::TryFrom;
 //!
 //! # assert!(
@@ -237,7 +237,7 @@
 //! - Conversion to/from `Generic` `Rate` type
 //!
 //! ```rust
-//! use embedded_time::rate::*;
+//! use drogue_device::domain::time::rate::*;
 //! # use core::convert::TryFrom;
 //!
 //! # assert!(

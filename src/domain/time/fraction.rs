@@ -76,7 +76,7 @@ impl Fraction {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, ConversionError};
+    /// # use drogue_device::domain::time::{fraction::Fraction, ConversionError};
     /// #
     /// assert_eq!(Fraction::new(1000, 1).checked_mul(&Fraction::new(5,5)),
     ///     Some(Fraction::new(5_000, 5)));
@@ -95,7 +95,7 @@ impl Fraction {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, ConversionError};
+    /// # use drogue_device::domain::time::{fraction::Fraction, ConversionError};
     /// #
     /// assert_eq!(Fraction::new(1000, 1).checked_div(&Fraction::new(10, 1000)),
     ///     Some(Fraction::new(1_000_000, 10)));

@@ -21,7 +21,7 @@ pub use units::*;
 /// # Constructing a rate
 ///
 /// ```rust
-/// use embedded_time::rate::*;
+/// use drogue_device::domain::time::rate::*;
 ///
 /// let _ = <Kilohertz>::new(5);
 /// let _ = Kilohertz(5_u32);
@@ -31,7 +31,7 @@ pub use units::*;
 /// # Get the integer part
 ///
 /// ```rust
-/// use embedded_time::rate::*;
+/// use drogue_device::domain::time::rate::*;
 ///
 /// assert_eq!(Hertz(45_u32).integer(), &45_u32);
 /// ```
@@ -41,7 +41,7 @@ pub use units::*;
 /// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
 ///
 /// ```rust
-/// use embedded_time::rate::*;
+/// use drogue_device::domain::time::rate::*;
 ///
 /// assert_eq!(format!("{}", Hertz(123_u32)), "123");
 /// ```
@@ -51,7 +51,7 @@ pub use units::*;
 /// Many intra-rate conversions can be done using `From`/`Into`:
 ///
 /// ```rust
-/// use embedded_time::rate::*;
+/// use drogue_device::domain::time::rate::*;
 ///
 /// let kilohertz = Kilohertz::<u32>::from(23_000_u32.Hz());
 /// assert_eq!(kilohertz.integer(), &23_u32);
@@ -63,7 +63,7 @@ pub use units::*;
 /// Others require the use of `TryFrom`/`TryInto`:
 ///
 /// ```rust
-/// use embedded_time::rate::*;
+/// use drogue_device::domain::time::rate::*;
 /// use std::convert::{TryInto, TryFrom};
 ///
 /// let hertz = Hertz::<u32>::try_from(23_u32.kHz()).unwrap();
@@ -78,7 +78,7 @@ pub use units::*;
 /// ## Examples
 ///
 /// ```rust
-/// use embedded_time::rate::*;
+/// use drogue_device::domain::time::rate::*;
 /// use core::convert::{TryFrom, TryInto};
 ///
 /// // A generic rate of 20_000 events/second
@@ -100,7 +100,7 @@ pub use units::*;
 /// [`ConversionError::Unspecified`]
 ///
 /// ```rust
-/// use embedded_time::{rate::*, ConversionError};
+/// use drogue_device::domain::time::{rate::*, ConversionError};
 /// use core::convert::TryFrom;
 ///
 /// assert_eq!(
@@ -115,7 +115,7 @@ pub use units::*;
 /// destination type fails.
 ///
 /// ```rust
-/// use embedded_time::{rate::*, ConversionError};
+/// use drogue_device::domain::time::{rate::*, ConversionError};
 /// # use core::convert::TryFrom;
 ///
 /// assert_eq!(
@@ -127,7 +127,7 @@ pub use units::*;
 /// # Converting to a [`Generic`] `Rate` with the same _scaling factor_
 ///
 /// ```rust
-/// use embedded_time::rate::*;
+/// use drogue_device::domain::time::rate::*;
 ///
 /// let generic_rate = Generic::<u32>::from(5_u32.Hz());
 /// let generic_rate: Generic<u32> = 5_u32.Hz().into();
@@ -150,7 +150,7 @@ pub use units::*;
 /// ## Examples
 ///
 /// ```rust
-/// use embedded_time::rate::*;
+/// use drogue_device::domain::time::rate::*;
 ///
 /// assert_eq!((Hertz(1_u32) + 1_u32.kHz()),
 ///     Hertz(1_001_u32));
@@ -164,7 +164,7 @@ pub use units::*;
 /// The same reason the integer operation would panic. Namely, if the result overflows the type.
 ///
 /// ```rust,should_panic
-/// use embedded_time::rate::*;
+/// use drogue_device::domain::time::rate::*;
 ///
 /// let _ = Hertz(u32::MAX) + Hertz(1_u32);
 /// ```
@@ -177,7 +177,7 @@ pub use units::*;
 /// # Comparisons
 ///
 /// ```rust
-/// use embedded_time::rate::*;
+/// use drogue_device::domain::time::rate::*;
 ///
 /// assert_eq!(Kilohertz(2_u32), Hertz(2_000_u32));
 /// assert_ne!(Kilohertz(2_u32), Hertz(2_001_u32));
@@ -189,7 +189,7 @@ pub use units::*;
 /// # Remainder
 ///
 /// ```rust
-/// use embedded_time::rate::*;
+/// use drogue_device::domain::time::rate::*;
 ///
 /// assert_eq!(Hertz(2_037_u32) % Kilohertz(1_u32), Hertz(37_u32));
 /// ```
@@ -199,7 +199,7 @@ pub trait Rate: Sized + Copy {
     /// # Examples
     ///
     /// ```rust
-    /// use embedded_time::rate::*;
+    /// use drogue_device::domain::time::rate::*;
     ///
     /// let kilobits = KilobitsPerSecond(20_u32);
     ///
@@ -218,7 +218,7 @@ pub trait Rate: Sized + Copy {
     /// [`ConversionError::Unspecified`]
     ///
     /// ```rust
-    /// # use embedded_time::{rate::*, ConversionError};
+    /// # use drogue_device::domain::time::{rate::*, ConversionError};
     ///
     /// assert_eq!(
     ///     Hertz(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
@@ -232,7 +232,7 @@ pub trait Rate: Sized + Copy {
     /// type fails.
     ///
     /// ```rust
-    /// use embedded_time::{fraction::Fraction, rate::*, ConversionError};
+    /// use drogue_device::domain::time::{fraction::Fraction, rate::*, ConversionError};
     ///
     /// assert_eq!(
     ///     Hertz(u32::MAX as u64 + 1).to_generic::<u32>(Fraction::new(1, 1)),
@@ -260,7 +260,7 @@ pub trait Rate: Sized + Copy {
     /// # Examples
     ///
     /// ```rust
-    /// use embedded_time::{duration::*, rate::*};
+    /// use drogue_device::domain::time::{duration::*, rate::*};
     ///
     /// assert_eq!(
     ///     Kilohertz(500_u32).to_duration(),
@@ -277,7 +277,7 @@ pub trait Rate: Sized + Copy {
     /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
     ///
     /// ```rust
-    /// use embedded_time::{duration::*, rate::*, ConversionError};
+    /// use drogue_device::domain::time::{duration::*, rate::*, ConversionError};
     ///
     /// assert_eq!(
     ///     Megahertz(u32::MAX).to_duration::<Hours<u32>>(),
@@ -290,7 +290,7 @@ pub trait Rate: Sized + Copy {
     /// [`ConversionError::DivByZero`] : The rate is `0`, therefore the reciprocal is undefined.
     ///
     /// ```rust
-    /// use embedded_time::{duration::*, rate::*, ConversionError};
+    /// use drogue_device::domain::time::{duration::*, rate::*, ConversionError};
     ///
     /// assert_eq!(
     ///     Hertz(0_u32).to_duration::<Seconds<u32>>(),
@@ -749,7 +749,7 @@ pub mod units {
     /// Create rate-based extensions from primitive numeric types.
     ///
     /// ```rust
-    /// # use embedded_time::{rate::*};
+    /// # use drogue_device::domain::time::{rate::*};
     /// assert_eq!(5_u32.MiHz(), Mebihertz(5_u32));
     /// assert_eq!(5_u32.MHz(), Megahertz(5_u32));
     /// assert_eq!(5_u32.KiHz(), Kibihertz(5_u32));

@@ -19,13 +19,13 @@ use num::traits::{WrappingAdd, WrappingSub};
 /// Typically an `Instant` will be obtained from a [`Clock`](clock/trait.Clock.html)
 ///
 /// ```rust
-/// # use embedded_time::{fraction::Fraction, Instant, Clock as _};
+/// # use drogue_device::domain::time::{fraction::Fraction, Instant, Clock as _};
 /// # #[derive(Debug)]
 /// # struct SomeClock;
-/// # impl embedded_time::Clock for SomeClock {
+/// # impl drogue_device::domain::time::Clock for SomeClock {
 /// #     type T = u32;
 /// #     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
-/// #     fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {Ok(Instant::<Self>::new(23))}
+/// #     fn try_now(&self) -> Result<Instant<Self>, drogue_device::domain::time::clock::Error> {Ok(Instant::<Self>::new(23))}
 /// # }
 /// let some_clock = SomeClock;
 /// let some_instant = some_clock.try_now().unwrap();
@@ -35,13 +35,13 @@ use num::traits::{WrappingAdd, WrappingSub};
 /// is `23 * SomeClock::SCALING_FACTOR` seconds since the clock's epoch
 ///
 /// ```rust,no_run
-/// # use embedded_time::{fraction::Fraction, Instant};
+/// # use drogue_device::domain::time::{fraction::Fraction, Instant};
 /// # #[derive(Debug)]
 /// # struct SomeClock;
-/// # impl embedded_time::Clock for SomeClock {
+/// # impl drogue_device::domain::time::Clock for SomeClock {
 /// #     type T = u32;
 /// #     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
-/// #     fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
+/// #     fn try_now(&self) -> Result<Instant<Self>, drogue_device::domain::time::clock::Error> {unimplemented!()}
 /// # }
 /// Instant::<SomeClock>::new(23);
 /// ```
@@ -63,15 +63,15 @@ impl<Clock: crate::domain::time::Clock> Instant<Clock> {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{duration::*, Instant, ConversionError};
+    /// # use drogue_device::domain::time::{duration::*, Instant, ConversionError};
     /// # use core::convert::TryInto;
     /// # #[derive(Debug)]
     /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
+    /// impl drogue_device::domain::time::Clock for Clock {
     ///     type T = u32;
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, drogue_device::domain::time::clock::Error> {unimplemented!()}
     /// }
     /// #
     /// # let instant1 = Instant::<Clock>::new(3);
@@ -104,15 +104,15 @@ impl<Clock: crate::domain::time::Clock> Instant<Clock> {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{duration::*, Instant, ConversionError};
+    /// # use drogue_device::domain::time::{duration::*, Instant, ConversionError};
     /// # use core::convert::TryInto;
     /// # #[derive(Debug)]
     /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
+    /// impl drogue_device::domain::time::Clock for Clock {
     ///     type T = u32;
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, drogue_device::domain::time::clock::Error> {unimplemented!()}
     /// }
     /// #
     /// # let instant1 = Instant::<Clock>::new(3);
@@ -153,14 +153,14 @@ impl<Clock: crate::domain::time::Clock> Instant<Clock> {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, duration::*, Instant, ConversionError};
+    /// # use drogue_device::domain::time::{fraction::Fraction, duration::*, Instant, ConversionError};
     /// # #[derive(Debug)]
     /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
+    /// impl drogue_device::domain::time::Clock for Clock {
     ///     type T = u32;
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, drogue_device::domain::time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(
@@ -195,14 +195,14 @@ impl<Clock: crate::domain::time::Clock> Instant<Clock> {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, duration::*, Instant, ConversionError};
+    /// # use drogue_device::domain::time::{fraction::Fraction, duration::*, Instant, ConversionError};
     /// # #[derive(Debug)]
     /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
+    /// impl drogue_device::domain::time::Clock for Clock {
     ///     type T = u32;
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, drogue_device::domain::time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(u32::MAX).checked_sub(Milliseconds(u32::MAX/2)),
@@ -247,14 +247,14 @@ impl<Clock: crate::domain::time::Clock> PartialOrd for Instant<Clock> {
     /// Calculates the difference between two `Instant`s resulting in a [`Duration`]
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, duration::*, Instant};
+    /// # use drogue_device::domain::time::{fraction::Fraction, duration::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
+    /// impl drogue_device::domain::time::Clock for Clock {
     ///     type T = u32;
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, drogue_device::domain::time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// assert!(Instant::<Clock>::new(5) > Instant::<Clock>::new(3));
@@ -291,14 +291,14 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, duration::*, Instant};
+    /// # use drogue_device::domain::time::{fraction::Fraction, duration::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
+    /// impl drogue_device::domain::time::Clock for Clock {
     ///     type T = u32;
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, drogue_device::domain::time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(1) + Seconds(3_u32),
@@ -320,14 +320,14 @@ where
     /// the wrap-around period of the clock.
     ///
     /// ```rust,should_panic
-    /// # use embedded_time::{fraction::Fraction, duration::*, Instant};
+    /// # use drogue_device::domain::time::{fraction::Fraction, duration::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
+    /// impl drogue_device::domain::time::Clock for Clock {
     ///     type T = u32;
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, drogue_device::domain::time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// Instant::<Clock>::new(0) + Milliseconds(u32::MAX/2 + 1);
@@ -349,14 +349,14 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, duration::*, Instant};
+    /// # use drogue_device::domain::time::{fraction::Fraction, duration::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
+    /// impl drogue_device::domain::time::Clock for Clock {
     ///     type T = u32;
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, drogue_device::domain::time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(5_001) - Seconds(3_u32),
@@ -378,14 +378,14 @@ where
     /// the wrap-around period of the clock.
     ///
     /// ```rust,should_panic
-    /// # use embedded_time::{fraction::Fraction, duration::*, Instant};
+    /// # use drogue_device::domain::time::{fraction::Fraction, duration::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
+    /// impl drogue_device::domain::time::Clock for Clock {
     ///     type T = u32;
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, drogue_device::domain::time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// Instant::<Clock>::new(u32::MAX) - Milliseconds(u32::MAX/2 + 1);
@@ -403,14 +403,14 @@ impl<Clock: crate::domain::time::Clock> ops::Sub<Instant<Clock>> for Instant<Clo
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, duration::*, Instant};
+    /// # use drogue_device::domain::time::{fraction::Fraction, duration::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
+    /// impl drogue_device::domain::time::Clock for Clock {
     ///     type T = u32;
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, drogue_device::domain::time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(*(Instant::<Clock>::new(5_001) - Instant::<Clock>::new(5_000)).integer(), 1);
@@ -423,14 +423,14 @@ impl<Clock: crate::domain::time::Clock> ops::Sub<Instant<Clock>> for Instant<Clo
     /// larger than the left hand side.
     ///
     /// ```rust,should_panic
-    /// # use embedded_time::{fraction::Fraction, duration::*, Instant};
+    /// # use drogue_device::domain::time::{fraction::Fraction, duration::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
+    /// impl drogue_device::domain::time::Clock for Clock {
     ///     type T = u32;
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, drogue_device::domain::time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// Instant::<Clock>::new(0) - Instant::<Clock>::new(1);

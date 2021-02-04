@@ -8,8 +8,17 @@
 /// Additionally, the size of the async pool, in bytes, should be provided.
 ///
 /// Usage:
-/// ```
-/// device!( MyDeviceType = my_device_instance; 1024 )
+/// ```ignore
+/// use cortex_m_rt::exception;
+/// use drogue_device::prelude::*;
+///
+/// struct MyDevice {}
+/// let instance = MyDevice {};
+/// impl Device for MyDevice {
+///     fn mount(&'static mut self, _: &Address<EventBus<Self>>, _: &mut Supervisor) {}
+/// }
+///
+/// device!( MyDevice = instance; 1024 );
 /// ```
 #[macro_export]
 macro_rules! device {

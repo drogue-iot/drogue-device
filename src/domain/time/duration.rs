@@ -21,7 +21,7 @@ pub use units::*;
 /// # Constructing a duration
 ///
 /// ```rust
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 ///
 /// let millis = <Milliseconds>::new(5);
 /// let millis = Milliseconds(5_u32);
@@ -31,7 +31,7 @@ pub use units::*;
 /// # Get the integer part
 ///
 /// ```rust
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 ///
 /// let millis = Milliseconds(23_u32).integer();
 ///
@@ -43,7 +43,7 @@ pub use units::*;
 /// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
 ///
 /// ```rust
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 ///
 /// assert_eq!(format!("{}", Seconds(123_u32)), "123");
 /// ```
@@ -51,7 +51,7 @@ pub use units::*;
 /// # Getting H:M:S.MS... Components
 ///
 /// ```rust
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 ///
 /// // (the default duration _integer_ type is `u32`)
 /// let duration = 38_238_479_u32.microseconds();
@@ -67,7 +67,7 @@ pub use units::*;
 /// Many intra-duration conversions can be done using `From`/`Into`:
 ///
 /// ```rust
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 ///
 /// let seconds = Seconds::<u32>::from(23_000_u32.milliseconds());
 /// assert_eq!(seconds.integer(), &23_u32);
@@ -79,7 +79,7 @@ pub use units::*;
 /// Others require the use of `TryFrom`/`TryInto`:
 ///
 /// ```rust
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 /// use std::convert::{TryInto, TryFrom};
 ///
 /// let millis = Milliseconds::<u32>::try_from(23_u32.seconds()).unwrap();
@@ -99,7 +99,7 @@ pub use units::*;
 /// ## Examples
 ///
 /// ```rust
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 /// use core::convert::TryFrom;
 ///
 /// let core_duration = core::time::Duration::try_from(2_569_u32.milliseconds()).unwrap();
@@ -109,7 +109,7 @@ pub use units::*;
 /// ```
 ///
 /// ```rust
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 /// use core::convert::TryInto;
 ///
 /// let core_duration: core::time::Duration = 2_569_u32.milliseconds().try_into().unwrap();
@@ -128,7 +128,7 @@ pub use units::*;
 /// ## Examples
 ///
 /// ```rust
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 /// use core::convert::TryFrom;
 ///
 /// let core_duration = core::time::Duration::new(5, 730_023_852);
@@ -137,7 +137,7 @@ pub use units::*;
 /// ```
 ///
 /// ```rust
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 /// # use core::convert::TryInto;
 ///
 /// let duration: Result<Milliseconds<u32>, _> = core::time::Duration::new(5, 730023852).try_into();
@@ -150,7 +150,7 @@ pub use units::*;
 /// [`ConversionError::ConversionFailure`] : The duration doesn't fit in the type specified
 ///
 /// ```rust
-/// use embedded_time::{duration::*, ConversionError};
+/// use drogue_device::domain::time::{duration::*, ConversionError};
 /// # use core::convert::{TryFrom, TryInto};
 ///
 /// assert_eq!(
@@ -170,7 +170,7 @@ pub use units::*;
 /// ## Examples
 ///
 /// ```rust
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 /// # use core::convert::{TryFrom, TryInto};
 ///
 /// // A generic duration of 2 seconds
@@ -192,7 +192,7 @@ pub use units::*;
 /// [`ConversionError::Unspecified`]
 ///
 /// ```rust
-/// use embedded_time::{duration::*, ConversionError};
+/// use drogue_device::domain::time::{duration::*, ConversionError};
 /// # use core::convert::TryFrom;
 ///
 /// assert_eq!(
@@ -207,7 +207,7 @@ pub use units::*;
 /// destination type fails.
 ///
 /// ```rust
-/// use embedded_time::{duration::*, ConversionError};
+/// use drogue_device::domain::time::{duration::*, ConversionError};
 /// # use core::convert::TryFrom;
 ///
 /// assert_eq!(
@@ -219,7 +219,7 @@ pub use units::*;
 /// # Converting to a [`Generic`] `Duration` with the same _scaling factor_
 ///
 /// ```rust
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 ///
 /// let generic_duration = Generic::<u32>::from(5_u32.seconds());
 /// let generic_duration: Generic<u32> = 5_u32.seconds().into();
@@ -242,7 +242,7 @@ pub use units::*;
 /// ## Examples
 ///
 /// ```rust
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 ///
 /// assert_eq!((Milliseconds(1_u32) + Seconds(1_u32)),
 ///     Milliseconds(1_001_u32));
@@ -256,7 +256,7 @@ pub use units::*;
 /// The same reason the integer operation would panic. Namely, if the result overflows the type.
 ///
 /// ```rust,should_panic
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 ///
 /// let _ = Seconds(u32::MAX) + Seconds(1_u32);
 /// ```
@@ -269,7 +269,7 @@ pub use units::*;
 /// # Comparisons
 ///
 /// ```rust
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 ///
 /// assert_eq!(Seconds(2_u32), Milliseconds(2_000_u32));
 /// assert_ne!(Seconds(2_u32), Milliseconds(2_001_u32));
@@ -281,7 +281,7 @@ pub use units::*;
 /// # Remainder
 ///
 /// ```rust
-/// use embedded_time::duration::*;
+/// use drogue_device::domain::time::duration::*;
 ///
 /// assert_eq!(Minutes(62_u32) % Hours(1_u32), Minutes(2_u32));
 /// ```
@@ -292,7 +292,7 @@ pub trait Duration: Sized + Copy {
     /// # Examples
     ///
     /// ```rust
-    /// use embedded_time::duration::*;
+    /// use drogue_device::domain::time::duration::*;
     ///
     /// let millis = Milliseconds(20_u32);
     ///
@@ -311,7 +311,7 @@ pub trait Duration: Sized + Copy {
     /// [`ConversionError::Unspecified`]
     ///
     /// ```rust
-    /// use embedded_time::{duration::*, ConversionError};
+    /// use drogue_device::domain::time::{duration::*, ConversionError};
     ///
     /// assert_eq!(
     ///     Seconds(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
@@ -325,7 +325,7 @@ pub trait Duration: Sized + Copy {
     /// type fails.
     ///
     /// ```rust
-    /// use embedded_time::{duration::*, ConversionError};
+    /// use drogue_device::domain::time::{duration::*, ConversionError};
     ///
     /// assert_eq!(Seconds(u32::MAX as u64 + 1).to_generic::<u32>(Fraction::new(1, 1)),
     ///     Err(ConversionError::ConversionFailure));
@@ -351,7 +351,7 @@ pub trait Duration: Sized + Copy {
     /// # Examples
     ///
     /// ```rust
-    /// use embedded_time::{duration::*, rate::*};
+    /// use drogue_device::domain::time::{duration::*, rate::*};
     ///
     /// assert_eq!(
     ///     Microseconds(500_u32).to_rate(),
@@ -368,7 +368,7 @@ pub trait Duration: Sized + Copy {
     /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
     ///
     /// ```rust
-    /// use embedded_time::{duration::*, rate::*, ConversionError};
+    /// use drogue_device::domain::time::{duration::*, rate::*, ConversionError};
     ///
     /// assert_eq!(
     ///     Hours(u32::MAX).to_rate::<Megahertz<u32>>(),
@@ -381,7 +381,7 @@ pub trait Duration: Sized + Copy {
     /// [`ConversionError::DivByZero`] : The rate is `0`, therefore the reciprocal is undefined.
     ///
     /// ```rust
-    /// use embedded_time::{duration::*, rate::*, ConversionError};
+    /// use drogue_device::domain::time::{duration::*, rate::*, ConversionError};
     ///
     /// assert_eq!(
     ///     Seconds(0_u32).to_rate::<Hertz<u32>>(),
@@ -991,7 +991,7 @@ pub mod units {
     /// Create duration-based extensions from primitive numeric types.
     ///
     /// ```rust
-    /// use embedded_time::duration::*;
+    /// use drogue_device::domain::time::duration::*;
     ///
     /// assert_eq!(5_u32.nanoseconds(), Nanoseconds(5_u32));
     /// assert_eq!(5_u32.microseconds(), Microseconds(5_u32));
