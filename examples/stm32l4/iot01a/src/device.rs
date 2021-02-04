@@ -21,6 +21,7 @@ use stm32l4xx_hal::{
     pac::TIM15,
 };
 use drogue_device::hal::gpio::{ActiveOutput, ActiveHigh};
+use drogue_device::driver::memory::{Memory, Query};
 
 type Ld1Pin = PA5<Output<PushPull>>;
 type Ld2Pin = PB14<Output<PushPull>>;
@@ -42,6 +43,7 @@ type TimerActor = Timer<McuTimer<TIM15>>;
 type Hts221Package = Hts221<MyDevice, PD15<Input<PullDown>>, I2cPeriph>;
 
 pub struct MyDevice {
+    pub memory: ActorContext<Memory>,
     pub ld1: ActorContext<Ld1Actor>,
     pub ld2: ActorContext<Ld2Actor>,
     pub blinker1: ActorContext<Blinker1Actor>,
@@ -49,7 +51,7 @@ pub struct MyDevice {
     pub button: InterruptContext<ButtonInterrupt>,
     pub i2c: ActorContext<I2cActor>,
     pub hts221: Hts221Package,
-    pub timer: InterruptContext<TimerActor>,
+    pub timer: Timer<McuTimer<TIM15>>,
 }
 
 impl Device for MyDevice {
@@ -58,6 +60,7 @@ impl Device for MyDevice {
         bus_address: &Address<EventBus<Self>>,
         supervisor: &mut Supervisor,
     ) {
+        self.memory.mount(supervisor);
         let ld1_addr = self.ld1.mount(supervisor);
         let ld2_addr = self.ld2.mount(supervisor);
 
@@ -66,7 +69,7 @@ impl Device for MyDevice {
 
         let i2c_addr = self.i2c.mount(supervisor);
         let hts221_addr = self.hts221.mount(bus_address, supervisor);
-        let timer_addr = self.timer.mount(supervisor);
+        let timer_addr = self.timer.mount(bus_address, supervisor);
 
         blinker1_addr.bind(&timer_addr);
         blinker1_addr.bind(&ld1_addr);
@@ -90,6 +93,7 @@ impl EventHandler<ButtonEvent> for MyDevice {
             ButtonEvent::Pressed => {
                 log::info!("[{}] button pressed", ActorInfo::name());
                 self.blinker1.address().adjust_delay(Milliseconds(100u32));
+                self.memory.address().notify(Query);
             }
             ButtonEvent::Released => {
                 log::info!("[{}] button released", ActorInfo::name());

@@ -86,21 +86,23 @@ impl CortexMHeap {
         cortex_m::interrupt::free(|cs| self.heap.borrow(cs).borrow_mut().free())
     }
 
-    pub(crate) fn alloc_init<T>(&mut self, val: T) -> Option<&'static mut T> {
+    pub(crate) fn alloc_init<'o, T: 'o>(&mut self, val: T) -> Option<&'o mut T> {
         let layout = Layout::from_size_align(
             mem::size_of::<(Layout, T)>(),
             mem::align_of::<(Layout, T)>(),
         )
         .unwrap();
+        log::trace!("[ALLOC] asking for {} aligned {}", layout.size(), layout.align());
         unsafe {
             let mut allocation = self.alloc(layout);
             if allocation.is_null() {
+                log::trace!("[ALLOC] allocation failed");
                 None
             } else {
                 //let mut allocation = &mut *(allocation as *mut MaybeUninit<T>);
                 //allocation.as_mut_ptr().write( (layout, val ));
                 //Some(&mut *allocation.as_mut_ptr())
-                log::trace!("[ALLOC] {:x} allocate {}", allocation as u32, layout.size());
+                log::trace!("[ALLOC] {:x} allocate {} || {} free", allocation as u32, layout.size(), self.free() );
                 (allocation as *mut Layout).write(layout);
                 allocation = (allocation as *mut Layout).add(1) as *mut u8;
                 (allocation as *mut T).write(val);
@@ -136,7 +138,7 @@ impl CortexMHeap {
         let head_ptr = (ptr as *mut Layout).sub(1);
         let layout = head_ptr.read();
         log::trace!(
-            "[ALLOC] {:x} deallocate {} || {}",
+            "[ALLOC] {:x} deallocate {} || {} free",
             head_ptr as u32,
             layout.size(),
             self.free()

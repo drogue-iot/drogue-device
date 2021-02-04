@@ -7,6 +7,7 @@ use core::ops::DerefMut;
 use core::pin::Pin;
 use core::ptr::drop_in_place;
 use core::task::{Context, Poll};
+use core::marker::PhantomData;
 
 pub mod cortex_m;
 
@@ -23,7 +24,7 @@ macro_rules! init_heap {
     };
 }
 
-pub fn alloc<T>(val: T) -> Option<&'static mut T> {
+pub fn alloc<'o, T: 'o>(val: T) -> Option<&'o mut T> {
     unsafe { HEAP.as_mut().unwrap().alloc_init(val) }
 }
 
@@ -33,7 +34,8 @@ pub struct Box<T: ?Sized> {
 }
 
 impl<T: ?Sized> Box<T> {
-    pub fn new(val: &'static mut T) -> Self {
+    pub fn new(val: &mut T) -> Self
+    {
         Self {
             pointer: UnsafeCell::new(val),
         }
@@ -54,7 +56,8 @@ impl<T: ?Sized> DerefMut for Box<T> {
     }
 }
 
-impl<T: Future + ?Sized + 'static> Future for Box<T> {
+//impl<T: Future + ?Sized + 'static> Future for Box<T> {
+impl<T: Future + ?Sized> Future for Box<T> {
     type Output = T::Output;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -94,7 +97,7 @@ pub struct Rc<T> {
     pointer: UnsafeCell<*mut RcBox<T>>,
 }
 
-impl<T: 'static> Rc<T> {
+impl<'m, T: 'm> Rc<T> {
     pub fn new(val: T) -> Self {
         let rc_box = RcBox::new(val);
         let rc_box = alloc(rc_box).unwrap_or_else(|| panic!("oom!"));

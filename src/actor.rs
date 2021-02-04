@@ -12,6 +12,8 @@ use crate::device::Lifecycle;
 use crate::supervisor::{actor_executor::ActorState, Supervisor};
 use core::cell::{RefCell, UnsafeCell};
 // use core::fmt::{Debug, Formatter};
+use core::marker::PhantomData;
+use core::mem::transmute;
 use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue};
@@ -46,32 +48,32 @@ pub trait Actor: Sized {
 
     /// Lifecycle event of *start*.
     fn on_start(mut self) -> Completion<Self>
-        where
-            Self: 'static,
+    where
+        Self: 'static,
     {
         Completion::immediate(self)
     }
 
     /// Lifecycle event of *sleep*. *Unused currently*.
     fn on_sleep(mut self) -> Completion<Self>
-        where
-            Self: 'static,
+    where
+        Self: 'static,
     {
         Completion::immediate(self)
     }
 
     /// Lifecycle event of *hibernate*. *Unused currently*.
     fn on_hibernate(mut self) -> Completion<Self>
-        where
-            Self: 'static,
+    where
+        Self: 'static,
     {
         Completion::immediate(self)
     }
 
     /// Lifecycle event of *stop*. *Unused currently*.
     fn on_stop(mut self) -> Completion<Self>
-        where
-            Self: 'static,
+    where
+        Self: 'static,
     {
         Completion::immediate(self)
     }
@@ -102,6 +104,7 @@ pub struct ActorContext<A: Actor + 'static> {
     pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>>, U16>>,
     pub(crate) items_producer: ItemsProducer<A>,
     pub(crate) items_consumer: ItemsConsumer<A>,
+    //pub(crate) items: FutureQueue<A>,
     pub(crate) state_flag_handle: RefCell<Option<*const ()>>,
     pub(crate) in_flight: AtomicBool,
     name: Option<&'static str>,
@@ -115,6 +118,7 @@ impl<A: Actor + 'static> ActorContext<A> {
         Self {
             actor: UnsafeCell::new(Some(actor)),
             current: RefCell::new(None),
+            //items: FutureQueue::new(),
             items: UnsafeCell::new(Queue::new()),
             items_producer: RefCell::new(None),
             items_consumer: RefCell::new(None),
@@ -135,11 +139,11 @@ impl<A: Actor + 'static> ActorContext<A> {
         self.name.unwrap_or("<unnamed>")
     }
 
-    fn take_actor(&'static self) -> Option<A> {
+    fn take_actor(&self) -> Option<A> {
         unsafe { (&mut *self.actor.get()).take() }
     }
 
-    fn replace_actor(&'static self, actor: A) {
+    fn replace_actor(&self, actor: A) {
         unsafe {
             (&mut *self.actor.get()).replace(actor);
         }
@@ -162,7 +166,7 @@ impl<A: Actor + 'static> ActorContext<A> {
     /// Mount the context and its actor into the system.
     pub fn mount(&'static self, supervisor: &mut Supervisor) -> Address<A> {
         let addr = Address::new(self);
-        let state_flag_handle = supervisor.activate_actor(self);
+        let (actor_index, state_flag_handle) = supervisor.activate_actor(self);
         log::trace!("[{}] == {:x}", self.name(), state_flag_handle as u32);
         self.state_flag_handle
             .borrow_mut()
@@ -180,6 +184,8 @@ impl<A: Actor + 'static> ActorContext<A> {
                 .on_mount(addr.clone());
         }
 
+        //supervisor.run_until_quiescence();
+
         addr
     }
 
@@ -195,6 +201,7 @@ impl<A: Actor + 'static> ActorContext<A> {
                 .unwrap()
                 .enqueue(lifecycle)
                 .unwrap_or_else(|_| panic!("too many messages"));
+            //self.items.enqueue(lifecycle)
         });
 
         let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
@@ -219,8 +226,12 @@ impl<A: Actor + 'static> ActorContext<A> {
                 .unwrap()
                 .enqueue(bind)
                 .unwrap_or_else(|_| panic!("too many messages"));
+            //self.items.enqueue(bind)
         });
 
+        unsafe {
+            log::trace!("[{}].bind(...) items={}", self.name(), (&*self.items.get()).len());
+        }
         let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
         unsafe {
             (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
@@ -243,6 +254,7 @@ impl<A: Actor + 'static> ActorContext<A> {
                 .unwrap()
                 .enqueue(notify)
                 .unwrap_or_else(|_| panic!("too many messages"));
+            //self.items.enqueue(notify);
         });
 
         let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
@@ -252,25 +264,23 @@ impl<A: Actor + 'static> ActorContext<A> {
     }
 
     /// Dispatch an async request.
-    pub(crate) async fn request<M>(&'static self, message: M) -> <A as RequestHandler<M>>::Response
+    pub(crate) async fn request<M>(
+        &'static self,
+        message: M,
+    ) -> <A as RequestHandler<M>>::Response
     where
         A: RequestHandler<M>,
-        M: 'static,
     {
-        // TODO: fix this leak on signals
-        //let signal = alloc(CompletionHandle::new()).unwrap();
         let signal = Rc::new(CompletionHandle::new());
-        //let (sender, receiver) = signal.split();
         let sender = CompletionSender::new(signal.clone());
         let receiver = CompletionReceiver::new(signal);
-        let request = alloc(OnRequest::new(self, message, sender)).unwrap();
+        let request: &mut dyn ActorFuture<A> = alloc(OnRequest::new(self, message, sender)).unwrap();
         let response = RequestResponseFuture::new(receiver);
 
-        let request: Box<dyn ActorFuture<A>> = Box::new(request);
-
         unsafe {
+            let request = transmute::<_, &mut (ActorFuture<A> + 'static)>(request);
+            let request: Box<dyn ActorFuture<A>> = Box::new(request);
             cortex_m::interrupt::free(|cs| {
-                //self.items.borrow_mut().enqueue(request).unwrap_or_else(|_| panic!("too many messages"));
                 self.items_producer
                     .borrow_mut()
                     .as_mut()
@@ -278,6 +288,7 @@ impl<A: Actor + 'static> ActorContext<A> {
                     .enqueue(request)
                     .unwrap_or_else(|_| panic!("message queue full"));
             });
+
             //let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
             let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
             (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
@@ -515,7 +526,7 @@ where
 
 impl<A, M> OnRequest<A, M>
 where
-    A: Actor + RequestHandler<M> + 'static,
+    A: Actor + RequestHandler<M>,
 {
     pub fn new(
         actor: &'static ActorContext<A>,
@@ -539,7 +550,7 @@ impl<A, M> Unpin for OnRequest<A, M> where A: Actor + RequestHandler<M> + 'stati
 
 impl<A, M> Future for OnRequest<A, M>
 where
-    A: Actor + RequestHandler<M> + 'static,
+    A: Actor + RequestHandler<M>,
 {
     type Output = ();
 
@@ -682,11 +693,17 @@ impl<T: 'static> CompletionSender<T> {
         Self { handle }
     }
 
-    pub(crate) fn send_value(&self, response: T) {
+    pub(crate) fn send_value(&self, response: T)
+    where
+        T: 'static,
+    {
         self.handle.send_value(response);
     }
 
-    pub(crate) fn send_future(&self, response: Box<dyn Future<Output = T>>) {
+    pub(crate) fn send_future(&self, response: Box<dyn Future<Output = T>>)
+    where
+        T: 'static,
+    {
         self.handle.send_future(response);
     }
 }
@@ -700,7 +717,10 @@ impl<T: 'static> CompletionReceiver<T> {
         Self { handle }
     }
 
-    pub(crate) fn poll(&self, cx: &mut Context) -> Poll<T> {
+    pub(crate) fn poll(&self, cx: &mut Context) -> Poll<T>
+    where
+        T: 'static,
+    {
         self.handle.poll(cx)
     }
 }

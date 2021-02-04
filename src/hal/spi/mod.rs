@@ -203,3 +203,42 @@ impl<'w, SPI: FullDuplex<u8>> Future for TransferFuture<'w, SPI> {
     }
 }
 
+pub struct BufferActor {
+
+}
+
+impl Actor for BufferActor {
+
+}
+
+struct DMARequest<'r>(&'r mut [u8]);
+
+impl<'r> RequestHandler<DMARequest<'r>> for BufferActor {
+    type Response = ();
+
+    fn on_request(self, message: DMARequest<'r>) -> Response<Self, Self::Response> {
+        unimplemented!()
+    }
+}
+
+pub struct TestActor {
+    addr: Address<BufferActor>,
+}
+
+impl Actor for TestActor {
+    fn on_start(mut self) -> Completion<Self>
+    where
+        Self: 'static,
+    {
+        Completion::defer(async move {
+            let mut buf = [0; 1024];
+            self.addr.request(DMARequest(&mut buf)).await;
+            use_it(&mut buf);
+            self
+        })
+    }
+}
+
+fn use_it(buf: &mut [u8]) {
+
+}

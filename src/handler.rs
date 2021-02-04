@@ -11,7 +11,7 @@ use crate::prelude::Actor;
 /// *Note:* It is generally better and easier to use the associated
 /// functions to construct instances of `Response<T>` than to attempt
 /// creating them directly.
-pub enum Response<A: Actor + 'static, T> {
+pub enum Response<A: Actor + 'static, T: 'static> {
     /// See `immediate(val)`.
     Immediate(A, T),
 
@@ -60,10 +60,7 @@ where
     /// Response to the request.
     fn on_request(self, message: M) -> Response<Self, Self::Response>;
 
-    fn respond_with(
-        self,
-        response: Self::Response,
-    ) -> (Self, Self::Response) {
+    fn respond_with(self, response: Self::Response) -> (Self, Self::Response) {
         (self, response)
     }
 }

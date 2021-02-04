@@ -69,7 +69,6 @@ impl<A: Actor + 'static> Address<A> {
     pub async fn request<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
     where
         A: RequestHandler<M> + 'static,
-        M: 'static,
     {
         //unsafe { (&**self.actor.get()).request(message).await }
         self.actor.request(message).await

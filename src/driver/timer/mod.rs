@@ -7,6 +7,7 @@ use core::cell::UnsafeCell;
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
+use cortex_m::interrupt::Nr;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Delay<DUR: Duration + Into<Milliseconds>>(pub DUR);
@@ -85,14 +86,14 @@ impl Shared {
 }
 
 pub struct Timer<T: HalTimer + 'static> {
-    actor: ActorContext<TimerActor<T>>,
+    actor: InterruptContext<TimerActor<T>>,
     shared: Shared,
 }
 
 impl<T: HalTimer> Timer<T> {
-    pub fn new(timer: T) -> Self {
+    pub fn new<IRQ: Nr>(timer: T, irq: IRQ) -> Self {
         Self {
-            actor: ActorContext::new(TimerActor::new(timer)),
+            actor: InterruptContext::new(TimerActor::new(timer), irq),
             shared: Shared::new(),
         }
     }
@@ -139,7 +140,6 @@ impl<T: HalTimer, DUR: Duration + Into<Milliseconds>> RequestHandler<Delay<DUR>>
 
     fn on_request(mut self, message: Delay<DUR>) -> Response<Self, Self::Response> {
         let ms: Milliseconds = message.0.into();
-        //log::info!("delay request {:?}", ms);
 
         unsafe {
             if let Some((index, slot)) = (&mut *self.shared.unwrap().delay_deadlines.get())
@@ -180,7 +180,7 @@ where
 {
     fn on_notify(mut self, message: Schedule<A, DUR, E>) -> Completion<Self> {
         let ms: Milliseconds = message.delay.into();
-        //log::info!("delay request {:?}", ms);
+        // log::info!("schedule request {:?}", ms);
         unsafe {
             if let Some((index, slot)) = (&mut *self.shared.unwrap().schedule_deadlines.get())
                 .iter_mut()

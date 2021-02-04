@@ -3,6 +3,8 @@
 use crate::supervisor::actor_executor::{ActiveActor, ActorExecutor};
 use crate::supervisor::interrupt_dispatcher::{ActiveInterrupt, InterruptDispatcher};
 use core::cell::UnsafeCell;
+use crate::actor::ActorContext;
+use crate::prelude::Actor;
 
 pub(crate) mod actor_executor;
 pub(crate) mod interrupt_dispatcher;
@@ -22,7 +24,7 @@ impl Supervisor {
         }
     }
 
-    pub(crate) fn activate_actor<S: ActiveActor>(&mut self, actor: &'static S) -> *const () {
+    pub(crate) fn activate_actor<S: ActiveActor>(&mut self, actor: &'static S) -> (usize, *const ()) {
         unsafe { (&mut *self.executor.get()).activate_actor(actor) }
     }
 
@@ -39,6 +41,10 @@ impl Supervisor {
     pub(crate) fn run_forever(&self) -> ! {
         unsafe { (&mut *self.executor.get()).run_forever() }
     }
+
+    //pub(crate) fn run_until_quiescence(&self) {
+        //unsafe { (&mut *self.executor.get()).run_until_quiescence() }
+    //}
 
     pub(crate) fn on_interrupt(&self, irqn: i16) {
         unsafe {
