@@ -38,8 +38,8 @@ static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
 
 #[entry]
 fn main() -> ! {
-    //rtt_init_print!();
-    rtt_init_print!( BlockIfFull );
+    rtt_init_print!();
+    //rtt_init_print!( BlockIfFull );
     log::set_logger(&LOGGER).unwrap();
     log::set_max_level(log::LevelFilter::Trace);
 
