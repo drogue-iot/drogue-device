@@ -1,5 +1,6 @@
 use crate::gpiote::*;
 use drogue_device::{
+    domain::time::duration::Milliseconds,
     driver::{
         led::{LEDMatrix, MatrixCommand},
         timer::Timer,
@@ -43,6 +44,9 @@ impl Device for MyDevice {
 
         app.bind(&self.uart.mount(bus, supervisor));
         app.bind(&led);
+        app.bind(&timer);
+
+        app.notify(SayHello);
     }
 }
 
@@ -57,7 +61,7 @@ impl EventHandler<PinEvent> for MyDevice {
     fn on_event(&'static mut self, event: PinEvent) {
         match event {
             PinEvent(Channel::Channel0, _) => {
-                self.app.address().notify(SayHello);
+                self.app.address().notify(StartService);
                 self.led.address().notify(MatrixCommand::On(0, 0));
             }
             PinEvent(Channel::Channel1, _) => {
@@ -71,6 +75,7 @@ impl EventHandler<PinEvent> for MyDevice {
 pub struct App {
     uart: Option<Address<AppUart>>,
     display: Option<Address<LedMatrix>>,
+    timer: Option<Address<TimerActor>>,
 }
 
 impl App {
@@ -78,6 +83,7 @@ impl App {
         Self {
             uart: None,
             display: None,
+            timer: None,
         }
     }
 }
@@ -85,6 +91,9 @@ impl Actor for App {}
 
 #[derive(Clone, Debug)]
 pub struct SayHello;
+
+#[derive(Clone, Debug)]
+pub struct StartService;
 
 impl Bind<AppUart> for App {
     fn on_bind(&mut self, address: Address<AppUart>) {
@@ -100,10 +109,35 @@ impl Bind<LedMatrix> for App {
     }
 }
 
+impl Bind<TimerActor> for App {
+    fn on_bind(&mut self, address: Address<TimerActor>) {
+        log::info!("Bound timer");
+        self.timer.replace(address);
+    }
+}
+
 impl NotifyHandler<SayHello> for App {
     fn on_notify(&'static mut self, _: SayHello) -> Completion<Self> {
         Completion::defer(async move {
             let led = self.display.as_ref().unwrap();
+            let timer = self.timer.as_ref().unwrap();
+
+            for c in r"Hello, World!".chars() {
+                led.notify(MatrixCommand::ApplyAscii(c));
+                timer.delay(Milliseconds(200)).await;
+            }
+
+            led.notify(MatrixCommand::Clear);
+            self
+        })
+    }
+}
+
+impl NotifyHandler<StartService> for App {
+    fn on_notify(&'static mut self, _: StartService) -> Completion<Self> {
+        Completion::defer(async move {
+            let led = self.display.as_ref().unwrap();
+
             if let Some(uart) = &mut self.uart {
                 let mut buf = [0; 128];
                 let mut uart = uart.lock().await;

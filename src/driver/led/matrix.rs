@@ -163,6 +163,9 @@ where
             MatrixCommand::ApplyAscii(x) => {
                 self.apply(x.to_frame());
             }
+            MatrixCommand::Clear => {
+                self.clear();
+            }
             MatrixCommand::Render => {
                 self.render();
                 if let Some(address) = &self.address {
@@ -182,6 +185,7 @@ where
 pub enum MatrixCommand {
     On(usize, usize),
     Off(usize, usize),
+    Clear,
     ApplyAscii(char),
     Render,
 }
@@ -393,6 +397,20 @@ impl ToFrame for char {
                 0b00100,
                 0b01000,
                 0b11111,
+            ]),
+            '!' => frame_5x5(&[
+                0b00100,
+                0b00100,
+                0b00100,
+                0b00000,
+                0b00100,
+            ]),
+            '?' => frame_5x5(&[
+                0b11111,
+                0b00001,
+                0b00111,
+                0b00000,
+                0b00100,
             ]),
             _ => Frame::new([0; 32]),
         }
