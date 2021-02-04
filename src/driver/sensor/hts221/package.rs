@@ -8,10 +8,11 @@ use crate::prelude::*;
 use cortex_m::interrupt::Nr;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
+use crate::domain::temperature::Celsius;
 
 pub struct Hts221<D, P, I>
 where
-    D: Device + EventHandler<SensorAcquisition> + 'static,
+    D: Device + EventHandler<SensorAcquisition<Celsius>> + 'static,
     P: InputPin + ExtiPin + 'static,
     I: WriteRead + Read + Write + 'static,
 {
@@ -21,7 +22,7 @@ where
 
 impl<D, P, I> Hts221<D, P, I>
 where
-    D: Device + EventHandler<SensorAcquisition>,
+    D: Device + EventHandler<SensorAcquisition<Celsius>>,
     P: InputPin + ExtiPin,
     I: WriteRead + Read + Write,
 {
@@ -45,7 +46,7 @@ where
 
 impl<D, P, I> Package<D, Sensor<D, I>> for Hts221<D, P, I>
 where
-    D: Device + EventHandler<SensorAcquisition>,
+    D: Device + EventHandler<SensorAcquisition<Celsius>>,
     P: InputPin + ExtiPin,
     I: WriteRead + Read + Write,
 {

@@ -22,6 +22,7 @@ use stm32l4xx_hal::{
 };
 use drogue_device::hal::gpio::{ActiveOutput, ActiveHigh};
 use drogue_device::driver::memory::{Memory, Query};
+use drogue_device::domain::temperature::Celsius;
 
 type Ld1Pin = PA5<Output<PushPull>>;
 type Ld2Pin = PB14<Output<PushPull>>;
@@ -103,11 +104,11 @@ impl EventHandler<ButtonEvent> for MyDevice {
     }
 }
 
-impl EventHandler<SensorAcquisition> for MyDevice {
-    fn on_event(&'static mut self, message: SensorAcquisition)
+impl EventHandler<SensorAcquisition<Celsius>> for MyDevice {
+    fn on_event(&'static mut self, message: SensorAcquisition<Celsius>)
     where
         Self: Sized,
     {
-        log::info!("[event-bus] {:?}", message);
+        log::info!("[event-bus] temperature={:.2} relative_humidity={}", message.temperature.into_fahrenheit(), message.relative_humidity);
     }
 }

@@ -134,7 +134,7 @@ fn main() -> ! {
     // == Device ==
 
     let device = MyDevice {
-        memory: ActorContext::new(Memory::new()),
+        memory: ActorContext::new(Memory::new()).with_name("memory"),
         ld1: ActorContext::new(ld1).with_name("ld1"),
         ld2: ActorContext::new(ld2).with_name("ld2"),
         blinker1: ActorContext::new(blinker1).with_name("blinker1"),

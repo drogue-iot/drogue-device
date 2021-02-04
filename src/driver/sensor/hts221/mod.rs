@@ -7,16 +7,16 @@ pub use package::Hts221;
 pub use ready::Ready;
 pub use sensor::Sensor;
 
-use crate::domain::temperature::{Celsius, Temperature};
+use crate::domain::temperature::{Celsius, Temperature, TemperatureScale};
 use core::fmt::{Debug, Formatter};
 
 #[derive(Copy, Clone)]
-pub struct SensorAcquisition {
-    pub temperature: Temperature<Celsius>,
+pub struct SensorAcquisition<S:TemperatureScale> {
+    pub temperature: Temperature<S>,
     pub relative_humidity: f32,
 }
 
-impl Debug for SensorAcquisition {
+impl<S:TemperatureScale> Debug for SensorAcquisition<S> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("SensorAcquisition")
             .field("temperature", &self.temperature)
@@ -24,3 +24,4 @@ impl Debug for SensorAcquisition {
             .finish()
     }
 }
+

@@ -93,7 +93,7 @@ pub struct Timer<T: HalTimer + 'static> {
 impl<T: HalTimer> Timer<T> {
     pub fn new<IRQ: Nr>(timer: T, irq: IRQ) -> Self {
         Self {
-            actor: InterruptContext::new(TimerActor::new(timer), irq),
+            actor: InterruptContext::new(TimerActor::new(timer), irq).with_name("timer"),
             shared: Shared::new(),
         }
     }

@@ -13,6 +13,7 @@ use crate::handler::EventHandler;
 use crate::prelude::*;
 use crate::synchronization::Mutex;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
+use crate::domain::temperature::Celsius;
 
 pub const ADDR: u8 = 0x5F;
 
@@ -129,7 +130,7 @@ where
 
 impl<D, I> NotifyHandler<DataReady> for Sensor<D, I>
 where
-    D: Device + EventHandler<SensorAcquisition>,
+    D: Device + EventHandler<SensorAcquisition<Celsius>>,
     I: WriteRead + Read + Write,
 {
     fn on_notify(mut self, message: DataReady) -> Completion<Self> {
@@ -165,7 +166,7 @@ where
 #[doc(hidden)]
 impl<D, I> Address<Sensor<D, I>>
 where
-    D: Device + EventHandler<SensorAcquisition> + 'static,
+    D: Device + EventHandler<SensorAcquisition<Celsius>> + 'static,
     I: WriteRead + Read + Write,
 {
     pub fn signal_data_ready(&self) {

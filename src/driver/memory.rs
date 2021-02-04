@@ -1,5 +1,5 @@
 use crate::handler::{Completion, Response};
-use crate::prelude::{Actor, NotifyHandler, RequestHandler};
+use crate::prelude::{Actor, NotifyHandler, RequestHandler, ActorInfo};
 
 use crate::alloc::HEAP;
 
@@ -37,7 +37,7 @@ impl NotifyHandler<Query> for Memory {
     fn on_notify(self, message: Query) -> Completion<Self> {
         let used = unsafe { HEAP.as_ref().unwrap().used() };
         let free = unsafe { HEAP.as_ref().unwrap().free() };
-        log::info!("used={}, free={}", used, free);
+        log::info!("[{}] used={}, free={}", ActorInfo::name(), used, free);
         Completion::immediate(self)
     }
 }

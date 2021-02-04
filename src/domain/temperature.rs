@@ -5,12 +5,16 @@ use core::marker::PhantomData;
 use core::ops::{Add, Div, Sub};
 
 /// Trait representing a temperature scale.
-pub trait TemperatureScale {}
+pub trait TemperatureScale {
+    const LETTER: char;
+}
 
 /// Discriminant for the _Kelvin_ temperature scale.
 pub struct Kelvin;
 
-impl TemperatureScale for Kelvin {}
+impl TemperatureScale for Kelvin {
+    const LETTER: char = 'K';
+}
 
 impl Debug for Kelvin {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
@@ -27,7 +31,9 @@ impl Debug for Celsius {
     }
 }
 
-impl TemperatureScale for Celsius {}
+impl TemperatureScale for Celsius {
+    const LETTER: char = 'C';
+}
 
 /// Discriminant for the _Fahrenheit_ temperature scale.
 pub struct Fahrenheit;
@@ -38,7 +44,9 @@ impl Debug for Fahrenheit {
     }
 }
 
-impl TemperatureScale for Fahrenheit {}
+impl TemperatureScale for Fahrenheit {
+    const LETTER: char = 'F';
+}
 
 /// A temperature value with its associated scale.
 pub struct Temperature<S: TemperatureScale> {
@@ -55,24 +63,9 @@ impl<S: TemperatureScale> Clone for Temperature<S> {
     }
 }
 
-impl Debug for Temperature<Celsius> {
+impl<S:TemperatureScale> Debug for Temperature<S> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        Debug::fmt(&self.value, f)?;
-        write!(f, "°C")
-    }
-}
-
-impl Debug for Temperature<Fahrenheit> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        Debug::fmt(&self.value, f)?;
-        write!(f, "°F")
-    }
-}
-
-impl Debug for Temperature<Kelvin> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        Debug::fmt(&self.value, f)?;
-        write!(f, "°K")
+        write!(f, "{}°{}", &self.value, S::LETTER)
     }
 }
 
@@ -139,6 +132,7 @@ impl<S: TemperatureScale> Div<f32> for Temperature<S> {
 
 impl<S: TemperatureScale> Display for Temperature<S> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        Display::fmt(&self.value, f)
+        Display::fmt(&self.value, f);
+        write!(f, "°{}", S::LETTER)
     }
 }

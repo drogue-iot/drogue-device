@@ -6,6 +6,7 @@ use crate::handler::EventHandler;
 use crate::prelude::*;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
+use crate::domain::temperature::Celsius;
 
 pub struct DataReady;
 
@@ -40,7 +41,7 @@ where
 
 impl<D, P, I> Interrupt for Ready<D, P, I>
 where
-    D: Device + EventHandler<SensorAcquisition> + 'static,
+    D: Device + EventHandler<SensorAcquisition<Celsius>> + 'static,
     P: InputPin + ExtiPin,
     I: WriteRead + Read + Write + 'static,
 {
