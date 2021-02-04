@@ -27,9 +27,7 @@ impl<A: Actor> Clone for Address<A> {
 
 impl<A: Actor + 'static> Address<A> {
     pub(crate) fn new(actor: &'static ActorContext<A>) -> Self {
-        Self {
-            actor,
-        }
+        Self { actor }
     }
 
     /// Bind or inject another address into the actor behind this address.
@@ -43,7 +41,7 @@ impl<A: Actor + 'static> Address<A> {
     {
         self.actor.bind(address);
         //unsafe {
-            //(&**self.actor.get()).bind(address);
+        //(&**self.actor.get()).bind(address);
         //}
     }
 
@@ -57,7 +55,7 @@ impl<A: Actor + 'static> Address<A> {
         M: 'static,
     {
         //unsafe {
-            //(&**self.actor.get()).notify(message);
+        //(&**self.actor.get()).notify(message);
         //}
         self.actor.notify(message)
     }
@@ -69,8 +67,28 @@ impl<A: Actor + 'static> Address<A> {
     pub async fn request<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
     where
         A: RequestHandler<M> + 'static,
+        M: 'static
     {
         //unsafe { (&**self.actor.get()).request(message).await }
         self.actor.request(message).await
+    }
+
+    /// Perform an unsafe _async_ request to the actor behind this address.
+    ///
+    /// To accept the request and provide a response, the target must implement
+    /// `RequestHandler<...>` for the appropriate type of message.
+    ///
+    /// # Safety
+    ///
+    /// While the request message may contain non-static references, the user must
+    /// ensure that the response to the request is fully `.await`'d before returning.
+    /// Leaving an in-flight request dangling while references have gone out of lifetime
+    /// scope is unsound.
+    pub async unsafe fn request_unchecked<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
+    where
+        A: RequestHandler<M> + 'static,
+    {
+        //unsafe { (&**self.actor.get()).request(message).await }
+        self.actor.request_unchecked(message).await
     }
 }

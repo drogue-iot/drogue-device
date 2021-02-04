@@ -232,7 +232,7 @@ impl Actor for TestActor {
     {
         Completion::defer(async move {
             let mut buf = [0; 1024];
-            self.addr.request(DMARequest(&mut buf)).await;
+            unsafe{ self.addr.request_unchecked(DMARequest(&mut buf)).await };
             use_it(&mut buf);
             self
         })

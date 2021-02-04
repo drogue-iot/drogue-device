@@ -268,6 +268,40 @@ impl<A: Actor + 'static> ActorContext<A> {
         &'static self,
         message: M,
     ) -> <A as RequestHandler<M>>::Response
+        where
+            A: RequestHandler<M>,
+            M: 'static
+    {
+        let signal = Rc::new(CompletionHandle::new());
+        let sender = CompletionSender::new(signal.clone());
+        let receiver = CompletionReceiver::new(signal);
+        let request: &mut dyn ActorFuture<A> = alloc(OnRequest::new(self, message, sender)).unwrap();
+        let response = RequestResponseFuture::new(receiver);
+
+        unsafe {
+            let request: Box<dyn ActorFuture<A>> = Box::new(request);
+            cortex_m::interrupt::free(|cs| {
+                self.items_producer
+                    .borrow_mut()
+                    .as_mut()
+                    .unwrap()
+                    .enqueue(request)
+                    .unwrap_or_else(|_| panic!("message queue full"));
+            });
+
+            //let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
+            let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
+            (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
+        }
+
+        response.await
+    }
+
+    /// Dispatch an async request.
+    pub(crate) async fn request_unchecked<M>(
+        &'static self,
+        message: M,
+    ) -> <A as RequestHandler<M>>::Response
     where
         A: RequestHandler<M>,
     {
