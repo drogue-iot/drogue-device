@@ -1,3 +1,4 @@
+use crate::actor::Configurable;
 use crate::alloc::{alloc, Box};
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::timer::Timer as HalTimer;
@@ -42,190 +43,246 @@ impl<
     }
 }
 
-pub struct Timer<T: HalTimer> {
-    timer: T,
-    current_deadline: Option<Milliseconds>,
-    delay_deadlines: [Option<DelayDeadline>; 16],
-    schedule_deadlines: [Option<Box<dyn Schedulable>>; 16],
+pub struct Shared {
+    current_deadline: UnsafeCell<Option<Milliseconds>>,
+    delay_deadlines: UnsafeCell<[Option<DelayDeadline>; 16]>,
+    schedule_deadlines: UnsafeCell<[Option<Box<dyn Schedulable>>; 16]>,
+}
+
+impl Shared {
+    pub fn new() -> Self {
+        Self {
+            current_deadline: UnsafeCell::new(None),
+            delay_deadlines: UnsafeCell::new(Default::default()),
+            schedule_deadlines: UnsafeCell::new(Default::default()),
+        }
+    }
+
+    fn has_expired(&self, index: usize) -> bool {
+        unsafe {
+            let expired = (&*self.delay_deadlines.get())[index]
+                .as_ref()
+                .unwrap()
+                .expiration
+                == Milliseconds(0u32);
+            if expired {
+                (&mut *self.delay_deadlines.get())[index].take();
+            }
+            expired
+        }
+    }
+
+    fn register_waker(&self, index: usize, waker: Waker) {
+        // log::info!("Registering waker");
+        unsafe {
+            (&mut *self.delay_deadlines.get())[index]
+                .as_mut()
+                .unwrap()
+                .waker
+                .replace(waker);
+        }
+    }
+}
+
+pub struct Timer<T: HalTimer + 'static> {
+    actor: ActorContext<TimerActor<T>>,
+    shared: Shared,
 }
 
 impl<T: HalTimer> Timer<T> {
     pub fn new(timer: T) -> Self {
         Self {
-            timer,
-            current_deadline: None,
-            delay_deadlines: Default::default(),
-            schedule_deadlines: Default::default(),
+            actor: ActorContext::new(TimerActor::new(timer)),
+            shared: Shared::new(),
         }
-    }
-
-    fn has_expired(&mut self, index: usize) -> bool {
-        let expired =
-            self.delay_deadlines[index].as_ref().unwrap().expiration == Milliseconds(0u32);
-        if expired {
-            self.delay_deadlines[index].take();
-        }
-
-        expired
-    }
-
-    fn register_waker(&mut self, index: usize, waker: Waker) {
-        // log::info!("Registering waker");
-        self.delay_deadlines[index]
-            .as_mut()
-            .unwrap()
-            .waker
-            .replace(waker);
     }
 }
 
-impl<T: HalTimer> Actor for Timer<T> {}
+impl<D: Device, T: HalTimer> Package<D, TimerActor<T>> for Timer<T> {
+    fn mount(
+        &'static self,
+        bus_address: &Address<EventBus<D>>,
+        supervisor: &mut Supervisor,
+    ) -> Address<TimerActor<T>> {
+        let addr = self.actor.mount(supervisor);
+        self.actor.configure(&self.shared);
+        addr
+    }
+}
 
-impl<T: HalTimer, DUR: Duration + Into<Milliseconds>> RequestHandler<Delay<DUR>> for Timer<T> {
+pub struct TimerActor<T: HalTimer> {
+    timer: T,
+    shared: Option<&'static Shared>,
+}
+
+impl<T: HalTimer> Configurable for TimerActor<T> {
+    type Configuration = Shared;
+
+    fn configure(&mut self, config: &'static Self::Configuration) {
+        self.shared.replace(config);
+    }
+}
+
+impl<T: HalTimer> TimerActor<T> {
+    pub fn new(timer: T) -> Self {
+        Self {
+            timer,
+            shared: None,
+        }
+    }
+}
+
+impl<T: HalTimer> Actor for TimerActor<T> {}
+
+impl<T: HalTimer, DUR: Duration + Into<Milliseconds>> RequestHandler<Delay<DUR>> for TimerActor<T> {
     type Response = ();
 
-    fn on_request(&'static mut self, message: Delay<DUR>) -> Response<Self, Self::Response> {
+    fn on_request(mut self, message: Delay<DUR>) -> Response<Self, Self::Response> {
         let ms: Milliseconds = message.0.into();
         //log::info!("delay request {:?}", ms);
 
-        if let Some((index, slot)) = self
-            .delay_deadlines
-            .iter_mut()
-            .enumerate()
-            .find(|e| matches!(e, (_, None)))
-        {
-            self.delay_deadlines[index].replace(DelayDeadline::new(ms));
-            if let Some(current_deadline) = self.current_deadline {
-                if current_deadline > ms {
-                    self.current_deadline.replace(ms);
-                    //log::info!("start shorter timer for {:?}", ms);
-                    self.timer.start(ms);
+        unsafe {
+            if let Some((index, slot)) = (&mut *self.shared.unwrap().delay_deadlines.get())
+                .iter_mut()
+                .enumerate()
+                .find(|e| matches!(e, (_, None)))
+            {
+                (&mut *self.shared.unwrap().delay_deadlines.get())[index]
+                    .replace(DelayDeadline::new(ms));
+                if let Some(current_deadline) = (&*self.shared.unwrap().current_deadline.get()) {
+                    if *current_deadline > ms {
+                        (&mut *self.shared.unwrap().current_deadline.get()).replace(ms);
+                        //log::info!("start shorter timer for {:?}", ms);
+                        self.timer.start(ms);
+                    } else {
+                        //log::info!("timer already running for {:?}", current_deadline );
+                    }
                 } else {
-                    //log::info!("timer already running for {:?}", current_deadline );
+                    (&mut *self.shared.unwrap().current_deadline.get()).replace(ms);
+                    //log::info!("start new timer for {:?}", ms);
+                    self.timer.start(ms);
                 }
+                let future = DelayFuture::new(index, self.shared.as_ref().unwrap());
+                Response::immediate_future(self, future)
             } else {
-                self.current_deadline.replace(ms);
-                //log::info!("start new timer for {:?}", ms);
-                self.timer.start(ms);
+                Response::immediate(self, ())
             }
-            let future = DelayFuture::new(index, self);
-            Response::immediate_future(self, future)
-        } else {
-            Response::immediate(self, ())
         }
     }
 }
 
-impl<T, E, A, DUR> NotifyHandler<Schedule<A, DUR, E>> for Timer<T>
+impl<T, E, A, DUR> NotifyHandler<Schedule<A, DUR, E>> for TimerActor<T>
 where
-    T: HalTimer,
+    T: HalTimer + 'static,
     E: Clone + 'static,
     A: Actor + NotifyHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds> + 'static,
 {
-    fn on_notify(&'static mut self, message: Schedule<A, DUR, E>) -> Completion<Self> {
+    fn on_notify(mut self, message: Schedule<A, DUR, E>) -> Completion<Self> {
         let ms: Milliseconds = message.delay.into();
         //log::info!("delay request {:?}", ms);
-
-        if let Some((index, slot)) = self
-            .schedule_deadlines
-            .iter_mut()
-            .enumerate()
-            .find(|e| matches!(e, (_, None)))
-        {
-            self.schedule_deadlines[index]
-                .replace(Box::new(alloc(ScheduleDeadline::new(ms, message)).unwrap()));
-            if let Some(current_deadline) = self.current_deadline {
-                if current_deadline > ms {
-                    self.current_deadline.replace(ms);
-                    //log::info!("start shorter timer for {:?}", ms);
+        unsafe {
+            if let Some((index, slot)) = (&mut *self.shared.unwrap().schedule_deadlines.get())
+                .iter_mut()
+                .enumerate()
+                .find(|e| matches!(e, (_, None)))
+            {
+                (&mut *self.shared.unwrap().schedule_deadlines.get())[index]
+                    .replace(Box::new(alloc(ScheduleDeadline::new(ms, message)).unwrap()));
+                if let Some(current_deadline) = (&*self.shared.unwrap().current_deadline.get()) {
+                    if *current_deadline > ms {
+                        (&mut *self.shared.unwrap().current_deadline.get()).replace(ms);
+                        //log::info!("start shorter timer for {:?}", ms);
+                        self.timer.start(ms);
+                    } else {
+                        //log::info!("timer already running for {:?}", current_deadline );
+                    }
+                } else {
+                    (&mut *self.shared.unwrap().current_deadline.get()).replace(ms);
+                    //log::info!("start new timer for {:?}", ms);
                     self.timer.start(ms);
-                } else {
-                    //log::info!("timer already running for {:?}", current_deadline );
                 }
-            } else {
-                self.current_deadline.replace(ms);
-                //log::info!("start new timer for {:?}", ms);
-                self.timer.start(ms);
             }
+            Completion::immediate(self)
         }
-        Completion::immediate(self)
     }
 }
 
-impl<T: HalTimer> Interrupt for Timer<T> {
+impl<T: HalTimer> Interrupt for TimerActor<T> {
     fn on_interrupt(&mut self) {
-        self.timer.clear_update_interrupt_flag();
-        let expired = self.current_deadline.unwrap();
+        unsafe {
+            self.timer.clear_update_interrupt_flag();
+            let expired = (&*self.shared.unwrap().current_deadline.get()).unwrap();
 
-        let mut next_deadline = None;
-        //log::info!("timer expired! {:?}", expired);
-        for slot in self.delay_deadlines.iter_mut() {
-            if let Some(deadline) = slot {
-                if deadline.expiration >= expired {
-                    deadline.expiration = deadline.expiration - expired;
-                } else {
-                    deadline.expiration = Milliseconds(0u32);
-                }
+            let mut next_deadline = None;
+            //log::info!("timer expired! {:?}", expired);
+            for slot in (&mut *self.shared.unwrap().delay_deadlines.get()).iter_mut() {
+                if let Some(deadline) = slot {
+                    if deadline.expiration >= expired {
+                        deadline.expiration = deadline.expiration - expired;
+                    } else {
+                        deadline.expiration = Milliseconds(0u32);
+                    }
 
-                if deadline.expiration == Milliseconds(0u32) {
-                    deadline.waker.take().unwrap().wake();
-                } else {
-                    match next_deadline {
-                        None => {
-                            next_deadline.replace(deadline.expiration);
+                    if deadline.expiration == Milliseconds(0u32) {
+                        deadline.waker.take().unwrap().wake();
+                    } else {
+                        match next_deadline {
+                            None => {
+                                next_deadline.replace(deadline.expiration);
+                            }
+                            Some(soonest) if soonest > deadline.expiration => {
+                                next_deadline.replace(deadline.expiration);
+                            }
+                            _ => { /* ignore */ }
                         }
-                        Some(soonest) if soonest > deadline.expiration => {
-                            next_deadline.replace(deadline.expiration);
-                        }
-                        _ => { /* ignore */ }
                     }
                 }
             }
-        }
 
-        for slot in self.schedule_deadlines.iter_mut() {
-            if let Some(deadline) = slot {
-                let expiration = deadline.get_expiration();
-                if expiration >= expired {
-                    deadline.set_expiration(expiration - expired);
-                } else {
-                    deadline.set_expiration(Milliseconds(0u32));
-                }
+            for slot in (&mut *self.shared.unwrap().schedule_deadlines.get()).iter_mut() {
+                if let Some(deadline) = slot {
+                    let expiration = deadline.get_expiration();
+                    if expiration >= expired {
+                        deadline.set_expiration(expiration - expired);
+                    } else {
+                        deadline.set_expiration(Milliseconds(0u32));
+                    }
 
-                if deadline.get_expiration() == Milliseconds(0u32) {
-                    deadline.run();
-                    slot.take();
-                } else {
-                    match next_deadline {
-                        None => {
-                            next_deadline.replace(deadline.get_expiration());
+                    if deadline.get_expiration() == Milliseconds(0u32) {
+                        deadline.run();
+                        slot.take();
+                    } else {
+                        match next_deadline {
+                            None => {
+                                next_deadline.replace(deadline.get_expiration());
+                            }
+                            Some(soonest) if soonest > deadline.get_expiration() => {
+                                next_deadline.replace(deadline.get_expiration());
+                            }
+                            _ => { /* ignore */ }
                         }
-                        Some(soonest) if soonest > deadline.get_expiration() => {
-                            next_deadline.replace(deadline.get_expiration());
-                        }
-                        _ => { /* ignore */ }
                     }
                 }
             }
-        }
 
-        //log::info!("next deadline {:?}", next_deadline );
+            //log::info!("next deadline {:?}", next_deadline );
 
-        if let Some(next_deadline) = next_deadline {
-            if next_deadline > Milliseconds(0u32) {
-                self.current_deadline.replace(next_deadline);
-                self.timer.start(next_deadline);
+            if let Some(next_deadline) = next_deadline {
+                if next_deadline > Milliseconds(0u32) {
+                    (&mut *self.shared.unwrap().current_deadline.get()).replace(next_deadline);
+                    self.timer.start(next_deadline);
+                } else {
+                    (&mut *self.shared.unwrap().current_deadline.get()).take();
+                }
             } else {
-                self.current_deadline.take();
+                (&mut *self.shared.unwrap().current_deadline.get()).take();
             }
-        } else {
-            self.current_deadline.take();
         }
     }
 }
 
-impl<T: HalTimer + 'static> Address<Timer<T>> {
+impl<T: HalTimer + 'static> Address<TimerActor<T>> {
     pub async fn delay<DUR: Duration + Into<Milliseconds> + 'static>(&self, duration: DUR) {
         self.request(Delay(duration)).await
     }
@@ -233,7 +290,7 @@ impl<T: HalTimer + 'static> Address<Timer<T>> {
     pub fn schedule<
         DUR: Duration + Into<Milliseconds> + 'static,
         E: Clone + 'static,
-        A: Actor + NotifyHandler<E> + 'static,
+        A: Actor + NotifyHandler<E>,
     >(
         &self,
         delay: DUR,
@@ -300,17 +357,17 @@ impl<
     }
 }
 
-struct DelayFuture<T: HalTimer> {
+struct DelayFuture {
     index: usize,
-    timer: UnsafeCell<*mut Timer<T>>,
+    shared: &'static Shared,
     expired: bool,
 }
 
-impl<T: HalTimer> DelayFuture<T> {
-    fn new(index: usize, timer: &mut Timer<T>) -> Self {
+impl DelayFuture {
+    fn new(index: usize, shared: &'static Shared) -> Self {
         Self {
             index,
-            timer: UnsafeCell::new(timer),
+            shared,
             expired: false,
         }
     }
@@ -319,7 +376,10 @@ impl<T: HalTimer> DelayFuture<T> {
         if !self.expired {
             self.expired = unsafe {
                 // critical section to avoid being trampled by the timer's own IRQ
-                cortex_m::interrupt::free(|cs| (&mut **self.timer.get()).has_expired(self.index))
+                cortex_m::interrupt::free(|cs|
+                    //(&mut **self.timer.get()).has_expired(self.index)
+                    self.shared.has_expired(self.index)
+                )
             }
         }
 
@@ -327,13 +387,14 @@ impl<T: HalTimer> DelayFuture<T> {
     }
 
     fn register_waker(&self, waker: &Waker) {
-        unsafe {
-            (&mut **self.timer.get()).register_waker(self.index, waker.clone());
-        }
+        //unsafe {
+            //(&mut **self.timer.get()).register_waker(self.index, waker.clone());
+        //}
+        self.shared.register_waker(self.index, waker.clone());
     }
 }
 
-impl<T: HalTimer> Future for DelayFuture<T> {
+impl Future for DelayFuture {
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {

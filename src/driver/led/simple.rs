@@ -37,8 +37,8 @@ where
 
 impl<P, A> Switchable for SimpleLED<P, A>
 where
-    P: OutputPin,
-    A: ActiveOutput,
+    P: OutputPin + 'static,
+    A: ActiveOutput + 'static,
 {
     fn turn_on(&mut self) {
         A::set_active(&mut self.pin).ok();
@@ -58,10 +58,10 @@ where
 
 impl<P, A> NotifyHandler<On> for SimpleLED<P, A>
 where
-    P: OutputPin,
-    A: ActiveOutput,
+    P: OutputPin + 'static,
+    A: ActiveOutput + 'static,
 {
-    fn on_notify(&'static mut self, message: On) -> Completion<Self> {
+    fn on_notify(mut self, message: On) -> Completion<Self> {
         self.turn_on();
         Completion::immediate(self)
     }
@@ -69,10 +69,10 @@ where
 
 impl<P, A> NotifyHandler<Off> for SimpleLED<P, A>
 where
-    P: OutputPin,
-    A: ActiveOutput,
+    P: OutputPin + 'static,
+    A: ActiveOutput + 'static,
 {
-    fn on_notify(&'static mut self, message: Off) -> Completion<Self> {
+    fn on_notify(mut self, message: Off) -> Completion<Self> {
         Completion::defer(async move {
             self.turn_off();
             self

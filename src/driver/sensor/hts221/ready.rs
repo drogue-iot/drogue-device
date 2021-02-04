@@ -11,8 +11,8 @@ pub struct DataReady;
 
 pub struct Ready<D, P, I>
 where
-    D: Device,
-    P: InputPin + ExtiPin,
+    D: Device + 'static,
+    P: InputPin + ExtiPin + 'static,
     I: WriteRead + Read + Write + 'static,
 {
     pin: P,

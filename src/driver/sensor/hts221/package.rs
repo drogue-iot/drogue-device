@@ -12,7 +12,7 @@ use embedded_hal::digital::v2::InputPin;
 pub struct Hts221<D, P, I>
 where
     D: Device + EventHandler<SensorAcquisition> + 'static,
-    P: InputPin + ExtiPin,
+    P: InputPin + ExtiPin + 'static,
     I: WriteRead + Read + Write + 'static,
 {
     sensor: ActorContext<Sensor<D, I>>,

@@ -19,7 +19,7 @@ impl<I: Actor + Interrupt> ActiveInterrupt for InterruptContext<I> {
         if !self.actor_context.in_flight.load(Ordering::Acquire) {
             unsafe {
                 //cortex_m::interrupt::free(|cs| {
-                (&mut *self.actor_context.actor.get()).on_interrupt();
+                (&mut *self.actor_context.actor.get()).as_mut().unwrap().on_interrupt();
                 //})
             }
         }

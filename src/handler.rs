@@ -13,25 +13,25 @@ use crate::prelude::Actor;
 /// creating them directly.
 pub enum Response<A: Actor + 'static, T> {
     /// See `immediate(val)`.
-    Immediate(&'static mut A, T),
+    Immediate(A, T),
 
     /// See `defer(future)`.
-    Defer(Box<dyn Future<Output = (&'static mut A, T)>>),
+    Defer(Box<dyn Future<Output = (A, T)>>),
 
     /// See `immediate_future(future)`.
-    ImmediateFuture(&'static mut A, Box<dyn Future<Output = T>>),
+    ImmediateFuture(A, Box<dyn Future<Output = T>>),
 }
 
 impl<T, A: Actor + 'static> Response<A, T> {
     /// Return an immediate value, synchronously, as the response
     /// to the request.
-    pub fn immediate(actor: &'static mut A, val: T) -> Self {
+    pub fn immediate(actor: A, val: T) -> Self {
         Self::Immediate(actor, val)
     }
 
     /// Return a value asynchornously using the supplied future
     /// within the context of *this* actor to calculate the value.
-    pub fn defer<F: Future<Output = (&'static mut A, T)> + 'static>(f: F) -> Self
+    pub fn defer<F: Future<Output = (A, T)> + 'static>(f: F) -> Self
     where
         T: 'static,
     {
@@ -41,7 +41,7 @@ impl<T, A: Actor + 'static> Response<A, T> {
     /// Return an immediate future, synchronously, which will be
     /// executed asynchronously within the *requester's* context
     /// before the original `.request(...).await` completes.
-    pub fn immediate_future<F: Future<Output = T> + 'static>(actor: &'static mut A, f: F) -> Self
+    pub fn immediate_future<F: Future<Output = T> + 'static>(actor: A, f: F) -> Self
     where
         T: 'static,
     {
@@ -58,35 +58,35 @@ where
     type Response: 'static;
 
     /// Response to the request.
-    fn on_request(&'static mut self, message: M) -> Response<Self, Self::Response>;
+    fn on_request(self, message: M) -> Response<Self, Self::Response>;
 
     fn respond_with(
-        &'static mut self,
+        self,
         response: Self::Response,
-    ) -> (&'static mut Self, Self::Response) {
-        (&mut *self, response)
+    ) -> (Self, Self::Response) {
+        (self, response)
     }
 }
 
 /// Return value from a `NotifyHandler` to allow for immediate synchronous handling
 /// of the notification or asynchronous handling.
-pub enum Completion<A: Actor + 'static> {
+pub enum Completion<A: Actor> {
     /// See `immediate()`
-    Immediate(&'static mut A),
+    Immediate(A),
 
     /// See `defer(future)`
-    Defer(Box<dyn Future<Output = &'static mut A>>),
+    Defer(Box<dyn Future<Output = A>>),
 }
 
-impl<A: Actor> Completion<A> {
+impl<A: Actor + 'static> Completion<A> {
     /// Indicates the notification has been immediately handled.
-    pub fn immediate(actor: &'static mut A) -> Self {
+    pub fn immediate(actor: A) -> Self {
         Self::Immediate(actor)
     }
 
     /// Provide a future for asynchronous handling of the notification
     /// within this actor's context.
-    pub fn defer<F: Future<Output = &'static mut A> + 'static>(f: F) -> Self {
+    pub fn defer<F: Future<Output = A> + 'static>(f: F) -> Self {
         Self::Defer(Box::new(alloc(f).unwrap()))
     }
 }
@@ -97,7 +97,7 @@ where
     Self: Actor + Sized,
 {
     /// Handle the notification.
-    fn on_notify(&'static mut self, message: M) -> Completion<Self>;
+    fn on_notify(self, message: M) -> Completion<Self>;
 }
 
 /// Trait to be implemented by a `Device` implementation in order to receive

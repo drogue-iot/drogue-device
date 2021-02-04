@@ -37,27 +37,42 @@ pub trait Actor: Sized {
     }
 
     /// Lifecycle event of *initialize*.
-    fn on_initialize(&'static mut self) -> Completion<Self> {
+    fn on_initialize(mut self) -> Completion<Self>
+    where
+        Self: 'static,
+    {
         Completion::immediate(self)
     }
 
     /// Lifecycle event of *start*.
-    fn on_start(&'static mut self) -> Completion<Self> {
+    fn on_start(mut self) -> Completion<Self>
+        where
+            Self: 'static,
+    {
         Completion::immediate(self)
     }
 
     /// Lifecycle event of *sleep*. *Unused currently*.
-    fn on_sleep(&'static mut self) -> Completion<Self> {
+    fn on_sleep(mut self) -> Completion<Self>
+        where
+            Self: 'static,
+    {
         Completion::immediate(self)
     }
 
     /// Lifecycle event of *hibernate*. *Unused currently*.
-    fn on_hibernate(&'static mut self) -> Completion<Self> {
+    fn on_hibernate(mut self) -> Completion<Self>
+        where
+            Self: 'static,
+    {
         Completion::immediate(self)
     }
 
     /// Lifecycle event of *stop*. *Unused currently*.
-    fn on_stop(&'static mut self) -> Completion<Self> {
+    fn on_stop(mut self) -> Completion<Self>
+        where
+            Self: 'static,
+    {
         Completion::immediate(self)
     }
 }
@@ -81,9 +96,8 @@ type ItemsConsumer<A> = RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>>
 
 /// Struct which is capable of holding an `Actor` instance
 /// and connects it to the actor system.
-pub struct ActorContext<A: Actor> {
-    pub(crate) actor: UnsafeCell<A>,
-    actor_ref: UnsafeCell<Option<*mut A>>,
+pub struct ActorContext<A: Actor + 'static> {
+    pub(crate) actor: UnsafeCell<Option<A>>,
     pub(crate) current: RefCell<Option<Box<dyn ActorFuture<A>>>>,
     pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>>, U16>>,
     pub(crate) items_producer: ItemsProducer<A>,
@@ -93,14 +107,13 @@ pub struct ActorContext<A: Actor> {
     name: Option<&'static str>,
 }
 
-impl<A: Actor> ActorContext<A> {
+impl<A: Actor + 'static> ActorContext<A> {
     /// Create a new context, taking ownership of the provided
     /// actor instance. When mounted, the context and the
     /// contained actor will be moved to the `static` lifetime.
     pub fn new(actor: A) -> Self {
         Self {
-            actor: UnsafeCell::new(actor),
-            actor_ref: UnsafeCell::new(None),
+            actor: UnsafeCell::new(Some(actor)),
             current: RefCell::new(None),
             items: UnsafeCell::new(Queue::new()),
             items_producer: RefCell::new(None),
@@ -122,19 +135,13 @@ impl<A: Actor> ActorContext<A> {
         self.name.unwrap_or("<unnamed>")
     }
 
-    fn take_actor(&'static self) -> Option<&'static mut A> {
-        unsafe {
-            if let Some(actor_ptr) = (&mut *self.actor_ref.get()).take() {
-                Some(&mut *actor_ptr)
-            } else {
-                None
-            }
-        }
+    fn take_actor(&'static self) -> Option<A> {
+        unsafe { (&mut *self.actor.get()).take() }
     }
 
-    fn replace_actor(&'static self, actor: &'static mut A) {
+    fn replace_actor(&'static self, actor: A) {
         unsafe {
-            (&mut *self.actor_ref.get()).replace(actor);
+            (&mut *self.actor.get()).replace(actor);
         }
     }
 
@@ -148,7 +155,7 @@ impl<A: Actor> ActorContext<A> {
         A: Configurable,
     {
         unsafe {
-            (&mut *self.actor.get()).configure(config);
+            (&mut *self.actor.get()).as_mut().unwrap().configure(config);
         }
     }
 
@@ -166,8 +173,11 @@ impl<A: Actor> ActorContext<A> {
 
         // SAFETY: At this point, we are the only holder of the actor
         unsafe {
-            (&mut *self.actor_ref.get()).replace(&mut *self.actor.get());
-            (&mut *self.actor.get()).on_mount(addr.clone());
+            //(&mut *self.actor_ref.get()).replace(&mut *self.actor.get());
+            (&mut *self.actor.get())
+                .as_mut()
+                .unwrap()
+                .on_mount(addr.clone());
         }
 
         addr
@@ -311,7 +321,7 @@ impl<A: Actor> Future for OnLifecycle<A> {
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         log::trace!("[{}] Lifecycle.poll()", self.actor.name());
         if !self.dispatched {
-            let actor = self.actor.take_actor().expect("actor is missing");
+            let mut actor = self.actor.take_actor().expect("actor is missing");
             log::trace!(
                 "[{}] Lifecycle.poll() - dispatch on_notification",
                 self.actor.name()
@@ -367,7 +377,7 @@ impl<A: Actor> Future for OnLifecycle<A> {
     }
 }
 
-struct OnBind<A: Actor, OA: Actor>
+struct OnBind<A: Actor + 'static, OA: Actor + 'static>
 where
     A: Bind<OA> + 'static,
 {
@@ -397,7 +407,7 @@ impl<A: Actor + Bind<OA>, OA: Actor> Future for OnBind<A, OA> {
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.address.is_some() {
             log::trace!("[{}] Bind.poll() - dispatch on_bind", self.actor.name());
-            let actor = self.actor.take_actor().expect("actor is missing");
+            let mut actor = self.actor.take_actor().expect("actor is missing");
             actor.on_bind(self.as_mut().address.take().unwrap());
             self.actor.replace_actor(actor);
         }
@@ -536,7 +546,7 @@ where
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         log::trace!("[{}] Request.poll()", self.actor.name());
         if self.message.is_some() {
-            let actor = self.actor.take_actor().expect("actor is missing");
+            let mut actor = self.actor.take_actor().expect("actor is missing");
             let response = actor.on_request(self.as_mut().message.take().unwrap());
 
             match response {
