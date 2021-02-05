@@ -101,7 +101,7 @@ fn main() -> ! {
         .ok();
 
     // Set refresh rate to avoid led flickering
-    let led = LedMatrix::new(rows, cols, 150u32.Hz());
+    let led = LedMatrix::new(rows, cols, 200u32.Hz());
 
     let device = MyDevice {
         btn_fwd: ActorContext::new(button_fwd).with_name("button a"),
