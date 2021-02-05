@@ -39,15 +39,12 @@ impl<A: Actor + 'static> Address<A> {
     ///
     /// To accept bound addresses, the target must implement `Bind<...>`
     /// for the appropriate type of address being injected.
-    pub fn bind<OA: Actor>(&self, address: &Address<OA>)
+    pub fn bind<OA: Actor>(&self, address: Address<OA>)
     where
         A: Bind<OA> + 'static,
         OA: 'static,
     {
         self.actor.bind(address);
-        //unsafe {
-        //(&**self.actor.get()).bind(address);
-        //}
     }
 
     /// Send a non-blocking notification to the actor behind this address.

@@ -47,8 +47,7 @@ where
 {
     fn on_interrupt(&mut self) {
         if self.pin.check_interrupt() {
-            log::trace!("[hts221] READY");
-            if let Some(sensor) = self.sensor.as_ref() {
+            if let Some(sensor) = self.sensor {
                 sensor.signal_data_ready()
             }
             self.pin.clear_interrupt_pending_bit();

@@ -38,7 +38,7 @@ pub trait Device {
     /// During `mount(...)` the device should perform the appropriate `bind(...)`
     /// for each child in order to inject all required dependencies, including
     /// possible the `EventBus` address which is provided.
-    fn mount(&'static mut self, bus_address: &Address<EventBus<Self>>, supervisor: &mut Supervisor)
+    fn mount(&'static mut self, bus_address: Address<EventBus<Self>>, supervisor: &mut Supervisor)
     where
         Self: Sized;
 }
@@ -67,7 +67,7 @@ impl<D: Device> DeviceContext<D> {
             bus.mount(&mut *self.supervisor.get());
 
             let bus_address = bus.address();
-            (&mut *self.device.get()).mount(&bus_address, &mut *self.supervisor.get());
+            (&mut *self.device.get()).mount(bus_address, &mut *self.supervisor.get());
             (&*self.supervisor.get()).run_forever()
         }
     }

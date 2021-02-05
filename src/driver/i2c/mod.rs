@@ -25,7 +25,7 @@ where
 {
     fn mount(
         &'static self,
-        bus_address: &Address<EventBus<D>>,
+        bus_address: Address<EventBus<D>>,
         supervisor: &mut Supervisor,
     ) -> Address<I2cPeripheral<I>> {
         self.peripheral.mount(supervisor)

@@ -43,12 +43,12 @@ where
 {
     fn mount(
         &'static self,
-        bus_address: &Address<EventBus<D>>,
+        bus_address: Address<EventBus<D>>,
         supervisor: &mut Supervisor,
     ) -> Address<Mutex<SpiPeripheral<SPI>>> {
         let periph_addr = self.mutex.mount(supervisor);
         let irq_addr = self.irq.mount(supervisor);
-        periph_addr.bind(&irq_addr);
+        periph_addr.bind(irq_addr);
         periph_addr
     }
 }

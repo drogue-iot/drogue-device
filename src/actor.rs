@@ -211,13 +211,13 @@ impl<A: Actor + 'static> ActorContext<A> {
     }
 
     /// Dispatch a bind injection.
-    pub(crate) fn bind<OA: Actor>(&'static self, address: &Address<OA>)
+    pub(crate) fn bind<OA: Actor>(&'static self, address: Address<OA>)
     where
         A: Bind<OA>,
         OA: 'static,
     {
         log::trace!("[{}].bind(...)", self.name());
-        let bind = alloc(OnBind::new(self, address.clone())).unwrap();
+        let bind = alloc(OnBind::new(self, address)).unwrap();
         let bind: Box<dyn ActorFuture<A>> = Box::new(bind);
         cortex_m::interrupt::free(|cs| {
             self.items_producer

@@ -32,19 +32,19 @@ pub struct MyDevice {
 }
 
 impl Device for MyDevice {
-    fn mount(&'static mut self, bus: &Address<EventBus<Self>>, supervisor: &mut Supervisor) {
+    fn mount(&'static mut self, bus: Address<EventBus<Self>>, supervisor: &mut Supervisor) {
         self.gpiote.mount(supervisor).bind(bus);
         self.btn_fwd.mount(supervisor).bind(bus);
         self.btn_back.mount(supervisor).bind(bus);
         let timer = self.timer.mount(bus, supervisor);
         let led = self.led.mount(supervisor);
-        led.bind(&timer);
+        led.bind(timer);
 
         let app = self.app.mount(supervisor);
 
-        app.bind(&self.uart.mount(bus, supervisor));
-        app.bind(&led);
-        app.bind(&timer);
+        app.bind(self.uart.mount(bus, supervisor));
+        app.bind(led);
+        app.bind(timer);
 
         app.notify(SayHello);
     }

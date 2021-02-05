@@ -64,10 +64,10 @@ where
     }
 
     fn on_start(mut self) -> Completion<Self> {
-        self.timer.as_ref().unwrap().schedule(
+        self.timer.unwrap().schedule(
             self.delay,
             State::On,
-            self.address.as_ref().unwrap().clone(),
+            self.address.unwrap(),
         );
         Completion::immediate(self)
     }
@@ -87,19 +87,19 @@ where
     fn on_notify(mut self, message: State) -> Completion<Self> {
         match message {
             State::On => {
-                self.led.as_ref().unwrap().turn_on();
-                self.timer.as_ref().unwrap().schedule(
+                self.led.unwrap().turn_on();
+                self.timer.unwrap().schedule(
                     self.delay,
                     State::Off,
-                    self.address.as_ref().unwrap().clone(),
+                    self.address.unwrap(),
                 );
             }
             State::Off => {
-                self.led.as_ref().unwrap().turn_off();
-                self.timer.as_ref().unwrap().schedule(
+                self.led.unwrap().turn_off();
+                self.timer.unwrap().schedule(
                     self.delay,
                     State::On,
-                    self.address.as_ref().unwrap().clone(),
+                    self.address.unwrap(),
                 );
             }
         }

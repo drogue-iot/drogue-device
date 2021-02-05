@@ -63,7 +63,7 @@ pub struct MyDevice {
 impl Device for MyDevice {
     fn mount(
         &'static mut self,
-        bus_address: &Address<EventBus<Self>>,
+        bus_address: Address<EventBus<Self>>,
         supervisor: &mut Supervisor,
     ) {
         self.memory.mount(supervisor);
@@ -77,13 +77,13 @@ impl Device for MyDevice {
         let hts221_addr = self.hts221.mount(bus_address, supervisor);
         let timer_addr = self.timer.mount(bus_address, supervisor);
 
-        blinker1_addr.bind(&timer_addr);
-        blinker1_addr.bind(&ld1_addr);
+        blinker1_addr.bind(timer_addr);
+        blinker1_addr.bind(ld1_addr);
 
-        blinker2_addr.bind(&timer_addr);
-        blinker2_addr.bind(&ld2_addr);
+        blinker2_addr.bind(timer_addr);
+        blinker2_addr.bind(ld2_addr);
 
-        hts221_addr.bind(&i2c_addr);
+        hts221_addr.bind(i2c_addr);
 
         let button_addr = self.button.mount(supervisor);
         button_addr.bind(bus_address);

@@ -66,7 +66,7 @@ where
 {
     fn mount(
         &'static self,
-        _: &Address<EventBus<D>>,
+        _: Address<EventBus<D>>,
         supervisor: &mut Supervisor,
     ) -> Address<Mutex<UartPeripheral<U>>> {
         let peripheral = self.peripheral.mount(supervisor);

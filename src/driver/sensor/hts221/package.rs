@@ -42,14 +42,13 @@ where
 {
     fn mount(
         &'static self,
-        bus_address: &Address<EventBus<D>>,
+        bus_address: Address<EventBus<D>>,
         supervisor: &mut Supervisor,
     ) -> Address<Sensor<D, I>> {
-        log::info!("[hts221] mount");
         let ready_addr = self.ready.mount(supervisor);
         let sensor_addr = self.sensor.mount(supervisor);
         sensor_addr.bind(bus_address);
-        ready_addr.bind(&sensor_addr);
+        ready_addr.bind(sensor_addr);
         sensor_addr
     }
 }

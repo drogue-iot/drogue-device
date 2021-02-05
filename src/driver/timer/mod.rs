@@ -102,7 +102,7 @@ impl<T: HalTimer> Timer<T> {
 impl<D: Device, T: HalTimer> Package<D, TimerActor<T>> for Timer<T> {
     fn mount(
         &'static self,
-        bus_address: &Address<EventBus<D>>,
+        bus_address: Address<EventBus<D>>,
         supervisor: &mut Supervisor,
     ) -> Address<TimerActor<T>> {
         let addr = self.actor.mount(supervisor);

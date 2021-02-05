@@ -134,11 +134,11 @@ where
     }
 
     fn on_start(mut self) -> Completion<Self> {
-        if let Some(address) = &self.address {
-            self.timer.as_ref().unwrap().schedule(
+        if let Some(address) = self.address {
+            self.timer.unwrap().schedule(
                 self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
                 MatrixCommand::Render,
-                address.clone(),
+                address,
             );
         }
         Completion::immediate(self)
@@ -169,7 +169,7 @@ where
             MatrixCommand::Render => {
                 self.render();
                 if let Some(address) = &self.address {
-                    self.timer.as_ref().unwrap().schedule(
+                    self.timer.unwrap().schedule(
                         self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
                         MatrixCommand::Render,
                         address.clone(),

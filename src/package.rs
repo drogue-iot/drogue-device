@@ -18,7 +18,7 @@ pub trait Package<D: Device, A: Actor> {
     /// Mount this package.
     fn mount(
         &'static self,
-        bus_address: &Address<EventBus<D>>,
+        bus_address: Address<EventBus<D>>,
         supervisor: &mut Supervisor,
     ) -> Address<A>;
 }

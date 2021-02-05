@@ -140,7 +140,7 @@ where
                         if let Ok(h_out) = Hout::read(self.address, i2c).await {
                             let relative_humidity = calibration.calibrated_humidity(h_out);
 
-                            self.bus.as_ref().unwrap().publish(SensorAcquisition {
+                            self.bus.unwrap().publish(SensorAcquisition {
                                 temperature,
                                 relative_humidity,
                             });
