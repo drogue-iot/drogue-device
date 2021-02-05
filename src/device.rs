@@ -1,6 +1,6 @@
 //! Types and traits related to the root-level device and system-wide lifecycle events.
 
-use core::cell::UnsafeCell;
+use core::cell::{RefCell, UnsafeCell};
 
 use crate::actor::ActorContext;
 use crate::prelude::{Address, EventBus, EventHandler};
@@ -38,23 +38,27 @@ pub trait Device {
     /// During `mount(...)` the device should perform the appropriate `bind(...)`
     /// for each child in order to inject all required dependencies, including
     /// possible the `EventBus` address which is provided.
-    fn mount(&'static mut self, bus_address: Address<EventBus<Self>>, supervisor: &mut Supervisor)
-    where
+    fn mount(
+        &'static self,
+        bus_address: Address<EventBus<Self>>,
+        supervisor: &mut Supervisor,
+    ) where
         Self: Sized;
 }
 
 #[doc(hidden)]
 pub struct DeviceContext<D: Device + 'static> {
-    device: UnsafeCell<D>,
-    supervisor: UnsafeCell<Supervisor>,
+    device: D,
+    supervisor: RefCell<Supervisor>,
     bus: UnsafeCell<Option<ActorContext<EventBus<D>>>>,
 }
 
 impl<D: Device> DeviceContext<D> {
     pub fn new(device: D) -> Self {
         Self {
-            device: UnsafeCell::new(device),
-            supervisor: UnsafeCell::new(Supervisor::new()),
+            //device: UnsafeCell::new(device),
+            device,
+            supervisor: RefCell::new(Supervisor::new()),
             bus: UnsafeCell::new(None),
         }
     }
@@ -62,29 +66,26 @@ impl<D: Device> DeviceContext<D> {
     pub fn mount(&'static self) -> ! {
         let bus = ActorContext::new(EventBus::new(self)).with_name("event-bus");
         unsafe {
+            // # Safety
+            // UnsafeCell requierd for circular reference between DeviceContext and the EventBus it holds.
             (&mut *self.bus.get()).replace(bus);
             let bus = (&*self.bus.get()).as_ref().unwrap();
-            bus.mount(&mut *self.supervisor.get());
+            bus.mount(&mut *self.supervisor.borrow_mut());
 
             let bus_address = bus.address();
-            (&mut *self.device.get()).mount(bus_address, &mut *self.supervisor.get());
-            (&*self.supervisor.get()).run_forever()
+            self.device.mount(bus_address, &mut *self.supervisor.borrow_mut());
+            (&*self.supervisor.borrow()).run_forever()
         }
     }
 
     pub fn on_interrupt(&'static self, irqn: i16) {
-        unsafe {
-            (&*self.supervisor.get()).on_interrupt(irqn);
-        }
+        self.supervisor.borrow().on_interrupt(irqn);
     }
 
     pub(crate) fn on_event<E>(&'static self, event: E)
     where
         D: EventHandler<E>,
     {
-        unsafe {
-            (&mut *self.device.get()).on_event(event);
-        }
+        self.device.on_event(event);
     }
-
 }

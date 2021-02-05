@@ -32,7 +32,7 @@ pub struct MyDevice {
 }
 
 impl Device for MyDevice {
-    fn mount(&'static mut self, bus: Address<EventBus<Self>>, supervisor: &mut Supervisor) {
+    fn mount(&'static self, bus: Address<EventBus<Self>>, supervisor: &mut Supervisor) {
         self.gpiote.mount(supervisor).bind(bus);
         self.btn_fwd.mount(supervisor).bind(bus);
         self.btn_back.mount(supervisor).bind(bus);
@@ -51,14 +51,14 @@ impl Device for MyDevice {
 }
 
 impl EventHandler<GpioteEvent> for MyDevice {
-    fn on_event(&'static mut self, event: GpioteEvent) {
+    fn on_event(&'static self, event: GpioteEvent) {
         self.btn_fwd.address().notify(event);
         self.btn_back.address().notify(event);
     }
 }
 
 impl EventHandler<PinEvent> for MyDevice {
-    fn on_event(&'static mut self, event: PinEvent) {
+    fn on_event(&'static self, event: PinEvent) {
         match event {
             PinEvent(Channel::Channel0, _) => {
                 self.app.address().notify(StartService);

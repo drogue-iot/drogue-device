@@ -1,7 +1,5 @@
 //! Shared device-level event-bus type and trait.
 
-use core::cell::UnsafeCell;
-
 use crate::prelude::*;
 use crate::prelude::device::DeviceContext;
 

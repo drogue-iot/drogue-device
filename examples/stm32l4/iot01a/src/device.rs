@@ -62,7 +62,7 @@ pub struct MyDevice {
 
 impl Device for MyDevice {
     fn mount(
-        &'static mut self,
+        &'static self,
         bus_address: Address<EventBus<Self>>,
         supervisor: &mut Supervisor,
     ) {
@@ -91,7 +91,7 @@ impl Device for MyDevice {
 }
 
 impl EventHandler<ButtonEvent> for MyDevice {
-    fn on_event(&'static mut self, message: ButtonEvent)
+    fn on_event(&'static self, message: ButtonEvent)
     where
         Self: Sized,
     {
@@ -110,7 +110,7 @@ impl EventHandler<ButtonEvent> for MyDevice {
 }
 
 impl EventHandler<SensorAcquisition<Celsius>> for MyDevice {
-    fn on_event(&'static mut self, message: SensorAcquisition<Celsius>)
+    fn on_event(&'static self, message: SensorAcquisition<Celsius>)
     where
         Self: Sized,
     {

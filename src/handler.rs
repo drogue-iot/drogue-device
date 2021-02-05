@@ -111,5 +111,5 @@ pub trait EventHandler<E> {
     /// actors held by the device.
     ///
     /// The default implementation simply drops the event.
-    fn on_event(&'static mut self, event: E) {}
+    fn on_event(&'static self, event: E) {}
 }
