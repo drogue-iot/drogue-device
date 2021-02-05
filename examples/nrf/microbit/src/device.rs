@@ -3,7 +3,7 @@ use drogue_device::{
     domain::time::duration::Milliseconds,
     driver::{
         led::{LEDMatrix, MatrixCommand},
-        timer::Timer,
+        timer::{Timer, TimerActor},
         uart::{Uart, UartPeripheral},
     },
     hal::timer::nrf::Timer as HalTimer,
@@ -18,7 +18,7 @@ use nrf52833_hal as hal;
 
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
 pub type LedMatrix = LEDMatrix<Pin<Output<PushPull>>, consts::U5, consts::U5, HalTimer<TIMER0>>;
-pub type TimerActor = Timer<HalTimer<TIMER0>>;
+pub type AppTimer = TimerActor<HalTimer<TIMER0>>;
 pub type AppUart = Mutex<UartPeripheral<HalUart<hal::pac::UARTE0>>>;
 
 pub struct MyDevice {
@@ -26,7 +26,7 @@ pub struct MyDevice {
     pub gpiote: InterruptContext<Gpiote<Self>>,
     pub btn_fwd: ActorContext<Button>,
     pub btn_back: ActorContext<Button>,
-    pub timer: InterruptContext<TimerActor>,
+    pub timer: Timer<HalTimer<TIMER0>>,
     pub uart: Uart<HalUart<hal::pac::UARTE0>>,
     pub app: ActorContext<App>,
 }
@@ -36,7 +36,7 @@ impl Device for MyDevice {
         self.gpiote.mount(supervisor).bind(bus);
         self.btn_fwd.mount(supervisor).bind(bus);
         self.btn_back.mount(supervisor).bind(bus);
-        let timer = self.timer.mount(supervisor);
+        let timer = self.timer.mount(bus, supervisor);
         let led = self.led.mount(supervisor);
         led.bind(&timer);
 
@@ -75,7 +75,7 @@ impl EventHandler<PinEvent> for MyDevice {
 pub struct App {
     uart: Option<Address<AppUart>>,
     display: Option<Address<LedMatrix>>,
-    timer: Option<Address<TimerActor>>,
+    timer: Option<Address<AppTimer>>,
 }
 
 impl App {
@@ -109,15 +109,15 @@ impl Bind<LedMatrix> for App {
     }
 }
 
-impl Bind<TimerActor> for App {
-    fn on_bind(&mut self, address: Address<TimerActor>) {
+impl Bind<AppTimer> for App {
+    fn on_bind(&mut self, address: Address<AppTimer>) {
         log::info!("Bound timer");
         self.timer.replace(address);
     }
 }
 
 impl NotifyHandler<SayHello> for App {
-    fn on_notify(&'static mut self, _: SayHello) -> Completion<Self> {
+    fn on_notify(mut self, _: SayHello) -> Completion<Self> {
         Completion::defer(async move {
             let led = self.display.as_ref().unwrap();
             let timer = self.timer.as_ref().unwrap();
@@ -134,7 +134,7 @@ impl NotifyHandler<SayHello> for App {
 }
 
 impl NotifyHandler<StartService> for App {
-    fn on_notify(&'static mut self, _: StartService) -> Completion<Self> {
+    fn on_notify(mut self, _: StartService) -> Completion<Self> {
         Completion::defer(async move {
             let led = self.display.as_ref().unwrap();
 

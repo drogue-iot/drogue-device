@@ -57,7 +57,7 @@ fn main() -> ! {
     );
 
     // Timer
-    let timer = Timer::new(HalTimer::new(device.TIMER0));
+    let timer = Timer::new(HalTimer::new(device.TIMER0), hal::pac::Interrupt::TIMER0);
 
     // Uart
     let uart = Uart::new(
@@ -108,10 +108,10 @@ fn main() -> ! {
         btn_back: ActorContext::new(button_back),
         gpiote: InterruptContext::new(gpiote, hal::pac::Interrupt::GPIOTE).with_name("gpiote"),
         led: ActorContext::new(led).with_name("matrix"),
-        timer: InterruptContext::new(timer, hal::pac::Interrupt::TIMER0).with_name("timer"),
+        timer,
         uart,
         app: ActorContext::new(App::new()),
     };
 
-    device!( MyDevice = device; 1024 );
+    device!( MyDevice = device; 2048);
 }

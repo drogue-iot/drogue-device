@@ -7,7 +7,7 @@ use hal::gpiote::GpioteInputPin;
 
 pub struct Gpiote<D>
 where
-    D: Device + EventHandler<GpioteEvent>,
+    D: Device + EventHandler<GpioteEvent> + 'static,
 {
     gpiote: hal::gpiote::Gpiote,
     bus: Option<Address<EventBus<D>>>,
@@ -15,7 +15,7 @@ where
 
 pub struct GpioteChannel<D, P>
 where
-    D: Device + EventHandler<PinEvent>,
+    D: Device + EventHandler<PinEvent> + 'static,
     P: InputPin + GpioteInputPin,
 {
     bus: Option<Address<EventBus<D>>>,
@@ -108,10 +108,10 @@ impl<D: Device + EventHandler<PinEvent>, P: InputPin + GpioteInputPin> GpioteCha
     }
 }
 
-impl<D: Device + EventHandler<PinEvent>, P: InputPin + GpioteInputPin> NotifyHandler<GpioteEvent>
-    for GpioteChannel<D, P>
+impl<D: Device + EventHandler<PinEvent> + 'static, P: InputPin + GpioteInputPin + 'static>
+    NotifyHandler<GpioteEvent> for GpioteChannel<D, P>
 {
-    fn on_notify(&'static mut self, event: GpioteEvent) -> Completion<Self> {
+    fn on_notify(mut self, event: GpioteEvent) -> Completion<Self> {
         match event {
             GpioteEvent(c) if c == self.channel => {
                 if let Some(bus) = &self.bus {
