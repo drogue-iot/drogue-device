@@ -109,6 +109,6 @@ impl EventHandler<SensorAcquisition<Celsius>> for MyDevice {
     where
         Self: Sized,
     {
-        log::info!("[event-bus] temperature={:.2} relative_humidity={}", message.temperature.into_fahrenheit(), message.relative_humidity);
+        log::info!("[event-bus] temperature={:.2} relative_humidity={:.2}", message.temperature.into_fahrenheit(), message.relative_humidity);
     }
 }
