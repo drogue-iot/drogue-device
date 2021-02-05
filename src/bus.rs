@@ -2,9 +2,8 @@
 
 use core::cell::UnsafeCell;
 
-use crate::device::{Device, DeviceContext};
-use crate::handler::{Completion, EventHandler};
-use crate::prelude::{Actor, Address, NotifyHandler};
+use crate::prelude::*;
+use crate::prelude::device::DeviceContext;
 
 /// The shared device-level event-bus actor.
 ///
@@ -16,13 +15,13 @@ use crate::prelude::{Actor, Address, NotifyHandler};
 /// activation of any other actor within the system and may be bound into other
 /// actors that wish to `publish` events.
 pub struct EventBus<D: Device + 'static> {
-    device: UnsafeCell<*const DeviceContext<D>>,
+    device: &'static DeviceContext<D>,
 }
 
 impl<D: Device> EventBus<D> {
-    pub(crate) fn new(device: &DeviceContext<D>) -> Self {
+    pub(crate) fn new(device: &'static DeviceContext<D>) -> Self {
         Self {
-            device: UnsafeCell::new(device),
+            device,
         }
     }
 }
@@ -34,7 +33,7 @@ where
     D: EventHandler<M> + 'static,
 {
     fn on_notify(self, message: M) -> Completion<Self> {
-        unsafe { (&**self.device.get()).on_event(message) }
+        self.device.on_event( message );
         Completion::immediate(self)
     }
 }

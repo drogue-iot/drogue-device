@@ -78,7 +78,7 @@ impl<D: Device> DeviceContext<D> {
         }
     }
 
-    pub fn on_event<E>(&'static self, event: E)
+    pub(crate) fn on_event<E>(&'static self, event: E)
     where
         D: EventHandler<E>,
     {
@@ -86,4 +86,5 @@ impl<D: Device> DeviceContext<D> {
             (&mut *self.device.get()).on_event(event);
         }
     }
+
 }
