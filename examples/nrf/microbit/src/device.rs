@@ -15,11 +15,12 @@ use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
 use hal::pac::TIMER0;
 use heapless::consts;
 use nrf52833_hal as hal;
+use drogue_device::synchronization::MutexActor;
 
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
 pub type LedMatrix = LEDMatrix<Pin<Output<PushPull>>, consts::U5, consts::U5, HalTimer<TIMER0>>;
 pub type AppTimer = TimerActor<HalTimer<TIMER0>>;
-pub type AppUart = Mutex<UartPeripheral<HalUart<hal::pac::UARTE0>>>;
+pub type AppUart = MutexActor<UartPeripheral<HalUart<hal::pac::UARTE0>>>;
 
 pub struct MyDevice {
     pub led: ActorContext<LedMatrix>,

@@ -17,14 +17,14 @@ pub struct Shared {
 }
 
 impl Shared {
-    pub fn new(permits: usize) -> Self {
+    fn new(permits: usize) -> Self {
         Self {
             permits: RefCell::new(permits),
             waiters: RefCell::new(Queue::new()),
         }
     }
 
-    pub fn acquire(&self) -> bool {
+    fn acquire(&self) -> bool {
         let permits = *self.permits.borrow();
         if permits > 0 {
             *self.permits.borrow_mut() = permits - 1;
@@ -34,7 +34,7 @@ impl Shared {
         }
     }
 
-    pub fn release(&self) {
+    fn release(&self) {
         let permits = *self.permits.borrow();
         *self.permits.borrow_mut() = permits + 1;
         if let Some(next) = self.waiters.borrow_mut().dequeue() {
@@ -42,7 +42,7 @@ impl Shared {
         }
     }
 
-    pub fn waiting(&self, waker: &Waker) {
+    fn waiting(&self, waker: &Waker) {
         self.waiters.borrow_mut().enqueue( waker.clone() ).ok();
     }
 }
@@ -108,12 +108,13 @@ impl SemaphoreActor {
         impl Future for Acquire {
             type Output = Permit;
 
-            fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+            fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
                 if self.shared.acquire() {
                     return Poll::Ready(Permit { address: self.address } );
                 }
                 if ! self.waiting {
-                    self.shared.waiting( cx.waker() )
+                    self.shared.waiting( cx.waker() );
+                    self.waiting = true;
                 }
 
                 Poll::Pending

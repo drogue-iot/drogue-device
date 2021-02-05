@@ -8,12 +8,12 @@ pub use crate::hal::uart::Error;
 use crate::hal::uart::Uart as HalUart;
 use crate::interrupt::{Interrupt, InterruptContext};
 use crate::package::Package;
-use crate::synchronization::{Mutex, Signal};
+use crate::synchronization::{Mutex, Signal, MutexActor};
 
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use cortex_m::interrupt::Nr;
+use cortex_m::interrupt::{Nr};
 
 pub struct Shared<U>
 where
@@ -28,7 +28,7 @@ pub struct Uart<U>
 where
     U: HalUart + 'static,
 {
-    peripheral: ActorContext<Mutex<UartPeripheral<U>>>,
+    peripheral: Mutex<UartPeripheral<U>>,
     irq: InterruptContext<UartInterrupt<U>>,
     shared: Shared<U>,
 }
@@ -48,7 +48,7 @@ where
         IRQ: Nr,
     {
         Self {
-            peripheral: ActorContext::new(Mutex::new(UartPeripheral::new())),
+            peripheral: Mutex::new(UartPeripheral::new()),
             irq: InterruptContext::new(UartInterrupt::new(), irq),
             shared: Shared {
                 uart,
@@ -59,17 +59,17 @@ where
     }
 }
 
-impl<D, U> Package<D, Mutex<UartPeripheral<U>>> for Uart<U>
+impl<D, U> Package<D, MutexActor<UartPeripheral<U>>> for Uart<U>
 where
     D: Device,
     U: HalUart,
 {
     fn mount(
         &'static self,
-        _: Address<EventBus<D>>,
+        bus_address: Address<EventBus<D>>,
         supervisor: &mut Supervisor,
-    ) -> Address<Mutex<UartPeripheral<U>>> {
-        let peripheral = self.peripheral.mount(supervisor);
+    ) -> Address<MutexActor<UartPeripheral<U>>> {
+        let peripheral = self.peripheral.mount(bus_address, supervisor);
         let irq = self.irq.mount(supervisor);
 
         //irq.bind(&peripheral.clone());

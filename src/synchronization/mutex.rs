@@ -1,15 +1,12 @@
 //! A mutex-lock actor and supporting types.
 
-use crate::actor::{Actor, Configurable};
-use crate::address::Address;
-use crate::handler::{Completion, NotifyHandler, RequestHandler, Response};
-use core::cell::UnsafeCell;
+use crate::prelude::*;
+use core::cell::RefCell;
 use core::future::Future;
 use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 use heapless::{consts::*, spsc::Queue};
-use crate::prelude::Bind;
 
 /// The lock request message.
 pub struct Lock;
@@ -27,16 +24,84 @@ pub struct Unlock<T>(T);
 /// The result is an `Exclusive<T>` which provides exclusive mutable access
 /// to the underlying resource until dropped, at which point the lock will be
 /// released.
-pub struct Mutex<T>
+///
+
+pub struct Shared<T> {
+    val: RefCell<Option<T>>,
+    waiters: RefCell<Queue<Waker, U16>>,
+}
+
+impl<T> Shared<T> {
+    fn new(val: T) -> Self {
+        Self {
+            val: RefCell::new(Some(val)),
+            waiters: RefCell::new(Queue::new()),
+        }
+    }
+
+    fn lock(&self) -> Option<T> {
+        self.val.borrow_mut().take()
+    }
+
+    fn unlock(&self, val: T) {
+        self.val.borrow_mut().replace(val);
+        if let Some(next) = self.waiters.borrow_mut().dequeue() {
+            next.wake()
+        }
+    }
+
+    fn waiting(&self, waker: &Waker) {
+        self.waiters.borrow_mut().enqueue(waker.clone()).ok();
+    }
+}
+
+pub struct Mutex<T: 'static> {
+    shared: Shared<T>,
+    actor: ActorContext<MutexActor<T>>,
+}
+
+impl<T: 'static> Mutex<T> {
+    pub fn new(val: T) -> Self {
+        Self {
+            shared: Shared::new(val),
+            actor: ActorContext::new(MutexActor::new()),
+        }
+    }
+
+    pub fn configure(&self, config: &'static T::Configuration)
+    where
+        T: Configurable,
+    {
+        self.shared
+            .val
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .configure(config)
+    }
+}
+
+impl<D: Device, T: 'static> Package<D, MutexActor<T>> for Mutex<T> {
+    fn mount(
+        &'static self,
+        bus_address: Address<EventBus<D>>,
+        supervisor: &mut Supervisor,
+    ) -> Address<MutexActor<T>> {
+        let addr = self.actor.mount(supervisor);
+        self.actor.configure(&self.shared);
+        addr
+    }
+}
+
+pub struct MutexActor<T>
 where
     T: 'static,
 {
+    shared: Option<&'static Shared<T>>,
     address: Option<Address<Self>>,
-    pub(crate) val: Option<T>,
-    waiters: Queue<Waker, U16>,
 }
 
-impl<T> Actor for Mutex<T>
+impl<T> Actor for MutexActor<T>
 where
     T: 'static,
 {
@@ -45,21 +110,29 @@ where
     }
 }
 
-impl<T> Configurable for Mutex<T> where T: Configurable {
-    type Configuration = T::Configuration;
+impl<T> Configurable for MutexActor<T> {
+    type Configuration = Shared<T>;
 
     fn configure(&mut self, config: &'static Self::Configuration) {
-        self.val.as_mut().unwrap().configure(config)
+        self.shared.replace(config);
     }
 }
 
-impl<T,A:Actor> Bind<A> for Mutex<T> where T: Bind<A> {
+impl<T, A: Actor> Bind<A> for Mutex<T>
+where
+    T: Bind<A>,
+{
     fn on_bind(&mut self, address: Address<A>) {
-        self.val.as_mut().unwrap().on_bind( address );
+        self.shared
+            .val
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .on_bind(address);
     }
 }
 
-impl<T> RequestHandler<Lock> for Mutex<T>
+impl<T> RequestHandler<Lock> for MutexActor<T>
 where
     T: 'static,
 {
@@ -77,7 +150,7 @@ where
     }
 }
 
-impl<T> NotifyHandler<Unlock<T>> for Mutex<T>
+impl<T> NotifyHandler<Unlock<T>> for MutexActor<T>
 where
     T: 'static,
 {
@@ -88,12 +161,11 @@ where
     }
 }
 
-impl<T> Mutex<T> {
-    pub fn new(val: T) -> Self {
+impl<T> MutexActor<T> {
+    fn new() -> Self {
         Self {
             address: None,
-            val: Some(val),
-            waiters: Queue::new(),
+            shared: None,
         }
     }
 
@@ -101,43 +173,37 @@ impl<T> Mutex<T> {
     pub async fn lock(&mut self) -> T {
         struct LockFuture<TT: 'static> {
             waiting: bool,
-            mutex: UnsafeCell<*mut Mutex<TT>>,
+            shared: &'static Shared<TT>,
+            address: Address<MutexActor<TT>>,
         }
 
         impl<TT> Future for LockFuture<TT> {
             type Output = TT;
 
             fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-                unsafe {
-                    if let Some(val) = (**self.mutex.get()).val.take() {
-                        Poll::Ready(val)
-                    } else {
-                        if !self.waiting {
-                            self.waiting = true;
-                            (**self.mutex.get())
-                                .waiters
-                                .enqueue(cx.waker().clone())
-                                .unwrap_or_else(|_| panic!("too many waiters"))
-                        }
-                        Poll::Pending
-                    }
+                if let Some(val) = self.shared.lock() {
+                    return Poll::Ready(val);
                 }
+                if !self.waiting {
+                    self.shared.waiting(cx.waker());
+                    self.waiting = true;
+                }
+
+                Poll::Pending
             }
         }
 
         LockFuture {
             waiting: false,
-            mutex: UnsafeCell::new(self),
+            shared: self.shared.unwrap(),
+            address: self.address.unwrap(),
         }
         .await
     }
 
     #[doc(hidden)]
     pub fn unlock(&mut self, val: T) {
-        self.val.replace(val);
-        if let Some(next) = self.waiters.dequeue() {
-            next.wake()
-        }
+        self.shared.unwrap().unlock(val);
     }
 }
 
@@ -150,7 +216,7 @@ where
     T: 'static,
 {
     val: Option<T>,
-    address: Address<Mutex<T>>,
+    address: Address<MutexActor<T>>,
 }
 
 impl<T> Deref for Exclusive<T> {
@@ -176,7 +242,7 @@ where
     }
 }
 
-impl<T> Address<Mutex<T>> {
+impl<T> Address<MutexActor<T>> {
     pub async fn lock(&self) -> Exclusive<T> {
         self.request(Lock).await
     }
