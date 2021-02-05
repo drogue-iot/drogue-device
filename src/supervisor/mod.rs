@@ -3,8 +3,6 @@
 use crate::supervisor::actor_executor::{ActiveActor, ActorExecutor};
 use crate::supervisor::interrupt_dispatcher::{ActiveInterrupt, InterruptDispatcher};
 use core::cell::UnsafeCell;
-use crate::actor::ActorContext;
-use crate::prelude::Actor;
 
 pub(crate) mod actor_executor;
 pub(crate) mod interrupt_dispatcher;

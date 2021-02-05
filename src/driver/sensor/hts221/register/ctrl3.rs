@@ -1,6 +1,5 @@
 use crate::hal::i2c::I2cAddress;
 use crate::prelude::Address;
-use core::ops::DerefMut;
 use embedded_hal::blocking::i2c::{Write, WriteRead};
 use crate::driver::sensor::hts221::register::ModifyError;
 use crate::driver::i2c::I2cPeripheral;
@@ -27,20 +26,20 @@ pub struct Ctrl3 {
 
 impl Ctrl3 {
     pub async fn read<I: WriteRead>(address: I2cAddress, i2c: Address<I2cPeripheral<I>>) -> Result<Ctrl3, I::Error> {
-        /// # Safety
-        /// The call to `.write_read` is properly awaited for completion before allowing the buffer to drop.
         unsafe {
+            // # Safety
+            // The call to `.write_read` is properly awaited for completion before allowing the buffer to drop.
             let mut buf = [0; 1];
-            let result = i2c.write_read(address.into(), &[CTRL_REG3], &mut buf).await?;
+            let result = i2c.write_read(address, &[CTRL_REG3], &mut buf).await?;
             Ok(buf[0].into())
         }
     }
 
     pub async fn write<I: Write>(address: I2cAddress, i2c: Address<I2cPeripheral<I>>, reg: Ctrl3) -> Result<(), I::Error>{
-        /// # Safety
-        /// The call to `.write` is properly awaited for completion before allowing the buffer to drop.
         unsafe {
-            i2c.write(address.into(), &[CTRL_REG3, reg.into()]).await?;
+            // # Safety
+            // The call to `.write` is properly awaited for completion before allowing the buffer to drop.
+            i2c.write(address, &[CTRL_REG3, reg.into()]).await?;
         }
         Ok(())
 
@@ -51,9 +50,9 @@ impl Ctrl3 {
         i2c: Address<I2cPeripheral<I>>,
         modify: F,
     ) -> Result<(), ModifyError< <I as WriteRead>::Error, <I as Write>::Error>>{
-        let mut reg = Self::read(address, i2c).await.map_err(|e| ModifyError::Read(e))?;
+        let mut reg = Self::read(address, i2c).await.map_err( ModifyError::Read)?;
         modify(&mut reg);
-        Self::write(address, i2c, reg).await.map_err(|e| ModifyError::Write(e))
+        Self::write(address, i2c, reg).await.map_err( ModifyError::Write)
     }
 
     pub fn active_state(&mut self, active_state: ActiveState) -> &mut Self {

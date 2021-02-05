@@ -1,7 +1,4 @@
-use crate::prelude::*;
 use core::fmt::{Formatter, LowerHex, UpperHex};
-use core::marker::PhantomData;
-use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct I2cAddress(u8);

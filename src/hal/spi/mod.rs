@@ -226,7 +226,7 @@ pub struct TestActor {
 }
 
 impl Actor for TestActor {
-    fn on_start(mut self) -> Completion<Self>
+    fn on_start(self) -> Completion<Self>
     where
         Self: 'static,
     {

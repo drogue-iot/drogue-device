@@ -7,7 +7,6 @@ use core::ops::DerefMut;
 use core::pin::Pin;
 use core::ptr::drop_in_place;
 use core::task::{Context, Poll};
-use core::marker::PhantomData;
 
 pub mod cortex_m;
 

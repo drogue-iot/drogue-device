@@ -11,8 +11,6 @@ use crate::bind::Bind;
 use crate::device::Lifecycle;
 use crate::supervisor::{actor_executor::ActorState, Supervisor};
 use core::cell::{RefCell, UnsafeCell};
-// use core::fmt::{Debug, Formatter};
-use core::marker::PhantomData;
 use core::mem::transmute;
 use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use heapless::spsc::{Consumer, Producer};
@@ -39,7 +37,7 @@ pub trait Actor: Sized {
     }
 
     /// Lifecycle event of *initialize*.
-    fn on_initialize(mut self) -> Completion<Self>
+    fn on_initialize(self) -> Completion<Self>
     where
         Self: 'static,
     {
@@ -47,7 +45,7 @@ pub trait Actor: Sized {
     }
 
     /// Lifecycle event of *start*.
-    fn on_start(mut self) -> Completion<Self>
+    fn on_start(self) -> Completion<Self>
     where
         Self: 'static,
     {
@@ -55,7 +53,7 @@ pub trait Actor: Sized {
     }
 
     /// Lifecycle event of *sleep*. *Unused currently*.
-    fn on_sleep(mut self) -> Completion<Self>
+    fn on_sleep(self) -> Completion<Self>
     where
         Self: 'static,
     {
@@ -63,7 +61,7 @@ pub trait Actor: Sized {
     }
 
     /// Lifecycle event of *hibernate*. *Unused currently*.
-    fn on_hibernate(mut self) -> Completion<Self>
+    fn on_hibernate(self) -> Completion<Self>
     where
         Self: 'static,
     {
@@ -71,7 +69,7 @@ pub trait Actor: Sized {
     }
 
     /// Lifecycle event of *stop*. *Unused currently*.
-    fn on_stop(mut self) -> Completion<Self>
+    fn on_stop(self) -> Completion<Self>
     where
         Self: 'static,
     {
@@ -181,7 +179,7 @@ impl<A: Actor + 'static> ActorContext<A> {
             (&mut *self.actor.get())
                 .as_mut()
                 .unwrap()
-                .on_mount(addr.clone());
+                .on_mount(addr);
         }
 
         //supervisor.run_until_quiescence();
@@ -312,7 +310,7 @@ impl<A: Actor + 'static> ActorContext<A> {
         let response = RequestResponseFuture::new(receiver);
 
         unsafe {
-            let request = transmute::<_, &mut (ActorFuture<A> + 'static)>(request);
+            let request = transmute::<_, &mut (dyn ActorFuture<A> + 'static)>(request);
             let request: Box<dyn ActorFuture<A>> = Box::new(request);
             cortex_m::interrupt::free(|cs| {
                 self.items_producer
@@ -366,7 +364,7 @@ impl<A: Actor> Future for OnLifecycle<A> {
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         log::trace!("[{}] Lifecycle.poll()", self.actor.name());
         if !self.dispatched {
-            let mut actor = self.actor.take_actor().expect("actor is missing");
+            let actor = self.actor.take_actor().expect("actor is missing");
             log::trace!(
                 "[{}] Lifecycle.poll() - dispatch on_notification",
                 self.actor.name()
@@ -591,7 +589,7 @@ where
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         log::trace!("[{}] Request.poll()", self.actor.name());
         if self.message.is_some() {
-            let mut actor = self.actor.take_actor().expect("actor is missing");
+            let actor = self.actor.take_actor().expect("actor is missing");
             let response = actor.on_request(self.as_mut().message.take().unwrap());
 
             match response {

@@ -68,7 +68,7 @@ where
     fn on_request(mut self, message: Lock) -> Response<Self, Self::Response> {
         Response::defer(async move {
             let lock = Exclusive {
-                address: self.address.as_ref().unwrap().clone(),
+                address: self.address.unwrap(),
                 val: Some(self.lock().await),
             };
             log::trace!("[Mutex<T> lock");

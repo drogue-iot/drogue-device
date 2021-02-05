@@ -1,7 +1,6 @@
 use crate::driver::sensor::hts221::register::ModifyError;
 use crate::hal::i2c::I2cAddress;
 use crate::prelude::Address;
-use core::ops::DerefMut;
 use embedded_hal::blocking::i2c::{Write, WriteRead};
 use crate::driver::i2c::I2cPeripheral;
 
@@ -19,9 +18,9 @@ impl Ctrl2 {
         address: I2cAddress,
         i2c: Address<I2cPeripheral<I>>,
     ) -> Result<Ctrl2, I::Error> {
-        /// # Safety
-        /// The call to `.write_read` is properly awaited for completion before allowing the buffer to drop.
         unsafe {
+            // # Safety
+            // The call to `.write_read` is properly awaited for completion before allowing the buffer to drop.
             let mut buf = [0; 1];
             let result = i2c.write_read(address, &[CTRL_REG2], &mut buf).await?;
             Ok(buf[0].into())
@@ -29,10 +28,10 @@ impl Ctrl2 {
     }
 
     pub async fn write<I: Write>(address: I2cAddress, i2c: Address<I2cPeripheral<I>>, reg: Ctrl2) -> Result<(), I::Error>{
-        /// # Safety
-        /// The call to `.write` is properly awaited for completion before allowing the buffer to drop.
         unsafe {
-            i2c.write(address.into(), &[CTRL_REG2, reg.into()]).await?
+            // # Safety
+            // The call to `.write` is properly awaited for completion before allowing the buffer to drop.
+            i2c.write(address, &[CTRL_REG2, reg.into()]).await?
         }
         Ok(())
     }
@@ -42,9 +41,9 @@ impl Ctrl2 {
         i2c: Address<I2cPeripheral<I>>,
         modify: F,
     ) -> Result<(), ModifyError<<I as WriteRead>::Error, <I as Write>::Error>> {
-        let mut reg = Self::read(address, i2c).await.map_err(|e| ModifyError::Read(e))?;
+        let mut reg = Self::read(address, i2c).await.map_err( ModifyError::Read)?;
         modify(&mut reg);
-        Self::write(address, i2c, reg).await.map_err(|e| ModifyError::Write(e))
+        Self::write(address, i2c, reg).await.map_err( ModifyError::Write)
     }
 
     pub fn boot(&mut self) -> &mut Self {

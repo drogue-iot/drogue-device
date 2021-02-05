@@ -96,14 +96,12 @@ where
             row.set_low().ok();
         }
 
-        let mut cid = 0;
-        for col in self.pin_cols.iter_mut() {
+        for (cid, col) in self.pin_cols.iter_mut().enumerate() {
             if self.frame_buffer.is_set(self.row_p, cid) {
                 col.set_low().ok();
             } else {
                 col.set_high().ok();
             }
-            cid += 1;
         }
         self.pin_rows[self.row_p].set_high().ok();
         self.row_p = (self.row_p + 1) % self.pin_rows.len();
@@ -133,7 +131,7 @@ where
         self.address.replace(address);
     }
 
-    fn on_start(mut self) -> Completion<Self> {
+    fn on_start(self) -> Completion<Self> {
         if let Some(address) = self.address {
             self.timer.unwrap().schedule(
                 self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
@@ -168,11 +166,11 @@ where
             }
             MatrixCommand::Render => {
                 self.render();
-                if let Some(address) = &self.address {
+                if let Some(address) = self.address {
                     self.timer.unwrap().schedule(
                         self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
                         MatrixCommand::Render,
-                        address.clone(),
+                        address,
                     );
                 }
             }
@@ -205,8 +203,10 @@ fn frame_5x5(input: &[u8; 5]) -> Frame {
             | ((bm & 0x08) >> 2)
             | ((bm & 0x10) >> 4);
     }
-    for i in 5..bitmap.len() {
-        bitmap[i] = 0;
+    //for i in 5..bitmap.len() {
+    for item in bitmap.iter_mut().skip(5) {
+        //bitmap[i] = 0;
+        *item = 0;
     }
     Frame::new(bitmap)
 }

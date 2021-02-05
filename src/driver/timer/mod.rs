@@ -85,6 +85,12 @@ impl Shared {
     }
 }
 
+impl Default for Shared {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct Timer<T: HalTimer + 'static> {
     actor: InterruptContext<TimerActor<T>>,
     shared: Shared,
@@ -94,7 +100,7 @@ impl<T: HalTimer> Timer<T> {
     pub fn new<IRQ: Nr>(timer: T, irq: IRQ) -> Self {
         Self {
             actor: InterruptContext::new(TimerActor::new(timer), irq).with_name("timer"),
-            shared: Shared::new(),
+            shared: Shared::default(),
         }
     }
 }
@@ -149,7 +155,7 @@ impl<T: HalTimer, DUR: Duration + Into<Milliseconds>> RequestHandler<Delay<DUR>>
             {
                 (&mut *self.shared.unwrap().delay_deadlines.get())[index]
                     .replace(DelayDeadline::new(ms));
-                if let Some(current_deadline) = (&*self.shared.unwrap().current_deadline.get()) {
+                if let Some(current_deadline) = &*self.shared.unwrap().current_deadline.get() {
                     if *current_deadline > ms {
                         (&mut *self.shared.unwrap().current_deadline.get()).replace(ms);
                         //log::info!("start shorter timer for {:?}", ms);
@@ -189,7 +195,7 @@ where
             {
                 (&mut *self.shared.unwrap().schedule_deadlines.get())[index]
                     .replace(Box::new(alloc(ScheduleDeadline::new(ms, message)).unwrap()));
-                if let Some(current_deadline) = (&*self.shared.unwrap().current_deadline.get()) {
+                if let Some(current_deadline) = &*self.shared.unwrap().current_deadline.get() {
                     if *current_deadline > ms {
                         (&mut *self.shared.unwrap().current_deadline.get()).replace(ms);
                         //log::info!("start shorter timer for {:?}", ms);
@@ -374,13 +380,8 @@ impl DelayFuture {
 
     fn has_expired(&mut self) -> bool {
         if !self.expired {
-            self.expired = unsafe {
-                // critical section to avoid being trampled by the timer's own IRQ
-                cortex_m::interrupt::free(|cs|
-                    //(&mut **self.timer.get()).has_expired(self.index)
-                    self.shared.has_expired(self.index)
-                )
-            }
+            // critical section to avoid being trampled by the timer's own IRQ
+            self.expired = cortex_m::interrupt::free(|cs| self.shared.has_expired(self.index))
         }
 
         self.expired
@@ -388,7 +389,7 @@ impl DelayFuture {
 
     fn register_waker(&self, waker: &Waker) {
         //unsafe {
-            //(&mut **self.timer.get()).register_waker(self.index, waker.clone());
+        //(&mut **self.timer.get()).register_waker(self.index, waker.clone());
         //}
         self.shared.register_waker(self.index, waker.clone());
     }

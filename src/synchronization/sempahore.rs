@@ -50,7 +50,7 @@ impl Semaphore {
                     } else {
                         (**self.semaphore.get()).permits -= 1;
                         Poll::Ready(Permit {
-                            address: (**self.semaphore.get()).address.as_ref().unwrap().clone(),
+                            address: (**self.semaphore.get()).address.unwrap(),
                         })
                     }
                 }

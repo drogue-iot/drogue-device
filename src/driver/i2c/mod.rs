@@ -1,6 +1,4 @@
 use crate::prelude::*;
-use core::fmt::{Formatter, LowerHex, UpperHex};
-use core::marker::PhantomData;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use crate::hal::i2c::I2cAddress;
 
@@ -55,7 +53,7 @@ where
 {
     type Response = Result<(), I::Error>;
 
-    fn on_request(mut self, mut message: I2cRead<'b>) -> Response<Self, Self::Response> {
+    fn on_request(mut self, message: I2cRead<'b>) -> Response<Self, Self::Response> {
         let result = self.i2c.read(message.address.into(), message.buffer);
         Response::immediate(self, result)
     }
@@ -72,7 +70,7 @@ where
 {
     type Response = Result<(), I::Error>;
 
-    fn on_request(mut self, mut message: I2cWrite<'b>) -> Response<Self, Self::Response> {
+    fn on_request(mut self, message: I2cWrite<'b>) -> Response<Self, Self::Response> {
         let result = self.i2c.write(message.address.into(), message.buffer);
         Response::immediate(self, result)
     }
@@ -90,7 +88,7 @@ where
 {
     type Response = Result<(), I::Error>;
 
-    fn on_request(mut self, mut message: I2cWriteRead<'b>) -> Response<Self, Self::Response> {
+    fn on_request(mut self, message: I2cWriteRead<'b>) -> Response<Self, Self::Response> {
         let result = self
             .i2c
             .write_read(message.address.into(), message.bytes, message.buffer);
@@ -102,11 +100,12 @@ impl<I> Address<I2cPeripheral<I>>
     where
         I: Read,
 {
-    pub async unsafe fn read<'b>(
+    /// # Safety
+    /// The future *must* be fully `.await`'d before allowing the `bytes` or `buffer` arguments to fall out of scope.
+    pub async unsafe fn read(
         &self,
         address: I2cAddress,
-        bytes: &'b [u8],
-        buffer: &'b mut [u8],
+        buffer: &mut [u8],
     ) -> Result<(), I::Error> {
         self.request_unchecked(I2cRead {
             address,
@@ -119,10 +118,12 @@ impl<I> Address<I2cPeripheral<I>>
     where
         I: Write,
 {
-    pub async unsafe fn write<'b>(
+    /// # Safety
+    /// The future *must* be fully `.await`'d before allowing the `buffer` argument to fall out of scope.
+    pub async unsafe fn write(
         &self,
         address: I2cAddress,
-        buffer: &'b [u8],
+        buffer: &[u8],
     ) -> Result<(), I::Error> {
         self.request_unchecked(I2cWrite {
             address,
@@ -135,6 +136,8 @@ impl<I> Address<I2cPeripheral<I>>
 where
     I: WriteRead,
 {
+    /// # Safety
+    /// The future *must* be fully `.await`'d before allowing the `bytes` and `buffer` arguments to fall out of scope.
     pub async unsafe fn write_read<'b>(
         &self,
         address: I2cAddress,

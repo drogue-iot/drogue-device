@@ -12,7 +12,6 @@ use crate::driver::sensor::hts221::SensorAcquisition;
 use crate::hal::i2c::I2cAddress;
 use crate::handler::EventHandler;
 use crate::prelude::*;
-use crate::synchronization::Mutex;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use crate::driver::i2c::I2cPeripheral;
 
@@ -59,22 +58,22 @@ where
     D: Device,
     I: WriteRead + Read + Write,
 {
-    fn on_initialize(mut self) -> Completion<Self> {
+    fn on_initialize(self) -> Completion<Self> {
         Completion::defer(async move {
             if let Some(i2c) = self.i2c {
                 Ctrl2::modify(self.address, i2c, |reg| {
                     reg.boot();
-                }).await;
+                }).await.ok();
 
                 Ctrl1::modify(self.address, i2c, |reg| {
                     reg.power_active()
                         .output_data_rate(OutputDataRate::Hz1)
                         .block_data_update(BlockDataUpdate::MsbLsbReading);
-                }).await;
+                }).await.ok();
 
                 Ctrl3::modify(self.address, i2c, |reg| {
                     reg.enable(true);
-                }).await;
+                }).await.ok();
 
                 loop {
                     // Ensure status is emptied
@@ -83,8 +82,8 @@ where
                             break;
                         }
                     }
-                    Hout::read(self.address, i2c).await;
-                    Tout::read(self.address, i2c).await;
+                    Hout::read(self.address, i2c).await.ok();
+                    Tout::read(self.address, i2c).await.ok();
                 }
             }
             self
@@ -128,7 +127,7 @@ where
     D: Device + EventHandler<SensorAcquisition<Celsius>>,
     I: WriteRead + Read + Write,
 {
-    fn on_notify(mut self, message: DataReady) -> Completion<Self> {
+    fn on_notify(self, message: DataReady) -> Completion<Self> {
         Completion::defer(async move {
             if self.i2c.is_some() {
                 let i2c = self.i2c.unwrap();

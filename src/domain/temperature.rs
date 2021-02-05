@@ -132,7 +132,7 @@ impl<S: TemperatureScale> Div<f32> for Temperature<S> {
 
 impl<S: TemperatureScale> Display for Temperature<S> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        Display::fmt(&self.value, f);
+        Display::fmt(&self.value, f)?;
         write!(f, "°{}", S::LETTER)
     }
 }

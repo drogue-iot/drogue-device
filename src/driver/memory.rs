@@ -17,6 +17,12 @@ impl Memory {
     }
 }
 
+impl Default for Memory {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Actor for Memory {}
 
 impl RequestHandler<Query> for Memory {

@@ -63,7 +63,7 @@ where
         self.address.replace(address);
     }
 
-    fn on_start(mut self) -> Completion<Self> {
+    fn on_start(self) -> Completion<Self> {
         self.timer.unwrap().schedule(
             self.delay,
             State::On,
@@ -84,7 +84,7 @@ where
     S: Switchable,
     T: HalTimer,
 {
-    fn on_notify(mut self, message: State) -> Completion<Self> {
+    fn on_notify(self, message: State) -> Completion<Self> {
         match message {
             State::On => {
                 self.led.unwrap().turn_on();

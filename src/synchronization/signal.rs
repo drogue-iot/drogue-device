@@ -25,6 +25,8 @@ impl<T: Sized> Signal<T> {
         }
     }
 
+
+    #[allow(clippy::single_match)]
     pub fn signal(&self, val: T) {
         cortex_m::interrupt::free(|_| unsafe {
             let state = &mut *self.state.get();

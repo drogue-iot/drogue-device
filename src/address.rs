@@ -3,7 +3,6 @@
 use crate::actor::{Actor, ActorContext};
 use crate::bind::Bind;
 use crate::handler::{NotifyHandler, RequestHandler};
-use core::cell::UnsafeCell;
 
 /// A handle to another actor for dispatching notifications and requests.
 ///
@@ -12,7 +11,6 @@ use core::cell::UnsafeCell;
 /// of either non-blocking synchronous `notify(...)` type behaviour or
 /// asynchronous `request(...)` type behaviour.
 pub struct Address<A: Actor + 'static> {
-    //actor: UnsafeCell<*const ActorContext<A>>,
     actor: &'static ActorContext<A>,
 }
 
@@ -25,7 +23,6 @@ impl<A: Actor> Clone for Address<A> {
     fn clone(&self) -> Self {
         Self {
             actor: self.actor,
-            //actor: unsafe { UnsafeCell::new(*self.actor.get()) },
         }
     }
 }
@@ -56,9 +53,6 @@ impl<A: Actor + 'static> Address<A> {
         A: NotifyHandler<M>,
         M: 'static,
     {
-        //unsafe {
-        //(&**self.actor.get()).notify(message);
-        //}
         self.actor.notify(message)
     }
 
@@ -71,7 +65,6 @@ impl<A: Actor + 'static> Address<A> {
         A: RequestHandler<M> + 'static,
         M: 'static
     {
-        //unsafe { (&**self.actor.get()).request(message).await }
         self.actor.request(message).await
     }
 
@@ -90,7 +83,6 @@ impl<A: Actor + 'static> Address<A> {
     where
         A: RequestHandler<M> + 'static,
     {
-        //unsafe { (&**self.actor.get()).request(message).await }
         self.actor.request_unchecked(message).await
     }
 }

@@ -33,7 +33,7 @@ impl<D: Device, M> NotifyHandler<M> for EventBus<D>
 where
     D: EventHandler<M> + 'static,
 {
-    fn on_notify(mut self, message: M) -> Completion<Self> {
+    fn on_notify(self, message: M) -> Completion<Self> {
         unsafe { (&**self.device.get()).on_event(message) }
         Completion::immediate(self)
     }

@@ -1,7 +1,6 @@
 use crate::domain::temperature::{Celsius, Temperature};
 use crate::hal::i2c::I2cAddress;
 use crate::prelude::Address;
-use core::ops::DerefMut;
 use embedded_hal::blocking::i2c::WriteRead;
 use crate::driver::i2c::I2cPeripheral;
 
@@ -19,12 +18,12 @@ impl Calibration {
         address: I2cAddress,
         i2c: Address<I2cPeripheral<I>>,
     ) -> Result<Calibration, I::Error> {
-        /// # Safety
-        /// The call to `.write_read` is properly awaited for completion before allowing the buffer to drop.
         unsafe {
+            // # Safety
+            // The call to `.write_read` is properly awaited for completion before allowing the buffer to drop.
             let mut buf = [0; 16];
             let result = i2c
-                .write_read(address.into(), &[CALIBRATION_16], &mut buf)
+                .write_read(address, &[CALIBRATION_16], &mut buf)
                 .await?;
             Ok(buf.into())
         }
