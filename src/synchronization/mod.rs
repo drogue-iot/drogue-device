@@ -8,4 +8,4 @@ pub use signal::Signal;
 
 pub use mutex::{Exclusive, Lock, Mutex, Unlock};
 
-pub use sempahore::{Permit, Semaphore};
+pub use sempahore::{Permit, SemaphoreActor};

@@ -1,8 +1,7 @@
 //! A semaphore actor and supporting types.
 
-use crate::handler::{Completion, RequestHandler, Response};
-use crate::prelude::{Actor, Address, NotifyHandler};
-use core::cell::UnsafeCell;
+use crate::prelude::*;
+use core::cell::RefCell;
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
@@ -10,66 +9,131 @@ use core::task::{Context, Poll, Waker};
 use heapless::{consts::*, spsc::Queue};
 
 pub struct Acquire;
-
 pub struct Release;
 
+pub struct Shared {
+    permits: RefCell<usize>,
+    waiters: RefCell<Queue<Waker, U16>>,
+}
+
+impl Shared {
+    pub fn new(permits: usize) -> Self {
+        Self {
+            permits: RefCell::new(permits),
+            waiters: RefCell::new(Queue::new()),
+        }
+    }
+
+    pub fn acquire(&self) -> bool {
+        let permits = *self.permits.borrow();
+        if permits > 0 {
+            *self.permits.borrow_mut() = permits - 1;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn release(&self) {
+        let permits = *self.permits.borrow();
+        *self.permits.borrow_mut() = permits + 1;
+        if let Some(next) = self.waiters.borrow_mut().dequeue() {
+            next.wake()
+        }
+    }
+
+    pub fn waiting(&self, waker: &Waker) {
+        self.waiters.borrow_mut().enqueue( waker.clone() ).ok();
+    }
+}
+
+
+
 pub struct Semaphore {
-    address: Option<Address<Self>>,
-    permits: usize,
-    waiters: Queue<Waker, U16>,
+    shared: Shared,
+    actor: ActorContext<SemaphoreActor>,
 }
 
 impl Semaphore {
     pub fn new(permits: usize) -> Self {
         Self {
+            shared: Shared::new(permits),
+            actor: ActorContext::new( SemaphoreActor::new() ),
+        }
+    }
+}
+
+impl<D:Device> Package<D, SemaphoreActor> for Semaphore {
+    fn mount(&'static self, bus_address: Address<EventBus<D>>, supervisor: &mut Supervisor) -> Address<SemaphoreActor> {
+        let addr = self.actor.mount(supervisor);
+        self.actor.configure( &self.shared );
+        addr
+    }
+}
+
+pub struct SemaphoreActor {
+    address: Option<Address<Self>>,
+    shared: Option<&'static Shared>,
+}
+
+impl Configurable for SemaphoreActor {
+    type Configuration = Shared;
+
+    fn configure(&mut self, config: &'static Self::Configuration) {
+        self.shared.replace( config);
+    }
+}
+
+impl Default for SemaphoreActor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl SemaphoreActor {
+    fn new() -> Self {
+        Self {
             address: None,
-            permits,
-            waiters: Queue::new(),
+            shared: None,
         }
     }
 
-    pub async fn acquire(&mut self) -> Permit {
+    pub async fn acquire(&self) -> Permit {
         struct Acquire {
             waiting: bool,
-            semaphore: UnsafeCell<*mut Semaphore>,
+            address: Address<SemaphoreActor>,
+            shared: &'static Shared,
         }
 
         impl Future for Acquire {
             type Output = Permit;
 
             fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-                unsafe {
-                    if (**self.semaphore.get()).permits == 0 {
-                        if !self.waiting {
-                            (**self.semaphore.get())
-                                .waiters
-                                .enqueue(cx.waker().clone())
-                                .unwrap_or_else(|_| panic!("too many waiters"))
-                        }
-                        Poll::Pending
-                    } else {
-                        (**self.semaphore.get()).permits -= 1;
-                        Poll::Ready(Permit {
-                            address: (**self.semaphore.get()).address.unwrap(),
-                        })
-                    }
+                if self.shared.acquire() {
+                    return Poll::Ready(Permit { address: self.address } );
                 }
+                if ! self.waiting {
+                    self.shared.waiting( cx.waker() )
+                }
+
+                Poll::Pending
             }
         }
 
         Acquire {
             waiting: false,
-            semaphore: UnsafeCell::new(self),
+            address: self.address.unwrap(),
+            shared: self.shared.unwrap(),
         }
         .await
     }
 
-    pub fn release(&mut self) {
-        self.permits += 1;
+    pub fn release(&self) {
+        self.shared.unwrap().release();
     }
 }
 
-impl Actor for Semaphore {
+impl Actor for SemaphoreActor {
     fn on_mount(&mut self, address: Address<Self>)
     where
         Self: Sized,
@@ -78,10 +142,10 @@ impl Actor for Semaphore {
     }
 }
 
-impl RequestHandler<Acquire> for Semaphore {
+impl RequestHandler<Acquire> for SemaphoreActor {
     type Response = Permit;
 
-    fn on_request(mut self, message: Acquire) -> Response<Self, Self::Response> {
+    fn on_request(self, message: Acquire) -> Response<Self, Self::Response> {
         Response::defer(async move {
             let sempaphore = self.acquire().await;
             self.respond_with(sempaphore)
@@ -89,18 +153,15 @@ impl RequestHandler<Acquire> for Semaphore {
     }
 }
 
-impl NotifyHandler<Release> for Semaphore {
-    fn on_notify(mut self, message: Release) -> Completion<Self> {
-        self.permits += 1;
-        if let Some(next) = self.waiters.dequeue() {
-            next.wake()
-        }
+impl NotifyHandler<Release> for SemaphoreActor {
+    fn on_notify(self, message: Release) -> Completion<Self> {
+        self.release();
         Completion::immediate(self)
     }
 }
 
 pub struct Permit {
-    address: Address<Semaphore>,
+    address: Address<SemaphoreActor>,
 }
 
 impl Drop for Permit {
@@ -109,7 +170,7 @@ impl Drop for Permit {
     }
 }
 
-impl Address<Semaphore> {
+impl Address<SemaphoreActor> {
     pub async fn acquire(&self) -> Permit {
         self.request(Acquire).await
     }

@@ -100,6 +100,7 @@ type ItemsConsumer<A> = RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>>
 pub struct ActorContext<A: Actor + 'static> {
     pub(crate) actor: RefCell<Option<A>>,
     pub(crate) current: RefCell<Option<Box<dyn ActorFuture<A>>>>,
+    // Only an UnsafeCell instead of RefCell in order to maintain it's 'static nature when borrowed.
     pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>>, U16>>,
     pub(crate) items_producer: ItemsProducer<A>,
     pub(crate) items_consumer: ItemsConsumer<A>,

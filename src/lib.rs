@@ -23,7 +23,7 @@ pub mod hal;
 
 /// Easy imports for common types and traits.
 pub mod prelude {
-    pub use crate::actor::{Actor, ActorContext, ActorInfo};
+    pub use crate::actor::{Actor, ActorContext, ActorInfo, Configurable};
     pub use crate::address::Address;
     pub use crate::bind::Bind;
     pub use crate::bus::EventBus;
