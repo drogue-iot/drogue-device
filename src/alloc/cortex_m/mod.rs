@@ -96,7 +96,7 @@ impl CortexMHeap {
         unsafe {
             let mut allocation = self.alloc(layout);
             if allocation.is_null() {
-                log::trace!("[ALLOC] allocation failed");
+                log::warn!("[ALLOC] allocation failed: requested={}; free={}", layout.size(), self.free() );
                 None
             } else {
                 //let mut allocation = &mut *(allocation as *mut MaybeUninit<T>);

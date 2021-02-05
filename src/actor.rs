@@ -16,6 +16,7 @@ use core::mem::transmute;
 use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue};
+use crate::supervisor::actor_executor::ActiveActor;
 
 pub trait Configurable {
     type Configuration;
@@ -195,6 +196,8 @@ impl<A: Actor + 'static> ActorContext<A> {
         unsafe {
             (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
         }
+
+        self.do_poll( self.state_flag_handle.borrow().unwrap() );
     }
 
     /// Dispatch a bind injection.
@@ -204,29 +207,7 @@ impl<A: Actor + 'static> ActorContext<A> {
         OA: 'static,
     {
         log::trace!("[{}].bind(...)", self.name());
-        let bind = alloc(OnBind::new(self, address)).unwrap();
-        let bind: Box<dyn ActorFuture<A>> = Box::new(bind);
-        cortex_m::interrupt::free(|cs| {
-            self.items_producer
-                .borrow_mut()
-                .as_mut()
-                .unwrap()
-                .enqueue(bind)
-                .unwrap_or_else(|_| panic!("too many messages"));
-            //self.items.enqueue(bind)
-        });
-
-        unsafe {
-            log::trace!(
-                "[{}].bind(...) items={}",
-                self.name(),
-                (&*self.items.get()).len()
-            );
-        }
-        let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
-        unsafe {
-            (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
-        }
+        self.actor.borrow_mut().as_mut().unwrap().on_bind(address);
     }
 
     /// Dispatch a notification.
@@ -365,8 +346,9 @@ impl<A: Actor> Future for OnLifecycle<A> {
         if !self.dispatched {
             let actor = self.actor.take_actor().expect("actor is missing");
             log::trace!(
-                "[{}] Lifecycle.poll() - dispatch on_notification",
-                self.actor.name()
+                "[{}] Lifecycle.poll() - dispatch on_lifecycle {:?}",
+                self.actor.name(),
+                self.event
             );
             let completion = match self.event {
                 Lifecycle::Initialize => actor.on_initialize(),
@@ -416,44 +398,6 @@ impl<A: Actor> Future for OnLifecycle<A> {
             // should not actually get here ever
             Poll::Ready(())
         }
-    }
-}
-
-struct OnBind<A: Actor + 'static, OA: Actor + 'static>
-where
-    A: Bind<OA> + 'static,
-{
-    actor: &'static ActorContext<A>,
-    address: Option<Address<OA>>,
-}
-
-impl<A: Actor, OA: Actor> OnBind<A, OA>
-where
-    A: Bind<OA> + 'static,
-{
-    fn new(actor: &'static ActorContext<A>, address: Address<OA>) -> Self {
-        Self {
-            actor,
-            address: Some(address),
-        }
-    }
-}
-
-impl<A: Actor + Bind<OA>, OA: Actor> ActorFuture<A> for OnBind<A, OA> {}
-
-impl<A: Actor + Bind<OA>, OA: Actor> Unpin for OnBind<A, OA> {}
-
-impl<A: Actor + Bind<OA>, OA: Actor> Future for OnBind<A, OA> {
-    type Output = ();
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if self.address.is_some() {
-            log::trace!("[{}] Bind.poll() - dispatch on_bind", self.actor.name());
-            let mut actor = self.actor.take_actor().expect("actor is missing");
-            actor.on_bind(self.as_mut().address.take().unwrap());
-            self.actor.replace_actor(actor);
-        }
-        Poll::Ready(())
     }
 }
 
