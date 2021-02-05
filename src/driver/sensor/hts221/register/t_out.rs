@@ -1,6 +1,8 @@
 use crate::hal::i2c::I2cAddress;
+use crate::prelude::Address;
 use core::ops::DerefMut;
 use embedded_hal::blocking::i2c::WriteRead;
+use crate::driver::i2c::I2cPeripheral;
 
 // auto-increment variant of 2 bytes
 const T_OUT: u8 = 0xAA;
@@ -8,12 +10,16 @@ const T_OUT: u8 = 0xAA;
 pub struct Tout;
 
 impl Tout {
-    pub fn read<I: DerefMut<Target = I2C>, I2C: WriteRead>(
+    pub async fn read<I: WriteRead>(
         address: I2cAddress,
-        i2c: &mut I,
-    ) -> i16 {
-        let mut buf = [0; 2];
-        let result = i2c.write_read(address.into(), &[T_OUT], &mut buf);
-        i16::from_le_bytes(buf)
+        i2c: Address<I2cPeripheral<I>>,
+    ) -> Result<(i16), I::Error> {
+        /// # Safety
+        /// The call to `.write_read` is properly awaited for completion before allowing the buffer to drop.
+        unsafe {
+            let mut buf = [0; 2];
+            let result = i2c.write_read(address.into(), &[T_OUT], &mut buf).await?;
+            Ok(i16::from_le_bytes(buf))
+        }
     }
 }

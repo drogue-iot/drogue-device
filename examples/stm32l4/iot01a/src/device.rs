@@ -16,13 +16,18 @@ use stm32l4xx_hal::{
         Alternate, Input, OpenDrain, Output, PullDown, PullUp, PushPull, AF4, PA5, PB10, PB11,
         PB14, PC13, PD15,
     },
-    i2c::I2c,
+    i2c::I2c as HalI2c,
     pac::I2C2,
     pac::TIM15,
 };
-use drogue_device::hal::gpio::{ActiveOutput, ActiveHigh};
-use drogue_device::driver::memory::{Memory, Query};
-use drogue_device::domain::temperature::Celsius;
+use drogue_device::{
+    hal::gpio::{ActiveOutput, ActiveHigh},
+    driver::{
+        i2c::I2c,
+        memory::{Memory, Query}
+    },
+    domain::temperature::Celsius,
+};
 
 type Ld1Pin = PA5<Output<PushPull>>;
 type Ld2Pin = PB14<Output<PushPull>>;
@@ -33,8 +38,8 @@ type ButtonInterrupt = Button<MyDevice, PC13<Input<PullUp>>>;
 
 type I2cScl = PB10<Alternate<AF4, Output<OpenDrain>>>;
 type I2cSda = PB11<Alternate<AF4, Output<OpenDrain>>>;
-type I2cPeriph = I2c<I2C2, (I2cScl, I2cSda)>;
-type I2cActor = Mutex<I2cPeriph>;
+type I2cPeriph = HalI2c<I2C2, (I2cScl, I2cSda)>;
+type I2cPackage = I2c<I2cPeriph>;
 
 type Blinker1Actor = Blinker<Ld1Actor, McuTimer<TIM15>>;
 type Blinker2Actor = Blinker<Ld2Actor, McuTimer<TIM15>>;
@@ -50,7 +55,7 @@ pub struct MyDevice {
     pub blinker1: ActorContext<Blinker1Actor>,
     pub blinker2: ActorContext<Blinker2Actor>,
     pub button: InterruptContext<ButtonInterrupt>,
-    pub i2c: ActorContext<I2cActor>,
+    pub i2c: I2cPackage,
     pub hts221: Hts221Package,
     pub timer: Timer<McuTimer<TIM15>>,
 }
@@ -68,7 +73,7 @@ impl Device for MyDevice {
         let blinker1_addr = self.blinker1.mount(supervisor);
         let blinker2_addr = self.blinker2.mount(supervisor);
 
-        let i2c_addr = self.i2c.mount(supervisor);
+        let i2c_addr = self.i2c.mount(bus_address, supervisor);
         let hts221_addr = self.hts221.mount(bus_address, supervisor);
         let timer_addr = self.timer.mount(bus_address, supervisor);
 

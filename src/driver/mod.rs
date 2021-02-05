@@ -6,3 +6,4 @@ pub mod sensor;
 pub mod timer;
 pub mod uart;
 pub mod memory;
+pub mod i2c;

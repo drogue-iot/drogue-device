@@ -1,4 +1,5 @@
 use crate::bind::Bind;
+use crate::domain::temperature::Celsius;
 use crate::driver::sensor::hts221::ready::DataReady;
 use crate::driver::sensor::hts221::register::calibration::*;
 use crate::driver::sensor::hts221::register::ctrl1::{BlockDataUpdate, Ctrl1, OutputDataRate};
@@ -13,7 +14,7 @@ use crate::handler::EventHandler;
 use crate::prelude::*;
 use crate::synchronization::Mutex;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
-use crate::domain::temperature::Celsius;
+use crate::driver::i2c::I2cPeripheral;
 
 pub const ADDR: u8 = 0x5F;
 
@@ -23,7 +24,7 @@ where
     I: WriteRead + Read + Write + 'static,
 {
     address: I2cAddress,
-    i2c: Option<Address<Mutex<I>>>,
+    i2c: Option<Address<I2cPeripheral<I>>>,
     calibration: Option<Calibration>,
     bus: Option<Address<EventBus<D>>>,
 }
@@ -60,36 +61,30 @@ where
 {
     fn on_initialize(mut self) -> Completion<Self> {
         Completion::defer(async move {
-            if let Some(ref i2c) = self.i2c {
-                let mut i2c = i2c.lock().await;
-
-                Ctrl2::modify(self.address, &mut i2c, |reg| {
+            if let Some(i2c) = self.i2c {
+                Ctrl2::modify(self.address, i2c, |reg| {
                     reg.boot();
-                });
+                }).await;
 
-                Ctrl1::modify(self.address, &mut i2c, |reg| {
+                Ctrl1::modify(self.address, i2c, |reg| {
                     reg.power_active()
                         .output_data_rate(OutputDataRate::Hz1)
                         .block_data_update(BlockDataUpdate::MsbLsbReading);
-                });
+                }).await;
 
-                Ctrl3::modify(self.address, &mut i2c, |reg| {
+                Ctrl3::modify(self.address, i2c, |reg| {
                     reg.enable(true);
-                });
+                }).await;
 
-                //log::info!(
-                //"[hts221] address=0x{:X}",
-                //WhoAmI::read(self.address, &mut i2c)
-                //);
-
-                //let result = self.timer.as_ref().unwrap().request( Delay( Milliseconds(85u32))).await;
                 loop {
                     // Ensure status is emptied
-                    if !Status::read(self.address, &mut i2c).any_available() {
-                        break;
+                    if let Ok(status) = Status::read(self.address, i2c).await {
+                        if !status.any_available() {
+                            break;
+                        }
                     }
-                    Hout::read(self.address, &mut i2c);
-                    Tout::read(self.address, &mut i2c);
+                    Hout::read(self.address, i2c).await;
+                    Tout::read(self.address, i2c).await;
                 }
             }
             self
@@ -98,10 +93,10 @@ where
 
     fn on_start(mut self) -> Completion<Self> {
         Completion::defer(async move {
-            if let Some(ref i2c) = self.i2c {
-                let mut i2c = i2c.lock().await;
-                self.calibration
-                    .replace(Calibration::read(self.address, &mut i2c));
+            if let Some(i2c) = self.i2c {
+                if let Ok(calibration) = Calibration::read(self.address, i2c).await {
+                    self.calibration.replace( calibration );
+                }
             }
             self
         })
@@ -118,12 +113,12 @@ where
     }
 }
 
-impl<D, I> Bind<Mutex<I>> for Sensor<D, I>
+impl<D, I> Bind<I2cPeripheral<I>> for Sensor<D, I>
 where
     D: Device,
     I: WriteRead + Read + Write + 'static,
 {
-    fn on_bind(&mut self, address: Address<Mutex<I>>) {
+    fn on_bind(&mut self, address: Address<I2cPeripheral<I>>) {
         self.i2c.replace(address);
     }
 }
@@ -136,26 +131,23 @@ where
     fn on_notify(mut self, message: DataReady) -> Completion<Self> {
         Completion::defer(async move {
             if self.i2c.is_some() {
-                let mut i2c = self.i2c.as_ref().unwrap().lock().await;
+                let i2c = self.i2c.unwrap();
 
                 if let Some(ref calibration) = self.calibration {
-                    let t_out = Tout::read(self.address, &mut i2c);
-                    let temperature = calibration.calibrated_temperature(t_out);
+                    if let Ok(t_out) = Tout::read(self.address, i2c).await {
+                        let temperature = calibration.calibrated_temperature(t_out);
 
-                    let h_out = Hout::read(self.address, &mut i2c);
-                    let relative_humidity = calibration.calibrated_humidity(h_out);
+                        if let Ok(h_out) = Hout::read(self.address, i2c).await {
+                            let relative_humidity = calibration.calibrated_humidity(h_out);
 
-                    self.bus.as_ref().unwrap().publish(SensorAcquisition {
-                        temperature,
-                        relative_humidity,
-                    });
-                //log::info!(
-                //"[hts221] temperature={:.2}°F humidity={:.2}%rh",
-                //temperature.into_fahrenheit(),
-                //relative_humidity
-                //);
+                            self.bus.as_ref().unwrap().publish(SensorAcquisition {
+                                temperature,
+                                relative_humidity,
+                            });
+                        }
+                    }
                 } else {
-                    log::info!("[hts221] no calibration data available")
+                    log::warn!("[hts221] no calibration data available")
                 }
             }
             self

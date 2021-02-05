@@ -7,7 +7,7 @@ use device::MyDevice;
 use cortex_m_rt::{entry, exception};
 use stm32l4xx_hal::{
     gpio::Edge,
-    i2c::I2c,
+    i2c::I2c as HalI2c,
     pac::interrupt::{EXTI15_10, TIM15},
     prelude::*,
     rcc::RccExt,
@@ -28,8 +28,15 @@ use drogue_device::{
         sensor::hts221::Hts221,
         timer::Timer,
         memory::Memory,
+        i2c::I2c,
     },
-    hal::{timer::stm32l4xx::Timer as McuTimer, Active},
+    hal::{
+        timer::{
+            stm32l4xx::Timer as McuTimer
+        },
+        Active
+    },
+
     prelude::*,
     synchronization::Mutex,
 };
@@ -104,7 +111,7 @@ fn main() -> ! {
         .into_open_drain_output(&mut gpiob.moder, &mut gpiob.otyper)
         .into_af4(&mut gpiob.moder, &mut gpiob.afrh);
 
-    let i2c = I2c::i2c2(
+    let i2c = HalI2c::i2c2(
         device.I2C2,
         (scl, sda),
         Hertz(100_000u32),
@@ -112,7 +119,7 @@ fn main() -> ! {
         &mut rcc.apb1r1,
     );
 
-    let i2c = Mutex::new(i2c);
+    let i2c = I2c::new(i2c);
 
     // == HTS221 ==
 
@@ -139,8 +146,7 @@ fn main() -> ! {
         ld2: ActorContext::new(ld2).with_name("ld2"),
         blinker1: ActorContext::new(blinker1).with_name("blinker1"),
         blinker2: ActorContext::new(blinker2).with_name("blinker2"),
-
-        i2c: ActorContext::new(i2c).with_name("i2c"),
+        i2c,
         hts221,
         button: InterruptContext::new(button, EXTI15_10).with_name("button"),
         timer,

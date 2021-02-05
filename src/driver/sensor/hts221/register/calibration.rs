@@ -1,7 +1,9 @@
 use crate::domain::temperature::{Celsius, Temperature};
 use crate::hal::i2c::I2cAddress;
+use crate::prelude::Address;
 use core::ops::DerefMut;
 use embedded_hal::blocking::i2c::WriteRead;
+use crate::driver::i2c::I2cPeripheral;
 
 // 16-byte block of calibration at 0x30 with high bit for auto-increment
 const CALIBRATION_16: u8 = 0xB0;
@@ -12,13 +14,20 @@ pub struct Calibration {
 }
 
 impl Calibration {
-    pub fn read<I: DerefMut<Target = I2C>, I2C: WriteRead>(
+
+    pub async fn read<I: WriteRead>(
         address: I2cAddress,
-        i2c: &mut I,
-    ) -> Calibration {
-        let mut buf = [0; 16];
-        let result = i2c.write_read(address.into(), &[CALIBRATION_16], &mut buf);
-        buf.into()
+        i2c: Address<I2cPeripheral<I>>,
+    ) -> Result<Calibration, I::Error> {
+        /// # Safety
+        /// The call to `.write_read` is properly awaited for completion before allowing the buffer to drop.
+        unsafe {
+            let mut buf = [0; 16];
+            let result = i2c
+                .write_read(address.into(), &[CALIBRATION_16], &mut buf)
+                .await?;
+            Ok(buf.into())
+        }
     }
 
     pub fn calibrated_temperature(&self, t_out: i16) -> Temperature<Celsius> {

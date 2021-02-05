@@ -6,3 +6,9 @@ pub mod h_out;
 pub mod status;
 pub mod t_out;
 pub mod who_am_i;
+
+pub enum ModifyError<R, W> {
+    Read(R),
+    Write(W)
+}
+

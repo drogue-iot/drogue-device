@@ -1,6 +1,9 @@
 use crate::hal::i2c::I2cAddress;
+use crate::prelude::Address;
 use core::ops::DerefMut;
 use embedded_hal::blocking::i2c::{Write, WriteRead};
+use crate::driver::sensor::hts221::register::ModifyError;
+use crate::driver::i2c::I2cPeripheral;
 
 const CTRL_REG3: u8 = 0x22;
 
@@ -23,31 +26,34 @@ pub struct Ctrl3 {
 }
 
 impl Ctrl3 {
-    pub fn read<I: DerefMut<Target = I2C>, I2C: WriteRead>(
-        address: I2cAddress,
-        i2c: &mut I,
-    ) -> Ctrl3 {
-        let mut buf = [0; 1];
-        let result = i2c.write_read(address.into(), &[CTRL_REG3], &mut buf);
-        buf[0].into()
+    pub async fn read<I: WriteRead>(address: I2cAddress, i2c: Address<I2cPeripheral<I>>) -> Result<Ctrl3, I::Error> {
+        /// # Safety
+        /// The call to `.write_read` is properly awaited for completion before allowing the buffer to drop.
+        unsafe {
+            let mut buf = [0; 1];
+            let result = i2c.write_read(address.into(), &[CTRL_REG3], &mut buf).await?;
+            Ok(buf[0].into())
+        }
     }
 
-    pub fn write<I: DerefMut<Target = I2C>, I2C: Write>(
-        address: I2cAddress,
-        i2c: &mut I,
-        reg: Ctrl3,
-    ) {
-        let result = i2c.write(address.into(), &[CTRL_REG3, reg.into()]);
+    pub async fn write<I: Write>(address: I2cAddress, i2c: Address<I2cPeripheral<I>>, reg: Ctrl3) -> Result<(), I::Error>{
+        /// # Safety
+        /// The call to `.write` is properly awaited for completion before allowing the buffer to drop.
+        unsafe {
+            i2c.write(address.into(), &[CTRL_REG3, reg.into()]).await?;
+        }
+        Ok(())
+
     }
 
-    pub fn modify<I: DerefMut<Target = I2C>, I2C: WriteRead + Write, F: FnOnce(&mut Ctrl3)>(
+    pub async fn modify<I: WriteRead + Write, F: FnOnce(&mut Ctrl3)>(
         address: I2cAddress,
-        i2c: &mut I,
+        i2c: Address<I2cPeripheral<I>>,
         modify: F,
-    ) {
-        let mut reg = Self::read(address, i2c);
+    ) -> Result<(), ModifyError< <I as WriteRead>::Error, <I as Write>::Error>>{
+        let mut reg = Self::read(address, i2c).await.map_err(|e| ModifyError::Read(e))?;
         modify(&mut reg);
-        Self::write(address, i2c, reg);
+        Self::write(address, i2c, reg).await.map_err(|e| ModifyError::Write(e))
     }
 
     pub fn active_state(&mut self, active_state: ActiveState) -> &mut Self {

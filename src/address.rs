@@ -16,6 +16,11 @@ pub struct Address<A: Actor + 'static> {
     actor: &'static ActorContext<A>,
 }
 
+
+impl<A: Actor> Copy for Address<A> {
+
+}
+
 impl<A: Actor> Clone for Address<A> {
     fn clone(&self) -> Self {
         Self {
