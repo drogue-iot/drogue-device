@@ -17,11 +17,7 @@ impl<I: Actor + Interrupt> ActiveInterrupt for InterruptContext<I> {
         // processed. Perhaps we should just queue it up and deliver
         // after the async block has completed?
         if !self.actor_context.in_flight.load(Ordering::Acquire) {
-            unsafe {
-                //cortex_m::interrupt::free(|cs| {
-                (&mut *self.actor_context.actor.get()).as_mut().unwrap().on_interrupt();
-                //})
-            }
+            self.actor_context.interrupt();
         }
     }
 }

@@ -9,6 +9,7 @@ use core::task::{Context, Poll, Waker};
 use crate::alloc::{alloc, Box, Rc};
 use crate::bind::Bind;
 use crate::device::Lifecycle;
+use crate::prelude::Interrupt;
 use crate::supervisor::{actor_executor::ActorState, Supervisor};
 use core::cell::{RefCell, UnsafeCell};
 use core::mem::transmute;
@@ -97,7 +98,7 @@ type ItemsConsumer<A> = RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>>
 /// Struct which is capable of holding an `Actor` instance
 /// and connects it to the actor system.
 pub struct ActorContext<A: Actor + 'static> {
-    pub(crate) actor: UnsafeCell<Option<A>>,
+    pub(crate) actor: RefCell<Option<A>>,
     pub(crate) current: RefCell<Option<Box<dyn ActorFuture<A>>>>,
     pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>>, U16>>,
     pub(crate) items_producer: ItemsProducer<A>,
@@ -114,7 +115,7 @@ impl<A: Actor + 'static> ActorContext<A> {
     /// contained actor will be moved to the `static` lifetime.
     pub fn new(actor: A) -> Self {
         Self {
-            actor: UnsafeCell::new(Some(actor)),
+            actor: RefCell::new(Some(actor)),
             current: RefCell::new(None),
             //items: FutureQueue::new(),
             items: UnsafeCell::new(Queue::new()),
@@ -138,13 +139,11 @@ impl<A: Actor + 'static> ActorContext<A> {
     }
 
     fn take_actor(&self) -> Option<A> {
-        unsafe { (&mut *self.actor.get()).take() }
+        self.actor.borrow_mut().take()
     }
 
     fn replace_actor(&self, actor: A) {
-        unsafe {
-            (&mut *self.actor.get()).replace(actor);
-        }
+        self.actor.borrow_mut().replace(actor);
     }
 
     /// Retrieve an instance of the actor's address.
@@ -156,9 +155,7 @@ impl<A: Actor + 'static> ActorContext<A> {
     where
         A: Configurable,
     {
-        unsafe {
-            (&mut *self.actor.get()).as_mut().unwrap().configure(config);
-        }
+        self.actor.borrow_mut().as_mut().unwrap().configure(config);
     }
 
     /// Mount the context and its actor into the system.
@@ -173,16 +170,7 @@ impl<A: Actor + 'static> ActorContext<A> {
         self.items_producer.borrow_mut().replace(producer);
         self.items_consumer.borrow_mut().replace(consumer);
 
-        // SAFETY: At this point, we are the only holder of the actor
-        unsafe {
-            //(&mut *self.actor_ref.get()).replace(&mut *self.actor.get());
-            (&mut *self.actor.get())
-                .as_mut()
-                .unwrap()
-                .on_mount(addr);
-        }
-
-        //supervisor.run_until_quiescence();
+        self.actor.borrow_mut().as_mut().unwrap().on_mount(addr);
 
         addr
     }
@@ -228,7 +216,11 @@ impl<A: Actor + 'static> ActorContext<A> {
         });
 
         unsafe {
-            log::trace!("[{}].bind(...) items={}", self.name(), (&*self.items.get()).len());
+            log::trace!(
+                "[{}].bind(...) items={}",
+                self.name(),
+                (&*self.items.get()).len()
+            );
         }
         let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
         unsafe {
@@ -262,18 +254,16 @@ impl<A: Actor + 'static> ActorContext<A> {
     }
 
     /// Dispatch an async request.
-    pub(crate) async fn request<M>(
-        &'static self,
-        message: M,
-    ) -> <A as RequestHandler<M>>::Response
-        where
-            A: RequestHandler<M>,
-            M: 'static
+    pub(crate) async fn request<M>(&'static self, message: M) -> <A as RequestHandler<M>>::Response
+    where
+        A: RequestHandler<M>,
+        M: 'static,
     {
         let signal = Rc::new(CompletionHandle::new());
         let sender = CompletionSender::new(signal.clone());
         let receiver = CompletionReceiver::new(signal);
-        let request: &mut dyn ActorFuture<A> = alloc(OnRequest::new(self, message, sender)).unwrap();
+        let request: &mut dyn ActorFuture<A> =
+            alloc(OnRequest::new(self, message, sender)).unwrap();
         let response = RequestResponseFuture::new(receiver);
 
         unsafe {
@@ -306,7 +296,8 @@ impl<A: Actor + 'static> ActorContext<A> {
         let signal = Rc::new(CompletionHandle::new());
         let sender = CompletionSender::new(signal.clone());
         let receiver = CompletionReceiver::new(signal);
-        let request: &mut dyn ActorFuture<A> = alloc(OnRequest::new(self, message, sender)).unwrap();
+        let request: &mut dyn ActorFuture<A> =
+            alloc(OnRequest::new(self, message, sender)).unwrap();
         let response = RequestResponseFuture::new(receiver);
 
         unsafe {
@@ -327,6 +318,13 @@ impl<A: Actor + 'static> ActorContext<A> {
         }
 
         response.await
+    }
+
+    pub(crate) fn interrupt(&self)
+    where
+        A: Interrupt,
+    {
+        self.actor.borrow_mut().as_mut().unwrap().on_interrupt()
     }
 }
 
