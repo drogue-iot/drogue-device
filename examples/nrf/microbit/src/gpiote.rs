@@ -111,7 +111,7 @@ impl<D: Device + EventHandler<PinEvent>, P: InputPin + GpioteInputPin> GpioteCha
 impl<D: Device + EventHandler<PinEvent> + 'static, P: InputPin + GpioteInputPin + 'static>
     NotifyHandler<GpioteEvent> for GpioteChannel<D, P>
 {
-    fn on_notify(mut self, event: GpioteEvent) -> Completion<Self> {
+    fn on_notify(self, event: GpioteEvent) -> Completion<Self> {
         match event {
             GpioteEvent(c) if c == self.channel => {
                 if let Some(bus) = &self.bus {

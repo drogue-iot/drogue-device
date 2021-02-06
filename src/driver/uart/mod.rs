@@ -1,4 +1,4 @@
-use crate::actor::{Actor, ActorContext, Configurable};
+use crate::actor::{Actor, Configurable};
 use crate::address::Address;
 use crate::bus::EventBus;
 use crate::device::Device;

@@ -1,4 +1,5 @@
 use crate::gpiote::*;
+use drogue_device::synchronization::MutexActor;
 use drogue_device::{
     domain::time::duration::Milliseconds,
     driver::{
@@ -9,13 +10,11 @@ use drogue_device::{
     hal::timer::nrf::Timer as HalTimer,
     hal::uart::nrf::Uarte as HalUart,
     prelude::*,
-    synchronization::Mutex,
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
 use hal::pac::TIMER0;
 use heapless::consts;
 use nrf52833_hal as hal;
-use drogue_device::synchronization::MutexActor;
 
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
 pub type LedMatrix = LEDMatrix<Pin<Output<PushPull>>, consts::U5, consts::U5, HalTimer<TIMER0>>;
@@ -118,7 +117,7 @@ impl Bind<AppTimer> for App {
 }
 
 impl NotifyHandler<SayHello> for App {
-    fn on_notify(mut self, _: SayHello) -> Completion<Self> {
+    fn on_notify(self, _: SayHello) -> Completion<Self> {
         Completion::defer(async move {
             let led = self.display.as_ref().unwrap();
             let timer = self.timer.as_ref().unwrap();
