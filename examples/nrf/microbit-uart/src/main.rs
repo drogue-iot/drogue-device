@@ -2,7 +2,6 @@
 #![no_std]
 
 mod device;
-mod gpiote;
 
 use panic_rtt_target as _;
 
@@ -11,6 +10,7 @@ use drogue_device::{
     domain::time::rate::Extensions,
     driver::timer::Timer,
     driver::uart::Uart,
+    driver::gpiote::nrf::*,
     hal::timer::nrf::Timer as HalTimer,
     hal::uart::nrf::{Baudrate, Parity, Pins, Uarte as HalUart},
     prelude::*,
@@ -24,7 +24,6 @@ use rtt_target::rtt_init_print;
 use nrf52833_hal as hal;
 
 use crate::device::*;
-use crate::gpiote::*;
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
 

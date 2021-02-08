@@ -1,6 +1,7 @@
-use drogue_device::prelude::*;
+use crate::prelude::*;
 use embedded_hal::digital::v2::InputPin;
 
+#[cfg(feature = "nrf52833")]
 use nrf52833_hal as hal;
 
 use hal::gpiote::GpioteInputPin;

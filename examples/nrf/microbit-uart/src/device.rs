@@ -1,10 +1,10 @@
-use crate::gpiote::*;
 use drogue_device::{
     domain::time::duration::Milliseconds,
     driver::{
         led::{LEDMatrix, MatrixCommand},
         timer::{Timer, TimerActor},
         uart::{Uart, UartPeripheral},
+        gpiote::nrf::*,
     },
     hal::timer::nrf::Timer as HalTimer,
     hal::uart::nrf::Uarte as HalUart,
