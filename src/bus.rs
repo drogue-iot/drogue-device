@@ -1,7 +1,7 @@
 //! Shared device-level event-bus type and trait.
 
-use crate::prelude::*;
 use crate::prelude::device::DeviceContext;
+use crate::prelude::*;
 
 /// The shared device-level event-bus actor.
 ///
@@ -18,9 +18,7 @@ pub struct EventBus<D: Device + 'static> {
 
 impl<D: Device> EventBus<D> {
     pub(crate) fn new(device: &'static DeviceContext<D>) -> Self {
-        Self {
-            device,
-        }
+        Self { device }
     }
 }
 
@@ -31,7 +29,7 @@ where
     D: EventHandler<M> + 'static,
 {
     fn on_notify(self, message: M) -> Completion<Self> {
-        self.device.on_event( message );
+        self.device.on_event(message);
         Completion::immediate(self)
     }
 }

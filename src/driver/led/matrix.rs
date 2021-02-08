@@ -133,11 +133,13 @@ where
 
     fn on_start(self) -> Completion<Self> {
         if let Some(address) = self.address {
-            self.timer.unwrap().schedule(
-                self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
-                MatrixCommand::Render,
-                address,
-            );
+            if let Some(timer) = self.timer {
+                timer.schedule(
+                    self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
+                    MatrixCommand::Render,
+                    address,
+                );
+            }
         }
         Completion::immediate(self)
     }

@@ -18,26 +18,12 @@ use core::sync::atomic::{compiler_fence, Ordering::SeqCst};
 
 pub use hal::uarte::{Baudrate, Parity, Pins};
 
-#[derive(Clone)]
-enum TxState {
-    Ready,
-    InProgress,
-}
-
-#[derive(Clone)]
-enum RxState {
-    Ready,
-    InProgress,
-}
-
 pub struct Uarte<T>
 where
     T: Instance,
 {
     uart: T,
     pins: Pins,
-    tx_state: TxState,
-    rx_state: RxState,
 }
 
 impl<T> Uarte<T>
@@ -49,12 +35,7 @@ where
         uart.inten
             .modify(|_, w| w.endrx().set_bit().endtx().set_bit());
 
-        Self {
-            uart,
-            pins,
-            tx_state: TxState::Ready,
-            rx_state: RxState::Ready,
-        }
+        Self { uart, pins }
     }
 }
 

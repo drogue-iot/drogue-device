@@ -113,5 +113,5 @@ fn main() -> ! {
         app: ActorContext::new(App::new()),
     };
 
-    device!( MyDevice = device; 2048);
+    device!( MyDevice = device; 4096);
 }

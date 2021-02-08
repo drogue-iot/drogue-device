@@ -1,5 +1,4 @@
 use crate::gpiote::*;
-use drogue_device::synchronization::MutexActor;
 use drogue_device::{
     domain::time::duration::Milliseconds,
     driver::{
@@ -19,7 +18,7 @@ use nrf52833_hal as hal;
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
 pub type LedMatrix = LEDMatrix<Pin<Output<PushPull>>, consts::U5, consts::U5, HalTimer<TIMER0>>;
 pub type AppTimer = TimerActor<HalTimer<TIMER0>>;
-pub type AppUart = MutexActor<UartPeripheral<HalUart<hal::pac::UARTE0>>>;
+pub type AppUart = UartPeripheral<HalUart<hal::pac::UARTE0>>;
 
 pub struct MyDevice {
     pub led: ActorContext<LedMatrix>,
@@ -38,7 +37,7 @@ impl Device for MyDevice {
         self.btn_back.mount(supervisor).bind(bus);
         let timer = self.timer.mount(bus, supervisor);
         let led = self.led.mount(supervisor);
-        led.bind(timer);
+        //        led.bind(timer);
 
         let app = self.app.mount(supervisor);
 
@@ -124,7 +123,7 @@ impl NotifyHandler<SayHello> for App {
 
             for c in r"Hello, World!".chars() {
                 led.notify(MatrixCommand::ApplyAscii(c));
-                timer.delay(Milliseconds(200)).await;
+                //timer.delay(Milliseconds(200)).await;
             }
 
             led.notify(MatrixCommand::Clear);
@@ -140,25 +139,31 @@ impl NotifyHandler<StartService> for App {
 
             if let Some(uart) = &mut self.uart {
                 let mut buf = [0; 128];
-                let mut uart = uart.lock().await;
 
                 let motd = "Welcome to the Drogue Echo Service\r\n".as_bytes();
                 buf[..motd.len()].clone_from_slice(motd);
-                uart.write(&buf[..motd.len()])
-                    .await
-                    .map_err(|e| log::error!("Error writing MOTD: {:?}", e))
-                    .ok();
+
+                unsafe {
+                    uart.write(&buf[..motd.len()])
+                        .await
+                        .map_err(|e| log::error!("Error writing MOTD: {:?}", e))
+                        .ok();
+                }
 
                 loop {
-                    uart.read(&mut buf[..1])
-                        .await
-                        .map_err(|e| log::error!("Error reading from UART: {:?}", e))
-                        .ok();
-                    led.notify(MatrixCommand::ApplyAscii(buf[0] as char));
-                    uart.write(&buf[..1])
-                        .await
-                        .map_err(|e| log::error!("Error writing to UART: {:?}", e))
-                        .ok();
+                    unsafe {
+                        uart.read(&mut buf[..1])
+                            .await
+                            .map_err(|e| log::error!("Error reading from UART: {:?}", e))
+                            .ok();
+                    }
+                    //led.notify(MatrixCommand::ApplyAscii(buf[0] as char));
+                    unsafe {
+                        uart.write(&buf[..1])
+                            .await
+                            .map_err(|e| log::error!("Error writing to UART: {:?}", e))
+                            .ok();
+                    }
                 }
             }
             self

@@ -8,18 +8,35 @@ pub use crate::hal::uart::Error;
 use crate::hal::uart::Uart as HalUart;
 use crate::interrupt::{Interrupt, InterruptContext};
 use crate::package::Package;
-use crate::synchronization::{Mutex, Signal, MutexActor};
+use crate::synchronization::Signal;
 
+use core::cell::Cell;
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use cortex_m::interrupt::{Nr};
+use cortex_m::interrupt::Nr;
+
+pub struct UartPeripheral<U>
+where
+    U: HalUart + 'static,
+{
+    shared: Option<&'static Shared<U>>,
+}
+
+pub struct UartInterrupt<U>
+where
+    U: HalUart + 'static,
+{
+    shared: Option<&'static Shared<U>>,
+}
 
 pub struct Shared<U>
 where
     U: HalUart + 'static,
 {
     uart: U,
+    tx_state: Cell<State>,
+    rx_state: Cell<State>,
     tx_done: Signal<Result<(), Error>>,
     rx_done: Signal<Result<usize, Error>>,
 }
@@ -28,15 +45,30 @@ pub struct Uart<U>
 where
     U: HalUart + 'static,
 {
-    peripheral: Mutex<UartPeripheral<U>>,
-    irq: InterruptContext<UartInterrupt<U>>,
+    actor: ActorContext<UartPeripheral<U>>,
+    interrupt: InterruptContext<UartInterrupt<U>>,
     shared: Shared<U>,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum State {
     Ready,
     InProgress,
+}
+
+impl<U> Shared<U>
+where
+    U: HalUart + 'static,
+{
+    fn new(uart: U) -> Self {
+        Self {
+            tx_done: Signal::new(),
+            rx_done: Signal::new(),
+            uart,
+            tx_state: Cell::new(State::Ready),
+            rx_state: Cell::new(State::Ready),
+        }
+    }
 }
 
 impl<U> Uart<U>
@@ -48,51 +80,30 @@ where
         IRQ: Nr,
     {
         Self {
-            peripheral: Mutex::new(UartPeripheral::new()),
-            irq: InterruptContext::new(UartInterrupt::new(), irq),
-            shared: Shared {
-                uart,
-                tx_done: Signal::new(),
-                rx_done: Signal::new(),
-            },
+            actor: ActorContext::new(UartPeripheral::new()).with_name("uart_actor"),
+            interrupt: InterruptContext::new(UartInterrupt::new(), irq).with_name("uart_interrupt"),
+            shared: Shared::new(uart),
         }
     }
 }
 
-impl<D, U> Package<D, MutexActor<UartPeripheral<U>>> for Uart<U>
+impl<D, U> Package<D, UartPeripheral<U>> for Uart<U>
 where
     D: Device,
     U: HalUart,
 {
     fn mount(
         &'static self,
-        bus_address: Address<EventBus<D>>,
+        _: Address<EventBus<D>>,
         supervisor: &mut Supervisor,
-    ) -> Address<MutexActor<UartPeripheral<U>>> {
-        let peripheral = self.peripheral.mount(bus_address, supervisor);
-        let irq = self.irq.mount(supervisor);
+    ) -> Address<UartPeripheral<U>> {
+        let addr = self.actor.mount(supervisor);
+        self.interrupt.mount(supervisor);
 
-        //irq.bind(&peripheral.clone());
-        //peripheral.notify(&self.uart);
-        //irq.notify(&self.uart);
-        self.peripheral.configure(&self.shared);
-        self.irq.configure(&self.shared);
-
-        peripheral
+        self.actor.configure(&self.shared);
+        self.interrupt.configure(&self.shared);
+        addr
     }
-}
-
-pub struct UartPeripheral<U>
-where
-    U: HalUart + 'static,
-{
-    tx_state: State,
-    rx_state: State,
-
-    uart: Option<&'static U>,
-
-    tx_done: Option<&'static Signal<Result<(), Error>>>,
-    rx_done: Option<&'static Signal<Result<usize, Error>>>,
 }
 
 impl<U> UartPeripheral<U>
@@ -100,101 +111,89 @@ where
     U: HalUart,
 {
     pub fn new() -> Self {
-        Self {
-            tx_done: None,
-            rx_done: None,
-            uart: None,
-            tx_state: State::Ready,
-            rx_state: State::Ready,
-        }
-    }
-
-    /// Receive bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
-    pub fn read<'a>(&'a mut self, rx_buffer: &mut [u8]) -> RxFuture<'a, U> {
-        match self.rx_state {
-            State::Ready => {
-                log::trace!("NO RX in progress");
-                self.rx_done.unwrap().reset();
-                self.rx_state = State::InProgress;
-                let uart = self.uart.unwrap();
-                match uart.start_read(rx_buffer) {
-                    Ok(_) => {
-                        log::trace!("Starting RX");
-                        RxFuture::Defer(self)
-                    }
-                    Err(e) => RxFuture::Error(e),
-                }
-            }
-            _ => RxFuture::Error(Error::RxInProgress),
-        }
-    }
-
-    /// Transmit bytes from provided tx_buffer over UART. The memory pointed to by the buffer must be available until the return future is await'ed
-    pub fn write<'a>(&'a mut self, tx_buffer: &[u8]) -> TxFuture<'a, U> {
-        match self.tx_state {
-            State::Ready => {
-                log::trace!("NO TX in progress");
-                self.tx_done.unwrap().reset();
-                self.tx_state = State::InProgress;
-                let uart = self.uart.unwrap();
-                match uart.start_write(tx_buffer) {
-                    Ok(_) => {
-                        log::trace!("Starting TX");
-                        TxFuture::Defer(self)
-                    }
-                    Err(e) => TxFuture::Error(e),
-                }
-            }
-            _ => TxFuture::Error(Error::TxInProgress),
-        }
+        Self { shared: None }
     }
 }
 
-impl<U> Configurable for UartPeripheral<U>
-where
-    U: HalUart + 'static,
-{
+impl<U: HalUart> Configurable for UartPeripheral<U> {
     type Configuration = Shared<U>;
 
     fn configure(&mut self, config: &'static Self::Configuration) {
-        self.uart.replace(&config.uart);
-        self.tx_done.replace(&config.tx_done);
-        self.rx_done.replace(&config.rx_done);
+        self.shared.replace(config);
     }
 }
 
-pub struct UartInterrupt<U>
+impl<'a, U> RequestHandler<UartTx<'a>> for UartPeripheral<U>
 where
     U: HalUart + 'static,
 {
-    uart: Option<&'static U>,
-    tx_done: Option<&'static Signal<Result<(), Error>>>,
-    rx_done: Option<&'static Signal<Result<usize, Error>>>,
+    type Response = Result<(), Error>;
+
+    /// Transmit bytes from provided tx_buffer over UART. The memory pointed to by the buffer must be available until the return future is await'ed
+    fn on_request(self, message: UartTx<'a>) -> Response<Self, Self::Response> {
+        let shared = self.shared.as_ref().unwrap();
+        match shared.tx_state.get() {
+            State::Ready => {
+                log::trace!("NO TX in progress");
+                shared.tx_done.reset();
+                shared.tx_state.set(State::InProgress);
+                match shared.uart.start_write(message.0) {
+                    Ok(_) => {
+                        log::trace!("Starting TX");
+                        let future = TxFuture::new(shared);
+                        Response::immediate_future(self, future)
+                    }
+                    Err(e) => Response::immediate(self, Err(e)),
+                }
+            }
+            _ => Response::immediate(self, Err(Error::TxInProgress)),
+        }
+    }
 }
+
+impl<'a, U> RequestHandler<UartRx<'a>> for UartPeripheral<U>
+where
+    U: HalUart + 'static,
+{
+    type Response = Result<usize, Error>;
+    /// Receive bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
+    fn on_request(self, message: UartRx<'a>) -> Response<Self, Self::Response> {
+        let shared = self.shared.as_ref().unwrap();
+        match shared.rx_state.get() {
+            State::Ready => {
+                log::trace!("NO RX in progress");
+                shared.rx_done.reset();
+                shared.rx_state.set(State::InProgress);
+                match shared.uart.start_read(message.0) {
+                    Ok(_) => {
+                        log::trace!("Starting RX");
+                        let future = RxFuture::new(shared);
+                        Response::immediate_future(self, future)
+                    }
+                    Err(e) => Response::immediate(self, Err(e)),
+                }
+            }
+            _ => Response::immediate(self, Err(Error::RxInProgress)),
+        }
+    }
+}
+
+impl<U> Actor for UartPeripheral<U> where U: HalUart {}
 
 impl<U> UartInterrupt<U>
 where
     U: HalUart,
 {
     pub fn new() -> Self {
-        Self {
-            uart: None,
-            tx_done: None,
-            rx_done: None,
-        }
+        Self { shared: None }
     }
 }
 
-impl<U> Configurable for UartInterrupt<U>
-    where
-        U: HalUart + 'static,
-{
+impl<U: HalUart> Configurable for UartInterrupt<U> {
     type Configuration = Shared<U>;
 
     fn configure(&mut self, config: &'static Self::Configuration) {
-        self.uart.replace(&config.uart);
-        self.tx_done.replace(&config.tx_done);
-        self.rx_done.replace(&config.rx_done);
+        self.shared.replace(config);
     }
 }
 
@@ -205,34 +204,40 @@ where
     U: HalUart,
 {
     fn on_interrupt(&mut self) {
-        let uart = self.uart.unwrap();
-        let (tx_done, rx_done) = uart.process_interrupts();
+        let shared = self.shared.as_ref().unwrap();
+        let (tx_done, rx_done) = shared.uart.process_interrupts();
         log::trace!(
-            "[UART ISR] TX WAKER: {}. RX WAKER: {}. TX DONE: {}. RX DONE: {}",
-            self.tx_done.as_ref().unwrap().signaled(),
-            self.rx_done.as_ref().unwrap().signaled(),
+            "[UART ISR] TX SIGNALED: {}. RX SIGNALED: {}. TX DONE: {}. RX DONE: {}",
+            shared.tx_done.signaled(),
+            shared.rx_done.signaled(),
             tx_done,
             rx_done,
         );
 
         if tx_done {
-            self.tx_done.as_ref().unwrap().signal(uart.finish_write());
+            shared.tx_done.signal(shared.uart.finish_write());
         }
 
         if rx_done {
-            self.rx_done.as_ref().unwrap().signal(uart.finish_read());
+            shared.rx_done.signal(shared.uart.finish_read());
         }
     }
 }
 
-impl<U> Actor for UartPeripheral<U> where U: HalUart {}
-
-pub enum TxFuture<'a, U>
+pub struct TxFuture<'a, U>
 where
     U: HalUart + 'static,
 {
-    Defer(&'a mut UartPeripheral<U>),
-    Error(Error),
+    shared: &'a Shared<U>,
+}
+
+impl<'a, U> TxFuture<'a, U>
+where
+    U: HalUart + 'static,
+{
+    fn new(shared: &'a Shared<U>) -> Self {
+        Self { shared }
+    }
 }
 
 impl<'a, U> Future for TxFuture<'a, U>
@@ -240,21 +245,16 @@ where
     U: HalUart + 'static,
 {
     type Output = Result<(), Error>;
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        match &mut *self {
-            TxFuture::Defer(ref mut p) => {
-                if State::InProgress == p.tx_state {
-                    let done = p.tx_done.unwrap();
-                    if let Poll::Ready(result) = done.poll_wait(cx) {
-                        p.tx_state = State::Ready;
-                        log::trace!("Marking future complete");
-                        return Poll::Ready(result);
-                    }
-                }
-                return Poll::Pending;
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        log::trace!("Polling TX: {:?}", self.shared.tx_state.get());
+        if State::InProgress == self.shared.tx_state.get() {
+            if let Poll::Ready(result) = self.shared.tx_done.poll_wait(cx) {
+                self.shared.tx_state.set(State::Ready);
+                log::trace!("Marked TX future complete. Set ready");
+                return Poll::Ready(result);
             }
-            TxFuture::Error(err) => return Poll::Ready(Err(err.clone())),
         }
+        return Poll::Pending;
     }
 }
 
@@ -263,23 +263,26 @@ where
     U: HalUart + 'static,
 {
     fn drop(&mut self) {
-        match self {
-            TxFuture::Defer(ref mut p) => {
-                if State::InProgress == p.tx_state {
-                    p.uart.unwrap().cancel_write();
-                }
-            }
-            _ => {}
+        if State::InProgress == self.shared.tx_state.get() {
+            self.shared.uart.cancel_write();
         }
     }
 }
 
-pub enum RxFuture<'a, U>
+pub struct RxFuture<'a, U>
 where
     U: HalUart + 'static,
 {
-    Defer(&'a mut UartPeripheral<U>),
-    Error(Error),
+    shared: &'a Shared<U>,
+}
+
+impl<'a, U> RxFuture<'a, U>
+where
+    U: HalUart + 'static,
+{
+    fn new(shared: &'a Shared<U>) -> Self {
+        Self { shared }
+    }
 }
 
 impl<'a, U> Future for RxFuture<'a, U>
@@ -287,21 +290,16 @@ where
     U: HalUart + 'static,
 {
     type Output = Result<usize, Error>;
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        match &mut *self {
-            RxFuture::Defer(ref mut p) => {
-                if State::InProgress == p.rx_state {
-                    let done = p.rx_done.unwrap();
-                    if let Poll::Ready(result) = done.poll_wait(cx) {
-                        p.rx_state = State::Ready;
-                        log::trace!("Marking future complete");
-                        return Poll::Ready(result);
-                    }
-                }
-                return Poll::Pending;
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        log::trace!("Polling RX: {:?}", self.shared.rx_state.get());
+        if State::InProgress == self.shared.rx_state.get() {
+            if let Poll::Ready(result) = self.shared.rx_done.poll_wait(cx) {
+                self.shared.rx_state.set(State::Ready);
+                log::trace!("Marked RX future complete. Set ready");
+                return Poll::Ready(result);
             }
-            RxFuture::Error(err) => return Poll::Ready(Err(err.clone())),
         }
+        return Poll::Pending;
     }
 }
 
@@ -310,13 +308,28 @@ where
     U: HalUart + 'static,
 {
     fn drop(&mut self) {
-        match self {
-            RxFuture::Defer(ref mut p) => {
-                if State::InProgress == p.rx_state {
-                    p.uart.unwrap().cancel_read();
-                }
-            }
-            _ => {}
+        if State::InProgress == self.shared.rx_state.get() {
+            self.shared.uart.cancel_read();
         }
     }
 }
+
+impl<U> Address<UartPeripheral<U>>
+where
+    U: HalUart,
+{
+    /// # Safety
+    /// The future *must* be fully `.await`'d before allowing the `bytes` and `buffer` arguments to fall out of scope.
+    pub async unsafe fn write<'a>(&'a mut self, tx_buffer: &[u8]) -> Result<(), Error> {
+        self.request_unchecked(UartTx(tx_buffer)).await
+    }
+
+    /// # Safety
+    /// The future *must* be fully `.await`'d before allowing the `bytes` and `buffer` arguments to fall out of scope.
+    pub async unsafe fn read<'a>(&'a mut self, rx_buffer: &mut [u8]) -> Result<usize, Error> {
+        self.request_unchecked(UartRx(rx_buffer)).await
+    }
+}
+
+struct UartTx<'a>(&'a [u8]);
+struct UartRx<'a>(&'a mut [u8]);
