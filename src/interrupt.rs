@@ -6,6 +6,7 @@ use cortex_m::peripheral::NVIC;
 use crate::actor::{Actor, ActorContext, Configurable};
 use crate::address::Address;
 use crate::supervisor::Supervisor;
+use crate::prelude::Bind;
 
 /// Additional trait applicable to `Actor`s indicating their ability
 /// to respond to hardware interrupts.
@@ -47,6 +48,19 @@ impl<I: Interrupt> InterruptContext<I> {
 
     pub fn address(&'static self) -> Address<I> {
         self.actor_context.address()
+    }
+
+    pub fn name(&self) -> &str {
+        self.actor_context.name()
+    }
+
+    /// Dispatch a bind injection.
+    pub fn bind<OA: Actor>(&'static self, address: Address<OA>)
+        where
+            I: Bind<OA>,
+            OA: 'static,
+    {
+        self.actor_context.bind(address)
     }
 
     pub fn configure(&'static self, config: &'static I::Configuration)

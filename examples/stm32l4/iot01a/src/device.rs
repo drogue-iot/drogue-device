@@ -77,16 +77,16 @@ impl Device for MyDevice {
         let hts221_addr = self.hts221.mount(bus_address, supervisor);
         let timer_addr = self.timer.mount(bus_address, supervisor);
 
-        blinker1_addr.bind(timer_addr);
-        blinker1_addr.bind(ld1_addr);
+        self.blinker1.bind(timer_addr);
+        self.blinker1.bind(ld1_addr);
 
-        blinker2_addr.bind(timer_addr);
-        blinker2_addr.bind(ld2_addr);
+        self.blinker2.bind(timer_addr);
+        self.blinker2.bind(ld2_addr);
 
-        hts221_addr.bind(i2c_addr);
+        self.hts221.bind(i2c_addr);
 
         let button_addr = self.button.mount(supervisor);
-        button_addr.bind(bus_address);
+        self.button.bind(bus_address);
     }
 }
 

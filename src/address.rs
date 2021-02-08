@@ -28,6 +28,7 @@ impl<A: Actor + 'static> Address<A> {
         Self { actor }
     }
 
+    /*
     /// Bind or inject another address into the actor behind this address.
     ///
     /// To accept bound addresses, the target must implement `Bind<...>`
@@ -39,6 +40,7 @@ impl<A: Actor + 'static> Address<A> {
     {
         self.actor.bind(address);
     }
+     */
 
     /// Send a non-blocking notification to the actor behind this address.
     ///

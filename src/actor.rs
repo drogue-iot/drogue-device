@@ -201,7 +201,7 @@ impl<A: Actor + 'static> ActorContext<A> {
     }
 
     /// Dispatch a bind injection.
-    pub(crate) fn bind<OA: Actor>(&'static self, address: Address<OA>)
+    pub fn bind<OA: Actor>(&'static self, address: Address<OA>)
     where
         A: Bind<OA>,
         OA: 'static,

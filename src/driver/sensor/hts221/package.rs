@@ -9,6 +9,7 @@ use cortex_m::interrupt::Nr;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
 use crate::domain::temperature::Celsius;
+use crate::driver::i2c::I2cPeripheral;
 
 pub struct Hts221<D, P, I>
 where
@@ -32,6 +33,10 @@ where
             ready: InterruptContext::new(Ready::new(ready), irq).with_name("hts221-irq"),
         }
     }
+
+    pub fn bind(&'static self, address: Address<I2cPeripheral<I>>) {
+        self.sensor.bind(address);
+    }
 }
 
 impl<D, P, I> Package<D, Sensor<D, I>> for Hts221<D, P, I>
@@ -47,8 +52,8 @@ where
     ) -> Address<Sensor<D, I>> {
         let ready_addr = self.ready.mount(supervisor);
         let sensor_addr = self.sensor.mount(supervisor);
-        sensor_addr.bind(bus_address);
-        ready_addr.bind(sensor_addr);
+        self.sensor.bind(bus_address);
+        self.ready.bind(sensor_addr);
         sensor_addr
     }
 }
