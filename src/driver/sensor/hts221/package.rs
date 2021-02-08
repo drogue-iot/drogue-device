@@ -28,8 +28,8 @@ where
 {
     pub fn new<N: Nr>(ready: P, irq: N) -> Self {
         Self {
-            sensor: ActorContext::new(Sensor::new()),
-            ready: InterruptContext::new(Ready::new(ready), irq),
+            sensor: ActorContext::new(Sensor::new()).with_name("hts221-sensor"),
+            ready: InterruptContext::new(Ready::new(ready), irq).with_name("hts221-irq"),
         }
     }
 }

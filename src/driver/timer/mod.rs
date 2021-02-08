@@ -8,9 +8,16 @@ use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 use cortex_m::interrupt::Nr;
+use core::fmt::{Debug, Formatter};
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone)]
 pub struct Delay<DUR: Duration + Into<Milliseconds>>(pub DUR);
+
+impl<DUR: Duration + Into<Milliseconds>> Debug for Delay<DUR> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        write!(f, "Delay")
+    }
+}
 
 pub trait Schedulable {
     fn run(&self);

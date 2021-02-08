@@ -13,12 +13,8 @@ impl Hout {
         address: I2cAddress,
         i2c: Address<I2cPeripheral<I>>,
     ) -> Result<i16, I::Error> {
-        unsafe {
-            // # Safety
-            // The call to `.write_read` is properly awaited for completion before allowing the buffer to drop.
             let mut buf = [0; 2];
             let result = i2c.write_read(address, &[H_OUT], &mut buf).await?;
             Ok(i16::from_le_bytes(buf))
-        }
     }
 }

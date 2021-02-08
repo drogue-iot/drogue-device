@@ -20,6 +20,7 @@ pub mod supervisor;
 pub mod synchronization;
 
 pub mod hal;
+mod future;
 
 /// Easy imports for common types and traits.
 pub mod prelude {

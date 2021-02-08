@@ -9,6 +9,7 @@ use core::task::{Context, Poll, Waker};
 use heapless::{consts::*, spsc::Queue};
 
 /// The lock request message.
+#[derive(Debug)]
 pub struct Lock;
 
 #[doc(hidden)]

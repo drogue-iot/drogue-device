@@ -3,6 +3,7 @@
 use crate::actor::{Actor, ActorContext};
 use crate::bind::Bind;
 use crate::handler::{NotifyHandler, RequestHandler};
+use core::fmt::Debug;
 
 /// A handle to another actor for dispatching notifications and requests.
 ///
@@ -14,16 +15,11 @@ pub struct Address<A: Actor + 'static> {
     actor: &'static ActorContext<A>,
 }
 
-
-impl<A: Actor> Copy for Address<A> {
-
-}
+impl<A: Actor> Copy for Address<A> {}
 
 impl<A: Actor> Clone for Address<A> {
     fn clone(&self) -> Self {
-        Self {
-            actor: self.actor,
-        }
+        Self { actor: self.actor }
     }
 }
 
@@ -63,7 +59,7 @@ impl<A: Actor + 'static> Address<A> {
     pub async fn request<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
     where
         A: RequestHandler<M> + 'static,
-        M: 'static
+        M: Debug + 'static,
     {
         self.actor.request(message).await
     }
@@ -79,9 +75,10 @@ impl<A: Actor + 'static> Address<A> {
     /// ensure that the response to the request is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope is unsound.
-    pub async unsafe fn request_unchecked<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
+    pub async fn request_unchecked<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
     where
         A: RequestHandler<M> + 'static,
+        M: Debug,
     {
         self.actor.request_unchecked(message).await
     }

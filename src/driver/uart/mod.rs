@@ -331,5 +331,7 @@ where
     }
 }
 
+#[derive(Debug)]
 struct UartTx<'a>(&'a [u8]);
+#[derive(Debug)]
 struct UartRx<'a>(&'a mut [u8]);

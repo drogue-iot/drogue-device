@@ -8,6 +8,7 @@ use core::task::{Context, Poll, Waker};
 
 use heapless::{consts::*, spsc::Queue};
 
+#[derive(Debug)]
 pub struct Acquire;
 pub struct Release;
 

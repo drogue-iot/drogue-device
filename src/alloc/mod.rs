@@ -67,7 +67,7 @@ impl<T: Future + ?Sized> Future for Box<T> {
 impl<T: ?Sized> Drop for Box<T> {
     fn drop(&mut self) {
         unsafe {
-            drop_in_place(self.pointer.get());
+            drop_in_place(*self.pointer.get());
             HEAP.as_ref()
                 .unwrap()
                 .dealloc_object(*self.pointer.get() as *mut u8);
@@ -77,7 +77,8 @@ impl<T: ?Sized> Drop for Box<T> {
 
 impl<T: ?Sized + Debug> Debug for Box<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        unsafe { (&(*self.pointer.get() as *const T)).fmt(f) }
+        //unsafe { (&(*self.pointer.get() as *const T)).fmt(f) }
+        Debug::fmt(unsafe { &**self.pointer.get() as &T}, f )
     }
 }
 
@@ -88,7 +89,7 @@ struct RcBox<T: ?Sized> {
 
 impl<T> RcBox<T> {
     pub fn new(value: T) -> Self {
-        Self { count: 0, value }
+        Self { count: 1, value }
     }
 }
 
@@ -131,6 +132,7 @@ impl<T> Drop for Rc<T> {
         unsafe {
             (**self.pointer.get()).count -= 1;
             if (**self.pointer.get()).count == 0 {
+                drop_in_place(*self.pointer.get());
                 HEAP.as_ref()
                     .unwrap()
                     .dealloc_object(*self.pointer.get() as *mut u8);

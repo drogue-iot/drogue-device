@@ -158,8 +158,8 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
                 break;
             }
             if should_drop {
-                log::trace!("[{}] executor: task drop", self.name());
-                self.current.borrow_mut().take().unwrap();
+                let task = self.current.borrow_mut().take().unwrap();
+                log::trace!("[{}] executor: task drop {:?}", self.name(), task);
             }
         }
 

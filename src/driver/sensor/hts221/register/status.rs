@@ -1,7 +1,7 @@
+use crate::driver::i2c::I2cPeripheral;
 use crate::hal::i2c::I2cAddress;
 use crate::prelude::Address;
 use embedded_hal::blocking::i2c::WriteRead;
-use crate::driver::i2c::I2cPeripheral;
 
 const STATUS: u8 = 0x27;
 
@@ -15,13 +15,9 @@ impl Status {
         address: I2cAddress,
         i2c: Address<I2cPeripheral<I>>,
     ) -> Result<Status, I::Error> {
-        unsafe {
-            // # Safety
-            // The call to `.write_read` is properly awaited for completion before allowing the buffer to drop.
-            let mut buf = [0; 1];
-            let result = i2c.write_read(address, &[STATUS], &mut buf).await?;
-            Ok(buf[0].into())
-        }
+        let mut buf = [0; 1];
+        let result = i2c.write_read(address, &[STATUS], &mut buf).await?;
+        Ok(buf[0].into())
     }
 
     pub fn temperature_available(&self) -> bool {

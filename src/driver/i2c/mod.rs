@@ -12,7 +12,7 @@ where
 impl<I> I2c<I> {
     pub fn new(i2c: I) -> Self {
         Self {
-            peripheral: ActorContext::new(I2cPeripheral::new(i2c)),
+            peripheral: ActorContext::new(I2cPeripheral::new(i2c)).with_name("i2c"),
         }
     }
 }
@@ -42,6 +42,7 @@ impl<I> I2cPeripheral<I> {
 
 impl<I> Actor for I2cPeripheral<I> {}
 
+#[derive(Debug)]
 pub struct I2cRead<'b> {
     address: I2cAddress,
     buffer: &'b mut [u8],
@@ -59,6 +60,8 @@ where
     }
 }
 
+
+#[derive(Debug)]
 pub struct I2cWrite<'b> {
     address: I2cAddress,
     buffer: &'b [u8],
@@ -76,6 +79,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct I2cWriteRead<'b> {
     address: I2cAddress,
     bytes: &'b [u8],
@@ -100,9 +104,9 @@ impl<I> Address<I2cPeripheral<I>>
     where
         I: Read,
 {
-    /// # Safety
-    /// The future *must* be fully `.await`'d before allowing the `bytes` or `buffer` arguments to fall out of scope.
-    pub async unsafe fn read(
+    /// # Panics
+    /// The future *must* be fully `.await`'d before allowing the `bytes` or `buffer` arguments to fall out of scope, otherwise a panic will occur.
+    pub async fn read(
         &self,
         address: I2cAddress,
         buffer: &mut [u8],
@@ -118,9 +122,9 @@ impl<I> Address<I2cPeripheral<I>>
     where
         I: Write,
 {
-    /// # Safety
-    /// The future *must* be fully `.await`'d before allowing the `buffer` argument to fall out of scope.
-    pub async unsafe fn write(
+    /// # Panics
+    /// The future *must* be fully `.await`'d before allowing the `buffer` argument to fall out of scope, otherwise a panic will occur.
+    pub async fn write(
         &self,
         address: I2cAddress,
         buffer: &[u8],
@@ -136,9 +140,9 @@ impl<I> Address<I2cPeripheral<I>>
 where
     I: WriteRead,
 {
-    /// # Safety
-    /// The future *must* be fully `.await`'d before allowing the `bytes` and `buffer` arguments to fall out of scope.
-    pub async unsafe fn write_read<'b>(
+    /// # Panics
+    /// The future *must* be fully `.await`'d before allowing the `bytes` and `buffer` arguments to fall out of scope, otherwise a panic will occur.
+    pub async fn write_read<'b>(
         &self,
         address: I2cAddress,
         bytes: &'b [u8],
