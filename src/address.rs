@@ -69,17 +69,17 @@ impl<A: Actor + 'static> Address<A> {
     /// To accept the request and provide a response, the target must implement
     /// `RequestHandler<...>` for the appropriate type of message.
     ///
-    /// # Safety
+    /// # Panics
     ///
     /// While the request message may contain non-static references, the user must
     /// ensure that the response to the request is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
-    /// scope is unsound.
-    pub async fn request_unchecked<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
+    /// scope will result in a panic.
+    pub async fn request_panicking<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
     where
         A: RequestHandler<M> + 'static,
         M: Debug,
     {
-        self.actor.request_unchecked(message).await
+        self.actor.request_panicking(message).await
     }
 }

@@ -111,7 +111,7 @@ impl<I> Address<I2cPeripheral<I>>
         address: I2cAddress,
         buffer: &mut [u8],
     ) -> Result<(), I::Error> {
-        self.request_unchecked(I2cRead {
+        self.request_panicking(I2cRead {
             address,
             buffer,
         }).await
@@ -129,7 +129,7 @@ impl<I> Address<I2cPeripheral<I>>
         address: I2cAddress,
         buffer: &[u8],
     ) -> Result<(), I::Error> {
-        self.request_unchecked(I2cWrite {
+        self.request_panicking(I2cWrite {
             address,
             buffer,
         }).await
@@ -148,7 +148,7 @@ where
         bytes: &'b [u8],
         buffer: &'b mut [u8],
     ) -> Result<(), I::Error> {
-        self.request_unchecked(I2cWriteRead {
+        self.request_panicking(I2cWriteRead {
             address,
             bytes,
             buffer,

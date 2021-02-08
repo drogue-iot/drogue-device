@@ -321,13 +321,13 @@ where
     /// # Safety
     /// The future *must* be fully `.await`'d before allowing the `bytes` and `buffer` arguments to fall out of scope.
     pub async unsafe fn write<'a>(&'a mut self, tx_buffer: &[u8]) -> Result<(), Error> {
-        self.request_unchecked(UartTx(tx_buffer)).await
+        self.request_panicking(UartTx(tx_buffer)).await
     }
 
     /// # Safety
     /// The future *must* be fully `.await`'d before allowing the `bytes` and `buffer` arguments to fall out of scope.
     pub async unsafe fn read<'a>(&'a mut self, rx_buffer: &mut [u8]) -> Result<usize, Error> {
-        self.request_unchecked(UartRx(rx_buffer)).await
+        self.request_panicking(UartRx(rx_buffer)).await
     }
 }
 

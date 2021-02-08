@@ -267,7 +267,7 @@ impl<A: Actor + 'static> ActorContext<A> {
     }
 
     /// Dispatch an async request.
-    pub(crate) async fn request_unchecked<M>(
+    pub(crate) async fn request_panicking<M>(
         &'static self,
         message: M,
     ) -> <A as RequestHandler<M>>::Response
