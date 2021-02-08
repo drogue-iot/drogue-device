@@ -37,7 +37,7 @@ impl Device for MyDevice {
         self.btn_back.mount(supervisor).bind(bus);
         let timer = self.timer.mount(bus, supervisor);
         let led = self.led.mount(supervisor);
-        //        led.bind(timer);
+        led.bind(timer);
 
         let app = self.app.mount(supervisor);
 
@@ -123,7 +123,7 @@ impl NotifyHandler<SayHello> for App {
 
             for c in r"Hello, World!".chars() {
                 led.notify(MatrixCommand::ApplyAscii(c));
-                //timer.delay(Milliseconds(200)).await;
+                timer.delay(Milliseconds(200)).await;
             }
 
             led.notify(MatrixCommand::Clear);

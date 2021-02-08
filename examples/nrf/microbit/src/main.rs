@@ -4,7 +4,7 @@
 mod device;
 mod gpiote;
 
-use panic_halt as _;
+use panic_rtt_target as _;
 
 use cortex_m_rt::{entry, exception};
 use drogue_device::{

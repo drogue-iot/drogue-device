@@ -147,37 +147,30 @@ where
     fn on_request(mut self, message: Delay<DUR>) -> Response<Self, Self::Response> {
         let ms: Milliseconds = message.0.into();
 
-        if let Some((index, slot)) = self
-            .shared
-            .unwrap()
-            .delay_deadlines
-            .borrow_mut()
+        let mut delay_deadlines = self.shared.unwrap().delay_deadlines.borrow_mut();
+        if let Some((index, slot)) = delay_deadlines
             .iter_mut()
             .enumerate()
             .find(|e| matches!(e, (_, None)))
         {
-            self.shared.unwrap().delay_deadlines.borrow_mut()[index]
-                .replace(DelayDeadline::new(ms));
-            if let Some(current_deadline) = &*self.shared.unwrap().current_deadline.borrow() {
-                if *current_deadline > ms {
-                    self.shared
-                        .unwrap()
-                        .current_deadline
-                        .borrow_mut()
-                        .replace(ms);
+            delay_deadlines[index].replace(DelayDeadline::new(ms));
+            let mut current_deadline = self.shared.unwrap().current_deadline.borrow_mut();
+            let (new_deadline, should_replace) = if let Some(current_deadline) = *current_deadline {
+                if current_deadline > ms {
                     //log::info!("start shorter timer for {:?}", ms);
-                    self.timer.start(ms);
+                    (ms, true)
                 } else {
                     //log::info!("timer already running for {:?}", current_deadline );
+                    (ms, false)
                 }
             } else {
-                self.shared
-                    .unwrap()
-                    .current_deadline
-                    .borrow_mut()
-                    .replace(ms);
                 //log::info!("start new timer for {:?}", ms);
-                self.timer.start(ms);
+                (ms, true)
+            };
+
+            if should_replace {
+                current_deadline.replace(new_deadline);
+                self.timer.start(new_deadline);
             }
             let future = DelayFuture::new(index, self.shared.as_ref().unwrap());
             Response::immediate_future(self, future)
