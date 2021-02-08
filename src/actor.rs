@@ -17,6 +17,7 @@ use core::mem::transmute;
 use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue, String};
+use crate::supervisor::actor_executor::ActiveActor;
 
 pub trait Configurable {
     type Configuration;
@@ -196,7 +197,7 @@ impl<A: Actor + 'static> ActorContext<A> {
             (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
         }
 
-        //let _ = self.do_poll(self.state_flag_handle.borrow().unwrap());
+        let _ = self.do_poll(self.state_flag_handle.borrow().unwrap());
     }
 
     /// Dispatch a bind injection.
