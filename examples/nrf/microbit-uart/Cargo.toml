@@ -2,7 +2,7 @@
 authors = ["Ulf Lilleengen <ulf.lilleengen@gmail.com>"]
 edition = "2018"
 readme = "README.md"
-name = "microbit"
+name = "microbit-uart"
 version = "0.1.0"
 
 [dependencies]
@@ -20,6 +20,6 @@ drogue-device = { path = "../../..", features = ["nrf52833"]}
 heapless = "0.5.5"
 
 [[bin]]
-name = "microbit"
+name = "microbit-uart"
 test = false
 bench = false

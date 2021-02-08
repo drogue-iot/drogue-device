@@ -157,7 +157,7 @@ impl NotifyHandler<StartService> for App {
                             .map_err(|e| log::error!("Error reading from UART: {:?}", e))
                             .ok();
                     }
-                    //led.notify(MatrixCommand::ApplyAscii(buf[0] as char));
+                    led.notify(MatrixCommand::ApplyAscii(buf[0] as char));
                     unsafe {
                         uart.write(&buf[..1])
                             .await
