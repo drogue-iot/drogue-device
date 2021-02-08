@@ -16,9 +16,11 @@ use alloc::layout::Layout;
 use alloc::Heap;
 use core::mem;
 use cortex_m::interrupt::Mutex;
+use core::sync::atomic::{AtomicUsize, Ordering};
 
 pub struct CortexMHeap {
     heap: Mutex<RefCell<Heap>>,
+    high_watermark: AtomicUsize,
 }
 
 impl CortexMHeap {
@@ -67,6 +69,7 @@ impl CortexMHeap {
     pub fn new(memory: &'static [u8]) -> Self {
         Self {
             heap: Mutex::new(RefCell::new(Heap::new(memory))),
+            high_watermark: AtomicUsize::new(0),
         }
 
         //cortex_m::interrupt::free(|cs| {
@@ -84,6 +87,10 @@ impl CortexMHeap {
     /// Returns an estimate of the amount of bytes available.
     pub fn free(&self) -> usize {
         cortex_m::interrupt::free(|cs| self.heap.borrow(cs).borrow_mut().free())
+    }
+
+    pub fn high_watermark(&self) -> usize {
+        self.high_watermark.load(Ordering::Acquire)
     }
 
     pub(crate) fn alloc_init<'o, T: 'o>(&mut self, val: T) -> Option<&'o mut T> {
@@ -106,6 +113,11 @@ impl CortexMHeap {
                 (allocation as *mut Layout).write(layout);
                 allocation = (allocation as *mut Layout).add(1) as *mut u8;
                 (allocation as *mut T).write(val);
+                let used = self.used();
+                let high = self.high_watermark.load(Ordering::Acquire);
+                if  used > high  {
+                    self.high_watermark.store( used, Ordering::Release );
+                }
                 Some(&mut *(allocation as *mut _ as *mut T))
                 //Some(&*allocation as *mut T)
             }

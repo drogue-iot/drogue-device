@@ -1,7 +1,6 @@
 //! Actor addresses
 
 use crate::actor::{Actor, ActorContext};
-use crate::bind::Bind;
 use crate::handler::{NotifyHandler, RequestHandler};
 use core::fmt::Debug;
 
@@ -27,20 +26,6 @@ impl<A: Actor + 'static> Address<A> {
     pub(crate) fn new(actor: &'static ActorContext<A>) -> Self {
         Self { actor }
     }
-
-    /*
-    /// Bind or inject another address into the actor behind this address.
-    ///
-    /// To accept bound addresses, the target must implement `Bind<...>`
-    /// for the appropriate type of address being injected.
-    pub fn bind<OA: Actor>(&self, address: Address<OA>)
-    where
-        A: Bind<OA> + 'static,
-        OA: 'static,
-    {
-        self.actor.bind(address);
-    }
-     */
 
     /// Send a non-blocking notification to the actor behind this address.
     ///

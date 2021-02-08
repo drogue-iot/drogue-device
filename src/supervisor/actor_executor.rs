@@ -214,6 +214,7 @@ impl ActorExecutor {
 
     pub fn run_forever(&mut self) -> ! {
         self.dispatch_lifecycle_event(Lifecycle::Initialize);
+        self.run_until_quiescence();
         self.dispatch_lifecycle_event(Lifecycle::Start);
         loop {
             self.run_until_quiescence();
