@@ -1,6 +1,14 @@
 use drogue_device::domain::time::duration::Milliseconds;
 use drogue_device::driver::sensor::hts221::SensorAcquisition;
 use drogue_device::{
+    domain::temperature::Celsius,
+    driver::{
+        i2c::I2c,
+        memory::{Memory, Query},
+    },
+    hal::gpio::{ActiveHigh, ActiveOutput},
+};
+use drogue_device::{
     driver::{
         button::{Button, ButtonEvent},
         led::{Blinker, SimpleLED},
@@ -19,14 +27,6 @@ use stm32l4xx_hal::{
     i2c::I2c as HalI2c,
     pac::I2C2,
     pac::TIM15,
-};
-use drogue_device::{
-    hal::gpio::{ActiveOutput, ActiveHigh},
-    driver::{
-        i2c::I2c,
-        memory::{Memory, Query}
-    },
-    domain::temperature::Celsius,
 };
 
 type Ld1Pin = PA5<Output<PushPull>>;
@@ -61,11 +61,7 @@ pub struct MyDevice {
 }
 
 impl Device for MyDevice {
-    fn mount(
-        &'static self,
-        bus_address: Address<EventBus<Self>>,
-        supervisor: &mut Supervisor,
-    ) {
+    fn mount(&'static self, bus_address: Address<EventBus<Self>>, supervisor: &mut Supervisor) {
         self.memory.mount(supervisor);
         let ld1_addr = self.ld1.mount(supervisor);
         let ld2_addr = self.ld2.mount(supervisor);
@@ -114,6 +110,10 @@ impl EventHandler<SensorAcquisition<Celsius>> for MyDevice {
     where
         Self: Sized,
     {
-        log::info!("[event-bus] temperature={:.2} relative_humidity={:.2}", message.temperature.into_fahrenheit(), message.relative_humidity);
+        log::info!(
+            "[event-bus] temperature={:.2} relative_humidity={:.2}",
+            message.temperature.into_fahrenheit(),
+            message.relative_humidity
+        );
     }
 }

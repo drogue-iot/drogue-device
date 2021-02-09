@@ -119,6 +119,7 @@ fn main() -> ! {
         &mut rcc.apb1r1,
     );
 
+    // Create the Actor around the i2c bus.
     let i2c = I2c::new(i2c);
 
     // == HTS221 ==
@@ -126,11 +127,12 @@ fn main() -> ! {
     let mut ready = gpiod
         .pd15
         .into_pull_down_input(&mut gpiod.moder, &mut gpiod.pupdr);
-    //let mut ready = gpiod.pd15;
+
     ready.enable_interrupt(&mut device.EXTI);
     ready.make_interrupt_source(&mut device.SYSCFG, &mut rcc.apb2);
     ready.trigger_on_edge(&mut device.EXTI, Edge::RISING);
 
+    // Create the Actor around the HTS221
     let hts221 = Hts221::new(ready, EXTI15_10);
 
     // == Timer ==
