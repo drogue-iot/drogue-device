@@ -63,7 +63,6 @@ impl Semaphore {
 }
 
 impl Package for Semaphore {
-
     type Primary = SemaphoreActor;
     type Configuration = ();
 
@@ -149,7 +148,7 @@ impl Actor for SemaphoreActor {
         Self: Sized,
     {
         self.address.replace(address);
-        self.shared.replace( config );
+        self.shared.replace(config);
     }
 }
 

@@ -36,10 +36,12 @@ where
     P: InputPin + ExtiPin,
     I: WriteRead + Read + Write + 'static,
 {
-    type Configuration = Address<Sensor<D,I>>;
+    type Configuration = Address<Sensor<D, I>>;
 
-    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration) where
-        Self: Sized, {
+    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
+    where
+        Self: Sized,
+    {
         self.sensor.replace(config);
     }
 }
@@ -59,4 +61,3 @@ where
         }
     }
 }
-

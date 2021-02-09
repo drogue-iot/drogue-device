@@ -83,7 +83,6 @@ impl<T: 'static> Mutex<T> {
 }
 
 impl<T: 'static> Package for Mutex<T> {
-
     type Primary = MutexActor<T>;
     type Configuration = ();
 

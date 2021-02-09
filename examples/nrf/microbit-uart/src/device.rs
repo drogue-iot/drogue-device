@@ -5,7 +5,7 @@ use drogue_device::{
         gpiote::nrf::*,
         led::{LEDMatrix, MatrixCommand},
         timer::{Timer, TimerActor},
-        uart::{Uart, UartPeripheral},
+        uart::dma::{Uart, UartPeripheral},
     },
     hal::timer::nrf::Timer as HalTimer,
     hal::uart::nrf::Uarte as HalUart,

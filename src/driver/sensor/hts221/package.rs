@@ -35,7 +35,7 @@ where
     }
 
     //pub fn bind(&'static self, address: Address<I2cPeripheral<I>>) {
-        //self.sensor.bind(address);
+    //self.sensor.bind(address);
     //}
 }
 
@@ -53,7 +53,7 @@ where
         config: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<Self::Primary> {
-        let sensor_addr = self.sensor.mount( config, supervisor);
+        let sensor_addr = self.sensor.mount(config, supervisor);
         let ready_addr = self.ready.mount(sensor_addr, supervisor);
         sensor_addr
     }

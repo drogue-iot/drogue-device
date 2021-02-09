@@ -77,9 +77,7 @@ impl<D: Device> DeviceContext<D> {
             bus.mount((), &mut *self.supervisor.borrow_mut());
 
             let event_bus = bus.address();
-            let config = DeviceConfiguration {
-                event_bus,
-            };
+            let config = DeviceConfiguration { event_bus };
             self.device
                 .mount(config, &mut *self.supervisor.borrow_mut());
             (&*self.supervisor.borrow()).run_forever()

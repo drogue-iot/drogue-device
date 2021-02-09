@@ -59,12 +59,13 @@ where
 {
     type Configuration = (Address<EventBus<D>>, Address<I2cPeripheral<I>>);
 
-    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration) where
-        Self: Sized, {
-        self.bus.replace( config.0 );
-        self.i2c.replace( config.1 );
+    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
+    where
+        Self: Sized,
+    {
+        self.bus.replace(config.0);
+        self.i2c.replace(config.1);
     }
-
 
     fn on_initialize(self) -> Completion<Self> {
         Completion::defer(async move {

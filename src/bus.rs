@@ -22,7 +22,9 @@ impl<D: Device> EventBus<D> {
     }
 }
 
-impl<D: Device> Actor for EventBus<D> { type Configuration = (); }
+impl<D: Device> Actor for EventBus<D> {
+    type Configuration = ();
+}
 
 impl<D: Device, M> NotifyHandler<M> for EventBus<D>
 where

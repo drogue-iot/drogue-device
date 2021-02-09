@@ -8,9 +8,9 @@ use panic_rtt_target as _;
 use cortex_m_rt::{entry, exception};
 use drogue_device::{
     domain::time::rate::Extensions,
-    driver::timer::Timer,
-    driver::uart::Uart,
     driver::gpiote::nrf::*,
+    driver::timer::Timer,
+    driver::uart::dma::Uart,
     hal::timer::nrf::Timer as HalTimer,
     hal::uart::nrf::{Baudrate, Parity, Pins, Uarte as HalUart},
     prelude::*,

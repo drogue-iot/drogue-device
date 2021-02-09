@@ -1,9 +1,9 @@
+use crate::domain::switchable::{Off, On, Switchable};
 use crate::hal::gpio::ActiveOutput;
 use crate::hal::Active;
 use crate::prelude::*;
 use core::marker::PhantomData;
 use embedded_hal::digital::v2::OutputPin;
-use crate::domain::switchable::{Switchable, On, Off};
 
 pub struct SimpleLED<P, A>
 where
@@ -15,11 +15,10 @@ where
 }
 
 impl<P, A> Switchable for SimpleLED<P, A>
-    where
-        P: OutputPin + 'static,
-        A: ActiveOutput + 'static,
+where
+    P: OutputPin + 'static,
+    A: ActiveOutput + 'static,
 {
-
 }
 
 impl<P, A> SimpleLED<P, A>

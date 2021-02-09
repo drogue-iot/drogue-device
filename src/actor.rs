@@ -156,7 +156,11 @@ impl<A: Actor + 'static> ActorContext<A> {
     }
 
     /// Mount the context and its actor into the system.
-    pub fn mount(&'static self, config: A::Configuration, supervisor: &mut Supervisor) -> Address<A> {
+    pub fn mount(
+        &'static self,
+        config: A::Configuration,
+        supervisor: &mut Supervisor,
+    ) -> Address<A> {
         let addr = Address::new(self);
         let (actor_index, state_flag_handle) = supervisor.activate_actor(self);
         log::trace!("[{}] == {:x}", self.name(), state_flag_handle as u32);
@@ -167,7 +171,11 @@ impl<A: Actor + 'static> ActorContext<A> {
         self.items_producer.borrow_mut().replace(producer);
         self.items_consumer.borrow_mut().replace(consumer);
 
-        self.actor.borrow_mut().as_mut().unwrap().on_mount(addr, config);
+        self.actor
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .on_mount(addr, config);
 
         addr
     }
@@ -233,6 +241,42 @@ impl<A: Actor + 'static> ActorContext<A> {
         let response = RequestResponseFuture::new(receiver);
 
         unsafe {
+            let request: Box<dyn ActorFuture<A>> = Box::new(request);
+            cortex_m::interrupt::free(|cs| {
+                self.items_producer
+                    .borrow_mut()
+                    .as_mut()
+                    .unwrap()
+                    .enqueue(request)
+                    .unwrap_or_else(|_| panic!("message queue full"));
+            });
+
+            //let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
+            let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
+            (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
+        }
+
+        response.await
+    }
+
+    /// Dispatch an async request.
+    pub(crate) async fn request_cancellable<M>(
+        &'static self,
+        message: M,
+    ) -> <A as RequestHandler<M>>::Response
+    where
+        A: RequestHandler<M>,
+        M: Debug,
+    {
+        let signal = Rc::new(CompletionHandle::new());
+        let sender = CompletionSender::new(signal.clone());
+        let receiver = CompletionReceiver::new(signal);
+        let request: &mut dyn ActorFuture<A> =
+            alloc(OnRequest::new(self, message, sender)).unwrap();
+        let response = RequestResponseFuture::new(receiver);
+
+        unsafe {
+            let request = transmute::<_, &mut (dyn ActorFuture<A> + 'static)>(request);
             let request: Box<dyn ActorFuture<A>> = Box::new(request);
             cortex_m::interrupt::free(|cs| {
                 self.items_producer

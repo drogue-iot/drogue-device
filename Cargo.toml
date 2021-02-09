@@ -40,6 +40,26 @@ version = "0.12.0"
 features = ["rt"]
 optional = true
 
+
+# ----------------------------------------
+# lora dependencies
+# ----------------------------------------
+[dependencies.drogue-lora]
+#git = "https://github.com/drogue-iot/drogue-lora.git"
+#branch = "main"
+path = "../drogue-lora"
+
+[dependencies.drogue-rak811]
+#git = "https://github.com/drogue-iot/drogue-rak811.git"
+#branch = "main"
+path = "../drogue-rak811"
+optional = true
+
+[dependencies.futures]
+version = "0.3"
+default-features = false
+optional = true
+
 # ----------------------------------------
 # embedded_time dependencies
 # ----------------------------------------
@@ -51,4 +71,4 @@ default-features = false
 [features]
 stm32l4xx = [ "stm32l4xx-hal" ]
 nrf52833 = [ "nrf52833-hal" ]
-driver-rak811 = []
+driver-rak811 = [ "drogue-rak811", "futures" ]

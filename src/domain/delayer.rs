@@ -1,6 +1,6 @@
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::handler::Response;
-use crate::prelude::{Actor, RequestHandler, Address};
+use crate::prelude::{Actor, Address, RequestHandler};
 
 #[derive(Copy, Clone)]
 pub struct Delay<DUR: Duration + Into<Milliseconds>>(pub DUR);
@@ -25,8 +25,8 @@ where
 
 impl<D: Delayer> Address<D> {
     pub async fn delay<DUR>(&self, delay: DUR)
-        where
-            DUR: Duration + Into<Milliseconds> + 'static,
+    where
+        DUR: Duration + Into<Milliseconds> + 'static,
     {
         self.request(Delay(delay)).await
     }

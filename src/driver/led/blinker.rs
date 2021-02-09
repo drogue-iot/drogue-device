@@ -1,7 +1,7 @@
+use crate::domain::scheduler::Scheduler;
+use crate::domain::switchable::Switchable;
 use crate::domain::time::duration::Milliseconds;
 use crate::prelude::*;
-use crate::domain::switchable::Switchable;
-use crate::domain::scheduler::Scheduler;
 
 pub struct Blinker<S, T>
 where
@@ -41,8 +41,8 @@ where
         Self: Sized,
     {
         self.address.replace(address);
-        self.led.replace( config.0 );
-        self.timer.replace( config.1 );
+        self.led.replace(config.0);
+        self.timer.replace(config.1);
     }
 
     fn on_start(self) -> Completion<Self> {

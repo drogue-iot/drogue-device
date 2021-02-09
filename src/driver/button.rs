@@ -23,8 +23,10 @@ where
 {
     type Configuration = Address<EventBus<D>>;
 
-    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration) where
-        Self: Sized, {
+    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
+    where
+        Self: Sized,
+    {
         self.bus.replace(config);
     }
 }

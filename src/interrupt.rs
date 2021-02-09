@@ -52,7 +52,11 @@ impl<I: Interrupt> InterruptContext<I> {
     }
 
     /// Mount the context and its actor into the system.
-    pub fn mount(&'static self, config: I::Configuration, supervisor: &mut Supervisor) -> Address<I> {
+    pub fn mount(
+        &'static self,
+        config: I::Configuration,
+        supervisor: &mut Supervisor,
+    ) -> Address<I> {
         let addr = self.actor_context.mount(config, supervisor);
         supervisor.activate_interrupt(self, self.irq);
 

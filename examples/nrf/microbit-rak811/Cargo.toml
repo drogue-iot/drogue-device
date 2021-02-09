@@ -2,7 +2,7 @@
 authors = ["Ulf Lilleengen <ulf.lilleengen@gmail.com>"]
 edition = "2018"
 readme = "README.md"
-name = "microbit-uart"
+name = "microbit-rak811"
 version = "0.1.0"
 
 [dependencies]
@@ -20,6 +20,6 @@ drogue-device = { path = "../../..", features = ["nrf52833", "driver-rak811" ]}
 heapless = "0.5.5"
 
 [[bin]]
-name = "microbit-uart"
+name = "microbit-rak811"
 test = false
 bench = false

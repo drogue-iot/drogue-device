@@ -1,37 +1,43 @@
 use drogue_device::{
-    driver::{gpiote::nrf::*, lora::*, uart::Uart},
+    driver::{
+        gpiote::nrf::*,
+        lora::*,
+        memory::{Memory, Query},
+        timer::Timer,
+        uart::dma::Uart as DmaUart,
+    },
+    hal::timer::nrf::Timer as HalTimer,
     hal::uart::nrf::Uarte as HalUart,
     prelude::*,
 };
-use hal::gpio::{Input, Pin, PullUp};
+use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
+use hal::pac::TIMER0;
 use nrf52833_hal as hal;
 
 pub type Button = GpioteChannel<LoraDevice, Pin<Input<PullUp>>>;
-pub type AppLora = rak811::Rak811<HalUart<hal::pac::UARTE0>>;
+pub type AppLora = rak811::Rak811<HalUart<hal::pac::UARTE0>, Pin<Output<PushPull>>>;
 
 pub struct LoraDevice {
     pub gpiote: InterruptContext<Gpiote<Self>>,
     pub btn_connect: ActorContext<Button>,
     pub btn_send: ActorContext<Button>,
-    pub uart: Uart<HalUart<hal::pac::UARTE0>>,
+    pub memory: ActorContext<Memory>,
+    pub uart: DmaUart<HalUart<hal::pac::UARTE0>>,
     pub lora: ActorContext<AppLora>,
+    pub timer: Timer<HalTimer<TIMER0>>,
     pub app: ActorContext<App>,
 }
 
 impl Device for LoraDevice {
-    fn mount(&'static self, bus: Address<EventBus<Self>>, supervisor: &mut Supervisor) {
-        self.gpiote.mount(supervisor);
-        self.btn_connect.mount(supervisor);
-        self.btn_send.mount(supervisor);
-        let uart = self.uart.mount(bus, supervisor);
-        let lora = self.lora.mount(supervisor);
-        self.app.mount(supervisor);
-
-        self.gpiote.configure(bus);
-        self.btn_connect.configure(bus);
-        self.btn_send.configure(bus);
-        self.lora.configure(uart);
-        self.app.configure(lora);
+    fn mount(&'static self, config: DeviceConfiguration<Self>, supervisor: &mut Supervisor) {
+        self.memory.mount((), supervisor);
+        self.gpiote.mount(config.event_bus, supervisor);
+        self.btn_connect.mount(config.event_bus, supervisor);
+        self.btn_send.mount(config.event_bus, supervisor);
+        let timer = self.timer.mount((), supervisor);
+        let uart = self.uart.mount((), supervisor);
+        let lora = self.lora.mount(uart, supervisor);
+        self.app.mount(lora, supervisor);
     }
 }
 
@@ -46,6 +52,7 @@ impl EventHandler<PinEvent> for LoraDevice {
     fn on_event(&'static self, event: PinEvent) {
         match event {
             PinEvent(Channel::Channel0, _) => {
+                self.memory.address().notify(Query);
                 self.app.address().notify(Join);
             }
             PinEvent(Channel::Channel1, _) => {
@@ -58,18 +65,17 @@ impl EventHandler<PinEvent> for LoraDevice {
 
 pub struct App {
     driver: Option<Address<AppLora>>,
-    config: LoraConfig<'static>,
+    config: LoraConfig,
 }
 
 impl App {
-    pub fn new(config: LoraConfig<'static>) -> Self {
+    pub fn new(config: LoraConfig) -> Self {
         Self {
             driver: None,
             config,
         }
     }
 }
-impl Actor for App {}
 
 #[derive(Clone, Debug)]
 pub struct Initialize;
@@ -80,9 +86,9 @@ pub struct Join;
 #[derive(Clone, Debug)]
 pub struct Send;
 
-impl Configurable for App {
+impl Actor for App {
     type Configuration = Address<AppLora>;
-    fn configure(&mut self, config: Self::Configuration) {
+    fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
         log::info!("Bound lora");
         self.driver.replace(config);
     }
@@ -92,12 +98,20 @@ impl NotifyHandler<Join> for App {
     fn on_notify(self, _: Join) -> Completion<Self> {
         Completion::defer(async move {
             let driver = self.driver.as_ref().unwrap();
+            log::info!("Initializing driver");
+            driver
+                .initialize()
+                .await
+                .expect("Error initializing driver");
 
             log::info!("Configuring driver");
-            driver.configure(&self.config).await.unwrap();
+            driver
+                .configure(&self.config)
+                .await
+                .expect("Error configuring driver");
 
             log::info!("Joining network");
-            driver.join().await.unwrap();
+            driver.join().await.expect("Error joining LoRa Network");
             self
         })
     }
@@ -113,7 +127,7 @@ impl NotifyHandler<Send> for App {
             let motd = "Hello".as_bytes();
             buf[..motd.len()].clone_from_slice(motd);
             log::info!("Sending data");
-            driver.send(QoS::Confirmed, 1, motd).await.unwrap();
+            driver.send(QoS::Confirmed, 1, motd).await.ok();
 
             self
         })

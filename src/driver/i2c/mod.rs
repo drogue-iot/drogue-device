@@ -17,8 +17,7 @@ impl<I> I2c<I> {
     }
 }
 
-impl<I> Package for I2c<I>
-{
+impl<I> Package for I2c<I> {
     type Primary = I2cPeripheral<I>;
     type Configuration = ();
 
@@ -27,7 +26,7 @@ impl<I> Package for I2c<I>
         config: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<Self::Primary> {
-        self.peripheral.mount( (), supervisor)
+        self.peripheral.mount((), supervisor)
     }
 }
 

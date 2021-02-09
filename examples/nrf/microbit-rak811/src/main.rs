@@ -9,7 +9,10 @@ use cortex_m_rt::{entry, exception};
 use drogue_device::{
     driver::gpiote::nrf::*,
     driver::lora::*,
-    driver::uart::Uart,
+    driver::memory::Memory,
+    driver::timer::Timer,
+    driver::uart::dma::Uart,
+    hal::timer::nrf::Timer as HalTimer,
     hal::uart::nrf::{Baudrate, Parity, Pins, Uarte as HalUart},
     prelude::*,
 };
@@ -22,17 +25,18 @@ use nrf52833_hal as hal;
 
 use crate::device::*;
 
-static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
+static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
 
 #[entry]
 fn main() -> ! {
     rtt_init_print!();
     log::set_logger(&LOGGER).unwrap();
-    log::set_max_level(log::LevelFilter::Info);
+    log::set_max_level(log::LevelFilter::Debug);
 
     let device = hal::pac::Peripherals::take().unwrap();
 
     let port0 = hal::gpio::p0::Parts::new(device.P0);
+    let port1 = hal::gpio::p1::Parts::new(device.P1);
 
     let clocks = hal::clocks::Clocks::new(device.CLOCK).enable_ext_hfosc();
     let _clocks = clocks.start_lfclk();
@@ -51,6 +55,9 @@ fn main() -> ! {
         port0.p0_23.into_pullup_input().degrade(),
         Edge::Falling,
     );
+
+    // Timer
+    let timer = Timer::new(HalTimer::new(device.TIMER0), hal::pac::Interrupt::TIMER0);
 
     // Uart
     let uart = Uart::new(
@@ -73,7 +80,11 @@ fn main() -> ! {
         btn_send: ActorContext::new(btn_send).with_name("button_send"),
         gpiote: InterruptContext::new(gpiote, hal::pac::Interrupt::GPIOTE).with_name("gpiote"),
         uart,
-        lora: ActorContext::new(rak811::Rak811::new()),
+        lora: ActorContext::new(rak811::Rak811::new(
+            port1.p1_02.into_push_pull_output(Level::High).degrade(),
+        )),
+        memory: ActorContext::new(Memory::new()).with_name("memory"),
+        timer,
         app: ActorContext::new(App::new(
             LoraConfig::new()
                 .connect_mode(ConnectMode::OTAA)
@@ -88,5 +99,5 @@ fn main() -> ! {
         )),
     };
 
-    device!( LoraDevice = device; 4096);
+    device!( LoraDevice = device; 8192);
 }
