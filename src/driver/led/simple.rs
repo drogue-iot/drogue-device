@@ -1,4 +1,4 @@
-use crate::domain::switchable::{Off, On, Switchable};
+use crate::driver::switchable::{Off, On, Switchable};
 use crate::hal::gpio::ActiveOutput;
 use crate::hal::Active;
 use crate::prelude::*;

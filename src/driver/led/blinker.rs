@@ -1,6 +1,6 @@
-use crate::domain::scheduler::Scheduler;
-use crate::domain::switchable::Switchable;
 use crate::domain::time::duration::Milliseconds;
+use crate::driver::scheduler::Scheduler;
+use crate::driver::switchable::Switchable;
 use crate::prelude::*;
 
 pub struct Blinker<S, T>
