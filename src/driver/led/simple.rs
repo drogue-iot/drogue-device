@@ -3,15 +3,7 @@ use crate::hal::Active;
 use crate::prelude::*;
 use core::marker::PhantomData;
 use embedded_hal::digital::v2::OutputPin;
-
-pub struct On;
-
-pub struct Off;
-
-pub trait Switchable: Actor + NotifyHandler<On> + NotifyHandler<Off> {
-    fn turn_on(&mut self);
-    fn turn_off(&mut self);
-}
+use crate::domain::switchable::{Switchable, On, Off};
 
 pub struct SimpleLED<P, A>
 where
@@ -20,6 +12,14 @@ where
 {
     pin: P,
     _active: PhantomData<A>,
+}
+
+impl<P, A> Switchable for SimpleLED<P, A>
+    where
+        P: OutputPin + 'static,
+        A: ActiveOutput + 'static,
+{
+
 }
 
 impl<P, A> SimpleLED<P, A>
@@ -33,13 +33,7 @@ where
             _active: PhantomData,
         }
     }
-}
 
-impl<P, A> Switchable for SimpleLED<P, A>
-where
-    P: OutputPin + 'static,
-    A: ActiveOutput + 'static,
-{
     fn turn_on(&mut self) {
         A::set_active(&mut self.pin).ok();
     }
@@ -78,19 +72,5 @@ where
             self.turn_off();
             self
         })
-    }
-}
-
-impl<S> Address<S>
-where
-    S: NotifyHandler<Off> + NotifyHandler<On>,
-    S: Actor + 'static,
-{
-    pub fn turn_on(&self) {
-        self.notify(On);
-    }
-
-    pub fn turn_off(&self) {
-        self.notify(Off);
     }
 }

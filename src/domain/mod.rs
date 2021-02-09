@@ -2,3 +2,4 @@
 
 pub mod temperature;
 pub mod time;
+pub mod switchable;

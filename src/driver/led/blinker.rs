@@ -1,8 +1,8 @@
 use crate::domain::time::duration::Milliseconds;
-use crate::driver::led::simple::Switchable;
 use crate::driver::timer::TimerActor;
 use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
+use crate::domain::switchable::Switchable;
 
 pub struct Blinker<S, T>
 where
