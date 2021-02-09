@@ -4,11 +4,11 @@ use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
 use core::cell::RefCell;
+use core::fmt::{Debug, Formatter};
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 use cortex_m::interrupt::Nr;
-use core::fmt::{Debug, Formatter};
 
 #[derive(Copy, Clone)]
 pub struct Delay<DUR: Duration + Into<Milliseconds>>(pub DUR);
@@ -126,9 +126,9 @@ pub struct TimerActor<T: HalTimer> {
 }
 
 impl<T: HalTimer> Configurable for TimerActor<T> {
-    type Configuration = Shared;
+    type Configuration = &'static Shared;
 
-    fn configure(&mut self, config: &'static Self::Configuration) {
+    fn configure(&mut self, config: Self::Configuration) {
         self.shared.replace(config);
     }
 }

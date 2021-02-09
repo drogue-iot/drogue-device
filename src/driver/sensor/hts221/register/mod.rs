@@ -9,6 +9,5 @@ pub mod who_am_i;
 
 pub enum ModifyError<R, W> {
     Read(R),
-    Write(W)
+    Write(W),
 }
-

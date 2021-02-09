@@ -1,4 +1,5 @@
 use crate::bind::Bind;
+use crate::domain::temperature::Celsius;
 use crate::driver::sensor::hts221::sensor::Sensor;
 use crate::driver::sensor::hts221::SensorAcquisition;
 use crate::hal::gpio::exti_pin::ExtiPin;
@@ -6,7 +7,6 @@ use crate::handler::EventHandler;
 use crate::prelude::*;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
-use crate::domain::temperature::Celsius;
 
 pub struct DataReady;
 

@@ -15,8 +15,8 @@ use core::ptr::NonNull;
 use alloc::layout::Layout;
 use alloc::Heap;
 use core::mem;
-use cortex_m::interrupt::Mutex;
 use core::sync::atomic::{AtomicUsize, Ordering};
+use cortex_m::interrupt::Mutex;
 
 pub struct CortexMHeap {
     heap: Mutex<RefCell<Heap>>,
@@ -99,24 +99,37 @@ impl CortexMHeap {
             mem::align_of::<(Layout, T)>(),
         )
         .unwrap();
-        log::trace!("[ALLOC] asking for {} aligned {}", layout.size(), layout.align());
+        log::trace!(
+            "[ALLOC] asking for {} aligned {}",
+            layout.size(),
+            layout.align()
+        );
         unsafe {
             let mut allocation = self.alloc(layout);
             if allocation.is_null() {
-                log::warn!("[ALLOC] allocation failed: requested={}; free={}", layout.size(), self.free() );
+                log::warn!(
+                    "[ALLOC] allocation failed: requested={}; free={}",
+                    layout.size(),
+                    self.free()
+                );
                 None
             } else {
                 //let mut allocation = &mut *(allocation as *mut MaybeUninit<T>);
                 //allocation.as_mut_ptr().write( (layout, val ));
                 //Some(&mut *allocation.as_mut_ptr())
-                log::trace!("[ALLOC] {:x} allocate {} || {} free", allocation as u32, layout.size(), self.free() );
+                log::trace!(
+                    "[ALLOC] {:x} allocate {} || {} free",
+                    allocation as u32,
+                    layout.size(),
+                    self.free()
+                );
                 (allocation as *mut Layout).write(layout);
                 allocation = (allocation as *mut Layout).add(1) as *mut u8;
                 (allocation as *mut T).write(val);
                 let used = self.used();
                 let high = self.high_watermark.load(Ordering::Acquire);
-                if  used > high  {
-                    self.high_watermark.store( used, Ordering::Release );
+                if used > high {
+                    self.high_watermark.store(used, Ordering::Release);
                 }
                 Some(&mut *(allocation as *mut _ as *mut T))
                 //Some(&*allocation as *mut T)

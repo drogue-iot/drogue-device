@@ -22,7 +22,10 @@ impl Supervisor {
         }
     }
 
-    pub(crate) fn activate_actor<S: ActiveActor>(&mut self, actor: &'static S) -> (usize, *const ()) {
+    pub(crate) fn activate_actor<S: ActiveActor>(
+        &mut self,
+        actor: &'static S,
+    ) -> (usize, *const ()) {
         self.executor.borrow_mut().activate_actor(actor)
     }
 
@@ -31,7 +34,9 @@ impl Supervisor {
         interrupt: &'static I,
         irq: u8,
     ) {
-        self.dispatcher.borrow_mut().activate_interrupt(interrupt, irq);
+        self.dispatcher
+            .borrow_mut()
+            .activate_interrupt(interrupt, irq);
     }
 
     pub(crate) fn run_forever(&self) -> ! {

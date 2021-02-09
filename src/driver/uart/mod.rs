@@ -116,9 +116,9 @@ where
 }
 
 impl<U: HalUart> Configurable for UartPeripheral<U> {
-    type Configuration = Shared<U>;
+    type Configuration = &'static Shared<U>;
 
-    fn configure(&mut self, config: &'static Self::Configuration) {
+    fn configure(&mut self, config: Self::Configuration) {
         self.shared.replace(config);
     }
 }
@@ -190,9 +190,9 @@ where
 }
 
 impl<U: HalUart> Configurable for UartInterrupt<U> {
-    type Configuration = Shared<U>;
+    type Configuration = &'static Shared<U>;
 
-    fn configure(&mut self, config: &'static Self::Configuration) {
+    fn configure(&mut self, config: Self::Configuration) {
         self.shared.replace(config);
     }
 }

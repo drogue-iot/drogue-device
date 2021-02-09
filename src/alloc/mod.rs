@@ -33,8 +33,7 @@ pub struct Box<T: ?Sized> {
 }
 
 impl<T: ?Sized> Box<T> {
-    pub fn new(val: &mut T) -> Self
-    {
+    pub fn new(val: &mut T) -> Self {
         Self {
             pointer: UnsafeCell::new(val),
         }
@@ -78,7 +77,7 @@ impl<T: ?Sized> Drop for Box<T> {
 impl<T: ?Sized + Debug> Debug for Box<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         //unsafe { (&(*self.pointer.get() as *const T)).fmt(f) }
-        Debug::fmt(unsafe { &**self.pointer.get() as &T}, f )
+        Debug::fmt(unsafe { &**self.pointer.get() as &T }, f)
     }
 }
 

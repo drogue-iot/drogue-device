@@ -63,7 +63,7 @@ impl<S: TemperatureScale> Clone for Temperature<S> {
     }
 }
 
-impl<S:TemperatureScale> Debug for Temperature<S> {
+impl<S: TemperatureScale> Debug for Temperature<S> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}°{}", &self.value, S::LETTER)
     }

@@ -69,7 +69,7 @@ impl<T: 'static> Mutex<T> {
         }
     }
 
-    pub fn configure(&self, config: &'static T::Configuration)
+    pub fn configure(&self, config: T::Configuration)
     where
         T: Configurable,
     {
@@ -112,9 +112,9 @@ where
 }
 
 impl<T> Configurable for MutexActor<T> {
-    type Configuration = Shared<T>;
+    type Configuration = &'static Shared<T>;
 
-    fn configure(&mut self, config: &'static Self::Configuration) {
+    fn configure(&mut self, config: Self::Configuration) {
         self.shared.replace(config);
     }
 }

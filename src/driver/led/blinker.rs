@@ -64,11 +64,9 @@ where
     }
 
     fn on_start(self) -> Completion<Self> {
-        self.timer.unwrap().schedule(
-            self.delay,
-            State::On,
-            self.address.unwrap(),
-        );
+        self.timer
+            .unwrap()
+            .schedule(self.delay, State::On, self.address.unwrap());
         Completion::immediate(self)
     }
 }
@@ -88,19 +86,15 @@ where
         match message {
             State::On => {
                 self.led.unwrap().turn_on();
-                self.timer.unwrap().schedule(
-                    self.delay,
-                    State::Off,
-                    self.address.unwrap(),
-                );
+                self.timer
+                    .unwrap()
+                    .schedule(self.delay, State::Off, self.address.unwrap());
             }
             State::Off => {
                 self.led.unwrap().turn_off();
-                self.timer.unwrap().schedule(
-                    self.delay,
-                    State::On,
-                    self.address.unwrap(),
-                );
+                self.timer
+                    .unwrap()
+                    .schedule(self.delay, State::On, self.address.unwrap());
             }
         }
         Completion::immediate(self)

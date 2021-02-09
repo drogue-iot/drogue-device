@@ -1,6 +1,6 @@
+use crate::hal::i2c::I2cAddress;
 use crate::prelude::*;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
-use crate::hal::i2c::I2cAddress;
 
 pub struct I2c<I>
 where
@@ -60,7 +60,6 @@ where
     }
 }
 
-
 #[derive(Debug)]
 pub struct I2cWrite<'b> {
     address: I2cAddress,
@@ -101,38 +100,24 @@ where
 }
 
 impl<I> Address<I2cPeripheral<I>>
-    where
-        I: Read,
+where
+    I: Read,
 {
     /// # Panics
     /// The future *must* be fully `.await`'d before allowing the `bytes` or `buffer` arguments to fall out of scope, otherwise a panic will occur.
-    pub async fn read(
-        &self,
-        address: I2cAddress,
-        buffer: &mut [u8],
-    ) -> Result<(), I::Error> {
-        self.request_panicking(I2cRead {
-            address,
-            buffer,
-        }).await
+    pub async fn read(&self, address: I2cAddress, buffer: &mut [u8]) -> Result<(), I::Error> {
+        self.request_panicking(I2cRead { address, buffer }).await
     }
 }
 
 impl<I> Address<I2cPeripheral<I>>
-    where
-        I: Write,
+where
+    I: Write,
 {
     /// # Panics
     /// The future *must* be fully `.await`'d before allowing the `buffer` argument to fall out of scope, otherwise a panic will occur.
-    pub async fn write(
-        &self,
-        address: I2cAddress,
-        buffer: &[u8],
-    ) -> Result<(), I::Error> {
-        self.request_panicking(I2cWrite {
-            address,
-            buffer,
-        }).await
+    pub async fn write(&self, address: I2cAddress, buffer: &[u8]) -> Result<(), I::Error> {
+        self.request_panicking(I2cWrite { address, buffer }).await
     }
 }
 
@@ -152,6 +137,7 @@ where
             address,
             bytes,
             buffer,
-        }).await
+        })
+        .await
     }
 }

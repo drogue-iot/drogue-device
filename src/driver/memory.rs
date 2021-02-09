@@ -48,7 +48,7 @@ impl RequestHandler<Query> for Memory {
 
 impl NotifyHandler<Query> for Memory {
     fn on_notify(self, message: Query) -> Completion<Self> {
-        let info = Info::new( unsafe { HEAP.as_ref().unwrap() });
+        let info = Info::new(unsafe { HEAP.as_ref().unwrap() });
         log::info!(
             "[{}] used={}, free={} high={}",
             ActorInfo::name(),

@@ -5,4 +5,3 @@
     feature = "nrf9160"
 ))]
 pub mod nrf;
-

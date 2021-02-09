@@ -1,5 +1,6 @@
 use crate::bind::Bind;
 use crate::domain::temperature::Celsius;
+use crate::driver::i2c::I2cPeripheral;
 use crate::driver::sensor::hts221::ready::DataReady;
 use crate::driver::sensor::hts221::register::calibration::*;
 use crate::driver::sensor::hts221::register::ctrl1::{BlockDataUpdate, Ctrl1, OutputDataRate};
@@ -13,7 +14,6 @@ use crate::hal::i2c::I2cAddress;
 use crate::handler::EventHandler;
 use crate::prelude::*;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
-use crate::driver::i2c::I2cPeripheral;
 
 pub const ADDR: u8 = 0x5F;
 
@@ -63,17 +63,23 @@ where
             if let Some(i2c) = self.i2c {
                 Ctrl2::modify(self.address, i2c, |reg| {
                     reg.boot();
-                }).await.ok();
+                })
+                .await
+                .ok();
 
                 Ctrl1::modify(self.address, i2c, |reg| {
                     reg.power_active()
                         .output_data_rate(OutputDataRate::Hz1)
                         .block_data_update(BlockDataUpdate::MsbLsbReading);
-                }).await.ok();
+                })
+                .await
+                .ok();
 
                 Ctrl3::modify(self.address, i2c, |reg| {
                     reg.enable(true);
-                }).await.ok();
+                })
+                .await
+                .ok();
 
                 loop {
                     // Ensure status is emptied
@@ -94,7 +100,7 @@ where
         Completion::defer(async move {
             if let Some(i2c) = self.i2c {
                 if let Ok(calibration) = Calibration::read(self.address, i2c).await {
-                    self.calibration.replace( calibration );
+                    self.calibration.replace(calibration);
                 }
             }
             self

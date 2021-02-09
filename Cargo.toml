@@ -51,4 +51,3 @@ default-features = false
 [features]
 stm32l4xx = [ "stm32l4xx-hal" ]
 nrf52833 = [ "nrf52833-hal" ]
-

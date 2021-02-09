@@ -19,8 +19,8 @@ pub mod package;
 pub mod supervisor;
 pub mod synchronization;
 
-pub mod hal;
 mod future;
+pub mod hal;
 
 /// Easy imports for common types and traits.
 pub mod prelude {
@@ -35,4 +35,3 @@ pub mod prelude {
     pub use crate::package::Package;
     pub use crate::supervisor::Supervisor;
 }
-

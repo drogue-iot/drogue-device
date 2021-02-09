@@ -1,10 +1,10 @@
 use drogue_device::{
     domain::time::duration::Milliseconds,
     driver::{
+        gpiote::nrf::*,
         led::{LEDMatrix, MatrixCommand},
         timer::{Timer, TimerActor},
         uart::{Uart, UartPeripheral},
-        gpiote::nrf::*,
     },
     hal::timer::nrf::Timer as HalTimer,
     hal::uart::nrf::Uarte as HalUart,
@@ -33,20 +33,25 @@ pub struct MyDevice {
 impl Device for MyDevice {
     fn mount(&'static self, bus: Address<EventBus<Self>>, supervisor: &mut Supervisor) {
         self.gpiote.mount(supervisor);
-        self.gpiote.bind(bus);
         self.btn_fwd.mount(supervisor);
-        self.btn_fwd.bind(bus);
         self.btn_back.mount(supervisor);
-        self.btn_back.bind(bus);
+
         let timer = self.timer.mount(bus, supervisor);
-        let led = self.led.mount(supervisor);
+        let display = self.led.mount(supervisor);
         self.led.bind(timer);
 
         let app = self.app.mount(supervisor);
+        let uart = self.uart.mount(bus, supervisor);
 
-        self.app.bind(self.uart.mount(bus, supervisor));
-        self.app.bind(led);
-        self.app.bind(timer);
+        self.gpiote.configure(bus);
+        self.btn_fwd.configure(bus);
+        self.btn_back.configure(bus);
+
+        self.app.configure(AppConfig {
+            uart,
+            display,
+            timer,
+        });
 
         app.notify(SayHello);
     }
@@ -74,6 +79,12 @@ impl EventHandler<PinEvent> for MyDevice {
     }
 }
 
+pub struct AppConfig {
+    uart: Address<AppUart>,
+    display: Address<LedMatrix>,
+    timer: Address<AppTimer>,
+}
+
 pub struct App {
     uart: Option<Address<AppUart>>,
     display: Option<Address<LedMatrix>>,
@@ -97,24 +108,13 @@ pub struct SayHello;
 #[derive(Clone, Debug)]
 pub struct StartService;
 
-impl Bind<AppUart> for App {
-    fn on_bind(&mut self, address: Address<AppUart>) {
-        log::info!("Bound uart");
-        self.uart.replace(address);
-    }
-}
-
-impl Bind<LedMatrix> for App {
-    fn on_bind(&mut self, address: Address<LedMatrix>) {
-        log::info!("Bound display");
-        self.display.replace(address);
-    }
-}
-
-impl Bind<AppTimer> for App {
-    fn on_bind(&mut self, address: Address<AppTimer>) {
-        log::info!("Bound timer");
-        self.timer.replace(address);
+impl Configurable for App {
+    type Configuration = AppConfig;
+    fn configure(&mut self, config: Self::Configuration) {
+        self.uart.replace(config.uart);
+        self.display.replace(config.display);
+        self.timer.replace(config.timer);
+        log::info!("Bound configuration");
     }
 }
 

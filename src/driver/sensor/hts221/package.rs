@@ -1,3 +1,5 @@
+use crate::domain::temperature::Celsius;
+use crate::driver::i2c::I2cPeripheral;
 use crate::driver::sensor::hts221::ready::Ready;
 use crate::driver::sensor::hts221::sensor::Sensor;
 use crate::driver::sensor::hts221::SensorAcquisition;
@@ -8,8 +10,6 @@ use crate::prelude::*;
 use cortex_m::interrupt::Nr;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
-use crate::domain::temperature::Celsius;
-use crate::driver::i2c::I2cPeripheral;
 
 pub struct Hts221<D, P, I>
 where

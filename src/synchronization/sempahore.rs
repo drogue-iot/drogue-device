@@ -44,11 +44,9 @@ impl Shared {
     }
 
     fn waiting(&self, waker: &Waker) {
-        self.waiters.borrow_mut().enqueue( waker.clone() ).ok();
+        self.waiters.borrow_mut().enqueue(waker.clone()).ok();
     }
 }
-
-
 
 pub struct Semaphore {
     shared: Shared,
@@ -59,15 +57,19 @@ impl Semaphore {
     pub fn new(permits: usize) -> Self {
         Self {
             shared: Shared::new(permits),
-            actor: ActorContext::new( SemaphoreActor::new() ),
+            actor: ActorContext::new(SemaphoreActor::new()),
         }
     }
 }
 
-impl<D:Device> Package<D, SemaphoreActor> for Semaphore {
-    fn mount(&'static self, bus_address: Address<EventBus<D>>, supervisor: &mut Supervisor) -> Address<SemaphoreActor> {
+impl<D: Device> Package<D, SemaphoreActor> for Semaphore {
+    fn mount(
+        &'static self,
+        bus_address: Address<EventBus<D>>,
+        supervisor: &mut Supervisor,
+    ) -> Address<SemaphoreActor> {
         let addr = self.actor.mount(supervisor);
-        self.actor.configure( &self.shared );
+        self.actor.configure(&self.shared);
         addr
     }
 }
@@ -78,10 +80,10 @@ pub struct SemaphoreActor {
 }
 
 impl Configurable for SemaphoreActor {
-    type Configuration = Shared;
+    type Configuration = &'static Shared;
 
-    fn configure(&mut self, config: &'static Self::Configuration) {
-        self.shared.replace( config);
+    fn configure(&mut self, config: Self::Configuration) {
+        self.shared.replace(config);
     }
 }
 
@@ -111,10 +113,12 @@ impl SemaphoreActor {
 
             fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
                 if self.shared.acquire() {
-                    return Poll::Ready(Permit { address: self.address } );
+                    return Poll::Ready(Permit {
+                        address: self.address,
+                    });
                 }
-                if ! self.waiting {
-                    self.shared.waiting( cx.waker() );
+                if !self.waiting {
+                    self.shared.waiting(cx.waker());
                     self.waiting = true;
                 }
 

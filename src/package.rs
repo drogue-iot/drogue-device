@@ -22,4 +22,3 @@ pub trait Package<D: Device, A: Actor> {
         supervisor: &mut Supervisor,
     ) -> Address<A>;
 }
-

@@ -29,22 +29,24 @@ impl<D: Device + EventHandler<PinEvent>, P: InputPin + GpioteInputPin + Sized> A
 {
 }
 
-impl<D> Bind<EventBus<D>> for Gpiote<D>
+impl<D> Configurable for Gpiote<D>
 where
     D: Device + EventHandler<GpioteEvent>,
 {
-    fn on_bind(&mut self, address: Address<EventBus<D>>) {
-        self.bus.replace(address);
+    type Configuration = Address<EventBus<D>>;
+    fn configure(&mut self, config: Self::Configuration) {
+        self.bus.replace(config);
     }
 }
 
-impl<D, P> Bind<EventBus<D>> for GpioteChannel<D, P>
+impl<D, P> Configurable for GpioteChannel<D, P>
 where
     D: Device + EventHandler<PinEvent>,
     P: InputPin + GpioteInputPin,
 {
-    fn on_bind(&mut self, address: Address<EventBus<D>>) {
-        self.bus.replace(address);
+    type Configuration = Address<EventBus<D>>;
+    fn configure(&mut self, config: Self::Configuration) {
+        self.bus.replace(config);
     }
 }
 

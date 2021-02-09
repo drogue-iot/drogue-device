@@ -10,6 +10,7 @@ use crate::alloc::{alloc, Box, Rc};
 use crate::bind::Bind;
 use crate::device::Lifecycle;
 use crate::prelude::Interrupt;
+use crate::supervisor::actor_executor::ActiveActor;
 use crate::supervisor::{actor_executor::ActorState, Supervisor};
 use core::cell::{RefCell, UnsafeCell};
 use core::fmt::{Debug, Formatter, Write};
@@ -17,11 +18,10 @@ use core::mem::transmute;
 use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue, String};
-use crate::supervisor::actor_executor::ActiveActor;
 
 pub trait Configurable {
     type Configuration;
-    fn configure(&mut self, config: &'static Self::Configuration);
+    fn configure(&mut self, config: Self::Configuration);
 }
 
 /// Trait that each actor must implement.
@@ -154,7 +154,7 @@ impl<A: Actor + 'static> ActorContext<A> {
         Address::new(self)
     }
 
-    pub fn configure(&'static self, config: &'static A::Configuration)
+    pub fn configure(&'static self, config: A::Configuration)
     where
         A: Configurable,
     {
