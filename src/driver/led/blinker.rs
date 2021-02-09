@@ -1,16 +1,15 @@
 use crate::domain::time::duration::Milliseconds;
-use crate::driver::timer::TimerActor;
-use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
 use crate::domain::switchable::Switchable;
+use crate::domain::scheduler::Scheduler;
 
 pub struct Blinker<S, T>
 where
     S: Switchable + 'static,
-    T: HalTimer + 'static,
+    T: Scheduler + 'static,
 {
     led: Option<Address<S>>,
-    timer: Option<Address<TimerActor<T>>>,
+    timer: Option<Address<T>>,
     delay: Milliseconds,
     address: Option<Address<Self>>,
 }
@@ -18,7 +17,7 @@ where
 impl<S, T> Blinker<S, T>
 where
     S: Switchable,
-    T: HalTimer,
+    T: Scheduler,
 {
     pub fn new<DUR: Into<Milliseconds>>(delay: DUR) -> Self {
         Self {
@@ -33,9 +32,9 @@ where
 impl<S, T> Actor for Blinker<S, T>
 where
     S: Switchable,
-    T: HalTimer,
+    T: Scheduler,
 {
-    type Configuration = (Address<S>, Address<TimerActor<T>>);
+    type Configuration = (Address<S>, Address<T>);
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where
@@ -63,7 +62,7 @@ enum State {
 impl<S, T> NotifyHandler<State> for Blinker<S, T>
 where
     S: Switchable,
-    T: HalTimer,
+    T: Scheduler,
 {
     fn on_notify(self, message: State) -> Completion<Self> {
         match message {
@@ -89,7 +88,7 @@ pub struct AdjustDelay(Milliseconds);
 impl<S, T> NotifyHandler<AdjustDelay> for Blinker<S, T>
 where
     S: Switchable,
-    T: HalTimer,
+    T: Scheduler,
 {
     fn on_notify(mut self, message: AdjustDelay) -> Completion<Self> {
         self.delay = message.0;
@@ -101,7 +100,7 @@ impl<S, T> Address<Blinker<S, T>>
 where
     Self: 'static,
     S: Switchable,
-    T: HalTimer,
+    T: Scheduler,
 {
     pub fn adjust_delay(&self, delay: Milliseconds) {
         self.notify(AdjustDelay(delay))

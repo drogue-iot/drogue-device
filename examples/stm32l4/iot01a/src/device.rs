@@ -29,6 +29,7 @@ use stm32l4xx_hal::{
     pac::TIM15,
 };
 use drogue_device::device::DeviceConfiguration;
+use drogue_device::driver::timer::TimerActor;
 
 type Ld1Pin = PA5<Output<PushPull>>;
 type Ld2Pin = PB14<Output<PushPull>>;
@@ -42,10 +43,11 @@ type I2cSda = PB11<Alternate<AF4, Output<OpenDrain>>>;
 type I2cPeriph = HalI2c<I2C2, (I2cScl, I2cSda)>;
 type I2cPackage = I2c<I2cPeriph>;
 
-type Blinker1Actor = Blinker<Ld1Actor, McuTimer<TIM15>>;
-type Blinker2Actor = Blinker<Ld2Actor, McuTimer<TIM15>>;
+type TimerPackage = Timer<McuTimer<TIM15>>;
 
-type TimerActor = Timer<McuTimer<TIM15>>;
+type Blinker1Actor = Blinker<Ld1Actor, TimerActor<McuTimer<TIM15>>>;
+type Blinker2Actor = Blinker<Ld2Actor, TimerActor<McuTimer<TIM15>>>;
+
 
 type Hts221Package = Hts221<MyDevice, PD15<Input<PullDown>>, I2cPeriph>;
 

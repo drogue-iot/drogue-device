@@ -1,5 +1,6 @@
 use crate::actor::Configurable;
 use crate::alloc::{alloc, Box};
+use crate::domain::scheduler::{Schedule, Scheduler};
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
@@ -23,18 +24,6 @@ pub trait Schedulable {
     fn run(&self);
     fn get_expiration(&self) -> Milliseconds;
     fn set_expiration(&mut self, expiration: Milliseconds);
-}
-
-#[derive(Clone)]
-pub struct Schedule<A, DUR, E>
-where
-    A: Actor + NotifyHandler<E> + 'static,
-    DUR: Duration + Into<Milliseconds>,
-    E: Clone + 'static,
-{
-    delay: DUR,
-    event: E,
-    address: Address<A>,
 }
 
 impl<A, DUR, E> Schedule<A, DUR, E>
@@ -135,11 +124,47 @@ impl<T: HalTimer> TimerActor<T> {
     }
 }
 
+impl<T: HalTimer> Scheduler for TimerActor<T> {
+    fn schedule<A, DUR, E>(&mut self, message: Schedule<A, DUR, E>)
+    where
+        A: Actor + NotifyHandler<E> + 'static,
+        DUR: Duration + Into<Milliseconds> + 'static,
+        E: Clone + 'static,
+    {
+        let ms: Milliseconds = message.delay.into();
+        // log::info!("schedule request {:?}", ms);
+        let mut deadlines = self.shared.unwrap().schedule_deadlines.borrow_mut();
+        let mut current_deadline = self.shared.unwrap().current_deadline.borrow_mut();
+
+        if let Some((index, slot)) = deadlines
+            .iter_mut()
+            .enumerate()
+            .find(|e| matches!(e, (_, None)))
+        {
+            deadlines[index].replace(Box::new(alloc(ScheduleDeadline::new(ms, message)).unwrap()));
+            if let Some(current) = &*current_deadline {
+                if *current > ms {
+                    current_deadline.replace(ms);
+                    self.timer.start(ms);
+                } else {
+                    //log::info!("timer already running for {:?}", current_deadline );
+                }
+            } else {
+                current_deadline.replace(ms);
+                //log::info!("start new timer for {:?}", ms);
+                self.timer.start(ms);
+            }
+        }
+    }
+}
+
 impl<T: HalTimer> Actor for TimerActor<T> {
     type Configuration = &'static Shared;
 
-    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration) where
-        Self: Sized, {
+    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
+    where
+        Self: Sized,
+    {
         self.shared.replace(config);
     }
 }
@@ -187,6 +212,19 @@ where
     }
 }
 
+impl<S, E, A, DUR> NotifyHandler<Schedule<A, DUR, E>> for S
+where
+    S: Scheduler + Actor + 'static,
+    E: Clone + 'static,
+    A: Actor + NotifyHandler<E> + 'static,
+    DUR: Duration + Into<Milliseconds> + 'static,
+{
+    fn on_notify(mut self, message: Schedule<A, DUR, E>) -> Completion<Self> {
+        self.schedule(message);
+        Completion::immediate(self)
+    }
+}
+/*
 impl<T, E, A, DUR> NotifyHandler<Schedule<A, DUR, E>> for TimerActor<T>
 where
     T: HalTimer + 'static,
@@ -222,6 +260,7 @@ where
         Completion::immediate(self)
     }
 }
+ */
 
 impl<T: HalTimer> Interrupt for TimerActor<T> {
     fn on_interrupt(&mut self) {
@@ -305,6 +344,7 @@ impl<T: HalTimer + 'static> Address<TimerActor<T>> {
         self.request(Delay(duration)).await
     }
 
+    /*
     pub fn schedule<
         DUR: Duration + Into<Milliseconds> + 'static,
         E: Clone + 'static,
@@ -317,6 +357,8 @@ impl<T: HalTimer + 'static> Address<TimerActor<T>> {
     ) {
         self.notify(Schedule::new(delay, event, address));
     }
+
+     */
 }
 
 struct DelayDeadline {
