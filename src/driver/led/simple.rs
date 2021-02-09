@@ -54,6 +54,7 @@ where
     P: OutputPin,
     A: ActiveOutput,
 {
+    type Configuration = ();
 }
 
 impl<P, A> NotifyHandler<On> for SimpleLED<P, A>

@@ -62,14 +62,15 @@ impl Semaphore {
     }
 }
 
-impl<D: Device> Package<D, SemaphoreActor> for Semaphore {
+impl Package<SemaphoreActor> for Semaphore {
+    type Configuration = ();
+
     fn mount(
         &'static self,
-        bus_address: Address<EventBus<D>>,
+        config: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<SemaphoreActor> {
-        let addr = self.actor.mount(supervisor);
-        self.actor.configure(&self.shared);
+        let addr = self.actor.mount(&self.shared, supervisor);
         addr
     }
 }
@@ -140,11 +141,14 @@ impl SemaphoreActor {
 }
 
 impl Actor for SemaphoreActor {
-    fn on_mount(&mut self, address: Address<Self>)
+    type Configuration = &'static Shared;
+
+    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where
         Self: Sized,
     {
         self.address.replace(address);
+        self.shared.replace( config );
     }
 }
 

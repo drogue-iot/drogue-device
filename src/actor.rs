@@ -7,7 +7,6 @@ use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 
 use crate::alloc::{alloc, Box, Rc};
-use crate::bind::Bind;
 use crate::device::Lifecycle;
 use crate::prelude::Interrupt;
 use crate::supervisor::actor_executor::ActiveActor;
@@ -28,12 +27,14 @@ pub trait Configurable {
 ///
 /// See also `NotifyHandler<...>` and `RequestHandler<...>`.
 pub trait Actor: Sized {
+    type Configuration;
+
     /// Called to mount an actor into the system.
     ///
     /// The actor will be presented with both its own `Address<...>`.
     ///
     /// The default implementation does nothing.
-    fn on_mount(&mut self, address: Address<Self>)
+    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where
         Self: Sized,
     {
@@ -154,15 +155,8 @@ impl<A: Actor + 'static> ActorContext<A> {
         Address::new(self)
     }
 
-    pub fn configure(&'static self, config: A::Configuration)
-    where
-        A: Configurable,
-    {
-        self.actor.borrow_mut().as_mut().unwrap().configure(config);
-    }
-
     /// Mount the context and its actor into the system.
-    pub fn mount(&'static self, supervisor: &mut Supervisor) -> Address<A> {
+    pub fn mount(&'static self, config: A::Configuration, supervisor: &mut Supervisor) -> Address<A> {
         let addr = Address::new(self);
         let (actor_index, state_flag_handle) = supervisor.activate_actor(self);
         log::trace!("[{}] == {:x}", self.name(), state_flag_handle as u32);
@@ -173,7 +167,7 @@ impl<A: Actor + 'static> ActorContext<A> {
         self.items_producer.borrow_mut().replace(producer);
         self.items_consumer.borrow_mut().replace(consumer);
 
-        self.actor.borrow_mut().as_mut().unwrap().on_mount(addr);
+        self.actor.borrow_mut().as_mut().unwrap().on_mount(addr, config);
 
         addr
     }
@@ -198,16 +192,6 @@ impl<A: Actor + 'static> ActorContext<A> {
         }
 
         let _ = self.do_poll(self.state_flag_handle.borrow().unwrap());
-    }
-
-    /// Dispatch a bind injection.
-    pub fn bind<OA: Actor>(&'static self, address: Address<OA>)
-    where
-        A: Bind<OA>,
-        OA: 'static,
-    {
-        log::trace!("[{}].bind(...)", self.name());
-        self.actor.borrow_mut().as_mut().unwrap().on_bind(address);
     }
 
     /// Dispatch a notification.

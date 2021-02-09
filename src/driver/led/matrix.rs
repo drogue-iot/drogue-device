@@ -1,4 +1,3 @@
-use crate::bind::Bind;
 use crate::domain::time::duration::Milliseconds;
 use crate::domain::time::rate::{Hertz, Rate};
 
@@ -108,18 +107,6 @@ where
     }
 }
 
-impl<P, ROWS, COLS, T> Bind<TimerActor<T>> for LEDMatrix<P, ROWS, COLS, T>
-where
-    P: OutputPin,
-    ROWS: ArrayLength<P>,
-    COLS: ArrayLength<P>,
-    T: HalTimer,
-{
-    fn on_bind(&mut self, address: Address<TimerActor<T>>) {
-        self.timer.replace(address);
-    }
-}
-
 impl<P, ROWS, COLS, T> Actor for LEDMatrix<P, ROWS, COLS, T>
 where
     P: OutputPin,
@@ -127,8 +114,11 @@ where
     COLS: ArrayLength<P>,
     T: HalTimer,
 {
-    fn on_mount(&mut self, address: Address<Self>) {
+    type Configuration = Address<TimerActor<T>>;
+
+    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration) {
         self.address.replace(address);
+        self.timer.replace(config);
     }
 
     fn on_start(self) -> Completion<Self> {

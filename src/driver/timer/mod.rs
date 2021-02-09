@@ -108,14 +108,15 @@ impl<T: HalTimer> Timer<T> {
     }
 }
 
-impl<D: Device, T: HalTimer> Package<D, TimerActor<T>> for Timer<T> {
+impl<T: HalTimer> Package<TimerActor<T>> for Timer<T> {
+    type Configuration = ();
+
     fn mount(
         &'static self,
-        bus_address: Address<EventBus<D>>,
+        config: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<TimerActor<T>> {
-        let addr = self.actor.mount(supervisor);
-        self.actor.configure(&self.shared);
+        let addr = self.actor.mount(&self.shared, supervisor);
         addr
     }
 }
@@ -123,14 +124,6 @@ impl<D: Device, T: HalTimer> Package<D, TimerActor<T>> for Timer<T> {
 pub struct TimerActor<T: HalTimer> {
     timer: T,
     shared: Option<&'static Shared>,
-}
-
-impl<T: HalTimer> Configurable for TimerActor<T> {
-    type Configuration = &'static Shared;
-
-    fn configure(&mut self, config: Self::Configuration) {
-        self.shared.replace(config);
-    }
 }
 
 impl<T: HalTimer> TimerActor<T> {
@@ -142,7 +135,14 @@ impl<T: HalTimer> TimerActor<T> {
     }
 }
 
-impl<T: HalTimer> Actor for TimerActor<T> {}
+impl<T: HalTimer> Actor for TimerActor<T> {
+    type Configuration = &'static Shared;
+
+    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration) where
+        Self: Sized, {
+        self.shared.replace(config);
+    }
+}
 
 impl<T, DUR> RequestHandler<Delay<DUR>> for TimerActor<T>
 where

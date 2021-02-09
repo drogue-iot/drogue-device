@@ -1,4 +1,3 @@
-use crate::bind::Bind;
 use crate::domain::temperature::Celsius;
 use crate::driver::i2c::I2cPeripheral;
 use crate::driver::sensor::hts221::ready::DataReady;
@@ -58,6 +57,15 @@ where
     D: Device,
     I: WriteRead + Read + Write,
 {
+    type Configuration = (Address<EventBus<D>>, Address<I2cPeripheral<I>>);
+
+    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration) where
+        Self: Sized, {
+        self.bus.replace( config.0 );
+        self.i2c.replace( config.1 );
+    }
+
+
     fn on_initialize(self) -> Completion<Self> {
         Completion::defer(async move {
             if let Some(i2c) = self.i2c {
@@ -105,26 +113,6 @@ where
             }
             self
         })
-    }
-}
-
-impl<D, I> Bind<EventBus<D>> for Sensor<D, I>
-where
-    D: Device,
-    I: WriteRead + Read + Write,
-{
-    fn on_bind(&mut self, address: Address<EventBus<D>>) {
-        self.bus.replace(address);
-    }
-}
-
-impl<D, I> Bind<I2cPeripheral<I>> for Sensor<D, I>
-where
-    D: Device,
-    I: WriteRead + Read + Write + 'static,
-{
-    fn on_bind(&mut self, address: Address<I2cPeripheral<I>>) {
-        self.i2c.replace(address);
     }
 }
 

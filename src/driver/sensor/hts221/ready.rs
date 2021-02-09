@@ -1,4 +1,3 @@
-use crate::bind::Bind;
 use crate::domain::temperature::Celsius;
 use crate::driver::sensor::hts221::sensor::Sensor;
 use crate::driver::sensor::hts221::SensorAcquisition;
@@ -37,6 +36,12 @@ where
     P: InputPin + ExtiPin,
     I: WriteRead + Read + Write + 'static,
 {
+    type Configuration = Address<Sensor<D,I>>;
+
+    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration) where
+        Self: Sized, {
+        self.sensor.replace(config);
+    }
 }
 
 impl<D, P, I> Interrupt for Ready<D, P, I>
@@ -55,13 +60,3 @@ where
     }
 }
 
-impl<D, P, I> Bind<Sensor<D, I>> for Ready<D, P, I>
-where
-    D: Device,
-    P: InputPin + ExtiPin,
-    I: WriteRead + Read + Write,
-{
-    fn on_bind(&mut self, address: Address<Sensor<D, I>>) {
-        self.sensor.replace(address);
-    }
-}

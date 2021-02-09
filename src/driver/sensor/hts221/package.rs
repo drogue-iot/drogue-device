@@ -34,26 +34,26 @@ where
         }
     }
 
-    pub fn bind(&'static self, address: Address<I2cPeripheral<I>>) {
-        self.sensor.bind(address);
-    }
+    //pub fn bind(&'static self, address: Address<I2cPeripheral<I>>) {
+        //self.sensor.bind(address);
+    //}
 }
 
-impl<D, P, I> Package<D, Sensor<D, I>> for Hts221<D, P, I>
+impl<D, P, I> Package<Sensor<D, I>> for Hts221<D, P, I>
 where
     D: Device + EventHandler<SensorAcquisition<Celsius>>,
     P: InputPin + ExtiPin,
     I: WriteRead + Read + Write,
 {
+    type Configuration = (Address<EventBus<D>>, Address<I2cPeripheral<I>>);
+
     fn mount(
         &'static self,
-        bus_address: Address<EventBus<D>>,
+        config: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<Sensor<D, I>> {
-        let ready_addr = self.ready.mount(supervisor);
-        let sensor_addr = self.sensor.mount(supervisor);
-        self.sensor.bind(bus_address);
-        self.ready.bind(sensor_addr);
+        let sensor_addr = self.sensor.mount( config, supervisor);
+        let ready_addr = self.ready.mount(sensor_addr, supervisor);
         sensor_addr
     }
 }

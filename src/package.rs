@@ -14,11 +14,14 @@ use crate::prelude::{Actor, Address, Device, EventBus, Supervisor};
 ///
 /// In some scenarios, a `Package` may consist of an `Actor` and an `Interrupt`
 /// that work in tandem, while exporting the `Actor`'s address.
-pub trait Package<D: Device, A: Actor> {
+pub trait Package<A: Actor> {
+
+    type Configuration;
+
     /// Mount this package.
     fn mount(
         &'static self,
-        bus_address: Address<EventBus<D>>,
+        config: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<A>;
 }

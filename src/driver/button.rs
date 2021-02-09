@@ -1,4 +1,3 @@
-use crate::bind::Bind;
 use crate::hal::gpio::exti_pin::ExtiPin;
 use crate::hal::Active;
 use crate::handler::EventHandler;
@@ -22,14 +21,11 @@ where
     D: Device,
     PIN: InputPin + ExtiPin,
 {
-}
+    type Configuration = Address<EventBus<D>>;
 
-impl<D, PIN> Bind<EventBus<D>> for Button<D, PIN>
-where
-    D: Device,
-{
-    fn on_bind(&mut self, address: Address<EventBus<D>>) {
-        self.bus.replace(address);
+    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration) where
+        Self: Sized, {
+        self.bus.replace(config);
     }
 }
 

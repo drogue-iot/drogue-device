@@ -28,6 +28,7 @@ use stm32l4xx_hal::{
     pac::I2C2,
     pac::TIM15,
 };
+use drogue_device::device::DeviceConfiguration;
 
 type Ld1Pin = PA5<Output<PushPull>>;
 type Ld2Pin = PB14<Output<PushPull>>;
@@ -61,28 +62,19 @@ pub struct MyDevice {
 }
 
 impl Device for MyDevice {
-    fn mount(&'static self, bus_address: Address<EventBus<Self>>, supervisor: &mut Supervisor) {
-        self.memory.mount(supervisor);
-        let ld1_addr = self.ld1.mount(supervisor);
-        let ld2_addr = self.ld2.mount(supervisor);
+    fn mount(&'static self, config: DeviceConfiguration<Self>, supervisor: &mut Supervisor) {
+        self.memory.mount((), supervisor);
+        let ld1_addr = self.ld1.mount((), supervisor);
+        let ld2_addr = self.ld2.mount((), supervisor);
+        let timer_addr = self.timer.mount((), supervisor);
 
-        let blinker1_addr = self.blinker1.mount(supervisor);
-        let blinker2_addr = self.blinker2.mount(supervisor);
+        let blinker1_addr = self.blinker1.mount((ld1_addr, timer_addr), supervisor);
+        let blinker2_addr = self.blinker2.mount((ld2_addr, timer_addr) , supervisor);
 
-        let i2c_addr = self.i2c.mount(bus_address, supervisor);
-        let hts221_addr = self.hts221.mount(bus_address, supervisor);
-        let timer_addr = self.timer.mount(bus_address, supervisor);
+        let i2c_addr = self.i2c.mount((), supervisor);
+        let hts221_addr = self.hts221.mount((config.event_bus, i2c_addr), supervisor);
 
-        self.blinker1.bind(timer_addr);
-        self.blinker1.bind(ld1_addr);
-
-        self.blinker2.bind(timer_addr);
-        self.blinker2.bind(ld2_addr);
-
-        self.hts221.bind(i2c_addr);
-
-        let button_addr = self.button.mount(supervisor);
-        self.button.bind(bus_address);
+        let button_addr = self.button.mount(config.event_bus, supervisor);
     }
 }
 

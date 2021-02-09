@@ -35,7 +35,9 @@ impl Default for Memory {
     }
 }
 
-impl Actor for Memory {}
+impl Actor for Memory {
+    type Configuration = ();
+}
 
 impl RequestHandler<Query> for Memory {
     type Response = Info;

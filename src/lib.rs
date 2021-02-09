@@ -6,7 +6,6 @@ pub mod actor;
 pub mod address;
 #[doc(hidden)]
 pub mod alloc;
-pub mod bind;
 pub mod bus;
 pub mod device;
 pub mod domain;
@@ -26,7 +25,6 @@ pub mod hal;
 pub mod prelude {
     pub use crate::actor::{Actor, ActorContext, ActorInfo, Configurable};
     pub use crate::address::Address;
-    pub use crate::bind::Bind;
     pub use crate::bus::EventBus;
     pub use crate::device;
     pub use crate::device::Device;

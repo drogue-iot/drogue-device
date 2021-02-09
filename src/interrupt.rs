@@ -5,7 +5,6 @@ use cortex_m::peripheral::NVIC;
 
 use crate::actor::{Actor, ActorContext, Configurable};
 use crate::address::Address;
-use crate::prelude::Bind;
 use crate::supervisor::Supervisor;
 
 /// Additional trait applicable to `Actor`s indicating their ability
@@ -54,25 +53,9 @@ impl<I: Interrupt> InterruptContext<I> {
         self.actor_context.name()
     }
 
-    /// Dispatch a bind injection.
-    pub fn bind<OA: Actor>(&'static self, address: Address<OA>)
-    where
-        I: Bind<OA>,
-        OA: 'static,
-    {
-        self.actor_context.bind(address)
-    }
-
-    pub fn configure(&'static self, config: I::Configuration)
-    where
-        I: Configurable,
-    {
-        self.actor_context.configure(config)
-    }
-
     /// Mount the context and its actor into the system.
-    pub fn mount(&'static self, supervisor: &mut Supervisor) -> Address<I> {
-        let addr = self.actor_context.mount(supervisor);
+    pub fn mount(&'static self, config: I::Configuration, supervisor: &mut Supervisor) -> Address<I> {
+        let addr = self.actor_context.mount(config, supervisor);
         supervisor.activate_interrupt(self, self.irq);
 
         struct IrqNr(u8);

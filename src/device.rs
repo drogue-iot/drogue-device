@@ -6,6 +6,13 @@ use crate::actor::ActorContext;
 use crate::prelude::{Address, EventBus, EventHandler};
 use crate::supervisor::Supervisor;
 
+pub struct DeviceConfiguration<D>
+where
+    D: Device + 'static,
+{
+    pub event_bus: Address<EventBus<D>>,
+}
+
 /// System-wide lifecycle events.
 ///
 /// See also `NotificationHandler<...>`.  Each actor within the system is
@@ -38,7 +45,7 @@ pub trait Device {
     /// During `mount(...)` the device should perform the appropriate `bind(...)`
     /// for each child in order to inject all required dependencies, including
     /// possible the `EventBus` address which is provided.
-    fn mount(&'static self, bus_address: Address<EventBus<Self>>, supervisor: &mut Supervisor)
+    fn mount(&'static self, config: DeviceConfiguration<Self>, supervisor: &mut Supervisor)
     where
         Self: Sized;
 }
@@ -67,11 +74,14 @@ impl<D: Device> DeviceContext<D> {
             // UnsafeCell requierd for circular reference between DeviceContext and the EventBus it holds.
             (&mut *self.bus.get()).replace(bus);
             let bus = (&*self.bus.get()).as_ref().unwrap();
-            bus.mount(&mut *self.supervisor.borrow_mut());
+            bus.mount((), &mut *self.supervisor.borrow_mut());
 
-            let bus_address = bus.address();
+            let event_bus = bus.address();
+            let config = DeviceConfiguration {
+                event_bus,
+            };
             self.device
-                .mount(bus_address, &mut *self.supervisor.borrow_mut());
+                .mount(config, &mut *self.supervisor.borrow_mut());
             (&*self.supervisor.borrow()).run_forever()
         }
     }

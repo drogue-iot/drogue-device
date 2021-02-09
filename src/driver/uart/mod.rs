@@ -87,21 +87,20 @@ where
     }
 }
 
-impl<D, U> Package<D, UartPeripheral<U>> for Uart<U>
+impl<U> Package<UartPeripheral<U>> for Uart<U>
 where
-    D: Device,
     U: HalUart,
 {
+    type Configuration = ();
+
     fn mount(
         &'static self,
-        _: Address<EventBus<D>>,
+        config: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<UartPeripheral<U>> {
-        let addr = self.actor.mount(supervisor);
-        self.interrupt.mount(supervisor);
+        let addr = self.actor.mount(&self.shared, supervisor);
+        self.interrupt.mount(&self.shared, supervisor);
 
-        self.actor.configure(&self.shared);
-        self.interrupt.configure(&self.shared);
         addr
     }
 }
@@ -178,7 +177,16 @@ where
     }
 }
 
-impl<U> Actor for UartPeripheral<U> where U: HalUart {}
+impl<U> Actor for UartPeripheral<U>
+    where U: HalUart
+{
+    type Configuration = &'static Shared<U>;
+
+    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration) where
+        Self: Sized, {
+        self.shared.replace(config);
+    }
+}
 
 impl<U> UartInterrupt<U>
 where
@@ -197,7 +205,14 @@ impl<U: HalUart> Configurable for UartInterrupt<U> {
     }
 }
 
-impl<U> Actor for UartInterrupt<U> where U: HalUart {}
+impl<U> Actor for UartInterrupt<U> where U: HalUart {
+    type Configuration = &'static Shared<U>;
+
+    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration) where
+        Self: Sized, {
+        self.shared.replace( config );
+    }
+}
 
 impl<U> Interrupt for UartInterrupt<U>
 where

@@ -82,14 +82,15 @@ impl<T: 'static> Mutex<T> {
     }
 }
 
-impl<D: Device, T: 'static> Package<D, MutexActor<T>> for Mutex<T> {
+impl<T: 'static> Package<MutexActor<T>> for Mutex<T> {
+    type Configuration = ();
+
     fn mount(
         &'static self,
-        bus_address: Address<EventBus<D>>,
+        config: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<MutexActor<T>> {
-        let addr = self.actor.mount(supervisor);
-        self.actor.configure(&self.shared);
+        let addr = self.actor.mount(&self.shared, supervisor);
         addr
     }
 }
@@ -106,30 +107,11 @@ impl<T> Actor for MutexActor<T>
 where
     T: 'static,
 {
-    fn on_mount(&mut self, addr: Address<Self>) {
-        self.address.replace(addr);
-    }
-}
-
-impl<T> Configurable for MutexActor<T> {
     type Configuration = &'static Shared<T>;
 
-    fn configure(&mut self, config: Self::Configuration) {
+    fn on_mount(&mut self, addr: Address<Self>, config: Self::Configuration) {
+        self.address.replace(addr);
         self.shared.replace(config);
-    }
-}
-
-impl<T, A: Actor> Bind<A> for Mutex<T>
-where
-    T: Bind<A>,
-{
-    fn on_bind(&mut self, address: Address<A>) {
-        self.shared
-            .val
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .on_bind(address);
     }
 }
 

@@ -1,4 +1,3 @@
-use crate::bind::Bind;
 use crate::domain::time::duration::Milliseconds;
 use crate::driver::led::simple::Switchable;
 use crate::driver::timer::TimerActor;
@@ -31,36 +30,20 @@ where
     }
 }
 
-impl<S, T> Bind<S> for Blinker<S, T>
-where
-    S: Switchable,
-    T: HalTimer,
-{
-    fn on_bind(&mut self, address: Address<S>) {
-        self.led.replace(address);
-    }
-}
-
-impl<S, T> Bind<TimerActor<T>> for Blinker<S, T>
-where
-    S: Switchable,
-    T: HalTimer,
-{
-    fn on_bind(&mut self, address: Address<TimerActor<T>>) {
-        self.timer.replace(address);
-    }
-}
-
 impl<S, T> Actor for Blinker<S, T>
 where
     S: Switchable,
     T: HalTimer,
 {
-    fn on_mount(&mut self, address: Address<Self>)
+    type Configuration = (Address<S>, Address<TimerActor<T>>);
+
+    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where
         Self: Sized,
     {
         self.address.replace(address);
+        self.led.replace( config.0 );
+        self.timer.replace( config.1 );
     }
 
     fn on_start(self) -> Completion<Self> {

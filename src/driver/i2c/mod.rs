@@ -17,16 +17,16 @@ impl<I> I2c<I> {
     }
 }
 
-impl<D, I> Package<D, I2cPeripheral<I>> for I2c<I>
-where
-    D: Device,
+impl<I> Package<I2cPeripheral<I>> for I2c<I>
 {
+    type Configuration = ();
+
     fn mount(
         &'static self,
-        bus_address: Address<EventBus<D>>,
+        config: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<I2cPeripheral<I>> {
-        self.peripheral.mount(supervisor)
+        self.peripheral.mount( (), supervisor)
     }
 }
 
@@ -40,7 +40,9 @@ impl<I> I2cPeripheral<I> {
     }
 }
 
-impl<I> Actor for I2cPeripheral<I> {}
+impl<I> Actor for I2cPeripheral<I> {
+    type Configuration = ();
+}
 
 #[derive(Debug)]
 pub struct I2cRead<'b> {
