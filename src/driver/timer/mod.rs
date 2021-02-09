@@ -1,5 +1,6 @@
 use crate::actor::Configurable;
 use crate::alloc::{alloc, Box};
+use crate::domain::delayer::{Delay, Delayer};
 use crate::domain::scheduler::{Schedule, Scheduler};
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::timer::Timer as HalTimer;
@@ -11,9 +12,6 @@ use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 use cortex_m::interrupt::Nr;
 
-#[derive(Copy, Clone)]
-pub struct Delay<DUR: Duration + Into<Milliseconds>>(pub DUR);
-
 impl<DUR: Duration + Into<Milliseconds>> Debug for Delay<DUR> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         write!(f, "Delay")
@@ -24,21 +22,6 @@ pub trait Schedulable {
     fn run(&self);
     fn get_expiration(&self) -> Milliseconds;
     fn set_expiration(&mut self, expiration: Milliseconds);
-}
-
-impl<A, DUR, E> Schedule<A, DUR, E>
-where
-    A: Actor + NotifyHandler<E> + 'static,
-    DUR: Duration + Into<Milliseconds>,
-    E: Clone + 'static,
-{
-    pub fn new(delay: DUR, event: E, address: Address<A>) -> Self {
-        Self {
-            delay,
-            event,
-            address,
-        }
-    }
 }
 
 pub struct Shared {
@@ -158,25 +141,11 @@ impl<T: HalTimer> Scheduler for TimerActor<T> {
     }
 }
 
-impl<T: HalTimer> Actor for TimerActor<T> {
-    type Configuration = &'static Shared;
-
-    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
+impl<T: HalTimer> Delayer for TimerActor<T> {
+    fn delay<DUR>(mut self, message: Delay<DUR>) -> Response<Self, ()>
     where
-        Self: Sized,
+        DUR: Duration + Into<Milliseconds> + 'static,
     {
-        self.shared.replace(config);
-    }
-}
-
-impl<T, DUR> RequestHandler<Delay<DUR>> for TimerActor<T>
-where
-    T: HalTimer,
-    DUR: Duration + Into<Milliseconds>,
-{
-    type Response = ();
-
-    fn on_request(mut self, message: Delay<DUR>) -> Response<Self, Self::Response> {
         let ms: Milliseconds = message.0.into();
 
         let mut delay_deadlines = self.shared.unwrap().delay_deadlines.borrow_mut();
@@ -212,55 +181,16 @@ where
     }
 }
 
-impl<S, E, A, DUR> NotifyHandler<Schedule<A, DUR, E>> for S
-where
-    S: Scheduler + Actor + 'static,
-    E: Clone + 'static,
-    A: Actor + NotifyHandler<E> + 'static,
-    DUR: Duration + Into<Milliseconds> + 'static,
-{
-    fn on_notify(mut self, message: Schedule<A, DUR, E>) -> Completion<Self> {
-        self.schedule(message);
-        Completion::immediate(self)
-    }
-}
-/*
-impl<T, E, A, DUR> NotifyHandler<Schedule<A, DUR, E>> for TimerActor<T>
-where
-    T: HalTimer + 'static,
-    E: Clone + 'static,
-    A: Actor + NotifyHandler<E> + 'static,
-    DUR: Duration + Into<Milliseconds> + 'static,
-{
-    fn on_notify(mut self, message: Schedule<A, DUR, E>) -> Completion<Self> {
-        let ms: Milliseconds = message.delay.into();
-        // log::info!("schedule request {:?}", ms);
-        let mut deadlines = self.shared.unwrap().schedule_deadlines.borrow_mut();
-        let mut current_deadline = self.shared.unwrap().current_deadline.borrow_mut();
+impl<T: HalTimer> Actor for TimerActor<T> {
+    type Configuration = &'static Shared;
 
-        if let Some((index, slot)) = deadlines
-            .iter_mut()
-            .enumerate()
-            .find(|e| matches!(e, (_, None)))
-        {
-            deadlines[index].replace(Box::new(alloc(ScheduleDeadline::new(ms, message)).unwrap()));
-            if let Some(current) = &*current_deadline {
-                if *current > ms {
-                    current_deadline.replace(ms);
-                    self.timer.start(ms);
-                } else {
-                    //log::info!("timer already running for {:?}", current_deadline );
-                }
-            } else {
-                current_deadline.replace(ms);
-                //log::info!("start new timer for {:?}", ms);
-                self.timer.start(ms);
-            }
-        }
-        Completion::immediate(self)
+    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
+    where
+        Self: Sized,
+    {
+        self.shared.replace(config);
     }
 }
- */
 
 impl<T: HalTimer> Interrupt for TimerActor<T> {
     fn on_interrupt(&mut self) {
@@ -340,9 +270,12 @@ impl<T: HalTimer> Interrupt for TimerActor<T> {
 }
 
 impl<T: HalTimer + 'static> Address<TimerActor<T>> {
+    /*
     pub async fn delay<DUR: Duration + Into<Milliseconds> + 'static>(&self, duration: DUR) {
         self.request(Delay(duration)).await
     }
+
+     */
 
     /*
     pub fn schedule<
