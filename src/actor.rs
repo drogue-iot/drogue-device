@@ -11,8 +11,9 @@ use crate::device::Lifecycle;
 use crate::prelude::Interrupt;
 use crate::supervisor::actor_executor::ActiveActor;
 use crate::supervisor::{actor_executor::ActorState, Supervisor};
+use core::any::type_name;
 use core::cell::{RefCell, UnsafeCell};
-use core::fmt::{Debug, Formatter, Write};
+use core::fmt::{Formatter, Write};
 use core::mem::transmute;
 use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use heapless::spsc::{Consumer, Producer};
@@ -231,7 +232,7 @@ impl<A: Actor + 'static> ActorContext<A> {
     pub(crate) async fn request<M>(&'static self, message: M) -> <A as RequestHandler<M>>::Response
     where
         A: RequestHandler<M>,
-        M: Debug + 'static,
+        M: 'static,
     {
         let signal = Rc::new(CompletionHandle::new());
         let sender = CompletionSender::new(signal.clone());
@@ -266,7 +267,6 @@ impl<A: Actor + 'static> ActorContext<A> {
     ) -> <A as RequestHandler<M>>::Response
     where
         A: RequestHandler<M>,
-        M: Debug,
     {
         let signal = Rc::new(CompletionHandle::new());
         let sender = CompletionSender::new(signal.clone());
@@ -302,14 +302,13 @@ impl<A: Actor + 'static> ActorContext<A> {
     ) -> <A as RequestHandler<M>>::Response
     where
         A: RequestHandler<M>,
-        M: Debug,
     {
         let signal = Rc::new(CompletionHandle::new());
         let sender = CompletionSender::new(signal.clone());
         let receiver = CompletionReceiver::new(signal);
 
         let mut debug = String::new();
-        write!(debug, "{:?}", &message).unwrap();
+        write!(debug, "{:?}", type_name::<M>()).unwrap();
 
         let request: &mut dyn ActorFuture<A> =
             alloc(OnRequest::new(self, message, sender)).unwrap();
@@ -343,7 +342,7 @@ impl<A: Actor + 'static> ActorContext<A> {
     }
 }
 
-pub(crate) trait ActorFuture<A: Actor>: Future<Output = ()> + Unpin + Debug {
+pub(crate) trait ActorFuture<A: Actor>: Future<Output = ()> + Unpin {
     fn poll(&mut self, cx: &mut Context<'_>) -> Poll<()> {
         Future::poll(Pin::new(self), cx)
     }
@@ -368,12 +367,6 @@ impl<A: Actor> OnLifecycle<A> {
 }
 
 impl<A: Actor> ActorFuture<A> for OnLifecycle<A> {}
-
-impl<A: Actor> Debug for OnLifecycle<A> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        write!(f, "OnLifecycle-{:?}", &self.event)
-    }
-}
 
 impl<A: Actor> Unpin for OnLifecycle<A> {}
 
@@ -476,12 +469,6 @@ where
 
 impl<A: Actor + NotifyHandler<M>, M> ActorFuture<A> for OnNotify<A, M> {}
 
-impl<A: Actor + NotifyHandler<M>, M> Debug for OnNotify<A, M> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        write!(f, "OnNotify")
-    }
-}
-
 impl<A, M> Unpin for OnNotify<A, M> where A: NotifyHandler<M> + Actor {}
 
 impl<A: Actor, M> Future for OnNotify<A, M>
@@ -549,7 +536,6 @@ where
 struct OnRequest<A, M>
 where
     A: Actor + RequestHandler<M> + 'static,
-    M: Debug,
 {
     actor: &'static ActorContext<A>,
     message: Option<M>,
@@ -560,7 +546,6 @@ where
 impl<A, M> OnRequest<A, M>
 where
     A: Actor + RequestHandler<M>,
-    M: Debug,
 {
     pub fn new(
         actor: &'static ActorContext<A>,
@@ -576,22 +561,13 @@ where
     }
 }
 
-impl<A, M: Debug> OnRequest<A, M> where A: Actor + RequestHandler<M> + 'static {}
+impl<A, M> OnRequest<A, M> where A: Actor + RequestHandler<M> + 'static {}
 
-impl<A: Actor + RequestHandler<M>, M: Debug> ActorFuture<A> for OnRequest<A, M> {}
+impl<A: Actor + RequestHandler<M>, M> ActorFuture<A> for OnRequest<A, M> {}
 
-impl<A: Actor + RequestHandler<M>, M: Debug> Debug for OnRequest<A, M> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        //write!(f, "OnRequest")
-        f.debug_struct("OnRequest")
-            .field("message", &self.message)
-            .finish()
-    }
-}
+impl<A, M> Unpin for OnRequest<A, M> where A: Actor + RequestHandler<M> + 'static {}
 
-impl<A, M: Debug> Unpin for OnRequest<A, M> where A: Actor + RequestHandler<M> + 'static {}
-
-impl<A, M: Debug> Future for OnRequest<A, M>
+impl<A, M> Future for OnRequest<A, M>
 where
     A: Actor + RequestHandler<M>,
 {

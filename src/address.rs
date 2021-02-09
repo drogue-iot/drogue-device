@@ -2,7 +2,6 @@
 
 use crate::actor::{Actor, ActorContext};
 use crate::handler::{NotifyHandler, RequestHandler};
-use core::fmt::Debug;
 
 /// A handle to another actor for dispatching notifications and requests.
 ///
@@ -46,7 +45,7 @@ impl<A: Actor + 'static> Address<A> {
     pub async fn request<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
     where
         A: RequestHandler<M> + 'static,
-        M: Debug + 'static,
+        M: 'static,
     {
         self.actor.request(message).await
     }
@@ -65,7 +64,6 @@ impl<A: Actor + 'static> Address<A> {
     pub async fn request_panicking<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
     where
         A: RequestHandler<M> + 'static,
-        M: Debug,
     {
         self.actor.request_panicking(message).await
     }
