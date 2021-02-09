@@ -62,14 +62,16 @@ impl Semaphore {
     }
 }
 
-impl Package<SemaphoreActor> for Semaphore {
+impl Package for Semaphore {
+
+    type Primary = SemaphoreActor;
     type Configuration = ();
 
     fn mount(
         &'static self,
         config: Self::Configuration,
         supervisor: &mut Supervisor,
-    ) -> Address<SemaphoreActor> {
+    ) -> Address<Self::Primary> {
         let addr = self.actor.mount(&self.shared, supervisor);
         addr
     }

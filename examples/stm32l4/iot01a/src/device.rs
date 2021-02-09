@@ -45,9 +45,8 @@ type I2cPackage = I2c<I2cPeriph>;
 
 type TimerPackage = Timer<McuTimer<TIM15>>;
 
-type Blinker1Actor = Blinker<Ld1Actor, TimerActor<McuTimer<TIM15>>>;
-type Blinker2Actor = Blinker<Ld2Actor, TimerActor<McuTimer<TIM15>>>;
-
+type Blinker1Actor = Blinker<Ld1Actor, <TimerPackage as Package>::Primary>;
+type Blinker2Actor = Blinker<Ld2Actor, <TimerPackage as Package>::Primary>;
 
 type Hts221Package = Hts221<MyDevice, PD15<Input<PullDown>>, I2cPeriph>;
 

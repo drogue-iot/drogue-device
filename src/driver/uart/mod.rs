@@ -87,17 +87,18 @@ where
     }
 }
 
-impl<U> Package<UartPeripheral<U>> for Uart<U>
+impl<U> Package for Uart<U>
 where
     U: HalUart,
 {
+    type Primary = UartPeripheral<U>;
     type Configuration = ();
 
     fn mount(
         &'static self,
         config: Self::Configuration,
         supervisor: &mut Supervisor,
-    ) -> Address<UartPeripheral<U>> {
+    ) -> Address<Self::Primary> {
         let addr = self.actor.mount(&self.shared, supervisor);
         self.interrupt.mount(&self.shared, supervisor);
 

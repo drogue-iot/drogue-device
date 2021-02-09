@@ -82,14 +82,16 @@ impl<T: 'static> Mutex<T> {
     }
 }
 
-impl<T: 'static> Package<MutexActor<T>> for Mutex<T> {
+impl<T: 'static> Package for Mutex<T> {
+
+    type Primary = MutexActor<T>;
     type Configuration = ();
 
     fn mount(
         &'static self,
         config: Self::Configuration,
         supervisor: &mut Supervisor,
-    ) -> Address<MutexActor<T>> {
+    ) -> Address<Self::Primary> {
         let addr = self.actor.mount(&self.shared, supervisor);
         addr
     }

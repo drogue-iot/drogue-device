@@ -80,14 +80,15 @@ impl<T: HalTimer> Timer<T> {
     }
 }
 
-impl<T: HalTimer> Package<TimerActor<T>> for Timer<T> {
+impl<T: HalTimer> Package for Timer<T> {
+    type Primary = TimerActor<T>;
     type Configuration = ();
 
     fn mount(
         &'static self,
         config: Self::Configuration,
         supervisor: &mut Supervisor,
-    ) -> Address<TimerActor<T>> {
+    ) -> Address<Self::Primary> {
         let addr = self.actor.mount(&self.shared, supervisor);
         addr
     }

@@ -17,15 +17,16 @@ impl<I> I2c<I> {
     }
 }
 
-impl<I> Package<I2cPeripheral<I>> for I2c<I>
+impl<I> Package for I2c<I>
 {
+    type Primary = I2cPeripheral<I>;
     type Configuration = ();
 
     fn mount(
         &'static self,
         config: Self::Configuration,
         supervisor: &mut Supervisor,
-    ) -> Address<I2cPeripheral<I>> {
+    ) -> Address<Self::Primary> {
         self.peripheral.mount( (), supervisor)
     }
 }

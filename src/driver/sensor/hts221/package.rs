@@ -39,19 +39,20 @@ where
     //}
 }
 
-impl<D, P, I> Package<Sensor<D, I>> for Hts221<D, P, I>
+impl<D, P, I> Package for Hts221<D, P, I>
 where
     D: Device + EventHandler<SensorAcquisition<Celsius>>,
     P: InputPin + ExtiPin,
     I: WriteRead + Read + Write,
 {
+    type Primary = Sensor<D, I>;
     type Configuration = (Address<EventBus<D>>, Address<I2cPeripheral<I>>);
 
     fn mount(
         &'static self,
         config: Self::Configuration,
         supervisor: &mut Supervisor,
-    ) -> Address<Sensor<D, I>> {
+    ) -> Address<Self::Primary> {
         let sensor_addr = self.sensor.mount( config, supervisor);
         let ready_addr = self.ready.mount(sensor_addr, supervisor);
         sensor_addr
