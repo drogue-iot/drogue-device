@@ -24,19 +24,13 @@ use drogue_device::{
     domain::time::duration::Milliseconds,
     driver::{
         button::Button,
+        i2c::I2c,
         led::{Blinker, SimpleLED},
+        memory::Memory,
         sensor::hts221::Hts221,
         timer::Timer,
-        memory::Memory,
-        i2c::I2c,
     },
-    hal::{
-        timer::{
-            stm32l4xx::Timer as McuTimer
-        },
-        Active
-    },
-
+    hal::{timer::stm32l4xx::Timer as McuTimer, Active},
     prelude::*,
 };
 

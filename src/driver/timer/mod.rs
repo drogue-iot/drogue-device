@@ -5,17 +5,10 @@ use crate::driver::scheduler::{Schedule, Scheduler};
 use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
 use core::cell::RefCell;
-use core::fmt::{Debug, Formatter};
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 use cortex_m::interrupt::Nr;
-
-impl<DUR: Duration + Into<Milliseconds>> Debug for Delay<DUR> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        write!(f, "Delay")
-    }
-}
 
 pub trait Schedulable {
     fn run(&self);
@@ -30,7 +23,7 @@ pub struct Shared {
 }
 
 impl Shared {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             current_deadline: RefCell::new(None),
             delay_deadlines: RefCell::new(Default::default()),
@@ -98,7 +91,7 @@ pub struct TimerActor<T: HalTimer> {
 }
 
 impl<T: HalTimer> TimerActor<T> {
-    pub fn new(timer: T) -> Self {
+    fn new(timer: T) -> Self {
         Self {
             timer,
             shared: None,
@@ -268,31 +261,6 @@ impl<T: HalTimer> Interrupt for TimerActor<T> {
     }
 }
 
-impl<T: HalTimer + 'static> Address<TimerActor<T>> {
-    /*
-    pub async fn delay<DUR: Duration + Into<Milliseconds> + 'static>(&self, duration: DUR) {
-        self.request(Delay(duration)).await
-    }
-
-     */
-
-    /*
-    pub fn schedule<
-        DUR: Duration + Into<Milliseconds> + 'static,
-        E: Clone + 'static,
-        A: Actor + NotifyHandler<E>,
-    >(
-        &self,
-        delay: DUR,
-        event: E,
-        address: Address<A>,
-    ) {
-        self.notify(Schedule::new(delay, event, address));
-    }
-
-     */
-}
-
 struct DelayDeadline {
     expiration: Milliseconds,
     waker: Option<Waker>,
@@ -307,31 +275,32 @@ impl DelayDeadline {
     }
 }
 
-pub struct ScheduleDeadline<
+struct ScheduleDeadline<A, DUR, E>
+where
     A: Actor + NotifyHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds>,
     E: Clone + 'static,
-> {
+{
     expiration: Milliseconds,
     schedule: Schedule<A, DUR, E>,
 }
 
-impl<
-        A: Actor + NotifyHandler<E> + 'static,
-        DUR: Duration + Into<Milliseconds>,
-        E: Clone + 'static,
-    > Schedulable for ScheduleDeadline<A, DUR, E>
+impl<A, DUR, E> Schedulable for ScheduleDeadline<A, DUR, E>
+where
+    A: Actor + NotifyHandler<E> + 'static,
+    DUR: Duration + Into<Milliseconds>,
+    E: Clone + 'static,
 {
     fn run(&self) {
         self.schedule.address.notify(self.schedule.event.clone());
     }
 
-    fn set_expiration(&mut self, expiration: Milliseconds) {
-        self.expiration = expiration;
-    }
-
     fn get_expiration(&self) -> Milliseconds {
         self.expiration
+    }
+
+    fn set_expiration(&mut self, expiration: Milliseconds) {
+        self.expiration = expiration;
     }
 }
 

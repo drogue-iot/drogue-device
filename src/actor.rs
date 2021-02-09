@@ -1,23 +1,23 @@
 //! Actor-related types and traits.
 
-use crate::address::Address;
-use crate::handler::{Completion, NotifyHandler, RequestHandler, Response};
-use core::future::Future;
-use core::pin::Pin;
-use core::task::{Context, Poll, Waker};
-
-use crate::alloc::{alloc, Box, Rc};
-use crate::device::Lifecycle;
-use crate::prelude::Interrupt;
-use crate::supervisor::actor_executor::ActiveActor;
-use crate::supervisor::{actor_executor::ActorState, Supervisor};
 use core::any::type_name;
 use core::cell::{RefCell, UnsafeCell};
-use core::fmt::{Formatter, Write};
+use core::fmt::Write;
+use core::future::Future;
 use core::mem::transmute;
+use core::pin::Pin;
 use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use core::task::{Context, Poll, Waker};
+
 use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue, String};
+
+use crate::address::Address;
+use crate::alloc::{alloc, Box, Rc};
+use crate::device::Lifecycle;
+use crate::prelude::*;
+use crate::supervisor::actor_executor::ActiveActor;
+use crate::supervisor::{actor_executor::ActorState, Supervisor};
 
 pub trait Configurable {
     type Configuration;
