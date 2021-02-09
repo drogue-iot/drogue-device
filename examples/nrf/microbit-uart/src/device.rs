@@ -1,4 +1,5 @@
 use drogue_device::{
+    device::DeviceConfiguration,
     domain::time::duration::Milliseconds,
     driver::{
         gpiote::nrf::*,
@@ -31,27 +32,23 @@ pub struct MyDevice {
 }
 
 impl Device for MyDevice {
-    fn mount(&'static self, bus: Address<EventBus<Self>>, supervisor: &mut Supervisor) {
-        self.gpiote.mount(supervisor);
-        self.btn_fwd.mount(supervisor);
-        self.btn_back.mount(supervisor);
+    fn mount(&'static self, config: DeviceConfiguration<Self>, supervisor: &mut Supervisor) {
+        self.gpiote.mount(config.event_bus, supervisor);
+        self.btn_fwd.mount(config.event_bus, supervisor);
+        self.btn_back.mount(config.event_bus, supervisor);
 
-        let timer = self.timer.mount(bus, supervisor);
-        let display = self.led.mount(supervisor);
-        self.led.bind(timer);
+        let timer = self.timer.mount((), supervisor);
+        let display = self.led.mount(timer, supervisor);
+        let uart = self.uart.mount((), supervisor);
 
-        let app = self.app.mount(supervisor);
-        let uart = self.uart.mount(bus, supervisor);
-
-        self.gpiote.configure(bus);
-        self.btn_fwd.configure(bus);
-        self.btn_back.configure(bus);
-
-        self.app.configure(AppConfig {
-            uart,
-            display,
-            timer,
-        });
+        let app = self.app.mount(
+            AppConfig {
+                uart,
+                display,
+                timer,
+            },
+            supervisor,
+        );
 
         app.notify(SayHello);
     }
@@ -100,23 +97,21 @@ impl App {
         }
     }
 }
-impl Actor for App {}
-
-#[derive(Clone, Debug)]
-pub struct SayHello;
-
-#[derive(Clone, Debug)]
-pub struct StartService;
-
-impl Configurable for App {
+impl Actor for App {
     type Configuration = AppConfig;
-    fn configure(&mut self, config: Self::Configuration) {
+    fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
         self.uart.replace(config.uart);
         self.display.replace(config.display);
         self.timer.replace(config.timer);
         log::info!("Bound configuration");
     }
 }
+
+#[derive(Clone, Debug)]
+pub struct SayHello;
+
+#[derive(Clone, Debug)]
+pub struct StartService;
 
 impl NotifyHandler<SayHello> for App {
     fn on_notify(self, _: SayHello) -> Completion<Self> {

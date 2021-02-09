@@ -27,25 +27,15 @@ where
 impl<D: Device + EventHandler<PinEvent>, P: InputPin + GpioteInputPin + Sized> Actor
     for GpioteChannel<D, P>
 {
-}
-
-impl<D> Configurable for Gpiote<D>
-where
-    D: Device + EventHandler<GpioteEvent>,
-{
     type Configuration = Address<EventBus<D>>;
-    fn configure(&mut self, config: Self::Configuration) {
+    fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
         self.bus.replace(config);
     }
 }
 
-impl<D, P> Configurable for GpioteChannel<D, P>
-where
-    D: Device + EventHandler<PinEvent>,
-    P: InputPin + GpioteInputPin,
-{
+impl<D: Device + EventHandler<GpioteEvent>> Actor for Gpiote<D> {
     type Configuration = Address<EventBus<D>>;
-    fn configure(&mut self, config: Self::Configuration) {
+    fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
         self.bus.replace(config);
     }
 }
@@ -153,8 +143,6 @@ impl<D: Device + EventHandler<GpioteEvent> + 'static> Interrupt for Gpiote<D> {
         self.gpiote.reset_events();
     }
 }
-
-impl<D: Device + EventHandler<GpioteEvent>> Actor for Gpiote<D> {}
 
 /*
 impl<D: Device + EventHandler<PinEvent>, P: InputPin + GpioteInputPin + 'static>
