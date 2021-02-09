@@ -1,7 +1,5 @@
 use crate::actor::{Actor, Configurable};
 use crate::address::Address;
-use crate::bus::EventBus;
-use crate::device::Device;
 use crate::prelude::*;
 
 pub use crate::hal::uart::Error;

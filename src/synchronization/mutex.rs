@@ -92,8 +92,7 @@ impl<T: 'static> Package for Mutex<T> {
         config: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<Self::Primary> {
-        let addr = self.actor.mount(&self.shared, supervisor);
-        addr
+        self.actor.mount(&self.shared, supervisor)
     }
 }
 

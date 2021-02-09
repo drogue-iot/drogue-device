@@ -1,4 +1,4 @@
-use crate::actor::{Actor, Configurable};
+use crate::actor::Actor;
 use crate::address::Address;
 use crate::handler::{NotifyHandler, RequestHandler};
 

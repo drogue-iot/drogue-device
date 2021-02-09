@@ -1,7 +1,6 @@
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::handler::Response;
 use crate::prelude::{Actor, RequestHandler, Address};
-use core::future::Future;
 
 #[derive(Copy, Clone)]
 pub struct Delay<DUR: Duration + Into<Milliseconds>>(pub DUR);
@@ -19,7 +18,7 @@ where
 {
     type Response = ();
 
-    fn on_request(mut self, message: Delay<DUR>) -> Response<Self, Self::Response> {
+    fn on_request(self, message: Delay<DUR>) -> Response<Self, Self::Response> {
         self.delay(message)
     }
 }

@@ -38,7 +38,6 @@ use drogue_device::{
     },
 
     prelude::*,
-    synchronization::Mutex,
 };
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);

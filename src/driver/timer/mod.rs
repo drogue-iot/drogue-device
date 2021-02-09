@@ -1,4 +1,3 @@
-use crate::actor::Configurable;
 use crate::alloc::{alloc, Box};
 use crate::domain::delayer::{Delay, Delayer};
 use crate::domain::scheduler::{Schedule, Scheduler};
@@ -89,8 +88,7 @@ impl<T: HalTimer> Package for Timer<T> {
         config: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<Self::Primary> {
-        let addr = self.actor.mount(&self.shared, supervisor);
-        addr
+        self.actor.mount(&self.shared, supervisor)
     }
 }
 

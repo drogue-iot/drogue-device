@@ -3,9 +3,7 @@
 use cortex_m::interrupt::Nr;
 use cortex_m::peripheral::NVIC;
 
-use crate::actor::{Actor, ActorContext, Configurable};
-use crate::address::Address;
-use crate::supervisor::Supervisor;
+use crate::prelude::*;
 
 /// Additional trait applicable to `Actor`s indicating their ability
 /// to respond to hardware interrupts.

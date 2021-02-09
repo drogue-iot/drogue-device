@@ -1,3 +1,4 @@
+use drogue_device::device::DeviceConfiguration;
 use drogue_device::domain::time::duration::Milliseconds;
 use drogue_device::driver::sensor::hts221::SensorAcquisition;
 use drogue_device::{
@@ -6,7 +7,7 @@ use drogue_device::{
         i2c::I2c,
         memory::{Memory, Query},
     },
-    hal::gpio::{ActiveHigh, ActiveOutput},
+    hal::gpio::ActiveHigh,
 };
 use drogue_device::{
     driver::{
@@ -15,9 +16,8 @@ use drogue_device::{
         sensor::hts221::Hts221,
         timer::Timer,
     },
-    hal::timer::stm32l4xx::Timer as McuTimer,
+    hal::timer::stm32l4xx::Timer as HardwareTimer,
     prelude::*,
-    synchronization::Mutex,
 };
 use stm32l4xx_hal::{
     gpio::{
@@ -28,8 +28,6 @@ use stm32l4xx_hal::{
     pac::I2C2,
     pac::TIM15,
 };
-use drogue_device::device::DeviceConfiguration;
-use drogue_device::driver::timer::TimerActor;
 
 type Ld1Pin = PA5<Output<PushPull>>;
 type Ld2Pin = PB14<Output<PushPull>>;
@@ -43,7 +41,7 @@ type I2cSda = PB11<Alternate<AF4, Output<OpenDrain>>>;
 type I2cPeriph = HalI2c<I2C2, (I2cScl, I2cSda)>;
 type I2cPackage = I2c<I2cPeriph>;
 
-type TimerPackage = Timer<McuTimer<TIM15>>;
+type TimerPackage = Timer<HardwareTimer<TIM15>>;
 
 type Blinker1Actor = Blinker<Ld1Actor, <TimerPackage as Package>::Primary>;
 type Blinker2Actor = Blinker<Ld2Actor, <TimerPackage as Package>::Primary>;
@@ -59,7 +57,7 @@ pub struct MyDevice {
     pub button: InterruptContext<ButtonInterrupt>,
     pub i2c: I2cPackage,
     pub hts221: Hts221Package,
-    pub timer: Timer<McuTimer<TIM15>>,
+    pub timer: TimerPackage,
 }
 
 impl Device for MyDevice {
@@ -68,14 +66,14 @@ impl Device for MyDevice {
         let ld1_addr = self.ld1.mount((), supervisor);
         let ld2_addr = self.ld2.mount((), supervisor);
         let timer_addr = self.timer.mount((), supervisor);
-
-        let blinker1_addr = self.blinker1.mount((ld1_addr, timer_addr), supervisor);
-        let blinker2_addr = self.blinker2.mount((ld2_addr, timer_addr) , supervisor);
-
         let i2c_addr = self.i2c.mount((), supervisor);
-        let hts221_addr = self.hts221.mount((config.event_bus, i2c_addr), supervisor);
 
-        let button_addr = self.button.mount(config.event_bus, supervisor);
+        self.blinker1.mount((ld1_addr, timer_addr), supervisor);
+        self.blinker2.mount((ld2_addr, timer_addr), supervisor);
+
+        self.hts221.mount((config.event_bus, i2c_addr), supervisor);
+
+        self.button.mount(config.event_bus, supervisor);
     }
 }
 
