@@ -31,6 +31,7 @@ where
     U: DmaUart + 'static,
     T: HalTimer + 'static,
 {
+    me: Option<Address<Self>>,
     shared: Option<&'static Shared<U, T>>,
 }
 
@@ -131,7 +132,10 @@ where
     T: HalTimer + 'static,
 {
     pub fn new() -> Self {
-        Self { shared: None }
+        Self {
+            shared: None,
+            me: None,
+        }
     }
 }
 
@@ -181,7 +185,7 @@ where
                 match shared.uart.start_read(message.0) {
                     Ok(_) => {
                         log::trace!("Starting RX");
-                        let future = RxFuture::new(shared, None);
+                        let future = RxFuture::new(shared);
                         Response::immediate_future(self, future)
                     }
                     Err(e) => Response::immediate(self, Err(e)),
@@ -196,7 +200,7 @@ impl<'a, U, T, DUR> RequestHandler<UartRxTimeout<'a, DUR>> for UartActor<U, T>
 where
     U: DmaUart + 'static,
     T: HalTimer + 'static,
-    DUR: Duration + Into<Milliseconds>,
+    DUR: Duration + Into<Milliseconds> + 'static,
 {
     type Response = Result<usize, Error>;
     /// Receive bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
@@ -210,7 +214,15 @@ where
                 match shared.uart.start_read(message.0) {
                     Ok(_) => {
                         log::trace!("Starting RX");
-                        let future = RxFuture::new(shared, Some(message.1.into()));
+                        // Start the timer
+                        shared.timer.borrow().as_ref().unwrap().schedule(
+                            message.1,
+                            RxTimeout,
+                            self.me.as_ref().unwrap().clone(),
+                        );
+                        //                        let timeout = shared.timer.borrow().as_ref().delay(message.1);
+                        let future = RxFuture::new(shared);
+                        // , Some(timeout));
                         Response::immediate_future(self, future)
                     }
                     Err(e) => Response::immediate(self, Err(e)),
@@ -221,6 +233,20 @@ where
     }
 }
 
+impl<U, T> NotifyHandler<RxTimeout> for UartActor<U, T>
+where
+    U: DmaUart,
+    T: HalTimer + 'static,
+{
+    fn on_notify(mut self, message: RxTimeout) -> Completion<Self> {
+        let shared = self.shared.as_ref().unwrap();
+        if State::InProgress == shared.rx_state.get() {
+            shared.uart.cancel_read();
+        }
+        Completion::immediate(self)
+    }
+}
+
 impl<U, T> Actor for UartActor<U, T>
 where
     U: DmaUart,
@@ -228,7 +254,8 @@ where
 {
     type Configuration = &'static Shared<U, T>;
 
-    fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
+    fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
+        self.me.replace(me);
         self.shared.replace(config);
     }
 }
@@ -336,7 +363,6 @@ where
     T: HalTimer + 'static,
 {
     shared: &'a Shared<U, T>,
-    timeout: Option<Milliseconds>,
 }
 
 impl<'a, U, T> RxFuture<'a, U, T>
@@ -344,8 +370,8 @@ where
     U: DmaUart + 'static,
     T: HalTimer + 'static,
 {
-    fn new(shared: &'a Shared<U, T>, timeout: Option<Milliseconds>) -> Self {
-        Self { shared, timeout }
+    fn new(shared: &'a Shared<U, T>) -> Self {
+        Self { shared }
     }
 }
 
@@ -363,8 +389,6 @@ where
                 log::trace!("Marked RX future complete. Set ready");
                 return Poll::Ready(result);
             }
-
-            // If timeout has occured
         }
         return Poll::Pending;
     }
@@ -381,3 +405,6 @@ where
         }
     }
 }
+
+#[derive(Clone)]
+struct RxTimeout;

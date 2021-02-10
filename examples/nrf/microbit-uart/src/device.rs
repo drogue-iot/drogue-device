@@ -134,6 +134,7 @@ impl NotifyHandler<StartService> for App {
     fn on_notify(mut self, _: StartService) -> Completion<Self> {
         Completion::defer(async move {
             let led = self.display.as_ref().unwrap();
+            let timer = self.timer.as_ref().unwrap();
 
             if let Some(uart) = &mut self.uart {
                 let mut buf = [0; 128];
@@ -149,18 +150,19 @@ impl NotifyHandler<StartService> for App {
                 }
 
                 loop {
-                    unsafe {
-                        uart.read(&mut buf[..1])
+                    let len = uart
+                        .read_with_timeout(&mut buf[..], Milliseconds(1000))
+                        .await
+                        .expect("Error reading from UART");
+
+                    if len > 0 {
+                        for b in &buf[..len] {
+                            led.notify(MatrixCommand::ApplyAscii(*b as char));
+                        }
+
+                        uart.write(&buf[..len])
                             .await
-                            .map_err(|e| log::error!("Error reading from UART: {:?}", e))
-                            .ok();
-                    }
-                    led.notify(MatrixCommand::ApplyAscii(buf[0] as char));
-                    unsafe {
-                        uart.write(&buf[..1])
-                            .await
-                            .map_err(|e| log::error!("Error writing to UART: {:?}", e))
-                            .ok();
+                            .expect("Error writing to UART");
                     }
                 }
             }
