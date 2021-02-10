@@ -4,10 +4,10 @@ use drogue_device::{
         lora::*,
         memory::{Memory, Query},
         timer::Timer,
-        uart::dma::Uart as DmaUart,
+        uart::dma::Uart,
     },
     hal::timer::nrf::Timer as HalTimer,
-    hal::uart::nrf::Uarte as HalUart,
+    hal::uart::nrf::Uarte as DmaUart,
     prelude::*,
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
@@ -15,14 +15,14 @@ use hal::pac::TIMER0;
 use nrf52833_hal as hal;
 
 pub type Button = GpioteChannel<LoraDevice, Pin<Input<PullUp>>>;
-pub type AppLora = rak811::Rak811<HalUart<hal::pac::UARTE0>, Pin<Output<PushPull>>>;
+pub type AppLora = rak811::Rak811<DmaUart<hal::pac::UARTE0>, Pin<Output<PushPull>>>;
 
 pub struct LoraDevice {
     pub gpiote: InterruptContext<Gpiote<Self>>,
     pub btn_connect: ActorContext<Button>,
     pub btn_send: ActorContext<Button>,
     pub memory: ActorContext<Memory>,
-    pub uart: DmaUart<HalUart<hal::pac::UARTE0>>,
+    pub uart: Uart<DmaUart<hal::pac::UARTE0>>,
     pub lora: ActorContext<AppLora>,
     pub timer: Timer<HalTimer<TIMER0>>,
     pub app: ActorContext<App>,
@@ -34,7 +34,7 @@ impl Device for LoraDevice {
         self.gpiote.mount(config.event_bus, supervisor);
         self.btn_connect.mount(config.event_bus, supervisor);
         self.btn_send.mount(config.event_bus, supervisor);
-        //let timer = self.timer.mount((), supervisor);
+        let timer = self.timer.mount((), supervisor);
         let uart = self.uart.mount((), supervisor);
         let lora = self.lora.mount(uart, supervisor);
         self.app.mount(lora, supervisor);

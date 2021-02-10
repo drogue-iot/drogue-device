@@ -6,7 +6,8 @@
 ))]
 pub mod nrf;
 
-pub trait Uart {
+/// Trait for devices that support UART as a interrupt-driven DMA peripheral.
+pub trait DmaUart {
     /// Start a write operation to transmit the provided buffer. Implementations can return
     /// TxBufferTooLong if buffer is too big.
     fn start_write(&self, tx_buffer: &[u8]) -> Result<(), Error>;
@@ -27,7 +28,7 @@ pub trait Uart {
     /// Cancel a read operation
     fn cancel_read(&self);
 
-    /// Process interrupts for the peripheral.
+    /// Process interrupts for the peripheral. Returns booleans indicating (tx_done, rx_done).
     fn process_interrupts(&self) -> (bool, bool);
 }
 

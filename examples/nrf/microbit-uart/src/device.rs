@@ -5,10 +5,10 @@ use drogue_device::{
         gpiote::nrf::*,
         led::{LEDMatrix, MatrixCommand},
         timer::{Timer, TimerActor},
-        uart::dma::{Uart, UartPeripheral},
+        uart::dma::Uart,
     },
     hal::timer::nrf::Timer as HalTimer,
-    hal::uart::nrf::Uarte as HalUart,
+    hal::uart::nrf::Uarte as DmaUart,
     prelude::*,
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
@@ -19,7 +19,7 @@ use nrf52833_hal as hal;
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
 pub type LedMatrix = LEDMatrix<Pin<Output<PushPull>>, consts::U5, consts::U5, HalTimer<TIMER0>>;
 pub type AppTimer = TimerActor<HalTimer<TIMER0>>;
-pub type AppUart = UartPeripheral<HalUart<hal::pac::UARTE0>>;
+pub type AppUart = <Uart<DmaUart<hal::pac::UARTE0>> as Package>::Primary;
 
 pub struct MyDevice {
     pub led: ActorContext<LedMatrix>,
@@ -27,7 +27,7 @@ pub struct MyDevice {
     pub btn_fwd: ActorContext<Button>,
     pub btn_back: ActorContext<Button>,
     pub timer: Timer<HalTimer<TIMER0>>,
-    pub uart: Uart<HalUart<hal::pac::UARTE0>>,
+    pub uart: Uart<DmaUart<hal::pac::UARTE0>>,
     pub app: ActorContext<App>,
 }
 

@@ -1,21 +1,21 @@
-use crate::actor::Actor;
-use crate::address::Address;
+use crate::prelude::*;
 //use crate::domain::time::duration::Milliseconds;
 use crate::driver::lora::*;
-use crate::driver::uart::dma::UartPeripheral;
-use crate::hal::uart::{Error as UartError, Uart as HalUart};
+use crate::driver::uart::dma;
+use crate::hal::uart::{DmaUart, Error as UartError};
 use crate::handler::{RequestHandler, Response};
 
 use drogue_rak811::{Buffer, Command, ConfigOption, DriverError, Response as RakResponse};
 use embedded_hal::digital::v2::OutputPin;
 //use heapless::{consts, spsc::Queue};
 
+type Uart<U> = <dma::Uart<U> as Package>::Primary;
 pub struct Rak811<U, RST>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
     RST: OutputPin,
 {
-    uart: Option<Address<UartPeripheral<U>>>,
+    uart: Option<Address<Uart<U>>>,
     parse_buffer: Buffer,
     config: LoraConfig,
     rst: RST,
@@ -23,7 +23,7 @@ where
 
 impl<U, RST> Rak811<U, RST>
 where
-    U: HalUart,
+    U: DmaUart,
     RST: OutputPin,
 {
     pub fn new(rst: RST) -> Self {
@@ -41,7 +41,7 @@ where
         command: Command<'a>,
     ) -> Result<RakResponse, DriverError>
     where
-        U: HalUart,
+        U: DmaUart,
     {
         let mut s = Command::buffer();
         command.encode(&mut s);
@@ -63,7 +63,7 @@ where
 
     async fn recv_response<'b>(&mut self) -> Result<RakResponse, DriverError>
     where
-        U: HalUart,
+        U: DmaUart,
     {
         loop {
             // Run processing to increase likelyhood we have something to parse.
@@ -86,7 +86,7 @@ where
 
     async fn process<'b>(&mut self) -> Result<(), DriverError>
     where
-        U: HalUart,
+        U: DmaUart,
     {
         let uart = self.uart.as_ref().unwrap();
         let mut rx_buf: [u8; 8] = [0; 8];
@@ -127,7 +127,7 @@ where
 
     async fn send_command_ok<'a, 'b>(&mut self, command: Command<'a>) -> Result<(), LoraError>
     where
-        U: HalUart,
+        U: DmaUart,
     {
         let response = self.send_command(command).await;
         match response {
@@ -139,7 +139,7 @@ where
 
     async fn apply_config<'b>(&mut self) -> Result<(), LoraError>
     where
-        U: HalUart,
+        U: DmaUart,
     {
         let config = self.config;
         log::debug!("Applying config: {:?}", config);
@@ -176,10 +176,10 @@ where
 
 impl<U, RST> Actor for Rak811<U, RST>
 where
-    U: HalUart,
+    U: DmaUart,
     RST: OutputPin,
 {
-    type Configuration = Address<UartPeripheral<U>>;
+    type Configuration = Address<Uart<U>>;
     fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
         self.uart.replace(config);
     }
@@ -187,7 +187,7 @@ where
 
 impl<'a, U, RST> RequestHandler<Initialize> for Rak811<U, RST>
 where
-    U: HalUart,
+    U: DmaUart,
     RST: OutputPin,
 {
     type Response = Result<(), LoraError>;
@@ -209,7 +209,7 @@ where
 
 impl<'a, U, RST> RequestHandler<Reset> for Rak811<U, RST>
 where
-    U: HalUart,
+    U: DmaUart,
     RST: OutputPin,
 {
     type Response = Result<(), LoraError>;
@@ -234,7 +234,7 @@ where
 
 impl<'a, U, RST> RequestHandler<Configure<'a>> for Rak811<U, RST>
 where
-    U: HalUart,
+    U: DmaUart,
     RST: OutputPin,
 {
     type Response = Result<(), LoraError>;
@@ -249,7 +249,7 @@ where
 
 impl<'a, U, RST> RequestHandler<Join> for Rak811<U, RST>
 where
-    U: HalUart,
+    U: DmaUart,
     RST: OutputPin,
 {
     type Response = Result<(), LoraError>;
@@ -260,7 +260,7 @@ where
 
 impl<'a, U, RST> RequestHandler<Send<'a>> for Rak811<U, RST>
 where
-    U: HalUart,
+    U: DmaUart,
     RST: OutputPin,
 {
     type Response = Result<(), LoraError>;

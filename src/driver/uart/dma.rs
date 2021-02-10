@@ -5,7 +5,7 @@ use crate::driver::uart::{Uart as UartTrait, UartRx, UartTx};
 //use crate::hal::timer::Timer as HalTimer;
 pub use crate::hal::uart::Error;
 
-use crate::hal::uart::Uart as HalUart;
+use crate::hal::uart::DmaUart;
 use crate::interrupt::{Interrupt, InterruptContext};
 use crate::package::Package;
 use crate::synchronization::Signal;
@@ -16,24 +16,24 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use cortex_m::interrupt::Nr;
 
-impl<U> UartTrait for UartPeripheral<U> where U: HalUart + 'static {}
-pub struct UartPeripheral<U>
+impl<U> UartTrait for UartActor<U> where U: DmaUart + 'static {}
+pub struct UartActor<U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
     shared: Option<&'static Shared<U>>,
 }
 
 pub struct UartInterrupt<U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
     shared: Option<&'static Shared<U>>,
 }
 
 pub struct Shared<U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
     uart: U,
     //    timer: Timer<T>,
@@ -45,9 +45,9 @@ where
 
 pub struct Uart<U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
-    actor: ActorContext<UartPeripheral<U>>,
+    actor: ActorContext<UartActor<U>>,
     interrupt: InterruptContext<UartInterrupt<U>>,
     shared: Shared<U>,
 }
@@ -60,7 +60,7 @@ pub enum State {
 
 impl<U> Shared<U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
     fn new(uart: U) -> Self {
         Self {
@@ -75,14 +75,14 @@ where
 
 impl<U> Uart<U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
     pub fn new<IRQ>(uart: U, irq: IRQ) -> Self
     where
         IRQ: Nr,
     {
         Self {
-            actor: ActorContext::new(UartPeripheral::new()).with_name("uart_actor"),
+            actor: ActorContext::new(UartActor::new()).with_name("uart_actor"),
             interrupt: InterruptContext::new(UartInterrupt::new(), irq).with_name("uart_interrupt"),
             shared: Shared::new(uart),
         }
@@ -91,15 +91,15 @@ where
 
 impl<U> Package for Uart<U>
 where
-    U: HalUart,
+    U: DmaUart,
 {
-    type Primary = UartPeripheral<U>;
+    type Primary = UartActor<U>;
     type Configuration = ();
     fn mount(
         &'static self,
         _: Self::Configuration,
         supervisor: &mut Supervisor,
-    ) -> Address<UartPeripheral<U>> {
+    ) -> Address<UartActor<U>> {
         let addr = self.actor.mount(&self.shared, supervisor);
         self.interrupt.mount(&self.shared, supervisor);
 
@@ -107,18 +107,18 @@ where
     }
 }
 
-impl<U> UartPeripheral<U>
+impl<U> UartActor<U>
 where
-    U: HalUart,
+    U: DmaUart,
 {
     pub fn new() -> Self {
         Self { shared: None }
     }
 }
 
-impl<'a, U> RequestHandler<UartTx<'a>> for UartPeripheral<U>
+impl<'a, U> RequestHandler<UartTx<'a>> for UartActor<U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
     type Response = Result<(), Error>;
 
@@ -144,9 +144,9 @@ where
     }
 }
 
-impl<'a, U> RequestHandler<UartRx<'a>> for UartPeripheral<U>
+impl<'a, U> RequestHandler<UartRx<'a>> for UartActor<U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
     type Response = Result<usize, Error>;
     /// Receive bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
@@ -171,9 +171,9 @@ where
     }
 }
 
-impl<U> Actor for UartPeripheral<U>
+impl<U> Actor for UartActor<U>
 where
-    U: HalUart,
+    U: DmaUart,
 {
     type Configuration = &'static Shared<U>;
 
@@ -184,7 +184,7 @@ where
 
 impl<U> UartInterrupt<U>
 where
-    U: HalUart,
+    U: DmaUart,
 {
     pub fn new() -> Self {
         Self { shared: None }
@@ -193,7 +193,7 @@ where
 
 impl<U> Actor for UartInterrupt<U>
 where
-    U: HalUart,
+    U: DmaUart,
 {
     type Configuration = &'static Shared<U>;
 
@@ -204,7 +204,7 @@ where
 
 impl<U> Interrupt for UartInterrupt<U>
 where
-    U: HalUart,
+    U: DmaUart,
 {
     fn on_interrupt(&mut self) {
         let shared = self.shared.as_ref().unwrap();
@@ -229,14 +229,14 @@ where
 
 pub struct TxFuture<'a, U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
     shared: &'a Shared<U>,
 }
 
 impl<'a, U> TxFuture<'a, U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
     fn new(shared: &'a Shared<U>) -> Self {
         Self { shared }
@@ -245,7 +245,7 @@ where
 
 impl<'a, U> Future for TxFuture<'a, U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
     type Output = Result<(), Error>;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -263,7 +263,7 @@ where
 
 impl<'a, U> Drop for TxFuture<'a, U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
     fn drop(&mut self) {
         if State::InProgress == self.shared.tx_state.get() {
@@ -274,14 +274,14 @@ where
 
 pub struct RxFuture<'a, U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
     shared: &'a Shared<U>,
 }
 
 impl<'a, U> RxFuture<'a, U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
     fn new(shared: &'a Shared<U>) -> Self {
         Self { shared }
@@ -290,7 +290,7 @@ where
 
 impl<'a, U> Future for RxFuture<'a, U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
     type Output = Result<usize, Error>;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -308,7 +308,7 @@ where
 
 impl<'a, U> Drop for RxFuture<'a, U>
 where
-    U: HalUart + 'static,
+    U: DmaUart + 'static,
 {
     fn drop(&mut self) {
         if State::InProgress == self.shared.rx_state.get() {
