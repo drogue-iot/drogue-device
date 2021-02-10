@@ -45,14 +45,14 @@ optional = true
 # lora dependencies
 # ----------------------------------------
 [dependencies.drogue-lora]
-path = "../drogue-lora"
-#git = "https://github.com/drogue-iot/drogue-lora.git"
-#branch = "main"
+#path = "../drogue-lora"
+git = "https://github.com/drogue-iot/drogue-lora.git"
+branch = "main"
 
 [dependencies.drogue-rak811]
-path = "../drogue-rak811"
-#git = "https://github.com/drogue-iot/drogue-rak811.git"
-#branch = "main"
+#path = "../drogue-rak811"
+git = "https://github.com/drogue-iot/drogue-rak811.git"
+branch = "main"
 optional = true
 
 # ----------------------------------------
