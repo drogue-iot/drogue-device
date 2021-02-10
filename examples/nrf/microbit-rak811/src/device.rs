@@ -36,7 +36,7 @@ impl Device for LoraDevice {
         self.btn_connect.mount(config.event_bus, supervisor);
         self.btn_send.mount(config.event_bus, supervisor);
         let timer = self.timer.mount((), supervisor);
-        let uart = self.uart.mount((), supervisor);
+        let uart = self.uart.mount(timer, supervisor);
         let lora = self.lora.mount(uart, supervisor);
         self.app.mount(lora, supervisor);
     }

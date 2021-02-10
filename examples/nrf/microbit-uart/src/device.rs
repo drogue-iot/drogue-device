@@ -39,7 +39,7 @@ impl Device for MyDevice {
 
         let timer = self.timer.mount((), supervisor);
         let display = self.led.mount(timer, supervisor);
-        let uart = self.uart.mount((), supervisor);
+        let uart = self.uart.mount(timer, supervisor);
 
         let app = self.app.mount(
             AppConfig {

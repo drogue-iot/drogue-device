@@ -11,7 +11,7 @@ use crate::interrupt::{Interrupt, InterruptContext};
 use crate::package::Package;
 use crate::synchronization::Signal;
 
-use core::cell::Cell;
+use core::cell::{Cell, RefCell};
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
@@ -48,7 +48,7 @@ where
     T: HalTimer + 'static,
 {
     uart: U,
-    timer: Option<UartTimer<T>>,
+    timer: RefCell<Option<Address<UartTimer<T>>>>,
     tx_state: Cell<State>,
     rx_state: Cell<State>,
     tx_done: Signal<Result<(), Error>>,
@@ -81,7 +81,7 @@ where
             tx_done: Signal::new(),
             rx_done: Signal::new(),
             uart,
-            timer: None,
+            timer: RefCell::new(None),
             tx_state: Cell::new(State::Ready),
             rx_state: Cell::new(State::Ready),
         }
@@ -111,12 +111,13 @@ where
     T: HalTimer + 'static,
 {
     type Primary = UartActor<U, T>;
-    type Configuration = ();
+    type Configuration = Address<UartTimer<T>>;
     fn mount(
         &'static self,
-        _: Self::Configuration,
+        timer: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<UartActor<U, T>> {
+        self.shared.timer.borrow_mut().replace(timer);
         let addr = self.actor.mount(&self.shared, supervisor);
         self.interrupt.mount(&self.shared, supervisor);
 
