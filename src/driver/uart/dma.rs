@@ -1,12 +1,8 @@
-use crate::actor::Actor;
-use crate::address::Address;
-use crate::bus::EventBus;
-use crate::device::Device;
 use crate::prelude::*;
 
-use crate::driver::timer::TimerActor as Timer;
+//use crate::driver::timer::TimerActor as Timer;
 use crate::driver::uart::{Uart as UartTrait, UartRx, UartTx};
-use crate::hal::timer::Timer as HalTimer;
+//use crate::hal::timer::Timer as HalTimer;
 pub use crate::hal::uart::Error;
 
 use crate::hal::uart::Uart as HalUart;

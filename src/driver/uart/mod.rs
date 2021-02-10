@@ -1,18 +1,6 @@
-use crate::actor::{Actor, Configurable};
-use crate::address::Address;
 use crate::prelude::*;
 
 pub use crate::hal::uart::Error;
-use crate::hal::uart::Uart as HalUart;
-use crate::interrupt::{Interrupt, InterruptContext};
-use crate::package::Package;
-use crate::synchronization::Signal;
-
-use core::cell::Cell;
-use core::future::Future;
-use core::pin::Pin;
-use core::task::{Context, Poll};
-use cortex_m::interrupt::Nr;
 
 pub trait Uart: Actor {}
 

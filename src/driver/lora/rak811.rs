@@ -1,15 +1,14 @@
 use crate::actor::Actor;
 use crate::address::Address;
-use crate::domain::time::duration::Milliseconds;
+//use crate::domain::time::duration::Milliseconds;
 use crate::driver::lora::*;
-use crate::driver::uart::dma::{Uart as DmaUart, UartPeripheral};
-use crate::driver::uart::{Uart, UartRx, UartTx};
+use crate::driver::uart::dma::UartPeripheral;
 use crate::hal::uart::{Error as UartError, Uart as HalUart};
 use crate::handler::{RequestHandler, Response};
 
 use drogue_rak811::{Buffer, Command, ConfigOption, DriverError, Response as RakResponse};
 use embedded_hal::digital::v2::OutputPin;
-use heapless::{consts, spsc::Queue};
+//use heapless::{consts, spsc::Queue};
 
 pub struct Rak811<U, RST>
 where
