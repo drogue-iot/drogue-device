@@ -7,14 +7,44 @@ use crate::hal::uart::{DmaUart, Error as UartError};
 use crate::handler::{RequestHandler, Response};
 use crate::prelude::*;
 
+use core::cell::{RefCell, UnsafeCell};
+
 use drogue_rak811::{
     Buffer, Command, ConfigOption, DriverError, EventCode, Response as RakResponse,
 };
 use embedded_hal::digital::v2::OutputPin;
-use heapless::{consts, spsc::Queue, String};
+use heapless::{
+    consts,
+    spsc::{Consumer, Producer, Queue},
+    String,
+};
 
 type Uart<U, T> = <dma::Uart<U, T> as Package>::Primary;
 type Timer<T> = <timer::Timer<T> as Package>::Primary;
+
+pub struct Rak811Actor<U, T, RST>
+where
+    U: DmaUart + 'static,
+    T: HalTimer + 'static,
+    RST: OutputPin + 'static,
+{
+    uart: Option<Address<Uart<U, T>>>,
+    timer: Option<Address<Timer<T>>>,
+    command_buffer: String<consts::U128>,
+    config: LoraConfig,
+    rst: RST,
+    rxc: Option<RefCell<Consumer<'static, RakResponse, consts::U8>>>,
+}
+pub struct Rak811Ingress<U, T>
+where
+    U: DmaUart + 'static,
+    T: HalTimer + 'static,
+{
+    uart: Option<Address<Uart<U, T>>>,
+    timer: Option<Address<Timer<T>>>,
+    parse_buffer: Buffer,
+    rxp: Option<RefCell<Producer<'static, RakResponse, consts::U8>>>,
+}
 
 pub struct Rak811<U, T, RST>
 where
@@ -22,14 +52,39 @@ where
     T: HalTimer + 'static,
     RST: OutputPin + 'static,
 {
-    me: Option<Address<Self>>,
-    uart: Option<Address<Uart<U, T>>>,
-    timer: Option<Address<Timer<T>>>,
-    parse_buffer: Buffer,
-    rxq: Queue<RakResponse, consts::U2>,
-    command_buffer: String<consts::U128>,
-    config: LoraConfig,
-    rst: RST,
+    actor: ActorContext<Rak811Actor<U, T, RST>>,
+    ingress: ActorContext<Rak811Ingress<U, T>>,
+    rxq: UnsafeCell<Queue<RakResponse, consts::U8>>,
+}
+
+impl<U, T, RST> Package for Rak811<U, T, RST>
+where
+    U: DmaUart + 'static,
+    T: HalTimer + 'static,
+    RST: OutputPin + 'static,
+{
+    type Primary = Rak811Actor<U, T, RST>;
+    type Configuration = (Address<Uart<U, T>>, Address<Timer<T>>);
+    fn mount(
+        &'static self,
+        config: Self::Configuration,
+        supervisor: &mut Supervisor,
+    ) -> Address<Self::Primary>
+    where
+        Self: 'static,
+    {
+        /*
+        let mut queue = self.rxq.borrow_mut();
+        let (prod, cons): (
+            Producer<'static, RakResponse, consts::U8>,
+            Consumer<'static, RakResponse, consts::U8>,
+        ) = queue.split();*/
+        let (prod, cons) = unsafe { (&mut *self.rxq.get()).split() };
+        let addr = self.actor.mount((cons, config.0, config.1), supervisor);
+        self.ingress.mount((prod, config.0, config.1), supervisor);
+
+        addr
+    }
 }
 
 impl<U, T, RST> Rak811<U, T, RST>
@@ -40,18 +95,31 @@ where
 {
     pub fn new(rst: RST) -> Self {
         Self {
+            actor: ActorContext::new(Rak811Actor::new(rst)),
+            ingress: ActorContext::new(Rak811Ingress::new()),
+            rxq: UnsafeCell::new(Queue::new()),
+        }
+    }
+}
+
+impl<U, T, RST> Rak811Actor<U, T, RST>
+where
+    U: DmaUart,
+    T: HalTimer,
+    RST: OutputPin,
+{
+    pub fn new(rst: RST) -> Self {
+        Self {
             uart: None,
             timer: None,
-            me: None,
             command_buffer: String::new(),
-            parse_buffer: Buffer::new(),
             config: LoraConfig::new(),
-            rxq: Queue::new(),
             rst,
+            rxc: None,
         }
     }
 
-    async fn send_command<'a>(&mut self, command: Command<'a>) -> Result<RakResponse, LoraError> {
+    async fn send_command<'b>(&mut self, command: Command<'b>) -> Result<RakResponse, LoraError> {
         let s = &mut self.command_buffer;
         s.clear();
         command.encode(s);
@@ -60,70 +128,23 @@ where
         log::debug!("Sending command {}", s.as_str());
         let uart = self.uart.as_ref().unwrap();
 
-        let mut rx_buf: [u8; 256] = [0; 256];
-
-        let rx = uart.read_with_timeout(&mut rx_buf[..], Milliseconds(5000));
-
         uart.write(s.as_bytes()).await?;
 
-        let len = rx.await?;
-        //log::info!("Read {} bytes", len);
-        for b in &mut rx_buf[..len] {
-            self.parse_buffer.write(*b).unwrap();
-        }
-        self.digest()?;
-
-        if let Some(response) = self.rxq.dequeue() {
-            log::debug!("Got response: {:?}", response);
-            return Ok(response);
-        } else {
-            return Err(LoraError::ReadTimeout);
-        }
+        self.recv_response().await
     }
 
     async fn recv_response(&mut self) -> Result<RakResponse, LoraError>
 where {
         loop {
             // Run processing to increase likelyhood we have something to parse.
-            self.process().await?;
-            self.digest()?;
-            if let Some(response) = self.rxq.dequeue() {
+            if let Some(response) = self.rxc.as_ref().unwrap().borrow_mut().dequeue() {
                 return Ok(response);
             }
             self.timer.as_ref().unwrap().delay(Milliseconds(100)).await;
         }
     }
 
-    fn digest(&mut self) -> Result<(), LoraError> {
-        let result = self.parse_buffer.parse();
-        if let Ok(response) = result {
-            if !matches!(response, RakResponse::None) {
-                log::debug!("Got response: {:?}", response);
-                self.rxq
-                    .enqueue(response)
-                    .map_err(|_| LoraError::ReadError)?;
-            }
-        }
-        Ok(())
-    }
-
-    async fn process(&mut self) -> Result<(), LoraError> {
-        let uart = self.uart.as_ref().unwrap();
-        let mut rx_buf: [u8; 128] = [0; 128];
-
-        let len = uart
-            .read_with_timeout(&mut rx_buf[..], Milliseconds(1000))
-            .await?;
-
-        // log::info!("Read {} bytes", len);
-        for b in &mut rx_buf[..len] {
-            self.parse_buffer.write(*b).unwrap();
-        }
-
-        Ok(())
-    }
-
-    async fn send_command_ok<'a>(&mut self, command: Command<'a>) -> Result<(), LoraError> {
+    async fn send_command_ok<'b>(&mut self, command: Command<'b>) -> Result<(), LoraError> {
         let response = self.send_command(command).await;
         match response {
             Ok(RakResponse::Ok) => Ok(()),
@@ -175,21 +196,25 @@ where {
     }
 }
 
-impl<U, T, RST> Actor for Rak811<U, T, RST>
+impl<U, T, RST> Actor for Rak811Actor<U, T, RST>
 where
     U: DmaUart,
     T: HalTimer,
     RST: OutputPin,
 {
-    type Configuration = (Address<Uart<U, T>>, Address<Timer<T>>);
-    fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
-        self.uart.replace(config.0);
-        self.timer.replace(config.1);
-        self.me.replace(me);
+    type Configuration = (
+        Consumer<'static, RakResponse, consts::U8>,
+        Address<Uart<U, T>>,
+        Address<Timer<T>>,
+    );
+    fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
+        self.rxc.replace(RefCell::new(config.0));
+        self.uart.replace(config.1);
+        self.timer.replace(config.2);
     }
 }
 
-impl<'a, U, T, RST> RequestHandler<Initialize> for Rak811<U, T, RST>
+impl<U, T, RST> RequestHandler<Initialize> for Rak811Actor<U, T, RST>
 where
     U: DmaUart,
     T: HalTimer,
@@ -213,7 +238,7 @@ where
     }
 }
 
-impl<'a, U, T, RST> RequestHandler<Reset> for Rak811<U, T, RST>
+impl<U, T, RST> RequestHandler<Reset> for Rak811Actor<U, T, RST>
 where
     U: DmaUart,
     T: HalTimer,
@@ -242,14 +267,14 @@ where
     }
 }
 
-impl<'a, U, T, RST> RequestHandler<Configure<'a>> for Rak811<U, T, RST>
+impl<'b, U, T, RST> RequestHandler<Configure<'b>> for Rak811Actor<U, T, RST>
 where
     U: DmaUart,
     T: HalTimer,
     RST: OutputPin,
 {
     type Response = Result<(), LoraError>;
-    fn on_request(mut self, message: Configure<'a>) -> Response<Self, Self::Response> {
+    fn on_request(mut self, message: Configure<'b>) -> Response<Self, Self::Response> {
         let config = message.0.clone();
         Response::defer(async move {
             let result = self.apply_config(config).await;
@@ -258,7 +283,7 @@ where
     }
 }
 
-impl<'a, U, T, RST> RequestHandler<Join> for Rak811<U, T, RST>
+impl<U, T, RST> RequestHandler<Join> for Rak811Actor<U, T, RST>
 where
     U: DmaUart,
     T: HalTimer,
@@ -289,15 +314,103 @@ where
     }
 }
 
-impl<'a, U, T, RST> RequestHandler<Send<'a>> for Rak811<U, T, RST>
+impl<'b, U, T, RST> RequestHandler<Send<'b>> for Rak811Actor<U, T, RST>
 where
     U: DmaUart,
     T: HalTimer,
     RST: OutputPin,
 {
     type Response = Result<(), LoraError>;
-    fn on_request(self, message: Send<'a>) -> Response<Self, Self::Response> {
+    fn on_request(self, message: Send<'b>) -> Response<Self, Self::Response> {
         Response::immediate(self, Ok(()))
+    }
+}
+
+impl<U, T> Rak811Ingress<U, T>
+where
+    U: DmaUart,
+    T: HalTimer,
+{
+    pub fn new() -> Self {
+        Self {
+            uart: None,
+            timer: None,
+            parse_buffer: Buffer::new(),
+            rxp: None,
+        }
+    }
+
+    fn digest(&mut self) -> Result<(), LoraError> {
+        let result = self.parse_buffer.parse();
+        if let Ok(response) = result {
+            if !matches!(response, RakResponse::None) {
+                log::debug!("Got response: {:?}", response);
+                self.rxp
+                    .as_ref()
+                    .unwrap()
+                    .borrow_mut()
+                    .enqueue(response)
+                    .map_err(|_| LoraError::ReadError)?;
+            }
+        }
+        Ok(())
+    }
+
+    async fn process(&mut self) -> Result<(), LoraError> {
+        let uart = self.uart.as_ref().unwrap();
+        let mut rx_buf: [u8; 128] = [0; 128];
+
+        let len = uart
+            .read_with_timeout(&mut rx_buf[..], Milliseconds(1000))
+            .await?;
+
+        // log::info!("Read {} bytes", len);
+        for b in &mut rx_buf[..len] {
+            self.parse_buffer.write(*b).unwrap();
+        }
+
+        Ok(())
+    }
+}
+
+struct ReadData;
+
+impl<U, T> Actor for Rak811Ingress<U, T>
+where
+    U: DmaUart,
+    T: HalTimer,
+{
+    type Configuration = (
+        Producer<'static, RakResponse, consts::U8>,
+        Address<Uart<U, T>>,
+        Address<Timer<T>>,
+    );
+    fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
+        self.rxp.replace(RefCell::new(config.0));
+        self.uart.replace(config.1);
+        self.timer.replace(config.2);
+        me.notify(ReadData);
+    }
+}
+
+impl<U, T> NotifyHandler<ReadData> for Rak811Ingress<U, T>
+where
+    U: DmaUart,
+    T: HalTimer,
+{
+    fn on_notify(mut self, message: ReadData) -> Completion<Self> {
+        Completion::defer(async move {
+            loop {
+                if let Err(e) = self.process().await {
+                    log::error!("Error reading data: {:?}", e);
+                }
+
+                if let Err(e) = self.digest() {
+                    log::error!("Error digesting data");
+                }
+            }
+            self
+        })
     }
 }
 

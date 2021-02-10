@@ -80,9 +80,7 @@ fn main() -> ! {
         btn_send: ActorContext::new(btn_send).with_name("button_send"),
         gpiote: InterruptContext::new(gpiote, hal::pac::Interrupt::GPIOTE).with_name("gpiote"),
         uart,
-        lora: ActorContext::new(rak811::Rak811::new(
-            port1.p1_02.into_push_pull_output(Level::High).degrade(),
-        )),
+        lora: rak811::Rak811::new(port1.p1_02.into_push_pull_output(Level::High).degrade()),
         memory: ActorContext::new(Memory::new()).with_name("memory"),
         timer,
         app: ActorContext::new(App::new(
