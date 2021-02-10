@@ -150,8 +150,9 @@ impl NotifyHandler<StartService> for App {
                 }
 
                 loop {
+                    // Assumes no more than 1 character typed per millisecond, just shorten the interval if need be!
                     let len = uart
-                        .read_with_timeout(&mut buf[..], Milliseconds(1000))
+                        .read_with_timeout(&mut buf[..], Milliseconds(100))
                         .await
                         .expect("Error reading from UART");
 
