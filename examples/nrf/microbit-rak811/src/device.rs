@@ -116,6 +116,8 @@ impl NotifyHandler<Join> for App {
                 .join(ConnectMode::OTAA)
                 .await
                 .expect("Error joining LoRa Network");
+
+            log::info!("Network joined");
             self
         })
     }

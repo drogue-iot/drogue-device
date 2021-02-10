@@ -361,7 +361,7 @@ where
         let mut rx_buf: [u8; 128] = [0; 128];
 
         let len = uart
-            .read_with_timeout(&mut rx_buf[..], Milliseconds(1000))
+            .read_with_timeout(&mut rx_buf[..], Milliseconds(100))
             .await?;
 
         // log::info!("Read {} bytes", len);

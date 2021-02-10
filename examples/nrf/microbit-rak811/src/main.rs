@@ -25,13 +25,13 @@ use nrf52833_hal as hal;
 
 use crate::device::*;
 
-static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
+static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
 
 #[entry]
 fn main() -> ! {
     rtt_init_print!();
     log::set_logger(&LOGGER).unwrap();
-    log::set_max_level(log::LevelFilter::Debug);
+    log::set_max_level(log::LevelFilter::Info);
 
     let device = hal::pac::Peripherals::take().unwrap();
 
