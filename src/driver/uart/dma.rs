@@ -238,7 +238,7 @@ where
     U: DmaUart,
     T: HalTimer + 'static,
 {
-    fn on_notify(mut self, message: RxTimeout) -> Completion<Self> {
+    fn on_notify(self, message: RxTimeout) -> Completion<Self> {
         let shared = self.shared.as_ref().unwrap();
         if State::InProgress == shared.rx_state.get() {
             shared.uart.cancel_read();

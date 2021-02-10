@@ -87,7 +87,6 @@ fn main() -> ! {
         timer,
         app: ActorContext::new(App::new(
             LoraConfig::new()
-                .connect_mode(ConnectMode::OTAA)
                 .band(LoraRegion::EU868)
                 .lora_mode(LoraMode::WAN)
                 .device_eui(&[0x00, 0xBB, 0x7C, 0x95, 0xAD, 0xB5, 0x30, 0xB9])

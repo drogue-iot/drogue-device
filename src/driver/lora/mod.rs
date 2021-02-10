@@ -8,7 +8,7 @@ pub struct Initialize;
 #[derive(Debug)]
 pub struct Configure<'a>(&'a LoraConfig);
 #[derive(Debug)]
-pub struct Join;
+pub struct Join(ConnectMode);
 #[derive(Debug)]
 pub struct Reset(ResetMode);
 #[derive(Debug)]
@@ -17,7 +17,13 @@ pub struct Send<'a>(&'a [u8]);
 pub struct Recv<'a>(&'a mut [u8]);
 
 #[derive(Debug)]
-pub struct LoraError;
+pub enum LoraError {
+    WriteError,
+    ReadError,
+    ReadTimeout,
+    NotInitialized,
+    OtherError,
+}
 
 impl<A> Address<A>
 where
@@ -44,11 +50,11 @@ where
         self.request(Reset(mode)).await
     }
 
-    pub async fn join(&self) -> Result<(), LoraError>
+    pub async fn join(&self, mode: ConnectMode) -> Result<(), LoraError>
     where
-        A: RequestHandler<Join>,
+        A: RequestHandler<Join, Response = Result<(), LoraError>>,
     {
-        Ok(())
+        self.request(Join(mode)).await
     }
 
     pub async fn send<'a>(&self, qos: QoS, port: Port, data: &[u8]) -> Result<(), LoraError>

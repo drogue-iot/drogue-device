@@ -37,7 +37,7 @@ impl Device for LoraDevice {
         self.btn_send.mount(config.event_bus, supervisor);
         let timer = self.timer.mount((), supervisor);
         let uart = self.uart.mount(timer, supervisor);
-        let lora = self.lora.mount(uart, supervisor);
+        let lora = self.lora.mount((uart, timer), supervisor);
         self.app.mount(lora, supervisor);
     }
 }
@@ -112,7 +112,10 @@ impl NotifyHandler<Join> for App {
                 .expect("Error configuring driver");
 
             log::info!("Joining network");
-            driver.join().await.expect("Error joining LoRa Network");
+            driver
+                .join(ConnectMode::OTAA)
+                .await
+                .expect("Error joining LoRa Network");
             self
         })
     }
