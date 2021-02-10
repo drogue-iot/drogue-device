@@ -15,14 +15,15 @@ use hal::pac::TIMER0;
 use nrf52833_hal as hal;
 
 pub type Button = GpioteChannel<LoraDevice, Pin<Input<PullUp>>>;
-pub type AppLora = rak811::Rak811<DmaUart<hal::pac::UARTE0>, Pin<Output<PushPull>>>;
+pub type AppLora =
+    rak811::Rak811<DmaUart<hal::pac::UARTE0>, HalTimer<TIMER0>, Pin<Output<PushPull>>>;
 
 pub struct LoraDevice {
     pub gpiote: InterruptContext<Gpiote<Self>>,
     pub btn_connect: ActorContext<Button>,
     pub btn_send: ActorContext<Button>,
     pub memory: ActorContext<Memory>,
-    pub uart: Uart<DmaUart<hal::pac::UARTE0>>,
+    pub uart: Uart<DmaUart<hal::pac::UARTE0>, HalTimer<TIMER0>>,
     pub lora: ActorContext<AppLora>,
     pub timer: Timer<HalTimer<TIMER0>>,
     pub app: ActorContext<App>,

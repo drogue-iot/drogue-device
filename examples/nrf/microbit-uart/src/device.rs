@@ -19,7 +19,7 @@ use nrf52833_hal as hal;
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
 pub type LedMatrix = LEDMatrix<Pin<Output<PushPull>>, consts::U5, consts::U5, HalTimer<TIMER0>>;
 pub type AppTimer = TimerActor<HalTimer<TIMER0>>;
-pub type AppUart = <Uart<DmaUart<hal::pac::UARTE0>> as Package>::Primary;
+pub type AppUart = <Uart<DmaUart<hal::pac::UARTE0>, HalTimer<TIMER0>> as Package>::Primary;
 
 pub struct MyDevice {
     pub led: ActorContext<LedMatrix>,
@@ -27,7 +27,7 @@ pub struct MyDevice {
     pub btn_fwd: ActorContext<Button>,
     pub btn_back: ActorContext<Button>,
     pub timer: Timer<HalTimer<TIMER0>>,
-    pub uart: Uart<DmaUart<hal::pac::UARTE0>>,
+    pub uart: Uart<DmaUart<hal::pac::UARTE0>, HalTimer<TIMER0>>,
     pub app: ActorContext<App>,
 }
 

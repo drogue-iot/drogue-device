@@ -1,29 +1,32 @@
-use crate::prelude::*;
-//use crate::domain::time::duration::Milliseconds;
+use crate::domain::time::duration::Milliseconds;
 use crate::driver::lora::*;
 use crate::driver::uart::dma;
+use crate::hal::timer::Timer as HalTimer;
 use crate::hal::uart::{DmaUart, Error as UartError};
 use crate::handler::{RequestHandler, Response};
+use crate::prelude::*;
 
 use drogue_rak811::{Buffer, Command, ConfigOption, DriverError, Response as RakResponse};
 use embedded_hal::digital::v2::OutputPin;
 //use heapless::{consts, spsc::Queue};
 
-type Uart<U> = <dma::Uart<U> as Package>::Primary;
-pub struct Rak811<U, RST>
+type Uart<U, T> = <dma::Uart<U, T> as Package>::Primary;
+pub struct Rak811<U, T, RST>
 where
     U: DmaUart + 'static,
+    T: HalTimer + 'static,
     RST: OutputPin,
 {
-    uart: Option<Address<Uart<U>>>,
+    uart: Option<Address<Uart<U, T>>>,
     parse_buffer: Buffer,
     config: LoraConfig,
     rst: RST,
 }
 
-impl<U, RST> Rak811<U, RST>
+impl<U, T, RST> Rak811<U, T, RST>
 where
     U: DmaUart,
+    T: HalTimer,
     RST: OutputPin,
 {
     pub fn new(rst: RST) -> Self {
@@ -49,9 +52,8 @@ where
 
         {
             let uart = self.uart.as_ref().unwrap();
-            /*
             uart.write(s.as_bytes()).await?;
-            uart.write(b"\r\n").await?;*/
+            uart.write(b"\r\n").await?;
         }
 
         log::debug!("Awaiting response");
@@ -91,7 +93,9 @@ where
         let uart = self.uart.as_ref().unwrap();
         let mut rx_buf: [u8; 8] = [0; 8];
 
-        let len = 0; // uart.read(&mut rx_buf[..]).await?; //, Milliseconds(1000)).await?;
+        let len = uart
+            .read_with_timeout(&mut rx_buf[..], Milliseconds(1000))
+            .await?;
 
         /*
         let timer = self.timer.as_ref().unwrap();
@@ -174,20 +178,22 @@ where
     }
 }
 
-impl<U, RST> Actor for Rak811<U, RST>
+impl<U, T, RST> Actor for Rak811<U, T, RST>
 where
     U: DmaUart,
+    T: HalTimer,
     RST: OutputPin,
 {
-    type Configuration = Address<Uart<U>>;
+    type Configuration = Address<Uart<U, T>>;
     fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
         self.uart.replace(config);
     }
 }
 
-impl<'a, U, RST> RequestHandler<Initialize> for Rak811<U, RST>
+impl<'a, U, T, RST> RequestHandler<Initialize> for Rak811<U, T, RST>
 where
     U: DmaUart,
+    T: HalTimer,
     RST: OutputPin,
 {
     type Response = Result<(), LoraError>;
@@ -207,9 +213,10 @@ where
     }
 }
 
-impl<'a, U, RST> RequestHandler<Reset> for Rak811<U, RST>
+impl<'a, U, T, RST> RequestHandler<Reset> for Rak811<U, T, RST>
 where
     U: DmaUart,
+    T: HalTimer,
     RST: OutputPin,
 {
     type Response = Result<(), LoraError>;
@@ -232,9 +239,10 @@ where
     }
 }
 
-impl<'a, U, RST> RequestHandler<Configure<'a>> for Rak811<U, RST>
+impl<'a, U, T, RST> RequestHandler<Configure<'a>> for Rak811<U, T, RST>
 where
     U: DmaUart,
+    T: HalTimer,
     RST: OutputPin,
 {
     type Response = Result<(), LoraError>;
@@ -247,9 +255,10 @@ where
     }
 }
 
-impl<'a, U, RST> RequestHandler<Join> for Rak811<U, RST>
+impl<'a, U, T, RST> RequestHandler<Join> for Rak811<U, T, RST>
 where
     U: DmaUart,
+    T: HalTimer,
     RST: OutputPin,
 {
     type Response = Result<(), LoraError>;
@@ -258,9 +267,10 @@ where
     }
 }
 
-impl<'a, U, RST> RequestHandler<Send<'a>> for Rak811<U, RST>
+impl<'a, U, T, RST> RequestHandler<Send<'a>> for Rak811<U, T, RST>
 where
     U: DmaUart,
+    T: HalTimer,
     RST: OutputPin,
 {
     type Response = Result<(), LoraError>;
