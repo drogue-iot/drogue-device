@@ -12,15 +12,15 @@ pub struct Join(ConnectMode);
 #[derive(Debug)]
 pub struct Reset(ResetMode);
 #[derive(Debug)]
-pub struct Send<'a>(&'a [u8]);
+pub struct Send<'a>(QoS, Port, &'a [u8]);
 #[derive(Debug)]
 pub struct Recv<'a>(&'a mut [u8]);
 
 #[derive(Debug)]
 pub enum LoraError {
-    WriteError,
-    ReadError,
-    ReadTimeout,
+    SendError,
+    RecvError,
+    RecvTimeout,
     NotInitialized,
     OtherError,
 }
@@ -57,11 +57,11 @@ where
         self.request(Join(mode)).await
     }
 
-    pub async fn send<'a>(&self, qos: QoS, port: Port, data: &[u8]) -> Result<(), LoraError>
+    pub async fn send<'a>(&self, qos: QoS, port: Port, data: &'a [u8]) -> Result<(), LoraError>
     where
-        A: RequestHandler<Send<'a>>,
+        A: RequestHandler<Send<'a>, Response = Result<(), LoraError>>,
     {
-        Ok(())
+        self.request_panicking(Send(qos, port, data)).await
     }
 
     pub async fn recv<'a>(&self, port: Port, rx_buf: &mut [u8]) -> Result<(), LoraError>

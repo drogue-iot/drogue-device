@@ -119,11 +119,15 @@ where
         }
     }
 
-    async fn send_command<'b>(&mut self, command: Command<'b>) -> Result<RakResponse, LoraError> {
+    fn encode_command<'b>(&mut self, command: Command<'b>) {
         let s = &mut self.command_buffer;
         s.clear();
         command.encode(s);
         s.push_str("\r\n").unwrap();
+    }
+
+    async fn send_command(&mut self) -> Result<RakResponse, LoraError> {
+        let s = &mut self.command_buffer;
 
         log::debug!("Sending command {}", s.as_str());
         let uart = self.uart.as_ref().unwrap();
@@ -144,12 +148,19 @@ where {
         }
     }
 
-    async fn send_command_ok<'b>(&mut self, command: Command<'b>) -> Result<(), LoraError> {
-        let response = self.send_command(command).await;
-        match response {
-            Ok(RakResponse::Ok) => Ok(()),
-            Ok(r) => Err(LoraError::OtherError),
-            Err(e) => Err(e.into()),
+    async fn encode_send_command<'b>(
+        &mut self,
+        command: Command<'b>,
+    ) -> Result<RakResponse, LoraError> {
+        self.encode_command(command);
+        self.send_command().await
+    }
+
+    async fn encode_send_command_ok<'b>(&mut self, command: Command<'b>) -> Result<(), LoraError> {
+        self.encode_command(command);
+        match self.send_command().await? {
+            RakResponse::Ok => Ok(()),
+            r => Err(LoraError::OtherError),
         }
     }
 
@@ -157,41 +168,43 @@ where {
         log::debug!("Applying config: {:?}", config);
         if let Some(band) = config.band {
             if self.config.band != config.band {
-                self.send_command_ok(Command::SetBand(band)).await?;
+                self.encode_send_command_ok(Command::SetBand(band)).await?;
                 self.config.band.replace(band);
             }
         }
         if let Some(lora_mode) = config.lora_mode {
             if self.config.lora_mode != config.lora_mode {
-                self.send_command_ok(Command::SetMode(lora_mode)).await?;
+                self.encode_send_command_ok(Command::SetMode(lora_mode))
+                    .await?;
                 self.config.lora_mode.replace(lora_mode);
             }
         }
 
         if let Some(ref device_address) = config.device_address {
-            self.send_command_ok(Command::SetConfig(ConfigOption::DevAddr(device_address)))
+            self.encode_send_command_ok(Command::SetConfig(ConfigOption::DevAddr(device_address)))
                 .await?;
             self.config.device_address.replace(*device_address);
         }
 
         if let Some(ref device_eui) = config.device_eui {
-            self.send_command_ok(Command::SetConfig(ConfigOption::DevEui(device_eui)))
+            self.encode_send_command_ok(Command::SetConfig(ConfigOption::DevEui(device_eui)))
                 .await?;
             self.config.device_eui.replace(*device_eui);
         }
 
         if let Some(ref app_eui) = config.app_eui {
-            self.send_command_ok(Command::SetConfig(ConfigOption::AppEui(app_eui)))
+            self.encode_send_command_ok(Command::SetConfig(ConfigOption::AppEui(app_eui)))
                 .await?;
             self.config.app_eui.replace(*app_eui);
         }
 
         if let Some(ref app_key) = config.app_key {
-            self.send_command_ok(Command::SetConfig(ConfigOption::AppKey(app_key)))
+            self.encode_send_command_ok(Command::SetConfig(ConfigOption::AppKey(app_key)))
                 .await?;
             self.config.app_key.replace(*app_key);
         }
 
+        log::debug!("Config applied");
         Ok(())
     }
 }
@@ -247,7 +260,7 @@ where
     type Response = Result<(), LoraError>;
     fn on_request(mut self, message: Reset) -> Response<Self, Self::Response> {
         Response::defer(async move {
-            let response = self.send_command(Command::Reset(message.0)).await;
+            let response = self.encode_send_command(Command::Reset(message.0)).await;
             let result = match response {
                 Ok(RakResponse::Ok) => {
                     let response = self.recv_response().await;
@@ -259,8 +272,7 @@ where
                         _ => Err(LoraError::NotInitialized),
                     }
                 }
-                Ok(r) => Err(LoraError::OtherError),
-                Err(e) => Err(e.into()),
+                r => Err(LoraError::OtherError),
             };
             (self, result)
         })
@@ -292,7 +304,7 @@ where
     type Response = Result<(), LoraError>;
     fn on_request(mut self, message: Join) -> Response<Self, Self::Response> {
         Response::defer(async move {
-            let result = self.send_command_ok(Command::Join(message.0)).await;
+            let result = self.encode_send_command_ok(Command::Join(message.0)).await;
             let response = match result {
                 Ok(_) => {
                     let response = self.recv_response().await;
@@ -314,15 +326,35 @@ where
     }
 }
 
-impl<'b, U, T, RST> RequestHandler<Send<'b>> for Rak811Actor<U, T, RST>
+impl<'a, U, T, RST> RequestHandler<Send<'a>> for Rak811Actor<U, T, RST>
 where
-    U: DmaUart,
-    T: HalTimer,
-    RST: OutputPin,
+    U: DmaUart + 'static,
+    T: HalTimer + 'static,
+    RST: OutputPin + 'static,
 {
     type Response = Result<(), LoraError>;
-    fn on_request(self, message: Send<'b>) -> Response<Self, Self::Response> {
-        Response::immediate(self, Ok(()))
+    fn on_request(mut self, message: Send<'a>) -> Response<Self, Self::Response> {
+        let result = self.encode_command(Command::Send(message.0, message.1, message.2));
+        let expected_code = match message.0 {
+            QoS::Unconfirmed => EventCode::TxUnconfirmed,
+            QoS::Confirmed => EventCode::TxConfirmed,
+        };
+        Response::defer(async move {
+            let result = match self.send_command().await {
+                Ok(RakResponse::Ok) => match self.recv_response().await {
+                    Ok(RakResponse::Recv(c, 0, _, _)) if expected_code == c => Ok(()),
+                    r => {
+                        log::error!("Unexpected response: {:?}", r);
+                        Err(LoraError::OtherError)
+                    }
+                },
+                r => {
+                    log::error!("Unexpected response: {:?}", r);
+                    Err(LoraError::OtherError)
+                }
+            };
+            (self, result)
+        })
     }
 }
 
@@ -350,7 +382,7 @@ where
                     .unwrap()
                     .borrow_mut()
                     .enqueue(response)
-                    .map_err(|_| LoraError::ReadError)?;
+                    .map_err(|_| LoraError::RecvError)?;
             }
         }
         Ok(())
@@ -409,7 +441,6 @@ where
                     log::error!("Error digesting data");
                 }
             }
-            self
         })
     }
 }
@@ -421,11 +452,11 @@ impl core::convert::From<UartError> for LoraError {
             UartError::TxInProgress
             | UartError::TxBufferTooSmall
             | UartError::TxBufferTooLong
-            | UartError::Transmit => LoraError::WriteError,
+            | UartError::Transmit => LoraError::SendError,
             UartError::RxInProgress
             | UartError::RxBufferTooSmall
             | UartError::RxBufferTooLong
-            | UartError::Receive => LoraError::ReadError,
+            | UartError::Receive => LoraError::RecvError,
             _ => LoraError::OtherError,
         }
     }
@@ -436,8 +467,8 @@ impl core::convert::From<DriverError> for LoraError {
         log::info!("Convert from {:?}", error);
         match error {
             DriverError::NotInitialized => LoraError::NotInitialized,
-            DriverError::WriteError => LoraError::WriteError,
-            DriverError::ReadError => LoraError::ReadError,
+            DriverError::WriteError => LoraError::SendError,
+            DriverError::ReadError => LoraError::RecvError,
             DriverError::OtherError | DriverError::UnexpectedResponse => LoraError::OtherError,
         }
     }
