@@ -110,6 +110,7 @@ where
     }
 }
 
+/*
 impl<SPI, W> BusTransaction<SpiController<SPI, W>>
 where
     SPI::Error: Into<SpiError>,
@@ -121,3 +122,6 @@ where
         self.bus.request_panicking(SpiTransfer(buffer)).await
     }
 }
+
+
+ */
