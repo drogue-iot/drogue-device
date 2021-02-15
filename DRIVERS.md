@@ -2,13 +2,13 @@
 
 Drogue-device contains device drivers for different boards and sensors. Drivers follow a common set of patterns that makes it easier to write new drivers. Device drivers can be written in different ways. The common patterns we've seen is:
 
-* Writing a generic driver that consists of a hardware specific HAL that implements a HAL trait, and an actor that is templatized with the HAL trait as a type parameter. The actor is the API outwards to the embedded application and the drogue-device framework. 
+* *Generic Actor + HAL*: Writing a generic driver that consists of a hardware specific HAL that implements a HAL trait, and an actor that is templatized with the HAL trait as a type parameter. The actor is the API outwards to the embedded application and the drogue-device framework. 
 
-* Writing a common set of commands that an Actor should support, and writing a hardware-specific driver that implements the request and notify handlers for the commands. This may be easier if a lot of the driver logic is hardware-specific, and there would be little gain in using a common HAL.
+* *Generic trait + Hardware-specific Actor*: Writing a common set of commands that an Actor should support, a trait extends an Actor to handle requests, and writing a hardware-specific driver that implements the trait. This may be easier if a lot of the driver logic is hardware-specific, and there would be little gain in using a common HAL.
 
 In both cases, a `Package` may be used to group multiple actors in a driver together and expose a single primary actor used to interact with the device.
 
-# Writing generic drivers
+# Generic actor + HAL
 
 ## Writing a HAL
 
@@ -128,21 +128,43 @@ impl RequestHandler<ReadValue> for MyComponent {
 
 An example of a generic driver is the [Timer driver](https://github.com/drogue-iot/drogue-device/tree/master/src/driver/timer).
 
-# Hardware-specific drivers
+# Generic trait + Hardware-specific actor
 
-In some cases, the driver logic is tightly coupled with the hardware. In that case, it is better to make the driver hardware-specific and expose a common API of commands for using the driver. In that case, the common Request types are defined in the top level module, along with an implementation on Address to make it easy to use:
+In some cases, the driver logic is tightly coupled with the hardware. In that case, it is better to make the driver hardware-specific and expose a common API of commands for using the driver. In that case, the common Request types are defined in the top level module, along with a a trait and an implementation on Address to make it easy to use:
 
 ```rust
 pub struct ReadValue;
 
-impl<A: Actor> Address<A> {
+pub trait MyTrait: Actor {
+    fn read_value(self) -> Response<Self, u32>;
+}
+
+impl<A: MyTrait> RequestHandler<ReadValue> for A {
+    type Response = u32;
+    fn on_request(self, message: ReadValue) -> Response<Self, Self::Response> {
+        self.read_value()
+    }
+}
+
+impl<A: MyTrait> Address<A> {
     async fn read_value<A: RequestHandler<ReadValue>>(&self) -> u32 {
         self.request(ReadValue).await
     }
 }
 ```
 
-Any actor that implements this the required request handler is considered a valid driver from the API POV.
+The other parts of the implementation is the same as for a generic driver, except that the `RequestHandler` for `MyComponent` is replaced by the `MyTrait` implementation instead:
+
+```
+impl MyTrait for MyComponent {
+    fn read_value(self) -> Response<Self, u32> {
+        let value = self.load(Ordering::SeqCst);
+        Response::immediate(self, value)
+    }
+}
+```
+
+Any actor that implements the `MyTrait` is considered a valid driver from the API POV.
 
 An example of a device specific driver is the [UART driver](https://github.com/drogue-iot/drogue-device/tree/master/src/driver/uart).
 
