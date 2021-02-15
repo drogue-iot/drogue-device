@@ -19,13 +19,6 @@ use cortex_m::interrupt::Nr;
 
 type UartTimer<T> = <Timer<T> as Package>::Primary;
 
-impl<U, T> UartTrait for UartActor<U, T>
-where
-    U: DmaUart + 'static,
-    T: HalTimer + 'static,
-{
-}
-
 pub struct UartActor<U, T>
 where
     U: DmaUart + 'static,
@@ -139,43 +132,14 @@ where
     }
 }
 
-impl<'a, U, T> RequestHandler<UartTx<'a>> for UartActor<U, T>
+// DMA implementation of the trait
+impl<U, T> UartTrait for UartActor<U, T>
 where
     U: DmaUart + 'static,
     T: HalTimer + 'static,
 {
-    type Response = Result<(), Error>;
-
-    /// Transmit bytes from provided tx_buffer over UART. The memory pointed to by the buffer must be available until the return future is await'ed
-    fn on_request(self, message: UartTx<'a>) -> Response<Self, Self::Response> {
-        let shared = self.shared.as_ref().unwrap();
-        match shared.tx_state.get() {
-            State::Ready => {
-                log::trace!("NO TX in progress");
-                shared.tx_done.reset();
-                shared.tx_state.set(State::InProgress);
-                match shared.uart.start_write(message.0) {
-                    Ok(_) => {
-                        log::trace!("Starting TX");
-                        let future = TxFuture::new(shared);
-                        Response::immediate_future(self, future)
-                    }
-                    Err(e) => Response::immediate(self, Err(e)),
-                }
-            }
-            _ => Response::immediate(self, Err(Error::TxInProgress)),
-        }
-    }
-}
-
-impl<'a, U, T> RequestHandler<UartRx<'a>> for UartActor<U, T>
-where
-    U: DmaUart + 'static,
-    T: HalTimer + 'static,
-{
-    type Response = Result<usize, Error>;
     /// Receive bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
-    fn on_request(self, message: UartRx<'a>) -> Response<Self, Self::Response> {
+    fn read<'a>(self, message: UartRx<'a>) -> Response<Self, Result<usize, Error>> {
         let shared = self.shared.as_ref().unwrap();
         match shared.rx_state.get() {
             State::Ready => {
@@ -194,17 +158,15 @@ where
             _ => Response::immediate(self, Err(Error::RxInProgress)),
         }
     }
-}
 
-impl<'a, U, T, DUR> RequestHandler<UartRxTimeout<'a, DUR>> for UartActor<U, T>
-where
-    U: DmaUart + 'static,
-    T: HalTimer + 'static,
-    DUR: Duration + Into<Milliseconds> + 'static,
-{
-    type Response = Result<usize, Error>;
     /// Receive bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
-    fn on_request(self, message: UartRxTimeout<'a, DUR>) -> Response<Self, Self::Response> {
+    fn read_with_timeout<'a, DUR>(
+        self,
+        message: UartRxTimeout<'a, DUR>,
+    ) -> Response<Self, Result<usize, Error>>
+    where
+        DUR: Duration + Into<Milliseconds> + 'static,
+    {
         let shared = self.shared.as_ref().unwrap();
         match shared.rx_state.get() {
             State::Ready => {
@@ -229,6 +191,27 @@ where
                 }
             }
             _ => Response::immediate(self, Err(Error::RxInProgress)),
+        }
+    }
+
+    /// Transmit bytes from provided tx_buffer over UART. The memory pointed to by the buffer must be available until the return future is await'ed
+    fn write<'a>(self, message: UartTx<'a>) -> Response<Self, Result<(), Error>> {
+        let shared = self.shared.as_ref().unwrap();
+        match shared.tx_state.get() {
+            State::Ready => {
+                log::trace!("NO TX in progress");
+                shared.tx_done.reset();
+                shared.tx_state.set(State::InProgress);
+                match shared.uart.start_write(message.0) {
+                    Ok(_) => {
+                        log::trace!("Starting TX");
+                        let future = TxFuture::new(shared);
+                        Response::immediate_future(self, future)
+                    }
+                    Err(e) => Response::immediate(self, Err(e)),
+                }
+            }
+            _ => Response::immediate(self, Err(Error::TxInProgress)),
         }
     }
 }

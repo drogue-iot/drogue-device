@@ -3,11 +3,7 @@ use crate::prelude::*;
 use crate::domain::time::duration::{Duration, Milliseconds};
 pub use crate::hal::uart::Error;
 
-pub trait Uart: Actor {}
-
-pub trait UartWriter<'a>: RequestHandler<UartTx<'a>, Response = Result<(), Error>> {}
-pub trait UartReader<'a>: RequestHandler<UartRx<'a>, Response = Result<usize, Error>> {}
-
+/// API for UART access.
 impl<A> Address<A>
 where
     A: Uart,
@@ -20,10 +16,7 @@ where
     /// ensure that the response to the write is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub async fn write<'a>(&'a self, tx_buffer: &'a [u8]) -> Result<(), Error>
-    where
-        A: RequestHandler<UartTx<'a>, Response = Result<(), Error>>,
-    {
+    pub async fn write<'a>(&'a self, tx_buffer: &'a [u8]) -> Result<(), Error> {
         self.request_panicking(UartTx(tx_buffer)).await
     }
 
@@ -35,10 +28,7 @@ where
     /// ensure that the response to the read is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub async fn read<'a>(&'a self, rx_buffer: &'a mut [u8]) -> Result<usize, Error>
-    where
-        A: RequestHandler<UartRx<'a>, Response = Result<usize, Error>>,
-    {
+    pub async fn read<'a>(&'a self, rx_buffer: &'a mut [u8]) -> Result<usize, Error> {
         self.request_panicking(UartRx(rx_buffer)).await
     }
 
@@ -65,6 +55,21 @@ where
     }
 }
 
+///
+/// Trait that should be implemented by a UART actors in drogue-device.
+///
+pub trait Uart: Actor {
+    fn write<'a>(self, message: UartTx<'a>) -> Response<Self, Result<(), Error>>;
+    fn read<'a>(self, message: UartRx<'a>) -> Response<Self, Result<usize, Error>>;
+    fn read_with_timeout<'a, DUR>(
+        self,
+        message: UartRxTimeout<'a, DUR>,
+    ) -> Response<Self, Result<usize, Error>>
+    where
+        DUR: Duration + Into<Milliseconds> + 'static;
+}
+
+/// Message types used by UART implementations
 #[derive(Debug)]
 pub struct UartTx<'a>(&'a [u8]);
 #[derive(Debug)]
@@ -73,5 +78,37 @@ pub struct UartRx<'a>(&'a mut [u8]);
 pub struct UartRxTimeout<'a, DUR>(&'a mut [u8], DUR)
 where
     DUR: Duration + Into<Milliseconds>;
+
+/// Request handlers wrapper for the UART trait
+impl<'a, A> RequestHandler<UartTx<'a>> for A
+where
+    A: Uart + 'static,
+{
+    type Response = Result<(), Error>;
+    fn on_request(self, message: UartTx<'a>) -> Response<Self, Self::Response> {
+        self.write(message)
+    }
+}
+
+impl<'a, A> RequestHandler<UartRx<'a>> for A
+where
+    A: Uart + 'static,
+{
+    type Response = Result<usize, Error>;
+    fn on_request(self, message: UartRx<'a>) -> Response<Self, Self::Response> {
+        self.read(message)
+    }
+}
+
+impl<'a, A, DUR> RequestHandler<UartRxTimeout<'a, DUR>> for A
+where
+    A: Uart + 'static,
+    DUR: Duration + Into<Milliseconds> + 'static,
+{
+    type Response = Result<usize, Error>;
+    fn on_request(self, message: UartRxTimeout<'a, DUR>) -> Response<Self, Self::Response> {
+        self.read_with_timeout(message)
+    }
+}
 
 pub mod dma;
