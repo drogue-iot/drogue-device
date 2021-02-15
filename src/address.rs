@@ -61,9 +61,10 @@ impl<A: Actor + 'static> Address<A> {
     /// ensure that the response to the request is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub async fn request_panicking<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
+    pub async fn request_panicking<'m, M>(&self, message: M) -> <A as RequestHandler<M>>::Response
     where
-        A: RequestHandler<M> + 'static,
+        A: RequestHandler<M>,
+        M: 'm,
     {
         self.actor.request_panicking(message).await
     }

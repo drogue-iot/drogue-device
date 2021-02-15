@@ -4,6 +4,7 @@ use core::future::Future;
 
 use crate::alloc::{alloc, Box};
 use crate::prelude::Actor;
+use core::mem::transmute;
 
 /// Return value from a `RequestHandler` to allow for synchronous or
 /// asynchronous handling of the request.
@@ -36,6 +37,17 @@ impl<T, A: Actor + 'static> Response<A, T> {
         T: 'static,
     {
         Self::Defer(Box::new(alloc(f).unwrap()))
+    }
+
+    pub unsafe fn defer_unchecked<F: Future<Output = (A, T)>>(f: F) -> Self
+    where
+        T: 'static,
+    {
+        unsafe {
+            let f: &mut dyn Future<Output = (A, T)> = alloc(f).unwrap();
+            let f = transmute::<_, &mut (dyn Future<Output = (A, T)> + 'static)>(f);
+            Self::Defer(Box::new(f))
+        }
     }
 
     /// Return an immediate future, synchronously, which will be
@@ -85,6 +97,14 @@ impl<A: Actor + 'static> Completion<A> {
     /// within this actor's context.
     pub fn defer<F: Future<Output = A> + 'static>(f: F) -> Self {
         Self::Defer(Box::new(alloc(f).unwrap()))
+    }
+
+    pub unsafe fn defer_unchecked<F: Future<Output = A>>(f: F) -> Self {
+        unsafe {
+            let f: &mut dyn Future<Output = A> = alloc(f).unwrap();
+            let f = transmute::<_, &mut (dyn Future<Output = A> + 'static)>(f);
+            Self::Defer(Box::new(f))
+        }
     }
 }
 

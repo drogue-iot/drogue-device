@@ -40,6 +40,9 @@ impl Supervisor {
     }
 
     pub(crate) fn run_forever(&self) -> ! {
+        cortex_m::interrupt::free(|cs| {
+            self.dispatcher.borrow().unmask_all();
+        });
         self.executor.borrow_mut().run_forever()
     }
 

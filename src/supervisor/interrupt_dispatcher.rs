@@ -3,6 +3,8 @@ use heapless::{consts::*, Vec};
 use crate::actor::Actor;
 use crate::interrupt::{Interrupt, InterruptContext};
 use core::sync::atomic::Ordering;
+use cortex_m::interrupt::Nr;
+use cortex_m::peripheral::NVIC;
 
 pub(crate) trait ActiveInterrupt {
     fn on_interrupt(&self);
@@ -41,6 +43,18 @@ impl InterruptDispatcher {
     pub(crate) fn new() -> Self {
         Self {
             interrupts: Vec::new(),
+        }
+    }
+
+    pub(crate) fn unmask_all(&self) {
+        struct IrqNr(u8);
+        unsafe impl Nr for IrqNr {
+            fn nr(&self) -> u8 {
+                self.0
+            }
+        }
+        for interrupt in self.interrupts.iter() {
+            unsafe { NVIC::unmask(IrqNr(interrupt.irq)) }
         }
     }
 

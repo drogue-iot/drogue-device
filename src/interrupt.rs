@@ -60,6 +60,7 @@ impl<I: Interrupt> InterruptContext<I> {
         let addr = self.actor_context.mount(config, supervisor);
         supervisor.activate_interrupt(self, self.irq);
 
+        /*
         struct IrqNr(u8);
         unsafe impl Nr for IrqNr {
             fn nr(&self) -> u8 {
@@ -67,6 +68,7 @@ impl<I: Interrupt> InterruptContext<I> {
             }
         }
         unsafe { NVIC::unmask(IrqNr(self.irq)) }
+         */
 
         addr
     }
