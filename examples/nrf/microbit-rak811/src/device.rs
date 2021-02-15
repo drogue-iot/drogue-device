@@ -14,9 +14,10 @@ use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
 use hal::pac::TIMER0;
 use nrf52833_hal as hal;
 
-pub type Lora = rak811::Rak811<DmaUart<hal::pac::UARTE0>, HalTimer<TIMER0>, Pin<Output<PushPull>>>;
+pub type Rak811Lora =
+    rak811::Rak811<DmaUart<hal::pac::UARTE0>, HalTimer<TIMER0>, Pin<Output<PushPull>>>;
 pub type Button = GpioteChannel<LoraDevice, Pin<Input<PullUp>>>;
-pub type AppLora = <Lora as Package>::Primary;
+pub type AppLora = <Rak811Lora as Package>::Primary;
 
 pub struct LoraDevice {
     pub gpiote: InterruptContext<Gpiote<Self>>,
@@ -24,9 +25,9 @@ pub struct LoraDevice {
     pub btn_send: ActorContext<Button>,
     pub memory: ActorContext<Memory>,
     pub uart: Uart<DmaUart<hal::pac::UARTE0>, HalTimer<TIMER0>>,
-    pub lora: Lora,
+    pub lora: Rak811Lora,
     pub timer: Timer<HalTimer<TIMER0>>,
-    pub app: ActorContext<App>,
+    pub app: ActorContext<App<AppLora>>,
 }
 
 impl Device for LoraDevice {
@@ -64,12 +65,18 @@ impl EventHandler<PinEvent> for LoraDevice {
     }
 }
 
-pub struct App {
-    driver: Option<Address<AppLora>>,
+pub struct App<L>
+where
+    L: LoraDriver + 'static,
+{
+    driver: Option<Address<L>>,
     config: LoraConfig,
 }
 
-impl App {
+impl<L> App<L>
+where
+    L: LoraDriver,
+{
     pub fn new(config: LoraConfig) -> Self {
         Self {
             driver: None,
@@ -87,15 +94,21 @@ pub struct Join;
 #[derive(Clone, Debug)]
 pub struct Send;
 
-impl Actor for App {
-    type Configuration = Address<AppLora>;
+impl<L> Actor for App<L>
+where
+    L: LoraDriver,
+{
+    type Configuration = Address<L>;
     fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
         log::info!("Bound lora");
         self.driver.replace(config);
     }
 }
 
-impl NotifyHandler<Join> for App {
+impl<L> NotifyHandler<Join> for App<L>
+where
+    L: LoraDriver,
+{
     fn on_notify(self, _: Join) -> Completion<Self> {
         Completion::defer(async move {
             let driver = self.driver.as_ref().unwrap();
@@ -123,7 +136,10 @@ impl NotifyHandler<Join> for App {
     }
 }
 
-impl NotifyHandler<Send> for App {
+impl<L> NotifyHandler<Send> for App<L>
+where
+    L: LoraDriver,
+{
     fn on_notify(self, _: Send) -> Completion<Self> {
         Completion::defer(async move {
             let driver = self.driver.as_ref().unwrap();
@@ -134,6 +150,7 @@ impl NotifyHandler<Send> for App {
             buf[..motd.len()].clone_from_slice(motd);
             log::info!("Sending data");
             driver.send(QoS::Confirmed, 1, motd).await.ok();
+            log::info!("Data sent!");
 
             self
         })
