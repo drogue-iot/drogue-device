@@ -139,7 +139,7 @@ impl<A: Actor + 'static> ActorContext<A> {
     }
 
     /// Retrieve the name of the actor.
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         self.name.unwrap_or("<unnamed>")
     }
 

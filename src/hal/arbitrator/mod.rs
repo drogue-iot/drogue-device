@@ -25,7 +25,6 @@ impl Shared {
     }
 
     fn end_transaction(&self) {
-        log::info!("end spi transaction");
         self.available.store(true, Ordering::Release);
         if let Some(next) = self.waiters.borrow_mut().dequeue() {
             next.wake()
@@ -123,7 +122,6 @@ where
     type Response = BusTransaction<BUS>;
 
     fn on_request(self, message: BeginTransaction) -> Response<Self, Self::Response> {
-        log::info!("requesting bus arbitration");
         let future = BeginTransactionFuture::new(
             &self.shared.unwrap(),
             self.address.unwrap(),
@@ -212,17 +210,13 @@ where
     type Output = BusTransaction<BUS>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        log::info!("poll arbitration future");
         if self.shared.begin_transaction() {
-            log::info!("poll arbitration future -- READY");
             Poll::Ready(BusTransaction::new(self.arbitrator, self.bus))
         } else {
             if !self.waiting {
-                log::info!("poll arbitration future -- adding waiter");
                 self.shared.add_waiter(cx.waker().clone());
                 self.waiting = true;
             }
-            log::info!("poll arbitration future -- PENDING");
             Poll::Pending
         }
     }

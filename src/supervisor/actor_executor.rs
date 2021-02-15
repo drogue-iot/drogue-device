@@ -80,17 +80,12 @@ impl Supervised {
 
     fn poll(&mut self) -> bool {
         if self.is_ready() {
-            unsafe {
-                CURRENT.name.replace(self.actor.name());
-            }
-            log::trace!("polling actor {:x}", &self.actor as *const _ as u32);
+            log::trace!("polling actor {}", self.actor.name());
             match self.actor.do_poll(self.get_state_flag_handle()) {
                 Poll::Ready(_) => self.signal_idle(),
                 Poll::Pending => self.signal_waiting(),
             }
-            unsafe {
-                CURRENT.name.take();
-            }
+
             true
         } else {
             false
@@ -115,6 +110,9 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
 
     fn do_poll(&self, state_flag_handle: *const ()) -> Poll<()> {
         log::trace!("[{}] executor: do_poll", self.name());
+        unsafe {
+            CURRENT.name.replace(self.name());
+        }
         loop {
             if self.current.borrow().is_none() {
                 //cortex_m::interrupt::free(|cs| {
@@ -145,9 +143,6 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
                     Poll::Ready(_) => {
                         log::trace!("[{}] executor: task complete", self.name());
                         should_drop = true;
-                        // "dequeue" it and allow it to drop
-                        //(&mut *self.current.get()).take();
-                        //self.current.borrow_mut().take();
                     }
                     Poll::Pending => {
                         log::trace!("[{}] executor: task pending", self.name());
@@ -161,6 +156,10 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
                 let task = self.current.borrow_mut().take().unwrap();
                 log::trace!("[{}] executor: task drop", self.name());
             }
+        }
+
+        unsafe {
+            CURRENT.name.take();
         }
 
         Poll::Pending

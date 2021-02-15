@@ -24,7 +24,6 @@ where
     type Response = Result<(), SpiError>;
 
     fn on_request(self, message: SpiTransfer<'b, B::Word>) -> Response<Self, Self::Response> {
-        log::info!("[spi-bus] on_request");
         self.transfer(message)
     }
 }
@@ -68,14 +67,12 @@ where
     }
 
     pub async fn select(&self) -> Selected<'_, PIN, D> {
-        log::info!("CS set low");
         self.pin.borrow_mut().set_low();
         self.delayer.unwrap().delay(self.select_delay).await;
         Selected::new(&self)
     }
 
     fn deselect(&self) {
-        log::info!("CS set high");
         self.pin.borrow_mut().set_high();
     }
 }

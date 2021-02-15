@@ -14,6 +14,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll, Waker};
 use cortex_m::interrupt::Nr;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
+use heapless::{consts::*, String};
 
 pub struct Shared {
     ready: AtomicBool,
@@ -80,8 +81,10 @@ where
     ) -> Self {
         Self {
             shared: Shared::new(),
-            controller: ActorContext::new(EsWifiController::new(cs, reset, wakeup)),
-            ready: InterruptContext::new(EsWifiReady::new(ready), ready_irq),
+            controller: ActorContext::new(EsWifiController::new(cs, reset, wakeup))
+                .with_name("es-wifi"),
+            ready: InterruptContext::new(EsWifiReady::new(ready), ready_irq)
+                .with_name("es-wifi-irq"),
         }
     }
 }
@@ -151,10 +154,8 @@ where
 {
     fn on_interrupt(&mut self) {
         if self.ready.is_high().unwrap_or(false) {
-            log::info!("[eswifi-ready] is ready IS HIGH");
             self.shared.unwrap().signal_ready(true);
         } else {
-            log::info!("[eswifi-ready] is not ready IS LOW");
             self.shared.unwrap().signal_ready(false);
         }
         self.ready.clear_interrupt_pending_bit();
@@ -224,6 +225,11 @@ impl Future for AwaitReadyFuture {
     }
 }
 
+enum State {
+    Uninitialized,
+    Ready,
+}
+
 pub struct EsWifiController<SPI, T, CS, READY, RESET, WAKEUP>
 where
     SPI: SpiBus<Word = u8> + 'static,
@@ -239,6 +245,7 @@ where
     cs: ChipSelect<CS, T>,
     reset: RESET,
     wakeup: WAKEUP,
+    state: State,
 }
 
 impl<SPI, T, CS, READY, RESET, WAKEUP> EsWifiController<SPI, T, CS, READY, RESET, WAKEUP>
@@ -258,27 +265,37 @@ where
             cs: ChipSelect::new(cs, Milliseconds(5u32)),
             reset,
             wakeup,
+            state: State::Uninitialized,
         }
     }
 
     async fn wakeup(&mut self) {
-        log::info!("wake-up set low");
         self.wakeup.set_low();
-        self.delayer.unwrap().delay(Milliseconds(500u32)).await;
-        log::info!("wake-up set high");
+        self.delayer.unwrap().delay(Milliseconds(50u32)).await;
         self.wakeup.set_high();
-        self.delayer.unwrap().delay(Milliseconds(500u32)).await;
+        self.delayer.unwrap().delay(Milliseconds(50u32)).await;
     }
 
     async fn reset(&mut self) {
-        log::info!("reset set low");
         self.reset.set_low();
-        self.delayer.unwrap().delay(Milliseconds(500u32)).await;
-        log::info!("reset set high");
+        self.delayer.unwrap().delay(Milliseconds(50u32)).await;
         self.reset.set_high();
-        self.delayer.unwrap().delay(Milliseconds(500u32)).await;
+        self.delayer.unwrap().delay(Milliseconds(50u32)).await;
     }
 }
+
+macro_rules! command {
+    ($size:tt, $($arg:tt)*) => ({
+        //let mut c = String::new();
+        //c
+        let mut c = String::<$size>::new();
+        write!(c, $($arg)*);
+        c.push_str("\r");
+        c
+    })
+}
+
+const NAK: u8 = 0x15;
 
 impl<SPI, T, CS, READY, RESET, WAKEUP> Actor for EsWifiController<SPI, T, CS, READY, RESET, WAKEUP>
 where
@@ -310,46 +327,52 @@ where
         Self: 'static,
     {
         Completion::defer(async move {
-            log::info!("[es-wifi] start");
-            //self.cs.set_high();
-            //self.delayer.unwrap().delay(Milliseconds(1000u32)).await;
+            log::info!("[{}] start", ActorInfo::name());
             self.reset().await;
             self.wakeup().await;
-            log::info!("starting spi transaction");
             let mut spi = self.spi.unwrap().begin_transaction().await;
-            log::info!("[es-wifi] began SPI");
+
+            let mut response = [0 as u8; 16];
+            let mut pos = 0;
+
             self.ready.unwrap().request(AwaitReady {}).await;
-            log::info!("[es-wifi] ready to go");
             {
                 let cs = self.cs.select().await;
-                log::info!("[es-wifi] CS set low");
-                let mut response = [0 as u8; 16];
-                let mut pos = 0;
 
                 loop {
-                    //log::info!("loop {}", pos);
                     if !self.ready.unwrap().request(QueryReady {}).await {
                         break;
                     }
                     if pos >= response.len() {
-                        log::info!("***************** overrun");
-                        //return Err(());
                         break;
                     }
                     let mut chunk = [0x0A, 0x0A];
                     spi.spi_transfer(&mut chunk).await;
-                    log::info!("transfer {:?}", chunk);
                     // reverse order going from 16 -> 2*8 bits
-                    if chunk[1] != 0x15 {
+                    if chunk[1] != NAK {
                         response[pos] = chunk[1];
                         pos += 1;
                     }
-                    if chunk[0] != 0x15 {
+                    if chunk[0] != NAK {
                         response[pos] = chunk[0];
                         pos += 1;
                     }
                 }
-                log::info!("[es-wifi] end transfer");
+            }
+
+            let needle = &[b'\r', b'\n', b'>', b' '];
+
+            if !response[0..pos].starts_with(needle) {
+                log::info!(
+                    "[{}] failed to initialize {:?}",
+                    ActorInfo::name(),
+                    &response[0..pos]
+                );
+            } else {
+                // disable verbosity
+                //self.send_string(&command!(U8, "MT=1"), &mut response);
+                self.state = State::Ready;
+                log::info!("[{}] eS-WiFi adapter is ready", ActorInfo::name());
             }
             (self)
         })

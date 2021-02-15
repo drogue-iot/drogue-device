@@ -202,7 +202,9 @@ impl<T: HalTimer> Interrupt for TimerActor<T> {
                 }
 
                 if deadline.expiration == Milliseconds(0u32) {
-                    deadline.waker.take().unwrap().wake();
+                    if let Some(waker) = deadline.waker.take() {
+                        waker.wake();
+                    }
                 } else {
                     match next_deadline {
                         None => {

@@ -93,35 +93,6 @@ where
         transfer: SpiTransfer<Self::Word>,
     ) -> Response<Self, Result<(), SpiError>> {
         let result = self.spi.transfer(transfer.0).map_err(|e| e.into());
-
-        match result {
-            Ok(bytes) => {
-                log::info!("spi ok");
-                for i in bytes {
-                    log::info!("--> {:?}", i);
-                }
-                log::info!("spi ok end dump");
-            }
-            Err(_) => {
-                log::info!("SPI ERROR");
-            }
-        }
         Response::immediate(self, result.map(|_| ()))
     }
 }
-
-/*
-impl<SPI, W> BusTransaction<SpiController<SPI, W>>
-where
-    SPI::Error: Into<SpiError>,
-    SPI: Transfer<W>,
-    W: Debug,
-{
-    pub async fn spi_transfer<'b>(&self, buffer: &mut [W]) -> Result<(), SpiError> {
-        //self.bus.spi_transfer(buffer).await
-        self.bus.request_panicking(SpiTransfer(buffer)).await
-    }
-}
-
-
- */
