@@ -4,7 +4,7 @@ use crate::driver::timer;
 use crate::driver::uart::dma;
 use crate::hal::timer::Timer as HalTimer;
 use crate::hal::uart::{DmaUart, Error as UartError};
-use crate::handler::{RequestHandler, Response};
+use crate::handler::Response;
 use crate::prelude::*;
 
 use core::cell::{RefCell, UnsafeCell};
@@ -227,14 +227,13 @@ where
     }
 }
 
-impl<U, T, RST> RequestHandler<Initialize> for Rak811Actor<U, T, RST>
+impl<U, T, RST> LoraDriver for Rak811Actor<U, T, RST>
 where
     U: DmaUart,
     T: HalTimer,
     RST: OutputPin,
 {
-    type Response = Result<(), LoraError>;
-    fn on_request(mut self, message: Initialize) -> Response<Self, Self::Response> {
+    fn initialize(mut self, message: Initialize) -> Response<Self, Result<(), LoraError>> {
         Response::defer(async move {
             self.rst.set_high().ok();
             self.rst.set_low().ok();
@@ -249,16 +248,8 @@ where
             (self, result)
         })
     }
-}
 
-impl<U, T, RST> RequestHandler<Reset> for Rak811Actor<U, T, RST>
-where
-    U: DmaUart,
-    T: HalTimer,
-    RST: OutputPin,
-{
-    type Response = Result<(), LoraError>;
-    fn on_request(mut self, message: Reset) -> Response<Self, Self::Response> {
+    fn reset(mut self, message: Reset) -> Response<Self, Result<(), LoraError>> {
         Response::defer(async move {
             let response = self.encode_send_command(Command::Reset(message.0)).await;
             let result = match response {
@@ -277,32 +268,16 @@ where
             (self, result)
         })
     }
-}
 
-impl<'b, U, T, RST> RequestHandler<Configure<'b>> for Rak811Actor<U, T, RST>
-where
-    U: DmaUart,
-    T: HalTimer,
-    RST: OutputPin,
-{
-    type Response = Result<(), LoraError>;
-    fn on_request(mut self, message: Configure<'b>) -> Response<Self, Self::Response> {
+    fn configure<'a>(mut self, message: Configure<'a>) -> Response<Self, Result<(), LoraError>> {
         let config = message.0.clone();
         Response::defer(async move {
             let result = self.apply_config(config).await;
             (self, result)
         })
     }
-}
 
-impl<U, T, RST> RequestHandler<Join> for Rak811Actor<U, T, RST>
-where
-    U: DmaUart,
-    T: HalTimer,
-    RST: OutputPin,
-{
-    type Response = Result<(), LoraError>;
-    fn on_request(mut self, message: Join) -> Response<Self, Self::Response> {
+    fn join(mut self, message: Join) -> Response<Self, Result<(), LoraError>> {
         Response::defer(async move {
             let result = self.encode_send_command_ok(Command::Join(message.0)).await;
             let response = match result {
@@ -324,16 +299,8 @@ where
             (self, response)
         })
     }
-}
 
-impl<'a, U, T, RST> RequestHandler<Send<'a>> for Rak811Actor<U, T, RST>
-where
-    U: DmaUart + 'static,
-    T: HalTimer + 'static,
-    RST: OutputPin + 'static,
-{
-    type Response = Result<(), LoraError>;
-    fn on_request(mut self, message: Send<'a>) -> Response<Self, Self::Response> {
+    fn send<'a>(mut self, message: Send<'a>) -> Response<Self, Result<(), LoraError>> {
         let result = self.encode_command(Command::Send(message.0, message.1, message.2));
         let expected_code = match message.0 {
             QoS::Unconfirmed => EventCode::TxUnconfirmed,
