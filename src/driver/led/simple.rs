@@ -1,5 +1,5 @@
-use crate::driver::switchable::{Off, On, Switchable};
 use crate::hal::gpio::ActiveOutput;
+use crate::hal::switchable::{Off, On, Switchable};
 use crate::hal::Active;
 use crate::prelude::*;
 use core::marker::PhantomData;

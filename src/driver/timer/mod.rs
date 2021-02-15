@@ -1,7 +1,7 @@
 use crate::alloc::{alloc, Box};
 use crate::domain::time::duration::{Duration, Milliseconds};
-use crate::driver::delayer::{Delay, Delayer};
-use crate::driver::scheduler::{Schedule, Scheduler};
+use crate::hal::delayer::{Delay, Delayer};
+use crate::hal::scheduler::{Schedule, Scheduler};
 use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
 use core::cell::RefCell;
