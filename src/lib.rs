@@ -20,6 +20,7 @@ pub mod synchronization;
 
 mod future;
 pub mod hal;
+pub mod port;
 
 /// Easy imports for common types and traits.
 pub mod prelude {

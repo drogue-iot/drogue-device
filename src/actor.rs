@@ -307,8 +307,8 @@ impl<A: Actor + 'static> ActorContext<A> {
         let sender = CompletionSender::new(signal.clone());
         let receiver = CompletionReceiver::new(signal);
 
-        let mut debug = String::new();
-        write!(debug, "{:?}", type_name::<M>()).unwrap();
+        let mut debug = "damnit".into();
+        //write!(debug, "{:?}", type_name::<M>()).unwrap();
 
         let request: &mut dyn ActorFuture<A> =
             alloc(OnRequest::new(self, message, sender)).unwrap();

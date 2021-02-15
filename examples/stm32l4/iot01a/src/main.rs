@@ -20,6 +20,8 @@ use panic_rtt_target as _;
 use rtt_logger::RTTLogger;
 use rtt_target::rtt_init_print;
 
+use drogue_device::driver::spi::Spi;
+use drogue_device::driver::wifi::eswifi::EsWifi;
 use drogue_device::{
     domain::time::duration::Milliseconds,
     driver::{
@@ -33,13 +35,17 @@ use drogue_device::{
     hal::{timer::stm32l4xx::Timer as McuTimer, Active},
     prelude::*,
 };
+use embedded_hal::spi::{Mode, MODE_0};
+use stm32l4xx_hal::pac::Interrupt::{EXTI1, SPI3};
+use stm32l4xx_hal::spi::Spi as HalSpi;
+use stm32l4xx_hal::time::MegaHertz;
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
 
 #[entry]
 fn main() -> ! {
-    rtt_init_print!();
-    //rtt_init_print!( BlockIfFull );
+    //rtt_init_print!();
+    rtt_init_print!(BlockIfFull);
     log::set_logger(&LOGGER).unwrap();
     log::set_max_level(log::LevelFilter::Trace);
 
@@ -60,6 +66,7 @@ fn main() -> ! {
     let mut gpiob = device.GPIOB.split(&mut rcc.ahb2);
     let mut gpioc = device.GPIOC.split(&mut rcc.ahb2);
     let mut gpiod = device.GPIOD.split(&mut rcc.ahb2);
+    let mut gpioe = device.GPIOE.split(&mut rcc.ahb2);
 
     // == LEDs ==
 
@@ -133,9 +140,51 @@ fn main() -> ! {
     let mcu_timer = McuTimer::tim15(device.TIM15, clocks, &mut rcc.apb2);
     let timer = Timer::new(mcu_timer, TIM15);
 
+    // == SPI ==
+
+    let clk = gpioc.pc10.into_af6(&mut gpioc.moder, &mut gpioc.afrh);
+    let miso = gpioc.pc11.into_af6(&mut gpioc.moder, &mut gpioc.afrh);
+    let mosi = gpioc.pc12.into_af6(&mut gpioc.moder, &mut gpioc.afrh);
+
+    let spi = HalSpi::spi3(
+        device.SPI3,
+        (clk, miso, mosi),
+        MODE_0,
+        MegaHertz(20),
+        clocks,
+        &mut rcc.apb1r1,
+    );
+
+    let spi = Spi::new(spi);
+
+    // == Wifi ==
+
+    let wifi_cs = gpioe
+        .pe0
+        .into_push_pull_output(&mut gpioe.moder, &mut gpioe.otyper);
+    let mut wifi_ready = gpioe
+        .pe1
+        //.into_pull_up_input(&mut gpioe.moder, &mut gpioe.pupdr);
+        .into_pull_down_input(&mut gpioe.moder, &mut gpioe.pupdr);
+
+    wifi_ready.enable_interrupt(&mut device.EXTI);
+    wifi_ready.make_interrupt_source(&mut device.SYSCFG, &mut rcc.apb2);
+    wifi_ready.trigger_on_edge(&mut device.EXTI, Edge::RISING_FALLING);
+
+    let mut wifi_reset = gpioe
+        .pe8
+        .into_push_pull_output(&mut gpioe.moder, &mut gpioe.otyper);
+    let mut wifi_wakeup = gpiob
+        .pb13
+        .into_push_pull_output(&mut gpiob.moder, &mut gpiob.otyper);
+
+    let wifi = EsWifi::new(wifi_cs, wifi_ready, EXTI1, wifi_reset, wifi_wakeup);
+
     // == Device ==
 
     let device = MyDevice {
+        spi,
+        wifi,
         memory: ActorContext::new(Memory::new()).with_name("memory"),
         ld1: ActorContext::new(ld1).with_name("ld1"),
         ld2: ActorContext::new(ld2).with_name("ld2"),
@@ -147,5 +196,5 @@ fn main() -> ! {
         timer,
     };
 
-    device!( MyDevice = device; 1024 );
+    device!( MyDevice = device; 2048 );
 }
