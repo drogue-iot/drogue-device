@@ -1,5 +1,9 @@
+use crate::domain::time::duration::Milliseconds;
 use crate::hal::arbitrator::BusTransaction;
+use crate::hal::delayer::Delayer;
 use crate::prelude::*;
+use core::cell::RefCell;
+use embedded_hal::digital::v2::OutputPin;
 
 pub enum SpiError {
     Overrun,
@@ -36,17 +40,70 @@ where
     }
 }
 
-/*
-impl<SPI> Address<SPI>
+pub struct ChipSelect<PIN, D>
 where
-    SPI: SpiBus,
+    PIN: OutputPin + 'static,
+    D: Delayer + 'static,
 {
-    pub async fn foo_spi_transfer<'b>(&self, buffer: &mut [SPI::Word]) -> Result<(), SpiError>
-    where
-        Self: RequestHandler<SpiTransfer<'b, SPI::Word>>,
-    {
-        self.request_panicking(SpiTransfer(buffer)).await
+    select_delay: Milliseconds,
+    pin: RefCell<PIN>,
+    delayer: Option<Address<D>>,
+}
+
+impl<PIN, D> ChipSelect<PIN, D>
+where
+    PIN: OutputPin,
+    D: Delayer,
+{
+    pub fn new(pin: PIN, select_delay: Milliseconds) -> Self {
+        Self {
+            select_delay,
+            pin: RefCell::new(pin),
+            delayer: None,
+        }
+    }
+
+    pub(crate) fn set_delayer(&mut self, delayer: Address<D>) {
+        self.delayer.replace(delayer);
+    }
+
+    pub async fn select(&self) -> Selected<'_, PIN, D> {
+        log::info!("CS set low");
+        self.pin.borrow_mut().set_low();
+        self.delayer.unwrap().delay(self.select_delay).await;
+        Selected::new(&self)
+    }
+
+    fn deselect(&self) {
+        log::info!("CS set high");
+        self.pin.borrow_mut().set_high();
     }
 }
 
- */
+pub struct Selected<'cs, PIN, D>
+where
+    PIN: OutputPin + 'static,
+    D: Delayer + 'static,
+{
+    cs: &'cs ChipSelect<PIN, D>,
+}
+
+impl<'cs, PIN, D> Selected<'cs, PIN, D>
+where
+    PIN: OutputPin + 'static,
+    D: Delayer + 'static,
+{
+    fn new(cs: &'cs ChipSelect<PIN, D>) -> Self {
+        Self { cs }
+    }
+}
+
+impl<'cs, PIN, D> Drop for Selected<'cs, PIN, D>
+where
+    PIN: OutputPin + 'static,
+    D: Delayer + 'static,
+{
+    fn drop(&mut self) {
+        self.cs.deselect();
+    }
+}

@@ -3,7 +3,7 @@ use crate::driver::spi::SpiController;
 use crate::hal::arbitrator::BusArbitrator;
 use crate::hal::delayer::Delayer;
 use crate::hal::gpio::exti_pin::ExtiPin;
-use crate::hal::spi::{SpiBus, SpiError};
+use crate::hal::spi::{ChipSelect, SpiBus, SpiError};
 use crate::prelude::*;
 use core::borrow::BorrowMut;
 use core::cell::RefCell;
@@ -228,7 +228,7 @@ pub struct EsWifiController<SPI, T, CS, READY, RESET, WAKEUP>
 where
     SPI: SpiBus<Word = u8> + 'static,
     T: Delayer + 'static,
-    CS: OutputPin,
+    CS: OutputPin + 'static,
     READY: InputPin + ExtiPin + 'static,
     RESET: OutputPin,
     WAKEUP: OutputPin,
@@ -236,7 +236,7 @@ where
     spi: Option<Address<BusArbitrator<SPI>>>,
     delayer: Option<Address<T>>,
     ready: Option<Address<EsWifiReady<READY>>>,
-    cs: CS,
+    cs: ChipSelect<CS, T>,
     reset: RESET,
     wakeup: WAKEUP,
 }
@@ -255,7 +255,7 @@ where
             spi: None,
             delayer: None,
             ready: None,
-            cs,
+            cs: ChipSelect::new(cs, Milliseconds(5u32)),
             reset,
             wakeup,
         }
@@ -302,6 +302,7 @@ where
         self.spi.replace(config.0);
         self.delayer.replace(config.1);
         self.ready.replace(config.2);
+        self.cs.set_delayer(config.1);
     }
 
     fn on_start(mut self) -> Completion<Self>
@@ -319,47 +320,37 @@ where
             log::info!("[es-wifi] began SPI");
             self.ready.unwrap().request(AwaitReady {}).await;
             log::info!("[es-wifi] ready to go");
-            self.cs.set_low();
-            self.delayer.unwrap().delay(Milliseconds(500u32)).await;
-            log::info!("[es-wifi] CS set low");
-            /*
-            loop {
-                if !self.ready.unwrap().request(QueryReady {}).await {
-                    log::info!("no longer ready");
-                    break;
-                }
-                let mut chunk = [0x0A, 0x0A];
-                spi.transfer(&mut chunk).await;
-                log::info!("chunk {:?}", chunk);
-            }
-             */
-            let mut response = [0 as u8; 16];
-            let mut pos = 0;
+            {
+                let cs = self.cs.select().await;
+                log::info!("[es-wifi] CS set low");
+                let mut response = [0 as u8; 16];
+                let mut pos = 0;
 
-            loop {
-                //log::info!("loop {}", pos);
-                if !self.ready.unwrap().request(QueryReady {}).await {
-                    break;
+                loop {
+                    //log::info!("loop {}", pos);
+                    if !self.ready.unwrap().request(QueryReady {}).await {
+                        break;
+                    }
+                    if pos >= response.len() {
+                        log::info!("***************** overrun");
+                        //return Err(());
+                        break;
+                    }
+                    let mut chunk = [0x0A, 0x0A];
+                    spi.spi_transfer(&mut chunk).await;
+                    log::info!("transfer {:?}", chunk);
+                    // reverse order going from 16 -> 2*8 bits
+                    if chunk[1] != 0x15 {
+                        response[pos] = chunk[1];
+                        pos += 1;
+                    }
+                    if chunk[0] != 0x15 {
+                        response[pos] = chunk[0];
+                        pos += 1;
+                    }
                 }
-                if pos >= response.len() {
-                    log::info!("***************** overrun");
-                    //return Err(());
-                    break;
-                }
-                let mut chunk = [0x0A, 0x0A];
-                spi.spi_transfer(&mut chunk).await;
-                log::info!("transfer {:?}", chunk);
-                // reverse order going from 16 -> 2*8 bits
-                if chunk[1] != 0x15 {
-                    response[pos] = chunk[1];
-                    pos += 1;
-                }
-                if chunk[0] != 0x15 {
-                    response[pos] = chunk[0];
-                    pos += 1;
-                }
+                log::info!("[es-wifi] end transfer");
             }
-            log::info!("[es-wifi] end transfer");
             (self)
         })
     }
