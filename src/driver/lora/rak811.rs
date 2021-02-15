@@ -1,293 +1,442 @@
-use crate::actor::Actor;
-use crate::address::Address;
 use crate::domain::time::duration::Milliseconds;
 use crate::driver::lora::*;
-use crate::driver::uart::dma::{Uart as DmaUart, UartPeripheral};
-use crate::driver::uart::{Uart, UartRx, UartTx};
-use crate::hal::uart::{Error as UartError, Uart as HalUart};
-use crate::handler::{RequestHandler, Response};
+use crate::driver::timer;
+use crate::driver::uart::dma;
+use crate::hal::timer::Timer as HalTimer;
+use crate::hal::uart::{DmaUart, Error as UartError};
+use crate::handler::Response;
+use crate::prelude::*;
 
-use drogue_rak811::{Buffer, Command, ConfigOption, DriverError, Response as RakResponse};
+use core::cell::{RefCell, UnsafeCell};
+
+use drogue_rak811::{
+    Buffer, Command, ConfigOption, DriverError, EventCode, Response as RakResponse,
+};
 use embedded_hal::digital::v2::OutputPin;
-use heapless::{consts, spsc::Queue};
+use heapless::{
+    consts,
+    spsc::{Consumer, Producer, Queue},
+    String,
+};
 
-pub struct Rak811<U, RST>
+type Uart<U, T> = <dma::Uart<U, T> as Package>::Primary;
+type Timer<T> = <timer::Timer<T> as Package>::Primary;
+
+pub struct Rak811Actor<U, T, RST>
 where
-    U: HalUart + 'static,
-    RST: OutputPin,
+    U: DmaUart + 'static,
+    T: HalTimer + 'static,
+    RST: OutputPin + 'static,
 {
-    uart: Option<Address<UartPeripheral<U>>>,
-    parse_buffer: Buffer,
+    uart: Option<Address<Uart<U, T>>>,
+    timer: Option<Address<Timer<T>>>,
+    command_buffer: String<consts::U128>,
     config: LoraConfig,
     rst: RST,
+    rxc: Option<RefCell<Consumer<'static, RakResponse, consts::U8>>>,
+}
+pub struct Rak811Ingress<U, T>
+where
+    U: DmaUart + 'static,
+    T: HalTimer + 'static,
+{
+    uart: Option<Address<Uart<U, T>>>,
+    timer: Option<Address<Timer<T>>>,
+    parse_buffer: Buffer,
+    rxp: Option<RefCell<Producer<'static, RakResponse, consts::U8>>>,
 }
 
-impl<U, RST> Rak811<U, RST>
+pub struct Rak811<U, T, RST>
 where
-    U: HalUart,
+    U: DmaUart + 'static,
+    T: HalTimer + 'static,
+    RST: OutputPin + 'static,
+{
+    actor: ActorContext<Rak811Actor<U, T, RST>>,
+    ingress: ActorContext<Rak811Ingress<U, T>>,
+    rxq: UnsafeCell<Queue<RakResponse, consts::U8>>,
+}
+
+impl<U, T, RST> Package for Rak811<U, T, RST>
+where
+    U: DmaUart + 'static,
+    T: HalTimer + 'static,
+    RST: OutputPin + 'static,
+{
+    type Primary = Rak811Actor<U, T, RST>;
+    type Configuration = (Address<Uart<U, T>>, Address<Timer<T>>);
+    fn mount(
+        &'static self,
+        config: Self::Configuration,
+        supervisor: &mut Supervisor,
+    ) -> Address<Self::Primary>
+    where
+        Self: 'static,
+    {
+        /*
+        let mut queue = self.rxq.borrow_mut();
+        let (prod, cons): (
+            Producer<'static, RakResponse, consts::U8>,
+            Consumer<'static, RakResponse, consts::U8>,
+        ) = queue.split();*/
+        let (prod, cons) = unsafe { (&mut *self.rxq.get()).split() };
+        let addr = self.actor.mount((cons, config.0, config.1), supervisor);
+        self.ingress.mount((prod, config.0, config.1), supervisor);
+
+        addr
+    }
+}
+
+impl<U, T, RST> Rak811<U, T, RST>
+where
+    U: DmaUart,
+    T: HalTimer,
+    RST: OutputPin,
+{
+    pub fn new(rst: RST) -> Self {
+        Self {
+            actor: ActorContext::new(Rak811Actor::new(rst)),
+            ingress: ActorContext::new(Rak811Ingress::new()),
+            rxq: UnsafeCell::new(Queue::new()),
+        }
+    }
+}
+
+impl<U, T, RST> Rak811Actor<U, T, RST>
+where
+    U: DmaUart,
+    T: HalTimer,
     RST: OutputPin,
 {
     pub fn new(rst: RST) -> Self {
         Self {
             uart: None,
-            //            rxq: Queue::new(),
-            parse_buffer: Buffer::new(),
+            timer: None,
+            command_buffer: String::new(),
             config: LoraConfig::new(),
             rst,
+            rxc: None,
         }
     }
 
-    async fn send_command<'a, 'b>(
-        &mut self,
-        command: Command<'a>,
-    ) -> Result<RakResponse, DriverError>
-    where
-        U: HalUart,
-    {
-        let mut s = Command::buffer();
-        command.encode(&mut s);
+    fn encode_command<'b>(&mut self, command: Command<'b>) {
+        let s = &mut self.command_buffer;
+        s.clear();
+        command.encode(s);
+        s.push_str("\r\n").unwrap();
+    }
+
+    async fn send_command(&mut self) -> Result<RakResponse, LoraError> {
+        let s = &mut self.command_buffer;
+
         log::debug!("Sending command {}", s.as_str());
+        let uart = self.uart.as_ref().unwrap();
 
-        {
-            let uart = self.uart.as_ref().unwrap();
-            /*
-            uart.write(s.as_bytes()).await?;
-            uart.write(b"\r\n").await?;*/
-        }
+        uart.write(s.as_bytes()).await?;
 
-        log::debug!("Awaiting response");
-        let response = self.recv_response().await;
-
-        log::debug!("Got response: {:?}", response);
-        response
+        self.recv_response().await
     }
 
-    async fn recv_response<'b>(&mut self) -> Result<RakResponse, DriverError>
-    where
-        U: HalUart,
-    {
+    async fn recv_response(&mut self) -> Result<RakResponse, LoraError>
+where {
         loop {
             // Run processing to increase likelyhood we have something to parse.
-            self.process().await?;
-            if let Some(response) = self.digest() {
+            if let Some(response) = self.rxc.as_ref().unwrap().borrow_mut().dequeue() {
                 return Ok(response);
             }
+            self.timer.as_ref().unwrap().delay(Milliseconds(100)).await;
         }
     }
 
-    fn digest(&mut self) -> Option<RakResponse> {
+    async fn encode_send_command<'b>(
+        &mut self,
+        command: Command<'b>,
+    ) -> Result<RakResponse, LoraError> {
+        self.encode_command(command);
+        self.send_command().await
+    }
+
+    async fn encode_send_command_ok<'b>(&mut self, command: Command<'b>) -> Result<(), LoraError> {
+        self.encode_command(command);
+        match self.send_command().await? {
+            RakResponse::Ok => Ok(()),
+            r => Err(LoraError::OtherError),
+        }
+    }
+
+    async fn apply_config(&mut self, config: LoraConfig) -> Result<(), LoraError> {
+        log::debug!("Applying config: {:?}", config);
+        if let Some(band) = config.band {
+            if self.config.band != config.band {
+                self.encode_send_command_ok(Command::SetBand(band)).await?;
+                self.config.band.replace(band);
+            }
+        }
+        if let Some(lora_mode) = config.lora_mode {
+            if self.config.lora_mode != config.lora_mode {
+                self.encode_send_command_ok(Command::SetMode(lora_mode))
+                    .await?;
+                self.config.lora_mode.replace(lora_mode);
+            }
+        }
+
+        if let Some(ref device_address) = config.device_address {
+            self.encode_send_command_ok(Command::SetConfig(ConfigOption::DevAddr(device_address)))
+                .await?;
+            self.config.device_address.replace(*device_address);
+        }
+
+        if let Some(ref device_eui) = config.device_eui {
+            self.encode_send_command_ok(Command::SetConfig(ConfigOption::DevEui(device_eui)))
+                .await?;
+            self.config.device_eui.replace(*device_eui);
+        }
+
+        if let Some(ref app_eui) = config.app_eui {
+            self.encode_send_command_ok(Command::SetConfig(ConfigOption::AppEui(app_eui)))
+                .await?;
+            self.config.app_eui.replace(*app_eui);
+        }
+
+        if let Some(ref app_key) = config.app_key {
+            self.encode_send_command_ok(Command::SetConfig(ConfigOption::AppKey(app_key)))
+                .await?;
+            self.config.app_key.replace(*app_key);
+        }
+
+        log::debug!("Config applied");
+        Ok(())
+    }
+}
+
+impl<U, T, RST> Actor for Rak811Actor<U, T, RST>
+where
+    U: DmaUart,
+    T: HalTimer,
+    RST: OutputPin,
+{
+    type Configuration = (
+        Consumer<'static, RakResponse, consts::U8>,
+        Address<Uart<U, T>>,
+        Address<Timer<T>>,
+    );
+    fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
+        self.rxc.replace(RefCell::new(config.0));
+        self.uart.replace(config.1);
+        self.timer.replace(config.2);
+    }
+}
+
+impl<U, T, RST> LoraDriver for Rak811Actor<U, T, RST>
+where
+    U: DmaUart,
+    T: HalTimer,
+    RST: OutputPin,
+{
+    fn initialize(mut self, message: Initialize) -> Response<Self, Result<(), LoraError>> {
+        Response::defer(async move {
+            self.rst.set_high().ok();
+            self.rst.set_low().ok();
+            let response = self.recv_response().await;
+            let result = match response {
+                Ok(RakResponse::Initialized(band)) => {
+                    self.config.band.replace(band);
+                    Ok(())
+                }
+                _ => Err(LoraError::NotInitialized),
+            };
+            (self, result)
+        })
+    }
+
+    fn reset(mut self, message: Reset) -> Response<Self, Result<(), LoraError>> {
+        Response::defer(async move {
+            let response = self.encode_send_command(Command::Reset(message.0)).await;
+            let result = match response {
+                Ok(RakResponse::Ok) => {
+                    let response = self.recv_response().await;
+                    match response {
+                        Ok(RakResponse::Initialized(band)) => {
+                            self.config.band.replace(band);
+                            Ok(())
+                        }
+                        _ => Err(LoraError::NotInitialized),
+                    }
+                }
+                r => Err(LoraError::OtherError),
+            };
+            (self, result)
+        })
+    }
+
+    fn configure<'a>(mut self, message: Configure<'a>) -> Response<Self, Result<(), LoraError>> {
+        let config = message.0.clone();
+        Response::defer(async move {
+            let result = self.apply_config(config).await;
+            (self, result)
+        })
+    }
+
+    fn join(mut self, message: Join) -> Response<Self, Result<(), LoraError>> {
+        Response::defer(async move {
+            let result = self.encode_send_command_ok(Command::Join(message.0)).await;
+            let response = match result {
+                Ok(_) => {
+                    let response = self.recv_response().await;
+                    match response {
+                        Ok(RakResponse::Recv(EventCode::JoinedSuccess, _, _, _)) => Ok(()),
+                        r => {
+                            log::info!("Received response: {:?}", r);
+                            Err(LoraError::OtherError)
+                        }
+                    }
+                }
+                r => {
+                    log::info!("Received response: {:?}", r);
+                    Err(LoraError::OtherError)
+                }
+            };
+            (self, response)
+        })
+    }
+
+    fn send<'a>(mut self, message: Send<'a>) -> Response<Self, Result<(), LoraError>> {
+        let result = self.encode_command(Command::Send(message.0, message.1, message.2));
+        let expected_code = match message.0 {
+            QoS::Unconfirmed => EventCode::TxUnconfirmed,
+            QoS::Confirmed => EventCode::TxConfirmed,
+        };
+        Response::defer(async move {
+            let result = match self.send_command().await {
+                Ok(RakResponse::Ok) => match self.recv_response().await {
+                    Ok(RakResponse::Recv(c, 0, _, _)) if expected_code == c => Ok(()),
+                    r => {
+                        log::error!("Unexpected response: {:?}", r);
+                        Err(LoraError::OtherError)
+                    }
+                },
+                r => {
+                    log::error!("Unexpected response: {:?}", r);
+                    Err(LoraError::OtherError)
+                }
+            };
+            (self, result)
+        })
+    }
+}
+
+impl<U, T> Rak811Ingress<U, T>
+where
+    U: DmaUart,
+    T: HalTimer,
+{
+    pub fn new() -> Self {
+        Self {
+            uart: None,
+            timer: None,
+            parse_buffer: Buffer::new(),
+            rxp: None,
+        }
+    }
+
+    fn digest(&mut self) -> Result<(), LoraError> {
         let result = self.parse_buffer.parse();
         if let Ok(response) = result {
             if !matches!(response, RakResponse::None) {
-                return Some(response);
+                log::debug!("Got response: {:?}", response);
+                self.rxp
+                    .as_ref()
+                    .unwrap()
+                    .borrow_mut()
+                    .enqueue(response)
+                    .map_err(|_| LoraError::RecvError)?;
             }
         }
-        None
+        Ok(())
     }
 
-    async fn process<'b>(&mut self) -> Result<(), DriverError>
-    where
-        U: HalUart,
-    {
+    async fn process(&mut self) -> Result<(), LoraError> {
         let uart = self.uart.as_ref().unwrap();
-        let mut rx_buf: [u8; 8] = [0; 8];
+        let mut rx_buf: [u8; 128] = [0; 128];
 
-        let len = 0; // uart.read(&mut rx_buf[..]).await?; //, Milliseconds(1000)).await?;
+        let len = uart
+            .read_with_timeout(&mut rx_buf[..], Milliseconds(100))
+            .await?;
 
-        /*
-        let timer = self.timer.as_ref().unwrap();
-            pin_mut!(read);
-            pin_mut!(timeout);
-            match select(read, timeout).await {
-                Either::Left((result, _)) => {
-                    log::info!("Read result {:?}", result);
-                    if let Ok(len) = result {
-                        len
-                    } else {
-                        0
-                    }
-                }
-                Either::Right((_, read)) => {
-                    log::info!("TIMEOUT");
-                    // uart.cancel();
-                    let result = read.await;
-                    match result {
-                        Ok(len) => len,
-                        _ => 0,
-                    }
-                }
-            }
-        };*/
-
+        // log::info!("Read {} bytes", len);
         for b in &mut rx_buf[..len] {
             self.parse_buffer.write(*b).unwrap();
         }
 
         Ok(())
     }
+}
 
-    async fn send_command_ok<'a, 'b>(&mut self, command: Command<'a>) -> Result<(), LoraError>
-    where
-        U: HalUart,
-    {
-        let response = self.send_command(command).await;
-        match response {
-            Ok(RakResponse::Ok) => Ok(()),
-            Ok(r) => Err(DriverError::UnexpectedResponse.into()),
-            Err(e) => Err(e.into()),
-        }
-    }
+struct ReadData;
 
-    async fn apply_config<'b>(&mut self) -> Result<(), LoraError>
-    where
-        U: HalUart,
-    {
-        let config = self.config;
-        log::debug!("Applying config: {:?}", config);
-        if let Some(band) = config.band {
-            self.send_command_ok(Command::SetBand(band)).await?;
-        }
-
-        if let Some(lora_mode) = config.lora_mode {
-            self.send_command_ok(Command::SetMode(lora_mode)).await?;
-        }
-
-        if let Some(ref device_address) = config.device_address {
-            self.send_command_ok(Command::SetConfig(ConfigOption::DevAddr(device_address)))
-                .await?;
-        }
-
-        if let Some(ref device_eui) = config.device_eui {
-            self.send_command_ok(Command::SetConfig(ConfigOption::DevEui(device_eui)))
-                .await?;
-        }
-
-        if let Some(ref app_eui) = config.app_eui {
-            self.send_command_ok(Command::SetConfig(ConfigOption::AppEui(app_eui)))
-                .await?;
-        }
-
-        if let Some(ref app_key) = config.app_key {
-            self.send_command_ok(Command::SetConfig(ConfigOption::AppKey(app_key)))
-                .await?;
-        }
-        Ok(())
+impl<U, T> Actor for Rak811Ingress<U, T>
+where
+    U: DmaUart,
+    T: HalTimer,
+{
+    type Configuration = (
+        Producer<'static, RakResponse, consts::U8>,
+        Address<Uart<U, T>>,
+        Address<Timer<T>>,
+    );
+    fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
+        self.rxp.replace(RefCell::new(config.0));
+        self.uart.replace(config.1);
+        self.timer.replace(config.2);
+        me.notify(ReadData);
     }
 }
 
-impl<U, RST> Actor for Rak811<U, RST>
+impl<U, T> NotifyHandler<ReadData> for Rak811Ingress<U, T>
 where
-    U: HalUart,
-    RST: OutputPin,
+    U: DmaUart,
+    T: HalTimer,
 {
-    type Configuration = Address<UartPeripheral<U>>;
-    fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
-        self.uart.replace(config);
-    }
-}
-
-impl<'a, U, RST> RequestHandler<Initialize> for Rak811<U, RST>
-where
-    U: HalUart,
-    RST: OutputPin,
-{
-    type Response = Result<(), LoraError>;
-    fn on_request(mut self, message: Initialize) -> Response<Self, Self::Response> {
-        log::info!("Initialize!");
-        Response::defer(async move {
-            self.rst.set_high().ok();
-            self.rst.set_low().ok();
-            let response = self.recv_response().await;
-            log::info!("INitilize response: {:?}", response);
-            let result = match response {
-                Ok(RakResponse::Initialized) => Ok(()),
-                _ => Err(LoraError),
-            };
-            (self, result)
-        })
-    }
-}
-
-impl<'a, U, RST> RequestHandler<Reset> for Rak811<U, RST>
-where
-    U: HalUart,
-    RST: OutputPin,
-{
-    type Response = Result<(), LoraError>;
-    fn on_request(mut self, message: Reset) -> Response<Self, Self::Response> {
-        Response::defer(async move {
-            let response = self.send_command(Command::Reset(message.0)).await;
-            let result = match response {
-                Ok(RakResponse::Ok) => {
-                    let response = self.recv_response().await;
-                    match response {
-                        Ok(RakResponse::Initialized) => Ok(()),
-                        _ => Err(DriverError::NotInitialized.into()),
-                    }
+    fn on_notify(mut self, message: ReadData) -> Completion<Self> {
+        Completion::defer(async move {
+            loop {
+                if let Err(e) = self.process().await {
+                    log::error!("Error reading data: {:?}", e);
                 }
-                Ok(r) => Err(DriverError::UnexpectedResponse.into()),
-                Err(e) => Err(e.into()),
-            };
-            (self, result)
+
+                if let Err(e) = self.digest() {
+                    log::error!("Error digesting data");
+                }
+            }
         })
     }
 }
 
-impl<'a, U, RST> RequestHandler<Configure<'a>> for Rak811<U, RST>
-where
-    U: HalUart,
-    RST: OutputPin,
-{
-    type Response = Result<(), LoraError>;
-    fn on_request(mut self, message: Configure<'a>) -> Response<Self, Self::Response> {
-        self.config = message.0.clone();
-        Response::defer(async move {
-            let result = self.apply_config().await;
-            (self, result)
-        })
-    }
-}
-
-impl<'a, U, RST> RequestHandler<Join> for Rak811<U, RST>
-where
-    U: HalUart,
-    RST: OutputPin,
-{
-    type Response = Result<(), LoraError>;
-    fn on_request(self, message: Join) -> Response<Self, Self::Response> {
-        Response::immediate(self, Ok(()))
-    }
-}
-
-impl<'a, U, RST> RequestHandler<Send<'a>> for Rak811<U, RST>
-where
-    U: HalUart,
-    RST: OutputPin,
-{
-    type Response = Result<(), LoraError>;
-    fn on_request(self, message: Send<'a>) -> Response<Self, Self::Response> {
-        Response::immediate(self, Ok(()))
-    }
-}
-
-impl core::convert::From<UartError> for DriverError {
+impl core::convert::From<UartError> for LoraError {
     fn from(error: UartError) -> Self {
+        log::info!("Convert from UART error {:?}", error);
         match error {
             UartError::TxInProgress
             | UartError::TxBufferTooSmall
             | UartError::TxBufferTooLong
-            | UartError::Transmit => DriverError::WriteError,
+            | UartError::Transmit => LoraError::SendError,
             UartError::RxInProgress
             | UartError::RxBufferTooSmall
             | UartError::RxBufferTooLong
-            | UartError::Receive => DriverError::ReadError,
-            _ => DriverError::OtherError,
+            | UartError::Receive => LoraError::RecvError,
+            _ => LoraError::OtherError,
         }
     }
 }
 
 impl core::convert::From<DriverError> for LoraError {
     fn from(error: DriverError) -> Self {
-        LoraError
+        log::info!("Convert from {:?}", error);
+        match error {
+            DriverError::NotInitialized => LoraError::NotInitialized,
+            DriverError::WriteError => LoraError::SendError,
+            DriverError::ReadError => LoraError::RecvError,
+            DriverError::OtherError | DriverError::UnexpectedResponse => LoraError::OtherError,
+        }
     }
 }

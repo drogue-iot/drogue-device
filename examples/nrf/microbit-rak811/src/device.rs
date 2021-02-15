@@ -4,28 +4,30 @@ use drogue_device::{
         lora::*,
         memory::{Memory, Query},
         timer::Timer,
-        uart::dma::Uart as DmaUart,
+        uart::dma::Uart,
     },
     hal::timer::nrf::Timer as HalTimer,
-    hal::uart::nrf::Uarte as HalUart,
+    hal::uart::nrf::Uarte as DmaUart,
     prelude::*,
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
 use hal::pac::TIMER0;
 use nrf52833_hal as hal;
 
+pub type Rak811Lora =
+    rak811::Rak811<DmaUart<hal::pac::UARTE0>, HalTimer<TIMER0>, Pin<Output<PushPull>>>;
 pub type Button = GpioteChannel<LoraDevice, Pin<Input<PullUp>>>;
-pub type AppLora = rak811::Rak811<HalUart<hal::pac::UARTE0>, Pin<Output<PushPull>>>;
+pub type AppLora = <Rak811Lora as Package>::Primary;
 
 pub struct LoraDevice {
     pub gpiote: InterruptContext<Gpiote<Self>>,
     pub btn_connect: ActorContext<Button>,
     pub btn_send: ActorContext<Button>,
     pub memory: ActorContext<Memory>,
-    pub uart: DmaUart<HalUart<hal::pac::UARTE0>>,
-    pub lora: ActorContext<AppLora>,
+    pub uart: Uart<DmaUart<hal::pac::UARTE0>, HalTimer<TIMER0>>,
+    pub lora: Rak811Lora,
     pub timer: Timer<HalTimer<TIMER0>>,
-    pub app: ActorContext<App>,
+    pub app: ActorContext<App<AppLora>>,
 }
 
 impl Device for LoraDevice {
@@ -35,8 +37,8 @@ impl Device for LoraDevice {
         self.btn_connect.mount(config.event_bus, supervisor);
         self.btn_send.mount(config.event_bus, supervisor);
         let timer = self.timer.mount((), supervisor);
-        let uart = self.uart.mount((), supervisor);
-        let lora = self.lora.mount(uart, supervisor);
+        let uart = self.uart.mount(timer, supervisor);
+        let lora = self.lora.mount((uart, timer), supervisor);
         self.app.mount(lora, supervisor);
     }
 }
@@ -63,12 +65,18 @@ impl EventHandler<PinEvent> for LoraDevice {
     }
 }
 
-pub struct App {
-    driver: Option<Address<AppLora>>,
+pub struct App<L>
+where
+    L: LoraDriver + 'static,
+{
+    driver: Option<Address<L>>,
     config: LoraConfig,
 }
 
-impl App {
+impl<L> App<L>
+where
+    L: LoraDriver,
+{
     pub fn new(config: LoraConfig) -> Self {
         Self {
             driver: None,
@@ -86,15 +94,21 @@ pub struct Join;
 #[derive(Clone, Debug)]
 pub struct Send;
 
-impl Actor for App {
-    type Configuration = Address<AppLora>;
+impl<L> Actor for App<L>
+where
+    L: LoraDriver,
+{
+    type Configuration = Address<L>;
     fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
         log::info!("Bound lora");
         self.driver.replace(config);
     }
 }
 
-impl NotifyHandler<Join> for App {
+impl<L> NotifyHandler<Join> for App<L>
+where
+    L: LoraDriver,
+{
     fn on_notify(self, _: Join) -> Completion<Self> {
         Completion::defer(async move {
             let driver = self.driver.as_ref().unwrap();
@@ -111,13 +125,21 @@ impl NotifyHandler<Join> for App {
                 .expect("Error configuring driver");
 
             log::info!("Joining network");
-            driver.join().await.expect("Error joining LoRa Network");
+            driver
+                .join(ConnectMode::OTAA)
+                .await
+                .expect("Error joining LoRa Network");
+
+            log::info!("Network joined");
             self
         })
     }
 }
 
-impl NotifyHandler<Send> for App {
+impl<L> NotifyHandler<Send> for App<L>
+where
+    L: LoraDriver,
+{
     fn on_notify(self, _: Send) -> Completion<Self> {
         Completion::defer(async move {
             let driver = self.driver.as_ref().unwrap();
@@ -128,6 +150,7 @@ impl NotifyHandler<Send> for App {
             buf[..motd.len()].clone_from_slice(motd);
             log::info!("Sending data");
             driver.send(QoS::Confirmed, 1, motd).await.ok();
+            log::info!("Data sent!");
 
             self
         })

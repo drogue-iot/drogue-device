@@ -5,10 +5,10 @@ use drogue_device::{
         gpiote::nrf::*,
         led::{LEDMatrix, MatrixCommand},
         timer::{Timer, TimerActor},
-        uart::dma::{Uart, UartPeripheral},
+        uart::dma::Uart,
     },
     hal::timer::nrf::Timer as HalTimer,
-    hal::uart::nrf::Uarte as HalUart,
+    hal::uart::nrf::Uarte as DmaUart,
     prelude::*,
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
@@ -19,7 +19,7 @@ use nrf52833_hal as hal;
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
 pub type LedMatrix = LEDMatrix<Pin<Output<PushPull>>, consts::U5, consts::U5, HalTimer<TIMER0>>;
 pub type AppTimer = TimerActor<HalTimer<TIMER0>>;
-pub type AppUart = UartPeripheral<HalUart<hal::pac::UARTE0>>;
+pub type AppUart = <Uart<DmaUart<hal::pac::UARTE0>, HalTimer<TIMER0>> as Package>::Primary;
 
 pub struct MyDevice {
     pub led: ActorContext<LedMatrix>,
@@ -27,7 +27,7 @@ pub struct MyDevice {
     pub btn_fwd: ActorContext<Button>,
     pub btn_back: ActorContext<Button>,
     pub timer: Timer<HalTimer<TIMER0>>,
-    pub uart: Uart<HalUart<hal::pac::UARTE0>>,
+    pub uart: Uart<DmaUart<hal::pac::UARTE0>, HalTimer<TIMER0>>,
     pub app: ActorContext<App>,
 }
 
@@ -39,7 +39,7 @@ impl Device for MyDevice {
 
         let timer = self.timer.mount((), supervisor);
         let display = self.led.mount(timer, supervisor);
-        let uart = self.uart.mount((), supervisor);
+        let uart = self.uart.mount(timer, supervisor);
 
         let app = self.app.mount(
             AppConfig {
@@ -134,6 +134,7 @@ impl NotifyHandler<StartService> for App {
     fn on_notify(mut self, _: StartService) -> Completion<Self> {
         Completion::defer(async move {
             let led = self.display.as_ref().unwrap();
+            let timer = self.timer.as_ref().unwrap();
 
             if let Some(uart) = &mut self.uart {
                 let mut buf = [0; 128];
@@ -149,18 +150,20 @@ impl NotifyHandler<StartService> for App {
                 }
 
                 loop {
-                    unsafe {
-                        uart.read(&mut buf[..1])
+                    // Assumes no more than 1 character typed per millisecond, just shorten the interval if need be!
+                    let len = uart
+                        .read_with_timeout(&mut buf[..], Milliseconds(100))
+                        .await
+                        .expect("Error reading from UART");
+
+                    if len > 0 {
+                        for b in &buf[..len] {
+                            led.notify(MatrixCommand::ApplyAscii(*b as char));
+                        }
+
+                        uart.write(&buf[..len])
                             .await
-                            .map_err(|e| log::error!("Error reading from UART: {:?}", e))
-                            .ok();
-                    }
-                    led.notify(MatrixCommand::ApplyAscii(buf[0] as char));
-                    unsafe {
-                        uart.write(&buf[..1])
-                            .await
-                            .map_err(|e| log::error!("Error writing to UART: {:?}", e))
-                            .ok();
+                            .expect("Error writing to UART");
                     }
                 }
             }

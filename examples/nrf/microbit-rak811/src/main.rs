@@ -25,13 +25,13 @@ use nrf52833_hal as hal;
 
 use crate::device::*;
 
-static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
+static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
 
 #[entry]
 fn main() -> ! {
     rtt_init_print!();
     log::set_logger(&LOGGER).unwrap();
-    log::set_max_level(log::LevelFilter::Debug);
+    log::set_max_level(log::LevelFilter::Info);
 
     let device = hal::pac::Peripherals::take().unwrap();
 
@@ -80,14 +80,11 @@ fn main() -> ! {
         btn_send: ActorContext::new(btn_send).with_name("button_send"),
         gpiote: InterruptContext::new(gpiote, hal::pac::Interrupt::GPIOTE).with_name("gpiote"),
         uart,
-        lora: ActorContext::new(rak811::Rak811::new(
-            port1.p1_02.into_push_pull_output(Level::High).degrade(),
-        )),
+        lora: rak811::Rak811::new(port1.p1_02.into_push_pull_output(Level::High).degrade()),
         memory: ActorContext::new(Memory::new()).with_name("memory"),
         timer,
         app: ActorContext::new(App::new(
             LoraConfig::new()
-                .connect_mode(ConnectMode::OTAA)
                 .band(LoraRegion::EU868)
                 .lora_mode(LoraMode::WAN)
                 .device_eui(&[0x00, 0xBB, 0x7C, 0x95, 0xAD, 0xB5, 0x30, 0xB9])
