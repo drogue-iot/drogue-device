@@ -1,6 +1,7 @@
 use drogue_device::device::DeviceConfiguration;
 use drogue_device::domain::time::duration::Milliseconds;
 use drogue_device::driver::sensor::hts221::SensorAcquisition;
+use drogue_device::driver::spi::SpiController;
 use drogue_device::driver::wifi::eswifi::EsWifi;
 use drogue_device::{
     domain::temperature::Celsius,
@@ -69,7 +70,7 @@ type WifiWakeup = PB13<Output<PushPull>>;
 pub struct MyDevice {
     pub spi: SpiPackage,
     pub wifi: EsWifi<
-        HardwareSpi,
+        SpiController<HardwareSpi, u8>,
         <TimerPackage as Package>::Primary,
         WifiCs,
         WifiReady,

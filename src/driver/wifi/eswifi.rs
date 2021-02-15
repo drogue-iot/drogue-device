@@ -13,7 +13,6 @@ use core::pin::Pin;
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll, Waker};
 use cortex_m::interrupt::Nr;
-use embedded_hal::blocking::spi::Transfer;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
 
 pub struct Shared {
@@ -51,8 +50,7 @@ impl Shared {
 
 pub struct EsWifi<SPI, T, CS, READY, RESET, WAKEUP>
 where
-    SPI: Transfer<u8> + 'static,
-    SPI::Error: Into<SpiError>,
+    SPI: SpiBus<Word = u8> + 'static,
     T: Delayer + 'static,
     CS: OutputPin + 'static,
     READY: InputPin + ExtiPin + 'static,
@@ -66,8 +64,7 @@ where
 
 impl<SPI, T, CS, READY, RESET, WAKEUP> EsWifi<SPI, T, CS, READY, RESET, WAKEUP>
 where
-    SPI: Transfer<u8> + 'static,
-    SPI::Error: Into<SpiError>,
+    SPI: SpiBus<Word = u8>,
     T: Delayer + 'static,
     CS: OutputPin + 'static,
     READY: InputPin + ExtiPin + 'static,
@@ -91,8 +88,7 @@ where
 
 impl<SPI, T, CS, READY, RESET, WAKEUP> Package for EsWifi<SPI, T, CS, READY, RESET, WAKEUP>
 where
-    SPI: Transfer<u8> + 'static,
-    SPI::Error: Into<SpiError>,
+    SPI: SpiBus<Word = u8>,
     T: Delayer + 'static,
     CS: OutputPin,
     READY: InputPin + ExtiPin,
@@ -100,7 +96,7 @@ where
     WAKEUP: OutputPin,
 {
     type Primary = EsWifiController<SPI, T, CS, READY, RESET, WAKEUP>;
-    type Configuration = (Address<BusArbitrator<SpiController<SPI, u8>>>, Address<T>);
+    type Configuration = (Address<BusArbitrator<SPI>>, Address<T>);
 
     fn mount(
         &'static self,
@@ -230,15 +226,14 @@ impl Future for AwaitReadyFuture {
 
 pub struct EsWifiController<SPI, T, CS, READY, RESET, WAKEUP>
 where
-    SPI: Transfer<u8> + 'static,
-    SPI::Error: Into<SpiError>,
+    SPI: SpiBus<Word = u8> + 'static,
     T: Delayer + 'static,
     CS: OutputPin,
     READY: InputPin + ExtiPin + 'static,
     RESET: OutputPin,
     WAKEUP: OutputPin,
 {
-    spi: Option<Address<BusArbitrator<SpiController<SPI, u8>>>>,
+    spi: Option<Address<BusArbitrator<SPI>>>,
     delayer: Option<Address<T>>,
     ready: Option<Address<EsWifiReady<READY>>>,
     cs: CS,
@@ -248,8 +243,7 @@ where
 
 impl<SPI, T, CS, READY, RESET, WAKEUP> EsWifiController<SPI, T, CS, READY, RESET, WAKEUP>
 where
-    SPI: Transfer<u8> + 'static,
-    SPI::Error: Into<SpiError>,
+    SPI: SpiBus<Word = u8> + 'static,
     T: Delayer + 'static,
     CS: OutputPin,
     READY: InputPin + ExtiPin + 'static,
@@ -288,8 +282,7 @@ where
 
 impl<SPI, T, CS, READY, RESET, WAKEUP> Actor for EsWifiController<SPI, T, CS, READY, RESET, WAKEUP>
 where
-    SPI: Transfer<u8> + 'static,
-    SPI::Error: Into<SpiError>,
+    SPI: SpiBus<Word = u8>,
     T: Delayer + 'static,
     CS: OutputPin,
     READY: InputPin + ExtiPin,
@@ -297,7 +290,7 @@ where
     WAKEUP: OutputPin,
 {
     type Configuration = (
-        Address<BusArbitrator<SpiController<SPI, u8>>>,
+        Address<BusArbitrator<SPI>>,
         Address<T>,
         Address<EsWifiReady<READY>>,
     );

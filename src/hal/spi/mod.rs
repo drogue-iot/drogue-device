@@ -1,3 +1,4 @@
+use crate::hal::arbitrator::BusTransaction;
 use crate::prelude::*;
 
 pub enum SpiError {
@@ -26,13 +27,26 @@ where
 
 pub struct SpiTransfer<'b, W>(pub &'b mut [W]);
 
+impl<SPI> BusTransaction<SPI>
+where
+    SPI: SpiBus,
+{
+    pub async fn spi_transfer<'b>(&self, buffer: &mut [SPI::Word]) -> Result<(), SpiError> {
+        self.bus.request_panicking(SpiTransfer(buffer)).await
+    }
+}
+
 /*
-impl<B: SpiBus> Address<B> {
-    pub async fn spi_transfer<'b>(&self, buffer: &mut [B::Word]) -> Result<(), SpiError>
+impl<SPI> Address<SPI>
+where
+    SPI: SpiBus,
+{
+    pub async fn foo_spi_transfer<'b>(&self, buffer: &mut [SPI::Word]) -> Result<(), SpiError>
     where
-        Self: RequestHandler<SpiTransfer<'b, B::Word>>,
+        Self: RequestHandler<SpiTransfer<'b, SPI::Word>>,
     {
         self.request_panicking(SpiTransfer(buffer)).await
     }
 }
+
  */
