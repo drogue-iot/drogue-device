@@ -12,11 +12,12 @@ use drogue_device::{
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
 use hal::pac::{TIMER0, UARTE0};
+use heapless::consts;
 
 use nrf52833_hal as hal;
 
 pub type AppTimer = Timer<HalTimer<TIMER0>>;
-pub type AppUart = DmaUart<HalUart<UARTE0>, <AppTimer as Package>::Primary>;
+pub type AppUart = DmaUart<HalUart<UARTE0>, <AppTimer as Package>::Primary, consts::U64>;
 pub type Rak811Lora = rak811::Rak811<
     <AppUart as Package>::Primary,
     <AppTimer as Package>::Primary,
@@ -119,7 +120,6 @@ where
     fn on_notify(self, _: Join) -> Completion<Self> {
         Completion::defer(async move {
             let driver = self.driver.as_ref().unwrap();
-
             log::info!("Configuring driver");
             driver
                 .configure(&self.config)

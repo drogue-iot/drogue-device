@@ -13,7 +13,7 @@ use nrf52833_hal as hal;
 
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
 pub type AppTimer = Timer<HalTimer<TIMER0>>;
-pub type AppUart = DmaUart<Uarte<UARTE0>, <AppTimer as Package>::Primary>;
+pub type AppUart = DmaUart<Uarte<UARTE0>, <AppTimer as Package>::Primary, consts::U64>;
 pub type LedMatrix =
     LEDMatrix<Pin<Output<PushPull>>, consts::U5, consts::U5, <AppTimer as Package>::Primary>;
 
@@ -154,7 +154,6 @@ where
     fn on_notify(mut self, _: StartService) -> Completion<Self> {
         Completion::defer(async move {
             let led = self.display.as_ref().unwrap();
-            let timer = self.timer.as_ref().unwrap();
 
             if let Some(uart) = &mut self.uart {
                 let mut buf = [0; 128];
@@ -169,19 +168,20 @@ where
                         .ok();
                 }
 
+                let mut rx_buf = [0; 128];
                 loop {
-                    // Assumes no more than 1 character typed per millisecond, just shorten the interval if need be!
+                    // Shorten the interval or reduce size of rx buf if more responsiveness is needed.
                     let len = uart
-                        .read_with_timeout(&mut buf[..], Milliseconds(100))
+                        .read_with_timeout(&mut rx_buf[..], Milliseconds(100))
                         .await
                         .expect("Error reading from UART");
 
                     if len > 0 {
-                        for b in &buf[..len] {
+                        for b in &rx_buf[..len] {
                             led.notify(Apply(*b as char));
                         }
 
-                        uart.write(&buf[..len])
+                        uart.write(&rx_buf[..len])
                             .await
                             .expect("Error writing to UART");
                     }

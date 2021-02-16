@@ -33,7 +33,7 @@ where
     pub fn new(uart: T, pins: Pins, parity: Parity, baudrate: Baudrate) -> Self {
         let (uart, pins) = hal::uarte::Uarte::new(uart, pins, parity, baudrate).free();
         uart.inten
-            .modify(|_, w| w.endrx().set_bit().endtx().set_bit());
+            .modify(|_, w| w.endrx().set_bit().endtx().set_bit().rxto().set_bit());
 
         Self { uart, pins }
     }
@@ -103,25 +103,31 @@ where
         cancel_write(&*self.uart);
     }
 
-    /// Start a read operation to receive data into rx_buffer.
-    fn start_read(&self, rx_buffer: &mut [u8]) -> Result<(), Error> {
+    fn prepare_read(&self, rx_buffer: &mut [u8]) -> Result<(), Error> {
         slice_in_ram_or(rx_buffer, Error::BufferNotInRAM)?;
-        start_read(&*self.uart, rx_buffer)?;
+        prepare_read(&*self.uart, rx_buffer)?;
         Ok(())
+    }
+
+    /// Start a read operation
+    fn start_read(&self) {
+        start_read(&*self.uart);
     }
 
     /// Complete a read operation.
     fn finish_read(&self) -> Result<usize, Error> {
-        finalize_read(&*self.uart);
+        cortex_m::interrupt::free(|_| {
+            finalize_read(&*self.uart);
 
-        let bytes_read = self.uart.rxd.amount.read().bits() as usize;
+            let bytes_read = self.uart.rxd.amount.read().bits() as usize;
 
-        Ok(bytes_read)
+            Ok(bytes_read)
+        })
     }
 
     /// Cancel a read operation
     fn cancel_read(&self) {
-        cancel_read(&*self.uart);
+        cortex_m::interrupt::free(|_| cancel_read(&*self.uart));
     }
 }
 
@@ -178,7 +184,7 @@ fn stop_write(uarte: &uarte0::RegisterBlock) {
 
 /// Start a UARTE read transaction by setting the control
 /// values and triggering a read task.
-fn start_read(uarte: &uarte0::RegisterBlock, rx_buffer: &mut [u8]) -> Result<(), Error> {
+fn prepare_read(uarte: &uarte0::RegisterBlock, rx_buffer: &mut [u8]) -> Result<(), Error> {
     if rx_buffer.len() > hal::target_constants::EASY_DMA_SIZE {
         return Err(Error::RxBufferTooLong);
     }
@@ -204,10 +210,12 @@ fn start_read(uarte: &uarte0::RegisterBlock, rx_buffer: &mut [u8]) -> Result<(),
         .maxcnt
         .write(|w| unsafe { w.maxcnt().bits(rx_buffer.len() as _) });
 
+    Ok(())
+}
+
+fn start_read(uarte: &uarte0::RegisterBlock) {
     // Start UARTE Receive transaction.
     uarte.tasks_startrx.write(|w| unsafe { w.bits(1) });
-
-    Ok(())
 }
 
 /// Stop an unfinished UART write transaction.

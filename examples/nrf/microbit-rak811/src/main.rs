@@ -32,6 +32,7 @@ static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
 
 #[entry]
 fn main() -> ! {
+    //rtt_init_print!();
     rtt_init_print!();
     log::set_logger(&LOGGER).unwrap();
     log::set_max_level(log::LevelFilter::Info);

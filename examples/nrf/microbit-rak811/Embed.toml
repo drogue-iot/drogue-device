@@ -73,7 +73,7 @@ enabled = true
 #show_timestamps = true
 
 [debug.rtt]
-enabled=false
+enabled=true
 
 [debug.gdb]
-enabled=true
+enabled=false

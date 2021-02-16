@@ -5,8 +5,13 @@ use core::cell::UnsafeCell;
 use core::mem;
 use core::task::{Context, Poll, Waker};
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))]
+extern crate std;
+
 pub struct Signal<T> {
     state: UnsafeCell<State<T>>,
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))]
+    lock: std::sync::Mutex<()>,
 }
 
 enum State<T> {
@@ -19,15 +24,34 @@ unsafe impl<T: Sized> Send for Signal<T> {}
 unsafe impl<T: Sized> Sync for Signal<T> {}
 
 impl<T: Sized> Signal<T> {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             state: UnsafeCell::new(State::None),
+            #[cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))]
+            lock: std::sync::Mutex::new(()),
         }
+    }
+
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))]
+    fn critical_section<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce() -> R,
+    {
+        let guard = self.lock.lock().unwrap();
+        f()
+    }
+
+    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))]
+    fn critical_section<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce() -> R,
+    {
+        cortex_m::interrupt::free(|_| f())
     }
 
     #[allow(clippy::single_match)]
     pub fn signal(&self, val: T) {
-        cortex_m::interrupt::free(|_| unsafe {
+        self.critical_section(|| unsafe {
             let state = &mut *self.state.get();
             match mem::replace(state, State::Signaled(val)) {
                 State::Waiting(waker) => waker.wake(),
@@ -37,14 +61,14 @@ impl<T: Sized> Signal<T> {
     }
 
     pub fn reset(&self) {
-        cortex_m::interrupt::free(|_| unsafe {
+        self.critical_section(|| unsafe {
             let state = &mut *self.state.get();
             *state = State::None
         })
     }
 
     pub fn poll_wait(&self, cx: &mut Context<'_>) -> Poll<T> {
-        cortex_m::interrupt::free(|_| unsafe {
+        self.critical_section(|| unsafe {
             let state = &mut *self.state.get();
             match state {
                 State::None => {
@@ -65,6 +89,6 @@ impl<T: Sized> Signal<T> {
     }
 
     pub fn signaled(&self) -> bool {
-        cortex_m::interrupt::free(|_| matches!(unsafe { &*self.state.get() }, State::Signaled(_)))
+        self.critical_section(|| matches!(unsafe { &*self.state.get() }, State::Signaled(_)))
     }
 }
