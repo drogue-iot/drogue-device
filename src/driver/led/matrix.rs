@@ -1,7 +1,7 @@
 use crate::domain::time::duration::Milliseconds;
 use crate::domain::time::rate::{Hertz, Rate};
 
-use crate::hal::scheduler::Scheduler;
+use crate::api::scheduler::Scheduler;
 use crate::prelude::*;
 use embedded_hal::digital::v2::OutputPin;
 use heapless::{ArrayLength, Vec};

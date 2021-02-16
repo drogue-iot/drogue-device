@@ -1,4 +1,4 @@
-use crate::hal::uart::Error;
+use crate::api::uart::Error;
 
 /// Trait for devices that support UART as a interrupt-driven DMA peripheral.
 pub trait DmaUartHal {

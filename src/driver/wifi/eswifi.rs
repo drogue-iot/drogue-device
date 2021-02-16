@@ -1,9 +1,9 @@
 use crate::domain::time::duration::Milliseconds;
 use crate::driver::spi::SpiController;
-use crate::hal::arbitrator::BusArbitrator;
-use crate::hal::delayer::Delayer;
+use crate::api::arbitrator::BusArbitrator;
+use crate::api::delayer::Delayer;
 use crate::hal::gpio::exti_pin::ExtiPin;
-use crate::hal::spi::{ChipSelect, SpiBus, SpiError};
+use crate::api::spi::{ChipSelect, SpiBus, SpiError};
 use crate::prelude::*;
 use core::borrow::BorrowMut;
 use core::cell::RefCell;

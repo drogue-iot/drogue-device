@@ -9,7 +9,7 @@ use crate::driver::sensor::hts221::register::h_out::Hout;
 use crate::driver::sensor::hts221::register::status::Status;
 use crate::driver::sensor::hts221::register::t_out::Tout;
 use crate::driver::sensor::hts221::SensorAcquisition;
-use crate::hal::i2c::I2cAddress;
+use crate::api::i2c::I2cAddress;
 use crate::handler::EventHandler;
 use crate::prelude::*;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};

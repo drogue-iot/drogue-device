@@ -12,7 +12,7 @@ use drogue_device::{
     driver::memory::Memory,
     driver::timer::Timer,
     driver::uart::dma::DmaUart,
-    hal::lora::*,
+    api::lora::*,
     hal::timer::nrf::Timer as HalTimer,
     hal::uart::dma::nrf::{Baudrate, Parity, Pins, Uarte as HalUart},
     prelude::*,

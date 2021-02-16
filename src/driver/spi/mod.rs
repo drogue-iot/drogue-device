@@ -1,5 +1,5 @@
-use crate::hal::arbitrator::{Arbitrator, BusArbitrator, BusTransaction};
-use crate::hal::spi::{SpiBus, SpiError, SpiTransfer};
+use crate::api::arbitrator::{Arbitrator, BusArbitrator, BusTransaction};
+use crate::api::spi::{SpiBus, SpiError, SpiTransfer};
 use crate::prelude::*;
 use core::cell::RefCell;
 use core::fmt::Debug;

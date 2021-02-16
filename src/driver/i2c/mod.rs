@@ -1,4 +1,4 @@
-use crate::hal::i2c::I2cAddress;
+use crate::api::i2c::I2cAddress;
 use crate::prelude::*;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 

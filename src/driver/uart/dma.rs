@@ -1,11 +1,12 @@
 use crate::prelude::*;
 
 use crate::domain::time::duration::{Duration, Milliseconds};
-pub use crate::hal::uart::Error;
-use crate::hal::{
+pub use crate::api::uart::Error;
+use crate::api::{
     scheduler::*,
-    uart::{dma::DmaUartHal, Uart, UartRx, UartRxTimeout, UartTx},
+    uart::{Uart, UartRx, UartRxTimeout, UartTx},
 };
+use crate::hal::uart::dma::DmaUartHal;
 use crate::interrupt::{Interrupt, InterruptContext};
 use crate::package::Package;
 use crate::synchronization::Signal;

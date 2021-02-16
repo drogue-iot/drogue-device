@@ -1,5 +1,5 @@
 use crate::domain::time::duration::Milliseconds;
-use crate::hal::{
+use crate::api::{
     delayer::*,
     lora::*,
     scheduler::*,

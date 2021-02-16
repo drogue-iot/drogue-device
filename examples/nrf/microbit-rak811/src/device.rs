@@ -8,8 +8,11 @@ use drogue_device::{
         uart::*,
     },
     hal::{
-        delayer::*, lora::*, scheduler::*, timer::nrf::Timer as HalTimer,
-        uart::dma::nrf::Uarte as HalUart, uart::*,
+        timer::nrf::Timer as HalTimer,
+        uart::dma::nrf::Uarte as HalUart,
+    },
+    api::{
+        delayer::*, lora::*, scheduler::*, uart::*,
     },
     prelude::*,
 };

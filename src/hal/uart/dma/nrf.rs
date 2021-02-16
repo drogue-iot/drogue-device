@@ -12,7 +12,7 @@ use hal::pac::{uarte0_ns as uarte0, UARTE0_NS as UARTE0, UARTE1_NS as UARTE1};
 #[cfg(not(feature = "nrf9160"))]
 use hal::pac::{uarte0, UARTE0};
 
-use crate::hal::uart::Error;
+use crate::api::uart::Error;
 use core::ops::Deref;
 use core::sync::atomic::{compiler_fence, Ordering::SeqCst};
 
@@ -49,7 +49,7 @@ where
         }
 
         // We can only DMA out of RAM.
-        slice_in_ram_or(tx_buffer, crate::hal::uart::Error::BufferNotInRAM)?;
+        slice_in_ram_or(tx_buffer, Error::BufferNotInRAM)?;
 
         start_write(&*self.uart, tx_buffer);
         Ok(())
@@ -105,7 +105,7 @@ where
 
     /// Start a read operation to receive data into rx_buffer.
     fn start_read(&self, rx_buffer: &mut [u8]) -> Result<(), Error> {
-        slice_in_ram_or(rx_buffer, crate::hal::uart::Error::BufferNotInRAM)?;
+        slice_in_ram_or(rx_buffer, Error::BufferNotInRAM)?;
         start_read(&*self.uart, rx_buffer)?;
         Ok(())
     }

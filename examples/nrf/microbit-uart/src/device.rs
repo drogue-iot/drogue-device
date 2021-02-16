@@ -2,7 +2,8 @@ use drogue_device::{
     device::DeviceConfiguration,
     domain::time::duration::Milliseconds,
     driver::{gpiote::nrf::*, led::*, timer::*, uart::dma::*},
-    hal::{delayer::*, timer::nrf::Timer as HalTimer, uart::dma::nrf::Uarte, uart::*},
+    api::{delayer::*, uart::*},
+    hal::{timer::nrf::Timer as HalTimer, uart::dma::nrf::Uarte},
     prelude::*,
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};

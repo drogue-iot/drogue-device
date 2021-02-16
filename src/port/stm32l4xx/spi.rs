@@ -1,4 +1,4 @@
-use crate::hal::spi::SpiError;
+use crate::api::spi::SpiError;
 use stm32l4xx_hal::spi::Error;
 
 impl Into<SpiError> for Error {
