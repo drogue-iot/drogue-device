@@ -7,14 +7,14 @@ use panic_rtt_target as _;
 
 use cortex_m_rt::{entry, exception};
 use drogue_device::{
+    api::lora::*,
     driver::gpiote::nrf::*,
     driver::lora::*,
     driver::memory::Memory,
     driver::timer::Timer,
     driver::uart::dma::DmaUart,
-    api::lora::*,
-    hal::timer::nrf::Timer as HalTimer,
-    hal::uart::dma::nrf::{Baudrate, Parity, Pins, Uarte as HalUart},
+    port::nrf::timer::Timer as HalTimer,
+    port::nrf::uarte::{Baudrate, Parity, Pins, Uarte as HalUart},
     prelude::*,
 };
 use hal::gpio::Level;

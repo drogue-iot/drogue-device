@@ -11,8 +11,8 @@ use drogue_device::{
     driver::gpiote::nrf::*,
     driver::timer::Timer,
     driver::uart::dma::DmaUart,
-    hal::timer::nrf::Timer as HalTimer,
-    hal::uart::dma::nrf::{Baudrate, Parity, Pins, Uarte},
+    port::nrf::timer::Timer as HalTimer,
+    port::nrf::uarte::{Baudrate, Parity, Pins, Uarte},
     prelude::*,
 };
 use hal::gpio::Level;

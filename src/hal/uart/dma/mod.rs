@@ -25,11 +25,3 @@ pub trait DmaUartHal {
     /// Process interrupts for the peripheral. Returns booleans indicating (tx_done, rx_done).
     fn process_interrupts(&self) -> (bool, bool);
 }
-
-#[cfg(any(
-    feature = "nrf52832",
-    feature = "nrf52833",
-    feature = "nrf52840",
-    feature = "nrf9160"
-))]
-pub mod nrf;

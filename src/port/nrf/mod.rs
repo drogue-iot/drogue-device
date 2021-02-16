@@ -1,2 +1,2 @@
-pub mod spi;
+pub mod uarte;
 pub mod timer;

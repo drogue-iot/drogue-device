@@ -1,4 +1,5 @@
 use drogue_device::{
+    api::{delayer::*, lora::*, scheduler::*, uart::*},
     driver::{
         gpiote::nrf::*,
         lora::*,
@@ -7,13 +8,7 @@ use drogue_device::{
         uart::dma::DmaUart,
         uart::*,
     },
-    hal::{
-        timer::nrf::Timer as HalTimer,
-        uart::dma::nrf::Uarte as HalUart,
-    },
-    api::{
-        delayer::*, lora::*, scheduler::*, uart::*,
-    },
+    port::nrf::{timer::Timer as HalTimer, uarte::Uarte as HalUart},
     prelude::*,
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};

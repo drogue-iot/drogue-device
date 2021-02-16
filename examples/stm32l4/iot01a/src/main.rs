@@ -32,7 +32,8 @@ use drogue_device::{
         sensor::hts221::Hts221,
         timer::Timer,
     },
-    hal::{timer::stm32l4xx::Timer as McuTimer, Active},
+    port::stm32l4xx::timer::Timer as McuTimer,
+    hal::Active,
     prelude::*,
 };
 use embedded_hal::spi::{Mode, MODE_0};
