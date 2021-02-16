@@ -1,7 +1,6 @@
 //! Device drivers.
 
 pub mod button;
-pub mod gpiote;
 pub mod i2c;
 pub mod led;
 pub mod lora;
