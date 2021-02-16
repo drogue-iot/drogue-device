@@ -1,6 +1,6 @@
-use crate::domain::time::duration::Milliseconds;
 use crate::api::arbitrator::BusTransaction;
 use crate::api::delayer::Delayer;
+use crate::domain::time::duration::Milliseconds;
 use crate::prelude::*;
 use core::cell::RefCell;
 use embedded_hal::digital::v2::OutputPin;

@@ -18,9 +18,9 @@ pub mod package;
 pub mod supervisor;
 pub mod synchronization;
 
+pub mod api;
 mod future;
 pub mod hal;
-pub mod api;
 pub mod port;
 
 /// Easy imports for common types and traits.

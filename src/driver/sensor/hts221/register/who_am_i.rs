@@ -1,5 +1,5 @@
-use crate::driver::i2c::I2cPeripheral;
 use crate::api::i2c::I2cAddress;
+use crate::driver::i2c::I2cPeripheral;
 use crate::prelude::Address;
 use embedded_hal::blocking::i2c::WriteRead;
 

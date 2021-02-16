@@ -1,10 +1,10 @@
-use crate::domain::time::duration::Milliseconds;
 use crate::api::{
     delayer::*,
     lora::*,
     scheduler::*,
     uart::{Error as UartError, Uart},
 };
+use crate::domain::time::duration::Milliseconds;
 use crate::handler::Response;
 use crate::prelude::*;
 
