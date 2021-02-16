@@ -60,11 +60,12 @@ impl EventHandler<GpioteEvent> for LoraDevice {
 impl EventHandler<PinEvent> for LoraDevice {
     fn on_event(&'static self, event: PinEvent) {
         match event {
-            PinEvent(Channel::Channel0, _) => {
+            PinEvent(Channel::Channel0, PinState::Low) => {
                 self.memory.address().notify(Query);
                 self.app.address().notify(Join);
             }
-            PinEvent(Channel::Channel1, _) => {
+            PinEvent(Channel::Channel1, PinState::Low) => {
+                self.memory.address().notify(Query);
                 self.app.address().notify(Send);
             }
             _ => {}

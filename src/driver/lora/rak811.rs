@@ -355,10 +355,10 @@ where
 
     async fn process(&mut self) -> Result<(), LoraError> {
         let uart = self.uart.as_ref().unwrap();
-        let mut rx_buf: [u8; 128] = [0; 128];
+        let mut rx_buf: [u8; 255] = [0; 255];
 
         let len = uart
-            .read_with_timeout(&mut rx_buf[..], Milliseconds(100))
+            .read_with_timeout(&mut rx_buf[..], Milliseconds(500))
             .await?;
 
         // log::info!("Read {} bytes", len);
