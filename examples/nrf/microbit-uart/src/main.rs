@@ -8,11 +8,10 @@ use panic_rtt_target as _;
 use cortex_m_rt::{entry, exception};
 use drogue_device::{
     domain::time::rate::Extensions,
-    driver::gpiote::nrf::*,
     driver::timer::Timer,
     driver::uart::dma::DmaUart,
     port::nrf::timer::Timer as HalTimer,
-    port::nrf::uarte::{Baudrate, Parity, Pins, Uarte},
+    port::nrf::{gpiote::*, uarte::{Baudrate, Parity, Pins, Uarte}},
     prelude::*,
 };
 use hal::gpio::Level;

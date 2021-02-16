@@ -8,13 +8,12 @@ use panic_rtt_target as _;
 use cortex_m_rt::{entry, exception};
 use drogue_device::{
     api::lora::*,
-    driver::gpiote::nrf::*,
     driver::lora::*,
     driver::memory::Memory,
     driver::timer::Timer,
     driver::uart::dma::DmaUart,
     port::nrf::timer::Timer as HalTimer,
-    port::nrf::uarte::{Baudrate, Parity, Pins, Uarte as HalUart},
+    port::nrf::{gpiote::*, uarte::{Baudrate, Parity, Pins, Uarte}},
     prelude::*,
 };
 use hal::gpio::Level;
@@ -62,7 +61,7 @@ fn main() -> ! {
 
     // Uart
     let uart = DmaUart::new(
-        HalUart::new(
+        Uarte::new(
             device.UARTE0,
             Pins {
                 txd: port0.p0_01.into_push_pull_output(Level::High).degrade(),
@@ -89,10 +88,10 @@ fn main() -> ! {
                 .band(LoraRegion::EU868)
                 .lora_mode(LoraMode::WAN)
                 .device_eui(&[0x00, 0xBB, 0x7C, 0x95, 0xAD, 0xB5, 0x30, 0xB9])
-                .app_eui(&[0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x03, 0xB1, 0x84])
+                .app_eui(&[0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x03, 0xD6, 0xEC])
                 .app_key(&[
-                    0xE2, 0xB5, 0x25, 0xB6, 0x86, 0xB8, 0xE2, 0xE6, 0xFE, 0x22, 0x27, 0x51, 0xAF,
-                    0x35, 0xCD, 0x22,
+                    0xB2, 0x7B, 0x24, 0xAF, 0xA1, 0x1D, 0x89, 0x91, 0xF8, 0x68, 0x92, 0x10, 0xC3,
+                    0xBC, 0x13, 0xE8,
                 ]),
         )),
     };
