@@ -3,19 +3,28 @@ use drogue_device::{
         gpiote::nrf::*,
         lora::*,
         memory::{Memory, Query},
-        timer::Timer,
-        uart::dma::Uart,
+        timer::*,
+        uart::dma::DmaUart,
+        uart::*,
     },
-    hal::timer::nrf::Timer as HalTimer,
-    hal::uart::nrf::Uarte as DmaUart,
+    hal::{
+        delayer::*, lora::*, scheduler::*, timer::nrf::Timer as HalTimer,
+        uart::dma::nrf::Uarte as HalUart, uart::*,
+    },
     prelude::*,
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
-use hal::pac::TIMER0;
+use hal::pac::{TIMER0, UARTE0};
+
 use nrf52833_hal as hal;
 
-pub type Rak811Lora =
-    rak811::Rak811<DmaUart<hal::pac::UARTE0>, HalTimer<TIMER0>, Pin<Output<PushPull>>>;
+pub type AppTimer = Timer<HalTimer<TIMER0>>;
+pub type AppUart = DmaUart<HalUart<UARTE0>, <AppTimer as Package>::Primary>;
+pub type Rak811Lora = rak811::Rak811<
+    <AppUart as Package>::Primary,
+    <AppTimer as Package>::Primary,
+    Pin<Output<PushPull>>,
+>;
 pub type Button = GpioteChannel<LoraDevice, Pin<Input<PullUp>>>;
 pub type AppLora = <Rak811Lora as Package>::Primary;
 
@@ -24,9 +33,9 @@ pub struct LoraDevice {
     pub btn_connect: ActorContext<Button>,
     pub btn_send: ActorContext<Button>,
     pub memory: ActorContext<Memory>,
-    pub uart: Uart<DmaUart<hal::pac::UARTE0>, HalTimer<TIMER0>>,
+    pub uart: AppUart,
     pub lora: Rak811Lora,
-    pub timer: Timer<HalTimer<TIMER0>>,
+    pub timer: AppTimer,
     pub app: ActorContext<App<AppLora>>,
 }
 

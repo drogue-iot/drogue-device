@@ -1,9 +1,10 @@
 use crate::domain::time::duration::Milliseconds;
-use crate::driver::lora::*;
-use crate::driver::timer;
-use crate::driver::uart::dma;
-use crate::hal::timer::Timer as HalTimer;
-use crate::hal::uart::{DmaUart, Error as UartError};
+use crate::hal::{
+    delayer::*,
+    lora::*,
+    scheduler::*,
+    uart::{Error as UartError, Uart},
+};
 use crate::handler::Response;
 use crate::prelude::*;
 
@@ -19,17 +20,14 @@ use heapless::{
     String,
 };
 
-type Uart<U, T> = <dma::Uart<U, T> as Package>::Primary;
-type Timer<T> = <timer::Timer<T> as Package>::Primary;
-
 pub struct Rak811Actor<U, T, RST>
 where
-    U: DmaUart + 'static,
-    T: HalTimer + 'static,
+    U: Uart + 'static,
+    T: Scheduler + Delayer + 'static,
     RST: OutputPin + 'static,
 {
-    uart: Option<Address<Uart<U, T>>>,
-    timer: Option<Address<Timer<T>>>,
+    uart: Option<Address<U>>,
+    timer: Option<Address<T>>,
     command_buffer: String<consts::U128>,
     config: LoraConfig,
     rst: RST,
@@ -37,19 +35,19 @@ where
 }
 pub struct Rak811Ingress<U, T>
 where
-    U: DmaUart + 'static,
-    T: HalTimer + 'static,
+    U: Uart + 'static,
+    T: Scheduler + Delayer + 'static,
 {
-    uart: Option<Address<Uart<U, T>>>,
-    timer: Option<Address<Timer<T>>>,
+    uart: Option<Address<U>>,
+    timer: Option<Address<T>>,
     parse_buffer: Buffer,
     rxp: Option<RefCell<Producer<'static, RakResponse, consts::U8>>>,
 }
 
 pub struct Rak811<U, T, RST>
 where
-    U: DmaUart + 'static,
-    T: HalTimer + 'static,
+    U: Uart + 'static,
+    T: Scheduler + Delayer + 'static,
     RST: OutputPin + 'static,
 {
     actor: ActorContext<Rak811Actor<U, T, RST>>,
@@ -59,12 +57,12 @@ where
 
 impl<U, T, RST> Package for Rak811<U, T, RST>
 where
-    U: DmaUart + 'static,
-    T: HalTimer + 'static,
+    U: Uart + 'static,
+    T: Scheduler + Delayer + 'static,
     RST: OutputPin + 'static,
 {
     type Primary = Rak811Actor<U, T, RST>;
-    type Configuration = (Address<Uart<U, T>>, Address<Timer<T>>);
+    type Configuration = (Address<U>, Address<T>);
     fn mount(
         &'static self,
         config: Self::Configuration,
@@ -89,8 +87,8 @@ where
 
 impl<U, T, RST> Rak811<U, T, RST>
 where
-    U: DmaUart,
-    T: HalTimer,
+    U: Uart,
+    T: Scheduler + Delayer + 'static,
     RST: OutputPin,
 {
     pub fn new(rst: RST) -> Self {
@@ -104,8 +102,8 @@ where
 
 impl<U, T, RST> Rak811Actor<U, T, RST>
 where
-    U: DmaUart,
-    T: HalTimer,
+    U: Uart,
+    T: Scheduler + Delayer + 'static,
     RST: OutputPin,
 {
     pub fn new(rst: RST) -> Self {
@@ -211,14 +209,14 @@ where {
 
 impl<U, T, RST> Actor for Rak811Actor<U, T, RST>
 where
-    U: DmaUart,
-    T: HalTimer,
+    U: Uart,
+    T: Scheduler + Delayer + 'static,
     RST: OutputPin,
 {
     type Configuration = (
         Consumer<'static, RakResponse, consts::U8>,
-        Address<Uart<U, T>>,
-        Address<Timer<T>>,
+        Address<U>,
+        Address<T>,
     );
     fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
         self.rxc.replace(RefCell::new(config.0));
@@ -229,8 +227,8 @@ where
 
 impl<U, T, RST> LoraDriver for Rak811Actor<U, T, RST>
 where
-    U: DmaUart,
-    T: HalTimer,
+    U: Uart,
+    T: Scheduler + Delayer + 'static,
     RST: OutputPin,
 {
     fn initialize(mut self, message: Initialize) -> Response<Self, Result<(), LoraError>> {
@@ -327,8 +325,8 @@ where
 
 impl<U, T> Rak811Ingress<U, T>
 where
-    U: DmaUart,
-    T: HalTimer,
+    U: Uart,
+    T: Scheduler + Delayer + 'static,
 {
     pub fn new() -> Self {
         Self {
@@ -376,13 +374,13 @@ struct ReadData;
 
 impl<U, T> Actor for Rak811Ingress<U, T>
 where
-    U: DmaUart,
-    T: HalTimer,
+    U: Uart,
+    T: Scheduler + Delayer + 'static,
 {
     type Configuration = (
         Producer<'static, RakResponse, consts::U8>,
-        Address<Uart<U, T>>,
-        Address<Timer<T>>,
+        Address<U>,
+        Address<T>,
     );
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.rxp.replace(RefCell::new(config.0));
@@ -394,8 +392,8 @@ where
 
 impl<U, T> NotifyHandler<ReadData> for Rak811Ingress<U, T>
 where
-    U: DmaUart,
-    T: HalTimer,
+    U: Uart,
+    T: Scheduler + Delayer + 'static,
 {
     fn on_notify(mut self, message: ReadData) -> Completion<Self> {
         Completion::defer(async move {

@@ -4,31 +4,30 @@ use drogue_device::{
     driver::{
         gpiote::nrf::*,
         led::{LEDMatrix, MatrixCommand},
-        timer::{Timer, TimerActor},
-        uart::dma::Uart,
+        timer::*,
+        uart::dma::*,
     },
-    hal::timer::nrf::Timer as HalTimer,
-    hal::uart::nrf::Uarte as DmaUart,
+    hal::{delayer::*, timer::nrf::Timer as HalTimer, uart::dma::nrf::Uarte, uart::*},
     prelude::*,
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
-use hal::pac::TIMER0;
+use hal::pac::{TIMER0, UARTE0};
 use heapless::consts;
 use nrf52833_hal as hal;
 
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
 pub type LedMatrix = LEDMatrix<Pin<Output<PushPull>>, consts::U5, consts::U5, HalTimer<TIMER0>>;
-pub type AppTimer = TimerActor<HalTimer<TIMER0>>;
-pub type AppUart = <Uart<DmaUart<hal::pac::UARTE0>, HalTimer<TIMER0>> as Package>::Primary;
+pub type AppTimer = Timer<HalTimer<TIMER0>>;
+pub type AppUart = DmaUart<Uarte<UARTE0>, <AppTimer as Package>::Primary>;
 
 pub struct MyDevice {
     pub led: ActorContext<LedMatrix>,
     pub gpiote: InterruptContext<Gpiote<Self>>,
     pub btn_fwd: ActorContext<Button>,
     pub btn_back: ActorContext<Button>,
-    pub timer: Timer<HalTimer<TIMER0>>,
-    pub uart: Uart<DmaUart<hal::pac::UARTE0>, HalTimer<TIMER0>>,
-    pub app: ActorContext<App>,
+    pub timer: AppTimer,
+    pub uart: AppUart,
+    pub app: ActorContext<App<<AppUart as Package>::Primary, <AppTimer as Package>::Primary>>,
 }
 
 impl Device for MyDevice {
@@ -76,19 +75,31 @@ impl EventHandler<PinEvent> for MyDevice {
     }
 }
 
-pub struct AppConfig {
-    uart: Address<AppUart>,
+pub struct AppConfig<U, D>
+where
+    U: Uart + 'static,
+    D: Delayer + 'static,
+{
+    uart: Address<U>,
     display: Address<LedMatrix>,
-    timer: Address<AppTimer>,
+    timer: Address<D>,
 }
 
-pub struct App {
-    uart: Option<Address<AppUart>>,
+pub struct App<U, D>
+where
+    U: Uart + 'static,
+    D: Delayer + 'static,
+{
+    uart: Option<Address<U>>,
     display: Option<Address<LedMatrix>>,
-    timer: Option<Address<AppTimer>>,
+    timer: Option<Address<D>>,
 }
 
-impl App {
+impl<U, D> App<U, D>
+where
+    U: Uart,
+    D: Delayer,
+{
     pub fn new() -> Self {
         Self {
             uart: None,
@@ -97,8 +108,12 @@ impl App {
         }
     }
 }
-impl Actor for App {
-    type Configuration = AppConfig;
+impl<U, D> Actor for App<U, D>
+where
+    U: Uart,
+    D: Delayer,
+{
+    type Configuration = AppConfig<U, D>;
     fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
         self.uart.replace(config.uart);
         self.display.replace(config.display);
@@ -113,7 +128,11 @@ pub struct SayHello;
 #[derive(Clone, Debug)]
 pub struct StartService;
 
-impl NotifyHandler<SayHello> for App {
+impl<U, D> NotifyHandler<SayHello> for App<U, D>
+where
+    U: Uart,
+    D: Delayer,
+{
     fn on_notify(self, _: SayHello) -> Completion<Self> {
         Completion::defer(async move {
             let led = self.display.as_ref().unwrap();
@@ -130,7 +149,11 @@ impl NotifyHandler<SayHello> for App {
     }
 }
 
-impl NotifyHandler<StartService> for App {
+impl<U, D> NotifyHandler<StartService> for App<U, D>
+where
+    U: Uart,
+    D: Delayer,
+{
     fn on_notify(mut self, _: StartService) -> Completion<Self> {
         Completion::defer(async move {
             let led = self.display.as_ref().unwrap();

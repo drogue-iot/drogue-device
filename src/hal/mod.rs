@@ -9,6 +9,7 @@ pub mod spi;
 pub mod switchable;
 pub mod timer;
 pub mod uart;
+pub mod lora;
 
 /// Enum for denoting active-high or active-low.
 pub enum Active {

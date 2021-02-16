@@ -11,9 +11,10 @@ use drogue_device::{
     driver::lora::*,
     driver::memory::Memory,
     driver::timer::Timer,
-    driver::uart::dma::Uart,
+    driver::uart::dma::DmaUart,
+    hal::lora::*,
     hal::timer::nrf::Timer as HalTimer,
-    hal::uart::nrf::{Baudrate, Parity, Pins, Uarte as HalUart},
+    hal::uart::dma::nrf::{Baudrate, Parity, Pins, Uarte as HalUart},
     prelude::*,
 };
 use hal::gpio::Level;
@@ -60,7 +61,7 @@ fn main() -> ! {
     let timer = Timer::new(HalTimer::new(device.TIMER0), hal::pac::Interrupt::TIMER0);
 
     // Uart
-    let uart = Uart::new(
+    let uart = DmaUart::new(
         HalUart::new(
             device.UARTE0,
             Pins {

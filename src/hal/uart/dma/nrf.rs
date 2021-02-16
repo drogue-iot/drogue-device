@@ -39,7 +39,7 @@ where
     }
 }
 
-impl<T> crate::hal::uart::DmaUart for Uarte<T>
+impl<T> crate::hal::uart::dma::DmaUartHal for Uarte<T>
 where
     T: Instance,
 {
