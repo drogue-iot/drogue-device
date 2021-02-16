@@ -1,26 +1,25 @@
 use crate::domain::time::duration::Milliseconds;
 use crate::domain::time::rate::{Hertz, Rate};
 
-use crate::driver::timer::TimerActor;
-use crate::hal::timer::Timer as HalTimer;
+use crate::hal::scheduler::Scheduler;
 use crate::prelude::*;
 use embedded_hal::digital::v2::OutputPin;
 use heapless::{ArrayLength, Vec};
 
 // Led matrix driver supporting up to 32x32 led matrices.
-pub struct LEDMatrix<P, ROWS, COLS, T>
+pub struct LEDMatrix<P, ROWS, COLS, S>
 where
     P: OutputPin + 'static,
     ROWS: ArrayLength<P> + 'static,
     COLS: ArrayLength<P> + 'static,
-    T: HalTimer + 'static,
+    S: Scheduler + 'static,
 {
     address: Option<Address<Self>>,
     pin_rows: Vec<P, ROWS>,
     pin_cols: Vec<P, COLS>,
     frame_buffer: Frame,
     row_p: usize,
-    timer: Option<Address<TimerActor<T>>>,
+    timer: Option<Address<S>>,
     refresh_rate: Hertz,
 }
 
@@ -55,12 +54,12 @@ impl Frame {
     }
 }
 
-impl<P, ROWS, COLS, T> LEDMatrix<P, ROWS, COLS, T>
+impl<P, ROWS, COLS, S> LEDMatrix<P, ROWS, COLS, S>
 where
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
-    T: HalTimer,
+    S: Scheduler,
 {
     pub fn new(pin_rows: Vec<P, ROWS>, pin_cols: Vec<P, COLS>, refresh_rate: Hertz) -> Self {
         LEDMatrix {
@@ -107,14 +106,14 @@ where
     }
 }
 
-impl<P, ROWS, COLS, T> Actor for LEDMatrix<P, ROWS, COLS, T>
+impl<P, ROWS, COLS, S> Actor for LEDMatrix<P, ROWS, COLS, S>
 where
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
-    T: HalTimer,
+    S: Scheduler,
 {
-    type Configuration = Address<TimerActor<T>>;
+    type Configuration = Address<S>;
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration) {
         self.address.replace(address);
@@ -126,7 +125,7 @@ where
             if let Some(timer) = self.timer {
                 timer.schedule(
                     self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
-                    MatrixCommand::Render,
+                    Render,
                     address,
                 );
             }
@@ -135,78 +134,123 @@ where
     }
 }
 
-impl<P, ROWS, COLS, T> NotifyHandler<MatrixCommand> for LEDMatrix<P, ROWS, COLS, T>
+impl<P, ROWS, COLS, S, F> NotifyHandler<Apply<F>> for LEDMatrix<P, ROWS, COLS, S>
 where
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
-    T: HalTimer,
+    S: Scheduler,
+    F: ToFrame,
 {
-    fn on_notify(mut self, command: MatrixCommand) -> Completion<Self> {
-        match command {
-            MatrixCommand::On(x, y) => {
-                self.on(x, y);
-            }
-            MatrixCommand::Off(x, y) => {
-                self.off(x, y);
-            }
-            MatrixCommand::ApplyAscii(x) => {
-                self.apply(x.to_frame());
-            }
-            MatrixCommand::Clear => {
-                self.clear();
-            }
-            MatrixCommand::Render => {
-                self.render();
-                if let Some(address) = self.address {
-                    self.timer.unwrap().schedule(
-                        self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
-                        MatrixCommand::Render,
-                        address,
-                    );
-                }
-            }
+    fn on_notify(mut self, message: Apply<F>) -> Completion<Self> {
+        self.apply(message.0.to_frame());
+        Completion::immediate(self)
+    }
+}
+
+impl<P, ROWS, COLS, S> NotifyHandler<On> for LEDMatrix<P, ROWS, COLS, S>
+where
+    P: OutputPin,
+    ROWS: ArrayLength<P>,
+    COLS: ArrayLength<P>,
+    S: Scheduler,
+{
+    fn on_notify(mut self, message: On) -> Completion<Self> {
+        self.on(message.0, message.1);
+        Completion::immediate(self)
+    }
+}
+
+impl<P, ROWS, COLS, S> NotifyHandler<Off> for LEDMatrix<P, ROWS, COLS, S>
+where
+    P: OutputPin,
+    ROWS: ArrayLength<P>,
+    COLS: ArrayLength<P>,
+    S: Scheduler,
+{
+    fn on_notify(mut self, message: Off) -> Completion<Self> {
+        self.off(message.0, message.1);
+        Completion::immediate(self)
+    }
+}
+
+impl<P, ROWS, COLS, S> NotifyHandler<Clear> for LEDMatrix<P, ROWS, COLS, S>
+where
+    P: OutputPin,
+    ROWS: ArrayLength<P>,
+    COLS: ArrayLength<P>,
+    S: Scheduler,
+{
+    fn on_notify(mut self, message: Clear) -> Completion<Self> {
+        self.clear();
+        Completion::immediate(self)
+    }
+}
+
+impl<P, ROWS, COLS, S> NotifyHandler<Render> for LEDMatrix<P, ROWS, COLS, S>
+where
+    P: OutputPin,
+    ROWS: ArrayLength<P>,
+    COLS: ArrayLength<P>,
+    S: Scheduler,
+{
+    fn on_notify(mut self, message: Render) -> Completion<Self> {
+        self.render();
+        if let Some(address) = self.address {
+            self.timer.unwrap().schedule(
+                self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
+                Render,
+                address,
+            );
         }
         Completion::immediate(self)
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone, Eq)]
-pub enum MatrixCommand {
-    On(usize, usize),
-    Off(usize, usize),
-    Clear,
-    ApplyAscii(char),
-    Render,
-}
+#[derive(Debug)]
+pub struct On(pub usize, pub usize);
+#[derive(Debug)]
+pub struct Off(pub usize, pub usize);
+#[derive(Debug)]
+pub struct Clear;
+#[derive(Debug, Clone)]
+pub struct Render;
+#[derive(Debug)]
+pub struct Apply<F>(pub F)
+where
+    F: ToFrame;
 
-pub trait ToFrame {
+pub trait ToFrame: Copy + Clone + core::fmt::Debug {
     fn to_frame(&self) -> Frame;
 }
 
-fn frame_5x5(input: &[u8; 5]) -> Frame {
-    // Mirror
-    let mut bitmap: [u32; 32] = [0; 32];
-    for (i, bm) in input.iter().enumerate() {
-        let bm = *bm as u32;
-        bitmap[i] = ((bm & 0x01) << 4)
-            | ((bm & 0x02) << 2)
-            | (bm & 0x04)
-            | ((bm & 0x08) >> 2)
-            | ((bm & 0x10) >> 4);
-    }
-    //for i in 5..bitmap.len() {
-    for item in bitmap.iter_mut().skip(5) {
-        //bitmap[i] = 0;
-        *item = 0;
-    }
-    Frame::new(bitmap)
-}
+#[cfg(feature = "fonts")]
+pub mod fonts {
+    use super::*;
 
-// These are for 5x5 only
-impl ToFrame for char {
-    #[rustfmt::skip]
-    fn to_frame(&self) -> Frame {
+    fn frame_5x5(input: &[u8; 5]) -> Frame {
+        // Mirror
+        let mut bitmap: [u32; 32] = [0; 32];
+        for (i, bm) in input.iter().enumerate() {
+            let bm = *bm as u32;
+            bitmap[i] = ((bm & 0x01) << 4)
+                | ((bm & 0x02) << 2)
+                | (bm & 0x04)
+                | ((bm & 0x08) >> 2)
+                | ((bm & 0x10) >> 4);
+        }
+        //for i in 5..bitmap.len() {
+        for item in bitmap.iter_mut().skip(5) {
+            //bitmap[i] = 0;
+            *item = 0;
+        }
+        Frame::new(bitmap)
+    }
+
+    // These are for 5x5 only
+    impl ToFrame for char {
+        #[rustfmt::skip]
+        fn to_frame(&self) -> Frame {
         match self {
             'a' | 'A' => frame_5x5(&[
                 0b11111,
@@ -407,44 +451,45 @@ impl ToFrame for char {
             _ => Frame::new([0; 32]),
         }
     }
-}
+    }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+    #[cfg(test)]
+    mod tests {
+        use super::*;
 
-    #[test]
-    fn test_frame() {
-        let frame = 'D'.to_frame();
+        #[test]
+        fn test_frame() {
+            let frame = 'D'.to_frame();
 
-        assert!(frame.is_set(0, 0));
-        assert!(frame.is_set(0, 1));
-        assert!(frame.is_set(0, 2));
-        assert!(frame.is_set(0, 3));
-        assert!(!frame.is_set(0, 4));
+            assert!(frame.is_set(0, 0));
+            assert!(frame.is_set(0, 1));
+            assert!(frame.is_set(0, 2));
+            assert!(frame.is_set(0, 3));
+            assert!(!frame.is_set(0, 4));
 
-        assert!(frame.is_set(1, 0));
-        assert!(!frame.is_set(1, 1));
-        assert!(!frame.is_set(1, 2));
-        assert!(!frame.is_set(1, 3));
-        assert!(frame.is_set(1, 4));
+            assert!(frame.is_set(1, 0));
+            assert!(!frame.is_set(1, 1));
+            assert!(!frame.is_set(1, 2));
+            assert!(!frame.is_set(1, 3));
+            assert!(frame.is_set(1, 4));
 
-        assert!(frame.is_set(2, 0));
-        assert!(!frame.is_set(2, 1));
-        assert!(!frame.is_set(2, 2));
-        assert!(!frame.is_set(2, 3));
-        assert!(frame.is_set(2, 4));
+            assert!(frame.is_set(2, 0));
+            assert!(!frame.is_set(2, 1));
+            assert!(!frame.is_set(2, 2));
+            assert!(!frame.is_set(2, 3));
+            assert!(frame.is_set(2, 4));
 
-        assert!(frame.is_set(3, 0));
-        assert!(!frame.is_set(3, 1));
-        assert!(!frame.is_set(3, 2));
-        assert!(!frame.is_set(3, 3));
-        assert!(frame.is_set(3, 4));
+            assert!(frame.is_set(3, 0));
+            assert!(!frame.is_set(3, 1));
+            assert!(!frame.is_set(3, 2));
+            assert!(!frame.is_set(3, 3));
+            assert!(frame.is_set(3, 4));
 
-        assert!(frame.is_set(4, 0));
-        assert!(frame.is_set(4, 1));
-        assert!(frame.is_set(4, 2));
-        assert!(frame.is_set(4, 3));
-        assert!(!frame.is_set(4, 4));
+            assert!(frame.is_set(4, 0));
+            assert!(frame.is_set(4, 1));
+            assert!(frame.is_set(4, 2));
+            assert!(frame.is_set(4, 3));
+            assert!(!frame.is_set(4, 4));
+        }
     }
 }

@@ -1,12 +1,7 @@
 use drogue_device::{
     device::DeviceConfiguration,
     domain::time::duration::Milliseconds,
-    driver::{
-        gpiote::nrf::*,
-        led::{LEDMatrix, MatrixCommand},
-        timer::*,
-        uart::dma::*,
-    },
+    driver::{gpiote::nrf::*, led::*, timer::*, uart::dma::*},
     hal::{delayer::*, timer::nrf::Timer as HalTimer, uart::dma::nrf::Uarte, uart::*},
     prelude::*,
 };
@@ -16,9 +11,10 @@ use heapless::consts;
 use nrf52833_hal as hal;
 
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
-pub type LedMatrix = LEDMatrix<Pin<Output<PushPull>>, consts::U5, consts::U5, HalTimer<TIMER0>>;
 pub type AppTimer = Timer<HalTimer<TIMER0>>;
 pub type AppUart = DmaUart<Uarte<UARTE0>, <AppTimer as Package>::Primary>;
+pub type LedMatrix =
+    LEDMatrix<Pin<Output<PushPull>>, consts::U5, consts::U5, <AppTimer as Package>::Primary>;
 
 pub struct MyDevice {
     pub led: ActorContext<LedMatrix>,
@@ -65,10 +61,10 @@ impl EventHandler<PinEvent> for MyDevice {
         match event {
             PinEvent(Channel::Channel0, _) => {
                 self.app.address().notify(StartService);
-                self.led.address().notify(MatrixCommand::On(0, 0));
+                self.led.address().notify(On(0, 0));
             }
             PinEvent(Channel::Channel1, _) => {
-                self.led.address().notify(MatrixCommand::Off(0, 0));
+                self.led.address().notify(Off(0, 0));
             }
             _ => {}
         }
@@ -139,11 +135,11 @@ where
             let timer = self.timer.as_ref().unwrap();
 
             for c in r"Hello, World!".chars() {
-                led.notify(MatrixCommand::ApplyAscii(c));
+                led.notify(Apply(c));
                 timer.delay(Milliseconds(200)).await;
             }
 
-            led.notify(MatrixCommand::Clear);
+            led.notify(Clear);
             self
         })
     }
@@ -181,7 +177,7 @@ where
 
                     if len > 0 {
                         for b in &buf[..len] {
-                            led.notify(MatrixCommand::ApplyAscii(*b as char));
+                            led.notify(Apply(*b as char));
                         }
 
                         uart.write(&buf[..len])
