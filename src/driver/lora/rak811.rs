@@ -78,8 +78,8 @@ where
             Consumer<'static, RakResponse, consts::U8>,
         ) = queue.split();*/
         let (prod, cons) = unsafe { (&mut *self.rxq.get()).split() };
-        let addr = self.actor.mount((cons, config.0, config.1), supervisor);
         self.ingress.mount((prod, config.0, config.1), supervisor);
+        let addr = self.actor.mount((cons, config.0, config.1), supervisor);
 
         addr
     }
@@ -97,8 +97,8 @@ where
 {
     pub fn new(rst: RST) -> Self {
         Self {
-            actor: ActorContext::new(Rak811Actor::new(rst)),
-            ingress: ActorContext::new(Rak811Ingress::new()),
+            actor: ActorContext::new(Rak811Actor::new(rst)).with_name("rak811_actor"),
+            ingress: ActorContext::new(Rak811Ingress::new()).with_name("rak811_ingress"),
             rxq: UnsafeCell::new(Queue::new()),
         }
     }
@@ -146,7 +146,7 @@ where {
             if let Some(response) = self.rxc.as_ref().unwrap().borrow_mut().dequeue() {
                 return Ok(response);
             }
-            self.timer.as_ref().unwrap().delay(Milliseconds(100)).await;
+            self.timer.as_ref().unwrap().delay(Milliseconds(1000)).await;
         }
     }
 
@@ -238,10 +238,16 @@ where
             match response {
                 Ok(RakResponse::Initialized(band)) => {
                     self.config.band.replace(band);
-                    log::info!("RAK811 LoRa module initialized");
+                    log::info!("RAK811 driver initialized with band {:?}", band);
                 }
-                _ => {
-                    log::error!("Error initializing RAK811 LoRa module");
+                Ok(r) => {
+                    log::error!(
+                        "Unexpected response when initializing RAK811 driver: {:?}",
+                        r
+                    );
+                }
+                Err(e) => {
+                    log::error!("Error initializing RAK811 driver: {:?}", e);
                 }
             }
             self
@@ -349,7 +355,7 @@ where
         let result = self.parse_buffer.parse();
         if let Ok(response) = result {
             if !matches!(response, RakResponse::None) {
-                log::debug!("Got response: {:?}", response);
+                log::info!("Got response: {:?}", response);
                 self.rxp
                     .as_ref()
                     .unwrap()
@@ -363,17 +369,13 @@ where
 
     async fn process(&mut self) -> Result<(), LoraError> {
         let uart = self.uart.as_ref().unwrap();
-        let mut rx_buf: [u8; 255] = [0; 255];
 
-        let len = uart
-            .read_with_timeout(&mut rx_buf[..], Milliseconds(500))
-            .await?;
+        let mut buf = [0; 1];
 
-        // log::info!("Read {} bytes", len);
-        for b in &mut rx_buf[..len] {
+        let len = uart.read(&mut buf[..]).await?;
+        for b in &buf[..len] {
             self.parse_buffer.write(*b).unwrap();
         }
-
         Ok(())
     }
 }
@@ -396,6 +398,7 @@ where
 
     fn on_start(mut self) -> Completion<Self> {
         Completion::defer(async move {
+            log::info!("Starting RAK811 Ingress");
             loop {
                 if let Err(e) = self.process().await {
                     log::error!("Error reading data: {:?}", e);

@@ -23,3 +23,6 @@ heapless = "0.5.5"
 name = "microbit-rak811"
 test = false
 bench = false
+
+[profile.release]
+debug = true

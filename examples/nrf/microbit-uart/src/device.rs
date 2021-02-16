@@ -169,19 +169,20 @@ where
                         .ok();
                 }
 
+                let mut rx_buf = [0; 1];
                 loop {
                     // Assumes no more than 1 character typed per millisecond, just shorten the interval if need be!
                     let len = uart
-                        .read_with_timeout(&mut buf[..], Milliseconds(100))
+                        .read(&mut rx_buf[..])
                         .await
                         .expect("Error reading from UART");
 
                     if len > 0 {
-                        for b in &buf[..len] {
+                        for b in &rx_buf[..len] {
                             led.notify(Apply(*b as char));
                         }
 
-                        uart.write(&buf[..len])
+                        uart.write(&rx_buf[..len])
                             .await
                             .expect("Error writing to UART");
                     }

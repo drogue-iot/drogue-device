@@ -30,6 +30,9 @@ features = ["unproven"]
 [dependencies.nb]
 version = "1.0.0"
 
+[dependencies.bbqueue]
+version = "0.4"
+
 [dependencies.stm32l4xx-hal]
 version = "0.6.0"
 features = ["rt"]
@@ -61,6 +64,17 @@ branch = "main"
 git = "https://github.com/drogue-iot/drogue-rak811.git"
 branch = "main"
 optional = true
+
+# ----------------------------------------
+# test dependencies
+# ----------------------------------------
+[dev-dependencies.futures]
+version = "0.3"
+default-features = false
+features = ["executor"]
+
+[dev-dependencies.env_logger]
+version = "0.8.2"
 
 # ----------------------------------------
 # embedded_time dependencies

@@ -11,11 +11,14 @@ use crate::interrupt::{Interrupt, InterruptContext};
 use crate::package::Package;
 use crate::synchronization::Signal;
 
-use core::cell::{Cell, RefCell};
+use core::cell::{Cell, RefCell, UnsafeCell};
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use cortex_m::interrupt::Nr;
+use heapless::consts;
+
+use crate::driver::uart::async_bbqueue::*;
 
 pub struct UartActor<U, T>
 where
@@ -23,6 +26,15 @@ where
     T: Scheduler + 'static,
 {
     me: Option<Address<Self>>,
+    shared: Option<&'static Shared<U, T>>,
+    rx_consumer: Option<AsyncBBConsumer<consts::U128>>,
+}
+
+pub struct UartController<U, T>
+where
+    U: DmaUartHal + 'static,
+    T: Scheduler + 'static,
+{
     shared: Option<&'static Shared<U, T>>,
 }
 
@@ -32,6 +44,10 @@ where
     T: Scheduler + 'static,
 {
     shared: Option<&'static Shared<U, T>>,
+    me: Option<Address<Self>>,
+    controller: Option<Address<UartController<U, T>>>,
+    rx_producer: Option<AsyncBBProducer<consts::U128>>,
+    rx_producer_grant: Option<RefCell<AsyncBBProducerGrant<'static, consts::U128>>>,
 }
 
 pub struct Shared<U, T>
@@ -44,7 +60,6 @@ where
     tx_state: Cell<State>,
     rx_state: Cell<State>,
     tx_done: Signal<Result<(), Error>>,
-    rx_done: Signal<Result<usize, Error>>,
 }
 
 pub struct DmaUart<U, T>
@@ -53,8 +68,12 @@ where
     T: Scheduler + 'static,
 {
     actor: ActorContext<UartActor<U, T>>,
+    controller: ActorContext<UartController<U, T>>,
     interrupt: InterruptContext<UartInterrupt<U, T>>,
     shared: Shared<U, T>,
+    rx_buffer: UnsafeCell<AsyncBBBuffer<'static, consts::U128>>,
+    rx_cons: RefCell<Option<UnsafeCell<AsyncBBConsumer<consts::U128>>>>,
+    rx_prod: RefCell<Option<UnsafeCell<AsyncBBProducer<consts::U128>>>>,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -71,7 +90,6 @@ where
     fn new(uart: U) -> Self {
         Self {
             tx_done: Signal::new(),
-            rx_done: Signal::new(),
             uart,
             timer: RefCell::new(None),
             tx_state: Cell::new(State::Ready),
@@ -91,8 +109,12 @@ where
     {
         Self {
             actor: ActorContext::new(UartActor::new()).with_name("uart_actor"),
+            controller: ActorContext::new(UartController::new()).with_name("uart_controller"),
             interrupt: InterruptContext::new(UartInterrupt::new(), irq).with_name("uart_interrupt"),
             shared: Shared::new(uart),
+            rx_buffer: UnsafeCell::new(AsyncBBBuffer::new()),
+            rx_prod: RefCell::new(None),
+            rx_cons: RefCell::new(None),
         }
     }
 }
@@ -109,9 +131,13 @@ where
         timer: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<UartActor<U, T>> {
+        let (rx_prod, rx_cons) = unsafe { (&mut *self.rx_buffer.get()).split() };
+
         self.shared.timer.borrow_mut().replace(timer);
-        let addr = self.actor.mount(&self.shared, supervisor);
-        self.interrupt.mount(&self.shared, supervisor);
+        let addr = self.actor.mount((&self.shared, rx_cons), supervisor);
+        let controller = self.controller.mount(&self.shared, supervisor);
+        self.interrupt
+            .mount((&self.shared, controller, rx_prod), supervisor);
 
         addr
     }
@@ -130,7 +156,30 @@ where
         Self {
             shared: None,
             me: None,
+            rx_consumer: None,
         }
+    }
+}
+
+impl<U, T> Actor for UartController<U, T>
+where
+    U: DmaUartHal,
+    T: Scheduler + 'static,
+{
+    type Configuration = &'static Shared<U, T>;
+
+    fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
+        self.shared.replace(config);
+    }
+}
+
+impl<U, T> UartController<U, T>
+where
+    U: DmaUartHal,
+    T: Scheduler + 'static,
+{
+    pub fn new() -> Self {
+        Self { shared: None }
     }
 }
 
@@ -140,25 +189,11 @@ where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
 {
-    /// Receive bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
-    fn read<'a>(self, message: UartRead<'a>) -> Response<Self, Result<usize, Error>> {
-        let shared = self.shared.as_ref().unwrap();
-        match shared.rx_state.get() {
-            State::Ready => {
-                log::trace!("NO RX in progress");
-                shared.rx_done.reset();
-                shared.rx_state.set(State::InProgress);
-                match shared.uart.start_read(message.0) {
-                    Ok(_) => {
-                        log::trace!("Starting RX");
-                        let future = RxFuture::new(shared);
-                        Response::immediate_future(self, future)
-                    }
-                    Err(e) => Response::immediate(self, Err(e)),
-                }
-            }
-            _ => Response::immediate(self, Err(Error::RxInProgress)),
-        }
+    /// Read bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
+    fn read<'a>(mut self, message: UartRx<'a>) -> Response<Self, Result<usize, Error>> {
+        let rx_consumer = self.rx_consumer.as_ref().unwrap();
+        let future = rx_consumer.read(message.0);
+        Response::immediate_future(self, future)
     }
 
     /// Receive bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
@@ -170,28 +205,8 @@ where
         DUR: Duration + Into<Milliseconds> + 'static,
     {
         let shared = self.shared.as_ref().unwrap();
-        match shared.rx_state.get() {
-            State::Ready => {
-                log::trace!("NO RX in progress");
-                shared.rx_done.reset();
-                shared.rx_state.set(State::InProgress);
-                match shared.uart.start_read(message.0) {
-                    Ok(_) => {
-                        log::trace!("Starting RX");
-                        // Start the timer
-                        shared.timer.borrow().as_ref().unwrap().schedule(
-                            message.1,
-                            RxTimeout,
-                            self.me.as_ref().unwrap().clone(),
-                        );
-                        let future = RxFuture::new(shared);
-                        Response::immediate_future(self, future)
-                    }
-                    Err(e) => Response::immediate(self, Err(e)),
-                }
-            }
-            _ => Response::immediate(self, Err(Error::RxInProgress)),
-        }
+
+        Response::immediate(self, Ok(0))
     }
 }
 
@@ -222,16 +237,14 @@ where
     }
 }
 
-impl<U, T> NotifyHandler<RxTimeout> for UartActor<U, T>
+impl<U, T> NotifyHandler<RxTimeout> for UartController<U, T>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
 {
     fn on_notify(self, message: RxTimeout) -> Completion<Self> {
         let shared = self.shared.as_ref().unwrap();
-        if State::InProgress == shared.rx_state.get() {
-            shared.uart.cancel_read();
-        }
+        shared.uart.cancel_read();
         Completion::immediate(self)
     }
 }
@@ -241,11 +254,12 @@ where
     U: DmaUartHal,
     T: Scheduler + 'static,
 {
-    type Configuration = &'static Shared<U, T>;
+    type Configuration = (&'static Shared<U, T>, AsyncBBConsumer<consts::U128>);
 
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.me.replace(me);
-        self.shared.replace(config);
+        self.shared.replace(config.0);
+        self.rx_consumer.replace(config.1);
     }
 }
 
@@ -255,19 +269,88 @@ where
     T: Scheduler + 'static,
 {
     pub fn new() -> Self {
-        Self { shared: None }
+        Self {
+            shared: None,
+            rx_producer: None,
+            rx_producer_grant: None,
+            me: None,
+            controller: None,
+        }
+    }
+
+    fn start_read(&mut self, read_size: usize, timeout: Milliseconds) {
+        let shared = self.shared.as_ref().unwrap();
+        let mut rx_producer = self.rx_producer.as_ref().unwrap();
+        // TODO: Handle error?
+        match rx_producer.prepare_write(read_size) {
+            Ok(mut grant) => match shared.uart.prepare_read(grant.buf()) {
+                Ok(_) => {
+                    self.rx_producer_grant.replace(RefCell::new(grant));
+                    shared.uart.start_read();
+                    shared.timer.borrow().as_ref().unwrap().schedule(
+                        timeout,
+                        RxTimeout,
+                        *self.controller.as_ref().unwrap(),
+                    );
+                }
+                Err(e) => {
+                    // TODO: Notify self of starting read again?
+                    log::error!("Error initiating DMA transfer: {:?}", e);
+                    shared.timer.borrow().as_ref().unwrap().schedule(
+                        timeout,
+                        RxStart,
+                        *self.me.as_ref().unwrap(),
+                    );
+                }
+            },
+            Err(e) => {
+                log::error!("Producer not ready, backing off: {:?}", e);
+                shared.timer.borrow().as_ref().unwrap().schedule(
+                    Milliseconds(1000),
+                    RxStart,
+                    *self.me.as_ref().unwrap(),
+                );
+            }
+        }
     }
 }
+
+const READ_TIMEOUT: u32 = 1000;
+const READ_SIZE: usize = 128;
 
 impl<U, T> Actor for UartInterrupt<U, T>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
 {
-    type Configuration = &'static Shared<U, T>;
+    type Configuration = (
+        &'static Shared<U, T>,
+        Address<UartController<U, T>>,
+        AsyncBBProducer<consts::U128>,
+    );
 
-    fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
-        self.shared.replace(config);
+    fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
+        self.shared.replace(config.0);
+        self.controller.replace(config.1);
+        self.rx_producer.replace(config.2);
+        self.me.replace(me);
+    }
+
+    fn on_start(mut self) -> Completion<Self> {
+        self.start_read(READ_SIZE, Milliseconds(READ_TIMEOUT));
+        Completion::immediate(self)
+    }
+}
+
+impl<U, T> NotifyHandler<RxStart> for UartInterrupt<U, T>
+where
+    U: DmaUartHal,
+    T: Scheduler + 'static,
+{
+    fn on_notify(mut self, message: RxStart) -> Completion<Self> {
+        // log::info!("RX START");
+        self.start_read(READ_SIZE, Milliseconds(READ_TIMEOUT));
+        Completion::immediate(self)
     }
 }
 
@@ -280,9 +363,8 @@ where
         let shared = self.shared.as_ref().unwrap();
         let (tx_done, rx_done) = shared.uart.process_interrupts();
         log::trace!(
-            "[UART ISR] TX SIGNALED: {}. RX SIGNALED: {}. TX DONE: {}. RX DONE: {}",
+            "[UART ISR] TX SIGNALED: {}. TX DONE: {}. RX DONE: {}",
             shared.tx_done.signaled(),
-            shared.rx_done.signaled(),
             tx_done,
             rx_done,
         );
@@ -292,7 +374,17 @@ where
         }
 
         if rx_done {
-            shared.rx_done.signal(shared.uart.finish_read());
+            if let Ok(len) = shared.uart.finish_read() {
+                if let Some(grant) = self.rx_producer_grant.take() {
+                    if len > 0 {
+                        log::info!("COMMITTING {} bytes", len);
+                        grant.into_inner().commit(len);
+                    }
+                }
+            } else {
+                log::error!("FINISH READ ERROR");
+            }
+            self.start_read(READ_SIZE, Milliseconds(READ_TIMEOUT));
         }
     }
 }
@@ -334,66 +426,114 @@ where
     }
 }
 
-impl<'a, U, T> Drop for TxFuture<'a, U, T>
-where
-    U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
-{
-    fn drop(&mut self) {
-        if State::InProgress == self.shared.tx_state.get() {
-            self.shared.uart.cancel_write();
-        }
-    }
-}
-
-pub struct RxFuture<'a, U, T>
-where
-    U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
-{
-    shared: &'a Shared<U, T>,
-}
-
-impl<'a, U, T> RxFuture<'a, U, T>
-where
-    U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
-{
-    fn new(shared: &'a Shared<U, T>) -> Self {
-        Self { shared }
-    }
-}
-
-impl<'a, U, T> Future for RxFuture<'a, U, T>
-where
-    U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
-{
-    type Output = Result<usize, Error>;
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        log::trace!("Polling RX: {:?}", self.shared.rx_state.get());
-        if State::InProgress == self.shared.rx_state.get() {
-            if let Poll::Ready(result) = self.shared.rx_done.poll_wait(cx) {
-                self.shared.rx_state.set(State::Ready);
-                log::trace!("Marked RX future complete. Set ready");
-                return Poll::Ready(result);
-            }
-        }
-        return Poll::Pending;
-    }
-}
-
-impl<'a, U, T> Drop for RxFuture<'a, U, T>
-where
-    U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
-{
-    fn drop(&mut self) {
-        if State::InProgress == self.shared.rx_state.get() {
-            self.shared.uart.cancel_read();
-        }
-    }
-}
-
 #[derive(Clone)]
 struct RxTimeout;
+
+#[derive(Clone)]
+struct RxStart;
+
+#[cfg(test)]
+mod tests {
+    /*
+    extern crate std;
+    use super::*;
+    use crate::driver::timer::TimerActor;
+    use core::sync::atomic::*;
+    use futures::executor::block_on;
+    use std::boxed::Box;
+
+    struct TestTimer {}
+
+    impl crate::hal::timer::Timer for TestTimer {
+        fn start(&mut self, duration: Milliseconds) {}
+
+        fn clear_update_interrupt_flag(&mut self) {}
+    }
+
+    struct TestHal {
+        internal_buf: RefCell<[u8; 255]>,
+        interrupt: Option<RefCell<UartInterrupt<Self, TimerActor<TestTimer>>>>,
+        did_tx: AtomicBool,
+        did_rx: AtomicBool,
+    }
+
+    impl TestHal {
+        fn new() -> Self {
+            Self {
+                internal_buf: RefCell::new([0; 255]),
+                interrupt: None,
+                did_tx: AtomicBool::new(false),
+                did_rx: AtomicBool::new(false),
+            }
+        }
+
+        fn fire_interrupt(&self) {
+            self.interrupt.as_ref().unwrap().borrow_mut().on_interrupt();
+        }
+
+        fn set_interrupt(&mut self, i: UartInterrupt<Self, TimerActor<TestTimer>>) {
+            self.interrupt.replace(RefCell::new(i));
+        }
+    }
+
+    impl DmaUartHal for TestHal {
+        fn start_write(&self, tx_buffer: &[u8]) -> Result<(), Error> {
+            {
+                self.internal_buf.borrow_mut().copy_from_slice(tx_buffer);
+                self.did_tx.store(true, Ordering::SeqCst);
+            }
+            self.fire_interrupt();
+            Ok(())
+        }
+
+        fn finish_write(&self) -> Result<(), Error> {
+            Ok(())
+        }
+
+        fn cancel_write(&self) {}
+
+        fn prepare_read(&self, rx_buffer: &mut [u8]) -> Result<(), Error> {
+            rx_buffer.copy_from_slice(&self.internal_buf.borrow()[..]);
+            Ok(())
+        }
+
+        fn start_read(&self) {
+            self.did_rx.store(true, Ordering::SeqCst);
+            self.fire_interrupt();
+        }
+
+        fn finish_read(&self) -> Result<usize, Error> {
+            if self.did_rx.load(Ordering::SeqCst) {
+                Ok(self.internal_buf.borrow().len())
+            } else {
+                Ok(0)
+            }
+        }
+
+        fn cancel_read(&self) {}
+
+        fn process_interrupts(&self) -> (bool, bool) {
+            (
+                self.did_tx.swap(false, Ordering::SeqCst),
+                self.did_rx.swap(false, Ordering::SeqCst),
+            )
+        }
+    }
+
+    struct TestIrq {}
+
+    unsafe impl cortex_m::interrupt::Nr for TestIrq {
+        fn nr(&self) -> u8 {
+            0
+        }
+    }
+    */
+
+    /*
+    #[test]
+    fn test_read() {
+        let testuart = TestHal::new();
+        let uart: DmaUart<TestHal, TimerActor<TestTimer>> = DmaUart::new(testuart, TestIrq {});
+    }
+    */
+}

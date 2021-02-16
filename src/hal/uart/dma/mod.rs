@@ -12,9 +12,12 @@ pub trait DmaUartHal {
     /// Cancel a write operation.
     fn cancel_write(&self);
 
-    /// Start a read operation to receive data into rx_buffer. Implementations can return
-    /// RxBufferTooLong if buffer is too big for implementations.
-    fn start_read(&self, rx_buffer: &mut [u8]) -> Result<(), Error>;
+    /// Prepare a read operation to receive data into rx_buffer. This ensures that DMA registers
+    /// are pointing to the provided buffer.
+    fn prepare_read(&self, rx_buffer: &mut [u8]) -> Result<(), Error>;
+
+    /// Initiate DMA read operation
+    fn start_read(&self);
 
     /// Complete a read operation.
     fn finish_read(&self) -> Result<usize, Error>;

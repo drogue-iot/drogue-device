@@ -43,11 +43,13 @@ impl Supervised {
     }
 
     fn signal_idle(&self) {
-        log::trace!(
-            "[{}] signal idle {:x}",
-            self.actor.name(),
-            &self.state as *const _ as u32
-        );
+        if self.actor.name() == "uart_actor" {
+            log::trace!(
+                "[{}] signal idle {:x}",
+                self.actor.name(),
+                &self.state as *const _ as u32
+            );
+        }
         self.state.store(ActorState::IDLE.into(), Ordering::Release)
     }
      */
@@ -58,11 +60,13 @@ impl Supervised {
 
     /*
     fn signal_waiting(&self) {
-        log::trace!(
-            "[{}] signal waiting {:x}",
-            self.actor.name(),
-            &self.state as *const _ as u32
-        );
+        if self.actor.name() == "uart_actor" {
+            log::trace!(
+                "[{}] signal waiting {:x}",
+                self.actor.name(),
+                &self.state as *const _ as u32
+            );
+        }
         self.state
             .store(ActorState::WAITING.into(), Ordering::Release)
     }
@@ -80,17 +84,22 @@ impl Supervised {
 
     /*
     fn signal_ready(&self) {
-        log::trace!(
-            "[{}] signal ready {:x}",
-            self.actor.name(),
-            &self.state as *const _ as u32
-        );
+        if self.actor.name() == "uart_actor" {
+            log::trace!(
+                "[{}] signal ready {:x}",
+                self.actor.name(),
+                &self.state as *const _ as u32
+            );
+        }
         self.state
             .store(ActorState::READY.into(), Ordering::Release)
     }
      */
 
     fn poll(&mut self) -> bool {
+        if self.actor.name() == "uart_actor" || self.actor.name() == "rak811_ingress" {
+            log::trace!("[{}] is ready {}", self.actor.name(), self.is_ready());
+        }
         if self.is_ready() {
             log::trace!("polling actor {}", self.actor.name());
             match self.actor.do_poll(self.get_state_flag_handle()) {
@@ -123,26 +132,37 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
     }
 
     fn do_poll(&self, state_flag_handle: *const ()) -> Poll<()> {
-        log::trace!("[{}] executor: do_poll", self.name());
+        if self.name() == "uart_actor" {
+            log::trace!("[{}] executor: do_poll", self.name());
+        }
         unsafe {
             CURRENT.name.replace(self.name());
+        }
+        if self.name() == "uart_actor" {
+            log::trace!("[{}] Replaced name", self.name());
         }
         loop {
             if self.current.borrow().is_none() {
                 //cortex_m::interrupt::free(|cs| {
                 if let Some(next) = self.items_consumer.borrow_mut().as_mut().unwrap().dequeue() {
                     //if let Some(next) = self.items.dequeue() {
-                    log::trace!("[{}] executor: set current task", self.name());
+                    if self.name() == "uart_actor" {
+                        log::trace!("[{}] executor: set current task", self.name());
+                    }
                     //(&mut *self.current.get()).replace(next);
                     self.current.borrow_mut().replace(next);
                     self.in_flight.store(true, Ordering::Release);
                 } else {
-                    log::trace!("[{}] executor: no current task", self.name());
+                    if self.name() == "uart_actor" {
+                        log::trace!("[{}] executor: no current task", self.name());
+                    }
                     self.in_flight.store(false, Ordering::Release);
                 }
             //});
             } else {
-                log::trace!("[{}] executor: in-flight current task", self.name());
+                if self.name() == "uart_actor" {
+                    log::trace!("[{}] executor: in-flight current task", self.name());
+                }
             }
 
             let should_drop;
@@ -155,11 +175,15 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
                 let result = item.poll(&mut cx);
                 match result {
                     Poll::Ready(_) => {
-                        log::trace!("[{}] executor: task complete", self.name());
+                        if self.name() == "uart_actor" {
+                            log::trace!("[{}] executor: task complete", self.name());
+                        }
                         should_drop = true;
                     }
                     Poll::Pending => {
-                        log::trace!("[{}] executor: task pending", self.name());
+                        if self.name() == "uart_actor" {
+                            log::trace!("[{}] executor: task pending", self.name());
+                        }
                         break;
                     }
                 }
@@ -168,7 +192,9 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
             }
             if should_drop {
                 let task = self.current.borrow_mut().take().unwrap();
-                log::trace!("[{}] executor: task drop", self.name());
+                if self.name() == "uart_actor" {
+                    log::trace!("[{}] executor: task drop", self.name());
+                }
             }
         }
 
