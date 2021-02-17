@@ -83,6 +83,10 @@ impl<T: HalTimer> Package for Timer<T> {
     ) -> Address<Self::Primary> {
         self.actor.mount(&self.shared, supervisor)
     }
+
+    fn primary(&'static self) -> Address<Self::Primary> {
+        self.actor.address()
+    }
 }
 
 pub struct TimerActor<T: HalTimer> {

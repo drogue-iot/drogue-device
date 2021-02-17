@@ -57,4 +57,8 @@ where
         let ready_addr = self.ready.mount(sensor_addr, supervisor);
         sensor_addr
     }
+
+    fn primary(&'static self) -> Address<Self::Primary> {
+        self.sensor.address()
+    }
 }

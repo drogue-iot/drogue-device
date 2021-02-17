@@ -42,6 +42,7 @@ use stm32l4xx_hal::spi::Spi as HalSpi;
 use stm32l4xx_hal::time::MegaHertz;
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
+//static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
 
 #[entry]
 fn main() -> ! {
@@ -197,5 +198,5 @@ fn main() -> ! {
         timer,
     };
 
-    device!( MyDevice = device; 2048 );
+    device!( MyDevice = device; 4098 );
 }

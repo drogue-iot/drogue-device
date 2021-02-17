@@ -22,6 +22,7 @@ pub mod api;
 mod future;
 pub mod hal;
 pub mod port;
+pub(crate) mod util;
 
 /// Easy imports for common types and traits.
 pub mod prelude {

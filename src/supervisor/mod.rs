@@ -47,6 +47,7 @@ impl Supervisor {
     }
 
     pub(crate) fn on_interrupt(&self, irqn: i16) {
+        //log::info!("[supervisor] on IRQ {}", irqn);
         self.dispatcher.borrow().on_interrupt(irqn);
     }
 }

@@ -54,6 +54,10 @@ where
         let arbitrator_addr = self.arbitrator.mount(controller_addr, supervisor);
         arbitrator_addr
     }
+
+    fn primary(&'static self) -> Address<Self::Primary> {
+        self.arbitrator.primary()
+    }
 }
 
 pub struct SpiController<SPI: Transfer<W>, W> {

@@ -72,6 +72,10 @@ where
         self.shared.available.store(true, Ordering::Release);
         addr
     }
+
+    fn primary(&'static self) -> Address<Self::Primary> {
+        self.arbitrator.address()
+    }
 }
 
 pub struct BusArbitrator<BUS>

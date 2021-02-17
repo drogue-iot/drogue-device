@@ -1,6 +1,6 @@
 //! Multi-actor package trait
 
-use crate::prelude::{Actor, Address, Supervisor};
+use crate::prelude::{Actor, ActorContext, Address, Supervisor};
 
 /// A package capable of configuring one or more actors collectively,
 /// exposing a single actor's address as the ingress point.
@@ -24,4 +24,6 @@ pub trait Package {
         config: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<Self::Primary>;
+
+    fn primary(&'static self) -> Address<Self::Primary>;
 }

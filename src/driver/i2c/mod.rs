@@ -28,6 +28,10 @@ impl<I> Package for I2c<I> {
     ) -> Address<Self::Primary> {
         self.peripheral.mount((), supervisor)
     }
+
+    fn primary(&'static self) -> Address<Self::Primary> {
+        self.peripheral.address()
+    }
 }
 
 pub struct I2cPeripheral<I> {

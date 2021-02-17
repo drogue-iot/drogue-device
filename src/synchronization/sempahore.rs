@@ -73,6 +73,10 @@ impl Package for Semaphore {
     ) -> Address<Self::Primary> {
         self.actor.mount(&self.shared, supervisor)
     }
+
+    fn primary(&'static self) -> Address<Self::Primary> {
+        self.actor.address()
+    }
 }
 
 pub struct SemaphoreActor {

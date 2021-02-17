@@ -115,6 +115,10 @@ where
 
         addr
     }
+
+    fn primary(&'static self) -> Address<Self::Primary> {
+        self.actor.address()
+    }
 }
 
 impl<U, T> UartActor<U, T>
