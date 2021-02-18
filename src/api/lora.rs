@@ -8,10 +8,6 @@ impl<A> Address<A>
 where
     A: LoraDriver,
 {
-    pub async fn initialize(&self) -> Result<(), LoraError> {
-        self.request(Initialize).await
-    }
-
     pub async fn configure<'a>(&self, config: &'a LoraConfig) -> Result<(), LoraError> {
         self.request_panicking(Configure(config)).await
     }
@@ -40,9 +36,6 @@ pub enum LoraError {
 
 /// Trait for a LoRa driver.
 pub trait LoraDriver: Actor {
-    /// Initialize the LoRa module. This should perform any reset of the peripheral and make sure it is ready to operate.
-    fn initialize(self, message: Initialize) -> Response<Self, Result<(), LoraError>>;
-
     /// Configure the LoRa module.
     fn configure<'a>(self, message: Configure<'a>) -> Response<Self, Result<(), LoraError>>;
 
@@ -59,8 +52,6 @@ pub trait LoraDriver: Actor {
 /// Message types and handlers for the LoraDriver trait.
 
 #[derive(Debug)]
-pub struct Initialize;
-#[derive(Debug)]
 pub struct Configure<'a>(pub &'a LoraConfig);
 #[derive(Debug)]
 pub struct Join(pub ConnectMode);
@@ -70,16 +61,6 @@ pub struct Reset(pub ResetMode);
 pub struct Send<'a>(pub QoS, pub Port, pub &'a [u8]);
 #[derive(Debug)]
 pub struct Recv<'a>(pub &'a mut [u8]);
-
-impl<A> RequestHandler<Initialize> for A
-where
-    A: LoraDriver,
-{
-    type Response = Result<(), LoraError>;
-    fn on_request(self, message: Initialize) -> Response<Self, Self::Response> {
-        self.initialize(message)
-    }
-}
 
 impl<'a, A> RequestHandler<Configure<'a>> for A
 where

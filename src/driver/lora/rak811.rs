@@ -83,6 +83,10 @@ where
 
         addr
     }
+
+    fn primary(&'static self) -> Address<Self::Primary> {
+        self.actor.address()
+    }
 }
 
 impl<U, T, RST> Rak811<U, T, RST>
@@ -223,6 +227,26 @@ where
         self.uart.replace(config.1);
         self.timer.replace(config.2);
     }
+
+    fn on_initialize(mut self) -> Completion<Self> {
+        Completion::defer(async move {
+            log::debug!("RAK811 LoRa module initializing");
+            self.rst.set_high().ok();
+            self.timer.as_ref().unwrap().delay(Milliseconds(50)).await;
+            self.rst.set_low().ok();
+            let response = self.recv_response().await;
+            match response {
+                Ok(RakResponse::Initialized(band)) => {
+                    self.config.band.replace(band);
+                    log::info!("RAK811 LoRa module initialized");
+                }
+                _ => {
+                    log::error!("Error initializing RAK811 LoRa module");
+                }
+            }
+            self
+        })
+    }
 }
 
 impl<U, T, RST> LoraDriver for Rak811Actor<U, T, RST>
@@ -231,22 +255,6 @@ where
     T: Scheduler + Delayer + 'static,
     RST: OutputPin,
 {
-    fn initialize(mut self, message: Initialize) -> Response<Self, Result<(), LoraError>> {
-        Response::defer(async move {
-            self.rst.set_high().ok();
-            self.rst.set_low().ok();
-            let response = self.recv_response().await;
-            let result = match response {
-                Ok(RakResponse::Initialized(band)) => {
-                    self.config.band.replace(band);
-                    Ok(())
-                }
-                _ => Err(LoraError::NotInitialized),
-            };
-            (self, result)
-        })
-    }
-
     fn reset(mut self, message: Reset) -> Response<Self, Result<(), LoraError>> {
         Response::defer(async move {
             let response = self.encode_send_command(Command::Reset(message.0)).await;
@@ -370,8 +378,6 @@ where
     }
 }
 
-struct ReadData;
-
 impl<U, T> Actor for Rak811Ingress<U, T>
 where
     U: Uart,
@@ -386,16 +392,9 @@ where
         self.rxp.replace(RefCell::new(config.0));
         self.uart.replace(config.1);
         self.timer.replace(config.2);
-        me.notify(ReadData);
     }
-}
 
-impl<U, T> NotifyHandler<ReadData> for Rak811Ingress<U, T>
-where
-    U: Uart,
-    T: Scheduler + Delayer + 'static,
-{
-    fn on_notify(mut self, message: ReadData) -> Completion<Self> {
+    fn on_start(mut self) -> Completion<Self> {
         Completion::defer(async move {
             loop {
                 if let Err(e) = self.process().await {

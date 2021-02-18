@@ -13,7 +13,10 @@ use drogue_device::{
     driver::timer::Timer,
     driver::uart::dma::DmaUart,
     port::nrf::timer::Timer as HalTimer,
-    port::nrf::{gpiote::*, uarte::{Baudrate, Parity, Pins, Uarte}},
+    port::nrf::{
+        gpiote::*,
+        uarte::{Baudrate, Parity, Pins, Uarte},
+    },
     prelude::*,
 };
 use hal::gpio::Level;
@@ -96,5 +99,5 @@ fn main() -> ! {
         )),
     };
 
-    device!( LoraDevice = device; 8192);
+    device!( LoraDevice = device; 4096);
 }

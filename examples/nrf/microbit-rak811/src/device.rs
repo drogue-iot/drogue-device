@@ -119,11 +119,6 @@ where
     fn on_notify(self, _: Join) -> Completion<Self> {
         Completion::defer(async move {
             let driver = self.driver.as_ref().unwrap();
-            log::info!("Initializing driver");
-            driver
-                .initialize()
-                .await
-                .expect("Error initializing driver");
 
             log::info!("Configuring driver");
             driver
