@@ -1,8 +1,9 @@
 //use drogue_nom_utils::parse_usize;
 use nom::{alt, char, complete, do_parse, named, named_args, tag, take, take_until};
 
-use super::JoinError;
-use crate::util::nom::parse_usize;
+use crate::api::ip::{IpAddress, IpAddressV4};
+use crate::api::wifi::JoinError;
+use crate::util::nom::{parse_u8, parse_usize};
 use heapless::String;
 
 named!(
@@ -22,9 +23,26 @@ named!(
 
 #[derive(Debug)]
 pub(crate) enum JoinResponse {
-    Ok,
+    Ok(IpAddress),
     JoinError,
 }
+
+#[rustfmt::skip]
+named!(
+    ip_addr<IpAddressV4>,
+    do_parse!(
+        a: parse_u8 >>
+        char!('.') >>
+        b: parse_u8 >>
+        char!('.') >>
+        c: parse_u8 >>
+        char!('.') >>
+        d: parse_u8 >>
+        (
+            IpAddressV4::new(a, b, c, d)
+        )
+    )
+);
 
 // [JOIN   ] drogue,192.168.1.174,0,0
 #[rustfmt::skip]
@@ -34,13 +52,15 @@ named!(
         tag!("[JOIN   ] ") >>
         ssid: take_until!(",") >>
         char!(',') >>
-        ip: take_until!(",") >>
+        //ip: take_until!(",") >>
+        ip: ip_addr >>
         char!(',') >>
         tag!("0,0") >>
         tag!("\r\n") >>
         ok >>
         (
-            JoinResponse::Ok
+            //log::info!("ip --> {:?}", ip );
+            JoinResponse::Ok(IpAddress::V4(ip))
         )
     )
 );

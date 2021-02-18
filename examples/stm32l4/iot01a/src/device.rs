@@ -1,8 +1,9 @@
+use crate::logic::Logic;
 use drogue_device::device::DeviceConfiguration;
 use drogue_device::domain::time::duration::Milliseconds;
 use drogue_device::driver::sensor::hts221::SensorAcquisition;
 use drogue_device::driver::spi::SpiController;
-use drogue_device::driver::wifi::eswifi::{EsWifi, Join};
+use drogue_device::driver::wifi::eswifi::EsWifi;
 use drogue_device::{
     domain::temperature::Celsius,
     driver::{
@@ -67,16 +68,19 @@ type WifiReady = PE1<Input<PullDown>>;
 type WifiReset = PE8<Output<PushPull>>;
 type WifiWakeup = PB13<Output<PushPull>>;
 
+type WifiAdapter = EsWifi<
+    SpiController<HardwareSpi, u8>,
+    <TimerPackage as Package>::Primary,
+    WifiCs,
+    WifiReady,
+    WifiReset,
+    WifiWakeup,
+>;
+
 pub struct MyDevice {
     pub spi: SpiPackage,
-    pub wifi: EsWifi<
-        SpiController<HardwareSpi, u8>,
-        <TimerPackage as Package>::Primary,
-        WifiCs,
-        WifiReady,
-        WifiReset,
-        WifiWakeup,
-    >,
+    pub wifi: WifiAdapter,
+    pub logic: ActorContext<Logic<<WifiAdapter as Package>::Primary>>,
     pub memory: ActorContext<Memory>,
     pub ld1: ActorContext<Ld1Actor>,
     pub ld2: ActorContext<Ld2Actor>,
@@ -94,7 +98,9 @@ impl Device for MyDevice {
 
         let spi_addr = self.spi.mount((), supervisor);
 
-        self.wifi.mount((spi_addr, timer_addr), supervisor);
+        let wifi_addr = self.wifi.mount((spi_addr, timer_addr), supervisor);
+
+        self.logic.mount(wifi_addr, supervisor);
         self.memory.mount((), supervisor);
         let ld1_addr = self.ld1.mount((), supervisor);
         let ld2_addr = self.ld2.mount((), supervisor);
@@ -138,5 +144,7 @@ impl EventHandler<SensorAcquisition<Celsius>> for MyDevice {
             message.temperature.into_fahrenheit(),
             message.relative_humidity
         );
+
+        self.logic.address().notify( message );
     }
 }

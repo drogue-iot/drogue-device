@@ -2,6 +2,7 @@
 #![no_main]
 
 mod device;
+mod logic;
 use device::MyDevice;
 
 use cortex_m_rt::{entry, exception};
@@ -40,6 +41,7 @@ use embedded_hal::spi::{Mode, MODE_0};
 use stm32l4xx_hal::pac::Interrupt::{EXTI1, SPI3};
 use stm32l4xx_hal::spi::Spi as HalSpi;
 use stm32l4xx_hal::time::MegaHertz;
+use crate::logic::Logic;
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
 //static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
@@ -182,11 +184,16 @@ fn main() -> ! {
 
     let wifi = EsWifi::new(wifi_cs, wifi_ready, EXTI1, wifi_reset, wifi_wakeup);
 
+    // == Wifi Config ==
+
+    let logic = Logic::new();
+
     // == Device ==
 
     let device = MyDevice {
         spi,
         wifi,
+        logic: ActorContext::new(logic).with_name( "logic"),
         memory: ActorContext::new(Memory::new()).with_name("memory"),
         ld1: ActorContext::new(ld1).with_name("ld1"),
         ld2: ActorContext::new(ld2).with_name("ld2"),

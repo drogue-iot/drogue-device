@@ -25,31 +25,24 @@ impl Shared {
         self.ready.load(Ordering::Acquire)
     }
 
-    fn signal_ready(&self, ready: bool) {
+    fn poll_ready(&self, waker: &Waker) -> Poll<()> {
         cortex_m::interrupt::free(|cs| {
-            self.ready.store(ready, Ordering::Release);
-            if let Some(waker) = self.ready_waker.borrow_mut().take() {
-                waker.wake()
-            }
-        })
-    }
-
-    fn set_waker(&self, waker: Waker) -> bool {
-        cortex_m::interrupt::free(|cs| {
-            if self.is_ready() {
-                waker.wake();
-                true
+            let ready = self.ready.load(Ordering::Acquire);
+            if ready {
+                self.ready_waker.borrow_mut().take();
+                Poll::Ready(())
             } else {
-                self.ready_waker.borrow_mut().replace(waker);
-                false
+                self.ready_waker.borrow_mut().replace(waker.clone());
+                Poll::Pending
             }
         })
     }
 
-    fn clear_waker(&self) {
-        cortex_m::interrupt::free(|cs| {
-            self.ready_waker.borrow_mut().take();
-        })
+    fn signal_ready(&self, ready: bool) {
+        self.ready.store(ready, Ordering::Release);
+        if let Some(waker) = self.ready_waker.borrow_mut().take() {
+            waker.wake()
+        }
     }
 }
 
@@ -175,8 +168,6 @@ impl RequestHandler<QueryReady> for EsWifiReadyPin {
     fn on_request(mut self, _message: QueryReady) -> Response<Self, Self::Response> {
         let ready = self.shared.unwrap().is_ready();
         Response::immediate(self, ready)
-        //let val = self.ready.is_high().unwrap_or(false);
-        //Response::immediate(self, val)
     }
 }
 
@@ -184,27 +175,18 @@ impl RequestHandler<AwaitReady> for EsWifiReadyPin {
     type Response = ();
 
     fn on_request(mut self, message: AwaitReady) -> Response<Self, Self::Response> {
-        //if self.ready.is_high().unwrap_or(false) {
-        //self.shared.unwrap().signal_ready(true);
-        //Response::immediate(self, ())
-        //} else {
         let future = AwaitReadyFuture::new(self.shared.unwrap());
         Response::immediate_future(self, future)
-        //}
     }
 }
 
 struct AwaitReadyFuture {
-    waiting: bool,
     shared: &'static Shared,
 }
 
 impl AwaitReadyFuture {
     fn new(shared: &'static Shared) -> Self {
-        Self {
-            waiting: false,
-            shared,
-        }
+        Self { shared }
     }
 }
 
@@ -212,17 +194,6 @@ impl Future for AwaitReadyFuture {
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if self.shared.is_ready() {
-            self.shared.clear_waker();
-            Poll::Ready(())
-        } else {
-            if !self.waiting {
-                if self.shared.set_waker(cx.waker().clone()) {
-                    return Poll::Ready(());
-                }
-                self.waiting = true;
-            }
-            Poll::Pending
-        }
+        self.shared.poll_ready(cx.waker())
     }
 }

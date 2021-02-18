@@ -171,7 +171,7 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
 }
 
 pub struct ActorExecutor {
-    actors: Vec<Supervised, U16>,
+    actors: Vec<Supervised, U32>,
 }
 
 impl ActorExecutor {

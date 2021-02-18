@@ -3,7 +3,9 @@ mod ready;
 
 use crate::api::arbitrator::BusArbitrator;
 use crate::api::delayer::Delayer;
+use crate::api::ip::{IpAddress, IpAddressV4};
 use crate::api::spi::{ChipSelect, SpiBus, SpiError};
+use crate::api::wifi::{Join, JoinError, WifiSupplicant};
 use crate::domain::time::duration::Milliseconds;
 use crate::driver::spi::SpiController;
 use crate::driver::wifi::eswifi::parser::JoinResponse;
@@ -22,41 +24,6 @@ use core::task::{Context, Poll, Waker};
 use cortex_m::interrupt::Nr;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
 use heapless::{consts::*, ArrayLength, String};
-
-#[derive(Debug)]
-pub enum Join {
-    Open,
-    Wep {
-        ssid: String<U32>,
-        password: String<U32>,
-    },
-}
-
-impl Join {
-    pub(crate) fn validate(&self) -> Result<&Self, JoinError> {
-        match self {
-            Join::Open => Ok(self),
-            Join::Wep { ssid, password } => {
-                if ssid.len() > 32 {
-                    Err(JoinError::InvalidSsid)
-                } else if password.len() > 32 {
-                    Err(JoinError::InvalidPassword)
-                } else {
-                    Ok(self)
-                }
-            }
-            _ => Ok(self),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum JoinError {
-    Unknown,
-    InvalidSsid,
-    InvalidPassword,
-    UnableToAssociate,
-}
 
 pub struct EsWifi<SPI, T, CS, READY, RESET, WAKEUP>
 where
@@ -161,9 +128,9 @@ impl<SPI, T, CS, RESET, WAKEUP> EsWifiController<SPI, T, CS, RESET, WAKEUP>
 where
     SPI: SpiBus<Word = u8> + 'static,
     T: Delayer + 'static,
-    CS: OutputPin,
-    RESET: OutputPin,
-    WAKEUP: OutputPin,
+    CS: OutputPin + 'static,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
 {
     pub fn new(cs: CS, reset: RESET, wakeup: WAKEUP) -> Self {
         Self {
@@ -248,12 +215,6 @@ where
             log::info!("[{}] eS-WiFi adapter is ready", ActorInfo::name());
         }
 
-        self.join(Join::Wep {
-            ssid: "oddly".into(),
-            password: "scarletbegonias".into(),
-        })
-        .await;
-
         self
     }
 
@@ -331,51 +292,72 @@ where
         Ok(&mut response[0..pos])
     }
 
-    pub(crate) async fn join(&mut self, join_info: Join) -> Result<(), JoinError> {
-        match join_info {
-            Join::Open => Ok(()),
-            Join::Wep { ssid, password } => {
-                let mut response = [0u8; 1024];
+    async fn join_open(&mut self) -> Result<IpAddress, JoinError> {
+        Ok(IpAddress::V4(IpAddressV4::new(0, 0, 0, 0)))
+    }
 
-                self.send_string(&command!(U36, "CB=2"), &mut response)
-                    .await
-                    .map_err(|_| JoinError::InvalidSsid)?;
+    async fn join_wep(&mut self, ssid: &str, password: &str) -> Result<IpAddress, JoinError> {
+        let mut response = [0u8; 1024];
 
-                self.send_string(&command!(U36, "C1={}", ssid), &mut response)
-                    .await
-                    .map_err(|_| JoinError::InvalidSsid)?;
+        self.send_string(&command!(U36, "CB=2"), &mut response)
+            .await
+            .map_err(|_| JoinError::InvalidSsid)?;
 
-                self.send_string(&command!(U72, "C2={}", password), &mut response)
-                    .await
-                    .map_err(|_| JoinError::InvalidPassword)?;
+        self.send_string(&command!(U36, "C1={}", ssid), &mut response)
+            .await
+            .map_err(|_| JoinError::InvalidSsid)?;
 
-                self.send_string(&command!(U8, "C3=4"), &mut response)
-                    .await
-                    .map_err(|_| JoinError::Unknown)?;
+        self.send_string(&command!(U72, "C2={}", password), &mut response)
+            .await
+            .map_err(|_| JoinError::InvalidPassword)?;
 
-                let response = self
-                    .send_string(&command!(U4, "C0"), &mut response)
-                    .await
-                    .map_err(|_| JoinError::Unknown)?;
+        self.send_string(&command!(U8, "C3=4"), &mut response)
+            .await
+            .map_err(|_| JoinError::Unknown)?;
 
-                //log::info!("[[{}]]", core::str::from_utf8(&response).unwrap());
+        let response = self
+            .send_string(&command!(U4, "C0"), &mut response)
+            .await
+            .map_err(|_| JoinError::Unknown)?;
 
-                let parse_result = parser::join_response(&response);
+        //log::info!("[[{}]]", core::str::from_utf8(&response).unwrap());
 
-                log::info!("response for JOIN {:?}", parse_result);
+        let parse_result = parser::join_response(&response);
 
-                match parse_result {
-                    Ok((_, response)) => match response {
-                        JoinResponse::Ok => Ok(()),
-                        JoinResponse::JoinError => Err(JoinError::UnableToAssociate),
-                    },
-                    Err(_) => {
-                        log::info!("{:?}", &response);
-                        Err(JoinError::UnableToAssociate)
-                    }
-                }
+        log::info!("response for JOIN {:?}", parse_result);
+
+        match parse_result {
+            Ok((_, response)) => match response {
+                JoinResponse::Ok(ip) => Ok(ip),
+                JoinResponse::JoinError => Err(JoinError::UnableToAssociate),
+            },
+            Err(_) => {
+                log::info!("{:?}", &response);
+                Err(JoinError::UnableToAssociate)
             }
         }
+    }
+}
+
+impl<SPI, T, CS, RESET, WAKEUP> WifiSupplicant for EsWifiController<SPI, T, CS, RESET, WAKEUP>
+where
+    SPI: SpiBus<Word = u8>,
+    T: Delayer + 'static,
+    CS: OutputPin,
+    RESET: OutputPin,
+    WAKEUP: OutputPin,
+{
+    fn join(mut self, join_info: Join) -> Response<Self, Result<IpAddress, JoinError>> {
+        Response::defer(async move {
+            let result = match join_info {
+                Join::Open => self.join_open().await,
+                Join::Wpa { ssid, password } => {
+                    self.join_wep(ssid.as_ref(), password.as_ref()).await
+                }
+            };
+
+            (self, result)
+        })
     }
 }
 
@@ -413,6 +395,7 @@ where
     }
 }
 
+/*
 impl<SPI, T, CS, RESET, WAKEUP> RequestHandler<Join> for EsWifiController<SPI, T, CS, RESET, WAKEUP>
 where
     SPI: SpiBus<Word = u8>,
@@ -424,12 +407,10 @@ where
     type Response = Result<(), JoinError>;
 
     fn on_request(mut self, message: Join) -> Response<Self, Self::Response> {
-        Response::defer(async move {
-            let result = self.join(message).await;
-            (self, result)
-        })
+        self.join(message)
     }
 }
+ */
 
 impl<SPI, T, CS, RESET, WAKEUP> Address<EsWifiController<SPI, T, CS, RESET, WAKEUP>>
 where
@@ -440,7 +421,7 @@ where
     WAKEUP: OutputPin,
 {
     // TODO a wifi trait
-    pub async fn join(&self, join: Join) -> Result<(), JoinError> {
+    pub async fn join(&self, join: Join) -> Result<IpAddress, JoinError> {
         self.request(join).await
     }
 }
