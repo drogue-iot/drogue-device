@@ -8,10 +8,10 @@ use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
 #[derive(PartialEq)]
 pub(crate) enum ActorState {
-    IDLE = 0,
-    WAITING = 1,
-    READY = 2,
-    UNKNOWN = 127,
+    //IDLE = 0,
+    WAITING = 0,
+    READY = 1,
+    //UNKNOWN = 127,
 }
 
 impl Into<u8> for ActorState {
@@ -37,6 +37,7 @@ impl Supervised {
         &self.state as *const _ as *const ()
     }
 
+    /*
     fn is_idle(&self) -> bool {
         self.state.load(Ordering::Acquire) == ActorState::IDLE as u8
     }
@@ -49,11 +50,13 @@ impl Supervised {
         );
         self.state.store(ActorState::IDLE.into(), Ordering::Release)
     }
+     */
 
     fn is_waiting(&self) -> bool {
         self.state.load(Ordering::Acquire) == ActorState::WAITING as u8
     }
 
+    /*
     fn signal_waiting(&self) {
         log::trace!(
             "[{}] signal waiting {:x}",
@@ -64,10 +67,18 @@ impl Supervised {
             .store(ActorState::WAITING.into(), Ordering::Release)
     }
 
+     */
+
     fn is_ready(&self) -> bool {
-        self.state.load(Ordering::Acquire) == ActorState::READY as u8
+        self.state.load(Ordering::Acquire) >= ActorState::READY as u8
     }
 
+    fn decrement_ready(&self) {
+        self.state.fetch_sub(1, Ordering::Acquire);
+        //log::info!("prev to decr {}", val);
+    }
+
+    /*
     fn signal_ready(&self) {
         log::trace!(
             "[{}] signal ready {:x}",
@@ -77,13 +88,16 @@ impl Supervised {
         self.state
             .store(ActorState::READY.into(), Ordering::Release)
     }
+     */
 
     fn poll(&mut self) -> bool {
         if self.is_ready() {
             log::trace!("polling actor {}", self.actor.name());
             match self.actor.do_poll(self.get_state_flag_handle()) {
-                Poll::Ready(_) => self.signal_idle(),
-                Poll::Pending => self.signal_waiting(),
+                //Poll::Ready(_) => self.signal_idle(),
+                Poll::Ready(_) => {}
+                //Poll::Pending => self.signal_waiting(),
+                Poll::Pending => self.decrement_ready(),
             }
 
             true
@@ -180,7 +194,8 @@ impl ActorExecutor {
     }
 
     pub(crate) fn dispatch_lifecycle_event(&mut self, event: Lifecycle) {
-        for actor in self.actors.iter().filter(|e| !e.is_idle()) {
+        //for actor in self.actors.iter().filter(|e| !e.is_idle()) {
+        for actor in self.actors.iter() {
             actor.dispatch_lifecycle_event(event);
         }
     }
@@ -193,6 +208,11 @@ impl ActorExecutor {
         self.actors
             .push(supervised)
             .unwrap_or_else(|_| panic!("too many actors"));
+        log::info!(
+            "{} {:x}",
+            actor.name(),
+            (self.actors[self.actors.len() - 1].get_state_flag_handle() as u32)
+        );
         (
             self.actors.len() - 1,
             self.actors[self.actors.len() - 1].get_state_flag_handle(),
@@ -203,7 +223,8 @@ impl ActorExecutor {
         let mut run_again = true;
         while run_again {
             run_again = false;
-            for actor in self.actors.iter_mut().filter(|e| !e.is_idle()) {
+            //for actor in self.actors.iter_mut().filter(|e| !e.is_idle()) {
+            for actor in self.actors.iter_mut() {
                 if actor.poll() {
                     run_again = true
                 }
@@ -234,7 +255,8 @@ static VTABLE: RawWakerVTable = {
 
     unsafe fn wake_by_ref(p: *const ()) {
         log::trace!("[waker] signal ready {:x}", p as *const _ as u32);
-        (*(p as *const AtomicU8)).store(ActorState::READY.into(), Ordering::Release);
+        //(*(p as *const AtomicU8)).store(ActorState::READY.into(), Ordering::Release);
+        (*(p as *const AtomicU8)).fetch_add(1, Ordering::AcqRel);
     }
 
     unsafe fn drop(_: *const ()) {}

@@ -96,8 +96,8 @@ impl ActorInfo {
 
 pub(crate) static mut CURRENT: ActorInfo = ActorInfo { name: None };
 
-type ItemsProducer<A> = RefCell<Option<Producer<'static, Box<dyn ActorFuture<A>>, U16>>>;
-type ItemsConsumer<A> = RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>>, U16>>>;
+type ItemsProducer<A> = RefCell<Option<Producer<'static, Box<dyn ActorFuture<A>>, U64>>>;
+type ItemsConsumer<A> = RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>>, U64>>>;
 
 /// Struct which is capable of holding an `Actor` instance
 /// and connects it to the actor system.
@@ -105,7 +105,7 @@ pub struct ActorContext<A: Actor + 'static> {
     pub(crate) actor: RefCell<Option<A>>,
     pub(crate) current: RefCell<Option<Box<dyn ActorFuture<A>>>>,
     // Only an UnsafeCell instead of RefCell in order to maintain it's 'static nature when borrowed.
-    pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>>, U16>>,
+    pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>>, U64>>,
     pub(crate) items_producer: ItemsProducer<A>,
     pub(crate) items_consumer: ItemsConsumer<A>,
     //pub(crate) items: FutureQueue<A>,
@@ -713,9 +713,12 @@ impl<T: 'static> CompletionHandle<T> {
             match v {
                 CompletionValue::Immediate(val) => Poll::Ready(val),
                 CompletionValue::Future(ref mut fut) => {
+                    //log::info!("poll immediate future");
                     let fut = Pin::new(fut);
                     let result = fut.poll(cx);
                     if let Poll::Pending = result {
+                        //log::info!("immediate_future is pending");
+                        //self.waker.borrow_mut().replace(cx.waker().clone());
                         value.replace(v);
                     }
                     result

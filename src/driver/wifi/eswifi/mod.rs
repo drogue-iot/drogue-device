@@ -1,16 +1,23 @@
 mod parser;
 mod ready;
+mod socket_pool;
+
+use socket_pool::SocketPool;
 
 use crate::api::arbitrator::BusArbitrator;
 use crate::api::delayer::Delayer;
-use crate::api::ip::{IpAddress, IpAddressV4};
+use crate::api::ip::tcp::{TcpError, TcpSocket, TcpStack};
+use crate::api::ip::{IpAddress, IpAddressV4, IpProtocol, SocketAddress};
 use crate::api::spi::{ChipSelect, SpiBus, SpiError};
 use crate::api::wifi::{Join, JoinError, WifiSupplicant};
 use crate::domain::time::duration::Milliseconds;
 use crate::driver::spi::SpiController;
-use crate::driver::wifi::eswifi::parser::JoinResponse;
+use crate::driver::wifi::eswifi::parser::{
+    CloseResponse, ConnectResponse, JoinResponse, ReadResponse, WriteResponse,
+};
 use crate::driver::wifi::eswifi::ready::{AwaitReady, QueryReady};
 use crate::driver::wifi::eswifi::ready::{EsWifiReady, EsWifiReadyPin};
+use crate::driver::wifi::eswifi::socket_pool::OpenFuture;
 use crate::hal::gpio::exti_pin::ExtiPin;
 use crate::prelude::*;
 use core::borrow::BorrowMut;
@@ -24,6 +31,19 @@ use core::task::{Context, Poll, Waker};
 use cortex_m::interrupt::Nr;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
 use heapless::{consts::*, ArrayLength, String};
+use nom::error::ErrorKind::Complete;
+
+pub struct Shared {
+    socket_pool: SocketPool,
+}
+
+impl Shared {
+    fn new() -> Self {
+        Self {
+            socket_pool: SocketPool::new(),
+        }
+    }
+}
 
 pub struct EsWifi<SPI, T, CS, READY, RESET, WAKEUP>
 where
@@ -34,6 +54,7 @@ where
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
 {
+    shared: Shared,
     controller: ActorContext<EsWifiController<SPI, T, CS, RESET, WAKEUP>>,
     ready: EsWifiReady<READY>,
 }
@@ -55,6 +76,7 @@ where
         wakeup: WAKEUP,
     ) -> Self {
         Self {
+            shared: Shared::new(),
             controller: ActorContext::new(EsWifiController::new(cs, reset, wakeup))
                 .with_name("es-wifi"),
             ready: EsWifiReady::new(ready, ready_irq),
@@ -82,7 +104,7 @@ where
         let ready_addr = self.ready.mount((), supervisor);
         let controller_addr = self
             .controller
-            .mount((config.0, config.1, ready_addr), supervisor);
+            .mount((&self.shared, config.0, config.1, ready_addr), supervisor);
         controller_addr
     }
 
@@ -101,9 +123,11 @@ where
     SPI: SpiBus<Word = u8> + 'static,
     T: Delayer + 'static,
     CS: OutputPin + 'static,
-    RESET: OutputPin,
-    WAKEUP: OutputPin,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
 {
+    shared: Option<&'static Shared>,
+    address: Option<Address<Self>>,
     spi: Option<Address<BusArbitrator<SPI>>>,
     delayer: Option<Address<T>>,
     ready: Option<Address<EsWifiReadyPin>>,
@@ -134,13 +158,15 @@ where
 {
     pub fn new(cs: CS, reset: RESET, wakeup: WAKEUP) -> Self {
         Self {
+            address: None,
             spi: None,
             delayer: None,
             ready: None,
-            cs: ChipSelect::new(cs, Milliseconds(100u32)),
+            cs: ChipSelect::new(cs, Milliseconds(10u32)),
             reset,
             wakeup,
             state: State::Uninitialized,
+            shared: None,
         }
     }
 
@@ -231,18 +257,18 @@ where
         command: &[u8],
         response: &'a mut [u8],
     ) -> Result<&'a [u8], SpiError> {
-        //log::info!("send {:?}", core::str::from_utf8(command).unwrap());
+        log::info!("send {:?}", core::str::from_utf8(command).unwrap());
 
-        //log::info!("await ready");
+        log::info!("await ready");
         self.await_data_ready().await;
-        //log::info!("await ready done");
+        log::info!("await ready done");
         {
-            //log::info!("obtain spi");
+            log::info!("obtain spi");
             let mut spi = self.spi.unwrap().begin_transaction().await;
-            //log::info!("obtain spi done");
+            log::info!("obtain spi done");
             //log::info!("set cs");
             let _cs = self.cs.select().await;
-            //log::info!("set cs done");
+            log::info!("set cs done");
 
             for chunk in command.chunks(2) {
                 let mut xfer: [u8; 2] = [0; 2];
@@ -256,30 +282,34 @@ where
                 //log::info!("do xfer");
                 spi.spi_transfer(&mut xfer).await?;
 
-                self.delayer.unwrap().delay(Milliseconds(100u32)).await;
+                //self.delayer.unwrap().delay(Milliseconds(100u32)).await;
             }
-            //log::info!("complete send xfer done");
+            log::info!("complete send xfer done");
         }
         self.receive(response).await
     }
 
     async fn receive<'a>(&mut self, response: &'a mut [u8]) -> Result<&'a [u8], SpiError> {
+        log::info!("start receive");
         self.await_data_ready().await;
-        //log::info!("ready go");
+        log::info!("ready go");
         let mut pos = 0;
 
+        log::info!("recv try get spi");
         let mut spi = self.spi.unwrap().begin_transaction().await;
-        //log::info!("b");
+        log::info!("recv got spi");
         let _cs = self.cs.select().await;
-        //log::info!("c");
+        log::info!("recv cs");
 
         while self.is_data_ready().await {
             //log::info!("d");
             let mut xfer: [u8; 2] = [0x0A, 0x0A];
             let result = spi.spi_transfer(&mut xfer).await?;
+            log::info!("response {} {:?}", pos, xfer[1] as char);
             response[pos] = xfer[1];
             pos += 1;
-            if xfer[0] != 0x15 {
+            if xfer[0] != NAK {
+                log::info!("response {} {:?}", pos, xfer[0] as char);
                 response[pos] = xfer[0];
                 pos += 1;
             }
@@ -361,6 +391,271 @@ where
     }
 }
 
+impl<SPI, T, CS, RESET, WAKEUP> TcpStack for EsWifiController<SPI, T, CS, RESET, WAKEUP>
+where
+    SPI: SpiBus<Word = u8>,
+    T: Delayer + 'static,
+    CS: OutputPin,
+    RESET: OutputPin,
+    WAKEUP: OutputPin,
+{
+    type SocketHandle = u8;
+
+    fn open(self) -> Response<Self, Self::SocketHandle> {
+        let open_future = self.shared.unwrap().socket_pool.open();
+        Response::immediate_future(self, open_future)
+    }
+
+    fn connect(
+        mut self,
+        handle: Self::SocketHandle,
+        proto: IpProtocol,
+        dst: SocketAddress,
+    ) -> Response<Self, Result<(), TcpError>> {
+        Response::defer(async move {
+            let mut response = [0u8; 1024];
+
+            let result = async {
+                self.send_string(&command!(U8, "P0={}", handle), &mut response)
+                    .await
+                    .map_err(|_| TcpError::ConnectError)?;
+
+                match proto {
+                    IpProtocol::Tcp => {
+                        self.send_string(&command!(U8, "P1=0"), &mut response)
+                            .await
+                            .map_err(|_| TcpError::ConnectError)?;
+                    }
+                    IpProtocol::Udp => {
+                        self.send_string(&command!(U8, "P1=1"), &mut response)
+                            .await
+                            .map_err(|_| TcpError::ConnectError)?;
+                    }
+                }
+
+                self.send_string(&command!(U32, "P3={}", dst.ip()), &mut response)
+                    .await
+                    .map_err(|_| TcpError::ConnectError)?;
+
+                self.send_string(&command!(U32, "P4={}", dst.port()), &mut response)
+                    .await
+                    .map_err(|e| TcpError::ConnectError)?;
+
+                let response = self
+                    .send_string(&command!(U8, "P6=1"), &mut response)
+                    .await
+                    .map_err(|_| TcpError::ConnectError)?;
+
+                if let Ok((_, ConnectResponse::Ok)) = parser::connect_response(&response) {
+                    Ok(())
+                } else {
+                    Err(TcpError::ConnectError)
+                }
+            }
+            .await;
+            (self, result)
+        })
+    }
+
+    fn write(
+        mut self,
+        handle: Self::SocketHandle,
+        buf: &[u8],
+    ) -> Response<Self, Result<usize, TcpError>> {
+        unsafe {
+            Response::defer_unchecked(async move {
+                let mut len = buf.len();
+                if len > 1046 {
+                    len = 1046
+                }
+
+                let mut response = [0u8; 1024];
+
+                let result = async {
+                    let command = command!(U8, "P0={}", handle);
+                    self.send(command.as_bytes(), &mut response)
+                        .await
+                        .map_err(|_| TcpError::WriteError)?;
+
+                    self.send_string(&command!(U8, "P0={}", handle), &mut response)
+                        .await
+                        .map_err(|_| TcpError::WriteError)?;
+
+                    self.send_string(&command!(U16, "S1={}", len), &mut response)
+                        .await
+                        .map_err(|_| TcpError::WriteError)?;
+
+                    // to ensure it's an even number of bytes, abscond with 1 byte from the payload.
+                    let prefix = [b'S', b'0', b'\r', buf[0]];
+                    let remainder = &buf[1..len];
+
+                    log::info!("wait R payload");
+                    self.await_data_ready().await;
+                    {
+                        let mut spi = self.spi.unwrap().begin_transaction().await;
+                        let _cs = self.cs.select().await;
+
+                        log::info!("transfer prefix");
+                        for chunk in prefix.chunks(2) {
+                            let mut xfer: [u8; 2] = [0; 2];
+                            xfer[1] = chunk[0];
+                            xfer[0] = chunk[1];
+                            //if chunk.len() == 2 {
+                            //} else {
+                            //xfer[0] = 0x0A
+                            //}
+
+                            //log::info!("transfer {:?}", xfer);
+                            spi.spi_transfer(&mut xfer).await;
+                        }
+
+                        log::info!("transfer payload {}", remainder.len());
+                        for chunk in remainder.chunks(2) {
+                            let mut xfer: [u8; 2] = [0; 2];
+                            xfer[1] = chunk[0];
+                            if chunk.len() == 2 {
+                                xfer[0] = chunk[1]
+                            } else {
+                                xfer[0] = 0x0A
+                            }
+
+                            //log::info!("transfer {:?}", xfer);
+                            spi.spi_transfer(&mut xfer).await;
+                        }
+                    }
+
+                    log::info!("await confirm");
+                    self.await_data_ready().await;
+
+                    let response = self
+                        .receive(&mut response)
+                        .await
+                        .map_err(|_| TcpError::WriteError)?;
+
+                    if let Ok((_, WriteResponse::Ok(len))) = parser::write_response(response) {
+                        Ok(len)
+                    } else {
+                        Err(TcpError::WriteError)
+                    }
+                }
+                .await;
+                (self, result)
+            })
+        }
+    }
+
+    fn read(
+        mut self,
+        handle: Self::SocketHandle,
+        buf: &mut [u8],
+    ) -> Response<Self, Result<usize, TcpError>> {
+        unsafe {
+            Response::defer_unchecked(async move {
+                let mut pos = 0;
+                let buf_len = buf.len();
+                loop {
+                    let result = async {
+                        let mut response = [0u8; 1100];
+
+                        self.send_string(&command!(U8, "P0={}", handle), &mut response)
+                            .await
+                            .map_err(|_| TcpError::ReadError)?;
+
+                        let mut len = buf.len();
+                        if len > 1460 {
+                            len = 1460;
+                        }
+
+                        self.send_string(&command!(U16, "R1={}", len), &mut response)
+                            .await
+                            .map_err(|_| TcpError::ReadError)?;
+
+                        self.send_string(&command!(U8, "R2=15"), &mut response)
+                            .await
+                            .map_err(|_| TcpError::ReadError)?;
+
+                        self.send_string(&command!(U8, "R3=1"), &mut response)
+                            .await
+                            .map_err(|_| TcpError::ReadError)?;
+
+                        self.await_data_ready().await;
+                        {
+                            let spi = self.spi.unwrap().begin_transaction().await;
+                            let _cs = self.cs.select().await;
+
+                            let mut xfer = [b'0', b'R'];
+                            spi.spi_transfer(&mut xfer).await;
+
+                            xfer = [b'\n', b'\r'];
+                            spi.spi_transfer(&mut xfer).await;
+                        }
+
+                        self.await_data_ready().await;
+
+                        let response = self
+                            .receive(&mut response)
+                            .await
+                            .map_err(|_| TcpError::ReadError)?;
+
+                        if let Ok((_, ReadResponse::Ok(data))) = parser::read_response(&response) {
+                            for (i, b) in data.iter().enumerate() {
+                                buf[i] = *b;
+                            }
+                            Ok(data.len())
+                        } else {
+                            Err(TcpError::ReadError)
+                        }
+                        //result
+                    }
+                    .await;
+
+                    match result {
+                        Ok(len) => {
+                            pos += len;
+                            if len == 0 || pos == buf.len() {
+                                return (self, Ok(pos));
+                            }
+                        }
+                        Err(e) => {
+                            if pos == 0 {
+                                return (self, Err(e));
+                            } else {
+                                return (self, Ok(pos));
+                            }
+                        }
+                    }
+                }
+            })
+        }
+    }
+
+    fn close(mut self, handle: Self::SocketHandle) -> Completion<Self> {
+        Completion::defer(async move {
+            let mut response = [0u8; 1024];
+
+            let result = async {
+                self.send_string(&command!(U8, "P0={}", handle), &mut response)
+                    .await
+                    .map_err(|_| TcpError::CloseError)?;
+
+                let response = self
+                    .send_string(&command!(U8, "P6=0"), &mut response)
+                    .await
+                    .map_err(|e| TcpError::CloseError)?;
+
+                if let Ok((_, CloseResponse::Ok)) = parser::close_response(&response) {
+                    log::info!("closed");
+                    Ok(())
+                } else {
+                    Err(TcpError::CloseError)
+                }
+            }
+            .await;
+            (self)
+        })
+    }
+}
+
 const NAK: u8 = 0x15;
 
 impl<SPI, T, CS, RESET, WAKEUP> Actor for EsWifiController<SPI, T, CS, RESET, WAKEUP>
@@ -372,6 +667,7 @@ where
     WAKEUP: OutputPin,
 {
     type Configuration = (
+        &'static Shared,
         Address<BusArbitrator<SPI>>,
         Address<T>,
         Address<EsWifiReadyPin>,
@@ -381,10 +677,12 @@ where
     where
         Self: Sized,
     {
-        self.spi.replace(config.0);
-        self.delayer.replace(config.1);
-        self.ready.replace(config.2);
-        self.cs.set_delayer(config.1);
+        self.shared.replace(config.0);
+        self.address.replace(address);
+        self.spi.replace(config.1);
+        self.delayer.replace(config.2);
+        self.ready.replace(config.3);
+        self.cs.set_delayer(config.2);
     }
 
     fn on_start(mut self) -> Completion<Self>
@@ -425,3 +723,5 @@ where
         self.request(join).await
     }
 }
+
+struct ConnectFuture {}

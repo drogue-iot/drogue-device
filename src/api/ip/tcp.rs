@@ -1,16 +1,24 @@
-use crate::api::ip::IpAddress;
+use crate::api::ip::{IpAddress, IpProtocol, SocketAddress};
 use crate::prelude::*;
 
 pub enum TcpError {
+    ConnectError,
     ReadError,
     WriteError,
+    CloseError,
     SocketClosed,
 }
 
 pub trait TcpStack: Actor {
     type SocketHandle: Copy;
 
-    fn connect(self, dst: IpAddress) -> Response<Self, TcpSocket<Self>>;
+    fn open(self) -> Response<Self, Self::SocketHandle>;
+    fn connect(
+        self,
+        handle: Self::SocketHandle,
+        proto: IpProtocol,
+        dst: SocketAddress,
+    ) -> Response<Self, Result<(), TcpError>>;
     fn write(
         self,
         handle: Self::SocketHandle,
@@ -28,37 +36,64 @@ pub struct TcpSocket<S>
 where
     S: TcpStack + 'static,
 {
-    handle: S::SocketHandle,
     stack: Address<S>,
+    handle: S::SocketHandle,
 }
 
 impl<S> TcpSocket<S>
 where
     S: TcpStack + 'static,
 {
-    async fn write(&mut self, buf: &[u8]) -> Result<usize, TcpError> {
+    pub(crate) fn new(stack: Address<S>, handle: S::SocketHandle) -> Self {
+        Self { handle, stack }
+    }
+
+    pub async fn connect(
+        &mut self,
+        proto: IpProtocol,
+        addr: SocketAddress,
+    ) -> Result<(), TcpError> {
+        self.stack.request(Connect(self.handle, proto, addr)).await
+    }
+
+    pub async fn write(&mut self, buf: &[u8]) -> Result<usize, TcpError> {
         self.stack.request_panicking(Write(self.handle, buf)).await
     }
 
-    async fn read(&mut self, buf: &mut [u8]) -> Result<usize, TcpError> {
+    pub async fn read(&mut self, buf: &mut [u8]) -> Result<usize, TcpError> {
         self.stack.request_panicking(Read(self.handle, buf)).await
     }
 
-    fn close(self) {
+    pub fn close(self) {
         // consume/move self here, and allow to drop, triggering close
     }
 }
 
-pub struct Connect(IpAddress);
+pub struct Open;
 
-impl<S> RequestHandler<Connect> for S
+impl<S> RequestHandler<Open> for S
 where
     S: TcpStack + 'static,
 {
-    type Response = TcpSocket<S>;
+    type Response = S::SocketHandle;
 
-    fn on_request(self, message: Connect) -> Response<Self, Self::Response> {
-        self.connect(message.0)
+    fn on_request(self, message: Open) -> Response<Self, Self::Response> {
+        self.open()
+    }
+}
+
+pub struct Connect<S>(S::SocketHandle, IpProtocol, SocketAddress)
+where
+    S: TcpStack;
+
+impl<S> RequestHandler<Connect<S>> for S
+where
+    S: TcpStack + 'static,
+{
+    type Response = Result<(), TcpError>;
+
+    fn on_request(self, message: Connect<S>) -> Response<Self, Self::Response> {
+        self.connect(message.0, message.1, message.2)
     }
 }
 
@@ -118,7 +153,8 @@ impl<S> Address<S>
 where
     S: TcpStack + 'static,
 {
-    pub async fn tcp_connect(&self, dst: IpAddress) -> TcpSocket<S> {
-        self.request(Connect(dst)).await
+    pub async fn tcp_open(&self) -> TcpSocket<S> {
+        let handle = self.request(Open).await;
+        TcpSocket::new(*self, handle)
     }
 }

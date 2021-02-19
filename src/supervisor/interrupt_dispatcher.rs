@@ -70,6 +70,7 @@ impl InterruptDispatcher {
 
     #[doc(hidden)]
     pub(crate) fn on_interrupt(&self, irqn: i16) {
+        log::trace!("IRQ: {}", irqn);
         for interrupt in self.interrupts.iter().filter(|e| e.irq == irqn as u8) {
             interrupt.interrupt.on_interrupt();
         }
