@@ -3,7 +3,7 @@ use crate::prelude::*;
 pub use crate::api::uart::Error;
 use crate::api::{
     scheduler::*,
-    uart::{Uart, UartRx, UartRxTimeout, UartTx},
+    uart::{UartRead, UartReadWithTimeout, UartReader, UartWrite, UartWriter},
 };
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::uart::dma::DmaUartHal;
@@ -135,13 +135,13 @@ where
 }
 
 // DMA implementation of the trait
-impl<U, T> Uart for UartActor<U, T>
+impl<U, T> UartReader for UartActor<U, T>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
 {
     /// Receive bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
-    fn read<'a>(self, message: UartRx<'a>) -> Response<Self, Result<usize, Error>> {
+    fn read<'a>(self, message: UartRead<'a>) -> Response<Self, Result<usize, Error>> {
         let shared = self.shared.as_ref().unwrap();
         match shared.rx_state.get() {
             State::Ready => {
@@ -164,7 +164,7 @@ where
     /// Receive bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
     fn read_with_timeout<'a, DUR>(
         self,
-        message: UartRxTimeout<'a, DUR>,
+        message: UartReadWithTimeout<'a, DUR>,
     ) -> Response<Self, Result<usize, Error>>
     where
         DUR: Duration + Into<Milliseconds> + 'static,
@@ -193,9 +193,15 @@ where
             _ => Response::immediate(self, Err(Error::RxInProgress)),
         }
     }
+}
 
+impl<U, T> UartWriter for UartActor<U, T>
+where
+    U: DmaUartHal + 'static,
+    T: Scheduler + 'static,
+{
     /// Transmit bytes from provided tx_buffer over UART. The memory pointed to by the buffer must be available until the return future is await'ed
-    fn write<'a>(self, message: UartTx<'a>) -> Response<Self, Result<(), Error>> {
+    fn write<'a>(self, message: UartWrite<'a>) -> Response<Self, Result<(), Error>> {
         let shared = self.shared.as_ref().unwrap();
         match shared.tx_state.get() {
             State::Ready => {

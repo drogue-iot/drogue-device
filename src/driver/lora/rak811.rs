@@ -2,7 +2,7 @@ use crate::api::{
     delayer::*,
     lora::*,
     scheduler::*,
-    uart::{Error as UartError, Uart},
+    uart::{Error as UartError, UartReader, UartWriter},
 };
 use crate::domain::time::duration::Milliseconds;
 use crate::handler::Response;
@@ -22,7 +22,7 @@ use heapless::{
 
 pub struct Rak811Actor<U, T, RST>
 where
-    U: Uart + 'static,
+    U: UartWriter + 'static,
     T: Scheduler + Delayer + 'static,
     RST: OutputPin + 'static,
 {
@@ -35,7 +35,7 @@ where
 }
 pub struct Rak811Ingress<U, T>
 where
-    U: Uart + 'static,
+    U: UartReader + 'static,
     T: Scheduler + Delayer + 'static,
 {
     uart: Option<Address<U>>,
@@ -46,7 +46,7 @@ where
 
 pub struct Rak811<U, T, RST>
 where
-    U: Uart + 'static,
+    U: UartReader + UartWriter + 'static,
     T: Scheduler + Delayer + 'static,
     RST: OutputPin + 'static,
 {
@@ -57,7 +57,7 @@ where
 
 impl<U, T, RST> Package for Rak811<U, T, RST>
 where
-    U: Uart + 'static,
+    U: UartReader + UartWriter + 'static,
     T: Scheduler + Delayer + 'static,
     RST: OutputPin + 'static,
 {
@@ -91,7 +91,7 @@ where
 
 impl<U, T, RST> Rak811<U, T, RST>
 where
-    U: Uart,
+    U: UartReader + UartWriter + 'static,
     T: Scheduler + Delayer + 'static,
     RST: OutputPin,
 {
@@ -106,7 +106,7 @@ where
 
 impl<U, T, RST> Rak811Actor<U, T, RST>
 where
-    U: Uart,
+    U: UartWriter,
     T: Scheduler + Delayer + 'static,
     RST: OutputPin,
 {
@@ -213,7 +213,7 @@ where {
 
 impl<U, T, RST> Actor for Rak811Actor<U, T, RST>
 where
-    U: Uart,
+    U: UartWriter,
     T: Scheduler + Delayer + 'static,
     RST: OutputPin,
 {
@@ -251,7 +251,7 @@ where
 
 impl<U, T, RST> LoraDriver for Rak811Actor<U, T, RST>
 where
-    U: Uart,
+    U: UartWriter,
     T: Scheduler + Delayer + 'static,
     RST: OutputPin,
 {
@@ -333,7 +333,7 @@ where
 
 impl<U, T> Rak811Ingress<U, T>
 where
-    U: Uart,
+    U: UartReader,
     T: Scheduler + Delayer + 'static,
 {
     pub fn new() -> Self {
@@ -380,7 +380,7 @@ where
 
 impl<U, T> Actor for Rak811Ingress<U, T>
 where
-    U: Uart,
+    U: UartReader,
     T: Scheduler + Delayer + 'static,
 {
     type Configuration = (

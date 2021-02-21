@@ -74,7 +74,7 @@ impl EventHandler<PinEvent> for MyDevice {
 
 pub struct AppConfig<U, D>
 where
-    U: Uart + 'static,
+    U: UartWriter + UartReader + 'static,
     D: Delayer + 'static,
 {
     uart: Address<U>,
@@ -84,7 +84,7 @@ where
 
 pub struct App<U, D>
 where
-    U: Uart + 'static,
+    U: UartWriter + UartReader + 'static,
     D: Delayer + 'static,
 {
     uart: Option<Address<U>>,
@@ -94,7 +94,7 @@ where
 
 impl<U, D> App<U, D>
 where
-    U: Uart,
+    U: UartWriter + UartReader + 'static,
     D: Delayer,
 {
     pub fn new() -> Self {
@@ -107,7 +107,7 @@ where
 }
 impl<U, D> Actor for App<U, D>
 where
-    U: Uart,
+    U: UartWriter + UartReader + 'static,
     D: Delayer,
 {
     type Configuration = AppConfig<U, D>;
@@ -127,7 +127,7 @@ pub struct StartService;
 
 impl<U, D> NotifyHandler<SayHello> for App<U, D>
 where
-    U: Uart,
+    U: UartWriter + UartReader + 'static,
     D: Delayer,
 {
     fn on_notify(self, _: SayHello) -> Completion<Self> {
@@ -148,7 +148,7 @@ where
 
 impl<U, D> NotifyHandler<StartService> for App<U, D>
 where
-    U: Uart,
+    U: UartWriter + UartReader + 'static,
     D: Delayer,
 {
     fn on_notify(mut self, _: StartService) -> Completion<Self> {
