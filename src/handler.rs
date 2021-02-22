@@ -2,8 +2,9 @@
 
 use core::future::Future;
 
-use crate::arena::{alloc, Box};
+use crate::arena::{Arena, Box};
 use crate::prelude::Actor;
+use crate::supervisor::SYSTEM;
 use core::mem::transmute;
 
 /// Return value from a `RequestHandler` to allow for synchronous or
@@ -17,10 +18,10 @@ pub enum Response<A: Actor + 'static, T: 'static> {
     Immediate(A, T),
 
     /// See `defer(future)`.
-    Defer(Box<dyn Future<Output = (A, T)>>),
+    Defer(Box<dyn Future<Output = (A, T)>, SYSTEM>),
 
     /// See `immediate_future(future)`.
-    ImmediateFuture(A, Box<dyn Future<Output = T>>),
+    ImmediateFuture(A, Box<dyn Future<Output = T>, SYSTEM>),
 }
 
 impl<T, A: Actor + 'static> Response<A, T> {
@@ -36,14 +37,14 @@ impl<T, A: Actor + 'static> Response<A, T> {
     where
         T: 'static,
     {
-        Self::Defer(Box::new(alloc(f).unwrap()))
+        Self::Defer(Box::new(SYSTEM::alloc(f).unwrap()))
     }
 
     pub unsafe fn defer_unchecked<F: Future<Output = (A, T)>>(f: F) -> Self
     where
         T: 'static,
     {
-        let f: &mut dyn Future<Output = (A, T)> = alloc(f).unwrap();
+        let f: &mut dyn Future<Output = (A, T)> = SYSTEM::alloc(f).unwrap();
         let f = transmute::<_, &mut (dyn Future<Output = (A, T)> + 'static)>(f);
         Self::Defer(Box::new(f))
     }
@@ -55,7 +56,7 @@ impl<T, A: Actor + 'static> Response<A, T> {
     where
         T: 'static,
     {
-        Self::ImmediateFuture(actor, Box::new(alloc(f).unwrap()))
+        Self::ImmediateFuture(actor, Box::new(SYSTEM::alloc(f).unwrap()))
     }
 }
 
@@ -82,7 +83,7 @@ pub enum Completion<A: Actor> {
     Immediate(A),
 
     /// See `defer(future)`
-    Defer(Box<dyn Future<Output = A>>),
+    Defer(Box<dyn Future<Output = A>, SYSTEM>),
 }
 
 impl<A: Actor + 'static> Completion<A> {
@@ -94,11 +95,11 @@ impl<A: Actor + 'static> Completion<A> {
     /// Provide a future for asynchronous handling of the notification
     /// within this actor's context.
     pub fn defer<F: Future<Output = A> + 'static>(f: F) -> Self {
-        Self::Defer(Box::new(alloc(f).unwrap()))
+        Self::Defer(Box::new(SYSTEM::alloc(f).unwrap()))
     }
 
     pub unsafe fn defer_unchecked<F: Future<Output = A>>(f: F) -> Self {
-        let f: &mut dyn Future<Output = A> = alloc(f).unwrap();
+        let f: &mut dyn Future<Output = A> = SYSTEM::alloc(f).unwrap();
         let f = transmute::<_, &mut (dyn Future<Output = A> + 'static)>(f);
         Self::Defer(Box::new(f))
     }

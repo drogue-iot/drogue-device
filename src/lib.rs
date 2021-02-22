@@ -2,6 +2,8 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+pub extern crate paste;
+
 pub mod actor;
 pub mod address;
 #[doc(hidden)]

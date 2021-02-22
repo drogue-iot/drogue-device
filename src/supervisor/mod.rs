@@ -8,6 +8,10 @@ use core::cell::RefCell;
 pub(crate) mod actor_executor;
 pub(crate) mod interrupt_dispatcher;
 
+use crate::define_arena;
+
+define_arena!(SYSTEM);
+
 /// An opaque object used during the mounting of actors into the system.
 pub struct Supervisor {
     executor: RefCell<ActorExecutor>,

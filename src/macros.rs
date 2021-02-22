@@ -29,7 +29,7 @@ macro_rules! device {
             DEVICE.as_mut().unwrap()
         };
 
-        $crate::init_heap!($memory);
+        $crate::init_arena!($crate::supervisor | SYSTEM => $memory);
 
         device.mount();
 

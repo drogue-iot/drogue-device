@@ -1,10 +1,11 @@
 use crate::api::delayer::{Delay, Delayer};
 use crate::api::scheduler::{Schedule, Scheduler};
-use crate::arena::{alloc, Box};
+use crate::arena::{Arena, Box};
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::timer::Timer as HalTimer;
 use crate::platform::with_critical_section;
 use crate::prelude::*;
+use crate::supervisor::SYSTEM;
 use core::cell::RefCell;
 use core::future::Future;
 use core::pin::Pin;
@@ -20,7 +21,7 @@ pub trait Schedulable {
 pub struct Shared {
     current_deadline: RefCell<Option<Milliseconds>>,
     delay_deadlines: RefCell<[Option<DelayDeadline>; 16]>,
-    schedule_deadlines: RefCell<[Option<Box<dyn Schedulable>>; 16]>,
+    schedule_deadlines: RefCell<[Option<Box<dyn Schedulable, SYSTEM>>; 16]>,
 }
 
 impl Shared {
@@ -121,7 +122,9 @@ impl<T: HalTimer> Scheduler for TimerActor<T> {
             .enumerate()
             .find(|e| matches!(e, (_, None)))
         {
-            deadlines[index].replace(Box::new(alloc(ScheduleDeadline::new(ms, message)).unwrap()));
+            deadlines[index].replace(Box::new(
+                SYSTEM::alloc(ScheduleDeadline::new(ms, message)).unwrap(),
+            ));
             if let Some(current) = &*current_deadline {
                 if *current > ms {
                     current_deadline.replace(ms);
