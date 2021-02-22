@@ -153,7 +153,7 @@ where
             spi: None,
             delayer: None,
             ready: None,
-            cs: ChipSelect::new(cs, Milliseconds(10u32)),
+            cs: ChipSelect::new(cs, Milliseconds(2u32)),
             reset,
             wakeup,
             state: State::Uninitialized,
@@ -250,18 +250,12 @@ where
         command: &[u8],
         response: &'a mut [u8],
     ) -> Result<&'a [u8], SpiError> {
-        log::info!("send {:?}", core::str::from_utf8(command).unwrap());
+        //log::info!("send {:?}", core::str::from_utf8(command).unwrap());
 
-        log::info!("await ready");
         self.await_data_ready().await;
-        log::info!("await ready done");
         {
-            log::info!("obtain spi");
             let spi = self.spi.unwrap().begin_transaction().await;
-            log::info!("obtain spi done");
-            //log::info!("set cs");
             let _cs = self.cs.select().await;
-            log::info!("set cs done");
 
             for chunk in command.chunks(2) {
                 let mut xfer: [u8; 2] = [0; 2];
@@ -272,46 +266,29 @@ where
                     xfer[0] = 0x0A
                 }
 
-                //log::info!("do xfer");
                 spi.spi_transfer(&mut xfer).await?;
-
-                //self.delayer.unwrap().delay(Milliseconds(100u32)).await;
             }
-            log::info!("complete send xfer done");
         }
         self.receive(response).await
     }
 
     async fn receive<'a>(&mut self, response: &'a mut [u8]) -> Result<&'a [u8], SpiError> {
-        log::info!("start receive");
         self.await_data_ready().await;
-        log::info!("ready go");
         let mut pos = 0;
 
-        log::info!("recv try get spi");
         let spi = self.spi.unwrap().begin_transaction().await;
-        log::info!("recv got spi");
         let _cs = self.cs.select().await;
-        log::info!("recv cs");
 
         while self.is_data_ready().await {
-            //log::info!("d");
             let mut xfer: [u8; 2] = [0x0A, 0x0A];
             let result = spi.spi_transfer(&mut xfer).await?;
-            log::info!("response {} {:?}", pos, xfer[1] as char);
             response[pos] = xfer[1];
             pos += 1;
             if xfer[0] != NAK {
-                log::info!("response {} {:?}", pos, xfer[0] as char);
                 response[pos] = xfer[0];
                 pos += 1;
             }
         }
-        //log::info!("response complete");
-        //log::info!(
-        //"response {}",
-        //core::str::from_utf8(&response[0..pos]).unwrap()
-        //);
         Ok(&mut response[0..pos])
     }
 
@@ -347,7 +324,7 @@ where
 
         let parse_result = parser::join_response(&response);
 
-        log::info!("response for JOIN {:?}", parse_result);
+        //log::info!("response for JOIN {:?}", parse_result);
 
         match parse_result {
             Ok((_, response)) => match response {
@@ -482,27 +459,24 @@ where
                     let prefix = [b'S', b'0', b'\r', buf[0]];
                     let remainder = &buf[1..len];
 
-                    log::info!("wait R payload");
                     self.await_data_ready().await;
                     {
                         let spi = self.spi.unwrap().begin_transaction().await;
                         let _cs = self.cs.select().await;
 
-                        log::info!("transfer prefix");
                         for chunk in prefix.chunks(2) {
                             let mut xfer: [u8; 2] = [0; 2];
                             xfer[1] = chunk[0];
                             xfer[0] = chunk[1];
-                            //if chunk.len() == 2 {
-                            //} else {
-                            //xfer[0] = 0x0A
-                            //}
+                            if chunk.len() == 2 {
+                                xfer[0] = chunk[1]
+                            } else {
+                                xfer[0] = 0x0A
+                            }
 
-                            //log::info!("transfer {:?}", xfer);
                             spi.spi_transfer(&mut xfer).await.unwrap();
                         }
 
-                        log::info!("transfer payload {}", remainder.len());
                         for chunk in remainder.chunks(2) {
                             let mut xfer: [u8; 2] = [0; 2];
                             xfer[1] = chunk[0];
@@ -517,7 +491,6 @@ where
                         }
                     }
 
-                    log::info!("await confirm");
                     self.await_data_ready().await;
 
                     let response = self
@@ -637,7 +610,6 @@ where
                     .map_err(|e| TcpError::CloseError)?;
 
                 if let Ok((_, CloseResponse::Ok)) = parser::close_response(&response) {
-                    log::info!("closed");
                     Ok(())
                 } else {
                     Err(TcpError::CloseError)

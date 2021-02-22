@@ -37,41 +37,9 @@ impl Supervised {
         &self.state as *const _ as *const ()
     }
 
-    /*
-    fn is_idle(&self) -> bool {
-        self.state.load(Ordering::Acquire) == ActorState::IDLE as u8
-    }
-
-    fn signal_idle(&self) {
-        if self.actor.name() == "uart_actor" {
-            log::trace!(
-                "[{}] signal idle {:x}",
-                self.actor.name(),
-                &self.state as *const _ as u32
-            );
-        }
-        self.state.store(ActorState::IDLE.into(), Ordering::Release)
-    }
-     */
-
     fn is_waiting(&self) -> bool {
         self.state.load(Ordering::Acquire) == ActorState::WAITING as u8
     }
-
-    /*
-    fn signal_waiting(&self) {
-        if self.actor.name() == "uart_actor" {
-            log::trace!(
-                "[{}] signal waiting {:x}",
-                self.actor.name(),
-                &self.state as *const _ as u32
-            );
-        }
-        self.state
-            .store(ActorState::WAITING.into(), Ordering::Release)
-    }
-
-     */
 
     fn is_ready(&self) -> bool {
         self.state.load(Ordering::Acquire) >= ActorState::READY as u8
@@ -79,22 +47,7 @@ impl Supervised {
 
     fn decrement_ready(&self) {
         self.state.fetch_sub(1, Ordering::Acquire);
-        //log::info!("prev to decr {}", val);
     }
-
-    /*
-    fn signal_ready(&self) {
-        if self.actor.name() == "uart_actor" {
-            log::trace!(
-                "[{}] signal ready {:x}",
-                self.actor.name(),
-                &self.state as *const _ as u32
-            );
-        }
-        self.state
-            .store(ActorState::READY.into(), Ordering::Release)
-    }
-     */
 
     fn poll(&mut self) -> bool {
         if self.actor.name() == "uart_actor" || self.actor.name() == "rak811_ingress" {
@@ -234,7 +187,7 @@ impl ActorExecutor {
         self.actors
             .push(supervised)
             .unwrap_or_else(|_| panic!("too many actors"));
-        log::info!(
+        log::trace!(
             "{} {:x}",
             actor.name(),
             (self.actors[self.actors.len() - 1].get_state_flag_handle() as u32)
