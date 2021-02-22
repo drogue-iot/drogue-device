@@ -301,16 +301,21 @@ mod tests {
         });
     }
 
+    fn split<N>(buffer: &mut AsyncBuffer<N>) -> (AsyncBBProducer<N>, AsyncBBConsumer<N>)
+    where
+        N: ArrayLength<u8>,
+    {
+        let mut buffer = unsafe {
+            core::mem::transmute::<&AsyncBBBuffer<N>, &'static AsyncBBBuffer<N>>(&buffer)
+        };
+        buffer.split()
+    }
+
     #[test]
     fn test_queue() {
         setup();
         let mut queue: AsyncBBBuffer<consts::U8> = AsyncBBBuffer::new();
-        let mut queue = unsafe {
-            core::mem::transmute::<&AsyncBBBuffer<consts::U8>, &'static AsyncBBBuffer<consts::U8>>(
-                &queue,
-            )
-        };
-        let (mut prod, cons) = queue.split();
+        let (mut prod, cons) = split(queue);
 
         {
             let mut rx_buf = [0; 4];
@@ -330,19 +335,8 @@ mod tests {
         setup();
 
         let mut queue: AsyncBBBuffer<consts::U128> = AsyncBBBuffer::new();
-        let mut queue = unsafe {
-            core::mem::transmute::<&AsyncBBBuffer<consts::U128>, &'static AsyncBBBuffer<consts::U128>>(
-                &queue,
-            )
-        };
-        let (mut prod, cons) = queue.split();
+        let (mut prod, cons) = split(queue);
 
-        let mut prod = unsafe {
-            core::mem::transmute::<
-                &AsyncBBProducer<consts::U128>,
-                &'static AsyncBBProducer<consts::U128>,
-            >(&mut prod)
-        };
         {
             let mut wgrant = prod.prepare_write(128).unwrap();
             let buf = wgrant.buf();
@@ -355,7 +349,7 @@ mod tests {
 
         for i in 0..50 {
             let mut rx_buf = [0; 1];
-            block_on(cons.read(&mut rx_buf));
+            block_on(unsafe { cons.read(&mut rx_buf) });
         }
     }
 }
