@@ -2,7 +2,7 @@
 
 use core::future::Future;
 
-use crate::alloc::{alloc, Box};
+use crate::arena::{alloc, Box};
 use crate::prelude::Actor;
 use core::mem::transmute;
 

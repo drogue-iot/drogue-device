@@ -11,7 +11,7 @@ use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue, String};
 
 use crate::address::Address;
-use crate::alloc::{alloc, Box, Rc};
+use crate::arena::{alloc, Box, Rc};
 use crate::device::Lifecycle;
 use crate::platform::with_critical_section;
 use crate::prelude::*;

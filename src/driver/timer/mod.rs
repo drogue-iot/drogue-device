@@ -1,6 +1,6 @@
-use crate::alloc::{alloc, Box};
 use crate::api::delayer::{Delay, Delayer};
 use crate::api::scheduler::{Schedule, Scheduler};
+use crate::arena::{alloc, Box};
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::timer::Timer as HalTimer;
 use crate::platform::with_critical_section;

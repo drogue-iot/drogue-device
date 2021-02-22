@@ -5,7 +5,7 @@
 pub mod actor;
 pub mod address;
 #[doc(hidden)]
-pub mod alloc;
+pub mod arena;
 pub mod bus;
 pub mod device;
 pub mod domain;

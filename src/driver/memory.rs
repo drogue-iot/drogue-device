@@ -1,8 +1,8 @@
 use crate::handler::{Completion, Response};
 use crate::prelude::{Actor, ActorInfo, NotifyHandler, RequestHandler};
 
-use crate::alloc::static_arena::StaticArena;
-use crate::alloc::HEAP;
+use crate::arena::static_arena::StaticArena;
+use crate::arena::HEAP;
 
 pub struct Query;
 pub struct Info {

@@ -1,4 +1,4 @@
-use crate::alloc::static_arena::StaticArena;
+use crate::arena::static_arena::StaticArena;
 use core::cell::UnsafeCell;
 use core::fmt::{Debug, Formatter};
 use core::future::Future;
@@ -18,8 +18,8 @@ macro_rules! init_heap {
     ($size:literal) => {
         static mut HEAP_MEMORY: [u8; $size] = [0; $size];
         unsafe {
-            $crate::alloc::HEAP
-                .replace($crate::alloc::static_arena::StaticArena::new(&HEAP_MEMORY));
+            $crate::arena::HEAP
+                .replace($crate::arena::static_arena::StaticArena::new(&HEAP_MEMORY));
         }
     };
 }
