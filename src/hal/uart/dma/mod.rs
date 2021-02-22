@@ -2,9 +2,12 @@ use crate::api::uart::Error;
 
 /// Trait for devices that support UART as a interrupt-driven DMA peripheral.
 pub trait DmaUartHal {
-    /// Start a write operation to transmit the provided buffer. Implementations can return
+    /// Prepare a write operation to transmit the provided buffer. Implementations can return
     /// TxBufferTooLong if buffer is too big.
-    fn start_write(&self, tx_buffer: &[u8]) -> Result<(), Error>;
+    fn prepare_write(&self, tx_buffer: &[u8]) -> Result<(), Error>;
+
+    /// Start DMA write operation
+    fn start_write(&self);
 
     /// Complete a write operation.
     fn finish_write(&self) -> Result<(), Error>;
@@ -20,7 +23,7 @@ pub trait DmaUartHal {
     fn start_read(&self);
 
     /// Complete a read operation.
-    fn finish_read(&self) -> Result<usize, Error>;
+    fn finish_read(&self) -> usize;
 
     /// Cancel a read operation
     fn cancel_read(&self);

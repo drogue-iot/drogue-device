@@ -23,3 +23,8 @@ heapless = "0.5.5"
 name = "microbit-uart"
 test = false
 bench = false
+
+[profile.release]
+debug = true
+opt-level = "z"
+lto = true

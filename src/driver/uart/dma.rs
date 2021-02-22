@@ -11,7 +11,7 @@ use crate::interrupt::{Interrupt, InterruptContext};
 use crate::package::Package;
 use crate::synchronization::Signal;
 
-use core::cell::{Cell, RefCell, UnsafeCell};
+use core::cell::{RefCell, UnsafeCell};
 use core::future::Future;
 use core::pin::Pin;
 use core::sync::atomic::AtomicBool;
@@ -19,17 +19,19 @@ use core::sync::atomic::Ordering;
 use core::task::{Context, Poll};
 use cortex_m::interrupt::Nr;
 
-use crate::util::dma::async_bbqueue::*;
+use crate::util::dma::async_bbqueue::{Error as QueueError, *};
 
-pub struct UartActor<U, T, RXN>
+pub struct UartActor<U, T, TXN, RXN>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8> + 'static,
     RXN: ArrayLength<u8> + 'static,
 {
     me: Option<Address<Self>>,
     shared: Option<&'static Shared<U, T>>,
     rx_consumer: Option<AsyncBBConsumer<RXN>>,
+    tx_producer: Option<AsyncBBProducer<TXN>>,
     controller: Option<Address<UartController<U, T>>>,
 }
 
@@ -41,15 +43,18 @@ where
     shared: Option<&'static Shared<U, T>>,
 }
 
-pub struct UartInterrupt<U, T, RXN>
+pub struct UartInterrupt<U, T, TXN, RXN>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8> + 'static,
     RXN: ArrayLength<u8> + 'static,
 {
     shared: Option<&'static Shared<U, T>>,
     me: Option<Address<Self>>,
     controller: Option<Address<UartController<U, T>>>,
+    tx_consumer: Option<AsyncBBConsumer<TXN>>,
+    tx_consumer_grant: Option<RefCell<AsyncBBConsumerGrant<'static, TXN>>>,
     rx_producer: Option<AsyncBBProducer<RXN>>,
     rx_producer_grant: Option<RefCell<AsyncBBProducerGrant<'static, RXN>>>,
 }
@@ -64,26 +69,31 @@ where
 {
     uart: U,
     timer: RefCell<Option<Address<T>>>,
-    tx_state: Cell<State>,
-    tx_done: Signal<Result<(), Error>>,
+    tx_state: AtomicBool,
 
     rx_state: AtomicBool,
     rx_timeout: Signal<()>,
 }
 
-pub struct DmaUart<U, T, RXN>
+pub struct DmaUart<U, T, TXN, RXN>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8> + 'static,
     RXN: ArrayLength<u8> + 'static,
 {
-    actor: ActorContext<UartActor<U, T, RXN>>,
+    actor: ActorContext<UartActor<U, T, TXN, RXN>>,
     controller: ActorContext<UartController<U, T>>,
-    interrupt: InterruptContext<UartInterrupt<U, T, RXN>>,
+    interrupt: InterruptContext<UartInterrupt<U, T, TXN, RXN>>,
     shared: Shared<U, T>,
+
     rx_buffer: UnsafeCell<AsyncBBBuffer<'static, RXN>>,
     rx_cons: RefCell<Option<UnsafeCell<AsyncBBConsumer<RXN>>>>,
     rx_prod: RefCell<Option<UnsafeCell<AsyncBBProducer<RXN>>>>,
+
+    tx_buffer: UnsafeCell<AsyncBBBuffer<'static, TXN>>,
+    tx_cons: RefCell<Option<UnsafeCell<AsyncBBConsumer<TXN>>>>,
+    tx_prod: RefCell<Option<UnsafeCell<AsyncBBProducer<TXN>>>>,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -100,20 +110,20 @@ where
 {
     fn new(uart: U) -> Self {
         Self {
-            tx_done: Signal::new(),
             uart,
             timer: RefCell::new(None),
-            tx_state: Cell::new(State::Ready),
+            tx_state: AtomicBool::new(READY_STATE),
             rx_timeout: Signal::new(),
             rx_state: AtomicBool::new(READY_STATE),
         }
     }
 }
 
-impl<U, T, RXN> DmaUart<U, T, RXN>
+impl<U, T, TXN, RXN> DmaUart<U, T, TXN, RXN>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
     pub fn new<IRQ>(uart: U, irq: IRQ) -> Self
@@ -128,32 +138,38 @@ where
             rx_buffer: UnsafeCell::new(AsyncBBBuffer::new()),
             rx_prod: RefCell::new(None),
             rx_cons: RefCell::new(None),
+
+            tx_buffer: UnsafeCell::new(AsyncBBBuffer::new()),
+            tx_prod: RefCell::new(None),
+            tx_cons: RefCell::new(None),
         }
     }
 }
 
-impl<U, T, RXN> Package for DmaUart<U, T, RXN>
+impl<U, T, TXN, RXN> Package for DmaUart<U, T, TXN, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
-    type Primary = UartActor<U, T, RXN>;
+    type Primary = UartActor<U, T, TXN, RXN>;
     type Configuration = Address<T>;
     fn mount(
         &'static self,
         timer: Self::Configuration,
         supervisor: &mut Supervisor,
-    ) -> Address<UartActor<U, T, RXN>> {
+    ) -> Address<UartActor<U, T, TXN, RXN>> {
         let (rx_prod, rx_cons) = unsafe { (&mut *self.rx_buffer.get()).split() };
+        let (tx_prod, tx_cons) = unsafe { (&mut *self.tx_buffer.get()).split() };
 
         self.shared.timer.borrow_mut().replace(timer);
         let controller = self.controller.mount(&self.shared, supervisor);
         let addr = self
             .actor
-            .mount((&self.shared, controller, rx_cons), supervisor);
+            .mount((&self.shared, controller, tx_prod, rx_cons), supervisor);
         self.interrupt
-            .mount((&self.shared, controller, rx_prod), supervisor);
+            .mount((&self.shared, controller, tx_cons, rx_prod), supervisor);
 
         addr
     }
@@ -163,10 +179,11 @@ where
     }
 }
 
-impl<U, T, RXN> UartActor<U, T, RXN>
+impl<U, T, TXN, RXN> UartActor<U, T, TXN, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
     pub fn new() -> Self {
@@ -174,6 +191,7 @@ where
             shared: None,
             me: None,
             rx_consumer: None,
+            tx_producer: None,
             controller: None,
         }
     }
@@ -202,10 +220,11 @@ where
 }
 
 // DMA implementation of the trait
-impl<U, T, RXN> UartReader for UartActor<U, T, RXN>
+impl<U, T, TXN, RXN> UartReader for UartActor<U, T, TXN, RXN>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
     /// Read bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
@@ -259,28 +278,24 @@ where
     }
 }
 
-impl<U, T, RXN> UartWriter for UartActor<U, T, RXN>
+impl<U, T, TXN, RXN> UartWriter for UartActor<U, T, TXN, RXN>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
     /// Transmit bytes from provided tx_buffer over UART. The memory pointed to by the buffer must be available until the return future is await'ed
     fn write<'a>(self, message: UartWrite<'a>) -> Response<Self, Result<(), Error>> {
         let shared = self.shared.as_ref().unwrap();
-        match shared.tx_state.get() {
-            State::Ready => {
-                shared.tx_done.reset();
-                shared.tx_state.set(State::InProgress);
-                match shared.uart.start_write(message.0) {
-                    Ok(_) => {
-                        let future = TxFuture::new(shared);
-                        Response::immediate_future(self, future)
-                    }
-                    Err(e) => Response::immediate(self, Err(e)),
-                }
-            }
-            _ => Response::immediate(self, Err(Error::TxInProgress)),
+        if READY_STATE == shared.tx_state.swap(BUSY_STATE, Ordering::SeqCst) {
+            // log::info!("Going to write message");
+            let tx_producer = self.tx_producer.as_ref().unwrap();
+            let future = unsafe { tx_producer.write(message.0) };
+            let future = TxFuture::new(future, shared);
+            Response::immediate_future(self, future)
+        } else {
+            Response::immediate(self, Err(Error::TxInProgress))
         }
     }
 }
@@ -297,15 +312,17 @@ where
     }
 }
 
-impl<U, T, RXN> Actor for UartActor<U, T, RXN>
+impl<U, T, TXN, RXN> Actor for UartActor<U, T, TXN, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
     type Configuration = (
         &'static Shared<U, T>,
         Address<UartController<U, T>>,
+        AsyncBBProducer<TXN>,
         AsyncBBConsumer<RXN>,
     );
 
@@ -313,23 +330,64 @@ where
         self.me.replace(me);
         self.shared.replace(config.0);
         self.controller.replace(config.1);
-        self.rx_consumer.replace(config.2);
+        self.tx_producer.replace(config.2);
+        self.rx_consumer.replace(config.3);
     }
 }
 
-impl<U, T, RXN> UartInterrupt<U, T, RXN>
+impl<U, T, TXN, RXN> UartInterrupt<U, T, TXN, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
     pub fn new() -> Self {
         Self {
             shared: None,
+            tx_consumer: None,
             rx_producer: None,
+            tx_consumer_grant: None,
             rx_producer_grant: None,
             me: None,
             controller: None,
+        }
+    }
+
+    fn start_write(&mut self) {
+        let shared = self.shared.as_ref().unwrap();
+        let tx_consumer = self.tx_consumer.as_ref().unwrap();
+        match tx_consumer.prepare_read() {
+            Ok(grant) => match shared.uart.prepare_write(grant.buf()) {
+                Ok(_) => {
+                    self.tx_consumer_grant.replace(RefCell::new(grant));
+                    // log::info!("Starting WRITE");
+                    shared.uart.start_write();
+                }
+                Err(e) => {
+                    log::error!("Error preparing write, backing off: {:?}", e);
+                    shared.timer.borrow().as_ref().unwrap().schedule(
+                        Milliseconds(1000),
+                        TxStart,
+                        *self.me.as_ref().unwrap(),
+                    );
+                }
+            },
+            Err(QueueError::BufferEmpty) => {
+                shared.timer.borrow().as_ref().unwrap().schedule(
+                    Milliseconds(10),
+                    TxStart,
+                    *self.me.as_ref().unwrap(),
+                );
+            }
+            Err(e) => {
+                log::error!("Error pulling from queue, backing off: {:?}", e);
+                shared.timer.borrow().as_ref().unwrap().schedule(
+                    Milliseconds(1000),
+                    TxStart,
+                    *self.me.as_ref().unwrap(),
+                );
+            }
         }
     }
 
@@ -358,6 +416,13 @@ where
                     );
                 }
             },
+            Err(QueueError::BufferFull) => {
+                shared.timer.borrow().as_ref().unwrap().schedule(
+                    Milliseconds(10),
+                    RxStart,
+                    *self.me.as_ref().unwrap(),
+                );
+            }
             Err(e) => {
                 log::error!("Producer not ready, backing off: {:?}", e);
                 shared.timer.borrow().as_ref().unwrap().schedule(
@@ -373,35 +438,40 @@ where
 const READ_TIMEOUT: u32 = 100;
 const READ_SIZE: usize = 128;
 
-impl<U, T, RXN> Actor for UartInterrupt<U, T, RXN>
+impl<U, T, TXN, RXN> Actor for UartInterrupt<U, T, TXN, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
     type Configuration = (
         &'static Shared<U, T>,
         Address<UartController<U, T>>,
+        AsyncBBConsumer<TXN>,
         AsyncBBProducer<RXN>,
     );
 
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.shared.replace(config.0);
         self.controller.replace(config.1);
-        self.rx_producer.replace(config.2);
+        self.tx_consumer.replace(config.2);
+        self.rx_producer.replace(config.3);
         self.me.replace(me);
     }
 
     fn on_start(mut self) -> Completion<Self> {
         self.start_read(READ_SIZE, Milliseconds(READ_TIMEOUT));
+        self.start_write();
         Completion::immediate(self)
     }
 }
 
-impl<U, T, RXN> NotifyHandler<RxStart> for UartInterrupt<U, T, RXN>
+impl<U, T, TXN, RXN> NotifyHandler<RxStart> for UartInterrupt<U, T, TXN, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
     fn on_notify(mut self, message: RxStart) -> Completion<Self> {
@@ -411,76 +481,104 @@ where
     }
 }
 
-impl<U, T, RXN> Interrupt for UartInterrupt<U, T, RXN>
+impl<U, T, TXN, RXN> NotifyHandler<TxStart> for UartInterrupt<U, T, TXN, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8>,
+    RXN: ArrayLength<u8>,
+{
+    fn on_notify(mut self, message: TxStart) -> Completion<Self> {
+        // log::info!("RX START");
+        self.start_write();
+        Completion::immediate(self)
+    }
+}
+
+impl<U, T, TXN, RXN> Interrupt for UartInterrupt<U, T, TXN, RXN>
+where
+    U: DmaUartHal,
+    T: Scheduler + 'static,
+    TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
     fn on_interrupt(&mut self) {
         let shared = self.shared.as_ref().unwrap();
         let (tx_done, rx_done) = shared.uart.process_interrupts();
-        log::trace!(
-            "[UART ISR] TX SIGNALED: {}. TX DONE: {}. RX DONE: {}",
-            shared.tx_done.signaled(),
-            tx_done,
-            rx_done,
-        );
+        log::trace!("[UART ISR] TX DONE: {}. RX DONE: {}", tx_done, rx_done,);
 
         if tx_done {
-            shared.tx_done.signal(shared.uart.finish_write());
+            let result = shared.uart.finish_write();
+            // log::info!("TX DONE: {:?}", result);
+            if let Some(grant) = self.tx_consumer_grant.take() {
+                let grant = grant.into_inner();
+                if let Ok(_) = result {
+                    let len = grant.len();
+                    // log::info!("Releasing {} bytes from grant", len);
+                    grant.release(len);
+                } else {
+                    grant.release(0);
+                }
+            }
         }
 
         if rx_done {
-            if let Ok(len) = shared.uart.finish_read() {
-                if let Some(grant) = self.rx_producer_grant.take() {
-                    if len > 0 {
-                        log::trace!("COMMITTING {} bytes", len);
-                        grant.into_inner().commit(len);
-                    }
+            let len = shared.uart.finish_read();
+            if let Some(grant) = self.rx_producer_grant.take() {
+                if len > 0 {
+                    log::trace!("COMMITTING {} bytes", len);
+                    grant.into_inner().commit(len);
                 }
-            } else {
-                log::error!("FINISH READ ERROR");
             }
+        }
+
+        if tx_done {
+            self.start_write();
+        }
+
+        if rx_done {
             self.start_read(READ_SIZE, Milliseconds(READ_TIMEOUT));
         }
     }
 }
 
-pub struct TxFuture<'a, U, T>
+struct TxFuture<'a, U, T, TXN>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8> + 'static,
 {
+    future: AsyncWrite<TXN>,
     shared: &'a Shared<U, T>,
 }
 
-impl<'a, U, T> TxFuture<'a, U, T>
+impl<'a, U, T, TXN> TxFuture<'a, U, T, TXN>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8> + 'static,
 {
-    fn new(shared: &'a Shared<U, T>) -> Self {
-        Self { shared }
+    fn new(future: AsyncWrite<TXN>, shared: &'a Shared<U, T>) -> Self {
+        Self { future, shared }
     }
 }
 
-impl<'a, U, T> Future for TxFuture<'a, U, T>
+impl<'a, U, T, TXN> Future for TxFuture<'a, U, T, TXN>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
+    TXN: ArrayLength<u8> + 'static,
 {
     type Output = Result<(), Error>;
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        log::trace!("Polling TX: {:?}", self.shared.tx_state.get());
-        if State::InProgress == self.shared.tx_state.get() {
-            if let Poll::Ready(result) = self.shared.tx_done.poll_wait(cx) {
-                self.shared.tx_state.set(State::Ready);
-                log::trace!("Marked TX future complete. Set ready");
-                return Poll::Ready(result);
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match Future::poll(Pin::new(&mut self.future), cx) {
+            Poll::Ready(result) => {
+                self.shared.tx_state.store(READY_STATE, Ordering::SeqCst);
+                return Poll::Ready(result.map_err(|_| Error::Receive));
             }
+            Poll::Pending => Poll::Pending,
         }
-        return Poll::Pending;
     }
 }
 
@@ -536,6 +634,9 @@ struct RxTimeout;
 
 #[derive(Clone)]
 struct RxStart;
+
+#[derive(Clone)]
+struct TxStart;
 
 #[cfg(test)]
 mod tests {

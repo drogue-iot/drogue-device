@@ -26,4 +26,5 @@ bench = false
 
 [profile.release]
 debug = true
-opt-level = "s"
+opt-level = "z"
+lto = true

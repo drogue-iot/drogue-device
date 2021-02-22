@@ -1,5 +1,5 @@
 use crate::synchronization::Signal;
-use bbqueue::{BBBuffer, ConstBBBuffer, Consumer, Error as BBQueueError, GrantW, Producer};
+use bbqueue::{BBBuffer, ConstBBBuffer, Consumer, Error as BBQueueError, GrantR, GrantW, Producer};
 
 pub use bbqueue::{consts, ArrayLength};
 use core::cell::RefCell;
@@ -60,6 +60,12 @@ where
         let grant = producer.grant_max_remaining(nbytes)?;
         Ok(AsyncBBProducerGrant { inner: self, grant })
     }
+
+    fn prepare_read(&'a self) -> Result<AsyncBBConsumerGrant<'a, N>, BBQueueError> {
+        let mut consumer = self.consumer.as_ref().unwrap().borrow_mut();
+        let grant = consumer.read()?;
+        Ok(AsyncBBConsumerGrant { inner: self, grant })
+    }
 }
 
 pub struct AsyncBBProducerGrant<'a, N>
@@ -82,6 +88,34 @@ where
         self.grant.commit(nbytes);
         if nbytes > 0 {
             self.inner.notify_consumer();
+        }
+    }
+}
+
+pub struct AsyncBBConsumerGrant<'a, N>
+where
+    N: ArrayLength<u8> + 'a,
+{
+    inner: &'a Inner<'a, N>,
+    grant: GrantR<'a, N>,
+}
+
+impl<'a, N> AsyncBBConsumerGrant<'a, N>
+where
+    N: ArrayLength<u8> + 'a,
+{
+    pub fn buf(&self) -> &[u8] {
+        self.grant.buf()
+    }
+
+    pub fn len(&self) -> usize {
+        self.grant.buf().len()
+    }
+
+    pub fn release(self, nbytes: usize) {
+        self.grant.release(nbytes);
+        if nbytes > 0 {
+            self.inner.notify_producer();
         }
     }
 }
@@ -142,7 +176,10 @@ where
     }
 
     pub fn prepare_write(&self, nbytes: usize) -> Result<AsyncBBProducerGrant<'static, N>, Error> {
-        self.inner.prepare_write(nbytes).map_err(|e| Error::Other)
+        self.inner.prepare_write(nbytes).map_err(|e| match e {
+            BBQueueError::InsufficientSize => Error::BufferFull,
+            _ => Error::Other,
+        })
     }
 
     pub unsafe fn write<'a>(&self, write_buf: &'a [u8]) -> AsyncWrite<N> {
@@ -177,8 +214,8 @@ where
                     let wp = self.write_buf.len() - self.bytes_left;
                     let to_copy = core::cmp::min(self.bytes_left, buf.len());
 
-                    //log::info!("COPYING {} bytes from pos {}", to_copy, wp);
-                    buf[..to_copy].copy_from_slice(&self.write_buf[wp..to_copy]);
+                    log::trace!("COPYING {} bytes from pos {}", to_copy, wp);
+                    buf[..to_copy].copy_from_slice(&self.write_buf[wp..wp + to_copy]);
 
                     self.bytes_left -= to_copy;
                     grant.commit(to_copy);
@@ -249,7 +286,6 @@ where
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let mut consumer = self.inner.consumer.as_ref().unwrap().borrow_mut();
         if self.cancelled {
-            // cancel.load(Ordering::SeqCst) {
             Poll::Ready(Ok(self.buffer.len() - self.remaining))
         } else {
             loop {
@@ -259,7 +295,7 @@ where
                         let rp = self.buffer.len() - self.remaining;
                         let to_copy = core::cmp::min(self.remaining, buf.len());
 
-                        self.buffer[rp..to_copy].copy_from_slice(&buf[..to_copy]);
+                        self.buffer[rp..rp + to_copy].copy_from_slice(&buf[..to_copy]);
                         self.remaining -= to_copy;
                         grant.release(to_copy);
                         self.inner.notify_producer();
@@ -294,6 +330,13 @@ where
 {
     fn new(inner: &'static Inner<'static, N>) -> Self {
         Self { inner }
+    }
+
+    pub fn prepare_read(&self) -> Result<AsyncBBConsumerGrant<'static, N>, Error> {
+        self.inner.prepare_read().map_err(|e| match e {
+            BBQueueError::InsufficientSize => Error::BufferEmpty,
+            _ => Error::Other,
+        })
     }
 
     /// Read from the consumer into the provided buffer. The returned future

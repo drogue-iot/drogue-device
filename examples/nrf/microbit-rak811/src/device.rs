@@ -17,7 +17,8 @@ use heapless::consts;
 use nrf52833_hal as hal;
 
 pub type AppTimer = Timer<HalTimer<TIMER0>>;
-pub type AppUart = DmaUart<HalUart<UARTE0>, <AppTimer as Package>::Primary, consts::U64>;
+pub type AppUart =
+    DmaUart<HalUart<UARTE0>, <AppTimer as Package>::Primary, consts::U64, consts::U64>;
 pub type Rak811Lora = rak811::Rak811<
     <AppUart as Package>::Primary,
     <AppTimer as Package>::Primary,

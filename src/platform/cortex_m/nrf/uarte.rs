@@ -44,7 +44,7 @@ impl<T> crate::hal::uart::dma::DmaUartHal for Uarte<T>
 where
     T: Instance,
 {
-    fn start_write(&self, tx_buffer: &[u8]) -> Result<(), Error> {
+    fn prepare_write(&self, tx_buffer: &[u8]) -> Result<(), Error> {
         if tx_buffer.len() > hal::target_constants::EASY_DMA_SIZE {
             return Err(Error::TxBufferTooLong);
         }
@@ -52,8 +52,12 @@ where
         // We can only DMA out of RAM.
         slice_in_ram_or(tx_buffer, Error::BufferNotInRAM)?;
 
-        start_write(&*self.uart, tx_buffer);
+        prepare_write(&*self.uart, tx_buffer);
         Ok(())
+    }
+
+    fn start_write(&self) {
+        start_write(&*self.uart);
     }
 
     fn process_interrupts(&self) -> (bool, bool) {
@@ -116,13 +120,13 @@ where
     }
 
     /// Complete a read operation.
-    fn finish_read(&self) -> Result<usize, Error> {
+    fn finish_read(&self) -> usize {
         with_critical_section(|_| {
             finalize_read(&*self.uart);
 
             let bytes_read = self.uart.rxd.amount.read().bits() as usize;
 
-            Ok(bytes_read)
+            bytes_read
         })
     }
 
@@ -136,8 +140,8 @@ where
 
 /// Write via UARTE.
 ///
-/// This method uses transmits all bytes in `tx_buffer`.
-fn start_write(uarte: &uarte0::RegisterBlock, tx_buffer: &[u8]) {
+/// This method prepares DMA for writing all bytes in `tx_buffer`.
+fn prepare_write(uarte: &uarte0::RegisterBlock, tx_buffer: &[u8]) {
     // Conservative compiler fence to prevent optimizations that do not
     // take in to account actions by DMA. The fence has been placed here,
     // before any DMA action has started.
@@ -164,7 +168,12 @@ fn start_write(uarte: &uarte0::RegisterBlock, tx_buffer: &[u8]) {
         // The MAXCNT field is 8 bits wide and accepts the full range of
         // values.
         unsafe { w.maxcnt().bits(tx_buffer.len() as _) });
+}
 
+/// Write via UARTE.
+///
+/// This method uses transmits all bytes in `tx_buffer`.
+fn start_write(uarte: &uarte0::RegisterBlock) {
     // Start UARTE Transmit transaction.
     uarte.tasks_starttx.write(|w|
         // `1` is a valid value to write to task registers.
