@@ -1,10 +1,8 @@
 //use drogue_nom_utils::parse_usize;
-use nom::{alt, char, complete, do_parse, named, named_args, tag, take, take_until};
+use nom::{alt, char, complete, do_parse, named, tag, take_until};
 
 use crate::api::ip::{IpAddress, IpAddressV4};
-use crate::api::wifi::JoinError;
 use crate::util::nom::{parse_u8, parse_usize};
-use heapless::String;
 
 named!(
     pub ok,

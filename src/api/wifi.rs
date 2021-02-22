@@ -1,6 +1,6 @@
-use crate::api::ip::{IpAddress, IpAddressV4};
+use crate::api::ip::IpAddress;
 use crate::prelude::*;
-use heapless::{consts::*, ArrayLength, String};
+use heapless::{consts::*, String};
 
 #[derive(Debug)]
 pub enum Join {

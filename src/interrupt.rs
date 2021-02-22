@@ -1,7 +1,6 @@
 //! Types and traits for interrupt-capable actors.
 
 use cortex_m::interrupt::Nr;
-use cortex_m::peripheral::NVIC;
 
 use crate::prelude::*;
 

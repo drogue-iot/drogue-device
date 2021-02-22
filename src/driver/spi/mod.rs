@@ -1,15 +1,9 @@
-use crate::api::arbitrator::{Arbitrator, BusArbitrator, BusTransaction};
+use crate::api::arbitrator::Arbitrator;
 use crate::api::spi::{SpiBus, SpiError, SpiTransfer};
 use crate::prelude::*;
-use core::cell::RefCell;
 use core::fmt::Debug;
-use core::future::Future;
 use core::marker::PhantomData;
-use core::pin::Pin;
-use core::sync::atomic::{AtomicBool, Ordering};
-use core::task::{Context, Poll, Waker};
 use embedded_hal::blocking::spi::Transfer;
-use heapless::{consts::*, spsc::Queue};
 
 // ------------------------------------------------------------------------
 // ------------------------------------------------------------------------

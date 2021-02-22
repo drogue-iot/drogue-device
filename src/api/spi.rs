@@ -5,6 +5,7 @@ use crate::prelude::*;
 use core::cell::RefCell;
 use embedded_hal::digital::v2::OutputPin;
 
+#[derive(Debug)]
 pub enum SpiError {
     Overrun,
     ModeFault,
@@ -67,13 +68,13 @@ where
     }
 
     pub async fn select(&self) -> Selected<'_, PIN, D> {
-        self.pin.borrow_mut().set_low();
+        self.pin.borrow_mut().set_low().ok().unwrap();
         self.delayer.unwrap().delay(self.select_delay).await;
         Selected::new(&self)
     }
 
     fn deselect(&self) {
-        self.pin.borrow_mut().set_high();
+        self.pin.borrow_mut().set_high().ok().unwrap();
     }
 }
 

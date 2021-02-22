@@ -173,7 +173,7 @@ pub struct QueryReady;
 impl RequestHandler<QueryReady> for EsWifiReadyPin {
     type Response = bool;
 
-    fn on_request(mut self, _message: QueryReady) -> Response<Self, Self::Response> {
+    fn on_request(self, _message: QueryReady) -> Response<Self, Self::Response> {
         let ready = self.shared.unwrap().is_ready();
         Response::immediate(self, ready)
     }
@@ -182,7 +182,7 @@ impl RequestHandler<QueryReady> for EsWifiReadyPin {
 impl RequestHandler<AwaitReady> for EsWifiReadyPin {
     type Response = ();
 
-    fn on_request(mut self, message: AwaitReady) -> Response<Self, Self::Response> {
+    fn on_request(self, message: AwaitReady) -> Response<Self, Self::Response> {
         if self.shared.unwrap().is_ready() {
             Response::immediate(self, ())
         } else {
@@ -205,7 +205,7 @@ impl AwaitReadyFuture {
 impl Future for AwaitReadyFuture {
     type Output = ();
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         self.shared.poll_ready(cx.waker())
     }
 }

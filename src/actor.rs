@@ -1,8 +1,6 @@
 //! Actor-related types and traits.
 
-use core::any::type_name;
 use core::cell::{RefCell, UnsafeCell};
-use core::fmt::Write;
 use core::future::Future;
 use core::mem::transmute;
 use core::pin::Pin;
@@ -307,7 +305,7 @@ impl<A: Actor + 'static> ActorContext<A> {
         let sender = CompletionSender::new(signal.clone());
         let receiver = CompletionReceiver::new(signal);
 
-        let mut debug = "damnit".into();
+        let debug = "damnit".into();
         //write!(debug, "{:?}", type_name::<M>()).unwrap();
 
         let request: &mut dyn ActorFuture<A> =

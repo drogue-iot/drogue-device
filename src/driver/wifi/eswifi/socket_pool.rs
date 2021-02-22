@@ -3,8 +3,6 @@ use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 
-use crate::api::ip::tcp::TcpError;
-use crate::api::ip::IpAddress;
 use heapless::{consts::*, spsc::Queue};
 
 enum SocketState {
@@ -38,20 +36,19 @@ impl SocketPool {
 
     fn poll_open(&self, waker: &Waker, waiting: bool) -> Poll<u8> {
         let mut sockets = self.sockets.borrow_mut();
-        let mut available = sockets
+        let available = sockets
             .iter()
             .enumerate()
             .take_while(|e| matches!(e, (_, SocketState::Closed)))
             .take(1)
             .next();
 
-        if available.is_some() {
-            let (index, _) = available.unwrap();
+        if let Some((index, _)) = available {
             sockets[index] = SocketState::Open;
             Poll::Ready(index as u8)
         } else {
             if !waiting {
-                self.waiters.borrow_mut().enqueue(waker.clone());
+                self.waiters.borrow_mut().enqueue(waker.clone()).unwrap();
             }
             Poll::Pending
         }

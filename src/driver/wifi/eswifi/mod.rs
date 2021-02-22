@@ -6,32 +6,22 @@ use socket_pool::SocketPool;
 
 use crate::api::arbitrator::BusArbitrator;
 use crate::api::delayer::Delayer;
-use crate::api::ip::tcp::{TcpError, TcpSocket, TcpStack};
+use crate::api::ip::tcp::{TcpError, TcpStack};
 use crate::api::ip::{IpAddress, IpAddressV4, IpProtocol, SocketAddress};
 use crate::api::spi::{ChipSelect, SpiBus, SpiError};
 use crate::api::wifi::{Join, JoinError, WifiSupplicant};
 use crate::domain::time::duration::Milliseconds;
-use crate::driver::spi::SpiController;
 use crate::driver::wifi::eswifi::parser::{
     CloseResponse, ConnectResponse, JoinResponse, ReadResponse, WriteResponse,
 };
 use crate::driver::wifi::eswifi::ready::{AwaitReady, QueryReady};
 use crate::driver::wifi::eswifi::ready::{EsWifiReady, EsWifiReadyPin};
-use crate::driver::wifi::eswifi::socket_pool::OpenFuture;
 use crate::hal::gpio::exti_pin::ExtiPin;
 use crate::prelude::*;
-use core::borrow::BorrowMut;
-use core::cell::RefCell;
 use core::fmt::Write;
-use core::future::Future;
-use core::marker::PhantomData;
-use core::pin::Pin;
-use core::sync::atomic::{AtomicBool, Ordering};
-use core::task::{Context, Poll, Waker};
 use cortex_m::interrupt::Nr;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
 use heapless::{consts::*, ArrayLength, String};
-use nom::error::ErrorKind::Complete;
 
 pub struct Shared {
     socket_pool: SocketPool,
@@ -68,6 +58,7 @@ where
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
 {
+    #[allow(non_camel_case_types)]
     pub fn new<READY_IRQ: Nr>(
         cs: CS,
         ready: READY,
@@ -142,8 +133,8 @@ macro_rules! command {
         //let mut c = String::new();
         //c
         let mut c = String::<$size>::new();
-        write!(c, $($arg)*);
-        c.push_str("\r");
+        write!(c, $($arg)*).unwrap();
+        c.push_str("\r").unwrap();
         c
     })
 }
@@ -171,16 +162,16 @@ where
     }
 
     async fn wakeup(&mut self) {
-        self.wakeup.set_low();
+        self.wakeup.set_low().ok().unwrap();
         self.delayer.unwrap().delay(Milliseconds(50u32)).await;
-        self.wakeup.set_high();
+        self.wakeup.set_high().ok().unwrap();
         self.delayer.unwrap().delay(Milliseconds(50u32)).await;
     }
 
     async fn reset(&mut self) {
-        self.reset.set_low();
+        self.reset.set_low().ok().unwrap();
         self.delayer.unwrap().delay(Milliseconds(50u32)).await;
-        self.reset.set_high();
+        self.reset.set_high().ok().unwrap();
         self.delayer.unwrap().delay(Milliseconds(50u32)).await;
     }
 
@@ -202,7 +193,7 @@ where
 
         self.await_data_ready().await;
         {
-            let mut spi = self.spi.unwrap().begin_transaction().await;
+            let spi = self.spi.unwrap().begin_transaction().await;
             let cs = self.cs.select().await;
 
             loop {
@@ -213,7 +204,7 @@ where
                     break;
                 }
                 let mut chunk = [0x0A, 0x0A];
-                spi.spi_transfer(&mut chunk).await;
+                spi.spi_transfer(&mut chunk).await.unwrap();
                 // reverse order going from 16 -> 2*8 bits
                 if chunk[1] != NAK {
                     response[pos] = chunk[1];
@@ -236,7 +227,9 @@ where
             );
         } else {
             // disable verbosity
-            self.send_string(&command!(U8, "MT=1"), &mut response).await;
+            self.send_string(&command!(U8, "MT=1"), &mut response)
+                .await
+                .unwrap();
             self.state = State::Ready;
             log::info!("[{}] eS-WiFi adapter is ready", ActorInfo::name());
         }
@@ -264,7 +257,7 @@ where
         log::info!("await ready done");
         {
             log::info!("obtain spi");
-            let mut spi = self.spi.unwrap().begin_transaction().await;
+            let spi = self.spi.unwrap().begin_transaction().await;
             log::info!("obtain spi done");
             //log::info!("set cs");
             let _cs = self.cs.select().await;
@@ -296,7 +289,7 @@ where
         let mut pos = 0;
 
         log::info!("recv try get spi");
-        let mut spi = self.spi.unwrap().begin_transaction().await;
+        let spi = self.spi.unwrap().begin_transaction().await;
         log::info!("recv got spi");
         let _cs = self.cs.select().await;
         log::info!("recv cs");
@@ -492,7 +485,7 @@ where
                     log::info!("wait R payload");
                     self.await_data_ready().await;
                     {
-                        let mut spi = self.spi.unwrap().begin_transaction().await;
+                        let spi = self.spi.unwrap().begin_transaction().await;
                         let _cs = self.cs.select().await;
 
                         log::info!("transfer prefix");
@@ -506,7 +499,7 @@ where
                             //}
 
                             //log::info!("transfer {:?}", xfer);
-                            spi.spi_transfer(&mut xfer).await;
+                            spi.spi_transfer(&mut xfer).await.unwrap();
                         }
 
                         log::info!("transfer payload {}", remainder.len());
@@ -520,7 +513,7 @@ where
                             }
 
                             //log::info!("transfer {:?}", xfer);
-                            spi.spi_transfer(&mut xfer).await;
+                            spi.spi_transfer(&mut xfer).await.unwrap();
                         }
                     }
 
@@ -584,10 +577,10 @@ where
                             let _cs = self.cs.select().await;
 
                             let mut xfer = [b'0', b'R'];
-                            spi.spi_transfer(&mut xfer).await;
+                            spi.spi_transfer(&mut xfer).await.unwrap();
 
                             xfer = [b'\n', b'\r'];
-                            spi.spi_transfer(&mut xfer).await;
+                            spi.spi_transfer(&mut xfer).await.unwrap();
                         }
 
                         self.await_data_ready().await;
@@ -651,7 +644,7 @@ where
                 }
             }
             .await;
-            (self)
+            self
         })
     }
 }
@@ -685,7 +678,7 @@ where
         self.cs.set_delayer(config.2);
     }
 
-    fn on_start(mut self) -> Completion<Self>
+    fn on_start(self) -> Completion<Self>
     where
         Self: 'static,
     {

@@ -43,11 +43,9 @@ impl<T, A: Actor + 'static> Response<A, T> {
     where
         T: 'static,
     {
-        unsafe {
-            let f: &mut dyn Future<Output = (A, T)> = alloc(f).unwrap();
-            let f = transmute::<_, &mut (dyn Future<Output = (A, T)> + 'static)>(f);
-            Self::Defer(Box::new(f))
-        }
+        let f: &mut dyn Future<Output = (A, T)> = alloc(f).unwrap();
+        let f = transmute::<_, &mut (dyn Future<Output = (A, T)> + 'static)>(f);
+        Self::Defer(Box::new(f))
     }
 
     /// Return an immediate future, synchronously, which will be
@@ -100,11 +98,9 @@ impl<A: Actor + 'static> Completion<A> {
     }
 
     pub unsafe fn defer_unchecked<F: Future<Output = A>>(f: F) -> Self {
-        unsafe {
-            let f: &mut dyn Future<Output = A> = alloc(f).unwrap();
-            let f = transmute::<_, &mut (dyn Future<Output = A> + 'static)>(f);
-            Self::Defer(Box::new(f))
-        }
+        let f: &mut dyn Future<Output = A> = alloc(f).unwrap();
+        let f = transmute::<_, &mut (dyn Future<Output = A> + 'static)>(f);
+        Self::Defer(Box::new(f))
     }
 }
 

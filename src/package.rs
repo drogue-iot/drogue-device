@@ -1,6 +1,6 @@
 //! Multi-actor package trait
 
-use crate::prelude::{Actor, ActorContext, Address, Supervisor};
+use crate::prelude::{Actor, Address, Supervisor};
 
 /// A package capable of configuring one or more actors collectively,
 /// exposing a single actor's address as the ingress point.

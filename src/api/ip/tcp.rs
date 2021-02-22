@@ -1,4 +1,4 @@
-use crate::api::ip::{IpAddress, IpProtocol, SocketAddress};
+use crate::api::ip::{IpProtocol, SocketAddress};
 use crate::prelude::*;
 
 pub enum TcpError {
@@ -135,7 +135,7 @@ impl<S> NotifyHandler<Close<S>> for S
 where
     S: TcpStack,
 {
-    fn on_notify(mut self, message: Close<S>) -> Completion<Self> {
+    fn on_notify(self, message: Close<S>) -> Completion<Self> {
         self.close(message.0)
     }
 }

@@ -32,7 +32,7 @@ impl Shared {
     }
 
     fn add_waiter(&self, waker: Waker) {
-        self.waiters.borrow_mut().enqueue(waker);
+        self.waiters.borrow_mut().enqueue(waker).unwrap();
     }
 }
 
@@ -139,7 +139,7 @@ impl<BUS> NotifyHandler<EndTransaction> for BusArbitrator<BUS>
 where
     BUS: Actor + 'static,
 {
-    fn on_notify(mut self, message: EndTransaction) -> Completion<Self> {
+    fn on_notify(self, message: EndTransaction) -> Completion<Self> {
         self.shared.unwrap().end_transaction();
         Completion::immediate(self)
     }
