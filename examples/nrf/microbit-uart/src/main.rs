@@ -10,8 +10,8 @@ use drogue_device::{
     domain::time::rate::Extensions,
     driver::timer::Timer,
     driver::uart::dma::DmaUart,
-    port::nrf::timer::Timer as HalTimer,
-    port::nrf::{
+    platform::cortex_m::nrf::{
+        timer::Timer as HalTimer,
         gpiote::*,
         uarte::{Baudrate, Parity, Pins, Uarte},
     },

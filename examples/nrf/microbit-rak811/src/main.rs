@@ -12,9 +12,9 @@ use drogue_device::{
     driver::memory::Memory,
     driver::timer::Timer,
     driver::uart::dma::DmaUart,
-    port::nrf::timer::Timer as HalTimer,
-    port::nrf::{
+    platform::cortex_m::nrf::{
         gpiote::*,
+        timer::Timer as HalTimer,
         uarte::{Baudrate, Parity, Pins, Uarte},
     },
     prelude::*,

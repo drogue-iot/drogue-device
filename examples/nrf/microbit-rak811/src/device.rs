@@ -7,7 +7,7 @@ use drogue_device::{
         uart::dma::DmaUart,
         uart::*,
     },
-    port::nrf::{gpiote::*, timer::Timer as HalTimer, uarte::Uarte as HalUart},
+    platform::cortex_m::nrf::{gpiote::*, timer::Timer as HalTimer, uarte::Uarte as HalUart},
     prelude::*,
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};

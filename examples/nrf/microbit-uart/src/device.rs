@@ -3,7 +3,7 @@ use drogue_device::{
     device::DeviceConfiguration,
     domain::time::duration::Milliseconds,
     driver::{led::*, timer::*, uart::dma::*},
-    port::nrf::{gpiote::*, timer::Timer as HalTimer, uarte::Uarte},
+    platform::cortex_m::nrf::{gpiote::*, timer::Timer as HalTimer, uarte::Uarte},
     prelude::*,
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
