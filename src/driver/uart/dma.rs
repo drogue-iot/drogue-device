@@ -29,18 +29,18 @@ where
     RXN: ArrayLength<u8> + 'static,
 {
     me: Option<Address<Self>>,
-    shared: Option<&'static Shared<U, T>>,
+    scheduler: Option<Address<T>>,
+    shared: Option<&'static Shared<U>>,
     rx_consumer: Option<AsyncBBConsumer<RXN>>,
     tx_producer: Option<AsyncBBProducer<TXN>>,
-    controller: Option<Address<UartController<U, T>>>,
+    controller: Option<Address<UartController<U>>>,
 }
 
-pub struct UartController<U, T>
+pub struct UartController<U>
 where
     U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
 {
-    shared: Option<&'static Shared<U, T>>,
+    shared: Option<&'static Shared<U>>,
 }
 
 pub struct UartInterrupt<U, T, TXN, RXN>
@@ -50,9 +50,10 @@ where
     TXN: ArrayLength<u8> + 'static,
     RXN: ArrayLength<u8> + 'static,
 {
-    shared: Option<&'static Shared<U, T>>,
+    scheduler: Option<Address<T>>,
     me: Option<Address<Self>>,
-    controller: Option<Address<UartController<U, T>>>,
+    shared: Option<&'static Shared<U>>,
+    controller: Option<Address<UartController<U>>>,
     tx_consumer: Option<AsyncBBConsumer<TXN>>,
     tx_consumer_grant: Option<RefCell<AsyncBBConsumerGrant<'static, TXN>>>,
     rx_producer: Option<AsyncBBProducer<RXN>>,
@@ -62,13 +63,11 @@ where
 const READY_STATE: bool = false;
 const BUSY_STATE: bool = true;
 
-pub struct Shared<U, T>
+pub struct Shared<U>
 where
     U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
 {
     uart: U,
-    timer: RefCell<Option<Address<T>>>,
     tx_state: AtomicBool,
 
     rx_state: AtomicBool,
@@ -83,9 +82,9 @@ where
     RXN: ArrayLength<u8> + 'static,
 {
     actor: ActorContext<UartActor<U, T, TXN, RXN>>,
-    controller: ActorContext<UartController<U, T>>,
+    controller: ActorContext<UartController<U>>,
     interrupt: InterruptContext<UartInterrupt<U, T, TXN, RXN>>,
-    shared: Shared<U, T>,
+    shared: Shared<U>,
 
     rx_buffer: UnsafeCell<AsyncBBBuffer<'static, RXN>>,
     rx_cons: RefCell<Option<UnsafeCell<AsyncBBConsumer<RXN>>>>,
@@ -103,15 +102,13 @@ pub enum State {
     Timeout,
 }
 
-impl<U, T> Shared<U, T>
+impl<U> Shared<U>
 where
     U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
 {
     fn new(uart: U) -> Self {
         Self {
             uart,
-            timer: RefCell::new(None),
             tx_state: AtomicBool::new(READY_STATE),
             rx_timeout: Signal::new(),
             rx_state: AtomicBool::new(READY_STATE),
@@ -157,19 +154,21 @@ where
     type Configuration = Address<T>;
     fn mount(
         &'static self,
-        timer: Self::Configuration,
+        config: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<UartActor<U, T, TXN, RXN>> {
         let (rx_prod, rx_cons) = unsafe { (&mut *self.rx_buffer.get()).split() };
         let (tx_prod, tx_cons) = unsafe { (&mut *self.tx_buffer.get()).split() };
 
-        self.shared.timer.borrow_mut().replace(timer);
         let controller = self.controller.mount(&self.shared, supervisor);
-        let addr = self
-            .actor
-            .mount((&self.shared, controller, tx_prod, rx_cons), supervisor);
-        self.interrupt
-            .mount((&self.shared, controller, tx_cons, rx_prod), supervisor);
+        let addr = self.actor.mount(
+            (&self.shared, controller, config, tx_prod, rx_cons),
+            supervisor,
+        );
+        self.interrupt.mount(
+            (&self.shared, controller, config, tx_cons, rx_prod),
+            supervisor,
+        );
 
         addr
     }
@@ -190,6 +189,7 @@ where
         Self {
             shared: None,
             me: None,
+            scheduler: None,
             rx_consumer: None,
             tx_producer: None,
             controller: None,
@@ -197,22 +197,20 @@ where
     }
 }
 
-impl<U, T> Actor for UartController<U, T>
+impl<U> Actor for UartController<U>
 where
     U: DmaUartHal,
-    T: Scheduler + 'static,
 {
-    type Configuration = &'static Shared<U, T>;
+    type Configuration = &'static Shared<U>;
 
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.shared.replace(config);
     }
 }
 
-impl<U, T> UartController<U, T>
+impl<U> UartController<U>
 where
     U: DmaUartHal,
-    T: Scheduler + 'static,
 {
     pub fn new() -> Self {
         Self { shared: None }
@@ -254,7 +252,7 @@ where
             let future = unsafe { rx_consumer.read(message.0) };
             let future = RxFuture::new(future, shared);
             shared.rx_timeout.reset();
-            shared.timer.borrow().as_ref().unwrap().schedule(
+            self.scheduler.as_ref().unwrap().schedule(
                 message.1,
                 ReadTimeout,
                 *self.controller.as_ref().unwrap(),
@@ -266,10 +264,9 @@ where
     }
 }
 
-impl<U, T> NotifyHandler<ReadTimeout> for UartController<U, T>
+impl<U> NotifyHandler<ReadTimeout> for UartController<U>
 where
     U: DmaUartHal,
-    T: Scheduler + 'static,
 {
     fn on_notify(self, message: ReadTimeout) -> Completion<Self> {
         let shared = self.shared.as_ref().unwrap();
@@ -300,10 +297,9 @@ where
     }
 }
 
-impl<U, T> NotifyHandler<RxTimeout> for UartController<U, T>
+impl<U> NotifyHandler<RxTimeout> for UartController<U>
 where
     U: DmaUartHal,
-    T: Scheduler + 'static,
 {
     fn on_notify(self, message: RxTimeout) -> Completion<Self> {
         let shared = self.shared.as_ref().unwrap();
@@ -320,8 +316,9 @@ where
     RXN: ArrayLength<u8>,
 {
     type Configuration = (
-        &'static Shared<U, T>,
-        Address<UartController<U, T>>,
+        &'static Shared<U>,
+        Address<UartController<U>>,
+        Address<T>,
         AsyncBBProducer<TXN>,
         AsyncBBConsumer<RXN>,
     );
@@ -330,8 +327,9 @@ where
         self.me.replace(me);
         self.shared.replace(config.0);
         self.controller.replace(config.1);
-        self.tx_producer.replace(config.2);
-        self.rx_consumer.replace(config.3);
+        self.scheduler.replace(config.2);
+        self.tx_producer.replace(config.3);
+        self.rx_consumer.replace(config.4);
     }
 }
 
@@ -350,6 +348,7 @@ where
             tx_consumer_grant: None,
             rx_producer_grant: None,
             me: None,
+            scheduler: None,
             controller: None,
         }
     }
@@ -366,7 +365,7 @@ where
                 }
                 Err(e) => {
                     log::error!("Error preparing write, backing off: {:?}", e);
-                    shared.timer.borrow().as_ref().unwrap().schedule(
+                    self.scheduler.as_ref().unwrap().schedule(
                         Milliseconds(1000),
                         TxStart,
                         *self.me.as_ref().unwrap(),
@@ -374,7 +373,8 @@ where
                 }
             },
             Err(QueueError::BufferEmpty) => {
-                shared.timer.borrow().as_ref().unwrap().schedule(
+                // TODO: Go to sleep
+                self.scheduler.as_ref().unwrap().schedule(
                     Milliseconds(10),
                     TxStart,
                     *self.me.as_ref().unwrap(),
@@ -382,7 +382,7 @@ where
             }
             Err(e) => {
                 log::error!("Error pulling from queue, backing off: {:?}", e);
-                shared.timer.borrow().as_ref().unwrap().schedule(
+                self.scheduler.as_ref().unwrap().schedule(
                     Milliseconds(1000),
                     TxStart,
                     *self.me.as_ref().unwrap(),
@@ -400,7 +400,7 @@ where
                 Ok(_) => {
                     self.rx_producer_grant.replace(RefCell::new(grant));
                     shared.uart.start_read();
-                    shared.timer.borrow().as_ref().unwrap().schedule(
+                    self.scheduler.as_ref().unwrap().schedule(
                         timeout,
                         RxTimeout,
                         *self.controller.as_ref().unwrap(),
@@ -409,7 +409,7 @@ where
                 Err(e) => {
                     // TODO: Notify self of starting read again?
                     log::error!("Error initiating DMA transfer: {:?}", e);
-                    shared.timer.borrow().as_ref().unwrap().schedule(
+                    self.scheduler.as_ref().unwrap().schedule(
                         timeout,
                         RxStart,
                         *self.me.as_ref().unwrap(),
@@ -417,7 +417,8 @@ where
                 }
             },
             Err(QueueError::BufferFull) => {
-                shared.timer.borrow().as_ref().unwrap().schedule(
+                // TODO: Go to sleep
+                self.scheduler.as_ref().unwrap().schedule(
                     Milliseconds(10),
                     RxStart,
                     *self.me.as_ref().unwrap(),
@@ -425,7 +426,7 @@ where
             }
             Err(e) => {
                 log::error!("Producer not ready, backing off: {:?}", e);
-                shared.timer.borrow().as_ref().unwrap().schedule(
+                self.scheduler.as_ref().unwrap().schedule(
                     Milliseconds(1000),
                     RxStart,
                     *self.me.as_ref().unwrap(),
@@ -446,8 +447,9 @@ where
     RXN: ArrayLength<u8>,
 {
     type Configuration = (
-        &'static Shared<U, T>,
-        Address<UartController<U, T>>,
+        &'static Shared<U>,
+        Address<UartController<U>>,
+        Address<T>,
         AsyncBBConsumer<TXN>,
         AsyncBBProducer<RXN>,
     );
@@ -455,8 +457,9 @@ where
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.shared.replace(config.0);
         self.controller.replace(config.1);
-        self.tx_consumer.replace(config.2);
-        self.rx_producer.replace(config.3);
+        self.scheduler.replace(config.2);
+        self.tx_consumer.replace(config.3);
+        self.rx_producer.replace(config.4);
         self.me.replace(me);
     }
 
@@ -542,31 +545,28 @@ where
     }
 }
 
-struct TxFuture<'a, U, T, TXN>
+struct TxFuture<'a, U, TXN>
 where
     U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
     TXN: ArrayLength<u8> + 'static,
 {
     future: AsyncWrite<TXN>,
-    shared: &'a Shared<U, T>,
+    shared: &'a Shared<U>,
 }
 
-impl<'a, U, T, TXN> TxFuture<'a, U, T, TXN>
+impl<'a, U, TXN> TxFuture<'a, U, TXN>
 where
     U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
     TXN: ArrayLength<u8> + 'static,
 {
-    fn new(future: AsyncWrite<TXN>, shared: &'a Shared<U, T>) -> Self {
+    fn new(future: AsyncWrite<TXN>, shared: &'a Shared<U>) -> Self {
         Self { future, shared }
     }
 }
 
-impl<'a, U, T, TXN> Future for TxFuture<'a, U, T, TXN>
+impl<'a, U, TXN> Future for TxFuture<'a, U, TXN>
 where
     U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
     TXN: ArrayLength<u8> + 'static,
 {
     type Output = Result<(), Error>;
@@ -575,38 +575,35 @@ where
         match Future::poll(Pin::new(&mut self.future), cx) {
             Poll::Ready(result) => {
                 self.shared.tx_state.store(READY_STATE, Ordering::SeqCst);
-                return Poll::Ready(result.map_err(|_| Error::Receive));
+                Poll::Ready(result.map_err(|_| Error::Receive))
             }
             Poll::Pending => Poll::Pending,
         }
     }
 }
 
-struct RxFuture<'a, U, T, RXN>
+struct RxFuture<'a, U, RXN>
 where
     U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
     RXN: ArrayLength<u8> + 'static,
 {
     future: AsyncRead<RXN>,
-    shared: &'a Shared<U, T>,
+    shared: &'a Shared<U>,
 }
 
-impl<'a, U, T, RXN> RxFuture<'a, U, T, RXN>
+impl<'a, U, RXN> RxFuture<'a, U, RXN>
 where
     U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
     RXN: ArrayLength<u8> + 'static,
 {
-    fn new(future: AsyncRead<RXN>, shared: &'a Shared<U, T>) -> Self {
+    fn new(future: AsyncRead<RXN>, shared: &'a Shared<U>) -> Self {
         Self { future, shared }
     }
 }
 
-impl<'a, U, T, RXN> Future for RxFuture<'a, U, T, RXN>
+impl<'a, U, RXN> Future for RxFuture<'a, U, RXN>
 where
     U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
     RXN: ArrayLength<u8> + 'static,
 {
     type Output = Result<usize, Error>;
