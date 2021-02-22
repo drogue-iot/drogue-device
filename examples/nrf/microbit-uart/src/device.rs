@@ -154,7 +154,6 @@ where
     fn on_notify(mut self, _: StartService) -> Completion<Self> {
         Completion::defer(async move {
             let led = self.display.as_ref().unwrap();
-            let timer = self.timer.as_ref().unwrap();
 
             if let Some(uart) = &mut self.uart {
                 let mut buf = [0; 128];

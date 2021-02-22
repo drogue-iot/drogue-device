@@ -18,7 +18,7 @@ use core::task::{Context, Poll};
 use cortex_m::interrupt::Nr;
 use heapless::consts;
 
-use crate::driver::uart::async_bbqueue::*;
+use crate::util::dma::async_bbqueue::*;
 
 pub struct UartActor<U, T>
 where

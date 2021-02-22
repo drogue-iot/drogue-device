@@ -1,6 +1,6 @@
 use crate::synchronization::Signal;
 use bbqueue::{
-    consts, ArrayLength, BBBuffer, ConstBBBuffer, Consumer, Error as BBQueueError, GrantW, Producer,
+    ArrayLength, BBBuffer, ConstBBBuffer, Consumer, Error as BBQueueError, GrantW, Producer,
 };
 use core::cell::RefCell;
 use core::cell::UnsafeCell;
@@ -301,12 +301,12 @@ mod tests {
         });
     }
 
-    fn split<N>(buffer: &mut AsyncBuffer<N>) -> (AsyncBBProducer<N>, AsyncBBConsumer<N>)
+    fn split<N>(buffer: &mut AsyncBBBuffer<N>) -> (AsyncBBProducer<N>, AsyncBBConsumer<N>)
     where
         N: ArrayLength<u8>,
     {
-        let mut buffer = unsafe {
-            core::mem::transmute::<&AsyncBBBuffer<N>, &'static AsyncBBBuffer<N>>(&buffer)
+        let buffer = unsafe {
+            core::mem::transmute::<&mut AsyncBBBuffer<N>, &'static mut AsyncBBBuffer<N>>(buffer)
         };
         buffer.split()
     }
@@ -315,14 +315,14 @@ mod tests {
     fn test_queue() {
         setup();
         let mut queue: AsyncBBBuffer<consts::U8> = AsyncBBBuffer::new();
-        let (mut prod, cons) = split(queue);
+        let (prod, cons) = split(&mut queue);
 
-        {
+        unsafe {
             let mut rx_buf = [0; 4];
 
             let rx_future = cons.read(&mut rx_buf);
 
-            block_on(prod.write(r"helo".as_bytes()));
+            block_on(prod.write(r"helo".as_bytes())).unwrap();
 
             let result = block_on(rx_future).unwrap();
             assert_eq!(4, result);
@@ -335,7 +335,7 @@ mod tests {
         setup();
 
         let mut queue: AsyncBBBuffer<consts::U128> = AsyncBBBuffer::new();
-        let (mut prod, cons) = split(queue);
+        let (prod, cons) = split(&mut queue);
 
         {
             let mut wgrant = prod.prepare_write(128).unwrap();
@@ -349,7 +349,7 @@ mod tests {
 
         for i in 0..50 {
             let mut rx_buf = [0; 1];
-            block_on(unsafe { cons.read(&mut rx_buf) });
+            block_on(unsafe { cons.read(&mut rx_buf) }).unwrap();
         }
     }
 }
