@@ -19,9 +19,9 @@ impl Shared {
         }
     }
 
-    fn begin_transaction(&self) -> bool {
+    fn begin_transaction(&self) -> Result<bool, bool> {
         self.available
-            .compare_and_swap(true, false, Ordering::AcqRel)
+            .compare_exchange(true, false, Ordering::AcqRel, Ordering::Acquire)
     }
 
     fn end_transaction(&self) {
@@ -214,14 +214,15 @@ where
     type Output = BusTransaction<BUS>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if self.shared.begin_transaction() {
-            Poll::Ready(BusTransaction::new(self.arbitrator, self.bus))
-        } else {
-            if !self.waiting {
-                self.shared.add_waiter(cx.waker().clone());
-                self.waiting = true;
+        if let Ok(val) = self.shared.begin_transaction() {
+            if val {
+                return Poll::Ready(BusTransaction::new(self.arbitrator, self.bus));
             }
-            Poll::Pending
         }
+        if !self.waiting {
+            self.shared.add_waiter(cx.waker().clone());
+            self.waiting = true;
+        }
+        Poll::Pending
     }
 }
