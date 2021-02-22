@@ -1,7 +1,7 @@
 use crate::synchronization::Signal;
-use bbqueue::{
-    ArrayLength, BBBuffer, ConstBBBuffer, Consumer, Error as BBQueueError, GrantW, Producer,
-};
+use bbqueue::{BBBuffer, ConstBBBuffer, Consumer, Error as BBQueueError, GrantW, Producer};
+
+pub use bbqueue::{consts, ArrayLength};
 use core::cell::RefCell;
 use core::cell::UnsafeCell;
 use core::future::Future;

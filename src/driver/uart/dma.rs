@@ -16,18 +16,18 @@ use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use cortex_m::interrupt::Nr;
-use heapless::consts;
 
 use crate::util::dma::async_bbqueue::*;
 
-pub struct UartActor<U, T>
+pub struct UartActor<U, T, RXN>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
+    RXN: ArrayLength<u8> + 'static,
 {
     me: Option<Address<Self>>,
     shared: Option<&'static Shared<U, T>>,
-    rx_consumer: Option<AsyncBBConsumer<consts::U128>>,
+    rx_consumer: Option<AsyncBBConsumer<RXN>>,
 }
 
 pub struct UartController<U, T>
@@ -38,16 +38,17 @@ where
     shared: Option<&'static Shared<U, T>>,
 }
 
-pub struct UartInterrupt<U, T>
+pub struct UartInterrupt<U, T, RXN>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
+    RXN: ArrayLength<u8> + 'static,
 {
     shared: Option<&'static Shared<U, T>>,
     me: Option<Address<Self>>,
     controller: Option<Address<UartController<U, T>>>,
-    rx_producer: Option<AsyncBBProducer<consts::U128>>,
-    rx_producer_grant: Option<RefCell<AsyncBBProducerGrant<'static, consts::U128>>>,
+    rx_producer: Option<AsyncBBProducer<RXN>>,
+    rx_producer_grant: Option<RefCell<AsyncBBProducerGrant<'static, RXN>>>,
 }
 
 pub struct Shared<U, T>
@@ -62,18 +63,19 @@ where
     tx_done: Signal<Result<(), Error>>,
 }
 
-pub struct DmaUart<U, T>
+pub struct DmaUart<U, T, RXN>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
+    RXN: ArrayLength<u8> + 'static,
 {
-    actor: ActorContext<UartActor<U, T>>,
+    actor: ActorContext<UartActor<U, T, RXN>>,
     controller: ActorContext<UartController<U, T>>,
-    interrupt: InterruptContext<UartInterrupt<U, T>>,
+    interrupt: InterruptContext<UartInterrupt<U, T, RXN>>,
     shared: Shared<U, T>,
-    rx_buffer: UnsafeCell<AsyncBBBuffer<'static, consts::U128>>,
-    rx_cons: RefCell<Option<UnsafeCell<AsyncBBConsumer<consts::U128>>>>,
-    rx_prod: RefCell<Option<UnsafeCell<AsyncBBProducer<consts::U128>>>>,
+    rx_buffer: UnsafeCell<AsyncBBBuffer<'static, RXN>>,
+    rx_cons: RefCell<Option<UnsafeCell<AsyncBBConsumer<RXN>>>>,
+    rx_prod: RefCell<Option<UnsafeCell<AsyncBBProducer<RXN>>>>,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -98,10 +100,11 @@ where
     }
 }
 
-impl<U, T> DmaUart<U, T>
+impl<U, T, RXN> DmaUart<U, T, RXN>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
+    RXN: ArrayLength<u8>,
 {
     pub fn new<IRQ>(uart: U, irq: IRQ) -> Self
     where
@@ -119,18 +122,19 @@ where
     }
 }
 
-impl<U, T> Package for DmaUart<U, T>
+impl<U, T, RXN> Package for DmaUart<U, T, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
+    RXN: ArrayLength<u8>,
 {
-    type Primary = UartActor<U, T>;
+    type Primary = UartActor<U, T, RXN>;
     type Configuration = Address<T>;
     fn mount(
         &'static self,
         timer: Self::Configuration,
         supervisor: &mut Supervisor,
-    ) -> Address<UartActor<U, T>> {
+    ) -> Address<UartActor<U, T, RXN>> {
         let (rx_prod, rx_cons) = unsafe { (&mut *self.rx_buffer.get()).split() };
 
         self.shared.timer.borrow_mut().replace(timer);
@@ -147,10 +151,11 @@ where
     }
 }
 
-impl<U, T> UartActor<U, T>
+impl<U, T, RXN> UartActor<U, T, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
+    RXN: ArrayLength<u8>,
 {
     pub fn new() -> Self {
         Self {
@@ -184,31 +189,17 @@ where
 }
 
 // DMA implementation of the trait
-impl<U, T> UartReader for UartActor<U, T>
+impl<U, T, RXN> UartReader for UartActor<U, T, RXN>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
+    RXN: ArrayLength<u8>,
 {
     /// Read bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
     fn read<'a>(self, message: UartRead<'a>) -> Response<Self, Result<usize, Error>> {
-        struct UartRead {
-            future: AsyncRead<consts::U128>,
-        }
-
-        impl Future for UartRead {
-            type Output = Result<usize, Error>;
-
-            fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-                match Future::poll(Pin::new(&mut self.future), cx) {
-                    Poll::Ready(result) => Poll::Ready(result.map_err(|_| Error::Receive)),
-                    Poll::Pending => Poll::Pending,
-                }
-            }
-        }
-
         let rx_consumer = self.rx_consumer.as_ref().unwrap();
         let future = unsafe { rx_consumer.read(message.0) };
-        Response::immediate_future(self, UartRead { future })
+        Response::immediate_future(self, RxFuture::new(future))
     }
 
     /// Receive bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
@@ -225,10 +216,11 @@ where
     }
 }
 
-impl<U, T> UartWriter for UartActor<U, T>
+impl<U, T, RXN> UartWriter for UartActor<U, T, RXN>
 where
     U: DmaUartHal + 'static,
     T: Scheduler + 'static,
+    RXN: ArrayLength<u8>,
 {
     /// Transmit bytes from provided tx_buffer over UART. The memory pointed to by the buffer must be available until the return future is await'ed
     fn write<'a>(self, message: UartWrite<'a>) -> Response<Self, Result<(), Error>> {
@@ -264,12 +256,13 @@ where
     }
 }
 
-impl<U, T> Actor for UartActor<U, T>
+impl<U, T, RXN> Actor for UartActor<U, T, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
+    RXN: ArrayLength<u8>,
 {
-    type Configuration = (&'static Shared<U, T>, AsyncBBConsumer<consts::U128>);
+    type Configuration = (&'static Shared<U, T>, AsyncBBConsumer<RXN>);
 
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.me.replace(me);
@@ -278,10 +271,11 @@ where
     }
 }
 
-impl<U, T> UartInterrupt<U, T>
+impl<U, T, RXN> UartInterrupt<U, T, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
+    RXN: ArrayLength<u8>,
 {
     pub fn new() -> Self {
         Self {
@@ -333,15 +327,16 @@ where
 const READ_TIMEOUT: u32 = 1000;
 const READ_SIZE: usize = 128;
 
-impl<U, T> Actor for UartInterrupt<U, T>
+impl<U, T, RXN> Actor for UartInterrupt<U, T, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
+    RXN: ArrayLength<u8>,
 {
     type Configuration = (
         &'static Shared<U, T>,
         Address<UartController<U, T>>,
-        AsyncBBProducer<consts::U128>,
+        AsyncBBProducer<RXN>,
     );
 
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
@@ -357,10 +352,11 @@ where
     }
 }
 
-impl<U, T> NotifyHandler<RxStart> for UartInterrupt<U, T>
+impl<U, T, RXN> NotifyHandler<RxStart> for UartInterrupt<U, T, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
+    RXN: ArrayLength<u8>,
 {
     fn on_notify(mut self, message: RxStart) -> Completion<Self> {
         // log::info!("RX START");
@@ -369,10 +365,11 @@ where
     }
 }
 
-impl<U, T> Interrupt for UartInterrupt<U, T>
+impl<U, T, RXN> Interrupt for UartInterrupt<U, T, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
+    RXN: ArrayLength<u8>,
 {
     fn on_interrupt(&mut self) {
         let shared = self.shared.as_ref().unwrap();
@@ -438,6 +435,36 @@ where
             }
         }
         return Poll::Pending;
+    }
+}
+
+struct RxFuture<RXN>
+where
+    RXN: ArrayLength<u8> + 'static,
+{
+    future: AsyncRead<RXN>,
+}
+
+impl<RXN> RxFuture<RXN>
+where
+    RXN: ArrayLength<u8> + 'static,
+{
+    fn new(future: AsyncRead<RXN>) -> Self {
+        Self { future }
+    }
+}
+
+impl<RXN> Future for RxFuture<RXN>
+where
+    RXN: ArrayLength<u8> + 'static,
+{
+    type Output = Result<usize, Error>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match Future::poll(Pin::new(&mut self.future), cx) {
+            Poll::Ready(result) => Poll::Ready(result.map_err(|_| Error::Receive)),
+            Poll::Pending => Poll::Pending,
+        }
     }
 }
 
