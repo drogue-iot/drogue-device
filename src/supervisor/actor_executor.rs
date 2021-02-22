@@ -96,13 +96,10 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
         }
         loop {
             if self.current.borrow().is_none() {
-                //cortex_m::interrupt::free(|cs| {
                 if let Some(next) = self.items_consumer.borrow_mut().as_mut().unwrap().dequeue() {
-                    //if let Some(next) = self.items.dequeue() {
                     if self.name() == "uart_actor" {
                         log::trace!("[{}] executor: set current task", self.name());
                     }
-                    //(&mut *self.current.get()).replace(next);
                     self.current.borrow_mut().replace(next);
                     self.in_flight.store(true, Ordering::Release);
                 } else {
@@ -111,7 +108,6 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
                     }
                     self.in_flight.store(false, Ordering::Release);
                 }
-            //});
             } else {
                 if self.name() == "uart_actor" {
                     log::trace!("[{}] executor: in-flight current task", self.name());

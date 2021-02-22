@@ -1,4 +1,5 @@
 use crate::hal::gpio::exti_pin::ExtiPin;
+use crate::platform::with_critical_section;
 use crate::prelude::*;
 use core::cell::RefCell;
 use core::future::Future;
@@ -26,7 +27,7 @@ impl Shared {
     }
 
     fn poll_ready(&self, waker: &Waker) -> Poll<()> {
-        cortex_m::interrupt::free(|cs| {
+        with_critical_section(|cs| {
             let ready = self.ready.load(Ordering::Acquire);
             if ready {
                 self.ready_waker.borrow_mut().take();

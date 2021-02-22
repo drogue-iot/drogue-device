@@ -16,6 +16,7 @@ use crate::api::uart::Error;
 use core::ops::Deref;
 use core::sync::atomic::{compiler_fence, Ordering::SeqCst};
 
+use crate::platform::with_critical_section;
 pub use hal::uarte::{Baudrate, Parity, Pins};
 
 pub struct Uarte<T>
@@ -116,7 +117,7 @@ where
 
     /// Complete a read operation.
     fn finish_read(&self) -> Result<usize, Error> {
-        cortex_m::interrupt::free(|_| {
+        with_critical_section(|_| {
             finalize_read(&*self.uart);
 
             let bytes_read = self.uart.rxd.amount.read().bits() as usize;
@@ -127,7 +128,7 @@ where
 
     /// Cancel a read operation
     fn cancel_read(&self) {
-        cortex_m::interrupt::free(|_| cancel_read(&*self.uart));
+        with_critical_section(|_| cancel_read(&*self.uart));
     }
 }
 

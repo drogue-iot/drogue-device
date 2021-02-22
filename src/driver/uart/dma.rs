@@ -627,7 +627,7 @@ mod tests {
 
     struct TestIrq {}
 
-    unsafe impl cortex_m::interrupt::Nr for TestIrq {
+    unsafe impl static_arena::interrupt::Nr for TestIrq {
         fn nr(&self) -> u8 {
             0
         }

@@ -1,4 +1,4 @@
-use crate::alloc::cortex_m::CortexMHeap;
+use crate::alloc::static_arena::StaticArena;
 use core::cell::UnsafeCell;
 use core::fmt::{Debug, Formatter};
 use core::future::Future;
@@ -8,9 +8,9 @@ use core::pin::Pin;
 use core::ptr::drop_in_place;
 use core::task::{Context, Poll};
 
-pub mod cortex_m;
+pub mod static_arena;
 
-pub static mut HEAP: Option<CortexMHeap> = None;
+pub static mut HEAP: Option<StaticArena> = None;
 
 #[doc(hidden)]
 #[macro_export]
@@ -18,7 +18,8 @@ macro_rules! init_heap {
     ($size:literal) => {
         static mut HEAP_MEMORY: [u8; $size] = [0; $size];
         unsafe {
-            $crate::alloc::HEAP.replace($crate::alloc::cortex_m::CortexMHeap::new(&HEAP_MEMORY));
+            $crate::alloc::HEAP
+                .replace($crate::alloc::static_arena::StaticArena::new(&HEAP_MEMORY));
         }
     };
 }

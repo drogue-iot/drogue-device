@@ -13,6 +13,7 @@ use heapless::{consts::*, spsc::Queue, String};
 use crate::address::Address;
 use crate::alloc::{alloc, Box, Rc};
 use crate::device::Lifecycle;
+use crate::platform::with_critical_section;
 use crate::prelude::*;
 use crate::supervisor::actor_executor::ActiveActor;
 use crate::supervisor::{actor_executor::ActorState, Supervisor};
@@ -184,7 +185,7 @@ impl<A: Actor + 'static> ActorContext<A> {
         log::trace!("[{}].lifecycle({:?})", self.name(), event);
         let lifecycle = alloc(OnLifecycle::new(self, event)).unwrap();
         let lifecycle: Box<dyn ActorFuture<A>> = Box::new(lifecycle);
-        cortex_m::interrupt::free(|cs| {
+        with_critical_section(|cs| {
             self.items_producer
                 .borrow_mut()
                 .as_mut()
@@ -210,7 +211,7 @@ impl<A: Actor + 'static> ActorContext<A> {
         log::trace!("[{}].notify(...)", self.name());
         let notify = alloc(OnNotify::new(self, message)).unwrap();
         let notify: Box<dyn ActorFuture<A>> = Box::new(notify);
-        cortex_m::interrupt::free(|cs| {
+        with_critical_section(|cs| {
             self.items_producer
                 .borrow_mut()
                 .as_mut()
@@ -241,7 +242,7 @@ impl<A: Actor + 'static> ActorContext<A> {
 
         unsafe {
             let request: Box<dyn ActorFuture<A>> = Box::new(request);
-            cortex_m::interrupt::free(|cs| {
+            with_critical_section(|cs| {
                 self.items_producer
                     .borrow_mut()
                     .as_mut()
@@ -276,7 +277,7 @@ impl<A: Actor + 'static> ActorContext<A> {
         unsafe {
             let request = transmute::<_, &mut (dyn ActorFuture<A> + 'static)>(request);
             let request: Box<dyn ActorFuture<A>> = Box::new(request);
-            cortex_m::interrupt::free(|cs| {
+            with_critical_section(|cs| {
                 self.items_producer
                     .borrow_mut()
                     .as_mut()
@@ -315,7 +316,7 @@ impl<A: Actor + 'static> ActorContext<A> {
         unsafe {
             let request = transmute::<_, &mut (dyn ActorFuture<A> + 'static)>(request);
             let request: Box<dyn ActorFuture<A>> = Box::new(request);
-            cortex_m::interrupt::free(|cs| {
+            with_critical_section(|cs| {
                 self.items_producer
                     .borrow_mut()
                     .as_mut()

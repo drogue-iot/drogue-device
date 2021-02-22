@@ -3,6 +3,7 @@ use crate::api::delayer::{Delay, Delayer};
 use crate::api::scheduler::{Schedule, Scheduler};
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::timer::Timer as HalTimer;
+use crate::platform::with_critical_section;
 use crate::prelude::*;
 use core::cell::RefCell;
 use core::future::Future;
@@ -342,7 +343,7 @@ impl DelayFuture {
     fn has_expired(&mut self) -> bool {
         if !self.expired {
             // critical section to avoid being trampled by the timer's own IRQ
-            self.expired = cortex_m::interrupt::free(|cs| self.shared.has_expired(self.index))
+            self.expired = with_critical_section(|cs| self.shared.has_expired(self.index))
         }
 
         self.expired

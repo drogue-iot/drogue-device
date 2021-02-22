@@ -1,5 +1,6 @@
 //! Opaque supervisor for internal operation.
 
+use crate::platform::with_critical_section;
 use crate::supervisor::actor_executor::{ActiveActor, ActorExecutor};
 use crate::supervisor::interrupt_dispatcher::{ActiveInterrupt, InterruptDispatcher};
 use core::cell::RefCell;
@@ -40,7 +41,7 @@ impl Supervisor {
     }
 
     pub(crate) fn run_forever(&self) -> ! {
-        cortex_m::interrupt::free(|cs| {
+        with_critical_section(|cs| {
             self.dispatcher.borrow().unmask_all();
         });
         self.executor.borrow_mut().run_forever()

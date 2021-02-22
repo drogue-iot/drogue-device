@@ -6,24 +6,25 @@
 //!
 //! For a usage example, see `examples/global_alloc.rs`.
 
-pub(crate) mod alloc;
+pub(crate) mod heap;
 
 use core::cell::RefCell;
-//use core::alloc::Layout;
+//use core::heap::Layout;
 use core::ptr::NonNull;
 
-use alloc::layout::Layout;
-use alloc::Heap;
 use core::mem;
 use core::sync::atomic::{AtomicUsize, Ordering};
-use cortex_m::interrupt::Mutex;
+use heap::layout::Layout;
+use heap::Heap;
+//use static_arena::interrupt::Mutex;
+use crate::platform::{with_critical_section, Mutex};
 
-pub struct CortexMHeap {
+pub struct StaticArena {
     heap: Mutex<RefCell<Heap>>,
     high_watermark: AtomicUsize,
 }
 
-impl CortexMHeap {
+impl StaticArena {
     /*
     /// Crate a new UNINITIALIZED heap allocator
     ///
@@ -59,7 +60,7 @@ impl CortexMHeap {
     /// - This function must be called exactly ONCE.
     /// - `size > 0`
     pub unsafe fn init(&self, start_addr: usize, size: usize) {
-        cortex_m::interrupt::free(|cs| {
+        with_critical_section(|cs| {
             self.heap.borrow(cs).borrow_mut().init(start_addr, size);
         });
     }
@@ -72,7 +73,7 @@ impl CortexMHeap {
             high_watermark: AtomicUsize::new(0),
         }
 
-        //cortex_m::interrupt::free(|cs| {
+        //with_critical_section(|cs| {
         //heap.heap.borrow(cs).borrow_mut().new(memory);
         //});
 
@@ -81,12 +82,12 @@ impl CortexMHeap {
 
     /// Returns an estimate of the amount of bytes in use.
     pub fn used(&self) -> usize {
-        cortex_m::interrupt::free(|cs| self.heap.borrow(cs).borrow_mut().used())
+        with_critical_section(|cs| self.heap.borrow(cs).borrow_mut().used())
     }
 
     /// Returns an estimate of the amount of bytes available.
     pub fn free(&self) -> usize {
-        cortex_m::interrupt::free(|cs| self.heap.borrow(cs).borrow_mut().free())
+        with_critical_section(|cs| self.heap.borrow(cs).borrow_mut().free())
     }
 
     pub fn high_watermark(&self) -> usize {
@@ -138,7 +139,7 @@ impl CortexMHeap {
     }
 
     pub unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        cortex_m::interrupt::free(|cs| {
+        with_critical_section(|cs| {
             self.heap
                 .borrow(cs)
                 .borrow_mut()
@@ -151,7 +152,7 @@ impl CortexMHeap {
     }
 
     pub unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        cortex_m::interrupt::free(|cs| {
+        with_critical_section(|cs| {
             self.heap
                 .borrow(cs)
                 .borrow_mut()

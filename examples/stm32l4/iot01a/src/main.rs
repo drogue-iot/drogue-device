@@ -33,7 +33,7 @@ use drogue_device::{
         sensor::hts221::Hts221,
         timer::Timer,
     },
-    port::stm32l4xx::timer::Timer as McuTimer,
+    platform::cortex_m::stm32l4xx::timer::Timer as McuTimer,
     hal::Active,
     prelude::*,
 };

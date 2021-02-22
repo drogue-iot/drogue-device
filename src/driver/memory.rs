@@ -1,7 +1,7 @@
 use crate::handler::{Completion, Response};
 use crate::prelude::{Actor, ActorInfo, NotifyHandler, RequestHandler};
 
-use crate::alloc::cortex_m::CortexMHeap;
+use crate::alloc::static_arena::StaticArena;
 use crate::alloc::HEAP;
 
 pub struct Query;
@@ -12,7 +12,7 @@ pub struct Info {
 }
 
 impl Info {
-    fn new(heap: &CortexMHeap) -> Self {
+    fn new(heap: &StaticArena) -> Self {
         Self {
             used: heap.used(),
             free: heap.free(),

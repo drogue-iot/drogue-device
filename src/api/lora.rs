@@ -45,7 +45,7 @@ pub trait LoraDriver: Actor {
     /// Join a LoRaWAN network using the specified connect mode.
     fn join(self, message: Join) -> Response<Self, Result<(), LoraError>>;
 
-    /// Send telemetry data with a given Quality-of-Service on a specific port.
+    /// Send telemetry data with a given Quality-of-Service on a specific platform.
     fn send<'a>(self, message: Send<'a>) -> Response<Self, Result<(), LoraError>>;
 }
 

@@ -20,7 +20,7 @@ use drogue_device::{
         sensor::hts221::Hts221,
         timer::Timer,
     },
-    port::stm32l4xx::timer::Timer as HardwareTimer,
+    platform::cortex_m::stm32l4xx::timer::Timer as HardwareTimer,
     prelude::*,
 };
 use stm32l4xx_hal::gpio::{PB13, PE0, PE1, PE13, PE8};

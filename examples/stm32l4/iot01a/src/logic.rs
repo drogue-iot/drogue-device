@@ -58,7 +58,7 @@ where
 
                     match result {
                         Ok(_) => {
-                            log::info!("connected to port 80");
+                            log::info!("connected to platform 80");
                             let result = socket.write( b"GET / HTTP/1.1\r\nhost:192.168.1.8\r\n\r\n" ).await;
                             match result {
                                 Ok(_) => {
