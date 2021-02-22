@@ -190,10 +190,25 @@ where
     T: Scheduler + 'static,
 {
     /// Read bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
-    fn read<'a>(mut self, message: UartRx<'a>) -> Response<Self, Result<usize, Error>> {
+    fn read<'a>(self, message: UartRead<'a>) -> Response<Self, Result<usize, Error>> {
+        struct UartRead {
+            future: AsyncRead<consts::U128>,
+        }
+
+        impl Future for UartRead {
+            type Output = Result<usize, Error>;
+
+            fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+                match Future::poll(Pin::new(&mut self.future), cx) {
+                    Poll::Ready(result) => Poll::Ready(result.map_err(|_| Error::Receive)),
+                    Poll::Pending => Poll::Pending,
+                }
+            }
+        }
+
         let rx_consumer = self.rx_consumer.as_ref().unwrap();
-        let future = rx_consumer.read(message.0);
-        Response::immediate_future(self, future)
+        let future = unsafe { rx_consumer.read(message.0) };
+        Response::immediate_future(self, UartRead { future })
     }
 
     /// Receive bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
@@ -280,7 +295,7 @@ where
 
     fn start_read(&mut self, read_size: usize, timeout: Milliseconds) {
         let shared = self.shared.as_ref().unwrap();
-        let mut rx_producer = self.rx_producer.as_ref().unwrap();
+        let rx_producer = self.rx_producer.as_ref().unwrap();
         // TODO: Handle error?
         match rx_producer.prepare_write(read_size) {
             Ok(mut grant) => match shared.uart.prepare_read(grant.buf()) {

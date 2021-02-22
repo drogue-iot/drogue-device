@@ -15,6 +15,25 @@ enum State<T> {
     Signaled(T),
 }
 
+#[cfg(target_arch = "arm")]
+fn critical_section<F, T>(f: F) -> T
+where
+    F: FnOnce() -> T,
+{
+    cortex_m::interrupt::free(|_| f())
+}
+
+#[cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))]
+static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new();
+#[cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))]
+fn critical_section<F, T>(f: F) -> T
+where
+    F: FnOnce() -> T,
+{
+    LOCK.lock().unwrap();
+    f()
+}
+
 unsafe impl<T: Sized> Send for Signal<T> {}
 unsafe impl<T: Sized> Sync for Signal<T> {}
 
@@ -27,7 +46,7 @@ impl<T: Sized> Signal<T> {
 
     #[allow(clippy::single_match)]
     pub fn signal(&self, val: T) {
-        cortex_m::interrupt::free(|_| unsafe {
+        critical_section(|| unsafe {
             let state = &mut *self.state.get();
             match mem::replace(state, State::Signaled(val)) {
                 State::Waiting(waker) => waker.wake(),
@@ -37,14 +56,14 @@ impl<T: Sized> Signal<T> {
     }
 
     pub fn reset(&self) {
-        cortex_m::interrupt::free(|_| unsafe {
+        critical_section(|| unsafe {
             let state = &mut *self.state.get();
             *state = State::None
         })
     }
 
     pub fn poll_wait(&self, cx: &mut Context<'_>) -> Poll<T> {
-        cortex_m::interrupt::free(|_| unsafe {
+        critical_section(|| unsafe {
             let state = &mut *self.state.get();
             match state {
                 State::None => {
@@ -65,6 +84,6 @@ impl<T: Sized> Signal<T> {
     }
 
     pub fn signaled(&self) -> bool {
-        cortex_m::interrupt::free(|_| matches!(unsafe { &*self.state.get() }, State::Signaled(_)))
+        critical_section(|| matches!(unsafe { &*self.state.get() }, State::Signaled(_)))
     }
 }

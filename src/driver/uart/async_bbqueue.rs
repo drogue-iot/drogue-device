@@ -78,7 +78,7 @@ where
         self.grant.buf()
     }
 
-    pub fn commit(mut self, nbytes: usize) {
+    pub fn commit(self, nbytes: usize) {
         self.grant.commit(nbytes);
         if nbytes > 0 {
             self.inner.notify_consumer();
@@ -86,6 +86,9 @@ where
     }
 }
 
+/// An async wrapper around a BBBuffer (from the bbqueue crate), that allows
+/// a producer or consumer to perform DMA-friendly write/reads, while the other
+/// end may use async to read/write from/to the buffer.
 pub struct AsyncBBBuffer<'a, N>
 where
     N: ArrayLength<u8> + 'a,
@@ -142,63 +145,63 @@ where
         self.inner.prepare_write(nbytes).map_err(|e| Error::Other)
     }
 
-    pub fn write<'a>(&self, write_buf: &'a [u8]) -> impl Future<Output = Result<(), Error>> {
-        struct WriteFuture<N>
-        where
-            N: ArrayLength<u8> + 'static,
-        {
-            inner: &'static QueueInner<'static, N>,
-            write_buf: &'static [u8],
-            bytes_left: usize,
+    pub unsafe fn write<'a>(&self, write_buf: &'a [u8]) -> AsyncWrite<N> {
+        AsyncWrite {
+            inner: self.inner,
+            bytes_left: write_buf.len(),
+            write_buf: core::mem::transmute::<&'a [u8], &'static [u8]>(write_buf),
         }
+    }
+}
 
-        impl<N> Future for WriteFuture<N>
-        where
-            N: ArrayLength<u8> + 'static,
-        {
-            type Output = Result<(), Error>;
-            fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-                loop {
-                    match self.inner.prepare_write(self.bytes_left) {
-                        Ok(mut grant) => {
-                            let buf = grant.buf();
+pub struct AsyncWrite<N>
+where
+    N: ArrayLength<u8> + 'static,
+{
+    inner: &'static QueueInner<'static, N>,
+    write_buf: &'static [u8],
+    bytes_left: usize,
+}
 
-                            let wp = self.write_buf.len() - self.bytes_left;
-                            let to_copy = core::cmp::min(self.bytes_left, buf.len());
+impl<N> Future for AsyncWrite<N>
+where
+    N: ArrayLength<u8> + 'static,
+{
+    type Output = Result<(), Error>;
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        loop {
+            match self.inner.prepare_write(self.bytes_left) {
+                Ok(mut grant) => {
+                    let buf = grant.buf();
 
-                            //log::info!("COPYING {} bytes from pos {}", to_copy, wp);
-                            buf[..to_copy].copy_from_slice(&self.write_buf[wp..to_copy]);
+                    let wp = self.write_buf.len() - self.bytes_left;
+                    let to_copy = core::cmp::min(self.bytes_left, buf.len());
 
-                            self.bytes_left -= to_copy;
-                            grant.commit(to_copy);
+                    //log::info!("COPYING {} bytes from pos {}", to_copy, wp);
+                    buf[..to_copy].copy_from_slice(&self.write_buf[wp..to_copy]);
 
-                            if self.bytes_left == 0 {
-                                return Poll::Ready(Ok(()));
-                            } else {
-                                match self.inner.poll_producer(cx) {
-                                    Poll::Pending => {
-                                        return Poll::Pending;
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        }
-                        Err(BBQueueError::InsufficientSize) => match self.inner.poll_producer(cx) {
+                    self.bytes_left -= to_copy;
+                    grant.commit(to_copy);
+
+                    if self.bytes_left == 0 {
+                        return Poll::Ready(Ok(()));
+                    } else {
+                        match self.inner.poll_producer(cx) {
                             Poll::Pending => {
                                 return Poll::Pending;
                             }
                             _ => {}
-                        },
-                        Err(e) => return Poll::Ready(Err(Error::Other)),
+                        }
                     }
                 }
+                Err(BBQueueError::InsufficientSize) => match self.inner.poll_producer(cx) {
+                    Poll::Pending => {
+                        return Poll::Pending;
+                    }
+                    _ => {}
+                },
+                Err(e) => return Poll::Ready(Err(Error::Other)),
             }
-        }
-
-        WriteFuture {
-            inner: self.inner,
-            bytes_left: write_buf.len(),
-            write_buf: unsafe { core::mem::transmute::<&'a [u8], &'static [u8]>(write_buf) },
         }
     }
 }
@@ -210,6 +213,57 @@ where
     inner: &'static QueueInner<'static, N>,
 }
 
+pub struct AsyncRead<N>
+where
+    N: ArrayLength<u8> + 'static,
+{
+    inner: &'static QueueInner<'static, N>,
+    read_buf: &'static mut [u8],
+    bytes_left: usize,
+}
+
+impl<N> Future for AsyncRead<N>
+where
+    N: ArrayLength<u8> + 'static,
+{
+    type Output = Result<usize, Error>;
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let mut consumer = self.inner.consumer.as_ref().unwrap().borrow_mut();
+        loop {
+            match consumer.read() {
+                Ok(grant) => {
+                    let buf = grant.buf();
+                    let rp = self.read_buf.len() - self.bytes_left;
+                    let to_copy = core::cmp::min(self.bytes_left, buf.len());
+
+                    self.read_buf[rp..].copy_from_slice(&buf[..to_copy]);
+                    self.bytes_left -= to_copy;
+                    grant.release(to_copy);
+                    self.inner.notify_producer();
+                    if self.bytes_left == 0 {
+                        return Poll::Ready(Ok(rp + to_copy));
+                    } else {
+                        match self.inner.poll_consumer(cx) {
+                            Poll::Pending => {
+                                return Poll::Pending;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                // If there was no data available, but we got signaled in the meantime, try again
+                Err(BBQueueError::InsufficientSize) => match self.inner.poll_consumer(cx) {
+                    Poll::Pending => {
+                        return Poll::Pending;
+                    }
+                    _ => {}
+                },
+                Err(e) => return Poll::Ready(Err(Error::Other)),
+            }
+        }
+    }
+}
+
 impl<N> AsyncBBConsumer<N>
 where
     N: ArrayLength<u8> + 'static,
@@ -218,62 +272,16 @@ where
         Self { inner }
     }
 
-    pub fn read<'a>(&self, read_buf: &'a mut [u8]) -> impl Future<Output = Result<usize, Error>> {
-        struct ReadFuture<N>
-        where
-            N: ArrayLength<u8> + 'static,
-        {
-            inner: &'static QueueInner<'static, N>,
-            read_buf: &'static mut [u8],
-            bytes_left: usize,
-        }
-
-        impl<N> Future for ReadFuture<N>
-        where
-            N: ArrayLength<u8> + 'static,
-        {
-            type Output = Result<usize, Error>;
-            fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-                let mut consumer = self.inner.consumer.as_ref().unwrap().borrow_mut();
-                loop {
-                    match consumer.read() {
-                        Ok(grant) => {
-                            let buf = grant.buf();
-                            let rp = self.read_buf.len() - self.bytes_left;
-                            let to_copy = core::cmp::min(self.bytes_left, buf.len());
-
-                            self.read_buf[rp..].copy_from_slice(&buf[..to_copy]);
-                            self.bytes_left -= to_copy;
-                            grant.release(to_copy);
-                            self.inner.notify_producer();
-                            if self.bytes_left == 0 {
-                                return Poll::Ready(Ok(rp + to_copy));
-                            } else {
-                                match self.inner.poll_consumer(cx) {
-                                    Poll::Pending => {
-                                        return Poll::Pending;
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        }
-                        // If there was no data available, but we got signaled in the meantime, try again
-                        Err(BBQueueError::InsufficientSize) => match self.inner.poll_consumer(cx) {
-                            Poll::Pending => {
-                                return Poll::Pending;
-                            }
-                            _ => {}
-                        },
-                        Err(e) => return Poll::Ready(Err(Error::Other)),
-                    }
-                }
-            }
-        }
-
-        ReadFuture {
+    /// Read from the consumer into the provided buffer. The returned future
+    /// will complete once all bytes have been read.
+    ///
+    /// Safety: the returned future must be awaited before the provided buffer is
+    /// dropped or reused.
+    pub unsafe fn read<'a>(&self, read_buf: &'a mut [u8]) -> AsyncRead<N> {
+        AsyncRead {
             inner: self.inner,
             bytes_left: read_buf.len(),
-            read_buf: unsafe { core::mem::transmute::<&'a mut [u8], &'static mut [u8]>(read_buf) },
+            read_buf: core::mem::transmute::<&'a mut [u8], &'static mut [u8]>(read_buf),
         }
     }
 }
