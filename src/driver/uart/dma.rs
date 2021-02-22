@@ -29,7 +29,7 @@ where
 {
     me: Option<Address<Self>>,
     scheduler: Option<Address<T>>,
-    shared: Option<&'static Shared>,
+    shared: Option<&'static ActorState>,
     rx_consumer: Option<AsyncBBConsumer<RXN>>,
     tx_producer: Option<AsyncBBProducer<TXN>>,
 }
@@ -61,7 +61,7 @@ where
 const READY_STATE: bool = false;
 const BUSY_STATE: bool = true;
 
-pub struct Shared {
+pub struct ActorState {
     tx_state: AtomicBool,
     rx_state: AtomicBool,
     rx_timeout: Signal<()>,
@@ -78,7 +78,7 @@ where
     actor: ActorContext<UartActor<T, TXN, RXN>>,
     controller: ActorContext<UartController<U>>,
     interrupt: InterruptContext<UartInterrupt<U, T, TXN, RXN>>,
-    shared: Shared,
+    shared: ActorState,
 
     rx_buffer: UnsafeCell<AsyncBBBuffer<'static, RXN>>,
     rx_cons: RefCell<Option<UnsafeCell<AsyncBBConsumer<RXN>>>>,
@@ -96,7 +96,7 @@ pub enum State {
     Timeout,
 }
 
-impl Shared {
+impl ActorState {
     fn new() -> Self {
         Self {
             tx_state: AtomicBool::new(READY_STATE),
@@ -122,7 +122,7 @@ where
             actor: ActorContext::new(UartActor::new()).with_name("uart_actor"),
             controller: ActorContext::new(UartController::new()).with_name("uart_controller"),
             interrupt: InterruptContext::new(UartInterrupt::new(), irq).with_name("uart_interrupt"),
-            shared: Shared::new(),
+            shared: ActorState::new(),
             rx_buffer: UnsafeCell::new(AsyncBBBuffer::new()),
             rx_prod: RefCell::new(None),
             rx_cons: RefCell::new(None),
@@ -303,7 +303,7 @@ where
     RXN: ArrayLength<u8>,
 {
     type Configuration = (
-        &'static Shared,
+        &'static ActorState,
         Address<T>,
         AsyncBBProducer<TXN>,
         AsyncBBConsumer<RXN>,
@@ -535,14 +535,14 @@ where
     TXN: ArrayLength<u8> + 'static,
 {
     future: AsyncWrite<TXN>,
-    shared: &'a Shared,
+    shared: &'a ActorState,
 }
 
 impl<'a, TXN> TxFuture<'a, TXN>
 where
     TXN: ArrayLength<u8> + 'static,
 {
-    fn new(future: AsyncWrite<TXN>, shared: &'a Shared) -> Self {
+    fn new(future: AsyncWrite<TXN>, shared: &'a ActorState) -> Self {
         Self { future, shared }
     }
 }
@@ -569,14 +569,14 @@ where
     RXN: ArrayLength<u8> + 'static,
 {
     future: AsyncRead<RXN>,
-    shared: &'a Shared,
+    shared: &'a ActorState,
 }
 
 impl<'a, RXN> RxFuture<'a, RXN>
 where
     RXN: ArrayLength<u8> + 'static,
 {
-    fn new(future: AsyncRead<RXN>, shared: &'a Shared) -> Self {
+    fn new(future: AsyncRead<RXN>, shared: &'a ActorState) -> Self {
         Self { future, shared }
     }
 }
