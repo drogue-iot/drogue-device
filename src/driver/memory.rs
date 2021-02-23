@@ -1,7 +1,6 @@
 use crate::handler::{Completion, Response};
 use crate::prelude::{Actor, ActorInfo, NotifyHandler, RequestHandler};
 
-use crate::arena::static_arena::StaticArena;
 use crate::arena::{Arena, Info};
 use crate::supervisor::SYSTEM;
 use core::marker::PhantomData;

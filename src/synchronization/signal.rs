@@ -1,7 +1,6 @@
 // Copyright The Embassy Project (https://github.com/akiles/embassy). Licensed under the Apache 2.0
 // license
 
-use crate::platform::with_critical_section;
 use core::cell::UnsafeCell;
 use core::mem;
 use core::task::{Context, Poll, Waker};
@@ -47,7 +46,7 @@ impl<T: Sized> Signal<T> {
     where
         F: FnOnce() -> R,
     {
-        with_critical_section(|_| f())
+        crate::platform::with_critical_section(|_| f())
     }
 
     #[allow(clippy::single_match)]

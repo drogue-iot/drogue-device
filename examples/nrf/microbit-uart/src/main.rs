@@ -11,8 +11,8 @@ use drogue_device::{
     driver::timer::Timer,
     driver::uart::dma::DmaUart,
     platform::cortex_m::nrf::{
-        timer::Timer as HalTimer,
         gpiote::*,
+        timer::Timer as HalTimer,
         uarte::{Baudrate, Parity, Pins, Uarte},
     },
     prelude::*,
