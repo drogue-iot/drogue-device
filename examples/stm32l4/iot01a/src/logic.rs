@@ -3,7 +3,7 @@ use drogue_device::api::ip::tcp::{TcpStack};
 use drogue_device::prelude::*;
 use drogue_device::driver::sensor::hts221::SensorAcquisition;
 use drogue_device::domain::temperature::Celsius;
-use drogue_device::api::ip::{IpProtocol, SocketAddress, IpAddress, IpAddressV4};
+use drogue_device::api::ip::{IpProtocol, SocketAddress, IpAddress};
 use core::str::from_utf8;
 
 pub struct Logic<S>
@@ -29,7 +29,7 @@ where
 {
     type Configuration = Address<S>;
 
-    fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
+    fn on_mount(&mut self, _address: Address<Self>, config: Self::Configuration)
     where
         Self: Sized,
     {
@@ -87,7 +87,7 @@ where
                     }
                 }
                 Err(_) => {
-                    log::info!("not connected to wifi");
+                   log::info!("not connected to wifi");
                 }
             }
 

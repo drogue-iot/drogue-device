@@ -6,7 +6,10 @@ edition = "2018"
 
 [dependencies.drogue-device]
 path = "../../../"
-features = [ "stm32l4xx" ]
+features = [
+    "chip+stm32l4xx",
+    "wifi+eswifi",
+]
 
 [dependencies.cortex-m-rt]
 version = "0.6"

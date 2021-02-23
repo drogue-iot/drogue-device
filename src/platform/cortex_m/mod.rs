@@ -1,4 +1,4 @@
-#[cfg(any(feature = "stm32l4xx"))]
+#[cfg(any(feature = "stm32l4xx", feature = "chip+stm32l4xx"))]
 pub mod stm32l4xx;
 
 #[cfg(any(feature = "stm32l1xx"))]

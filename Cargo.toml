@@ -97,8 +97,19 @@ version = "0.3.0"
 default-features = false
 
 [features]
+# let's deprecate these
 stm32l4xx = [ "stm32l4xx-hal" ]
 stm32l1xx = [ "stm32l1xx-hal" ]
 nrf52833 = [ "nrf52833-hal" ]
+
+"chip+stm32l4xx" = [ "stm32l4xx-hal" ]
+"chip+nrf52833" = [ "nrf52833-hal" ]
+
 driver-rak811 = [ "drogue-rak811" ]
 fonts = []
+
+lora = []
+"lora+rak811" = [ "drogue-rak811" ]
+
+wifi = []
+"wifi+eswifi" = [ "wifi" ]
