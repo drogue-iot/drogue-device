@@ -9,15 +9,11 @@ use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::uart::dma::DmaUartHal;
 use crate::interrupt::{Interrupt, InterruptContext};
 use crate::package::Package;
-use crate::synchronization::Signal;
 
 use core::cell::{RefCell, UnsafeCell};
-use core::future::Future;
-use core::pin::Pin;
-use core::sync::atomic::AtomicBool;
-use core::sync::atomic::Ordering;
-use core::task::{Context, Poll};
 use cortex_m::interrupt::Nr;
+
+use super::common::*;
 
 use crate::util::dma::async_bbqueue::{Error as QueueError, *};
 
@@ -58,15 +54,6 @@ where
     rx_producer_grant: Option<RefCell<AsyncBBProducerGrant<'static, RXN>>>,
 }
 
-const READY_STATE: bool = false;
-const BUSY_STATE: bool = true;
-
-pub struct ActorState {
-    tx_state: AtomicBool,
-    rx_state: AtomicBool,
-    rx_timeout: Signal<()>,
-}
-
 pub struct DmaUart<U, T, TXN, RXN>
 where
     U: DmaUartHal + 'static,
@@ -87,23 +74,6 @@ where
     tx_buffer: UnsafeCell<AsyncBBBuffer<'static, TXN>>,
     tx_cons: RefCell<Option<UnsafeCell<AsyncBBConsumer<TXN>>>>,
     tx_prod: RefCell<Option<UnsafeCell<AsyncBBProducer<TXN>>>>,
-}
-
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub enum State {
-    Ready,
-    InProgress,
-    Timeout,
-}
-
-impl ActorState {
-    fn new() -> Self {
-        Self {
-            tx_state: AtomicBool::new(READY_STATE),
-            rx_timeout: Signal::new(),
-            rx_state: AtomicBool::new(READY_STATE),
-        }
-    }
 }
 
 impl<U, T, TXN, RXN> DmaUart<U, T, TXN, RXN>
@@ -215,7 +185,7 @@ where
     /// Read bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
     fn read<'a>(self, message: UartRead<'a>) -> Response<Self, Result<usize, Error>> {
         let shared = self.shared.as_ref().unwrap();
-        if READY_STATE == shared.rx_state.swap(BUSY_STATE, Ordering::SeqCst) {
+        if shared.try_rx_busy() {
             let rx_consumer = self.rx_consumer.as_ref().unwrap();
             let future = unsafe { rx_consumer.read(message.0) };
             let future = RxFuture::new(future, shared);
@@ -234,11 +204,11 @@ where
         DUR: Duration + Into<Milliseconds> + 'static,
     {
         let shared = self.shared.as_ref().unwrap();
-        if READY_STATE == shared.rx_state.swap(BUSY_STATE, Ordering::SeqCst) {
+        if shared.try_rx_busy() {
             let rx_consumer = self.rx_consumer.as_ref().unwrap();
             let future = unsafe { rx_consumer.read(message.0) };
             let future = RxFuture::new(future, shared);
-            shared.rx_timeout.reset();
+            shared.reset_rx_timeout();
             self.scheduler.as_ref().unwrap().schedule(
                 message.1,
                 ReadTimeout,
@@ -259,7 +229,7 @@ where
 {
     fn on_notify(self, message: ReadTimeout) -> Completion<Self> {
         let shared = self.shared.as_ref().unwrap();
-        shared.rx_timeout.signal(());
+        shared.signal_rx_timeout();
         Completion::immediate(self)
     }
 }
@@ -273,7 +243,7 @@ where
     /// Transmit bytes from provided tx_buffer over UART. The memory pointed to by the buffer must be available until the return future is await'ed
     fn write<'a>(self, message: UartWrite<'a>) -> Response<Self, Result<(), Error>> {
         let shared = self.shared.as_ref().unwrap();
-        if READY_STATE == shared.tx_state.swap(BUSY_STATE, Ordering::SeqCst) {
+        if shared.try_tx_busy() {
             // log::info!("Going to write message");
             let tx_producer = self.tx_producer.as_ref().unwrap();
             let future = unsafe { tx_producer.write(message.0) };
@@ -526,78 +496,6 @@ where
 
         if rx_done {
             self.start_read(READ_SIZE, Milliseconds(READ_TIMEOUT));
-        }
-    }
-}
-
-struct TxFuture<'a, TXN>
-where
-    TXN: ArrayLength<u8> + 'static,
-{
-    future: AsyncWrite<TXN>,
-    shared: &'a ActorState,
-}
-
-impl<'a, TXN> TxFuture<'a, TXN>
-where
-    TXN: ArrayLength<u8> + 'static,
-{
-    fn new(future: AsyncWrite<TXN>, shared: &'a ActorState) -> Self {
-        Self { future, shared }
-    }
-}
-
-impl<'a, TXN> Future for TxFuture<'a, TXN>
-where
-    TXN: ArrayLength<u8> + 'static,
-{
-    type Output = Result<(), Error>;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        match Future::poll(Pin::new(&mut self.future), cx) {
-            Poll::Ready(result) => {
-                self.shared.tx_state.store(READY_STATE, Ordering::SeqCst);
-                Poll::Ready(result.map_err(|_| Error::Receive))
-            }
-            Poll::Pending => Poll::Pending,
-        }
-    }
-}
-
-struct RxFuture<'a, RXN>
-where
-    RXN: ArrayLength<u8> + 'static,
-{
-    future: AsyncRead<RXN>,
-    shared: &'a ActorState,
-}
-
-impl<'a, RXN> RxFuture<'a, RXN>
-where
-    RXN: ArrayLength<u8> + 'static,
-{
-    fn new(future: AsyncRead<RXN>, shared: &'a ActorState) -> Self {
-        Self { future, shared }
-    }
-}
-
-impl<'a, RXN> Future for RxFuture<'a, RXN>
-where
-    RXN: ArrayLength<u8> + 'static,
-{
-    type Output = Result<usize, Error>;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if let Poll::Ready(_) = self.shared.rx_timeout.poll_wait(cx) {
-            self.future.cancel();
-        }
-
-        match Future::poll(Pin::new(&mut self.future), cx) {
-            Poll::Ready(result) => {
-                self.shared.rx_state.store(READY_STATE, Ordering::SeqCst);
-                return Poll::Ready(result.map_err(|_| Error::Receive));
-            }
-            Poll::Pending => Poll::Pending,
         }
     }
 }
