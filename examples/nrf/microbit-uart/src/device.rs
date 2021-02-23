@@ -1,6 +1,5 @@
 use drogue_device::{
     api::{delayer::*, uart::*},
-    device::DeviceConfiguration,
     domain::time::duration::Milliseconds,
     driver::{led::*, timer::*, uart::dma::*},
     platform::cortex_m::nrf::{gpiote::*, timer::Timer as HalTimer, uarte::Uarte},

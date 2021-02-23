@@ -5,7 +5,6 @@ use crate::api::{
     uart::{Error as UartError, UartReader, UartWriter},
 };
 use crate::domain::time::duration::Milliseconds;
-use crate::handler::Response;
 use crate::prelude::*;
 
 use core::cell::{RefCell, UnsafeCell};
