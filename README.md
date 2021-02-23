@@ -1,5 +1,6 @@
 # Drogue Device
 
+[![CI](https://github.com/drogue-iot/drogue-device/actions/workflows/ci.yaml/badge.svg)](https://github.com/drogue-iot/drogue-device/actions/workflows/ci.yaml)
 [![crates.io](https://img.shields.io/crates/v/drogue-device.svg)](https://crates.io/crates/drogue-device)
 [![docs.rs](https://docs.rs/drogue-device/badge.svg)](https://docs.rs/drogue-device)
 [![Matrix](https://img.shields.io/matrix/drogue-iot:matrix.org)](https://matrix.to/#/#drogue-iot:matrix.org)
