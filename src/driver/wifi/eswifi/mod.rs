@@ -16,7 +16,7 @@ use crate::driver::wifi::eswifi::parser::{
 };
 use crate::driver::wifi::eswifi::ready::{AwaitReady, QueryReady};
 use crate::driver::wifi::eswifi::ready::{EsWifiReady, EsWifiReadyPin};
-use crate::hal::gpio::InterruptPin;
+use crate::hal::gpio::InterruptPeripheral;
 use crate::prelude::*;
 use core::fmt::Write;
 use cortex_m::interrupt::Nr;
@@ -40,7 +40,7 @@ where
     SPI: SpiBus<Word = u8> + 'static,
     T: Delayer + 'static,
     CS: OutputPin + 'static,
-    READY: InputPin + InterruptPin + 'static,
+    READY: InputPin + InterruptPeripheral + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
 {
@@ -54,7 +54,7 @@ where
     SPI: SpiBus<Word = u8>,
     T: Delayer + 'static,
     CS: OutputPin + 'static,
-    READY: InputPin + InterruptPin + 'static,
+    READY: InputPin + InterruptPeripheral + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
 {
@@ -80,7 +80,7 @@ where
     SPI: SpiBus<Word = u8>,
     T: Delayer + 'static,
     CS: OutputPin,
-    READY: InputPin + InterruptPin,
+    READY: InputPin + InterruptPeripheral,
     RESET: OutputPin,
     WAKEUP: OutputPin,
 {
@@ -93,10 +93,8 @@ where
         supervisor: &mut Supervisor,
     ) -> Address<Self::Primary> {
         let ready_addr = self.ready.mount((), supervisor);
-        let controller_addr = self
-            .controller
-            .mount((&self.shared, config.0, config.1, ready_addr), supervisor);
-        controller_addr
+        self.controller
+            .mount((&self.shared, config.0, config.1, ready_addr), supervisor)
     }
 
     fn primary(&'static self) -> Address<Self::Primary> {
@@ -188,7 +186,7 @@ where
         self.reset().await;
         self.wakeup().await;
 
-        let mut response = [0 as u8; 16];
+        let mut response = [0; 16];
         let mut pos = 0;
 
         self.await_data_ready().await;
@@ -238,7 +236,7 @@ where
     }
 
     async fn send_string<'a, N: ArrayLength<u8>>(
-        &mut self,
+        &'a mut self,
         command: &String<N>,
         response: &'a mut [u8],
     ) -> Result<&'a [u8], SpiError> {
@@ -246,7 +244,7 @@ where
     }
 
     async fn send<'a>(
-        &mut self,
+        &'a mut self,
         command: &[u8],
         response: &'a mut [u8],
     ) -> Result<&'a [u8], SpiError> {
@@ -272,7 +270,7 @@ where
         self.receive(response).await
     }
 
-    async fn receive<'a>(&mut self, response: &'a mut [u8]) -> Result<&'a [u8], SpiError> {
+    async fn receive<'a>(&'a mut self, response: &'a mut [u8]) -> Result<&'a [u8], SpiError> {
         self.await_data_ready().await;
         let mut pos = 0;
 
@@ -289,7 +287,7 @@ where
                 pos += 1;
             }
         }
-        Ok(&mut response[0..pos])
+        Ok(&response[0..pos])
     }
 
     async fn join_open(&mut self) -> Result<IpAddress, JoinError> {

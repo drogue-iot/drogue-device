@@ -1,14 +1,13 @@
-use crate::handler::{Completion, Response};
-use crate::prelude::{Actor, ActorInfo, NotifyHandler, RequestHandler};
+use crate::prelude::*;
 
 use crate::arena::{Arena, Info};
-use crate::supervisor::SYSTEM;
+use crate::system::SystemArena;
 use core::marker::PhantomData;
 //use crate::arena::HEAP;
 
 pub struct Query;
 
-pub struct Memory<A: Arena = SYSTEM> {
+pub struct Memory<A: Arena = SystemArena> {
     arena: PhantomData<A>,
 }
 

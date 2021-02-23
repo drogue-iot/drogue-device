@@ -1,9 +1,8 @@
-use crate::actor::Actor;
-use crate::address::Address;
-use crate::handler::{RequestHandler, Response};
+use crate::prelude::*;
 pub use drogue_lora::*;
 
 /// API for accessing LoRa modules
+#[allow(clippy::needless_lifetimes)]
 impl<A> Address<A>
 where
     A: LoraDriver,
@@ -35,6 +34,7 @@ pub enum LoraError {
 }
 
 /// Trait for a LoRa driver.
+#[allow(clippy::needless_lifetimes)]
 pub trait LoraDriver: Actor {
     /// Configure the LoRa module.
     fn configure<'a>(self, message: Configure<'a>) -> Response<Self, Result<(), LoraError>>;

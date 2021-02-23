@@ -42,17 +42,17 @@ macro_rules! define_arena {
         pub struct $id;
 
         $crate::paste::paste! {
-            pub static mut [< $id ARENA >]: Option<$crate::arena::static_arena::StaticArena> = None;
+            pub static mut [< $id:upper _ARENA >]: Option<$crate::arena::static_arena::StaticArena> = None;
 
             impl $crate::arena::Arena for $id {
                 fn alloc<'o, T: 'o>(val: T) -> Option<&'o mut T> {
-                    unsafe { [< $id ARENA >].as_mut().unwrap().alloc_init(val) }
+                    unsafe { [< $id:upper _ARENA >].as_mut().unwrap().alloc_init(val) }
                 }
 
                 #[allow(clippy::not_unsafe_ptr_arg_deref)]
                 fn dealloc(ptr: *mut u8) {
                     unsafe {
-                        [< $id ARENA > ].as_ref()
+                        [< $id:upper _ARENA > ].as_ref()
                             .unwrap()
                             .dealloc_object(ptr);
                     }
@@ -60,7 +60,7 @@ macro_rules! define_arena {
 
                 fn info() -> $crate::arena::Info {
                     unsafe {
-                        $crate::arena::Info::new( [< $id ARENA >].as_ref().unwrap() )
+                        $crate::arena::Info::new( [< $id:upper _ARENA >].as_ref().unwrap() )
                     }
                 }
             }
@@ -74,9 +74,9 @@ macro_rules! define_arena {
 macro_rules! init_arena {
     ($mod:path | $id:ident => $size:literal) => {
         $crate::paste::paste! {
-            static mut [< $id MEMORY >]: [u8; $size] = [0; $size];
+            static mut [< $id:upper _MEMORY >]: [u8; $size] = [0; $size];
             unsafe {
-                $mod::[< $id ARENA >].replace($crate::arena::static_arena::StaticArena::new(&[< $id MEMORY >]));
+                $mod::[< $id:upper _ARENA >].replace($crate::arena::static_arena::StaticArena::new(&[< $id:upper _MEMORY >]));
             }
         }
     }

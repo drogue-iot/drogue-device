@@ -1,7 +1,7 @@
 //! Shared device-level event-bus type and trait.
 
-use crate::prelude::device::DeviceContext;
 use crate::prelude::*;
+use crate::system::device::DeviceContext;
 
 /// The shared device-level event-bus actor.
 ///

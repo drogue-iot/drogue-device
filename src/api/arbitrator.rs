@@ -56,6 +56,15 @@ where
     }
 }
 
+impl<BUS> Default for Arbitrator<BUS>
+where
+    BUS: Actor + 'static,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<BUS> Package for Arbitrator<BUS>
 where
     BUS: Actor + 'static,
@@ -113,6 +122,15 @@ where
             address: None,
             bus: None,
         }
+    }
+}
+
+impl<BUS> Default for BusArbitrator<BUS>
+where
+    BUS: Actor + 'static,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
 

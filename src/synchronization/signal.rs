@@ -92,3 +92,9 @@ impl<T: Sized> Signal<T> {
         self.critical_section(|| matches!(unsafe { &*self.state.get() }, State::Signaled(_)))
     }
 }
+
+impl<T: Sized> Default for Signal<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}

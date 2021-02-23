@@ -45,8 +45,7 @@ where
         supervisor: &mut Supervisor,
     ) -> Address<Self::Primary> {
         let controller_addr = self.controller.mount((), supervisor);
-        let arbitrator_addr = self.arbitrator.mount(controller_addr, supervisor);
-        arbitrator_addr
+        self.arbitrator.mount(controller_addr, supervisor)
     }
 
     fn primary(&'static self) -> Address<Self::Primary> {

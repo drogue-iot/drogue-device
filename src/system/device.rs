@@ -2,9 +2,7 @@
 
 use core::cell::{RefCell, UnsafeCell};
 
-use crate::actor::ActorContext;
-use crate::prelude::{Address, EventBus, EventHandler};
-use crate::supervisor::Supervisor;
+use crate::prelude::*;
 
 pub struct DeviceConfiguration<D>
 where

@@ -1,16 +1,14 @@
 //! Opaque supervisor for internal operation.
 
 use crate::platform::with_critical_section;
-use crate::supervisor::actor_executor::{ActiveActor, ActorExecutor};
-use crate::supervisor::interrupt_dispatcher::{ActiveInterrupt, InterruptDispatcher};
+
+use crate::system::supervisor::actor_executor::{ActiveActor, ActorExecutor};
+
+use crate::system::supervisor::interrupt_dispatcher::{ActiveInterrupt, InterruptDispatcher};
 use core::cell::RefCell;
 
 pub(crate) mod actor_executor;
 pub(crate) mod interrupt_dispatcher;
-
-use crate::define_arena;
-
-define_arena!(SYSTEM);
 
 /// An opaque object used during the mounting of actors into the system.
 pub struct Supervisor {

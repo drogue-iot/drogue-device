@@ -7,8 +7,6 @@ use crate::api::{
 };
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::uart::dma::DmaUartHal;
-use crate::interrupt::{Interrupt, InterruptContext};
-use crate::package::Package;
 
 use core::cell::{RefCell, UnsafeCell};
 use cortex_m::interrupt::Nr;

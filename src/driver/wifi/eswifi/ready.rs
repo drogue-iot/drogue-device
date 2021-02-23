@@ -1,4 +1,4 @@
-use crate::hal::gpio::InterruptPin;
+use crate::hal::gpio::InterruptPeripheral;
 use crate::platform::with_critical_section;
 use crate::prelude::*;
 use core::cell::RefCell;
@@ -51,7 +51,7 @@ impl Shared {
 
 pub struct EsWifiReady<READY>
 where
-    READY: InputPin + InterruptPin + 'static,
+    READY: InputPin + InterruptPeripheral + 'static,
 {
     shared: Shared,
     ready: ActorContext<EsWifiReadyPin>,
@@ -60,7 +60,7 @@ where
 
 impl<READY> EsWifiReady<READY>
 where
-    READY: InputPin + InterruptPin,
+    READY: InputPin + InterruptPeripheral,
 {
     pub fn new<IRQ: Nr>(ready: READY, irq: IRQ) -> Self {
         Self {
@@ -73,7 +73,7 @@ where
 
 impl<READY> Package for EsWifiReady<READY>
 where
-    READY: InputPin + InterruptPin,
+    READY: InputPin + InterruptPeripheral,
 {
     type Primary = EsWifiReadyPin;
     type Configuration = ();
@@ -98,7 +98,7 @@ pub struct EsWifiReadyPin {
 }
 
 impl EsWifiReadyPin {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self { shared: None }
     }
 }
@@ -116,7 +116,7 @@ impl Actor for EsWifiReadyPin {
 
 pub struct EsWifiReadyInterrupt<READY>
 where
-    READY: InputPin + InterruptPin,
+    READY: InputPin + InterruptPeripheral,
 {
     ready: READY,
     shared: Option<&'static Shared>,
@@ -124,7 +124,7 @@ where
 
 impl<READY> EsWifiReadyInterrupt<READY>
 where
-    READY: InputPin + InterruptPin,
+    READY: InputPin + InterruptPeripheral,
 {
     pub fn new(ready: READY) -> Self {
         Self {
@@ -136,7 +136,7 @@ where
 
 impl<READY> Actor for EsWifiReadyInterrupt<READY>
 where
-    READY: InputPin + InterruptPin,
+    READY: InputPin + InterruptPeripheral,
 {
     type Configuration = &'static Shared;
 
@@ -150,7 +150,7 @@ where
 
 impl<READY> Interrupt for EsWifiReadyInterrupt<READY>
 where
-    READY: InputPin + InterruptPin,
+    READY: InputPin + InterruptPeripheral,
 {
     fn on_interrupt(&mut self) {
         if self.ready.is_high().unwrap_or(false) {

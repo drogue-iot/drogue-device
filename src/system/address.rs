@@ -1,7 +1,6 @@
 //! Actor addresses
 
-use crate::actor::{Actor, ActorContext};
-use crate::handler::{NotifyHandler, RequestHandler};
+use crate::prelude::*;
 
 /// A handle to another actor for dispatching notifications and requests.
 ///

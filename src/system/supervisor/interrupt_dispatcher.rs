@@ -1,7 +1,6 @@
 use heapless::{consts::*, Vec};
 
-use crate::actor::Actor;
-use crate::interrupt::{Interrupt, InterruptContext};
+use crate::prelude::*;
 use core::sync::atomic::Ordering;
 use cortex_m::interrupt::Nr;
 use cortex_m::peripheral::NVIC;

@@ -11,14 +11,13 @@ use core::task::{Context, Poll, Waker};
 use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue, String};
 
-use crate::address::Address;
 use crate::arena::{Box, Rc};
-use crate::device::Lifecycle;
 use crate::platform::with_critical_section;
 use crate::prelude::*;
-use crate::supervisor::actor_executor::ActiveActor;
-use crate::supervisor::SYSTEM;
-use crate::supervisor::{actor_executor::ActorState, Supervisor};
+use crate::system::device::Lifecycle;
+use crate::system::supervisor::actor_executor::ActiveActor;
+use crate::system::supervisor::{actor_executor::ActorState, Supervisor};
+use crate::system::SystemArena;
 
 pub trait Configurable {
     type Configuration;
@@ -97,16 +96,18 @@ impl ActorInfo {
 
 pub(crate) static mut CURRENT: ActorInfo = ActorInfo { name: None };
 
-type ItemsProducer<A> = RefCell<Option<Producer<'static, Box<dyn ActorFuture<A>, SYSTEM>, U64>>>;
-type ItemsConsumer<A> = RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>, SYSTEM>, U64>>>;
+type ItemsProducer<A> =
+    RefCell<Option<Producer<'static, Box<dyn ActorFuture<A>, SystemArena>, U64>>>;
+type ItemsConsumer<A> =
+    RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>, SystemArena>, U64>>>;
 
 /// Struct which is capable of holding an `Actor` instance
 /// and connects it to the actor system.
 pub struct ActorContext<A: Actor + 'static> {
     pub(crate) actor: RefCell<Option<A>>,
-    pub(crate) current: RefCell<Option<Box<dyn ActorFuture<A>, SYSTEM>>>,
+    pub(crate) current: RefCell<Option<Box<dyn ActorFuture<A>, SystemArena>>>,
     // Only an UnsafeCell instead of RefCell in order to maintain it's 'static nature when borrowed.
-    pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>, SYSTEM>, U64>>,
+    pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>, SystemArena>, U64>>,
     pub(crate) items_producer: ItemsProducer<A>,
     pub(crate) items_consumer: ItemsConsumer<A>,
     //pub(crate) items: FutureQueue<A>,
@@ -186,8 +187,8 @@ impl<A: Actor + 'static> ActorContext<A> {
     pub(crate) fn lifecycle(&'static self, event: Lifecycle) {
         log::trace!("[{}].lifecycle({:?})", self.name(), event);
 
-        let lifecycle = SYSTEM::alloc(OnLifecycle::new(self, event)).unwrap();
-        let lifecycle: Box<dyn ActorFuture<A>, SYSTEM> = Box::new(lifecycle);
+        let lifecycle = SystemArena::alloc(OnLifecycle::new(self, event)).unwrap();
+        let lifecycle: Box<dyn ActorFuture<A>, SystemArena> = Box::new(lifecycle);
 
         with_critical_section(|cs| {
             self.items_producer
@@ -213,8 +214,8 @@ impl<A: Actor + 'static> ActorContext<A> {
         M: 'static,
     {
         log::trace!("[{}].notify(...)", self.name());
-        let notify = SYSTEM::alloc(OnNotify::new(self, message)).unwrap();
-        let notify: Box<dyn ActorFuture<A>, SYSTEM> = Box::new(notify);
+        let notify = SystemArena::alloc(OnNotify::new(self, message)).unwrap();
+        let notify: Box<dyn ActorFuture<A>, SystemArena> = Box::new(notify);
         with_critical_section(|cs| {
             self.items_producer
                 .borrow_mut()
@@ -241,11 +242,11 @@ impl<A: Actor + 'static> ActorContext<A> {
         let sender = CompletionSender::new(signal.clone());
         let receiver = CompletionReceiver::new(signal);
         let request: &mut dyn ActorFuture<A> =
-            SYSTEM::alloc(OnRequest::new(self, message, sender)).unwrap();
+            SystemArena::alloc(OnRequest::new(self, message, sender)).unwrap();
         let response = RequestResponseFuture::new(receiver);
 
         unsafe {
-            let request: Box<dyn ActorFuture<A>, SYSTEM> = Box::new(request);
+            let request: Box<dyn ActorFuture<A>, SystemArena> = Box::new(request);
             with_critical_section(|cs| {
                 self.items_producer
                     .borrow_mut()
@@ -275,12 +276,12 @@ impl<A: Actor + 'static> ActorContext<A> {
         let sender = CompletionSender::new(signal.clone());
         let receiver = CompletionReceiver::new(signal);
         let request: &mut dyn ActorFuture<A> =
-            SYSTEM::alloc(OnRequest::new(self, message, sender)).unwrap();
+            SystemArena::alloc(OnRequest::new(self, message, sender)).unwrap();
         let response = RequestResponseFuture::new(receiver);
 
         unsafe {
             let request = transmute::<_, &mut (dyn ActorFuture<A> + 'static)>(request);
-            let request: Box<dyn ActorFuture<A>, SYSTEM> = Box::new(request);
+            let request: Box<dyn ActorFuture<A>, SystemArena> = Box::new(request);
             with_critical_section(|cs| {
                 self.items_producer
                     .borrow_mut()
@@ -310,16 +311,16 @@ impl<A: Actor + 'static> ActorContext<A> {
         let sender = CompletionSender::new(signal.clone());
         let receiver = CompletionReceiver::new(signal);
 
-        let debug = "damnit".into();
+        let debug = "unknown".into();
         //write!(debug, "{:?}", type_name::<M>()).unwrap();
 
         let request: &mut dyn ActorFuture<A> =
-            SYSTEM::alloc(OnRequest::new(self, message, sender)).unwrap();
+            SystemArena::alloc(OnRequest::new(self, message, sender)).unwrap();
         let response = RequestResponseFuture::new_panicking(receiver, debug);
 
         unsafe {
             let request = transmute::<_, &mut (dyn ActorFuture<A> + 'static)>(request);
-            let request: Box<dyn ActorFuture<A>, SYSTEM> = Box::new(request);
+            let request: Box<dyn ActorFuture<A>, SystemArena> = Box::new(request);
             with_critical_section(|cs| {
                 self.items_producer
                     .borrow_mut()
@@ -669,7 +670,7 @@ struct CompletionHandle<T> {
 
 enum CompletionValue<T> {
     Immediate(T),
-    Future(Box<dyn Future<Output = T>, SYSTEM>),
+    Future(Box<dyn Future<Output = T>, SystemArena>),
 }
 
 impl<T> CompletionHandle<T> {
@@ -697,7 +698,7 @@ impl<T: 'static> CompletionHandle<T> {
         }
     }
 
-    pub fn send_future(&self, value: Box<dyn Future<Output = T>, SYSTEM>) {
+    pub fn send_future(&self, value: Box<dyn Future<Output = T>, SystemArena>) {
         self.value
             .borrow_mut()
             .replace(CompletionValue::Future(value));
@@ -733,12 +734,12 @@ impl<T: 'static> CompletionHandle<T> {
 }
 
 struct CompletionSender<T: 'static> {
-    handle: Rc<CompletionHandle<T>, SYSTEM>,
+    handle: Rc<CompletionHandle<T>, SystemArena>,
     sent: AtomicBool,
 }
 
 impl<T: 'static> CompletionSender<T> {
-    pub(crate) fn new(handle: Rc<CompletionHandle<T>, SYSTEM>) -> Self {
+    pub(crate) fn new(handle: Rc<CompletionHandle<T>, SystemArena>) -> Self {
         Self {
             handle,
             sent: AtomicBool::new(false),
@@ -753,7 +754,7 @@ impl<T: 'static> CompletionSender<T> {
         self.handle.send_value(response);
     }
 
-    pub(crate) fn send_future(&self, response: Box<dyn Future<Output = T>, SYSTEM>)
+    pub(crate) fn send_future(&self, response: Box<dyn Future<Output = T>, SystemArena>)
     where
         T: 'static,
     {
@@ -763,12 +764,12 @@ impl<T: 'static> CompletionSender<T> {
 }
 
 struct CompletionReceiver<T: 'static> {
-    handle: Rc<CompletionHandle<T>, SYSTEM>,
+    handle: Rc<CompletionHandle<T>, SystemArena>,
     received: bool,
 }
 
 impl<T: 'static> CompletionReceiver<T> {
-    pub(crate) fn new(handle: Rc<CompletionHandle<T>, SYSTEM>) -> Self {
+    pub(crate) fn new(handle: Rc<CompletionHandle<T>, SystemArena>) -> Self {
         Self {
             handle,
             received: false,

@@ -1,5 +1,5 @@
 use crate::logic::Logic;
-use drogue_device::device::DeviceConfiguration;
+use drogue_device::prelude::*;
 use drogue_device::domain::time::duration::Milliseconds;
 use drogue_device::driver::sensor::hts221::SensorAcquisition;
 use drogue_device::driver::spi::SpiController;

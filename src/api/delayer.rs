@@ -1,6 +1,5 @@
 use crate::domain::time::duration::{Duration, Milliseconds};
-use crate::handler::Response;
-use crate::prelude::{Actor, Address, RequestHandler};
+use crate::prelude::*;
 
 #[derive(Copy, Clone)]
 pub struct Delay<DUR: Duration + Into<Milliseconds>>(pub DUR);

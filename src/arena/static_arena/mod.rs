@@ -138,7 +138,7 @@ impl StaticArena {
         }
     }
 
-    pub unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         with_critical_section(|cs| {
             self.heap
                 .borrow(cs)
@@ -151,7 +151,7 @@ impl StaticArena {
         })
     }
 
-    pub unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         with_critical_section(|cs| {
             self.heap
                 .borrow(cs)
@@ -160,7 +160,7 @@ impl StaticArena {
         });
     }
 
-    pub unsafe fn dealloc_object(&self, ptr: *mut u8) {
+    pub(crate) unsafe fn dealloc_object(&self, ptr: *mut u8) {
         let head_ptr = (ptr as *mut Layout).sub(1);
         let layout = head_ptr.read();
         log::trace!(
