@@ -17,16 +17,11 @@ jobs:
   ci:
     runs-on: ubuntu-20.04
 
-    strategy:
-      matrix:
-        rust: [stable]
-
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: ${{ matrix.rust }}
           override: true
 
       - name: Run tests
