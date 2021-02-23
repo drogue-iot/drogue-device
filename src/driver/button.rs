@@ -1,4 +1,4 @@
-use crate::hal::gpio::exti_pin::ExtiPin;
+use crate::hal::gpio::InterruptPin;
 use crate::hal::Active;
 use crate::handler::EventHandler;
 use crate::prelude::*;
@@ -19,7 +19,7 @@ pub struct Button<D: Device + 'static, PIN> {
 impl<D, PIN> Actor for Button<D, PIN>
 where
     D: Device,
-    PIN: InputPin + ExtiPin,
+    PIN: InputPin + InterruptPin,
 {
     type Configuration = Address<EventBus<D>>;
 
@@ -34,7 +34,7 @@ where
 impl<D, PIN> Button<D, PIN>
 where
     D: Device,
-    PIN: InputPin + ExtiPin,
+    PIN: InputPin + InterruptPin,
 {
     pub fn new(pin: PIN, active: Active) -> Self {
         Self {
@@ -48,7 +48,7 @@ where
 impl<D, PIN> Interrupt for Button<D, PIN>
 where
     D: Device + EventHandler<ButtonEvent> + 'static,
-    PIN: InputPin + ExtiPin,
+    PIN: InputPin + InterruptPin,
 {
     fn on_interrupt(&mut self) {
         if self.pin.check_interrupt() {
@@ -68,7 +68,7 @@ where
                     }
                 }
             }
-            self.pin.clear_interrupt_pending_bit();
+            self.pin.clear_interrupt();
         }
     }
 }

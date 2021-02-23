@@ -1,18 +1,15 @@
-pub trait ExtiPin {
-    fn check_interrupt(&mut self) -> bool;
-    fn clear_interrupt_pending_bit(&mut self);
-}
+use crate::hal::gpio::InterruptPeripheral;
 
-#[cfg(feature = "stm32l4xx")]
-impl<P> ExtiPin for P
+impl<P> InterruptPeripheral for P
 where
     P: stm32l4xx_hal::gpio::ExtiPin,
 {
+    fn enable_interrupt(&mut self) {}
     fn check_interrupt(&mut self) -> bool {
         (self as &mut dyn stm32l4xx_hal::gpio::ExtiPin).check_interrupt()
     }
 
-    fn clear_interrupt_pending_bit(&mut self) {
+    fn clear_interrupt(&mut self) {
         stm32l4xx_hal::gpio::ExtiPin::clear_interrupt_pending_bit(self)
     }
 }

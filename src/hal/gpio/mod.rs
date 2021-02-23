@@ -1,7 +1,5 @@
 use embedded_hal::digital::v2::OutputPin;
 
-pub mod exti_pin;
-
 pub trait ActiveOutput {
     fn set_active<P: OutputPin>(pin: &mut P) -> Result<(), P::Error>;
     fn set_inactive<P: OutputPin>(pin: &mut P) -> Result<(), P::Error>;
@@ -29,4 +27,10 @@ impl ActiveOutput for ActiveLow {
     fn set_inactive<P: OutputPin>(pin: &mut P) -> Result<(), P::Error> {
         pin.set_high()
     }
+}
+
+pub trait InterruptPin {
+    fn enable_interrupt(&mut self);
+    fn check_interrupt(&mut self) -> bool;
+    fn clear_interrupt(&mut self);
 }
