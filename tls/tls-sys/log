@@ -1,0 +1,4 @@
+   Compiling drogue-tls-sys v0.1.0 (/Users/bob/repos/drogue/drogue-device/tls/drogue-tls-sys)
+warning: couldn't execute `llvm-config --prefix` (error: No such file or directory (os error 2))
+warning: set the LLVM_CONFIG_PATH environment variable to the full path to a valid `llvm-config` executable (including the executable itself)
+    Finished dev [unoptimized + debuginfo] target(s) in 22.18s
