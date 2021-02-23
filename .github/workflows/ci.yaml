@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    # Run on the main branch
+    branches:
+      - main
+    # Releases are tags named 'v<version>', and must have the "major.minor.micro", for example: "0.1.0".
+    # Release candidates are tagged as `v<version>-rc<num>`, for example: "0.1.0-rc1".
+    tags:
+      - "v*"
+  # Also on PRs, just be careful not to publish anything
+  pull_request:
+
+
+jobs:
+  ci:
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        rust: [stable]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Run tests
+        run: cargo test --all
+
+      - name: Compile examples
+        run: for i in $(find examples/ -name "Cargo.toml"); do d=$(dirname $i); pushd $d; cargo build --release; popd; done
