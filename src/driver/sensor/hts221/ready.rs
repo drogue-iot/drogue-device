@@ -1,7 +1,7 @@
 use crate::domain::temperature::Celsius;
 use crate::driver::sensor::hts221::sensor::Sensor;
 use crate::driver::sensor::hts221::SensorAcquisition;
-use crate::hal::gpio::InterruptPeripheral;
+use crate::hal::gpio::InterruptPin;
 use crate::prelude::*;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use embedded_hal::digital::v2::InputPin;
@@ -11,7 +11,7 @@ pub struct DataReady;
 pub struct Ready<D, P, I>
 where
     D: Device + 'static,
-    P: InputPin + InterruptPeripheral + 'static,
+    P: InputPin + InterruptPin + 'static,
     I: WriteRead + Read + Write + 'static,
 {
     pin: P,
@@ -21,7 +21,7 @@ where
 impl<D, P, I> Ready<D, P, I>
 where
     D: Device,
-    P: InputPin + InterruptPeripheral,
+    P: InputPin + InterruptPin,
     I: WriteRead + Read + Write,
 {
     pub fn new(pin: P) -> Self {
@@ -32,7 +32,7 @@ where
 impl<D, P, I> Actor for Ready<D, P, I>
 where
     D: Device,
-    P: InputPin + InterruptPeripheral,
+    P: InputPin + InterruptPin,
     I: WriteRead + Read + Write + 'static,
 {
     type Configuration = Address<Sensor<D, I>>;
@@ -48,7 +48,7 @@ where
 impl<D, P, I> Interrupt for Ready<D, P, I>
 where
     D: Device + EventHandler<SensorAcquisition<Celsius>> + 'static,
-    P: InputPin + InterruptPeripheral,
+    P: InputPin + InterruptPin,
     I: WriteRead + Read + Write + 'static,
 {
     fn on_interrupt(&mut self) {

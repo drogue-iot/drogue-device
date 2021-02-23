@@ -16,7 +16,7 @@ use crate::driver::wifi::eswifi::parser::{
 };
 use crate::driver::wifi::eswifi::ready::{AwaitReady, QueryReady};
 use crate::driver::wifi::eswifi::ready::{EsWifiReady, EsWifiReadyPin};
-use crate::hal::gpio::InterruptPeripheral;
+use crate::hal::gpio::InterruptPin;
 use crate::prelude::*;
 use core::fmt::Write;
 use cortex_m::interrupt::Nr;
@@ -40,7 +40,7 @@ where
     SPI: SpiBus<Word = u8> + 'static,
     T: Delayer + 'static,
     CS: OutputPin + 'static,
-    READY: InputPin + InterruptPeripheral + 'static,
+    READY: InputPin + InterruptPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
 {
@@ -54,7 +54,7 @@ where
     SPI: SpiBus<Word = u8>,
     T: Delayer + 'static,
     CS: OutputPin + 'static,
-    READY: InputPin + InterruptPeripheral + 'static,
+    READY: InputPin + InterruptPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
 {
@@ -80,7 +80,7 @@ where
     SPI: SpiBus<Word = u8>,
     T: Delayer + 'static,
     CS: OutputPin,
-    READY: InputPin + InterruptPeripheral,
+    READY: InputPin + InterruptPin,
     RESET: OutputPin,
     WAKEUP: OutputPin,
 {

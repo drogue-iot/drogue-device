@@ -3,7 +3,7 @@ use crate::driver::i2c::I2cPeripheral;
 use crate::driver::sensor::hts221::ready::Ready;
 use crate::driver::sensor::hts221::sensor::Sensor;
 use crate::driver::sensor::hts221::SensorAcquisition;
-use crate::hal::gpio::InterruptPeripheral;
+use crate::hal::gpio::InterruptPin;
 use crate::prelude::*;
 use cortex_m::interrupt::Nr;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
@@ -12,7 +12,7 @@ use embedded_hal::digital::v2::InputPin;
 pub struct Hts221<D, P, I>
 where
     D: Device + EventHandler<SensorAcquisition<Celsius>> + 'static,
-    P: InputPin + InterruptPeripheral + 'static,
+    P: InputPin + InterruptPin + 'static,
     I: WriteRead + Read + Write + 'static,
 {
     sensor: ActorContext<Sensor<D, I>>,
@@ -22,7 +22,7 @@ where
 impl<D, P, I> Hts221<D, P, I>
 where
     D: Device + EventHandler<SensorAcquisition<Celsius>>,
-    P: InputPin + InterruptPeripheral,
+    P: InputPin + InterruptPin,
     I: WriteRead + Read + Write,
 {
     pub fn new<N: Nr>(ready: P, irq: N) -> Self {
@@ -40,7 +40,7 @@ where
 impl<D, P, I> Package for Hts221<D, P, I>
 where
     D: Device + EventHandler<SensorAcquisition<Celsius>>,
-    P: InputPin + InterruptPeripheral,
+    P: InputPin + InterruptPin,
     I: WriteRead + Read + Write,
 {
     type Primary = Sensor<D, I>;

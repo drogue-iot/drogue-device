@@ -1,4 +1,4 @@
-use crate::hal::gpio::InterruptPeripheral;
+use crate::hal::gpio::InterruptPin;
 use crate::hal::Active;
 use crate::prelude::*;
 use embedded_hal::digital::v2::InputPin;
@@ -18,7 +18,7 @@ pub struct Button<D: Device + 'static, PIN> {
 impl<D, PIN> Actor for Button<D, PIN>
 where
     D: Device,
-    PIN: InputPin + InterruptPeripheral,
+    PIN: InputPin + InterruptPin,
 {
     type Configuration = Address<EventBus<D>>;
 
@@ -33,7 +33,7 @@ where
 impl<D, PIN> Button<D, PIN>
 where
     D: Device,
-    PIN: InputPin + InterruptPeripheral,
+    PIN: InputPin + InterruptPin,
 {
     pub fn new(pin: PIN, active: Active) -> Self {
         Self {
@@ -47,7 +47,7 @@ where
 impl<D, PIN> Interrupt for Button<D, PIN>
 where
     D: Device + EventHandler<ButtonEvent> + 'static,
-    PIN: InputPin + InterruptPeripheral,
+    PIN: InputPin + InterruptPin,
 {
     fn on_interrupt(&mut self) {
         if self.pin.check_interrupt() {
