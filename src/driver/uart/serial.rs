@@ -1,7 +1,7 @@
 use crate::api::scheduler::*;
 use crate::api::uart::*;
 use crate::domain::time::duration::{Duration, Milliseconds};
-use crate::hal::gpio::InterruptPin;
+use crate::hal::uart::UartRx;
 use crate::prelude::*;
 use crate::util::dma::async_bbqueue::{consts, AsyncBBBuffer, AsyncBBConsumer, AsyncBBProducer};
 
@@ -14,7 +14,7 @@ use nb;
 pub struct Serial<TX, RX, S>
 where
     TX: Write<u8> + 'static,
-    RX: Read<u8> + InterruptPin + 'static,
+    RX: Read<u8> + UartRx + 'static,
     S: Scheduler + 'static,
 {
     actor: ActorContext<SerialActor<TX, S>>,
@@ -37,7 +37,7 @@ where
 
 pub struct SerialInterrupt<RX>
 where
-    RX: Read<u8> + InterruptPin + 'static,
+    RX: Read<u8> + UartRx + 'static,
 {
     rx: RX,
     rx_producer: Option<AsyncBBProducer<consts::U16>>,
@@ -47,7 +47,7 @@ where
 impl<TX, RX, S> Serial<TX, RX, S>
 where
     TX: Write<u8> + 'static,
-    RX: Read<u8> + InterruptPin + 'static,
+    RX: Read<u8> + UartRx + 'static,
     S: Scheduler + 'static,
 {
     pub fn new<IRQ>(tx: TX, rx: RX, irq: IRQ) -> Self
@@ -79,7 +79,7 @@ where
 impl<TX, RX, S> Package for Serial<TX, RX, S>
 where
     TX: Write<u8> + 'static,
-    RX: Read<u8> + InterruptPin + 'static,
+    RX: Read<u8> + UartRx + 'static,
     S: Scheduler + 'static,
 {
     type Primary = SerialActor<TX, S>;
@@ -122,7 +122,7 @@ where
 
 impl<RX> Actor for SerialInterrupt<RX>
 where
-    RX: Read<u8> + InterruptPin + 'static,
+    RX: Read<u8> + UartRx + 'static,
 {
     type Configuration = (&'static ActorState, AsyncBBProducer<consts::U16>);
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
@@ -138,7 +138,7 @@ where
 
 impl<RX> Interrupt for SerialInterrupt<RX>
 where
-    RX: Read<u8> + InterruptPin + 'static,
+    RX: Read<u8> + UartRx + 'static,
 {
     fn on_interrupt(&mut self) {
         if self.rx.check_interrupt() {
