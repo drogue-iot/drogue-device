@@ -1,6 +1,6 @@
-use crate::hal::gpio::InterruptPeripheral;
+use crate::hal::gpio::InterruptPin;
 
-impl<P> InterruptPeripheral for P
+impl<P> InterruptPin for P
 where
     P: stm32l4xx_hal::gpio::ExtiPin,
 {

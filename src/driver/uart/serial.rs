@@ -11,15 +11,14 @@ use cortex_m::interrupt::Nr;
 use embedded_hal::serial::{Read, Write};
 use nb;
 
-pub struct Serial<TX, RX, RxPin, S>
+pub struct Serial<TX, RX, S>
 where
     TX: Write<u8> + 'static,
-    RX: Read<u8> + 'static,
-    RxPin: InterruptPin + 'static,
+    RX: Read<u8> + InterruptPin + 'static,
     S: Scheduler + 'static,
 {
     actor: ActorContext<SerialActor<TX, S>>,
-    interrupt: InterruptContext<SerialInterrupt<RX, RxPin>>,
+    interrupt: InterruptContext<SerialInterrupt<RX>>,
     state: ActorState,
     rx_buffer: UnsafeCell<AsyncBBBuffer<'static, consts::U16>>,
 }
@@ -36,25 +35,22 @@ where
     scheduler: Option<Address<S>>,
 }
 
-pub struct SerialInterrupt<RX, RxPin>
+pub struct SerialInterrupt<RX>
 where
-    RX: Read<u8> + 'static,
-    RxPin: InterruptPin + 'static,
+    RX: Read<u8> + InterruptPin + 'static,
 {
     rx: RX,
-    rx_pin: RxPin,
     rx_producer: Option<AsyncBBProducer<consts::U16>>,
     state: Option<&'static ActorState>,
 }
 
-impl<TX, RX, RxPin, S> Serial<TX, RX, RxPin, S>
+impl<TX, RX, S> Serial<TX, RX, S>
 where
     TX: Write<u8> + 'static,
-    RX: Read<u8> + 'static,
-    RxPin: InterruptPin + 'static,
+    RX: Read<u8> + InterruptPin + 'static,
     S: Scheduler + 'static,
 {
-    pub fn new<IRQ>(tx: TX, rx: RX, rx_pin: RxPin, irq: IRQ) -> Self
+    pub fn new<IRQ>(tx: TX, rx: RX, irq: IRQ) -> Self
     where
         IRQ: Nr,
     {
@@ -71,7 +67,6 @@ where
             interrupt: InterruptContext::new(
                 SerialInterrupt {
                     rx,
-                    rx_pin,
                     rx_producer: None,
                     state: None,
                 },
@@ -81,11 +76,10 @@ where
     }
 }
 
-impl<TX, RX, RxPin, S> Package for Serial<TX, RX, RxPin, S>
+impl<TX, RX, S> Package for Serial<TX, RX, S>
 where
     TX: Write<u8> + 'static,
-    RX: Read<u8> + 'static,
-    RxPin: InterruptPin + 'static,
+    RX: Read<u8> + InterruptPin + 'static,
     S: Scheduler + 'static,
 {
     type Primary = SerialActor<TX, S>;
@@ -126,10 +120,9 @@ where
     }
 }
 
-impl<RX, RxPin> Actor for SerialInterrupt<RX, RxPin>
+impl<RX> Actor for SerialInterrupt<RX>
 where
-    RX: Read<u8> + 'static,
-    RxPin: InterruptPin + 'static,
+    RX: Read<u8> + InterruptPin + 'static,
 {
     type Configuration = (&'static ActorState, AsyncBBProducer<consts::U16>);
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
@@ -138,30 +131,39 @@ where
     }
 
     fn on_start(mut self) -> Completion<Self> {
-        self.rx_pin.enable_interrupt();
+        self.rx.enable_interrupt();
         Completion::immediate(self)
     }
 }
 
-impl<RX, RxPin> Interrupt for SerialInterrupt<RX, RxPin>
+impl<RX> Interrupt for SerialInterrupt<RX>
 where
-    RX: Read<u8> + 'static,
-    RxPin: InterruptPin + 'static,
+    RX: Read<u8> + InterruptPin + 'static,
 {
     fn on_interrupt(&mut self) {
-        if self.rx_pin.check_interrupt() {
-            match self.rx.read() {
-                Ok(b) => {
-                    if let Ok(mut grant) = self.rx_producer.as_ref().unwrap().prepare_write(1) {
-                        grant.buf()[0] = b;
-                    } else {
-                        log::warn!("Dropping data!");
+        if self.rx.check_interrupt() {
+            if let Ok(mut grant) = self.rx_producer.as_ref().unwrap().prepare_write(8) {
+                let buf = grant.buf();
+                let mut i = 0;
+                while i < buf.len() {
+                    match self.rx.read() {
+                        Ok(b) => {
+                            buf[i] = b;
+                        }
+                        Err(nb::Error::WouldBlock) => {
+                            break;
+                        }
+                        Err(e) => {
+                            log::warn!("Error while reading");
+                            break;
+                        }
                     }
+                    i += 1;
                 }
-                Err(e) => {}
+                grant.commit(i);
             }
         }
-        self.rx_pin.clear_interrupt();
+        self.rx.clear_interrupt();
     }
 }
 
