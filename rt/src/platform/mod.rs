@@ -8,4 +8,4 @@ pub use self::cortex_m::{exception, with_critical_section, CriticalSection, Mute
 pub mod x86;
 
 #[cfg(target_arch = "x86_64")]
-pub use self::x86::{exception, with_critical_section, CriticalSection, Mutex};
+pub use self::x86::{with_critical_section, CriticalSection, Mutex};

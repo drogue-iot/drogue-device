@@ -1,6 +1,0 @@
-[workspace]
-members = [
-    "rt",
-    "tls",
-    "tls-sys",
-]

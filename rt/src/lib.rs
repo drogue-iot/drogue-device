@@ -21,7 +21,7 @@ pub(crate) mod util;
 /// Easy imports for common types and traits.
 pub mod prelude {
     pub use crate::device;
-    pub use crate::platform::exception;
+    //pub use crate::platform::exception;
     pub use crate::system::{
         actor::{Actor, ActorContext, ActorInfo, Configurable},
         address::Address,

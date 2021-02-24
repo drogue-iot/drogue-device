@@ -2,3 +2,4 @@
 channel = "stable"
 components = [ "rustfmt", "rustc" ]
 targets = [ "thumbv7em-none-eabihf", "thumbv7em-none-eabi", "x86_64-unknown-linux-gnu" ]
+#targets = [ "thumbv7em-none-eabihf", "thumbv7em-none-eabi" ]
