@@ -90,13 +90,8 @@ actor or interrupt within the device. Upon using the `device!(...)`
 macro to start the system, it’s `mount(...)` will be called where it can
 then subsequently cause each child actor to be mounted and started.
 
-==== Binding
-
-Additionally, it’s the responsibilty of the `Device` to perform whatever
-`bind(...)` is required by each actor. Each actor may specify that it
-supports being bound to another actor, having it’s dependency address
-bound, or injected, into it. The `Device` is responsible for binding the
-dependencies, including the `EventBus` if required.
+Each Actor in the system defines the configuration it expects to get handed
+in its mount() implementation.
 
 === Interrupts
 
