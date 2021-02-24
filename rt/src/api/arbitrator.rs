@@ -1,3 +1,4 @@
+use crate::platform::atomic;
 use crate::prelude::*;
 use core::cell::RefCell;
 use core::future::Future;
@@ -19,9 +20,8 @@ impl Shared {
         }
     }
 
-    fn begin_transaction(&self) -> Result<bool, bool> {
-        self.available
-            .compare_exchange(true, false, Ordering::AcqRel, Ordering::Acquire)
+    fn begin_transaction(&self) -> bool {
+        atomic::swap(&self.available, false, Ordering::Acquire)
     }
 
     fn end_transaction(&self) {
@@ -232,10 +232,8 @@ where
     type Output = BusTransaction<BUS>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if let Ok(val) = self.shared.begin_transaction() {
-            if val {
-                return Poll::Ready(BusTransaction::new(self.arbitrator, self.bus));
-            }
+        if self.shared.begin_transaction() {
+            return Poll::Ready(BusTransaction::new(self.arbitrator, self.bus));
         }
         if !self.waiting {
             self.shared.add_waiter(cx.waker().clone());

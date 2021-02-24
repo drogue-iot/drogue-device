@@ -56,6 +56,12 @@ git = "https://github.com/stm32-rs/stm32l1xx-hal"
 features = ["rt", "stm32l151"]
 optional = true
 
+[dependencies.nrf51-hal]
+git = "https://github.com/lulf/nrf-hal.git"
+branch = "uarte-embedded-serial"
+features = ["rt"]
+optional = true
+
 # ----------------------------------------
 # es-wifi dependencies
 # ----------------------------------------
@@ -103,9 +109,11 @@ default-features = false
 stm32l4xx = [ "stm32l4xx-hal" ]
 stm32l1xx = [ "stm32l1xx-hal" ]
 nrf52833 = [ "nrf52833-hal" ]
+thumbv6 = []
 
 "chip+stm32l4xx" = [ "stm32l4xx-hal" ]
 "chip+nrf52833" = [ "nrf52833-hal" ]
+"chip+nrf51" = [ "nrf51-hal", "bbqueue/thumbv6" ]
 
 driver-rak811 = [ "drogue-rak811" ]
 fonts = []

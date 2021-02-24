@@ -2,7 +2,7 @@
 pub mod cortex_m;
 
 #[cfg(target_arch = "arm")]
-pub use self::cortex_m::{exception, with_critical_section, CriticalSection, Mutex};
+pub use self::cortex_m::{atomic, exception, with_critical_section, CriticalSection, Mutex};
 
 #[cfg(target_arch = "x86_64")]
 pub mod x86;

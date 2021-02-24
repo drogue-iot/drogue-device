@@ -4,6 +4,9 @@ use embedded_hal::digital::v2::InputPin;
 #[cfg(feature = "nrf52833")]
 use nrf52833_hal as hal;
 
+#[cfg(feature = "nrf51")]
+use nrf51_hal as hal;
+
 use hal::gpiote::GpioteInputPin;
 
 pub struct Gpiote<D>

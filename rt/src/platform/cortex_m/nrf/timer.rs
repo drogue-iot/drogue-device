@@ -2,6 +2,9 @@
 #[cfg(feature = "nrf52833")]
 use nrf52833_hal as hal;
 
+#[cfg(feature = "nrf51")]
+use nrf51_hal as hal;
+
 use crate::domain::time::{
     duration::{Duration, Milliseconds},
     fixed_point::FixedPoint,

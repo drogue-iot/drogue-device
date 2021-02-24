@@ -1,5 +1,6 @@
 use heapless::{consts::*, Vec};
 
+use crate::platform::atomic;
 use crate::system::actor::{Actor, ActorContext, CURRENT};
 use crate::system::device::Lifecycle;
 use core::cmp::PartialEq;
@@ -46,7 +47,7 @@ impl Supervised {
     }
 
     fn decrement_ready(&self) {
-        self.state.fetch_sub(1, Ordering::Acquire);
+        atomic::fetch_sub(&self.state, 1, Ordering::Acquire);
     }
 
     fn poll(&mut self) -> bool {
@@ -231,7 +232,7 @@ static VTABLE: RawWakerVTable = {
     unsafe fn wake_by_ref(p: *const ()) {
         log::trace!("[waker] signal ready {:x}", p as *const _ as u32);
         //(*(p as *const AtomicU8)).store(ActorState::READY.into(), Ordering::Release);
-        (*(p as *const AtomicU8)).fetch_add(1, Ordering::AcqRel);
+        atomic::fetch_add(&*(p as *const AtomicU8), 1, Ordering::AcqRel);
     }
 
     unsafe fn drop(_: *const ()) {}

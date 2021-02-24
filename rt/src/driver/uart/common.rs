@@ -1,4 +1,5 @@
 use crate::api::uart::Error;
+use crate::platform::atomic;
 use crate::synchronization::Signal;
 use crate::util::dma::async_bbqueue::*;
 use core::future::Future;
@@ -26,11 +27,11 @@ impl ActorState {
     }
 
     pub fn try_rx_busy(&self) -> bool {
-        READY_STATE == self.rx_state.swap(BUSY_STATE, Ordering::SeqCst)
+        READY_STATE == atomic::swap(&self.rx_state, BUSY_STATE, Ordering::SeqCst)
     }
 
     pub fn try_tx_busy(&self) -> bool {
-        READY_STATE == self.tx_state.swap(BUSY_STATE, Ordering::SeqCst)
+        READY_STATE == atomic::swap(&self.tx_state, BUSY_STATE, Ordering::SeqCst)
     }
 
     pub fn reset_rx_timeout(&self) {
