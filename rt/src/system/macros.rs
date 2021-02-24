@@ -28,10 +28,11 @@ macro_rules! device {
             DEVICE.as_mut().unwrap()
         };
 
-        $crate::init_arena!($crate::system| SystemArena => $memory);
+        $crate::arena::init_arena!($crate::system| SystemArena => $memory);
 
         device.mount();
 
+        #[cfg(target_arch="arm")]
         #[exception]
         fn DefaultHandler(irqn: i16) {
             unsafe {

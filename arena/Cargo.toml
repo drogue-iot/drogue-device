@@ -1,0 +1,24 @@
+[package]
+name = "drogue-arena"
+version = "0.1.0"
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+edition = "2018"
+license = "Apache-2.0"
+description = "Alloc-free allocation arena."
+readme = "README.md"
+repository = "https://github.com/drogue-iot/drogue-device"
+homepage = "https://blog.drogue.io"
+categories = ["embedded", "no-std" ]
+keywords = ["embedded", "no_std"]
+
+[dependencies.drogue-arch]
+path = "../arch"
+
+[dependencies.log]
+version = "0.4.13"
+
+[dependencies.paste]
+version = "1.0.4"

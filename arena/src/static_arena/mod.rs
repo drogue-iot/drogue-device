@@ -17,7 +17,7 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use heap::layout::Layout;
 use heap::Heap;
 //use static_arena::interrupt::Mutex;
-use crate::arch::{with_critical_section, Mutex};
+use drogue_arch::{with_critical_section, Mutex};
 
 pub struct StaticArena {
     heap: Mutex<RefCell<Heap>>,
@@ -94,7 +94,7 @@ impl StaticArena {
         self.high_watermark.load(Ordering::Acquire)
     }
 
-    pub(crate) fn alloc_init<'o, T: 'o>(&mut self, val: T) -> Option<&'o mut T> {
+    pub fn alloc_init<'o, T: 'o>(&mut self, val: T) -> Option<&'o mut T> {
         let layout = Layout::from_size_align(
             mem::size_of::<(Layout, T)>(),
             mem::align_of::<(Layout, T)>(),
@@ -160,7 +160,7 @@ impl StaticArena {
         });
     }
 
-    pub(crate) unsafe fn dealloc_object(&self, ptr: *mut u8) {
+    pub unsafe fn dealloc_object(&self, ptr: *mut u8) {
         let head_ptr = (ptr as *mut Layout).sub(1);
         let layout = head_ptr.read();
         log::trace!(

@@ -2,10 +2,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-pub extern crate paste;
-
 #[doc(hidden)]
-pub mod arena;
 pub mod domain;
 pub mod driver;
 #[doc(hidden)]
@@ -16,6 +13,7 @@ mod future;
 pub mod hal;
 pub mod platform;
 pub use drogue_arch as arch;
+pub use drogue_arena as arena;
 pub mod system;
 pub(crate) mod util;
 

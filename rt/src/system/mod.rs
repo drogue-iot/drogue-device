@@ -10,5 +10,5 @@ pub(crate) mod supervisor;
 
 pub use device::{Device, DeviceConfiguration, DeviceContext};
 
-use crate::define_arena;
+use crate::arena::define_arena;
 define_arena!(SystemArena);

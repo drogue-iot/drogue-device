@@ -1,4 +1,5 @@
-use crate::arena::static_arena::StaticArena;
+#![no_std] 
+
 use core::cell::UnsafeCell;
 use core::fmt::{Debug, Formatter};
 use core::future::Future;
@@ -8,6 +9,9 @@ use core::ops::DerefMut;
 use core::pin::Pin;
 use core::ptr::drop_in_place;
 use core::task::{Context, Poll};
+use crate::static_arena::StaticArena;
+
+pub extern crate paste;
 
 pub mod static_arena;
 
@@ -42,9 +46,9 @@ macro_rules! define_arena {
         pub struct $id;
 
         $crate::paste::paste! {
-            pub static mut [< $id:upper _ARENA >]: Option<$crate::arena::static_arena::StaticArena> = None;
+            pub static mut [< $id:upper _ARENA >]: Option<$crate::static_arena::StaticArena> = None;
 
-            impl $crate::arena::Arena for $id {
+            impl $crate::Arena for $id {
                 fn alloc<'o, T: 'o>(val: T) -> Option<&'o mut T> {
                     unsafe { [< $id:upper _ARENA >].as_mut().unwrap().alloc_init(val) }
                 }
@@ -58,9 +62,9 @@ macro_rules! define_arena {
                     }
                 }
 
-                fn info() -> $crate::arena::Info {
+                fn info() -> $crate::Info {
                     unsafe {
-                        $crate::arena::Info::new( [< $id:upper _ARENA >].as_ref().unwrap() )
+                        $crate::Info::new( [< $id:upper _ARENA >].as_ref().unwrap() )
                     }
                 }
             }
@@ -76,7 +80,7 @@ macro_rules! init_arena {
         $crate::paste::paste! {
             static mut [< $id:upper _MEMORY >]: [u8; $size] = [0; $size];
             unsafe {
-                $mod::[< $id:upper _ARENA >].replace($crate::arena::static_arena::StaticArena::new(&[< $id:upper _MEMORY >]));
+                $mod::[< $id:upper _ARENA >].replace($crate::static_arena::StaticArena::new(&[< $id:upper _MEMORY >]));
             }
         }
     }
