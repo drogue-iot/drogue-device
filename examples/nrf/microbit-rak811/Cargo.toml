@@ -10,7 +10,6 @@ cortex-m = "0.6.4"
 cortex-m-rt = { version = "0.6.11", features = ["device"] }
 rtt-target = {version = "0.2.0", features = ["cortex-m"] }
 panic-rtt-target = { version = "0.1.1", features = ["cortex-m"] }
-nrf52833-hal = { version = "0.12.0", features = ["rt"]}
 log = "0.4.11"
 rtt-logger = "0.1.0"
 nb = "1.0.0"
@@ -18,6 +17,11 @@ embedded-hal = { version = "0.2.3", features = ["unproven"] }
 void = { version = "1.0.2", default-features = false }
 drogue-device = { path = "../../..", features = ["nrf52833", "driver-rak811" ]}
 heapless = "0.5.5"
+
+[dependencies.nrf52833-hal]
+git = "https://github.com/lulf/nrf-hal.git"
+branch = "uarte-embedded-serial"
+features = ["rt"]
 
 [[bin]]
 name = "microbit-rak811"
