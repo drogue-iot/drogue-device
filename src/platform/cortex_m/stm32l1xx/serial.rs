@@ -1,7 +1,7 @@
-use crate::hal::gpio::InterruptPin;
+use crate::hal::uart::UartRx;
 use embedded_hal::serial::Read;
 
-impl<P> InterruptPin for P
+impl<P> UartRx for P
 where
     P: Read<u8>,
 {
