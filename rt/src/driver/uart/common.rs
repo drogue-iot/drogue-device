@@ -1,5 +1,5 @@
 use crate::api::uart::Error;
-use crate::platform::atomic;
+use crate::arch::atomic;
 use crate::synchronization::Signal;
 use crate::util::dma::async_bbqueue::*;
 use core::future::Future;

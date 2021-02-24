@@ -15,6 +15,7 @@ pub mod api;
 mod future;
 pub mod hal;
 pub mod platform;
+pub use drogue_arch as arch;
 pub mod system;
 pub(crate) mod util;
 

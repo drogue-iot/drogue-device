@@ -1,6 +1,6 @@
 //! Opaque supervisor for internal operation.
 
-use crate::platform::with_critical_section;
+use crate::arch::with_critical_section;
 
 use crate::system::supervisor::actor_executor::{ActiveActor, ActorExecutor};
 

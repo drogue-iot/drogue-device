@@ -1,4 +1,4 @@
-use crate::platform::atomic;
+use crate::arch::atomic;
 use crate::prelude::*;
 use core::cell::RefCell;
 use core::future::Future;

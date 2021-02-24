@@ -46,7 +46,7 @@ impl<T: Sized> Signal<T> {
     where
         F: FnOnce() -> R,
     {
-        crate::platform::with_critical_section(|_| f())
+        crate::arch::with_critical_section(|_| f())
     }
 
     #[allow(clippy::single_match)]

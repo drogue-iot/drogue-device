@@ -17,7 +17,7 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use heap::layout::Layout;
 use heap::Heap;
 //use static_arena::interrupt::Mutex;
-use crate::platform::{with_critical_section, Mutex};
+use crate::arch::{with_critical_section, Mutex};
 
 pub struct StaticArena {
     heap: Mutex<RefCell<Heap>>,

@@ -1,5 +1,5 @@
 use crate::hal::gpio::InterruptPin;
-use crate::platform::with_critical_section;
+use crate::arch::with_critical_section;
 use crate::prelude::*;
 use core::cell::RefCell;
 use core::future::Future;

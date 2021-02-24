@@ -1,6 +1,6 @@
 use heapless::{consts::*, Vec};
 
-use crate::platform::atomic;
+use crate::arch::atomic;
 use crate::system::actor::{Actor, ActorContext, CURRENT};
 use crate::system::device::Lifecycle;
 use core::cmp::PartialEq;

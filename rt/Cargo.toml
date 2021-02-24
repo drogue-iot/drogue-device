@@ -17,6 +17,9 @@ keywords = ["async", "embedded", "actor", "no_std"]
 [dependencies.heapless]
 version = "0.5.6"
 
+[dependencies.drogue-arch]
+path = "../arch"
+
 [dependencies.cortex-m]
 version = "0.6.0"
 
