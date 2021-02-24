@@ -15,7 +15,7 @@ use hal::pac::uarte0;
 use crate::api::uart::Error;
 use core::sync::atomic::{compiler_fence, Ordering::SeqCst};
 
-use drogue_arch::with_critical_section;
+use crate::arch::with_critical_section;
 use embedded_hal::serial;
 pub use hal::uarte::{Baudrate, Instance, Parity, Pins};
 
