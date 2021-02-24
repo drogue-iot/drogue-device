@@ -1,8 +1,12 @@
 use drogue_device::{
     api::{delayer::*, uart::*},
     domain::time::duration::Milliseconds,
-    driver::{led::*, timer::*, uart::dma::*},
-    platform::cortex_m::nrf::{gpiote::*, timer::Timer as HalTimer, uarte::Uarte},
+    driver::{led::*, timer::*, uart::serial::*},
+    platform::cortex_m::nrf::{
+        gpiote::*,
+        timer::Timer as HalTimer,
+        uarte::{UarteRx, UarteTx},
+    },
     prelude::*,
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
@@ -12,7 +16,7 @@ use nrf52833_hal as hal;
 
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
 pub type AppTimer = Timer<HalTimer<TIMER0>>;
-pub type AppUart = DmaUart<Uarte<UARTE0>, <AppTimer as Package>::Primary, consts::U64, consts::U64>;
+pub type AppUart = Serial<UarteTx<UARTE0>, UarteRx<UARTE0>, <AppTimer as Package>::Primary>;
 pub type LedMatrix =
     LEDMatrix<Pin<Output<PushPull>>, consts::U5, consts::U5, <AppTimer as Package>::Primary>;
 
@@ -167,11 +171,11 @@ where
                         .ok();
                 }
 
-                let mut rx_buf = [0; 128];
+                // Read 1 character at a time to get the best responsiveness
+                let mut rx_buf = [0; 1];
                 loop {
-                    // Shorten the interval or reduce size of rx buf if more responsiveness is needed.
                     let len = uart
-                        .read_with_timeout(&mut rx_buf[..], Milliseconds(100))
+                        .read(&mut rx_buf[..])
                         .await
                         .expect("Error reading from UART");
 

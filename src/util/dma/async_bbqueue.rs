@@ -297,6 +297,7 @@ where
 
                         self.buffer[rp..rp + to_copy].copy_from_slice(&buf[..to_copy]);
                         self.remaining -= to_copy;
+                        // log::info!("Releasing {} bytes", to_copy);
                         grant.release(to_copy);
                         self.inner.notify_producer();
                         if self.remaining == 0 {

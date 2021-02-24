@@ -10,33 +10,131 @@ use hal::pac::UARTE1;
 use hal::pac::{uarte0_ns as uarte0, UARTE0_NS as UARTE0, UARTE1_NS as UARTE1};
 
 #[cfg(not(feature = "nrf9160"))]
-use hal::pac::{uarte0, UARTE0};
+use hal::pac::uarte0;
 
 use crate::api::uart::Error;
-use core::ops::Deref;
 use core::sync::atomic::{compiler_fence, Ordering::SeqCst};
 
 use crate::platform::with_critical_section;
-pub use hal::uarte::{Baudrate, Parity, Pins};
+use embedded_hal::serial;
+pub use hal::uarte::{Baudrate, Instance, Parity, Pins};
 
 pub struct Uarte<T>
 where
     T: Instance,
 {
-    uart: T,
-    pins: Pins,
+    uarte: hal::uarte::Uarte<T>,
 }
 
 impl<T> Uarte<T>
 where
-    T: Instance + hal::uarte::Instance,
+    T: Instance,
 {
     pub fn new(uart: T, pins: Pins, parity: Parity, baudrate: Baudrate) -> Self {
-        let (uart, pins) = hal::uarte::Uarte::new(uart, pins, parity, baudrate).free();
-        uart.inten
-            .modify(|_, w| w.endrx().set_bit().endtx().set_bit().rxto().set_bit());
+        let uarte = hal::uarte::Uarte::new(uart, pins, parity, baudrate);
 
-        Self { uart, pins }
+        Self { uarte }
+    }
+
+    pub fn split(self, rx_buf: &'static mut [u8; 1]) -> (UarteTx<T>, UarteRx<T>) {
+        let tx = UarteTx { uarte: self.uarte };
+        let rx = UarteRx {
+            rx_buf,
+            _marker: core::marker::PhantomData,
+        };
+        (tx, rx)
+    }
+}
+
+pub struct UarteTx<T>
+where
+    T: Instance,
+{
+    uarte: hal::uarte::Uarte<T>,
+}
+
+pub struct UarteRx<T>
+where
+    T: Instance,
+{
+    _marker: core::marker::PhantomData<T>,
+    rx_buf: &'static mut [u8; 1],
+}
+
+impl<T> crate::hal::uart::UartRx for UarteRx<T>
+where
+    T: Instance,
+{
+    fn enable_interrupt(&mut self) {
+        let uart = unsafe { &*T::ptr() };
+        uart.inten
+            .modify(|_, w| w.endrx().set_bit().rxto().set_bit());
+        prepare_read(uart, &mut self.rx_buf[..]).unwrap();
+        start_read(uart);
+    }
+
+    fn check_interrupt(&mut self) -> bool {
+        let uart = unsafe { &*T::ptr() };
+        uart.events_endrx.read().bits() != 0
+    }
+
+    fn clear_interrupt(&mut self) {
+        let uart = unsafe { &*T::ptr() };
+        prepare_read(uart, &mut self.rx_buf[..]).unwrap();
+        start_read(uart);
+    }
+}
+
+impl<T> serial::Write<u8> for UarteTx<T>
+where
+    T: Instance,
+{
+    type Error = Error;
+
+    /// Write a single byte to the internal buffer. Returns nb::Error::WouldBlock if buffer is full.
+    fn write(&mut self, b: u8) -> nb::Result<(), Self::Error> {
+        let mut tx_buf = [0; 1];
+        tx_buf[0] = b;
+        self.uarte
+            .write(&tx_buf[..])
+            .map_err(|_| nb::Error::Other(Error::Transmit))
+    }
+
+    /// Flush the TX buffer non-blocking. Returns nb::Error::WouldBlock if not yet flushed.
+    fn flush(&mut self) -> nb::Result<(), Self::Error> {
+        Ok(())
+    }
+}
+
+impl<T> serial::Read<u8> for UarteRx<T>
+where
+    T: Instance,
+{
+    type Error = Error;
+    fn read(&mut self) -> nb::Result<u8, Self::Error> {
+        let uarte = unsafe { &*T::ptr() };
+
+        compiler_fence(SeqCst);
+
+        let in_progress = uarte.events_rxstarted.read().bits() == 1;
+        if in_progress && uarte.events_endrx.read().bits() == 0 {
+            return Err(nb::Error::WouldBlock);
+        }
+
+        if in_progress {
+            uarte.events_rxstarted.reset();
+
+            finalize_read(uarte);
+
+            if uarte.rxd.amount.read().bits() != 1 as u32 {
+                return Err(nb::Error::Other(Error::Receive));
+            }
+            let b = self.rx_buf[0];
+            Ok(b)
+        } else {
+            // If no RX is started, interrupt must be cleared
+            Err(nb::Error::WouldBlock)
+        }
     }
 }
 
@@ -44,6 +142,12 @@ impl<T> crate::hal::uart::dma::DmaUartHal for Uarte<T>
 where
     T: Instance,
 {
+    fn enable_interrupt(&self) {
+        let uart = unsafe { &*T::ptr() };
+        uart.inten
+            .modify(|_, w| w.endrx().set_bit().endtx().set_bit().rxto().set_bit());
+    }
+
     fn prepare_write(&self, tx_buffer: &[u8]) -> Result<(), Error> {
         if tx_buffer.len() > hal::target_constants::EASY_DMA_SIZE {
             return Err(Error::TxBufferTooLong);
@@ -52,38 +156,41 @@ where
         // We can only DMA out of RAM.
         slice_in_ram_or(tx_buffer, Error::BufferNotInRAM)?;
 
-        prepare_write(&*self.uart, tx_buffer);
+        let uart = unsafe { &*T::ptr() };
+        prepare_write(uart, tx_buffer);
         Ok(())
     }
 
     fn start_write(&self) {
-        start_write(&*self.uart);
+        let uart = unsafe { &*T::ptr() };
+        start_write(uart);
     }
 
     fn process_interrupts(&self) -> (bool, bool) {
-        let tx_done = self.uart.events_endtx.read().bits() != 0
-            || self.uart.events_txstopped.read().bits() != 0;
+        let uart = unsafe { &*T::ptr() };
+        let tx_done =
+            uart.events_endtx.read().bits() != 0 || uart.events_txstopped.read().bits() != 0;
 
-        let rx_done = self.uart.events_endrx.read().bits() != 0;
+        let rx_done = uart.events_endrx.read().bits() != 0;
 
-        if self.uart.events_error.read().bits() != 0 {
-            self.uart.events_error.reset();
+        if uart.events_error.read().bits() != 0 {
+            uart.events_error.reset();
         }
 
-        if self.uart.events_txstarted.read().bits() != 0 {
-            self.uart.events_txstarted.reset();
+        if uart.events_txstarted.read().bits() != 0 {
+            uart.events_txstarted.reset();
         }
 
-        if self.uart.events_txstopped.read().bits() != 0 {
-            self.uart.events_txstopped.reset();
+        if uart.events_txstopped.read().bits() != 0 {
+            uart.events_txstopped.reset();
         }
 
-        if self.uart.events_endtx.read().bits() != 0 {
-            self.uart.events_endtx.reset();
+        if uart.events_endtx.read().bits() != 0 {
+            uart.events_endtx.reset();
         }
 
-        if self.uart.events_endrx.read().bits() != 0 {
-            self.uart.events_endrx.reset();
+        if uart.events_endrx.read().bits() != 0 {
+            uart.events_endrx.reset();
         }
 
         (tx_done, rx_done)
@@ -95,36 +202,41 @@ where
         // after all possible DMA actions have completed.
         compiler_fence(SeqCst);
 
-        if self.uart.events_txstopped.read().bits() != 0 {
+        let uart = unsafe { &*T::ptr() };
+        if uart.events_txstopped.read().bits() != 0 {
             return Err(Error::Transmit);
         }
 
-        stop_write(&*self.uart);
+        stop_write(uart);
         Ok(())
     }
 
     /// Cancel a write operation
     fn cancel_write(&self) {
-        cancel_write(&*self.uart);
+        let uart = unsafe { &*T::ptr() };
+        cancel_write(uart);
     }
 
     fn prepare_read(&self, rx_buffer: &mut [u8]) -> Result<(), Error> {
         slice_in_ram_or(rx_buffer, Error::BufferNotInRAM)?;
-        prepare_read(&*self.uart, rx_buffer)?;
+        let uart = unsafe { &*T::ptr() };
+        prepare_read(uart, rx_buffer)?;
         Ok(())
     }
 
     /// Start a read operation
     fn start_read(&self) {
-        start_read(&*self.uart);
+        let uart = unsafe { &*T::ptr() };
+        start_read(uart);
     }
 
     /// Complete a read operation.
     fn finish_read(&self) -> usize {
+        let uart = unsafe { &*T::ptr() };
         with_critical_section(|_| {
-            finalize_read(&*self.uart);
+            finalize_read(uart);
 
-            let bytes_read = self.uart.rxd.amount.read().bits() as usize;
+            let bytes_read = uart.rxd.amount.read().bits() as usize;
 
             bytes_read
         })
@@ -132,7 +244,8 @@ where
 
     /// Cancel a read operation
     fn cancel_read(&self) {
-        with_critical_section(|_| cancel_read(&*self.uart));
+        let uart = unsafe { &*T::ptr() };
+        with_critical_section(|_| cancel_read(uart));
     }
 }
 
@@ -269,32 +382,6 @@ fn finalize_read(uarte: &uarte0::RegisterBlock) {
     // take in to account actions by DMA. The fence has been placed here,
     // after all possible DMA actions have completed.
     compiler_fence(SeqCst);
-}
-
-pub trait Instance: Deref<Target = uarte0::RegisterBlock> + sealed::Sealed {
-    fn ptr() -> *const uarte0::RegisterBlock;
-}
-
-mod sealed {
-    pub trait Sealed {}
-}
-
-impl sealed::Sealed for UARTE0 {}
-impl Instance for UARTE0 {
-    fn ptr() -> *const uarte0::RegisterBlock {
-        UARTE0::ptr()
-    }
-}
-
-#[cfg(any(feature = "52833", feature = "52840", feature = "9160"))]
-mod _uarte1 {
-    use super::*;
-    impl sealed::Sealed for UARTE1 {}
-    impl Instance for UARTE1 {
-        fn ptr() -> *const uarte0::RegisterBlock {
-            UARTE1::ptr()
-        }
-    }
 }
 
 /// Does this slice reside entirely within RAM?

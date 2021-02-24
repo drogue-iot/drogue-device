@@ -417,6 +417,8 @@ where
     }
 
     fn on_start(mut self) -> Completion<Self> {
+        let uart = self.uart.as_ref().unwrap();
+        uart.enable_interrupt();
         self.start_read(READ_SIZE, Milliseconds(READ_TIMEOUT));
         self.start_write();
         Completion::immediate(self)

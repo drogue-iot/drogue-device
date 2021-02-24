@@ -142,13 +142,14 @@ where
 {
     fn on_interrupt(&mut self) {
         if self.rx.check_interrupt() {
-            if let Ok(mut grant) = self.rx_producer.as_ref().unwrap().prepare_write(8) {
+            if let Ok(mut grant) = self.rx_producer.as_ref().unwrap().prepare_write(1) {
                 let buf = grant.buf();
                 let mut i = 0;
                 while i < buf.len() {
                     match self.rx.read() {
                         Ok(b) => {
                             buf[i] = b;
+                            i += 1;
                         }
                         Err(nb::Error::WouldBlock) => {
                             break;
@@ -158,12 +159,33 @@ where
                             break;
                         }
                     }
-                    i += 1;
                 }
                 grant.commit(i);
             }
         }
         self.rx.clear_interrupt();
+    }
+}
+
+impl<TX, S> SerialActor<TX, S>
+where
+    TX: Write<u8> + 'static,
+    S: Scheduler + 'static,
+{
+    fn write_str(&mut self, buf: &[u8]) -> Result<(), Error> {
+        for b in buf.iter() {
+            loop {
+                match self.tx.write(*b) {
+                    Err(nb::Error::WouldBlock) => {
+                        nb::block!(self.tx.flush()).map_err(|_| Error::Transmit)?;
+                    }
+                    Err(_) => return Err(Error::Transmit),
+                    _ => break,
+                }
+            }
+        }
+        nb::block!(self.tx.flush()).map_err(|_| Error::Transmit)?;
+        Ok(())
     }
 }
 
@@ -173,20 +195,9 @@ where
     S: Scheduler + 'static,
 {
     fn write<'a>(mut self, message: UartWrite<'a>) -> Response<Self, Result<(), Error>> {
-        unsafe {
-            Response::defer_unchecked(async move {
-                for b in message.0 {
-                    loop {
-                        match self.tx.write(*b) {
-                            Err(nb::Error::WouldBlock) => continue,
-                            Err(nb::Error::Other(e)) => return (self, Err(Error::Transmit)),
-                            _ => {}
-                        }
-                    }
-                }
-                (self, Ok(()))
-            })
-        }
+        let buf = message.0;
+        let result = self.write_str(message.0);
+        Response::immediate(self, result)
     }
 }
 
@@ -219,6 +230,7 @@ where
             let rx_consumer = self.rx_consumer.as_ref().unwrap();
             let future = unsafe { rx_consumer.read(message.0) };
             let future = RxFuture::new(future, state);
+
             state.reset_rx_timeout();
             self.scheduler.as_ref().unwrap().schedule(
                 message.1,

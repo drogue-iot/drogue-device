@@ -9,7 +9,7 @@ use cortex_m_rt::{entry, exception};
 use drogue_device::{
     domain::time::rate::Extensions,
     driver::timer::Timer,
-    driver::uart::dma::DmaUart,
+    driver::uart::serial::Serial,
     platform::cortex_m::nrf::{
         gpiote::*,
         timer::Timer as HalTimer,
@@ -61,20 +61,20 @@ fn main() -> ! {
     let timer = Timer::new(HalTimer::new(device.TIMER0), hal::pac::Interrupt::TIMER0);
 
     // Uart
-    let uart = DmaUart::new(
-        Uarte::new(
-            device.UARTE0,
-            Pins {
-                txd: port0.p0_01.into_push_pull_output(Level::High).degrade(),
-                rxd: port0.p0_13.into_floating_input().degrade(),
-                cts: None,
-                rts: None,
-            },
-            Parity::EXCLUDED,
-            Baudrate::BAUD115200,
-        ),
-        hal::pac::Interrupt::UARTE0_UART0,
-    );
+    static mut RX_BUF: [u8; 1] = [0; 1];
+    let (tx, rx) = Uarte::new(
+        device.UARTE0,
+        Pins {
+            txd: port0.p0_01.into_push_pull_output(Level::High).degrade(),
+            rxd: port0.p0_13.into_floating_input().degrade(),
+            cts: None,
+            rts: None,
+        },
+        Parity::EXCLUDED,
+        Baudrate::BAUD115200,
+    )
+    .split(unsafe { &mut RX_BUF });
+    let uart = Serial::new(tx, rx, hal::pac::Interrupt::UARTE0_UART0);
 
     // LED Matrix
     let mut rows = Vec::<_, consts::U5>::new();
