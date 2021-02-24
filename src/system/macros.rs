@@ -9,7 +9,6 @@
 ///
 /// Usage:
 /// ```ignore
-/// use cortex_m_rt::exception;
 /// use drogue_device::prelude::*;
 ///
 /// struct MyDevice {}
