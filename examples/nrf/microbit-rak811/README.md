@@ -7,6 +7,7 @@ This example application runs out of the box on the BBC micro:bit v2.0. It relie
 ### Hardware
 
 * BBC micro:bit v2.0
+* RAK811 LoRa module with AT-firmware attached to UART
 
 ### Software
 
