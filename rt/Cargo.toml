@@ -1,0 +1,111 @@
+[package]
+name = "drogue-device"
+version = "0.1.0"
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+edition = "2018"
+license = "Apache-2.0"
+description = "An async actor framework for embedded devices"
+readme = "README.md"
+repository = "https://github.com/drogue-iot/drogue-device"
+homepage = "https://blog.drogue.io"
+categories = ["embedded", "no-std", "async", "actor"]
+keywords = ["async", "embedded", "actor", "no_std"]
+
+[dependencies.heapless]
+version = "0.5.6"
+
+[dependencies.cortex-m]
+version = "0.6.0"
+
+[dependencies.log]
+version = "0.4.13"
+
+[dependencies.embedded-hal]
+version = "0.2.4"
+features = ["unproven"]
+
+[dependencies.paste]
+version = "1.0.4"
+
+[dependencies.nb]
+version = "1.0.0"
+
+[dependencies.bbqueue]
+version = "0.4"
+
+[dependencies.stm32l4xx-hal]
+version = "0.6.0"
+features = ["rt"]
+optional = true
+
+[dependencies.stm32l1xx-hal]
+git = "https://github.com/stm32-rs/stm32l1xx-hal"
+features = ["rt", "stm32l151"]
+optional = true
+
+[dependencies.nrf52833-hal]
+version = "0.12.0"
+features = ["rt"]
+optional = true
+
+# ----------------------------------------
+# es-wifi dependencies
+# ----------------------------------------
+
+[dependencies.nom]
+version= "6.1.2"
+default-features = false
+
+# ----------------------------------------
+# lora dependencies
+# ----------------------------------------
+[dependencies.drogue-lora]
+#path = "../drogue-lora"
+git = "https://github.com/drogue-iot/drogue-lora.git"
+branch = "main"
+
+[dependencies.drogue-rak811]
+#path = "../drogue-rak811"
+git = "https://github.com/drogue-iot/drogue-rak811.git"
+branch = "main"
+optional = true
+
+# ----------------------------------------
+# test dependencies
+# ----------------------------------------
+[dev-dependencies.futures]
+version = "0.3"
+default-features = false
+features = ["executor"]
+
+[dev-dependencies.env_logger]
+version = "0.8.2"
+
+# ----------------------------------------
+# embedded_time dependencies
+# ----------------------------------------
+
+[dependencies.num]
+version = "0.3.0"
+default-features = false
+
+[features]
+# let's deprecate these
+stm32l4xx = [ "stm32l4xx-hal" ]
+stm32l1xx = [ "stm32l1xx-hal" ]
+nrf52833 = [ "nrf52833-hal" ]
+
+"chip+stm32l4xx" = [ "stm32l4xx-hal" ]
+"chip+nrf52833" = [ "nrf52833-hal" ]
+
+driver-rak811 = [ "drogue-rak811" ]
+fonts = []
+
+lora = []
+"lora+rak811" = [ "drogue-rak811" ]
+
+wifi = []
+"wifi+eswifi" = [ "wifi" ]

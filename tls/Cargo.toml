@@ -48,8 +48,3 @@ in-buffer-4k = ["drogue-tls-sys/in-buffer-4k"]
 in-buffer-8k = ["drogue-tls-sys/in-buffer-8k"]
 in-buffer-16k = ["drogue-tls-sys/in-buffer-16k"]
 
-[patch.crates-io]
-#drogue-tls-sys = { path = "../drogue-tls-sys" }
-
-#drogue-network = { path = "../../drogue-network" }
-#drogue-network = { git = "https://github.com/drogue-iot/drogue-network.git" }
