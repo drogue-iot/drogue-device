@@ -17,6 +17,7 @@ pub mod nrf;
 
 pub use cortex_m::interrupt::CriticalSection;
 pub use cortex_m::interrupt::Mutex;
+pub use cortex_m_rt::exception;
 
 pub fn with_critical_section<F, R>(f: F) -> R
 where
