@@ -44,14 +44,16 @@ version = "0.6.0"
 features = ["rt"]
 optional = true
 
+[dependencies.nrf52833-hal]
+#version = "0.12.0"
+git = "https://github.com/lulf/nrf-hal.git"
+branch = "uarte-embedded-serial"
+features = ["rt"]
+optional = true
+
 [dependencies.stm32l1xx-hal]
 git = "https://github.com/stm32-rs/stm32l1xx-hal"
 features = ["rt", "stm32l151"]
-optional = true
-
-[dependencies.nrf52833-hal]
-version = "0.12.0"
-features = ["rt"]
 optional = true
 
 # ----------------------------------------
