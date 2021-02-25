@@ -112,13 +112,10 @@ default-features = false
 [features]
 # let's deprecate these
 stm32l4xx = [ "stm32l4xx-hal" ]
-stm32l1xx = [ "stm32l1xx-hal" ]
-nrf52833 = [ "nrf52833-hal" ]
-thumbv6 = []
 
 "chip+stm32l4xx" = [ "stm32l4xx-hal" ]
 "chip+nrf52833" = [ "nrf52833-hal" ]
-"chip+nrf51" = [ "nrf51-hal", "bbqueue/thumbv6" ]
+"chip+nrf51" = [ "nrf51-hal", "bbqueue/thumbv6", "drogue-arch/isa+thumbv6" ]
 
 driver-rak811 = [ "drogue-rak811" ]
 fonts = []

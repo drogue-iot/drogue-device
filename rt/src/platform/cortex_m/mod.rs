@@ -5,11 +5,8 @@ pub mod stm32l4xx;
 pub mod stm32l1xx;
 
 #[cfg(any(
-    feature = "nrf51",
-    feature = "nrf52832",
-    feature = "nrf52833",
-    feature = "nrf52840",
-    feature = "nrf9160"
+    feature = "chip+nrf51",
+    feature = "chip+nrf52833",
 ))]
 pub mod nrf;
 

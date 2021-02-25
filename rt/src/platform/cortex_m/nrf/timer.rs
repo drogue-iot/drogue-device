@@ -1,8 +1,8 @@
 //! Timers for nRF series
-#[cfg(feature = "nrf52833")]
+#[cfg(feature = "chip+nrf52833")]
 use nrf52833_hal as hal;
 
-#[cfg(feature = "nrf51")]
+#[cfg(feature = "chip+nrf51")]
 use nrf51_hal as hal;
 
 use crate::domain::time::{
