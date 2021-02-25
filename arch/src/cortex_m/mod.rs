@@ -14,7 +14,7 @@ where
 
 // Copyright James Munns, original code copied from https://github.com/jamesmunns/bbqueue and modified to match
 // the atomic types used by drogue-device.
-#[cfg(feature = "thumbv6")]
+#[cfg(feature = "isa+thumbv6")]
 pub mod atomic {
     use core::sync::atomic::{
         AtomicBool, AtomicU8,
@@ -50,7 +50,7 @@ pub mod atomic {
     }
 }
 
-#[cfg(not(feature = "thumbv6"))]
+#[cfg(not(feature = "isa+thumbv6"))]
 pub mod atomic {
     use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 

@@ -1,15 +1,15 @@
 //! Uart implementation for nRF series
-#[cfg(feature = "nrf52833")]
+#[cfg(feature = "chip+nrf52833")]
 use nrf52833_hal as hal;
 
 #[allow(unused_imports)]
-#[cfg(any(feature = "nrf52833", feature = "nrf52840"))]
+#[cfg(any(feature = "chip+nrf52833", feature = "chip+nrf52840"))]
 use hal::pac::UARTE1;
 
-#[cfg(feature = "nrf9160")]
+#[cfg(feature = "chip+nrf9160")]
 use hal::pac::{uarte0_ns as uarte0, UARTE0_NS as UARTE0, UARTE1_NS as UARTE1};
 
-#[cfg(not(feature = "nrf9160"))]
+#[cfg(not(feature = "chip+nrf9160"))]
 use hal::pac::uarte0;
 
 use crate::api::uart::Error;
@@ -392,7 +392,7 @@ fn slice_in_ram(slice: &[u8]) -> bool {
 }
 
 /// Return an error if slice is not in RAM.
-#[cfg(not(feature = "51"))]
+#[cfg(not(feature = "chip+nrf51"))]
 pub(crate) fn slice_in_ram_or<T>(slice: &[u8], err: T) -> Result<(), T> {
     if slice_in_ram(slice) {
         Ok(())
