@@ -1,8 +1,12 @@
-mod alloc;
-mod cortex_m_alloc;
+//use crate::platform::alloc::layout::Layout;
+//use crate::platform::cortex_m_alloc::CortexMHeap;
 
-use crate::platform::alloc::layout::Layout;
-use crate::platform::cortex_m_alloc::CortexMHeap;
+use drogue_arena::{Arena, Layout};
+use drogue_arena::{
+    define_arena,
+    init_arena,
+};
+
 use drogue_tls_sys::{platform_set_calloc_free, platform_set_vsnprintf, platform_set_snprintf};
 use drogue_tls_sys::types::{c_char, c_int};
 use core::ffi::c_void;
@@ -13,7 +17,7 @@ use crate::ssl::config::{SslConfig, Transport, Preset};
 use drogue_ffi_compat::{vsnprintf, snprintf};
 use core::mem::size_of;
 
-static mut ALLOCATOR: Option<CortexMHeap> = Option::None;
+//static mut ALLOCATOR: Option<CortexMHeap> = Option::None;
 
 pub struct SslPlatform {
     entropy_context: EntropyContext,
@@ -27,21 +31,19 @@ extern "C" {
                          ...) -> c_int;
 }
 
+define_arena!(TlsArena);
+
+macro_rules! init_tls_arena {
+    ($size:literal) => {
+        drogue_arena::init_arena!($crate::platform | TlsArena => $size);
+    }
+}
+
 impl SslPlatform {
     pub fn setup(start: usize, size: usize) -> Option<Self> {
         unsafe {
             platform_set_vsnprintf(Some(vsnprintf));
             platform_set_snprintf(Some(snprintf));
-            if ALLOCATOR.is_some() {
-                // Allocator already setup, only a singleton of the SslPlatform
-                // is allowed, someone else has it.
-                return None;
-            }
-        }
-        let heap = CortexMHeap::empty();
-        unsafe {
-            heap.init(start, size);
-            ALLOCATOR.replace(heap);
         }
         unsafe { platform_set_calloc_free(Some(platform_calloc_f), Some(platform_free_f)) };
         Some(Self {
@@ -89,45 +91,32 @@ extern "C" fn platform_calloc_f(count: usize, size: usize) -> *mut c_void {
         .pad_to_align();
 
     unsafe {
-        if let Some(ref alloc) = ALLOCATOR {
-            let mut ptr = alloc.alloc(layout) as *mut usize;
-            if ptr.is_null() {
-                log::error!("failed to allocate {} from {}", requested_size, alloc.free());
-                return core::ptr::null_mut();
-            }
-            *ptr = layout.size();
-            ptr = ptr.add(1);
-            *ptr = layout.align();
-            ptr = ptr.add(1);
-            let mut zeroing = ptr as *mut u8;
-            for _ in 0..requested_size {
-                zeroing.write(0);
-                zeroing = zeroing.add(1);
-            }
-            ptr as *mut c_void
-        } else {
-            log::error!("No allocator");
-            core::ptr::null_mut::<c_void>()
+        let mut ptr = TlsArena::alloc_by_layout(layout, true);
+        if ptr.is_null() {
+            log::error!("failed to allocate {} from {}", requested_size, TlsArena::info().free);
+            return core::ptr::null_mut();
         }
+        let mut ptr = ptr as *mut usize;
+        *ptr = layout.size();
+        ptr = ptr.add(1);
+        *ptr = layout.align();
+        ptr = ptr.add(1);
+        ptr as *mut c_void
     }
 }
 
 extern "C" fn platform_free_f(ptr: *mut c_void) {
-    if ptr as u32 == 0  {
-        return
+    if ptr as u32 == 0 {
+        return;
     }
+
     unsafe {
-        if let Some(ref alloc) = ALLOCATOR {
-            let mut ptr = ptr as *mut usize;
-            ptr = ptr.offset(-1);
-            let align = *ptr;
-            ptr = ptr.offset(-1);
-            let size = *ptr;
-            alloc.dealloc(
-                ptr as *mut u8,
-                Layout::from_size_align(size, align).unwrap(),
-            );
-        }
+        let mut ptr = ptr as *mut usize;
+        ptr = ptr.offset(-1);
+        let align = *ptr;
+        ptr = ptr.offset(-1);
+        let size = *ptr;
+        TlsArena::dealloc_by_layout(ptr as *mut u8, Layout::from_size_align(size, align).unwrap())
     }
 }
 

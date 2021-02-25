@@ -6,7 +6,7 @@
 //!
 //! For a usage example, see `examples/global_alloc.rs`.
 
-pub(crate) mod heap;
+pub mod heap;
 
 use core::cell::RefCell;
 //use core::heap::Layout;
@@ -18,6 +18,7 @@ use heap::layout::Layout;
 use heap::Heap;
 //use static_arena::interrupt::Mutex;
 use drogue_arch::{with_critical_section, Mutex};
+use core::ffi::c_void;
 
 pub struct StaticArena {
     heap: Mutex<RefCell<Heap>>,
@@ -94,12 +95,28 @@ impl StaticArena {
         self.high_watermark.load(Ordering::Acquire)
     }
 
+    pub unsafe fn alloc_by_layout(&mut self, layout: Layout, zero: bool) -> *mut u8 {
+        let mut ptr = self.alloc(layout);
+        if zero {
+            let mut zeroing = ptr as *mut u8;
+            for _ in 0..layout.size() {
+                zeroing.write(0);
+                zeroing = zeroing.add(1);
+            }
+        }
+        ptr
+    }
+
+    pub unsafe fn dealloc_by_layout(&mut self, ptr: *mut u8, layout: Layout) {
+        self.dealloc( ptr, layout );
+    }
+
     pub fn alloc_init<'o, T: 'o>(&mut self, val: T) -> Option<&'o mut T> {
         let layout = Layout::from_size_align(
             mem::size_of::<(Layout, T)>(),
             mem::align_of::<(Layout, T)>(),
         )
-        .unwrap();
+            .unwrap();
         log::trace!(
             "[ALLOC] asking for {} aligned {}",
             layout.size(),

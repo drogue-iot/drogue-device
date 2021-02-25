@@ -14,6 +14,8 @@ use crate::static_arena::StaticArena;
 pub extern crate paste;
 
 pub mod static_arena;
+pub use static_arena::heap::layout::Layout;
+use core::ffi::c_void;
 
 pub struct Info {
     pub used: usize,
@@ -34,6 +36,8 @@ impl Info {
 //pub static mut HEAP: Option<StaticArena> = None;
 
 pub trait Arena: Sized {
+    fn alloc_by_layout(layout: Layout, zero: bool) -> * mut u8;
+    fn dealloc_by_layout(ptr: *mut u8, layout: Layout);
     fn alloc<'o, T: 'o>(val: T) -> Option<&'o mut T>;
     fn dealloc(ptr: *mut u8);
     fn info() -> Info;
@@ -51,6 +55,14 @@ macro_rules! define_arena {
             impl $crate::Arena for $id {
                 fn alloc<'o, T: 'o>(val: T) -> Option<&'o mut T> {
                     unsafe { [< $id:upper _ARENA >].as_mut().unwrap().alloc_init(val) }
+                }
+
+                fn alloc_by_layout(layout: $crate::Layout, zero: bool) -> * mut u8 {
+                    unsafe { [< $id:upper _ARENA >].as_mut().unwrap().alloc_by_layout(layout, zero) }
+                }
+
+                fn dealloc_by_layout(ptr: *mut u8, layout: $crate::Layout) {
+                    unsafe { [< $id:upper _ARENA >].as_mut().unwrap().dealloc_by_layout(ptr, layout) }
                 }
 
                 #[allow(clippy::not_unsafe_ptr_arg_deref)]
