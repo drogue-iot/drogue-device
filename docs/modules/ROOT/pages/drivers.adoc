@@ -1,4 +1,4 @@
-== Drogue device drivers
+== Writing drogue device drivers
 
 Drogue-device contains device drivers for different boards and sensors.
 Drivers follow a common set of patterns that makes it easier to write
