@@ -6,6 +6,11 @@ test:
 	cargo test --all --manifest-path=./rt/Cargo.toml
 
 examples:
-	for i in $$(find examples/ -name "Cargo.toml"); do d=$$(dirname $$i); pushd $$d; cargo build --release; popd; done
+	for i in $$(find examples/ -name "Cargo.toml"); do \
+		d=$$(dirname $$i); \
+		pushd $$d; \
+		cargo build --release || exit 1; \
+		popd; \
+	done
 
 .PHONY: all test examples
