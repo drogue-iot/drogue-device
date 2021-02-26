@@ -392,7 +392,7 @@ where
 }
 
 const READ_TIMEOUT: u32 = 100;
-const READ_SIZE: usize = 128;
+const READ_SIZE: usize = 32;
 
 impl<U, T, TXN, RXN> Actor for UartInterrupt<U, T, TXN, RXN>
 where

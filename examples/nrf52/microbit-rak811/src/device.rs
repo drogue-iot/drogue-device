@@ -21,7 +21,6 @@ pub type AppUart =
     DmaUart<HalUart<UARTE0>, <AppTimer as Package>::Primary, consts::U64, consts::U64>;
 pub type Rak811Lora = rak811::Rak811<
     <AppUart as Package>::Primary,
-    <AppTimer as Package>::Primary,
     Pin<Output<PushPull>>,
 >;
 pub type Button = GpioteChannel<LoraDevice, Pin<Input<PullUp>>>;
@@ -46,7 +45,7 @@ impl Device for LoraDevice {
         self.btn_send.mount(config.event_bus, supervisor);
         let timer = self.timer.mount((), supervisor);
         let uart = self.uart.mount(timer, supervisor);
-        let lora = self.lora.mount((uart, timer), supervisor);
+        let lora = self.lora.mount(uart, supervisor);
         self.app.mount(lora, supervisor);
     }
 }

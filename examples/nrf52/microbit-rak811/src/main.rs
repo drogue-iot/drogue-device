@@ -100,5 +100,5 @@ fn main() -> ! {
         )),
     };
 
-    device!( LoraDevice = device; 4096);
+    device!( LoraDevice = device; 8192);
 }

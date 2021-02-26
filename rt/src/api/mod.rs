@@ -4,6 +4,7 @@ pub mod delayer;
 pub mod i2c;
 pub mod ip;
 pub mod lora;
+pub mod queue;
 pub mod scheduler;
 pub mod spi;
 pub mod switchable;

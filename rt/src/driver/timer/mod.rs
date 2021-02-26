@@ -1,9 +1,9 @@
 use crate::api::delayer::{Delay, Delayer};
 use crate::api::scheduler::{Schedule, Scheduler};
+use crate::arch::with_critical_section;
 use crate::arena::{Arena, Box};
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::timer::Timer as HalTimer;
-use crate::arch::with_critical_section;
 use crate::prelude::*;
 use crate::system::SystemArena;
 use core::cell::RefCell;
