@@ -1,27 +1,36 @@
+mod num;
 mod parser;
-mod ready;
+mod protocol;
 mod socket_pool;
 
 use socket_pool::SocketPool;
 
-use crate::api::arbitrator::BusArbitrator;
 use crate::api::delayer::Delayer;
 use crate::api::ip::tcp::{TcpError, TcpStack};
 use crate::api::ip::{IpAddress, IpAddressV4, IpProtocol, SocketAddress};
-use crate::api::spi::{ChipSelect, SpiBus, SpiError};
+use crate::api::uart::{Error as UartError, UartReader, UartWriter};
 use crate::api::wifi::{Join, JoinError, WifiSupplicant};
 use crate::domain::time::duration::Milliseconds;
-use crate::driver::wifi::eswifi::parser::{
-    CloseResponse, ConnectResponse, JoinResponse, ReadResponse, WriteResponse,
-};
-use crate::driver::wifi::eswifi::ready::{AwaitReady, QueryReady};
-use crate::driver::wifi::eswifi::ready::{EsWifiReady, EsWifiReadyPin};
 use crate::hal::gpio::InterruptPin;
 use crate::prelude::*;
 use core::fmt::Write;
 use cortex_m::interrupt::Nr;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
 use heapless::{consts::*, ArrayLength, String};
+
+pub const BUFFER_LEN: usize = 1024;
+
+#[derive(Debug)]
+pub enum AdapterError {
+    UnableToInitialize,
+    NoAvailableSockets,
+    Timeout,
+    UnableToOpen,
+    UnableToClose,
+    WriteError,
+    ReadError,
+    InvalidSocket,
+}
 
 pub struct Shared {
     socket_pool: SocketPool,
@@ -35,9 +44,14 @@ impl Shared {
     }
 }
 
+enum State {
+    Uninitialized,
+    Ready,
+}
+
 pub struct Esp8266Wifi<UART, T, ENABLE, RESET>
 where
-    UART: Uart + 'static,
+    UART: UartWriter + UartReader + 'static,
     T: Delayer + 'static,
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -47,21 +61,18 @@ where
     // ingress: ActorContext<Esp8266WifiIngress<UART, T>>,
 }
 
-impl<UART, T, ENABLE, RESET> Esp8266Wifi<UART, T, ENALBE, RESET>
+impl<UART, T, ENABLE, RESET> Esp8266Wifi<UART, T, ENABLE, RESET>
 where
-    UART: Uart + 'static,
+    UART: UartWriter + UartReader + 'static,
     T: Delayer + 'static,
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
 {
     #[allow(non_camel_case_types)]
-    pub fn new(
-        enable: ENABLE,
-        reset: RESET,
-    ) -> Self {
+    pub fn new(enable: ENABLE, reset: RESET) -> Self {
         Self {
             shared: Shared::new(),
-            controller: ActorContext::new(Esp2866WifiController::new(enable, reset))
+            controller: ActorContext::new(Esp8266WifiController::new(enable, reset))
                 .with_name("esp8266-wifi-controller"),
             // ingress: ActorContext::new(Esp8266WifiIngress::new()).with_name("esp8266-wifi-ingress"),
         }
@@ -70,7 +81,7 @@ where
 
 impl<UART, T, ENABLE, RESET> Package for Esp8266Wifi<UART, T, ENABLE, RESET>
 where
-    UART: Uart + 'static,
+    UART: UartWriter + UartReader + 'static,
     T: Delayer + 'static,
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -95,7 +106,7 @@ where
 
 pub struct Esp8266WifiController<UART, T, ENABLE, RESET>
 where
-    UART: Uart + 'static,
+    UART: UartWriter + UartReader + 'static,
     T: Delayer + 'static,
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -104,8 +115,8 @@ where
     address: Option<Address<Self>>,
     uart: Option<Address<UART>>,
     delayer: Option<Address<T>>,
+    enable: ENABLE,
     reset: RESET,
-    wakeup: WAKEUP,
     state: State,
 }
 
@@ -122,7 +133,7 @@ macro_rules! command {
 
 impl<UART, T, ENABLE, RESET> Esp8266WifiController<UART, T, ENABLE, RESET>
 where
-    UART: Uart + 'static,
+    UART: UartWriter + UartReader + 'static,
     T: Delayer + 'static,
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -139,54 +150,109 @@ where
         }
     }
 
-    async fn initialize(&mut self) {
-    let mut buffer: [u8; 1024] = [0; 1024];
-    let mut pos = 0;
+    async fn initialize(mut self) -> Self {
+        let mut buffer: [u8; 1024] = [0; 1024];
+        let mut pos = 0;
 
-    const READY: [u8; 7] = *b"ready\r\n";
+        const READY: [u8; 7] = *b"ready\r\n";
 
-    let mut counter = 0;
+        let mut counter = 0;
 
-    self.enable
-        .set_high()
-        .map_err(|_| AdapterError::UnableToInitialize)?;
-    self.reset
-        .set_high()
-        .map_err(|_| AdapterError::UnableToInitialize)?;
+        self.enable.set_high().ok().unwrap();
+        self.reset.set_high().ok().unwrap();
 
-    log::debug!("waiting for adapter to become ready");
+        log::info!("waiting for adapter to become ready");
 
-        let rx_buf = [u8; 1];
-    loop {
-        let result = self.uart.unwrap().read(&rx_buf[..]).await;
-        match result {
-            Ok(c) => {
-                buffer[pos] = rx_buf[0];
-                pos += 1;
-                if pos >= READY.len() && buffer[pos - READY.len()..pos] == READY {
-                    log::debug!("adapter is ready");
-                    disable_echo(&mut tx, &mut rx)?;
-                    enable_mux(&mut tx, &mut rx)?;
-                    set_recv_mode(&mut tx, &mut rx)?;
+        let mut rx_buf: [u8; 1] = [0; 1];
+        loop {
+            let result = self.uart.unwrap().read(&mut rx_buf[..]).await;
+            match result {
+                Ok(c) => {
+                    log::info!("Read {}", rx_buf[0] as char);
+                    buffer[pos] = rx_buf[0];
+                    pos += 1;
+                    if pos >= READY.len() && buffer[pos - READY.len()..pos] == READY {
+                        log::info!("adapter is ready");
+                        self.disable_echo()
+                            .await
+                            .map_err(|e| log::error!("Error disabling echo mode"));
+                        self.enable_mux()
+                            .await
+                            .map_err(|e| log::error!("Error enabling mux"));
+                        self.set_recv_mode()
+                            .await
+                            .map_err(|e| log::error!("Error setting receive mode"));
+                    }
+                }
+                Err(e) => {
+                    log::error!("Error initializing ESP8266 modem");
+                    break;
                 }
             }
-            Err(e) => {
-                log::error!("Error initializing ESP8266 modem");
-                break;
-            }
         }
-    }
+        self
     }
 
     async fn start(mut self) -> Self {
         log::info!("[{}] start", ActorInfo::name());
         self
     }
+
+    async fn write_command(&self, cmd: &[u8]) -> Result<(), UartError> {
+        self.uart.as_ref().unwrap().write(cmd).await
+    }
+
+    async fn disable_echo(&self) -> Result<(), AdapterError> {
+        self.write_command(b"ATE0\r\n")
+            .await
+            .map_err(|_| AdapterError::UnableToInitialize)?;
+        Ok(self
+            .wait_for_ok()
+            .await
+            .map_err(|_| AdapterError::UnableToInitialize)?)
+    }
+
+    async fn enable_mux(&self) -> Result<(), AdapterError> {
+        self.write_command(b"AT+CIPMUX=1\r\n")
+            .await
+            .map_err(|_| AdapterError::UnableToInitialize)?;
+        Ok(self
+            .wait_for_ok()
+            .await
+            .map_err(|_| AdapterError::UnableToInitialize)?)
+    }
+
+    async fn set_recv_mode(&self) -> Result<(), AdapterError> {
+        self.write_command(b"AT+CIPRECVMODE=1\r\n")
+            .await
+            .map_err(|_| AdapterError::UnableToInitialize)?;
+        Ok(self
+            .wait_for_ok()
+            .await
+            .map_err(|_| AdapterError::UnableToInitialize)?)
+    }
+
+    async fn wait_for_ok(&self) -> Result<(), UartError> {
+        let mut buf: [u8; 64] = [0; 64];
+        let mut pos = 0;
+
+        loop {
+            self.uart
+                .as_ref()
+                .unwrap()
+                .read(&mut buf[pos..pos + 1])
+                .await?;
+            pos += 1;
+            if buf[0..pos].ends_with(b"OK\r\n") {
+                return Ok(());
+            }
+        }
+    }
 }
 
 impl<UART, T, ENABLE, RESET> WifiSupplicant for Esp8266WifiController<UART, T, ENABLE, RESET>
 where
-    UART: Uart + 'static,
+    UART: UartWriter + UartReader + 'static,
     T: Delayer + 'static,
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -210,7 +276,7 @@ where
 
 impl<UART, T, ENABLE, RESET> TcpStack for Esp8266WifiController<UART, T, ENABLE, RESET>
 where
-    UART: Uart + 'static,
+    UART: UartWriter + UartReader + 'static,
     T: Delayer + 'static,
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -228,9 +294,7 @@ where
         proto: IpProtocol,
         dst: SocketAddress,
     ) -> Response<Self, Result<(), TcpError>> {
-        Response::defer(async move {
-            (self, Err(TcpError::ConnectError))
-        })
+        Response::defer(async move { (self, Err(TcpError::ConnectError)) })
     }
 
     fn write(
@@ -256,16 +320,12 @@ where
 
 impl<UART, T, ENABLE, RESET> Actor for Esp8266WifiController<UART, T, ENABLE, RESET>
 where
-    UART: Uart + 'static,
+    UART: UartWriter + UartReader + 'static,
     T: Delayer + 'static,
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
 {
-    type Configuration = (
-        &'static Shared,
-        Address<UART>,
-        Address<T>,
-    );
+    type Configuration = (&'static Shared, Address<UART>, Address<T>);
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where
@@ -275,6 +335,13 @@ where
         self.address.replace(address);
         self.uart.replace(config.1);
         self.delayer.replace(config.2);
+    }
+
+    fn on_initialize(mut self) -> Completion<Self>
+    where
+        Self: 'static,
+    {
+        Completion::defer(self.initialize())
     }
 
     fn on_start(self) -> Completion<Self>

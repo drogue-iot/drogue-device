@@ -38,6 +38,13 @@ impl Debug for IpAddressV4 {
     }
 }
 
+impl Display for IpAddressV4 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}.{}.{}.{}", self.0, self.1, self.2, self.3)
+    }
+}
+
+#[derive(Debug)]
 pub struct SocketAddress {
     ip: IpAddress,
     port: u32,

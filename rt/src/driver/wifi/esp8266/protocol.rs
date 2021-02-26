@@ -1,17 +1,13 @@
+use crate::api::ip::{IpAddress, IpAddressV4, SocketAddress};
+use crate::driver::wifi::esp8266::BUFFER_LEN;
 use core::fmt;
 use core::fmt::{Debug, Write};
-use drogue_network::addr::{IpAddr, Ipv4Addr, SocketAddr};
-use heapless::{
-    String,
-    consts::{
-        U128,
-    }
-};
+use heapless::{consts::U128, String};
 
 #[derive(Debug)]
 pub struct ResolverAddresses {
-    pub resolver1: Ipv4Addr,
-    pub resolver2: Option<Ipv4Addr>,
+    pub resolver1: IpAddressV4,
+    pub resolver2: Option<IpAddressV4>,
 }
 
 /// Type of socket connection.
@@ -39,13 +35,13 @@ pub enum Command<'a> {
     SetMode(WiFiMode),
     JoinAp { ssid: &'a str, password: &'a str },
     QueryIpAddress,
-    StartConnection(usize, ConnectionType, SocketAddr),
+    StartConnection(usize, ConnectionType, SocketAddress),
     CloseConnection(usize),
     Send { link_id: usize, len: usize },
     Receive { link_id: usize, len: usize },
     QueryDnsResolvers,
     SetDnsResolvers(ResolverAddresses),
-    GetHostByName{ hostname: &'a str},
+    GetHostByName { hostname: &'a str },
 }
 
 impl<'a> Command<'a> {
@@ -53,11 +49,11 @@ impl<'a> Command<'a> {
         match self {
             Command::QueryFirmwareInfo => String::from("AT+GMR"),
             Command::QueryIpAddress => String::from("AT+CIPSTA_CUR?"),
-            Command::SetMode(mode)=> match mode {
+            Command::SetMode(mode) => match mode {
                 WiFiMode::Station => String::from("AT+CWMODE_CUR=1"),
                 WiFiMode::SoftAccessPoint => String::from("AT+CWMODE_CUR=2"),
                 WiFiMode::SoftAccessPointAndStation => String::from("AT+CWMODE_CUR=3"),
-            }
+            },
             Command::JoinAp { ssid, password } => {
                 let mut s = String::from("AT+CWJAP_CUR=\"");
                 s.push_str(ssid).unwrap();
@@ -79,20 +75,9 @@ impl<'a> Command<'a> {
                 }
                 write!(s, ",").unwrap();
                 match socket_addr.ip() {
-                    IpAddr::V4(ip) => {
-                        let octets = ip.octets();
-                        write!(
-                            s,
-                            "\"{}.{}.{}.{}\",{}",
-                            octets[0],
-                            octets[1],
-                            octets[2],
-                            octets[3],
-                            socket_addr.port()
-                        )
-                        .unwrap();
-                    }
-                    IpAddr::V6(_) => panic!("IPv6 not supported"),
+                    IpAddress::V4(ip) => {
+                        write!(s, "\"{}\",{}", ip, socket_addr.port()).unwrap();
+                    } //IpAddress::V6(_) => panic!("IPv6 not supported"),
                 }
                 s as String<U128>
             }
@@ -111,14 +96,12 @@ impl<'a> Command<'a> {
                 write!(s, "{},{}", link_id, len).unwrap();
                 s
             }
-            Command::QueryDnsResolvers => {
-                String::from("AT+CIPDNS_CUR?")
-            }
+            Command::QueryDnsResolvers => String::from("AT+CIPDNS_CUR?"),
             Command::SetDnsResolvers(addr) => {
                 let mut s = String::from("AT+CIPDNS_CUR=1,");
                 write!(s, "\"{}\"", addr.resolver1).unwrap();
                 if let Some(resolver2) = addr.resolver2 {
-                    write!(s, ",\"{}\"", resolver2 ).unwrap()
+                    write!(s, ",\"{}\"", resolver2).unwrap()
                 }
                 s
             }
@@ -143,7 +126,7 @@ pub enum Response {
     SendOk,
     SendFail,
     DataAvailable { link_id: usize, len: usize },
-    DataReceived([u8; crate::BUFFER_LEN], usize),
+    DataReceived([u8; BUFFER_LEN], usize),
     WifiConnected,
     WifiConnectionFailure(WifiConnectionFailure),
     WifiDisconnect,
@@ -152,7 +135,7 @@ pub enum Response {
     Connect(usize),
     Closed(usize),
     Resolvers(ResolverAddresses),
-    IpAddress(IpAddr),
+    IpAddress(IpAddress),
     DnsFail,
     UnlinkFail,
 }
@@ -165,8 +148,10 @@ impl Debug for Response {
             Response::Error => f.write_str("Error"),
             Response::FirmwareInfo(v) => f.debug_tuple("FirmwareInfo").field(v).finish(),
             Response::ReadyForData => f.write_str("ReadyForData"),
-            Response::ReceivedDataToSend(len) => f.debug_tuple("ReceivedDataToSend").field(len).finish(),
-            Response::SendOk =>f.write_str("SendOk"),
+            Response::ReceivedDataToSend(len) => {
+                f.debug_tuple("ReceivedDataToSend").field(len).finish()
+            }
+            Response::SendOk => f.write_str("SendOk"),
             Response::SendFail => f.write_str("SendFail"),
             Response::DataAvailable { link_id, len } => f
                 .debug_struct("DataAvailable")
@@ -184,8 +169,8 @@ impl Debug for Response {
             Response::IpAddresses(v) => f.debug_tuple("IpAddresses").field(v).finish(),
             Response::Connect(v) => f.debug_tuple("Connect").field(v).finish(),
             Response::Closed(v) => f.debug_tuple("Closed").field(v).finish(),
-            Response::IpAddress( v) => f.debug_tuple( "IpAddress").field(v).finish(),
-            Response::Resolvers(v) => f.debug_tuple( "Resolvers").field(v).finish(),
+            Response::IpAddress(v) => f.debug_tuple("IpAddress").field(v).finish(),
+            Response::Resolvers(v) => f.debug_tuple("Resolvers").field(v).finish(),
             Response::DnsFail => f.write_str("DNS Fail"),
             Response::UnlinkFail => f.write_str("UnlinkFail"),
         }
@@ -195,9 +180,9 @@ impl Debug for Response {
 /// IP addresses for the board, including its own address, netmask and gateway.
 #[derive(Debug)]
 pub struct IpAddresses {
-    pub ip: Ipv4Addr,
-    pub gateway: Ipv4Addr,
-    pub netmask: Ipv4Addr,
+    pub ip: IpAddressV4,
+    pub gateway: IpAddressV4,
+    pub netmask: IpAddressV4,
 }
 
 /// Version information for the ESP board.
@@ -217,8 +202,6 @@ pub enum WifiConnectionFailure {
     CannotFindTargetAp,
     ConnectionFailed,
 }
-
-
 
 impl From<u8> for WifiConnectionFailure {
     fn from(code: u8) -> Self {

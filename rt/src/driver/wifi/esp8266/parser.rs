@@ -10,17 +10,15 @@ use nom::take_until;
 use nom::tuple;
 use nom::IResult;
 
-use drogue_network::addr::{
-    IpAddr,
-    Ipv4Addr,
-};
+use crate::api::ip::{IpAddress, IpAddressV4};
 
-use crate::protocol::{FirmwareInfo, ResolverAddresses};
-use crate::protocol::IpAddresses;
-use crate::protocol::Response;
-use crate::protocol::WifiConnectionFailure;
+use crate::driver::wifi::esp8266::protocol::IpAddresses;
+use crate::driver::wifi::esp8266::protocol::Response;
+use crate::driver::wifi::esp8266::protocol::WifiConnectionFailure;
+use crate::driver::wifi::esp8266::protocol::{FirmwareInfo, ResolverAddresses};
 
-use crate::num::{atoi_u8, atoi_usize};
+use crate::driver::wifi::esp8266::num::{atoi_u8, atoi_usize};
+use crate::driver::wifi::esp8266::BUFFER_LEN;
 
 fn parse_u8(input: &[u8]) -> IResult<&[u8], u8> {
     let (input, digits) = digit1(input)?;
@@ -164,7 +162,7 @@ named!(
 
 #[rustfmt::skip]
 named!(
-    ip_addr<Ipv4Addr>,
+    ip_addr<IpAddressV4>,
     do_parse!(
         a: parse_u8 >>
         char!('.') >>
@@ -174,7 +172,7 @@ named!(
         char!('.') >>
         d: parse_u8 >>
         (
-            Ipv4Addr::new(a, b, c, d)
+            IpAddressV4::new(a, b, c, d)
         )
     )
 );
@@ -311,7 +309,7 @@ named!(
         crlf >>
         ok >>
         ( {
-            let mut buf = [0; crate::BUFFER_LEN];
+            let mut buf = [0; BUFFER_LEN];
             for (i, b) in data.iter().enumerate() {
                 //log::info!( "copy {} @ {}", *b as char, i);
                 buf[i] = *b;
@@ -356,7 +354,7 @@ named!(
         crlf >>
         ok >>
         (
-            Response::IpAddress(IpAddr::V4(ip_addr))
+            Response::IpAddress(IpAddress::V4(ip_addr))
         )
     )
 );

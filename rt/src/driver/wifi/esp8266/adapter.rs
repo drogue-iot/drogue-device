@@ -1,31 +1,26 @@
 use embedded_hal::{digital::v2::OutputPin, serial::Read, serial::Write};
 
-use crate::protocol::{Command, ConnectionType, FirmwareInfo, IpAddresses, Response, WifiConnectionFailure, WiFiMode, ResolverAddresses};
+use crate::protocol::{
+    Command, ConnectionType, FirmwareInfo, IpAddresses, ResolverAddresses, Response, WiFiMode,
+    WifiConnectionFailure,
+};
 
-use heapless::{consts::{U16, U2}, spsc::{Consumer, Queue}, String};
+use heapless::{
+    consts::{U16, U2},
+    spsc::{Consumer, Queue},
+    String,
+};
 
 use log::info;
 
 use crate::adapter::AdapterError::UnableToInitialize;
 use crate::ingress::Ingress;
 use crate::network::Esp8266IpNetworkDriver;
-use core::fmt::Debug;
-use nom::lib::std::fmt::Formatter;
 use crate::protocol::Response::IpAddress;
+use core::fmt::Debug;
+use drogue_network::addr::{HostAddr, HostSocketAddr, Ipv4Addr};
 use drogue_network::dns::DnsError;
-use drogue_network::addr::{Ipv4Addr, HostAddr, HostSocketAddr};
-
-#[derive(Debug)]
-pub enum AdapterError {
-    UnableToInitialize,
-    NoAvailableSockets,
-    Timeout,
-    UnableToOpen,
-    UnableToClose,
-    WriteError,
-    ReadError,
-    InvalidSocket,
-}
+use nom::lib::std::fmt::Formatter;
 
 #[derive(Debug)]
 enum SocketState {
@@ -53,11 +48,11 @@ pub fn initialize<'a, Tx, Rx, EnablePin, ResetPin>(
     response_queue: &'a mut Queue<Response, U2>,
     notification_queue: &'a mut Queue<Response, U16>,
 ) -> Result<Initialized<'a, Tx, Rx>, AdapterError>
-    where
-        Tx: Write<u8>,
-        Rx: Read<u8>,
-        EnablePin: OutputPin,
-        ResetPin: OutputPin,
+where
+    Tx: Write<u8>,
+    Rx: Read<u8>,
+    EnablePin: OutputPin,
+    ResetPin: OutputPin,
 {
     let mut buffer: [u8; 1024] = [0; 1024];
     let mut pos = 0;
@@ -115,9 +110,9 @@ fn build_adapter_and_ingress<'a, Tx, Rx>(
     response_queue: &'a mut Queue<Response, U2>,
     notification_queue: &'a mut Queue<Response, U16>,
 ) -> Initialized<'a, Tx, Rx>
-    where
-        Tx: Write<u8>,
-        Rx: Read<u8>,
+where
+    Tx: Write<u8>,
+    Rx: Read<u8>,
 {
     let (response_producer, response_consumer) = response_queue.split();
     let (notification_producer, notification_consumer) = notification_queue.split();
@@ -140,60 +135,6 @@ fn initialize_sockets() -> [Socket; 5] {
         Socket::new(),
         Socket::new(),
     ]
-}
-
-fn write_command<Tx>(tx: &mut Tx, cmd: &[u8]) -> Result<(), Tx::Error>
-    where
-        Tx: Write<u8>,
-{
-    for b in cmd.iter() {
-        nb::block!(tx.write(*b))?;
-    }
-    Ok(())
-}
-
-fn disable_echo<Tx, Rx>(tx: &mut Tx, rx: &mut Rx) -> Result<(), AdapterError>
-    where
-        Tx: Write<u8>,
-        Rx: Read<u8>,
-{
-    write_command(tx, b"ATE0\r\n").map_err(|_| UnableToInitialize)?;
-    Ok(wait_for_ok(rx).map_err(|_| UnableToInitialize)?)
-}
-
-fn enable_mux<Tx, Rx>(tx: &mut Tx, rx: &mut Rx) -> Result<(), AdapterError>
-    where
-        Tx: Write<u8>,
-        Rx: Read<u8>,
-{
-    write_command(tx, b"AT+CIPMUX=1\r\n").map_err(|_| UnableToInitialize)?;
-    Ok(wait_for_ok(rx).map_err(|_| UnableToInitialize)?)
-}
-
-fn set_recv_mode<Tx, Rx>(tx: &mut Tx, rx: &mut Rx) -> Result<(), AdapterError>
-    where
-        Tx: Write<u8>,
-        Rx: Read<u8>,
-{
-    write_command(tx, b"AT+CIPRECVMODE=1\r\n").map_err(|_| UnableToInitialize)?;
-    Ok(wait_for_ok(rx).map_err(|_| UnableToInitialize)?)
-}
-
-fn wait_for_ok<Rx>(rx: &mut Rx) -> Result<(), Rx::Error>
-    where
-        Rx: Read<u8>,
-{
-    let mut buf: [u8; 64] = [0; 64];
-    let mut pos = 0;
-
-    loop {
-        let b = nb::block!(rx.read())?;
-        buf[pos] = b;
-        pos += 1;
-        if buf[0..pos].ends_with(b"OK\r\n") {
-            return Ok(());
-        }
-    }
 }
 
 struct Socket {
@@ -231,8 +172,8 @@ impl Socket {
 }
 
 pub struct Adapter<'a, Tx>
-    where
-        Tx: Write<u8>,
+where
+    Tx: Write<u8>,
 {
     tx: Tx,
     response_consumer: Consumer<'a, Response, U2>,
@@ -241,18 +182,17 @@ pub struct Adapter<'a, Tx>
 }
 
 impl<'a, Tx> Debug for Adapter<'a, Tx>
-    where
-        Tx: Write<u8>,
+where
+    Tx: Write<u8>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("Adapter")
-            .finish()
+        f.debug_struct("Adapter").finish()
     }
 }
 
 impl<'a, Tx> Adapter<'a, Tx>
-    where
-        Tx: Write<u8>,
+where
+    Tx: Write<u8>,
 {
     fn send<'c>(&mut self, command: Command<'c>) -> Result<Response, AdapterError> {
         let bytes = command.as_bytes();
@@ -326,15 +266,9 @@ impl<'a, Tx> Adapter<'a, Tx>
         let command = Command::JoinAp { ssid, password };
 
         match self.send(command) {
-            Ok(Response::Ok) => {
-                Ok(())
-            }
-            Ok(Response::WifiConnectionFailure(reason)) => {
-                Err(reason)
-            }
-            _ => {
-                Err(WifiConnectionFailure::ConnectionFailed)
-            }
+            Ok(Response::Ok) => Ok(()),
+            Ok(Response::WifiConnectionFailure(reason)) => Err(reason),
+            _ => Err(WifiConnectionFailure::ConnectionFailed),
         }
     }
 
@@ -347,13 +281,15 @@ impl<'a, Tx> Adapter<'a, Tx>
         }
     }
 
-    pub fn set_dns_resolvers(&mut self, resolver1: Ipv4Addr, resolver2: Option<Ipv4Addr>) -> Result<(), ()> {
-        let command = Command::SetDnsResolvers(
-            ResolverAddresses {
-                resolver1,
-                resolver2
-            }
-        );
+    pub fn set_dns_resolvers(
+        &mut self,
+        resolver1: Ipv4Addr,
+        resolver2: Option<Ipv4Addr>,
+    ) -> Result<(), ()> {
+        let command = Command::SetDnsResolvers(ResolverAddresses {
+            resolver1,
+            resolver2,
+        });
 
         if let Ok(Response::Ok) = self.send(command) {
             Ok(())
@@ -416,8 +352,8 @@ impl<'a, Tx> Adapter<'a, Tx>
             Ok(Response::Ok) | Ok(Response::UnlinkFail) => {
                 self.sockets[link_id].state = SocketState::Closed;
                 Ok(())
-            },
-            _=> Err(AdapterError::UnableToClose),
+            }
+            _ => Err(AdapterError::UnableToClose),
         }
     }
 
@@ -426,7 +362,8 @@ impl<'a, Tx> Adapter<'a, Tx>
         link_id: usize,
         remote: HostSocketAddr,
     ) -> Result<(), AdapterError> {
-        let command = Command::StartConnection(link_id, ConnectionType::TCP, remote.as_socket_addr());
+        let command =
+            Command::StartConnection(link_id, ConnectionType::TCP, remote.as_socket_addr());
         if let Ok(Response::Connect(..)) = self.send(command) {
             self.sockets[link_id].state = SocketState::Connected;
             return Ok(());
@@ -483,12 +420,12 @@ impl<'a, Tx> Adapter<'a, Tx>
     ) -> nb::Result<usize, AdapterError> {
         self.process_notifications();
 
-        if matches!( self.sockets[link_id].state, SocketState::Closed ) {
+        if matches!(self.sockets[link_id].state, SocketState::Closed) {
             return Err(nb::Error::Other(AdapterError::InvalidSocket));
         }
 
         if self.sockets[link_id].available == 0 {
-            if matches!( self.sockets[link_id].state, SocketState::HalfClosed ) {
+            if matches!(self.sockets[link_id].state, SocketState::HalfClosed) {
                 return Err(nb::Error::Other(AdapterError::InvalidSocket));
             } else {
                 return Err(nb::Error::WouldBlock);
@@ -514,24 +451,16 @@ impl<'a, Tx> Adapter<'a, Tx>
                 Ok(len)
             }
             Ok(Response::Ok) => Err(nb::Error::WouldBlock),
-            _=> Err(nb::Error::Other(AdapterError::ReadError)),
+            _ => Err(nb::Error::Other(AdapterError::ReadError)),
         }
     }
 
     pub(crate) fn is_connected(&self, link_id: usize) -> Result<bool, AdapterError> {
         Ok(match self.sockets[link_id].state {
-            SocketState::HalfClosed => {
-                self.sockets[link_id].available > 0
-            }
-            SocketState::Closed => {
-                false
-            }
-            SocketState::Open => {
-                false
-            }
-            SocketState::Connected => {
-                true
-            }
+            SocketState::HalfClosed => self.sockets[link_id].available > 0,
+            SocketState::Closed => false,
+            SocketState::Open => false,
+            SocketState::Connected => true,
         })
     }
 
@@ -540,14 +469,10 @@ impl<'a, Tx> Adapter<'a, Tx>
     // ----------------------------------------------------------------------
 
     pub(crate) fn get_host_by_name(&mut self, hostname: &str) -> Result<HostAddr, DnsError> {
-        let command = Command::GetHostByName {
-            hostname
-        };
+        let command = Command::GetHostByName { hostname };
 
         if let Ok(IpAddress(ip_addr)) = self.send(command) {
-            Ok(
-                HostAddr::new(ip_addr, Some(String::from(hostname)))
-            )
+            Ok(HostAddr::new(ip_addr, Some(String::from(hostname))))
         } else {
             Err(DnsError::NoSuchHost)
         }
