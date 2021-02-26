@@ -308,15 +308,58 @@ where
 
     fn digest(&mut self) -> Result<(), AdapterError> {
         let result = self.parse_buffer.parse();
+
         if let Ok(response) = result {
             if !matches!(response, AtResponse::None) {
-                log::info!("Got response: {:?}", response);
-                self.response_producer
-                    .as_ref()
-                    .unwrap()
-                    .borrow_mut()
-                    .enqueue(response)
-                    .map_err(|_| AdapterError::ReadError)?;
+                log::info!("--> {:?}", response);
+            }
+            match response {
+                AtResponse::None => {}
+                AtResponse::Ok
+                | AtResponse::Error
+                | AtResponse::FirmwareInfo(..)
+                | AtResponse::Connect(..)
+                | AtResponse::ReadyForData
+                | AtResponse::ReceivedDataToSend(..)
+                | AtResponse::DataReceived(..)
+                | AtResponse::SendOk
+                | AtResponse::SendFail
+                | AtResponse::WifiConnectionFailure(..)
+                | AtResponse::IpAddress(..)
+                | AtResponse::Resolvers(..)
+                | AtResponse::DnsFail
+                | AtResponse::UnlinkFail
+                | AtResponse::IpAddresses(..) => {
+                    if let Err(response) = self
+                        .response_producer
+                        .as_ref()
+                        .unwrap()
+                        .borrow_mut()
+                        .enqueue(response)
+                    {
+                        log::error!("failed to enqueue response {:?}", response);
+                    }
+                }
+                AtResponse::Closed(..) | AtResponse::DataAvailable { .. } => {
+                    if let Err(response) = self
+                        .notification_producer
+                        .as_ref()
+                        .unwrap()
+                        .borrow_mut()
+                        .enqueue(response)
+                    {
+                        log::error!("failed to enqueue notification {:?}", response);
+                    }
+                }
+                AtResponse::WifiConnected => {
+                    log::info!("wifi connected");
+                }
+                AtResponse::WifiDisconnect => {
+                    log::info!("wifi disconnect");
+                }
+                AtResponse::GotIp => {
+                    log::info!("wifi got ip");
+                }
             }
         }
         Ok(())
