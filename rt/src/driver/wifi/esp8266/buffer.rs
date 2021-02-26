@@ -1,10 +1,10 @@
-use crate::parser;
-use crate::protocol::Response;
-use moveslice::Moveslice;
+use crate::driver::wifi::esp8266::parser;
+use crate::driver::wifi::esp8266::protocol::Response;
 use core::str::from_utf8;
+use moveslice::Moveslice;
 
 pub(crate) struct Buffer {
-    buffer: [u8; 4096],
+    buffer: [u8; 1024],
     pos: usize,
     needs_parse: bool,
 }
@@ -12,7 +12,7 @@ pub(crate) struct Buffer {
 impl Buffer {
     pub fn new() -> Self {
         Buffer {
-            buffer: [0; 4096],
+            buffer: [0; 1024],
             pos: 0,
             needs_parse: false,
         }
@@ -42,11 +42,11 @@ impl Buffer {
         match str {
             Ok(s) => {
                 log::debug!("parsing {} [{}]", self.pos, s);
-            },
+            }
             Err(e) => {
                 let s = from_utf8(&self.buffer[0..e.valid_up_to()]).unwrap();
                 log::debug!("parsing {} [{}<truncated>] ({})", self.pos, s, e);
-            },
+            }
         }
 
         let mut ret = Ok(Response::None);

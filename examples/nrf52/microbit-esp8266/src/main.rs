@@ -92,5 +92,5 @@ fn main() -> ! {
         timer,
     };
 
-    device!( MyDevice = device; 4096);
+    device!( MyDevice = device; 8192);
 }

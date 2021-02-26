@@ -77,6 +77,13 @@ version= "6.1.2"
 default-features = false
 
 # ----------------------------------------
+# esp8266-wifi dependencies
+# ----------------------------------------
+[dependencies.moveslice]
+version= "2.0"
+optional = true
+
+# ----------------------------------------
 # lora dependencies
 # ----------------------------------------
 [dependencies.drogue-lora]
@@ -125,4 +132,4 @@ lora = []
 
 wifi = []
 "wifi+eswifi" = [ "wifi" ]
-"wifi+esp8266" = [ "wifi" ]
+"wifi+esp8266" = [ "wifi", "moveslice" ]
