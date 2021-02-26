@@ -37,8 +37,10 @@ impl Info {
 
 pub trait Arena: Sized {
     fn alloc_by_layout(layout: Layout, zero: bool) -> * mut u8;
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn dealloc_by_layout(ptr: *mut u8, layout: Layout);
     fn alloc<'o, T: 'o>(val: T) -> Option<&'o mut T>;
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn dealloc(ptr: *mut u8);
     fn info() -> Info;
 }
@@ -61,6 +63,7 @@ macro_rules! define_arena {
                     unsafe { [< $id:upper _ARENA >].as_mut().unwrap().alloc_by_layout(layout, zero) }
                 }
 
+                #[allow(clippy::not_unsafe_ptr_arg_deref)]
                 fn dealloc_by_layout(ptr: *mut u8, layout: $crate::Layout) {
                     unsafe { [< $id:upper _ARENA >].as_mut().unwrap().dealloc_by_layout(ptr, layout) }
                 }

@@ -2,6 +2,7 @@
 pub mod arbitrator;
 pub mod delayer;
 pub mod i2c;
+pub mod io;
 pub mod ip;
 pub mod lora;
 pub mod scheduler;
