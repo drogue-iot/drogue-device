@@ -168,7 +168,6 @@ where
             let result = self.uart.unwrap().read(&mut rx_buf[..]).await;
             match result {
                 Ok(c) => {
-                    log::info!("Read {}", rx_buf[0] as char);
                     buffer[pos] = rx_buf[0];
                     pos += 1;
                     if pos >= READY.len() && buffer[pos - READY.len()..pos] == READY {
@@ -176,12 +175,16 @@ where
                         self.disable_echo()
                             .await
                             .map_err(|e| log::error!("Error disabling echo mode"));
+                        log::info!("Echo disabled");
                         self.enable_mux()
                             .await
                             .map_err(|e| log::error!("Error enabling mux"));
+                        log::info!("Mux enabled");
                         self.set_recv_mode()
                             .await
                             .map_err(|e| log::error!("Error setting receive mode"));
+                        log::info!("adapter configured");
+                        break;
                     }
                 }
                 Err(e) => {
@@ -232,7 +235,7 @@ where
             .map_err(|_| AdapterError::UnableToInitialize)?)
     }
 
-    async fn wait_for_ok(&self) -> Result<(), UartError> {
+    async fn wait_for_ok(&self) -> Result<(), AdapterError> {
         let mut buf: [u8; 64] = [0; 64];
         let mut pos = 0;
 
@@ -241,10 +244,13 @@ where
                 .as_ref()
                 .unwrap()
                 .read(&mut buf[pos..pos + 1])
-                .await?;
+                .await
+                .map_err(|_| AdapterError::ReadError)?;
             pos += 1;
             if buf[0..pos].ends_with(b"OK\r\n") {
                 return Ok(());
+            } else if buf[0..pos].ends_with(b"ERROR\r\n") {
+                return Err(AdapterError::UnableToInitialize);
             }
         }
     }

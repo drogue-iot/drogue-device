@@ -79,8 +79,8 @@ fn main() -> ! {
     );
 
     // Wifi
-    let enable_pin = port0.p0_02.into_push_pull_output(Level::High).degrade();
-    let reset_pin = port0.p0_03.into_push_pull_output(Level::High).degrade();
+    let enable_pin = port0.p0_03.into_push_pull_output(Level::Low).degrade();
+    let reset_pin = port0.p0_02.into_push_pull_output(Level::Low).degrade();
 
     let device = MyDevice {
         btn_connect: ActorContext::new(btn_connect).with_name("button_connect"),

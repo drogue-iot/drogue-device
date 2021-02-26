@@ -18,7 +18,7 @@ use nrf52833_hal as hal;
 
 pub type AppTimer = Timer<HalTimer<TIMER0>>;
 pub type AppUart =
-    DmaUart<HalUart<UARTE0>, <AppTimer as Package>::Primary, consts::U64, consts::U64>;
+    DmaUart<HalUart<UARTE0>, <AppTimer as Package>::Primary, consts::U256, consts::U256>;
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
 pub type AppWifi = Esp8266Wifi<
     <AppUart as Package>::Primary,
