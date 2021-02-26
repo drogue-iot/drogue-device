@@ -20,12 +20,8 @@ pub type AppTimer = Timer<HalTimer<TIMER0>>;
 pub type AppUart =
     DmaUart<HalUart<UARTE0>, <AppTimer as Package>::Primary, consts::U256, consts::U256>;
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
-pub type AppWifi = Esp8266Wifi<
-    <AppUart as Package>::Primary,
-    <AppTimer as Package>::Primary,
-    Pin<Output<PushPull>>,
-    Pin<Output<PushPull>>,
->;
+pub type AppWifi =
+    Esp8266Wifi<<AppUart as Package>::Primary, Pin<Output<PushPull>>, Pin<Output<PushPull>>>;
 
 pub struct MyDevice {
     pub gpiote: InterruptContext<Gpiote<Self>>,
@@ -45,7 +41,7 @@ impl Device for MyDevice {
         self.btn_send.mount(config.event_bus, supervisor);
         let timer = self.timer.mount((), supervisor);
         let uart = self.uart.mount(timer, supervisor);
-        self.wifi.mount((uart, timer), supervisor);
+        self.wifi.mount(uart, supervisor);
     }
 }
 

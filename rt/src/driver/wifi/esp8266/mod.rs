@@ -6,12 +6,13 @@ mod socket_pool;
 
 use socket_pool::SocketPool;
 
-use crate::api::delayer::Delayer;
 use crate::api::ip::tcp::{TcpError, TcpStack};
 use crate::api::ip::{IpAddress, IpAddressV4, IpProtocol, SocketAddress};
+use crate::api::queue::*;
 use crate::api::uart::{Error as UartError, UartReader, UartWriter};
 use crate::api::wifi::{Join, JoinError, WifiSupplicant};
 use crate::domain::time::duration::Milliseconds;
+use crate::driver::queue::spsc_queue::*;
 use crate::hal::gpio::InterruptPin;
 use crate::prelude::*;
 use buffer::Buffer;
@@ -19,13 +20,10 @@ use core::cell::{RefCell, UnsafeCell};
 use core::fmt::Write;
 use cortex_m::interrupt::Nr;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
-use heapless::{
-    consts,
-    spsc::{Consumer, Producer, Queue},
-    String,
-};
+use heapless::{consts, String};
 use protocol::Response as AtResponse;
 
+type QueueActor = <SpscQueue<AtResponse, consts::U2> as Package>::Primary;
 pub const BUFFER_LEN: usize = 512;
 
 #[derive(Debug)]
@@ -57,24 +55,22 @@ enum State {
     Ready,
 }
 
-pub struct Esp8266Wifi<UART, T, ENABLE, RESET>
+pub struct Esp8266Wifi<UART, ENABLE, RESET>
 where
     UART: UartWriter + UartReader + 'static,
-    T: Delayer + 'static,
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
 {
     shared: Shared,
-    controller: ActorContext<Esp8266WifiController<UART, T>>,
+    controller: ActorContext<Esp8266WifiController<UART>>,
     ingress: ActorContext<Esp8266WifiModem<UART, ENABLE, RESET>>,
-    response_queue: UnsafeCell<Queue<AtResponse, consts::U2>>,
-    notification_queue: UnsafeCell<Queue<AtResponse, consts::U2>>,
+    response_queue: SpscQueue<AtResponse, consts::U2>,
+    notification_queue: SpscQueue<AtResponse, consts::U2>,
 }
 
-impl<UART, T, ENABLE, RESET> Esp8266Wifi<UART, T, ENABLE, RESET>
+impl<UART, ENABLE, RESET> Esp8266Wifi<UART, ENABLE, RESET>
 where
     UART: UartWriter + UartReader + 'static,
-    T: Delayer + 'static,
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
 {
@@ -86,34 +82,34 @@ where
                 .with_name("esp8266-wifi-controller"),
             ingress: ActorContext::new(Esp8266WifiModem::new(enable, reset))
                 .with_name("esp8266-wifi-ingress"),
-            response_queue: UnsafeCell::new(Queue::new()),
-            notification_queue: UnsafeCell::new(Queue::new()),
+            response_queue: SpscQueue::new(),
+            notification_queue: SpscQueue::new(),
         }
     }
 }
 
-impl<UART, T, ENABLE, RESET> Package for Esp8266Wifi<UART, T, ENABLE, RESET>
+impl<UART, ENABLE, RESET> Package for Esp8266Wifi<UART, ENABLE, RESET>
 where
     UART: UartWriter + UartReader + 'static,
-    T: Delayer + 'static,
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
 {
-    type Primary = Esp8266WifiController<UART, T>;
-    type Configuration = (Address<UART>, Address<T>);
+    type Primary = Esp8266WifiController<UART>;
+    type Configuration = Address<UART>;
 
     fn mount(
         &'static self,
         config: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<Self::Primary> {
-        let (r_prod, r_cons) = unsafe { (&mut *self.response_queue.get()).split() };
-        let (n_prod, n_cons) = unsafe { (&mut *self.notification_queue.get()).split() };
+        let response_queue = self.response_queue.mount((), supervisor);
+        let notification_queue = self.notification_queue.mount((), supervisor);
         let addr = self.controller.mount(
-            (&self.shared, r_cons, n_cons, config.0, config.1),
+            (&self.shared, response_queue, notification_queue, config),
             supervisor,
         );
-        self.ingress.mount((r_prod, n_prod, config.0), supervisor);
+        self.ingress
+            .mount((response_queue, notification_queue, config), supervisor);
         addr
     }
 
@@ -122,54 +118,40 @@ where
     }
 }
 
-pub struct Esp8266WifiController<UART, T>
+pub struct Esp8266WifiController<UART>
 where
     UART: UartWriter + UartReader + 'static,
-    T: Delayer + 'static,
 {
     shared: Option<&'static Shared>,
     address: Option<Address<Self>>,
     uart: Option<Address<UART>>,
-    delayer: Option<Address<T>>,
     state: State,
-    response_consumer: Option<RefCell<Consumer<'static, AtResponse, consts::U2>>>,
-    notification_consumer: Option<RefCell<Consumer<'static, AtResponse, consts::U2>>>,
+    response_queue: Option<Address<QueueActor>>,
+    notification_queue: Option<Address<QueueActor>>,
 }
 
-impl<UART, T> Esp8266WifiController<UART, T>
+impl<UART> Esp8266WifiController<UART>
 where
     UART: UartWriter + UartReader + 'static,
-    T: Delayer + 'static,
 {
     pub fn new() -> Self {
         Self {
             address: None,
             uart: None,
-            delayer: None,
             state: State::Uninitialized,
             shared: None,
-            response_consumer: None,
-            notification_consumer: None,
+            response_queue: None,
+            notification_queue: None,
         }
     }
 
     async fn wait_for_response(&mut self) -> Result<AtResponse, AdapterError> {
-        loop {
-            if let Some(response) = self
-                .response_consumer
-                .as_ref()
-                .unwrap()
-                .borrow_mut()
-                .dequeue()
-            {
-                return Ok(response);
-            }
-            self.delayer
-                .as_ref()
-                .unwrap()
-                .delay(Milliseconds(1000))
-                .await;
-        }
+        self.response_queue
+            .as_ref()
+            .unwrap()
+            .dequeue()
+            .await
+            .map_err(|_| AdapterError::ReadError)
     }
 
     async fn start(mut self) -> Self {
@@ -178,10 +160,9 @@ where
     }
 }
 
-impl<UART, T> WifiSupplicant for Esp8266WifiController<UART, T>
+impl<UART> WifiSupplicant for Esp8266WifiController<UART>
 where
     UART: UartWriter + UartReader + 'static,
-    T: Delayer + 'static,
 {
     fn join(mut self, join_info: Join) -> Response<Self, Result<IpAddress, JoinError>> {
         Response::defer(async move {
@@ -200,10 +181,9 @@ where
     }
 }
 
-impl<UART, T> TcpStack for Esp8266WifiController<UART, T>
+impl<UART> TcpStack for Esp8266WifiController<UART>
 where
     UART: UartWriter + UartReader + 'static,
-    T: Delayer + 'static,
 {
     type SocketHandle = u8;
 
@@ -242,17 +222,15 @@ where
     }
 }
 
-impl<UART, T> Actor for Esp8266WifiController<UART, T>
+impl<UART> Actor for Esp8266WifiController<UART>
 where
     UART: UartWriter + UartReader + 'static,
-    T: Delayer + 'static,
 {
     type Configuration = (
         &'static Shared,
-        Consumer<'static, AtResponse, consts::U2>,
-        Consumer<'static, AtResponse, consts::U2>,
+        Address<QueueActor>,
+        Address<QueueActor>,
         Address<UART>,
-        Address<T>,
     );
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
@@ -261,10 +239,9 @@ where
     {
         self.shared.replace(config.0);
         self.address.replace(address);
-        self.response_consumer.replace(RefCell::new(config.1));
-        self.notification_consumer.replace(RefCell::new(config.2));
+        self.response_queue.replace(config.1);
+        self.notification_queue.replace(config.2);
         self.uart.replace(config.3);
-        self.delayer.replace(config.4);
     }
 
     fn on_start(self) -> Completion<Self>
@@ -282,8 +259,8 @@ where
     RESET: OutputPin + 'static,
 {
     uart: Option<Address<UART>>,
-    response_producer: Option<RefCell<Producer<'static, AtResponse, consts::U2>>>,
-    notification_producer: Option<RefCell<Producer<'static, AtResponse, consts::U2>>>,
+    response_queue: Option<Address<QueueActor>>,
+    notification_queue: Option<Address<QueueActor>>,
     parse_buffer: Buffer,
     enable: ENABLE,
     reset: RESET,
@@ -299,14 +276,14 @@ where
         Self {
             uart: None,
             parse_buffer: Buffer::new(),
-            response_producer: None,
-            notification_producer: None,
+            response_queue: None,
+            notification_queue: None,
             enable,
             reset,
         }
     }
 
-    fn digest(&mut self) -> Result<(), AdapterError> {
+    async fn digest(&mut self) -> Result<(), AdapterError> {
         let result = self.parse_buffer.parse();
 
         if let Ok(response) = result {
@@ -331,22 +308,22 @@ where
                 | AtResponse::UnlinkFail
                 | AtResponse::IpAddresses(..) => {
                     if let Err(response) = self
-                        .response_producer
+                        .response_queue
                         .as_ref()
                         .unwrap()
-                        .borrow_mut()
                         .enqueue(response)
+                        .await
                     {
                         log::error!("failed to enqueue response {:?}", response);
                     }
                 }
                 AtResponse::Closed(..) | AtResponse::DataAvailable { .. } => {
                     if let Err(response) = self
-                        .notification_producer
+                        .notification_queue
                         .as_ref()
                         .unwrap()
-                        .borrow_mut()
                         .enqueue(response)
+                        .await
                     {
                         log::error!("failed to enqueue notification {:?}", response);
                     }
@@ -387,7 +364,7 @@ where
                 log::error!("Error reading data: {:?}", e);
             }
 
-            if let Err(e) = self.digest() {
+            if let Err(e) = self.digest().await {
                 log::error!("Error digesting data");
             }
         }
@@ -500,18 +477,14 @@ where
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
 {
-    type Configuration = (
-        Producer<'static, AtResponse, consts::U2>,
-        Producer<'static, AtResponse, consts::U2>,
-        Address<UART>,
-    );
+    type Configuration = (Address<QueueActor>, Address<QueueActor>, Address<UART>);
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where
         Self: Sized,
     {
-        self.response_producer.replace(RefCell::new(config.0));
-        self.notification_producer.replace(RefCell::new(config.1));
+        self.response_queue.replace(config.0);
+        self.notification_queue.replace(config.1);
         self.uart.replace(config.2);
     }
 
