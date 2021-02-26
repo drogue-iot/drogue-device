@@ -125,3 +125,4 @@ lora = []
 
 wifi = []
 "wifi+eswifi" = [ "wifi" ]
+"wifi+esp8266" = [ "wifi" ]

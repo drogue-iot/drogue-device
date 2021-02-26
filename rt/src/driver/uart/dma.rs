@@ -353,17 +353,19 @@ where
                 Ok(_) => {
                     self.rx_producer_grant.replace(RefCell::new(grant));
                     uart.start_read();
-                    self.scheduler.as_ref().unwrap().schedule(
-                        timeout,
-                        RxTimeout,
-                        *self.controller.as_ref().unwrap(),
-                    );
+                    if timeout > Milliseconds(0_u32) {
+                        self.scheduler.as_ref().unwrap().schedule(
+                            timeout,
+                            RxTimeout,
+                            *self.controller.as_ref().unwrap(),
+                        );
+                    }
                 }
                 Err(e) => {
                     // TODO: Notify self of starting read again?
                     log::error!("Error initiating DMA transfer: {:?}", e);
                     self.scheduler.as_ref().unwrap().schedule(
-                        timeout,
+                        Milliseconds(10),
                         RxStart,
                         *self.me.as_ref().unwrap(),
                     );
@@ -472,7 +474,8 @@ where
                 let grant = grant.into_inner();
                 if let Ok(_) = result {
                     let len = grant.len();
-                    // log::info!("Releasing {} bytes from grant", len);
+                    /*
+                    log::info!("Releasing {} bytes from grant", len);*/
                     grant.release(len);
                 } else {
                     grant.release(0);
@@ -484,8 +487,10 @@ where
             let len = uart.finish_read();
             if let Some(grant) = self.rx_producer_grant.take() {
                 if len > 0 {
-                    log::trace!("COMMITTING {} bytes", len);
-                    grant.into_inner().commit(len);
+                    let grant = grant.into_inner();
+                    /*
+                    log::info!("COMMITTING {} bytes", len);*/
+                    grant.commit(len);
                 }
             }
         }
