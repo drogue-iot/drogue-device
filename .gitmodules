@@ -1,3 +1,0 @@
-[submodule "mbedtls"]
-	path = tls-sys/vendor/mbedtls
-	url = https://github.com/ARMmbed/mbedtls.git

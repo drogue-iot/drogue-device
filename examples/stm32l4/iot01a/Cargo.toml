@@ -13,6 +13,18 @@ features = [
     "wifi+eswifi",
 ]
 
+# ----------------------------------------
+# tls dependencies
+# ----------------------------------------
+#[dependencies.p256]
+#version = "0.8.0-pre"
+#default-features = false
+#features = [ "ecdh", "arithmetic"]
+
+[dependencies.rand_core]
+version = "0.6.2"
+default-features = false
+
 [dependencies.cortex-m-rt]
 version = "0.6"
 features = ["device"]

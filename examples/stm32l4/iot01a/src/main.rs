@@ -42,6 +42,8 @@ use stm32l4xx_hal::pac::Interrupt::{EXTI1, SPI3};
 use stm32l4xx_hal::spi::Spi as HalSpi;
 use stm32l4xx_hal::time::MegaHertz;
 use crate::logic::Logic;
+use stm32l4xx_hal::pac::rcc::ahb2enr::RNGEN_R;
+use stm32l4xx_hal::rng::Rng;
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
 //static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
@@ -64,6 +66,7 @@ fn main() -> ! {
         .sysclk(80.mhz())
         .pclk1(80.mhz())
         .pclk2(80.mhz())
+        .hsi48(true)
         .freeze(&mut flash.acr, &mut pwr);
 
     let mut gpioa = device.GPIOA.split(&mut rcc.ahb2);
@@ -184,9 +187,13 @@ fn main() -> ! {
 
     let wifi = EsWifi::new(wifi_cs, wifi_ready, EXTI1, wifi_reset, wifi_wakeup);
 
-    // == Wifi Config ==
+    // == RNG ==
 
-    let logic = Logic::new();
+    let rng = device.RNG.enable( &mut rcc.ahb2, clocks);
+
+    // == Application Logic ==
+
+    let logic = Logic::new(rng);
 
     // == Device ==
 

@@ -68,6 +68,18 @@ features = ["rt"]
 optional = true
 
 # ----------------------------------------
+# tls dependencies
+# ----------------------------------------
+[dependencies.p256]
+version = "0.8.0-pre"
+default-features = false
+features = [ "ecdh", "arithmetic" ]
+
+[dependencies.rand_core]
+version = "0.6.2"
+default-features = false
+
+# ----------------------------------------
 # es-wifi dependencies
 # ----------------------------------------
 

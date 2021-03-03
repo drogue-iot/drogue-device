@@ -516,7 +516,7 @@ where
         unsafe {
             Response::defer_unchecked(async move {
                 let mut pos = 0;
-                let buf_len = buf.len();
+                let mut buf_available = buf.len();
                 loop {
                     let result = async {
                         let mut response = [0u8; 1100];
@@ -525,7 +525,7 @@ where
                             .await
                             .map_err(|_| TcpError::ReadError)?;
 
-                        let mut len = buf.len();
+                        let mut len = buf_available;
                         if len > 1460 {
                             len = 1460;
                         }
@@ -575,8 +575,10 @@ where
 
                     match result {
                         Ok(len) => {
+                            log::info!("read {} at {}", len, pos);
                             pos += len;
-                            if len == 0 || pos == buf.len() {
+                            buf_available -= len;
+                            if len == 0 || buf_available <= 0 {
                                 return (self, Ok(pos));
                             }
                         }

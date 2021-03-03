@@ -8,5 +8,6 @@ pub mod memory;
 pub mod sensor;
 pub mod spi;
 pub mod timer;
+pub mod tls;
 pub mod uart;
 pub mod wifi;
