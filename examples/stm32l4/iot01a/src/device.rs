@@ -35,6 +35,8 @@ use stm32l4xx_hal::{
     pac::TIM15,
     spi::Spi as HalSpi,
 };
+use drogue_device::driver::tls::tls_tcp_stack::TlsTcpStack;
+use drogue_device::platform::cortex_m::stm32l4xx::rng::Random;
 
 type Ld1Pin = PA5<Output<PushPull>>;
 type Ld2Pin = PB14<Output<PushPull>>;
@@ -62,13 +64,15 @@ type SpiMosi = PC12<Alternate<AF6, Input<Floating>>>;
 type HardwareSpi = HalSpi<SPI3, (SpiClk, SpiMiso, SpiMosi)>;
 type SpiPackage = Spi<HardwareSpi, u8>;
 
+type Tls = TlsTcpStack<<WifiAdapter as Package>::Primary, Random>;
+
 type WifiCs = PE0<Output<PushPull>>;
 //type WifiCs = PE10<Output<PullUp>>;
 type WifiReady = PE1<Input<PullDown>>;
 type WifiReset = PE8<Output<PushPull>>;
 type WifiWakeup = PB13<Output<PushPull>>;
 
-type WifiAdapter = EsWifi<
+pub type WifiAdapter = EsWifi<
     SpiController<HardwareSpi, u8>,
     <TimerPackage as Package>::Primary,
     WifiCs,
@@ -80,7 +84,8 @@ type WifiAdapter = EsWifi<
 pub struct MyDevice {
     pub spi: SpiPackage,
     pub wifi: WifiAdapter,
-    pub logic: ActorContext<Logic<<WifiAdapter as Package>::Primary>>,
+    pub tls: ActorContext<Tls>,
+    pub logic: ActorContext<Logic<<WifiAdapter as Package>::Primary, Tls>>,
     pub memory: ActorContext<Memory>,
     pub ld1: ActorContext<Ld1Actor>,
     pub ld2: ActorContext<Ld2Actor>,
@@ -100,7 +105,9 @@ impl Device for MyDevice {
 
         let wifi_addr = self.wifi.mount((spi_addr, timer_addr), supervisor);
 
-        self.logic.mount(wifi_addr, supervisor);
+        let tls_addr = self.tls.mount( (wifi_addr), supervisor );
+
+        self.logic.mount((wifi_addr, tls_addr), supervisor);
         self.memory.mount((), supervisor);
         let ld1_addr = self.ld1.mount((), supervisor);
         let ld2_addr = self.ld2.mount((), supervisor);

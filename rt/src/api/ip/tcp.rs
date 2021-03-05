@@ -1,6 +1,7 @@
 use crate::api::ip::{IpProtocol, SocketAddress};
 use crate::prelude::*;
 
+#[derive(Debug)]
 pub enum TcpError {
     ConnectError,
     ReadError,
@@ -66,6 +67,10 @@ where
 
     pub fn close(self) {
         // consume/move self here, and allow to drop, triggering close
+    }
+
+    pub(crate) fn handle(&self) -> S::SocketHandle {
+        self.handle
     }
 }
 

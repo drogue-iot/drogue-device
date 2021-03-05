@@ -22,7 +22,7 @@ use rtt_logger::RTTLogger;
 use rtt_target::rtt_init_print;
 
 use drogue_device::driver::spi::Spi;
-use drogue_device::driver::wifi::eswifi::EsWifi;
+use drogue_device::driver::wifi::eswifi::{EsWifi, EsWifiController};
 use drogue_device::{
     domain::time::duration::Milliseconds,
     driver::{
@@ -43,7 +43,12 @@ use stm32l4xx_hal::spi::Spi as HalSpi;
 use stm32l4xx_hal::time::MegaHertz;
 use crate::logic::Logic;
 use stm32l4xx_hal::pac::rcc::ahb2enr::RNGEN_R;
-use stm32l4xx_hal::rng::Rng;
+use stm32l4xx_hal::rng::Rng as HalRng;
+use drogue_device::driver::tls::tls_tcp_stack::TlsTcpStack;
+use drogue_device::platform::cortex_m::stm32l4xx::rng::{Random};
+use drogue_device::driver::tls::config::Config;
+use crate::device::WifiAdapter;
+
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
 //static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
@@ -191,15 +196,23 @@ fn main() -> ! {
 
     let rng = device.RNG.enable( &mut rcc.ahb2, clocks);
 
+    // == TLS ==
+
+    let rng = Random::initialize(rng);
+    let config = Config::<Random>::new(rng);
+
+    let tls = TlsTcpStack::<<WifiAdapter as Package>::Primary, Random>::new( config );
+
     // == Application Logic ==
 
-    let logic = Logic::new(rng);
+    let logic = Logic::new();
 
     // == Device ==
 
     let device = MyDevice {
         spi,
         wifi,
+        tls: ActorContext::new( tls ).with_name("tls"),
         logic: ActorContext::new(logic).with_name( "logic"),
         memory: ActorContext::new(Memory::new()).with_name("memory"),
         ld1: ActorContext::new(ld1).with_name("ld1"),

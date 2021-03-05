@@ -578,7 +578,7 @@ where
                             log::info!("read {} at {}", len, pos);
                             pos += len;
                             buf_available -= len;
-                            if len == 0 || buf_available <= 0 {
+                            if len == 0 || buf_available == 0 {
                                 return (self, Ok(pos));
                             }
                         }

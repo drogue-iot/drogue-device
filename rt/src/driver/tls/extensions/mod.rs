@@ -1,13 +1,19 @@
-use crate::driver::tls::extensions::supported_versions::{ProtocolVersion, ProtocolVersions};
+pub mod common;
+pub mod server;
+
 use crate::driver::tls::signature_schemes::SignatureScheme;
 
+use crate::driver::tls::extensions::ClientExtension::KeyShare;
+use crate::driver::tls::extensions::ExtensionType::SupportedVersions;
 use crate::driver::tls::max_fragment_length::MaxFragmentLength;
 use crate::driver::tls::named_groups::NamedGroup;
+use crate::driver::tls::supported_versions::{ProtocolVersion, ProtocolVersions};
+use crate::driver::tls::TlsError;
 use bbqueue::ArrayLength;
 use heapless::{consts::*, Vec};
+use nom::number::complete::u16;
 
-pub mod supported_versions;
-
+#[derive(Debug)]
 pub enum ExtensionType {
     ServerName = 0,
     MaxFragmentLength = 1,
@@ -31,6 +37,37 @@ pub enum ExtensionType {
     PostHandshakeAuth = 49,
     SignatureAlgorithmsCert = 50,
     KeyShare = 51,
+}
+
+impl ExtensionType {
+    pub fn of(num: u16) -> Option<Self> {
+        log::info!("extension type of {:x}", num);
+        match num {
+            0 => Some(Self::ServerName),
+            1 => Some(Self::MaxFragmentLength),
+            5 => Some(Self::StatusRequest),
+            10 => Some(Self::SupportedGroups),
+            13 => Some(Self::SignatureAlgorithms),
+            14 => Some(Self::UseSrtp),
+            15 => Some(Self::Heatbeat),
+            16 => Some(Self::ApplicationLayerProtocolNegotiation),
+            18 => Some(Self::SignedCertificateTimestamp),
+            19 => Some(Self::ClientCertificateType),
+            20 => Some(Self::ServerCertificateType),
+            21 => Some(Self::Padding),
+            41 => Some(Self::PreSharedKey),
+            42 => Some(Self::EarlyData),
+            43 => Some(Self::SupportedVersions),
+            44 => Some(Self::Cookie),
+            45 => Some(Self::PskKeyExchangeModes),
+            47 => Some(Self::CertificateAuthorities),
+            48 => Some(Self::OidFilters),
+            49 => Some(Self::PostHandshakeAuth),
+            50 => Some(Self::SignatureAlgorithmsCert),
+            51 => Some(Self::KeyShare),
+            _ => None,
+        }
+    }
 }
 
 pub enum ClientExtension {
@@ -82,7 +119,7 @@ impl ClientExtension {
                 log::info!("supported versions ext");
                 buf.push(versions.len() as u8 * 2);
                 for v in versions {
-                    buf.extend_from_slice(v);
+                    buf.extend_from_slice(&v.to_be_bytes());
                 }
             }
             ClientExtension::SignatureAlgorithms {
@@ -137,8 +174,4 @@ impl ClientExtension {
         buf[extension_length_marker] = extension_length.to_be_bytes()[0];
         buf[extension_length_marker + 1] = extension_length.to_be_bytes()[1];
     }
-}
-
-pub enum ServerExtension {
-    SupportedVersion { selected_version: ProtocolVersion },
 }

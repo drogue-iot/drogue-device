@@ -4,38 +4,45 @@ use drogue_device::api::ip::{IpAddress, IpProtocol, SocketAddress};
 use drogue_device::api::wifi::{Join, WifiSupplicant};
 use drogue_device::domain::temperature::Celsius;
 use drogue_device::driver::sensor::hts221::SensorAcquisition;
-use drogue_device::driver::tls::handshake::ClientHello;
+use drogue_device::driver::tls::config::Config;
+use drogue_device::platform::cortex_m::stm32l4xx::rng::Random;
 use drogue_device::prelude::*;
-use rand_core::{CryptoRng, Error, RngCore};
-use stm32l4xx_hal::rng::Rng;
+use stm32l4xx_hal::rng::Rng as HalRng;
 
-pub struct Logic<S>
+pub struct Logic<W, T>
 where
-    S: WifiSupplicant + TcpStack + 'static,
+    W: WifiSupplicant + 'static,
+    T: TcpStack + 'static,
 {
-    wifi: Option<Address<S>>,
-    rng: Rng,
+    wifi: Option<Address<W>>,
+    tcp: Option<Address<T>>,
 }
-impl<S> Logic<S>
+impl<W, T> Logic<W, T>
 where
-    S: WifiSupplicant + TcpStack + 'static,
+    W: WifiSupplicant + 'static,
+    T: TcpStack + 'static,
 {
-    pub fn new(rng: Rng) -> Self {
-        Self { wifi: None, rng }
+    pub fn new() -> Self {
+        Self {
+            wifi: None,
+            tcp: None,
+        }
     }
 }
 
-impl<S> Actor for Logic<S>
+impl<W, T> Actor for Logic<W, T>
 where
-    S: WifiSupplicant + TcpStack + 'static,
+    W: WifiSupplicant + 'static,
+    T: TcpStack + 'static,
 {
-    type Configuration = Address<S>;
+    type Configuration = (Address<W>, Address<T>);
 
     fn on_mount(&mut self, _address: Address<Self>, config: Self::Configuration)
     where
         Self: Sized,
     {
-        self.wifi.replace(config);
+        self.wifi.replace(config.0);
+        self.tcp.replace(config.1);
     }
 
     fn on_start(self) -> Completion<Self>
@@ -55,7 +62,8 @@ where
             match result {
                 Ok(_) => {
                     log::info!("connected to wifi");
-                    let mut socket = self.wifi.unwrap().tcp_open().await;
+
+                    let mut socket = self.tcp.unwrap().tcp_open().await;
                     log::info!("got socket");
                     let result = socket
                         .connect(
@@ -66,40 +74,10 @@ where
 
                     match result {
                         Ok(_) => {
-                            log::info!("connected to ssl server");
-                            //let result = socket.write( b"GET / HTTP/1.1\r\nhost:192.168.1.8\r\n\r\n" ).await;
-                            let random: [u8; 32] = [
-                                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-                                20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
-                            ];
-                            let rng = RngImpl::new(&self.rng);
-                            let client_hello = ClientHello::new(rng, random);
-                            let result = client_hello.transmit(&mut socket).await;
-                            match result {
-                                Ok(_) => {
-                                    log::info!("wrote HTTP request");
-                                    loop {
-                                        let mut buf = [0; 1024];
-                                        let result = socket.read(&mut buf).await;
-                                        match result {
-                                            Ok(size) => {
-                                                log::info!("received {}", size);
-                                                log::info!("{:x?}", &buf[0..size]);
-                                            }
-                                            Err(_) => {
-                                                log::info!("read error");
-                                                break
-                                            }
-                                        }
-                                    }
-                                }
-                                Err(_) => {
-                                    log::info!("failed to write HTTP request");
-                                }
-                            }
+                            log::info!("connected to TLS server");
                         }
                         Err(_) => {
-                            log::info!("unable to connect 80");
+                            log::info!("unable to connect TLS server");
                         }
                     }
                 }
@@ -113,62 +91,13 @@ where
     }
 }
 
-impl<S> NotifyHandler<SensorAcquisition<Celsius>> for Logic<S>
+impl<W, T> NotifyHandler<SensorAcquisition<Celsius>> for Logic<W, T>
 where
-    S: WifiSupplicant + TcpStack + 'static,
+    W: WifiSupplicant + 'static,
+    T: TcpStack + 'static,
 {
     fn on_notify(self, message: SensorAcquisition<Celsius>) -> Completion<Self> {
         //unimplemented!()
         Completion::immediate(self)
-    }
-}
-
-struct RngImpl<'a> {
-    rng: &'a Rng,
-}
-
-impl Copy for RngImpl<'_> {}
-
-impl Clone for RngImpl<'_> {
-    fn clone(&self) -> Self {
-        Self { rng: self.rng }
-    }
-}
-
-impl<'a> RngImpl<'a> {
-    pub fn new(rng: &'a Rng) -> Self {
-        Self { rng }
-    }
-}
-
-impl CryptoRng for RngImpl<'_> {}
-
-impl RngCore for RngImpl<'_> {
-    fn next_u32(&mut self) -> u32 {
-        self.rng.get_random_data()
-    }
-
-    fn next_u64(&mut self) -> u64 {
-        let a = self.rng.get_random_data();
-        let b = self.rng.get_random_data();
-        (a as u64) << 32 + b
-    }
-
-    fn fill_bytes(&mut self, dest: &mut [u8]) {
-        let mut data = 0;
-
-        for (index, slot) in dest.iter_mut().enumerate() {
-            if index % 4 == 0 {
-                data = self.next_u32();
-            }
-
-            *slot = data as u8 & 0xff;
-            data = data >> 8;
-        }
-    }
-
-    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
-        self.fill_bytes(dest);
-        Ok(())
     }
 }
