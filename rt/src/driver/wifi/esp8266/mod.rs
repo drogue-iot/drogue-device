@@ -21,7 +21,7 @@ use core::fmt::Write;
 use cortex_m::interrupt::Nr;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
 use heapless::{consts, String};
-use protocol::Response as AtResponse;
+use protocol::{Command, Response as AtResponse, WiFiMode};
 
 type QueueActor = <SpscQueue<AtResponse, consts::U2> as Package>::Primary;
 pub const BUFFER_LEN: usize = 512;
@@ -36,6 +36,7 @@ pub enum AdapterError {
     WriteError,
     ReadError,
     InvalidSocket,
+    OperationNotSupported,
 }
 
 pub struct Shared {
@@ -145,6 +146,23 @@ where
         }
     }
 
+    async fn send<'c>(&mut self, command: Command<'c>) -> Result<AtResponse, AdapterError> {
+        let mut bytes = command.as_bytes();
+        log::info!(
+            "writing command {}",
+            core::str::from_utf8(bytes.as_bytes()).unwrap()
+        );
+        let uart = self.uart.as_ref().unwrap();
+        bytes.push_str(r"\r\n").unwrap();
+
+        uart.write(bytes.as_bytes())
+            .await
+            .map_err(|_| AdapterError::WriteError)?;
+
+        log::info!("Written... waiting for response");
+        self.wait_for_response().await
+    }
+
     async fn wait_for_response(&mut self) -> Result<AtResponse, AdapterError> {
         self.response_queue
             .as_ref()
@@ -158,6 +176,39 @@ where
         log::info!("[{}] start", ActorInfo::name());
         self
     }
+
+    async fn set_mode(&mut self, mode: WiFiMode) -> Result<(), ()> {
+        let command = Command::SetMode(mode);
+
+        log::info!("Setting mode");
+        match self.send(command).await {
+            Ok(AtResponse::Ok) => Ok(()),
+            _ => Err(()),
+        }
+    }
+
+    async fn join_wep(&mut self, ssid: &str, password: &str) -> Result<IpAddress, JoinError> {
+        let command = Command::JoinAp { ssid, password };
+        log::info!("Joining ap");
+        match self.send(command).await {
+            Ok(AtResponse::Ok) => self.get_ip_address().await.map_err(|_| JoinError::Unknown),
+            Ok(AtResponse::WifiConnectionFailure(reason)) => {
+                log::warn!("Error connecting to wifi: {:?}", reason);
+                Err(JoinError::Unknown)
+            }
+            _ => Err(JoinError::UnableToAssociate),
+        }
+    }
+
+    async fn get_ip_address(&mut self) -> Result<IpAddress, ()> {
+        let command = Command::QueryIpAddress;
+
+        if let Ok(AtResponse::IpAddresses(addresses)) = self.send(command).await {
+            return Ok(IpAddress::V4(addresses.ip));
+        }
+
+        Err(())
+    }
 }
 
 impl<UART> WifiSupplicant for Esp8266WifiController<UART>
@@ -166,17 +217,17 @@ where
 {
     fn join(mut self, join_info: Join) -> Response<Self, Result<IpAddress, JoinError>> {
         Response::defer(async move {
-            /*
-            TODO
-
             let result = match join_info {
-                Join::Open => self.join_open().await,
-                Join::Wpa { ssid, password } => {
-                    self.join_wep(ssid.as_ref(), password.as_ref()).await
-                }
-            };*/
-
-            (self, Err(JoinError::Unknown))
+                Join::Open => Err(JoinError::Unknown),
+                Join::Wpa { ssid, password } => match self.set_mode(WiFiMode::Station).await {
+                    Err(e) => {
+                        log::warn!("Error setting wifi mode");
+                        Err(JoinError::Unknown)
+                    }
+                    _ => self.join_wep(ssid.as_ref(), password.as_ref()).await,
+                },
+            };
+            (self, result)
         })
     }
 }

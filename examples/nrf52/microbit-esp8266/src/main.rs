@@ -9,7 +9,7 @@ use cortex_m_rt::{entry, exception};
 use drogue_device::{
     driver::memory::Memory,
     driver::timer::Timer,
-    driver::uart::dma::DmaUart,
+    driver::uart::serial::Serial,
     driver::wifi::esp8266::Esp8266Wifi,
     platform::cortex_m::nrf::{
         gpiote::*,
@@ -63,20 +63,21 @@ fn main() -> ! {
     let timer = Timer::new(HalTimer::new(device.TIMER0), hal::pac::Interrupt::TIMER0);
 
     // Uart
-    let uart = DmaUart::new(
-        Uarte::new(
-            device.UARTE0,
-            Pins {
-                txd: port0.p0_01.into_push_pull_output(Level::High).degrade(),
-                rxd: port0.p0_13.into_floating_input().degrade(),
-                cts: None,
-                rts: None,
-            },
-            Parity::EXCLUDED,
-            Baudrate::BAUD115200,
-        ),
-        hal::pac::Interrupt::UARTE0_UART0,
-    );
+    // Uart
+    static mut RX_BUF: [u8; 1] = [0; 1];
+    let (tx, rx) = Uarte::new(
+        device.UARTE0,
+        Pins {
+            txd: port0.p0_01.into_push_pull_output(Level::High).degrade(),
+            rxd: port0.p0_13.into_floating_input().degrade(),
+            cts: None,
+            rts: None,
+        },
+        Parity::EXCLUDED,
+        Baudrate::BAUD115200,
+    )
+    .split(unsafe { &mut RX_BUF });
+    let uart = Serial::new(tx, rx, hal::pac::Interrupt::UARTE0_UART0);
 
     // Wifi
     let enable_pin = port0.p0_03.into_push_pull_output(Level::Low).degrade();
@@ -90,7 +91,8 @@ fn main() -> ! {
         memory: ActorContext::new(Memory::new()).with_name("memory"),
         wifi: Esp8266Wifi::new(enable_pin, reset_pin),
         timer,
+        app: ActorContext::new(App::new()).with_name("app"),
     };
 
-    device!( MyDevice = device; 8192);
+    device!( MyDevice = device; 12000);
 }

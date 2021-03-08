@@ -1,13 +1,14 @@
+use core::str::FromStr;
 use drogue_device::{
-    api::{delayer::*, lora::*, scheduler::*, uart::*},
+    api::wifi::{Join, WifiSupplicant},
     driver::{
         memory::{Memory, Query},
         timer::*,
-        uart::dma::DmaUart,
-        uart::*,
+        uart::serial::*,
         wifi::esp8266::Esp8266Wifi,
     },
-    platform::cortex_m::nrf::{gpiote::*, timer::Timer as HalTimer, uarte::Uarte as HalUart},
+    platform::cortex_m::nrf::{gpiote::*, timer::Timer as HalTimer,
+                              uarte::{UarteRx, UarteTx}},
     prelude::*,
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
@@ -17,11 +18,11 @@ use heapless::consts;
 use nrf52833_hal as hal;
 
 pub type AppTimer = Timer<HalTimer<TIMER0>>;
-pub type AppUart =
-    DmaUart<HalUart<UARTE0>, <AppTimer as Package>::Primary, consts::U256, consts::U256>;
+pub type AppUart = Serial<UarteTx<UARTE0>, UarteRx<UARTE0>, <AppTimer as Package>::Primary>;
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
-pub type AppWifi =
+pub type Wifi =
     Esp8266Wifi<<AppUart as Package>::Primary, Pin<Output<PushPull>>, Pin<Output<PushPull>>>;
+pub type AppWifi = <Wifi as Package>::Primary;
 
 pub struct MyDevice {
     pub gpiote: InterruptContext<Gpiote<Self>>,
@@ -30,7 +31,8 @@ pub struct MyDevice {
     pub memory: ActorContext<Memory>,
     pub uart: AppUart,
     pub timer: AppTimer,
-    pub wifi: AppWifi,
+    pub wifi: Wifi,
+    pub app: ActorContext<App<AppWifi>>,
 }
 
 impl Device for MyDevice {
@@ -41,7 +43,8 @@ impl Device for MyDevice {
         self.btn_send.mount(config.event_bus, supervisor);
         let timer = self.timer.mount((), supervisor);
         let uart = self.uart.mount(timer, supervisor);
-        self.wifi.mount(uart, supervisor);
+        let wifi = self.wifi.mount(uart, supervisor);
+        self.app.mount(wifi, supervisor);
     }
 }
 
@@ -56,6 +59,10 @@ impl EventHandler<PinEvent> for MyDevice {
     fn on_event(&'static self, event: PinEvent) {
         match event {
             PinEvent(Channel::Channel0, PinState::Low) => {
+                self.app.address().notify(Join::Wpa {
+                    ssid: heapless::String::from_str("foo").unwrap(),
+                    password: heapless::String::from_str("bar").unwrap(),
+                });
                 self.memory.address().notify(Query);
             }
             PinEvent(Channel::Channel1, PinState::Low) => {
@@ -63,5 +70,47 @@ impl EventHandler<PinEvent> for MyDevice {
             }
             _ => {}
         }
+    }
+}
+
+pub struct App<NET>
+where
+    NET: WifiSupplicant + 'static,
+{
+    driver: Option<Address<NET>>,
+}
+
+impl<NET> App<NET>
+where
+    NET: WifiSupplicant + 'static,
+{
+    pub fn new() -> Self {
+        Self { driver: None }
+    }
+}
+
+impl<NET> Actor for App<NET>
+where
+    NET: WifiSupplicant + 'static,
+{
+    type Configuration = Address<NET>;
+    fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
+        log::info!("Bound wifi");
+        self.driver.replace(config);
+    }
+}
+
+impl<NET> NotifyHandler<Join> for App<NET>
+where
+    NET: WifiSupplicant + 'static,
+{
+    fn on_notify(self, message: Join) -> Completion<Self> {
+        Completion::defer(async move {
+            let driver = self.driver.as_ref().unwrap();
+            log::info!("Joining network");
+            let ip = driver.wifi_join(message).await.expect("Error joining wifi");
+            log::info!("Joined wifi network with IP: {}", ip);
+            self
+        })
     }
 }

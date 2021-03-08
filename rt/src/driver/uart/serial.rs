@@ -20,7 +20,7 @@ where
     actor: ActorContext<SerialActor<TX, S>>,
     interrupt: InterruptContext<SerialInterrupt<RX>>,
     state: ActorState,
-    rx_buffer: UnsafeCell<AsyncBBBuffer<'static, consts::U16>>,
+    rx_buffer: UnsafeCell<AsyncBBBuffer<'static, consts::U1024>>,
 }
 
 pub struct SerialActor<TX, S>
@@ -30,7 +30,7 @@ where
 {
     me: Option<Address<Self>>,
     tx: TX,
-    rx_consumer: Option<AsyncBBConsumer<consts::U16>>,
+    rx_consumer: Option<AsyncBBConsumer<consts::U1024>>,
     state: Option<&'static ActorState>,
     scheduler: Option<Address<S>>,
 }
@@ -40,7 +40,7 @@ where
     RX: Read<u8> + UartRx + 'static,
 {
     rx: RX,
-    rx_producer: Option<AsyncBBProducer<consts::U16>>,
+    rx_producer: Option<AsyncBBProducer<consts::U1024>>,
     state: Option<&'static ActorState>,
 }
 
@@ -110,7 +110,7 @@ where
     type Configuration = (
         &'static ActorState,
         Address<S>,
-        AsyncBBConsumer<consts::U16>,
+        AsyncBBConsumer<consts::U1024>,
     );
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.me.replace(me);
@@ -124,7 +124,7 @@ impl<RX> Actor for SerialInterrupt<RX>
 where
     RX: Read<u8> + UartRx + 'static,
 {
-    type Configuration = (&'static ActorState, AsyncBBProducer<consts::U16>);
+    type Configuration = (&'static ActorState, AsyncBBProducer<consts::U1024>);
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.state.replace(config.0);
         self.rx_producer.replace(config.1);
