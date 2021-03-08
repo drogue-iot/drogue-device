@@ -148,18 +148,20 @@ where
 
     async fn send<'c>(&mut self, command: Command<'c>) -> Result<AtResponse, AdapterError> {
         let mut bytes = command.as_bytes();
-        log::info!(
+        log::trace!(
             "writing command {}",
             core::str::from_utf8(bytes.as_bytes()).unwrap()
         );
+
         let uart = self.uart.as_ref().unwrap();
-        bytes.push_str(r"\r\n").unwrap();
-
-        uart.write(bytes.as_bytes())
+        uart.write(&bytes.as_bytes())
             .await
-            .map_err(|_| AdapterError::WriteError)?;
+            .map_err(|e| AdapterError::WriteError)?;
 
-        log::info!("Written... waiting for response");
+        uart.write(b"\r\n")
+            .await
+            .map_err(|e| AdapterError::WriteError)?;
+
         self.wait_for_response().await
     }
 
@@ -179,8 +181,6 @@ where
 
     async fn set_mode(&mut self, mode: WiFiMode) -> Result<(), ()> {
         let command = Command::SetMode(mode);
-
-        log::info!("Setting mode");
         match self.send(command).await {
             Ok(AtResponse::Ok) => Ok(()),
             _ => Err(()),
@@ -189,7 +189,6 @@ where
 
     async fn join_wep(&mut self, ssid: &str, password: &str) -> Result<IpAddress, JoinError> {
         let command = Command::JoinAp { ssid, password };
-        log::info!("Joining ap");
         match self.send(command).await {
             Ok(AtResponse::Ok) => self.get_ip_address().await.map_err(|_| JoinError::Unknown),
             Ok(AtResponse::WifiConnectionFailure(reason)) => {
@@ -219,13 +218,9 @@ where
         Response::defer(async move {
             let result = match join_info {
                 Join::Open => Err(JoinError::Unknown),
-                Join::Wpa { ssid, password } => match self.set_mode(WiFiMode::Station).await {
-                    Err(e) => {
-                        log::warn!("Error setting wifi mode");
-                        Err(JoinError::Unknown)
-                    }
-                    _ => self.join_wep(ssid.as_ref(), password.as_ref()).await,
-                },
+                Join::Wpa { ssid, password } => {
+                    self.join_wep(ssid.as_ref(), password.as_ref()).await
+                }
             };
             (self, result)
         })
@@ -399,7 +394,7 @@ where
         let mut buf = [0; 1];
 
         let len = uart
-            .read(&mut buf[..])
+            .read(&mut buf[..]) //, Milliseconds(5000))
             .await
             .map_err(|_| AdapterError::ReadError)?;
         for b in &buf[..len] {
@@ -419,6 +414,7 @@ where
                 log::error!("Error digesting data");
             }
         }
+        self
     }
 
     async fn initialize(mut self) -> Self {
@@ -454,6 +450,16 @@ where
                         self.set_recv_mode()
                             .await
                             .map_err(|e| log::error!("Error setting receive mode"));
+                        log::info!("Recv mode configured");
+                        self.set_mode()
+                            .await
+                            .map_err(|e| log::error!("Error setting station mode"));
+
+                        log::info!("mode set");
+                        /*
+                        self.join_ap()
+                            .await
+                            .map_err(|e| log::error!("Error joining station"));*/
                         log::info!("adapter configured");
                         break;
                     }
@@ -469,6 +475,26 @@ where
 
     async fn write_command(&self, cmd: &[u8]) -> Result<(), UartError> {
         self.uart.as_ref().unwrap().write(cmd).await
+    }
+
+    async fn join_ap(&self) -> Result<(), AdapterError> {
+        self.write_command(b"AT+CWJAP_CUR=\"spiderweb\",\"rosaisen\"\r\n")
+            .await
+            .map_err(|_| AdapterError::UnableToInitialize)?;
+        Ok(self
+            .wait_for_ok()
+            .await
+            .map_err(|_| AdapterError::UnableToInitialize)?)
+    }
+
+    async fn set_mode(&self) -> Result<(), AdapterError> {
+        self.write_command(b"AT+CWMODE_CUR=1\r\n")
+            .await
+            .map_err(|_| AdapterError::UnableToInitialize)?;
+        Ok(self
+            .wait_for_ok()
+            .await
+            .map_err(|_| AdapterError::UnableToInitialize)?)
     }
 
     async fn disable_echo(&self) -> Result<(), AdapterError> {

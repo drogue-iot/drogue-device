@@ -219,6 +219,7 @@ where
 
                     self.bytes_left -= to_copy;
                     grant.commit(to_copy);
+                    self.inner.notify_consumer();
 
                     if self.bytes_left == 0 {
                         return Poll::Ready(Ok(()));

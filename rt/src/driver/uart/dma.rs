@@ -392,7 +392,7 @@ where
 }
 
 const READ_TIMEOUT: u32 = 100;
-const READ_SIZE: usize = 32;
+const READ_SIZE: usize = 255;
 
 impl<U, T, TXN, RXN> Actor for UartInterrupt<U, T, TXN, RXN>
 where
@@ -488,8 +488,7 @@ where
             if let Some(grant) = self.rx_producer_grant.take() {
                 if len > 0 {
                     let grant = grant.into_inner();
-                    /*
-                    log::info!("COMMITTING {} bytes", len);*/
+                    // log::info!("COMMITTING {} bytes", len);
                     grant.commit(len);
                 }
             }

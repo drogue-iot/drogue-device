@@ -4,11 +4,10 @@ use drogue_device::{
     driver::{
         memory::{Memory, Query},
         timer::*,
-        uart::serial::*,
+        uart::dma::DmaUart,
         wifi::esp8266::Esp8266Wifi,
     },
-    platform::cortex_m::nrf::{gpiote::*, timer::Timer as HalTimer,
-                              uarte::{UarteRx, UarteTx}},
+    platform::cortex_m::nrf::{gpiote::*, timer::Timer as HalTimer, uarte::Uarte as HalUart},
     prelude::*,
 };
 use hal::gpio::{Input, Output, Pin, PullUp, PushPull};
@@ -18,7 +17,8 @@ use heapless::consts;
 use nrf52833_hal as hal;
 
 pub type AppTimer = Timer<HalTimer<TIMER0>>;
-pub type AppUart = Serial<UarteTx<UARTE0>, UarteRx<UARTE0>, <AppTimer as Package>::Primary>;
+pub type AppUart =
+    DmaUart<HalUart<UARTE0>, <AppTimer as Package>::Primary, consts::U64, consts::U1024>;
 pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
 pub type Wifi =
     Esp8266Wifi<<AppUart as Package>::Primary, Pin<Output<PushPull>>, Pin<Output<PushPull>>>;

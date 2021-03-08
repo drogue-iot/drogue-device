@@ -41,11 +41,11 @@ impl Buffer {
         let str = from_utf8(&self.buffer[0..self.pos]);
         match str {
             Ok(s) => {
-                log::debug!("parsing {} [{}]", self.pos, s);
+                // log::info!("parsing {} [{}]", self.pos, s);
             }
             Err(e) => {
                 let s = from_utf8(&self.buffer[0..e.valid_up_to()]).unwrap();
-                log::debug!("parsing {} [{}<truncated>] ({})", self.pos, s, e);
+                // log::info!("parsing {} [{}<truncated>] ({})", self.pos, s, e);
             }
         }
 

@@ -42,7 +42,7 @@ impl ActorState {
         self.rx_timeout.signal(());
     }
 
-    fn set_rx_ready(&self) {
+    pub fn set_rx_ready(&self) {
         self.rx_state.store(READY_STATE, Ordering::SeqCst);
     }
 
@@ -50,7 +50,7 @@ impl ActorState {
         self.tx_state.store(READY_STATE, Ordering::SeqCst);
     }
 
-    fn poll_rx_timeout(&self, cx: &mut Context<'_>) -> Poll<()> {
+    pub fn poll_rx_timeout(&self, cx: &mut Context<'_>) -> Poll<()> {
         self.rx_timeout.poll_wait(cx)
     }
 }
