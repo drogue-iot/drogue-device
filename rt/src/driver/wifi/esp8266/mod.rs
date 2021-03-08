@@ -414,7 +414,6 @@ where
                 log::error!("Error digesting data");
             }
         }
-        self
     }
 
     async fn initialize(mut self) -> Self {
@@ -454,12 +453,6 @@ where
                         self.set_mode()
                             .await
                             .map_err(|e| log::error!("Error setting station mode"));
-
-                        log::info!("mode set");
-                        /*
-                        self.join_ap()
-                            .await
-                            .map_err(|e| log::error!("Error joining station"));*/
                         log::info!("adapter configured");
                         break;
                     }
@@ -475,16 +468,6 @@ where
 
     async fn write_command(&self, cmd: &[u8]) -> Result<(), UartError> {
         self.uart.as_ref().unwrap().write(cmd).await
-    }
-
-    async fn join_ap(&self) -> Result<(), AdapterError> {
-        self.write_command(b"AT+CWJAP_CUR=\"spiderweb\",\"rosaisen\"\r\n")
-            .await
-            .map_err(|_| AdapterError::UnableToInitialize)?;
-        Ok(self
-            .wait_for_ok()
-            .await
-            .map_err(|_| AdapterError::UnableToInitialize)?)
     }
 
     async fn set_mode(&self) -> Result<(), AdapterError> {
