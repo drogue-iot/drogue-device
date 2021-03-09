@@ -1,6 +1,7 @@
 #![no_main]
 #![no_std]
 
+mod app;
 mod device;
 
 use panic_rtt_target as _;
@@ -25,6 +26,7 @@ use rtt_target::rtt_init_print;
 
 use nrf52833_hal as hal;
 
+use crate::app::*;
 use crate::device::*;
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
