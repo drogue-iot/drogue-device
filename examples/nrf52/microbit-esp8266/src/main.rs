@@ -39,7 +39,6 @@ fn main() -> ! {
     let device = hal::pac::Peripherals::take().unwrap();
 
     let port0 = hal::gpio::p0::Parts::new(device.P0);
-    let port1 = hal::gpio::p1::Parts::new(device.P1);
 
     let clocks = hal::clocks::Clocks::new(device.CLOCK).enable_ext_hfosc();
     let _clocks = clocks.start_lfclk();

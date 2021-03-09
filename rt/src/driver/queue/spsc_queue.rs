@@ -2,7 +2,7 @@ use crate::api::queue::*;
 use crate::arch::atomic;
 use crate::prelude::*;
 use crate::synchronization::Signal;
-use core::cell::{Cell, RefCell, UnsafeCell};
+use core::cell::{RefCell, UnsafeCell};
 use core::future::Future;
 use core::pin::Pin;
 use core::sync::atomic::AtomicBool;
@@ -237,12 +237,15 @@ where
     T: 'static,
 {
     type Output = Result<(), Error>;
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let producer = self.shared.producer.borrow();
         let mut producer = producer.as_ref().unwrap().borrow_mut();
         loop {
             if producer.ready() {
-                producer.enqueue(self.shared.pending_enqueue.borrow_mut().take().unwrap());
+                producer
+                    .enqueue(self.shared.pending_enqueue.borrow_mut().take().unwrap())
+                    .ok()
+                    .unwrap();
                 self.shared.set_producer_ready();
                 self.shared.notify_consumer();
                 return Poll::Ready(Ok(()));
@@ -282,7 +285,7 @@ where
     T: 'static,
 {
     type Output = Result<T, Error>;
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let consumer = self.shared.consumer.borrow();
         let mut consumer = consumer.as_ref().unwrap().borrow_mut();
         loop {

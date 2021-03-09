@@ -150,7 +150,7 @@ impl<NET> NotifyHandler<TakeMeasurement> for App<NET>
 where
     NET: WifiSupplicant + TcpStack + 'static,
 {
-    fn on_notify(mut self, message: TakeMeasurement) -> Completion<Self> {
+    fn on_notify(self, _: TakeMeasurement) -> Completion<Self> {
         Completion::defer(async move {
             {
                 log::info!("Sending data");
@@ -176,7 +176,7 @@ where
                                     log::info!("Error reporting measurement");
                                     break;
                                 }
-                                Ok(len) => {}
+                                Ok(_) => {}
                                 Err(e) => {
                                     log::warn!("Error reading response: {:?}", e);
                                     break;

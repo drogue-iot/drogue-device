@@ -17,7 +17,6 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use heap::layout::Layout;
 use heap::Heap;
 //use static_arena::interrupt::Mutex;
-use core::ffi::c_void;
 use drogue_arch::{with_critical_section, Mutex};
 
 pub struct StaticArena {
@@ -96,7 +95,7 @@ impl StaticArena {
     }
 
     pub unsafe fn alloc_by_layout(&mut self, layout: Layout, zero: bool) -> *mut u8 {
-        let mut ptr = self.alloc(layout);
+        let ptr = self.alloc(layout);
         if zero {
             let mut zeroing = ptr as *mut u8;
             for _ in 0..layout.size() {

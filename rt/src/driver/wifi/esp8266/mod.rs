@@ -7,20 +7,14 @@ mod socket_pool;
 use socket_pool::SocketPool;
 
 use crate::api::ip::tcp::{TcpError, TcpStack};
-use crate::api::ip::{IpAddress, IpAddressV4, IpProtocol, SocketAddress};
-use crate::api::queue::*;
+use crate::api::ip::{IpAddress, IpProtocol, SocketAddress};
 use crate::api::uart::{Error as UartError, UartReader, UartWriter};
 use crate::api::wifi::{Join, JoinError, WifiSupplicant};
-use crate::domain::time::duration::Milliseconds;
 use crate::driver::queue::spsc_queue::*;
-use crate::hal::gpio::InterruptPin;
 use crate::prelude::*;
 use buffer::Buffer;
-use core::cell::{RefCell, UnsafeCell};
-use core::fmt::Write;
-use cortex_m::interrupt::Nr;
-use embedded_hal::digital::v2::{InputPin, OutputPin};
-use heapless::{consts, String};
+use embedded_hal::digital::v2::OutputPin;
+use heapless::consts;
 use protocol::{Command, ConnectionType, Response as AtResponse, WiFiMode};
 
 type QueueActor = <SpscQueue<AtResponse, consts::U2> as Package>::Primary;
@@ -147,7 +141,7 @@ where
     }
 
     async fn send<'c>(&mut self, command: Command<'c>) -> Result<AtResponse, AdapterError> {
-        let mut bytes = command.as_bytes();
+        let bytes = command.as_bytes();
         log::trace!(
             "writing command {}",
             core::str::from_utf8(bytes.as_bytes()).unwrap()
@@ -174,7 +168,7 @@ where
             .map_err(|_| AdapterError::ReadError)
     }
 
-    async fn start(mut self) -> Self {
+    async fn start(self) -> Self {
         log::info!("[{}] start", ActorInfo::name());
         self
     }
@@ -349,7 +343,7 @@ where
                     let result = async {
                         self.process_notifications().await;
                         if self.shared.as_ref().unwrap().socket_pool.is_closed(handle) {
-                            return (Err(TcpError::SocketClosed));
+                            return Err(TcpError::SocketClosed);
                         }
 
                         let command = Command::Receive {
@@ -559,8 +553,6 @@ where
 
         const READY: [u8; 7] = *b"ready\r\n";
 
-        let mut counter = 0;
-
         self.enable.set_high().ok().unwrap();
         self.reset.set_high().ok().unwrap();
 
@@ -577,19 +569,15 @@ where
                         log::info!("adapter is ready");
                         self.disable_echo()
                             .await
-                            .map_err(|e| log::error!("Error disabling echo mode"));
+                            .expect("Error disabling echo mode");
                         log::info!("Echo disabled");
-                        self.enable_mux()
-                            .await
-                            .map_err(|e| log::error!("Error enabling mux"));
+                        self.enable_mux().await.expect("Error enabling mux");
                         log::info!("Mux enabled");
                         self.set_recv_mode()
                             .await
-                            .map_err(|e| log::error!("Error setting receive mode"));
+                            .expect("Error setting receive mode");
                         log::info!("Recv mode configured");
-                        self.set_mode()
-                            .await
-                            .map_err(|e| log::error!("Error setting station mode"));
+                        self.set_mode().await.expect("Error setting station mode");
                         log::info!("adapter configured");
                         break;
                     }
@@ -685,7 +673,7 @@ where
         self.uart.replace(config.2);
     }
 
-    fn on_initialize(mut self) -> Completion<Self>
+    fn on_initialize(self) -> Completion<Self>
     where
         Self: 'static,
     {

@@ -14,7 +14,6 @@ use core::task::{Context, Poll};
 pub extern crate paste;
 
 pub mod static_arena;
-use core::ffi::c_void;
 pub use static_arena::heap::layout::Layout;
 
 pub struct Info {
