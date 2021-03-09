@@ -21,7 +21,7 @@ use core::fmt::Write;
 use cortex_m::interrupt::Nr;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
 use heapless::{consts, String};
-use protocol::{Command, Response as AtResponse, WiFiMode};
+use protocol::{Command, ConnectionType, Response as AtResponse, WiFiMode};
 
 type QueueActor = <SpscQueue<AtResponse, consts::U2> as Package>::Primary;
 pub const BUFFER_LEN: usize = 512;
@@ -208,6 +208,28 @@ where
 
         Err(())
     }
+
+    async fn process_notifications(&mut self) {
+        let shared = self.shared.as_ref().unwrap();
+        while let Some(response) = self
+            .notification_queue
+            .as_ref()
+            .unwrap()
+            .try_dequeue()
+            .await
+        {
+            match response {
+                AtResponse::DataAvailable { link_id, len } => {
+                    //  shared.socket_pool // [link_id].available += len;
+                }
+                AtResponse::Connect(_) => {}
+                AtResponse::Closed(link_id) => {
+                    shared.socket_pool.close(link_id as u8);
+                }
+                _ => { /* ignore */ }
+            }
+        }
+    }
 }
 
 impl<UART> WifiSupplicant for Esp8266WifiController<UART>
@@ -244,7 +266,14 @@ where
         proto: IpProtocol,
         dst: SocketAddress,
     ) -> Response<Self, Result<(), TcpError>> {
-        Response::defer(async move { (self, Err(TcpError::ConnectError)) })
+        Response::defer(async move {
+            let command = Command::StartConnection(handle as usize, ConnectionType::TCP, dst);
+            if let Ok(AtResponse::Connect(..)) = self.send(command).await {
+                (self, Ok(()))
+            } else {
+                (self, Err(TcpError::ConnectError))
+            }
+        })
     }
 
     fn write(
@@ -252,7 +281,60 @@ where
         handle: Self::SocketHandle,
         buf: &[u8],
     ) -> Response<Self, Result<usize, TcpError>> {
-        Response::immediate(self, Err(TcpError::WriteError))
+        unsafe {
+            Response::defer_unchecked(async move {
+                self.process_notifications().await;
+                if self.shared.as_ref().unwrap().socket_pool.is_closed(handle) {
+                    log::info!("No?!");
+                    return (self, Err(TcpError::SocketClosed));
+                }
+                let command = Command::Send {
+                    link_id: handle as usize,
+                    len: buf.len(),
+                };
+
+                log::info!("Sending data");
+                let result = match self.send(command).await {
+                    Ok(AtResponse::Ok) => {
+                        match self.wait_for_response().await {
+                            Ok(AtResponse::ReadyForData) => {
+                                let uart = self.uart.as_ref().unwrap();
+                                if let Ok(_) = uart.write(buf).await {
+                                    let mut data_sent: Option<usize> = None;
+                                    loop {
+                                        match self.wait_for_response().await {
+                                            Ok(AtResponse::ReceivedDataToSend(len)) => {
+                                                data_sent.replace(len);
+                                            }
+                                            Ok(AtResponse::SendOk) => {
+                                                break Ok(data_sent.unwrap_or_default())
+                                            }
+                                            _ => {
+                                                break Err(TcpError::WriteError);
+                                                // unknown response
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Err(TcpError::WriteError)
+                                }
+                            }
+                            Ok(r) => {
+                                log::info!("Unexpected response: {:?}", r);
+                                Err(TcpError::WriteError)
+                            }
+                            Err(_) => Err(TcpError::WriteError),
+                        }
+                    }
+                    Ok(r) => {
+                        log::info!("Unexpected response: {:?}", r);
+                        Err(TcpError::WriteError)
+                    }
+                    Err(_) => Err(TcpError::WriteError),
+                };
+                (self, result)
+            })
+        }
     }
 
     fn read(
@@ -260,11 +342,66 @@ where
         handle: Self::SocketHandle,
         buf: &mut [u8],
     ) -> Response<Self, Result<usize, TcpError>> {
-        Response::immediate(self, Err(TcpError::ReadError))
+        unsafe {
+            Response::defer_unchecked(async move {
+                let mut rp = 0;
+                loop {
+                    let result = async {
+                        self.process_notifications().await;
+                        if self.shared.as_ref().unwrap().socket_pool.is_closed(handle) {
+                            return (Err(TcpError::SocketClosed));
+                        }
+
+                        let command = Command::Receive {
+                            link_id: handle as usize,
+                            len: core::cmp::min(buf.len() - rp, BUFFER_LEN),
+                        };
+
+                        match self.send(command).await {
+                            Ok(AtResponse::DataReceived(inbound, len)) => {
+                                for (i, b) in inbound[0..len].iter().enumerate() {
+                                    buf[rp + i] = *b;
+                                }
+                                Ok(len)
+                            }
+                            Ok(AtResponse::Ok) => Ok(0),
+                            _ => Err(TcpError::ReadError),
+                        }
+                    }
+                    .await;
+
+                    match result {
+                        Ok(len) => {
+                            rp += len;
+                            if len == 0 || rp == buf.len() {
+                                return (self, Ok(rp));
+                            }
+                        }
+                        Err(e) => {
+                            if rp == 0 {
+                                return (self, Err(e));
+                            } else {
+                                return (self, Ok(rp));
+                            }
+                        }
+                    }
+                }
+            })
+        }
     }
 
     fn close(mut self, handle: Self::SocketHandle) -> Completion<Self> {
-        Completion::immediate(self)
+        Completion::defer(async move {
+            let command = Command::CloseConnection(handle as usize);
+            match self.send(command).await {
+                Ok(AtResponse::Ok) | Ok(AtResponse::UnlinkFail) => {
+                    let shared = self.shared.as_ref().unwrap();
+                    shared.socket_pool.close(handle);
+                }
+                _ => {}
+            }
+            self
+        })
     }
 }
 
@@ -334,7 +471,7 @@ where
 
         if let Ok(response) = result {
             if !matches!(response, AtResponse::None) {
-                log::info!("--> {:?}", response);
+                log::trace!("--> {:?}", response);
             }
             match response {
                 AtResponse::None => {}

@@ -5,7 +5,9 @@ use core::task::{Context, Poll, Waker};
 
 use heapless::{consts::*, spsc::Queue};
 
+#[derive(PartialEq)]
 enum SocketState {
+    HalfClosed,
     Closed,
     Open,
     Connected,
@@ -32,6 +34,28 @@ impl SocketPool {
 
     pub(crate) async fn open(&'static self) -> u8 {
         OpenFuture::new(self).await
+    }
+
+    pub(crate) fn close(&'static self, socket: u8) {
+        let mut sockets = self.sockets.borrow_mut();
+        let index = socket as usize;
+        match sockets[index] {
+            SocketState::HalfClosed => {
+                sockets[index] = SocketState::Closed;
+            }
+            SocketState::Open | SocketState::Connected => {
+                sockets[index] = SocketState::HalfClosed;
+            }
+            SocketState::Closed => {
+                // nothing
+            }
+        }
+    }
+
+    pub(crate) fn is_closed(&'static self, socket: u8) -> bool {
+        let sockets = self.sockets.borrow();
+        let index = socket as usize;
+        sockets[index] == SocketState::Closed || sockets[index] == SocketState::HalfClosed
     }
 
     fn poll_open(&self, waker: &Waker, waiting: bool) -> Poll<u8> {
