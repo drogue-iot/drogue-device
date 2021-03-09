@@ -19,7 +19,7 @@ use nrf52833_hal as hal;
 
 pub type AppTimer = Timer<HalTimer<TIMER0>>;
 pub type AppTx = SerialTx<UarteTx<UARTE0>>;
-pub type AppRx = SerialRx<MyDevice, UarteRx<UARTE0>>;
+pub type AppRx = SerialRx<App<AppTx, <AppTimer as Package>::Primary>, UarteRx<UARTE0>>;
 
 pub type LedMatrix =
     LEDMatrix<Pin<Output<PushPull>>, consts::U5, consts::U5, <AppTimer as Package>::Primary>;
@@ -33,13 +33,11 @@ pub struct MyDevice {
 }
 
 impl Device for MyDevice {
-    fn mount(&'static self, config: DeviceConfiguration<Self>, supervisor: &mut Supervisor) {
+    fn mount(&'static self, _: DeviceConfiguration<Self>, supervisor: &mut Supervisor) {
         let timer = self.timer.mount((), supervisor);
         let display = self.led.mount(timer, supervisor);
         let uart = self.tx.mount((), supervisor);
-        self.rx.mount(config.event_bus, supervisor);
-
-        self.app.mount(
+        let app = self.app.mount(
             AppConfig {
                 uart,
                 display,
@@ -47,13 +45,8 @@ impl Device for MyDevice {
             },
             supervisor,
         );
-    }
-}
 
-impl EventHandler<SerialData> for MyDevice {
-    fn on_event(&'static self, event: SerialData) {
-        self.led.address().notify(Apply(event.0 as char));
-        self.tx.address().notify(event);
+        self.rx.mount(app, supervisor);
     }
 }
 
@@ -125,6 +118,30 @@ where
                 .map_err(|e| log::error!("Error writing MOTD: {:?}", e))
                 .ok();
 
+            self
+        })
+    }
+}
+
+impl<U, D> NotifyHandler<SerialData> for App<U, D>
+where
+    U: UartWriter + 'static,
+    D: Delayer + 'static,
+{
+    fn on_notify(self, event: SerialData) -> Completion<Self> {
+        Completion::defer(async move {
+            self.display
+                .as_ref()
+                .unwrap()
+                .notify(Apply(event.0 as char));
+            let mut buf = [0; 1];
+            buf[0] = event.0;
+            self.uart
+                .as_ref()
+                .unwrap()
+                .write(&buf[..])
+                .await
+                .expect("error writing data");
             self
         })
     }

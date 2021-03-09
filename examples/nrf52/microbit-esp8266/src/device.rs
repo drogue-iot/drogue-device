@@ -63,8 +63,8 @@ impl EventHandler<PinEvent> for MyDevice {
         match event {
             PinEvent(Channel::Channel0, PinState::Low) => {
                 self.app.address().notify(Join::Wpa {
-                    ssid: heapless::String::from_str("foo").unwrap(),
-                    password: heapless::String::from_str("bar").unwrap(),
+                    ssid: heapless::String::from_str("spiderweb").unwrap(),
+                    password: heapless::String::from_str("rosaisen").unwrap(),
                 });
                 self.memory.address().notify(Query);
             }

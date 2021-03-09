@@ -1,5 +1,4 @@
 use crate::api::uart::*;
-use crate::driver::uart::serial_rx::SerialData;
 use crate::prelude::*;
 
 use embedded_hal::serial::Write;
@@ -52,21 +51,9 @@ impl<TX> UartWriter for SerialTx<TX>
 where
     TX: Write<u8> + 'static,
 {
-    fn write<'a>(mut self, message: UartWrite<'a>) -> Response<Self, Result<(), Error>> {
+    fn write(mut self, message: UartWrite<'_>) -> Response<Self, Result<(), Error>> {
         let buf = message.0;
         let result = self.write_str(message.0);
         Response::immediate(self, result)
-    }
-}
-
-impl<TX> NotifyHandler<SerialData> for SerialTx<TX>
-where
-    TX: Write<u8> + 'static,
-{
-    fn on_notify(mut self, message: SerialData) -> Completion<Self> {
-        let mut d = [0; 1];
-        d[0] = message.0;
-        let r = self.write_str(&d[..]);
-        Completion::immediate(self)
     }
 }
