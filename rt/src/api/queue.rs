@@ -16,27 +16,20 @@ where
     A: Queue,
 {
     /// Perform an _async_ enqueue.
-    ///
-    /// # Panics
-    ///
-    /// While the tx_buffer may be non-static, the user must
-    /// ensure that the response to the write is fully `.await`'d before returning.
-    /// Leaving an in-flight request dangling while references have gone out of lifetime
-    /// scope will result in a panic.
     pub async fn enqueue(&self, element: A::T) -> Result<(), Error> {
         self.request(Enqueue(element)).await
     }
 
-    /// Perform an _async_ dequeue.
-    ///
-    /// # Panics
-    ///
-    /// While the rx_buffer may be non-static, the user must
-    /// ensure that the response to the read is fully `.await`'d before returning.
-    /// Leaving an in-flight request dangling while references have gone out of lifetime
-    /// scope will result in a panic.
+    /// Perform an _async_ dequeue. The result is available when the queue
+    /// have elements to be dequeued.
     pub async fn dequeue(&self) -> Result<A::T, Error> {
         self.request(Dequeue).await
+    }
+
+    /// Perform an _async_ dequeue attempt. If there are no elements in the queue,
+    /// no element is returned.
+    pub async fn try_dequeue(&self) -> Option<A::T> {
+        self.request(TryDequeue).await
     }
 }
 
@@ -47,6 +40,7 @@ pub trait Queue: Actor {
     type T;
     fn enqueue(self, message: Enqueue<Self::T>) -> Response<Self, Result<(), Error>>;
     fn dequeue(self, message: Dequeue) -> Response<Self, Result<Self::T, Error>>;
+    fn try_dequeue(self, message: TryDequeue) -> Response<Self, Option<Self::T>>;
 }
 
 /// Message types used by Queue implementations
@@ -56,6 +50,9 @@ where
     T: Sized;
 #[derive(Debug)]
 pub struct Dequeue;
+
+#[derive(Debug)]
+pub struct TryDequeue;
 
 /// Request handlers wrapper for the UART trait
 impl<A> RequestHandler<Enqueue<A::T>> for A
@@ -75,5 +72,15 @@ where
     type Response = Result<A::T, Error>;
     fn on_request(self, message: Dequeue) -> Response<Self, Self::Response> {
         self.dequeue(message)
+    }
+}
+
+impl<A> RequestHandler<TryDequeue> for A
+where
+    A: Queue + 'static,
+{
+    type Response = Option<A::T>;
+    fn on_request(self, message: TryDequeue) -> Response<Self, Self::Response> {
+        self.try_dequeue(message)
     }
 }
