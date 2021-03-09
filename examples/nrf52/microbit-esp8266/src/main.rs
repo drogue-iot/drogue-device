@@ -8,6 +8,7 @@ use panic_rtt_target as _;
 
 use cortex_m_rt::{entry, exception};
 use drogue_device::{
+    api::ip::IpAddress,
     driver::memory::Memory,
     driver::timer::Timer,
     driver::uart::serial::*,
@@ -30,6 +31,11 @@ use crate::app::*;
 use crate::device::*;
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
+
+const WIFI_SSID: &str = include_str!("wifi.ssid.txt");
+const WIFI_PSK: &str = include_str!("wifi.password.txt");
+const ENDPOINT: IpAddress = IpAddress::new_v4(192, 168, 1, 2);
+const ENDPOINT_PORT: u16 = 12345;
 
 #[entry]
 fn main() -> ! {
@@ -93,7 +99,8 @@ fn main() -> ! {
         memory: ActorContext::new(Memory::new()).with_name("memory"),
         wifi: Esp8266Wifi::new(enable_pin, reset_pin),
         timer,
-        app: ActorContext::new(App::new()).with_name("app"),
+        app: ActorContext::new(App::new(WIFI_SSID, WIFI_PSK, ENDPOINT, ENDPOINT_PORT))
+            .with_name("app"),
     };
 
     device!( MyDevice = device; 12000);

@@ -1,4 +1,5 @@
 use core::cell::RefCell;
+use core::str::FromStr;
 use drogue_device::{
     api::{
         ip::{
@@ -16,16 +17,24 @@ where
 {
     driver: Option<Address<NET>>,
     socket: Option<RefCell<TcpSocket<NET>>>,
+    ssid: &'static str,
+    psk: &'static str,
+    ip: IpAddress,
+    port: u16,
 }
 
 impl<NET> App<NET>
 where
     NET: WifiSupplicant + TcpStack + 'static,
 {
-    pub fn new() -> Self {
+    pub fn new(ssid: &'static str, psk: &'static str, ip: IpAddress, port: u16) -> Self {
         Self {
             driver: None,
             socket: None,
+            ssid,
+            psk,
+            ip,
+            port,
         }
     }
 }
@@ -41,23 +50,28 @@ where
     }
 }
 
-impl<NET> NotifyHandler<Join> for App<NET>
+pub struct Connect;
+
+impl<NET> NotifyHandler<Connect> for App<NET>
 where
     NET: WifiSupplicant + TcpStack + 'static,
 {
-    fn on_notify(mut self, message: Join) -> Completion<Self> {
+    fn on_notify(mut self, _: Connect) -> Completion<Self> {
         Completion::defer(async move {
             let driver = self.driver.as_ref().expect("driver not bound!");
             log::info!("Joining network");
-            let ip = driver.wifi_join(message).await.expect("Error joining wifi");
+            let ip = driver
+                .wifi_join(Join::Wpa {
+                    ssid: heapless::String::from_str(self.ssid).unwrap(),
+                    password: heapless::String::from_str(self.psk).unwrap(),
+                })
+                .await
+                .expect("Error joining wifi");
             log::info!("Joined wifi network with IP: {}", ip);
             let mut socket = driver.tcp_open().await;
             log::info!("Socket created");
             let result = socket
-                .connect(
-                    IpProtocol::Tcp,
-                    SocketAddress::new(IpAddress::new_v4(192, 168, 1, 2), 12345),
-                )
+                .connect(IpProtocol::Tcp, SocketAddress::new(self.ip, self.port))
                 .await;
             match result {
                 Ok(_) => {

@@ -1,7 +1,5 @@
 use crate::app::*;
-use core::str::FromStr;
 use drogue_device::{
-    api::wifi::Join,
     driver::{
         memory::{Memory, Query},
         timer::*,
@@ -62,10 +60,7 @@ impl EventHandler<PinEvent> for MyDevice {
     fn on_event(&'static self, event: PinEvent) {
         match event {
             PinEvent(Channel::Channel0, PinState::Low) => {
-                self.app.address().notify(Join::Wpa {
-                    ssid: heapless::String::from_str("spiderweb").unwrap(),
-                    password: heapless::String::from_str("rosaisen").unwrap(),
-                });
+                self.app.address().notify(Connect);
                 self.memory.address().notify(Query);
             }
             PinEvent(Channel::Channel1, PinState::Low) => {

@@ -14,7 +14,7 @@ impl<T> Mutex<T> {
         Self { val }
     }
 
-    pub fn borrow<'a>(&self, guard: &CriticalSection) -> &T {
+    pub fn borrow<'a>(&self, _guard: &CriticalSection) -> &T {
         &self.val
     }
 }

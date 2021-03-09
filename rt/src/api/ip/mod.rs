@@ -8,7 +8,7 @@ pub enum IpAddress {
 }
 
 impl IpAddress {
-    pub fn new_v4(a: u8, b: u8, c: u8, d: u8) -> Self {
+    pub const fn new_v4(a: u8, b: u8, c: u8, d: u8) -> Self {
         Self::V4(IpAddressV4(a, b, c, d))
     }
 }
@@ -47,11 +47,11 @@ impl Display for IpAddressV4 {
 #[derive(Debug)]
 pub struct SocketAddress {
     ip: IpAddress,
-    port: u32,
+    port: u16,
 }
 
 impl SocketAddress {
-    pub fn new(ip: IpAddress, port: u32) -> Self {
+    pub fn new(ip: IpAddress, port: u16) -> Self {
         Self { ip, port }
     }
 
@@ -59,7 +59,7 @@ impl SocketAddress {
         self.ip
     }
 
-    pub fn port(&self) -> u32 {
+    pub fn port(&self) -> u16 {
         self.port
     }
 }
