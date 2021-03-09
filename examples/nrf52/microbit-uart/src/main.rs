@@ -9,9 +9,8 @@ use cortex_m_rt::{entry, exception};
 use drogue_device::{
     domain::time::rate::Extensions,
     driver::timer::Timer,
-    driver::uart::serial::Serial,
+    driver::uart::{serial_rx::*, serial_tx::*},
     platform::cortex_m::nrf::{
-        gpiote::*,
         timer::Timer as HalTimer,
         uarte::{Baudrate, Parity, Pins, Uarte},
     },
@@ -43,20 +42,6 @@ fn main() -> ! {
     let clocks = hal::clocks::Clocks::new(device.CLOCK).enable_ext_hfosc();
     let _clocks = clocks.start_lfclk();
 
-    let gpiote = Gpiote::new(device.GPIOTE);
-
-    // GPIO channels
-    let button_fwd = gpiote.configure_channel(
-        Channel::Channel0,
-        port0.p0_14.into_pullup_input().degrade(),
-        Edge::Falling,
-    );
-    let button_back = gpiote.configure_channel(
-        Channel::Channel1,
-        port0.p0_23.into_pullup_input().degrade(),
-        Edge::Falling,
-    );
-
     // Timer
     let timer = Timer::new(HalTimer::new(device.TIMER0), hal::pac::Interrupt::TIMER0);
 
@@ -74,7 +59,8 @@ fn main() -> ! {
         Baudrate::BAUD115200,
     )
     .split(unsafe { &mut RX_BUF });
-    let uart = Serial::new(tx, rx, hal::pac::Interrupt::UARTE0_UART0);
+    let tx = SerialTx::new(tx);
+    let rx = SerialRx::new(rx);
 
     // LED Matrix
     let mut rows = Vec::<_, consts::U5>::new();
@@ -105,12 +91,10 @@ fn main() -> ! {
     let led = LedMatrix::new(rows, cols, 200u32.Hz());
 
     let device = MyDevice {
-        btn_fwd: ActorContext::new(button_fwd).with_name("button a"),
-        btn_back: ActorContext::new(button_back),
-        gpiote: InterruptContext::new(gpiote, hal::pac::Interrupt::GPIOTE).with_name("gpiote"),
         led: ActorContext::new(led).with_name("matrix"),
         timer,
-        uart,
+        tx: ActorContext::new(tx).with_name("uart_tx"),
+        rx: InterruptContext::new(rx, hal::pac::Interrupt::UARTE0_UART0).with_name("uart_rx"),
         app: ActorContext::new(App::new()),
     };
 
