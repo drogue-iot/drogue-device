@@ -19,6 +19,12 @@ https://crates.io/crates/cargo-embed[cargo-embed] installed. In pratice
 you can use whatever tool you want to flash the device, but this guide
 will assume cargo-embed is used.
 
+=== Configuring
+
+To use this example, you need to edit the ENDPOINT and ENDPOINT_PORT variables in `src/main.rs`. You
+also need to store your WiFi access point ssid in `src/wifi.ssid.txt` and pre-shared key in
+`src/wifi.password.txt`.
+
 === Building
 
 Make sure you have the correct target architecture supported in rust:
