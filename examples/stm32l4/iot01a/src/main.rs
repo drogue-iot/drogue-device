@@ -21,6 +21,7 @@ use panic_rtt_target as _;
 use rtt_logger::RTTLogger;
 use rtt_target::rtt_init_print;
 
+use crate::logic::Logic;
 use drogue_device::driver::spi::Spi;
 use drogue_device::driver::wifi::eswifi::EsWifi;
 use drogue_device::{
@@ -33,15 +34,14 @@ use drogue_device::{
         sensor::hts221::Hts221,
         timer::Timer,
     },
-    platform::cortex_m::stm32l4xx::timer::Timer as McuTimer,
     hal::Active,
+    platform::cortex_m::stm32l4xx::timer::Timer as McuTimer,
     prelude::*,
 };
 use embedded_hal::spi::{Mode, MODE_0};
 use stm32l4xx_hal::pac::Interrupt::{EXTI1, SPI3};
 use stm32l4xx_hal::spi::Spi as HalSpi;
 use stm32l4xx_hal::time::MegaHertz;
-use crate::logic::Logic;
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
 //static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
@@ -193,7 +193,7 @@ fn main() -> ! {
     let device = MyDevice {
         spi,
         wifi,
-        logic: ActorContext::new(logic).with_name( "logic"),
+        logic: ActorContext::new(logic).with_name("logic"),
         memory: ActorContext::new(Memory::new()).with_name("memory"),
         ld1: ActorContext::new(ld1).with_name("ld1"),
         ld2: ActorContext::new(ld2).with_name("ld2"),

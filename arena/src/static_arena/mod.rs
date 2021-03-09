@@ -17,8 +17,8 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use heap::layout::Layout;
 use heap::Heap;
 //use static_arena::interrupt::Mutex;
-use drogue_arch::{with_critical_section, Mutex};
 use core::ffi::c_void;
+use drogue_arch::{with_critical_section, Mutex};
 
 pub struct StaticArena {
     heap: Mutex<RefCell<Heap>>,
@@ -108,7 +108,7 @@ impl StaticArena {
     }
 
     pub unsafe fn dealloc_by_layout(&mut self, ptr: *mut u8, layout: Layout) {
-        self.dealloc( ptr, layout );
+        self.dealloc(ptr, layout);
     }
 
     pub fn alloc_init<'o, T: 'o>(&mut self, val: T) -> Option<&'o mut T> {
@@ -116,7 +116,7 @@ impl StaticArena {
             mem::size_of::<(Layout, T)>(),
             mem::align_of::<(Layout, T)>(),
         )
-            .unwrap();
+        .unwrap();
         log::trace!(
             "[ALLOC] asking for {} aligned {}",
             layout.size(),

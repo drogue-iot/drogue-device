@@ -1,9 +1,9 @@
 use crate::logic::Logic;
-use drogue_device::prelude::*;
 use drogue_device::domain::time::duration::Milliseconds;
 use drogue_device::driver::sensor::hts221::SensorAcquisition;
 use drogue_device::driver::spi::SpiController;
 use drogue_device::driver::wifi::eswifi::EsWifi;
+use drogue_device::prelude::*;
 use drogue_device::{
     domain::temperature::Celsius,
     driver::{
@@ -145,6 +145,6 @@ impl EventHandler<SensorAcquisition<Celsius>> for MyDevice {
             message.relative_humidity
         );
 
-        self.logic.address().notify( message );
+        self.logic.address().notify(message);
     }
 }

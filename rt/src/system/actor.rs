@@ -11,8 +11,8 @@ use core::task::{Context, Poll, Waker};
 use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue, String};
 
-use crate::arena::{Box, Rc};
 use crate::arch::with_critical_section;
+use crate::arena::{Box, Rc};
 use crate::prelude::*;
 use crate::system::device::Lifecycle;
 use crate::system::supervisor::actor_executor::ActiveActor;

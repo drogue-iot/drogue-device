@@ -22,8 +22,8 @@ impl<T> Mutex<T> {
 pub type CriticalSection = std::sync::MutexGuard<'static, ()>;
 
 pub fn with_critical_section<F, R>(f: F) -> R
-    where
-        F: FnOnce(&CriticalSection) -> R,
+where
+    F: FnOnce(&CriticalSection) -> R,
 {
     INIT.call_once(|| unsafe {
         BKL.replace(std::sync::Mutex::new(()));
@@ -31,7 +31,6 @@ pub fn with_critical_section<F, R>(f: F) -> R
     let guard = unsafe { BKL.as_ref().unwrap().lock().unwrap() };
     f(&guard)
 }
-
 
 #[cfg(not(feature = "thumbv6"))]
 pub mod atomic {
@@ -52,4 +51,3 @@ pub mod atomic {
         atomic.swap(val, order)
     }
 }
-

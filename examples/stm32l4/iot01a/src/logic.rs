@@ -1,10 +1,10 @@
-use drogue_device::api::wifi::{Join, WifiSupplicant};
-use drogue_device::api::ip::tcp::{TcpStack};
-use drogue_device::prelude::*;
-use drogue_device::driver::sensor::hts221::SensorAcquisition;
-use drogue_device::domain::temperature::Celsius;
-use drogue_device::api::ip::{IpProtocol, SocketAddress, IpAddress};
 use core::str::from_utf8;
+use drogue_device::api::ip::tcp::TcpStack;
+use drogue_device::api::ip::{IpAddress, IpProtocol, SocketAddress};
+use drogue_device::api::wifi::{Join, WifiSupplicant};
+use drogue_device::domain::temperature::Celsius;
+use drogue_device::driver::sensor::hts221::SensorAcquisition;
+use drogue_device::prelude::*;
 
 pub struct Logic<S>
 where
@@ -13,13 +13,11 @@ where
     wifi: Option<Address<S>>,
 }
 impl<S> Logic<S>
-    where
-        S: WifiSupplicant + TcpStack + 'static,
+where
+    S: WifiSupplicant + TcpStack + 'static,
 {
     pub fn new() -> Self {
-        Self {
-            wifi: None,
-        }
+        Self { wifi: None }
     }
 }
 
@@ -41,25 +39,33 @@ where
         Self: 'static,
     {
         Completion::defer(async move {
-            let result = self.wifi.unwrap().wifi_join(Join::Wpa {
-                ssid: "drogue".into(),
-                password: "rodneygnome".into(),
-            }).await;
+            let result = self
+                .wifi
+                .unwrap()
+                .wifi_join(Join::Wpa {
+                    ssid: "drogue".into(),
+                    password: "rodneygnome".into(),
+                })
+                .await;
 
             match result {
                 Ok(_) => {
                     log::info!("connected to wifi");
                     let mut socket = self.wifi.unwrap().tcp_open().await;
                     log::info!("got socket");
-                    let result = socket.connect( IpProtocol::Tcp, SocketAddress::new(
-                        IpAddress::new_v4( 192, 168, 1, 245 ),
-                        80
-                    )).await;
+                    let result = socket
+                        .connect(
+                            IpProtocol::Tcp,
+                            SocketAddress::new(IpAddress::new_v4(192, 168, 1, 245), 80),
+                        )
+                        .await;
 
                     match result {
                         Ok(_) => {
                             log::info!("connected to platform 80");
-                            let result = socket.write( b"GET / HTTP/1.1\r\nhost:192.168.1.8\r\n\r\n" ).await;
+                            let result = socket
+                                .write(b"GET / HTTP/1.1\r\nhost:192.168.1.8\r\n\r\n")
+                                .await;
                             match result {
                                 Ok(_) => {
                                     log::info!("wrote HTTP request");
@@ -83,11 +89,10 @@ where
                         Err(_) => {
                             log::info!("unable to connect 80");
                         }
-
                     }
                 }
                 Err(_) => {
-                   log::info!("not connected to wifi");
+                    log::info!("not connected to wifi");
                 }
             }
 
@@ -97,8 +102,8 @@ where
 }
 
 impl<S> NotifyHandler<SensorAcquisition<Celsius>> for Logic<S>
-    where
-        S: WifiSupplicant + TcpStack + 'static,
+where
+    S: WifiSupplicant + TcpStack + 'static,
 {
     fn on_notify(self, message: SensorAcquisition<Celsius>) -> Completion<Self> {
         //unimplemented!()

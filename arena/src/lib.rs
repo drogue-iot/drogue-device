@@ -1,5 +1,6 @@
-#![no_std] 
+#![no_std]
 
+use crate::static_arena::StaticArena;
 use core::cell::UnsafeCell;
 use core::fmt::{Debug, Formatter};
 use core::future::Future;
@@ -9,13 +10,12 @@ use core::ops::DerefMut;
 use core::pin::Pin;
 use core::ptr::drop_in_place;
 use core::task::{Context, Poll};
-use crate::static_arena::StaticArena;
 
 pub extern crate paste;
 
 pub mod static_arena;
-pub use static_arena::heap::layout::Layout;
 use core::ffi::c_void;
+pub use static_arena::heap::layout::Layout;
 
 pub struct Info {
     pub used: usize,
@@ -36,7 +36,7 @@ impl Info {
 //pub static mut HEAP: Option<StaticArena> = None;
 
 pub trait Arena: Sized {
-    fn alloc_by_layout(layout: Layout, zero: bool) -> * mut u8;
+    fn alloc_by_layout(layout: Layout, zero: bool) -> *mut u8;
     fn dealloc_by_layout(ptr: *mut u8, layout: Layout);
     fn alloc<'o, T: 'o>(val: T) -> Option<&'o mut T>;
     fn dealloc(ptr: *mut u8);

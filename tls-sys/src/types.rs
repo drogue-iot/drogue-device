@@ -44,4 +44,3 @@ pub mod raw_types {
     }
      */
 }
-

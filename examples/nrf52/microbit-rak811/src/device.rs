@@ -19,10 +19,7 @@ use nrf52833_hal as hal;
 pub type AppTimer = Timer<HalTimer<TIMER0>>;
 pub type AppUart =
     DmaUart<HalUart<UARTE0>, <AppTimer as Package>::Primary, consts::U64, consts::U64>;
-pub type Rak811Lora = rak811::Rak811<
-    <AppUart as Package>::Primary,
-    Pin<Output<PushPull>>,
->;
+pub type Rak811Lora = rak811::Rak811<<AppUart as Package>::Primary, Pin<Output<PushPull>>>;
 pub type Button = GpioteChannel<LoraDevice, Pin<Input<PullUp>>>;
 pub type AppLora = <Rak811Lora as Package>::Primary;
 
