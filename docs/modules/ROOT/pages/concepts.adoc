@@ -8,6 +8,8 @@ An _actor system_ is a framework that allows for isolating state within narrow c
 Within a actor system, the primary component is an _Actor_, which represents the boundary of state usage.
 Each actor has exclusive access to its own state and only communicates with other actors through message-passing.
 
+image::actor-model.png[Actor model example]
+
 The messages being passed can be either _fire-and-forget_ notifications, or _request/response_ interactions.
 
 == Async
