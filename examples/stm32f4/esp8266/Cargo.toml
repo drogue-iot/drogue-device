@@ -1,0 +1,23 @@
+[package]
+name = "stm32-esp8266"
+version = "0.1.0"
+authors = ["Jim Crossley <jim@crossleys.org>"]
+edition = "2018"
+readme = "README.md"
+
+[dependencies]
+cortex-m = "0.6.4"
+cortex-m-rt = { version = "0.6.11", features = ["device"] }
+drogue-device = { path = "../../../rt", features = ["wifi+esp8266", "chip+stm32f4xx"]}
+heapless = "0.5"
+rtt-target = {version = "0.2.2", features = ["cortex-m"] }
+panic-rtt-target = { version = "0.1.1", features = ["cortex-m"] }
+rtt-logger = "0.1.0"
+log = "0.4.11"
+stm32f4xx-hal =  { version = "0.8", features = ["stm32f401"]}
+nucleo-f401re = "0.4.1"
+
+[profile.release]
+debug = true
+opt-level = "z"
+lto = true
