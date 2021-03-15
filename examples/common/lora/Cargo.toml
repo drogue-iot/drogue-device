@@ -2,7 +2,7 @@
 authors = ["Ulf Lilleengen <ulf.lilleengen@gmail.com>"]
 edition = "2018"
 readme = "README.md"
-name = "microbit-rak811"
+name = "lora-common"
 version = "0.1.0"
 
 [dependencies]
@@ -15,21 +15,5 @@ rtt-logger = "0.1.0"
 nb = "1.0.0"
 embedded-hal = { version = "0.2.3", features = ["unproven"] }
 void = { version = "1.0.2", default-features = false }
-drogue-device = { path = "../../../rt", features = ["chip+nrf52833", "driver-rak811" ]}
-lora-common = { path = "../../common/lora" }
+drogue-device = { path = "../../../rt" }
 heapless = "0.5.5"
-
-[dependencies.nrf52833-hal]
-git = "https://github.com/lulf/nrf-hal.git"
-branch = "uarte-embedded-serial"
-features = ["rt"]
-
-[[bin]]
-name = "microbit-rak811"
-test = false
-bench = false
-
-[profile.release]
-debug = true
-opt-level = "z"
-lto = true

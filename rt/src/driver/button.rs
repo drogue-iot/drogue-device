@@ -18,7 +18,7 @@ pub struct Button<D: Device + 'static, PIN> {
 impl<D, PIN> Actor for Button<D, PIN>
 where
     D: Device,
-    PIN: InputPin + InterruptPin,
+    PIN: InputPin,
 {
     type Configuration = Address<EventBus<D>>;
 
@@ -32,14 +32,36 @@ where
 
 impl<D, PIN> Button<D, PIN>
 where
-    D: Device,
-    PIN: InputPin + InterruptPin,
+    D: Device + EventHandler<ButtonEvent> + 'static,
+    PIN: InputPin,
 {
     pub fn new(pin: PIN, active: Active) -> Self {
         Self {
             pin,
             active,
             bus: None,
+        }
+    }
+
+    pub fn notify_high(&self) {
+        match self.active {
+            Active::High => self.bus.unwrap().publish(ButtonEvent::Pressed),
+            _ => self.bus.unwrap().publish(ButtonEvent::Released),
+        }
+    }
+
+    pub fn notify_low(&self) {
+        match self.active {
+            Active::Low => self.bus.unwrap().publish(ButtonEvent::Pressed),
+            _ => self.bus.unwrap().publish(ButtonEvent::Released),
+        }
+    }
+
+    pub fn check_pin(&self) {
+        if self.pin.is_high().ok().unwrap() {
+            self.notify_high();
+        } else {
+            self.notify_low();
         }
     }
 }
@@ -51,22 +73,8 @@ where
 {
     fn on_interrupt(&mut self) {
         if self.pin.check_interrupt() {
-            match self.active {
-                Active::High => {
-                    if self.pin.is_high().ok().unwrap() {
-                        self.bus.unwrap().publish(ButtonEvent::Pressed);
-                    } else {
-                        self.bus.unwrap().publish(ButtonEvent::Released);
-                    }
-                }
-                Active::Low => {
-                    if self.pin.is_low().ok().unwrap() {
-                        self.bus.unwrap().publish(ButtonEvent::Pressed);
-                    } else {
-                        self.bus.unwrap().publish(ButtonEvent::Released);
-                    }
-                }
-            }
+            self.check_pin();
+
             self.pin.clear_interrupt();
         }
     }

@@ -1,15 +1,10 @@
 use crate::api::{
-    delayer::*,
     lora::*,
     queue::*,
-    scheduler::*,
     uart::{Error as UartError, UartReader, UartWriter},
 };
-use crate::domain::time::duration::Milliseconds;
 use crate::driver::queue::spsc_queue::*;
 use crate::prelude::*;
-
-use core::cell::{RefCell, UnsafeCell};
 
 use drogue_rak811::{
     Buffer, Command, ConfigOption, DriverError, EventCode, Response as RakResponse,
@@ -219,7 +214,11 @@ where
             match response {
                 Ok(RakResponse::Initialized(band)) => {
                     self.config.band.replace(band);
-                    log::info!("RAK811 driver initialized with band {:?}", band);
+                    log::info!(
+                        "[{}] RAK811 driver initialized with band {:?}",
+                        ActorInfo::name(),
+                        band
+                    );
                 }
                 Ok(r) => {
                     log::error!(
@@ -279,13 +278,13 @@ where
                     match response {
                         Ok(RakResponse::Recv(EventCode::JoinedSuccess, _, _, _)) => Ok(()),
                         r => {
-                            log::info!("Received response: {:?}", r);
+                            log::debug!("Received response: {:?}", r);
                             Err(LoraError::OtherError)
                         }
                     }
                 }
                 r => {
-                    log::info!("Received response: {:?}", r);
+                    log::debug!("Received response: {:?}", r);
                     Err(LoraError::OtherError)
                 }
             };
@@ -372,7 +371,7 @@ where
 
     fn on_start(mut self) -> Completion<Self> {
         Completion::defer(async move {
-            log::info!("Starting RAK811 Ingress");
+            log::info!("[{}] Starting RAK811 Ingress", ActorInfo::name());
             loop {
                 if let Err(e) = self.process().await {
                     log::error!("Error reading data: {:?}", e);
@@ -388,7 +387,7 @@ where
 
 impl core::convert::From<UartError> for LoraError {
     fn from(error: UartError) -> Self {
-        log::info!("Convert from UART error {:?}", error);
+        log::debug!("Convert from UART error {:?}", error);
         match error {
             UartError::TxInProgress
             | UartError::TxBufferTooSmall
@@ -405,7 +404,7 @@ impl core::convert::From<UartError> for LoraError {
 
 impl core::convert::From<DriverError> for LoraError {
     fn from(error: DriverError) -> Self {
-        log::info!("Convert from {:?}", error);
+        log::debug!("Convert from {:?}", error);
         match error {
             DriverError::NotInitialized => LoraError::NotInitialized,
             DriverError::WriteError => LoraError::SendError,

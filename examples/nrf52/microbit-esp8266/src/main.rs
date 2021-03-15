@@ -9,10 +9,12 @@ use panic_rtt_target as _;
 use cortex_m_rt::{entry, exception};
 use drogue_device::{
     api::ip::IpAddress,
+    driver::button::*,
     driver::memory::Memory,
     driver::timer::Timer,
     driver::uart::serial::*,
     driver::wifi::esp8266::Esp8266Wifi,
+    hal::Active,
     platform::cortex_m::nrf::{
         gpiote::*,
         timer::Timer as HalTimer,
@@ -51,20 +53,21 @@ fn main() -> ! {
     let clocks = hal::clocks::Clocks::new(device.CLOCK).enable_ext_hfosc();
     let _clocks = clocks.start_lfclk();
 
-    let gpiote = Gpiote::new(device.GPIOTE);
+    // Buttons
+    let button_a = port0.p0_14.into_pullup_input().degrade();
+    let button_b = port0.p0_23.into_pullup_input().degrade();
 
-    // GPIO channels
-    let btn_connect = gpiote.configure_channel(
-        Channel::Channel0,
-        port0.p0_14.into_pullup_input().degrade(),
-        Edge::Falling,
-    );
-
-    let btn_send = gpiote.configure_channel(
-        Channel::Channel1,
-        port0.p0_23.into_pullup_input().degrade(),
-        Edge::Falling,
-    );
+    let gpiote = hal::gpiote::Gpiote::new(device.GPIOTE);
+    gpiote
+        .channel0()
+        .input_pin(&button_a)
+        .hi_to_lo()
+        .enable_interrupt();
+    gpiote
+        .channel1()
+        .input_pin(&button_b)
+        .hi_to_lo()
+        .enable_interrupt();
 
     // Timer
     let timer = Timer::new(HalTimer::new(device.TIMER0), hal::pac::Interrupt::TIMER0);
@@ -92,9 +95,11 @@ fn main() -> ! {
     let reset_pin = port0.p0_02.into_push_pull_output(Level::Low).degrade();
 
     let device = MyDevice {
-        btn_connect: ActorContext::new(btn_connect).with_name("button_connect"),
-        btn_send: ActorContext::new(btn_send).with_name("button_send"),
-        gpiote: InterruptContext::new(gpiote, hal::pac::Interrupt::GPIOTE).with_name("gpiote"),
+        btn_connect: ActorContext::new(Button::new(button_a, Active::Low))
+            .with_name("button_connect"),
+        btn_send: ActorContext::new(Button::new(button_b, Active::Low)).with_name("button_send"),
+        gpiote: InterruptContext::new(Gpiote::new(gpiote), hal::pac::Interrupt::GPIOTE)
+            .with_name("gpiote"),
         uart,
         memory: ActorContext::new(Memory::new()).with_name("memory"),
         wifi: Esp8266Wifi::new(enable_pin, reset_pin),

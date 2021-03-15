@@ -17,8 +17,6 @@ use drogue_device::{
     prelude::*,
 };
 use hal::gpio::Level;
-use hal::pac::interrupt;
-use hal::pac::NVIC;
 use log::LevelFilter;
 use rtt_logger::RTTLogger;
 use rtt_target::rtt_init_print;

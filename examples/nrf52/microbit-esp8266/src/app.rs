@@ -8,6 +8,7 @@ use drogue_device::{
         },
         wifi::{Join, WifiSupplicant},
     },
+    driver::button::ButtonEvent,
     prelude::*,
 };
 
@@ -21,6 +22,7 @@ where
     psk: &'static str,
     ip: IpAddress,
     port: u16,
+    connected: bool,
 }
 
 impl<NET> App<NET>
@@ -35,28 +37,11 @@ where
             psk,
             ip,
             port,
+            connected: false,
         }
     }
-}
 
-impl<NET> Actor for App<NET>
-where
-    NET: WifiSupplicant + TcpStack + 'static,
-{
-    type Configuration = Address<NET>;
-    fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
-        log::info!("Bound wifi");
-        self.driver.replace(config);
-    }
-}
-
-pub struct Connect;
-
-impl<NET> NotifyHandler<Connect> for App<NET>
-where
-    NET: WifiSupplicant + TcpStack + 'static,
-{
-    fn on_notify(mut self, _: Connect) -> Completion<Self> {
+    fn connect(mut self) -> Completion<Self> {
         Completion::defer(async move {
             let driver = self.driver.as_ref().expect("driver not bound!");
             log::info!("Joining network");
@@ -76,6 +61,7 @@ where
             match result {
                 Ok(_) => {
                     log::info!("Connected!");
+                    self.connected = true;
                     self.socket.replace(RefCell::new(socket));
                 }
                 Err(e) => {
@@ -85,17 +71,10 @@ where
             self
         })
     }
-}
 
-pub struct TakeMeasurement;
-
-impl<NET> NotifyHandler<TakeMeasurement> for App<NET>
-where
-    NET: WifiSupplicant + TcpStack + 'static,
-{
-    fn on_notify(self, _: TakeMeasurement) -> Completion<Self> {
+    fn send(self) -> Completion<Self> {
         Completion::defer(async move {
-            {
+            if self.connected {
                 log::info!("Sending data");
                 let mut socket = self
                     .socket
@@ -134,5 +113,33 @@ where
             }
             self
         })
+    }
+}
+
+impl<NET> Actor for App<NET>
+where
+    NET: WifiSupplicant + TcpStack + 'static,
+{
+    type Configuration = Address<NET>;
+    fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
+        self.driver.replace(config);
+    }
+}
+
+impl<NET> NotifyHandler<ButtonEvent> for App<NET>
+where
+    NET: WifiSupplicant + TcpStack + 'static,
+{
+    fn on_notify(self, message: ButtonEvent) -> Completion<Self> {
+        match message {
+            ButtonEvent::Pressed => {
+                if !self.connected {
+                    self.connect()
+                } else {
+                    self.send()
+                }
+            }
+            _ => Completion::immediate(self),
+        }
     }
 }

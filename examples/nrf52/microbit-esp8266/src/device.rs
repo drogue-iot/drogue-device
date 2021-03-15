@@ -1,6 +1,7 @@
 use crate::app::*;
 use drogue_device::{
     driver::{
+        button::*,
         memory::{Memory, Query},
         timer::*,
         uart::serial::*,
@@ -20,15 +21,15 @@ use nrf52833_hal as hal;
 
 pub type AppTimer = Timer<HalTimer<TIMER0>>;
 pub type AppUart = Serial<UarteTx<UARTE0>, UarteRx<UARTE0>, <AppTimer as Package>::Primary>;
-pub type Button = GpioteChannel<MyDevice, Pin<Input<PullUp>>>;
+pub type AppButton = Button<MyDevice, Pin<Input<PullUp>>>;
 pub type Wifi =
     Esp8266Wifi<<AppUart as Package>::Primary, Pin<Output<PushPull>>, Pin<Output<PushPull>>>;
 pub type AppWifi = <Wifi as Package>::Primary;
 
 pub struct MyDevice {
     pub gpiote: InterruptContext<Gpiote<Self>>,
-    pub btn_connect: ActorContext<Button>,
-    pub btn_send: ActorContext<Button>,
+    pub btn_connect: ActorContext<AppButton>,
+    pub btn_send: ActorContext<AppButton>,
     pub memory: ActorContext<Memory>,
     pub uart: AppUart,
     pub timer: AppTimer,
@@ -51,23 +52,14 @@ impl Device for MyDevice {
 
 impl EventHandler<GpioteEvent> for MyDevice {
     fn on_event(&'static self, event: GpioteEvent) {
+        self.memory.address().notify(Query);
         self.btn_send.address().notify(event);
         self.btn_connect.address().notify(event);
     }
 }
 
-impl EventHandler<PinEvent> for MyDevice {
-    fn on_event(&'static self, event: PinEvent) {
-        match event {
-            PinEvent(Channel::Channel0, PinState::Low) => {
-                self.app.address().notify(Connect);
-                self.memory.address().notify(Query);
-            }
-            PinEvent(Channel::Channel1, PinState::Low) => {
-                self.app.address().notify(TakeMeasurement);
-                self.memory.address().notify(Query);
-            }
-            _ => {}
-        }
+impl EventHandler<ButtonEvent> for MyDevice {
+    fn on_event(&'static self, event: ButtonEvent) {
+        self.app.address().notify(event);
     }
 }
