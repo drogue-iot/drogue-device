@@ -49,6 +49,12 @@ version = "0.6.0"
 features = ["rt"]
 optional = true
 
+[dependencies.stm32l0xx-hal]
+git = "https://github.com/lulf/stm32l0xx-hal.git"
+features = ["rt", "disable-linker-script"]
+branch   = "master"
+optional = true
+
 [dependencies.nrf52833-hal]
 #version = "0.12.0"
 git = "https://github.com/lulf/nrf-hal.git"
@@ -123,6 +129,7 @@ stm32l4xx = [ "stm32l4xx-hal" ]
 "chip+stm32l4xx" = [ "stm32l4xx-hal" ]
 "chip+nrf52833" = [ "nrf52833-hal" ]
 "chip+nrf51" = [ "nrf51-hal", "bbqueue/thumbv6", "drogue-arch/isa+thumbv6" ]
+"chip+stm32l0xx" = [ "stm32l0xx-hal", "bbqueue/thumbv6", "drogue-arch/isa+thumbv6" ]
 
 driver-rak811 = [ "drogue-rak811" ]
 fonts = []
