@@ -32,7 +32,6 @@ where
     fn on_start(self) -> Completion<Self> {
         Completion::defer(async move {
             let driver = self.driver.as_ref().unwrap();
-
             log::info!("[{}] Configuring LoRa driver", ActorInfo::name());
             driver
                 .configure(&self.config)

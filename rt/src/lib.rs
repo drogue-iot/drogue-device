@@ -31,4 +31,10 @@ pub mod prelude {
         package::Package,
         supervisor::Supervisor,
     };
+
+    pub fn log_stack(whr: &'static str) {
+        let _u: u32 = 1;
+        let _uptr: *const u32 = &_u;
+        log::info!("[{}] SP: 0x{:p}", whr, &_uptr);
+    }
 }

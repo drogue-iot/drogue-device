@@ -1,15 +1,14 @@
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::prelude::{Actor, Address, Completion, NotifyHandler};
 
-#[derive(Clone)]
 pub struct Schedule<A, DUR, E>
 where
     A: Actor + NotifyHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds>,
-    E: Clone + 'static,
+    E: 'static,
 {
     pub delay: DUR,
-    pub event: E,
+    pub event: Option<E>,
     pub address: Address<A>,
 }
 
@@ -17,12 +16,12 @@ impl<A, DUR, E> Schedule<A, DUR, E>
 where
     A: Actor + NotifyHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds>,
-    E: Clone + 'static,
+    E: 'static,
 {
     pub fn new(delay: DUR, event: E, address: Address<A>) -> Self {
         Self {
             delay,
-            event,
+            event: Some(event),
             address,
         }
     }
@@ -33,13 +32,13 @@ pub trait Scheduler: Actor {
     where
         A: Actor + NotifyHandler<E> + 'static,
         DUR: Duration + Into<Milliseconds> + 'static,
-        E: Clone + 'static;
+        E: 'static;
 }
 
 impl<S, E, A, DUR> NotifyHandler<Schedule<A, DUR, E>> for S
 where
     S: Scheduler + Actor + 'static,
-    E: Clone + 'static,
+    E: 'static,
     A: Actor + NotifyHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds> + 'static,
 {
@@ -53,7 +52,7 @@ impl<S: Scheduler> Address<S> {
     pub fn schedule<DUR, E, A>(&self, delay: DUR, event: E, address: Address<A>)
     where
         DUR: Duration + Into<Milliseconds> + 'static,
-        E: Clone + 'static,
+        E: 'static,
         A: Actor + NotifyHandler<E>,
     {
         self.notify(Schedule::new(delay, event, address));

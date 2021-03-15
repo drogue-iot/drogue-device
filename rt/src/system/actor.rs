@@ -97,9 +97,9 @@ impl ActorInfo {
 pub(crate) static mut CURRENT: ActorInfo = ActorInfo { name: None };
 
 type ItemsProducer<A> =
-    RefCell<Option<Producer<'static, Box<dyn ActorFuture<A>, SystemArena>, U64>>>;
+    RefCell<Option<Producer<'static, Box<dyn ActorFuture<A>, SystemArena>, U8>>>;
 type ItemsConsumer<A> =
-    RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>, SystemArena>, U64>>>;
+    RefCell<Option<Consumer<'static, Box<dyn ActorFuture<A>, SystemArena>, U8>>>;
 
 /// Struct which is capable of holding an `Actor` instance
 /// and connects it to the actor system.
@@ -107,7 +107,7 @@ pub struct ActorContext<A: Actor + 'static> {
     pub(crate) actor: RefCell<Option<A>>,
     pub(crate) current: RefCell<Option<Box<dyn ActorFuture<A>, SystemArena>>>,
     // Only an UnsafeCell instead of RefCell in order to maintain it's 'static nature when borrowed.
-    pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>, SystemArena>, U64>>,
+    pub(crate) items: UnsafeCell<Queue<Box<dyn ActorFuture<A>, SystemArena>, U8>>,
     pub(crate) items_producer: ItemsProducer<A>,
     pub(crate) items_consumer: ItemsConsumer<A>,
     //pub(crate) items: FutureQueue<A>,
@@ -145,10 +145,12 @@ impl<A: Actor + 'static> ActorContext<A> {
         self.name.unwrap_or("<unnamed>")
     }
 
+    #[inline(always)]
     fn take_actor(&self) -> Option<A> {
         self.actor.borrow_mut().take()
     }
 
+    #[inline(always)]
     fn replace_actor(&self, actor: A) {
         self.actor.borrow_mut().replace(actor);
     }
@@ -625,7 +627,7 @@ where
     R: 'static,
 {
     receiver: CompletionReceiver<R>,
-    panicking: Option<String<U128>>,
+    panicking: Option<String<U32>>,
 }
 
 impl<R> Drop for RequestResponseFuture<R> {
@@ -647,7 +649,7 @@ impl<R> RequestResponseFuture<R> {
         }
     }
 
-    fn new_panicking(receiver: CompletionReceiver<R>, debug: String<U128>) -> Self {
+    fn new_panicking(receiver: CompletionReceiver<R>, debug: String<U32>) -> Self {
         Self {
             receiver,
             panicking: Some(debug),

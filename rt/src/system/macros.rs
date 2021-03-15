@@ -19,14 +19,23 @@
 ///
 /// device!( MyDevice = instance; 1024 );
 /// ```
+
 #[macro_export]
 macro_rules! device {
-    ($ty:ty = $device:expr; $memory:literal  ) => {
+    ($ty:ty = $configure:expr; $memory:literal  ) => {
+
         static mut DEVICE: Option<$crate::system::DeviceContext<$ty>> = None;
-        let device = unsafe {
-            DEVICE.replace($crate::system::DeviceContext::new($device));
-            DEVICE.as_mut().unwrap()
-        };
+
+        // Make sure device don't end up consuming our stack
+        fn initialize() -> &'static $crate::system::DeviceContext<$ty> {
+            let d = $configure();
+            unsafe {
+                DEVICE.replace($crate::system::DeviceContext::new(d));
+                DEVICE.as_ref().unwrap()
+            }
+        }
+
+        let device = initialize();
 
         $crate::arena::init_arena!($crate::system| SystemArena => $memory);
 
@@ -39,5 +48,7 @@ macro_rules! device {
                 DEVICE.as_ref().unwrap().on_interrupt(irqn);
             }
         }
+
+        device.run();
     };
 }

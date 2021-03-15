@@ -39,9 +39,7 @@ const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.passw
 const ENDPOINT: IpAddress = IpAddress::new_v4(192, 168, 1, 2);
 const ENDPOINT_PORT: u16 = 12345;
 
-#[entry]
-fn main() -> ! {
-    //rtt_init_print!();
+fn configure() -> MyDevice {
     rtt_init_print!();
     log::set_logger(&LOGGER).unwrap();
     log::set_max_level(log::LevelFilter::Info);
@@ -94,7 +92,7 @@ fn main() -> ! {
     let enable_pin = port0.p0_03.into_push_pull_output(Level::Low).degrade();
     let reset_pin = port0.p0_02.into_push_pull_output(Level::Low).degrade();
 
-    let device = MyDevice {
+    MyDevice {
         btn_connect: ActorContext::new(Button::new(button_a, Active::Low))
             .with_name("button_connect"),
         btn_send: ActorContext::new(Button::new(button_b, Active::Low)).with_name("button_send"),
@@ -106,7 +104,10 @@ fn main() -> ! {
         timer,
         app: ActorContext::new(App::new(WIFI_SSID, WIFI_PSK, ENDPOINT, ENDPOINT_PORT))
             .with_name("app"),
-    };
+    }
+}
 
-    device!( MyDevice = device; 12000);
+#[entry]
+fn main() -> ! {
+    device!(MyDevice = configure; 12000);
 }

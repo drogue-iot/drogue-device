@@ -28,8 +28,7 @@ use crate::device::*;
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
 
-#[entry]
-fn main() -> ! {
+fn configure() -> MyDevice {
     rtt_init_print!();
     log::set_logger(&LOGGER).unwrap();
     log::set_max_level(log::LevelFilter::Info);
@@ -90,13 +89,16 @@ fn main() -> ! {
     // Set refresh rate to avoid led flickering
     let led = LedMatrix::new(rows, cols, 200u32.Hz());
 
-    let device = MyDevice {
+    MyDevice {
         led: ActorContext::new(led).with_name("matrix"),
         timer,
         tx: ActorContext::new(tx).with_name("uart_tx"),
         rx: InterruptContext::new(rx, hal::pac::Interrupt::UARTE0_UART0).with_name("uart_rx"),
         app: ActorContext::new(App::new()),
-    };
+    }
+}
 
-    device!( MyDevice = device; 8192);
+#[entry]
+fn main() -> ! {
+    device!(MyDevice = configure; 8192);
 }

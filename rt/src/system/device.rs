@@ -57,15 +57,24 @@ pub struct DeviceContext<D: Device + 'static> {
 
 impl<D: Device> DeviceContext<D> {
     pub fn new(device: D) -> Self {
-        Self {
+        log::info!("Creating..");
+        let d = Self {
             //device: UnsafeCell::new(device),
             device,
             supervisor: RefCell::new(Supervisor::new()),
             bus: UnsafeCell::new(None),
-        }
+        };
+        log::info!("Size of device context is {}", core::mem::size_of_val(&d));
+        log::info!("Size of device is {}", core::mem::size_of_val(&d.device));
+        log::info!(
+            "Size of supervisor is {}",
+            core::mem::size_of_val(&d.supervisor)
+        );
+        log::info!("Size of bus is {}", core::mem::size_of_val(&d.bus));
+        d
     }
 
-    pub fn mount(&'static self) -> ! {
+    pub fn mount(&'static self) {
         let bus = ActorContext::new(EventBus::new(self)).with_name("event-bus");
         unsafe {
             // # Safety
@@ -78,8 +87,11 @@ impl<D: Device> DeviceContext<D> {
             let config = DeviceConfiguration { event_bus };
             self.device
                 .mount(config, &mut *self.supervisor.borrow_mut());
-            (&*self.supervisor.borrow()).run_forever()
         }
+    }
+
+    pub fn run(&'static self) -> ! {
+        (&*self.supervisor.borrow()).run_forever()
     }
 
     pub fn on_interrupt(&'static self, irqn: i16) {

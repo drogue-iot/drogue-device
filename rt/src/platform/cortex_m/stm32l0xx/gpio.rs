@@ -1,5 +1,19 @@
 use crate::hal::gpio::InterruptPin;
 
+impl<E> InterruptPin for E
+where
+    E: stm32l0xx_hal::exti::ExtiLine + Copy,
+{
+    fn enable_interrupt(&mut self) {}
+    fn check_interrupt(&mut self) -> bool {
+        stm32l0xx_hal::exti::Exti::is_pending(*self)
+    }
+
+    fn clear_interrupt(&mut self) {
+        stm32l0xx_hal::exti::Exti::unpend(*self)
+    }
+}
+
 impl<P, E> InterruptPin for Pin<P, E>
 where
     P: embedded_hal::digital::v2::InputPin,
