@@ -48,15 +48,7 @@ where
         log::info!("Bound wifi");
         self.driver.replace(config);
     }
-}
-
-pub struct Connect;
-
-impl<NET> NotifyHandler<Connect> for App<NET>
-where
-    NET: WifiSupplicant + TcpStack + 'static,
-{
-    fn on_notify(mut self, _: Connect) -> Completion<Self> {
+    fn on_start(mut self) -> Completion<Self> {
         Completion::defer(async move {
             let driver = self.driver.as_ref().expect("driver not bound!");
             log::info!("Joining network");
@@ -80,56 +72,6 @@ where
                 }
                 Err(e) => {
                     log::info!("Error connecting to host: {:?}", e);
-                }
-            }
-            self
-        })
-    }
-}
-
-pub struct TakeMeasurement;
-
-impl<NET> NotifyHandler<TakeMeasurement> for App<NET>
-where
-    NET: WifiSupplicant + TcpStack + 'static,
-{
-    fn on_notify(self, _: TakeMeasurement) -> Completion<Self> {
-        Completion::defer(async move {
-            {
-                log::info!("Sending data");
-                let mut socket = self
-                    .socket
-                    .as_ref()
-                    .expect("socket not bound!")
-                    .borrow_mut();
-                log::info!("Writing data to socket");
-                let result = socket.write(b"{\"temp\": 24.3}\r\n").await;
-                match result {
-                    Ok(_) => {
-                        log::info!("Data sent");
-                        let mut rx_buf = [0; 8];
-                        loop {
-                            let result = socket.read(&mut rx_buf[..]).await;
-                            match result {
-                                Ok(len) if &rx_buf[0..len] == b"OK\r\n" => {
-                                    log::info!("Measurement confirmed");
-                                    break;
-                                }
-                                Ok(len) if &rx_buf[0..len] == b"ERROR\r\n" => {
-                                    log::info!("Error reporting measurement");
-                                    break;
-                                }
-                                Ok(_) => {}
-                                Err(e) => {
-                                    log::warn!("Error reading response: {:?}", e);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        log::warn!("Error sending measurement: {:?}", e);
-                    }
                 }
             }
             self

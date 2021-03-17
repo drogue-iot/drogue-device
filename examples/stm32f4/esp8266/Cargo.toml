@@ -8,7 +8,7 @@ readme = "README.md"
 [dependencies]
 cortex-m = "0.6.4"
 cortex-m-rt = { version = "0.6.11", features = ["device"] }
-drogue-device = { path = "../../../rt", features = ["chip+nrf52833", "wifi+esp8266" ]}
+drogue-device = { path = "../../../rt", features = ["wifi+esp8266"]}
 heapless = "0.5"
 rtt-target = {version = "0.2.2", features = ["cortex-m"] }
 panic-rtt-target = { version = "0.1.1", features = ["cortex-m"] }
