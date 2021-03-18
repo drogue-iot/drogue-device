@@ -7,7 +7,7 @@
 
 An async, no-alloc actor framework for embedded devices.
 
-See [drivers](docs/DRIVERS.adoc) for examples on how to write device drivers for drogue-device.
+See [the book](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and running some examples.
 
 ## Actor System
 
