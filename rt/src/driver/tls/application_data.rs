@@ -5,7 +5,7 @@ use heapless::{consts::*, Vec};
 
 pub struct ApplicationData {
     pub(crate) header: Vec<u8, U16>,
-    pub(crate) data: Vec<u8, U2048>,
+    pub(crate) data: Vec<u8, U8192>,
 }
 
 impl Debug for ApplicationData {
@@ -21,7 +21,7 @@ impl ApplicationData {
         header: &[u8],
     ) -> Result<Self, TlsError> {
         log::info!("application data of len={}", len);
-        let mut buf: [u8; 2048] = [0; 2048];
+        let mut buf: [u8; 8192] = [0; 8192];
 
         let mut num_read = 0;
 

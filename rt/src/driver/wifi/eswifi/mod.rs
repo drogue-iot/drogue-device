@@ -546,7 +546,12 @@ where
                             len = 1460;
                         }
 
-                        self.send_string(&command!(U16, "R1={}", len), &mut response)
+                        let mut payload_len = len;
+                        if payload_len > 16 {
+                            payload_len -= 16;
+                        }
+
+                        self.send_string(&command!(U16, "R1={}", payload_len), &mut response)
                             .await
                             .map_err(|_| TcpError::ReadError)?;
 

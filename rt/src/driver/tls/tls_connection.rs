@@ -58,7 +58,7 @@ where
 
     async fn receive(&mut self) -> Result<ServerRecord, TlsError> {
         let record =
-            ServerRecord::parse(&mut self.delegate, self.key_schedule.transcript_hash()).await?;
+            ServerRecord::read(&mut self.delegate, self.key_schedule.transcript_hash()).await?;
         log::info!(
             "**** receive, hash={:x?}",
             self.key_schedule.transcript_hash().clone().finalize()
@@ -85,22 +85,22 @@ where
             match next_record {
                 ServerRecord::Handshake(_) => {}
                 ServerRecord::Alert => {}
-                ServerRecord::ApplicationData(application_data) => {
-                    match application_data {
-                        ApplicationData { header, mut data } => {
-                            log::info!("decrypting {:x?}", &header);
-                            let crypto = Aes128Gcm::new(&self.key_schedule.get_server_key());
-                            let nonce = &self.key_schedule.get_server_nonce();
-                            log::info!("server write nonce {:x?}", nonce);
-                            let result = crypto.decrypt_in_place(
-                                &self.key_schedule.get_server_nonce(),
-                                &header,
-                                &mut data,
-                            );
-                            log::debug!("decrypt result {:?}", result);
-                            log::debug!("decrypted --> {:x?}", data);
-                            break;
-                        }
+                ServerRecord::ApplicationData(ApplicationData { header, mut data }) => {
+                    log::info!("decrypting {:x?}", &header);
+                    let crypto = Aes128Gcm::new(&self.key_schedule.get_server_key());
+                    let nonce = &self.key_schedule.get_server_nonce();
+                    log::info!("server write nonce {:x?}", nonce);
+                    let result = crypto.decrypt_in_place(
+                        &self.key_schedule.get_server_nonce(),
+                        &header,
+                        &mut data,
+                    );
+                    log::debug!("decrypt result {:?}", result);
+                    log::debug!("decrypted --> {:x?}", data);
+                    //ServerRecord::parse(result);
+                    if result.is_err() {
+                        panic!("unable to decrypt");
+                        break;
                     }
                     self.key_schedule.increment_read_counter();
                 }
@@ -116,53 +116,58 @@ where
         self.transmit(&client_hello).await;
         log::info!("sent client hello");
 
-        let record = self.receive().await?;
-        log::info!("record -> {:?}", record);
-        match record {
-            ServerRecord::Handshake(handshake) => match handshake {
-                ServerHandshake::ServerHello(server_hello) => {
-                    log::info!("********* ServerHello");
-                    /*
-                    let crypto_engine = server_hello
-                        .initialize_crypto_engine(
-                            client_hello.secret.ok_or(TlsError::InvalidKeyShare)?,
-                        )
-                        .ok_or(TlsError::UnableToInitializeCryptoEngine)?;
+        loop {
+            let record = self.receive().await?;
+            log::info!("record -> {:?}", record);
 
+            match record {
+                ServerRecord::Handshake(handshake) => match handshake {
+                    ServerHandshake::ServerHello(server_hello) => {
+                        log::info!("********* ServerHello");
+                        if let ClientRecord::Handshake(ClientHandshake::ClientHello(
+                            ref client_hello,
+                        )) = client_hello
+                        {
+                            let shared = server_hello
+                                .calculate_shared_secret(&client_hello.secret)
+                                .ok_or(TlsError::InvalidKeyShare)?;
 
-                     */
+                            log::info!("ecdhe {:x?}", shared.as_bytes());
 
-                    if let ClientRecord::Handshake(ClientHandshake::ClientHello(client_hello)) =
-                        client_hello
-                    {
-                        let shared = server_hello
-                            .calculate_shared_secret(&client_hello.secret)
-                            .ok_or(TlsError::InvalidKeyShare)?;
+                            self.key_schedule
+                                .initialize_handshake_secret(shared.as_bytes());
 
-                        log::info!("ecdhe {:x?}", shared.as_bytes());
-
-                        self.key_schedule
-                            .initialize_handshake_secret(shared.as_bytes());
-
-                        //self.key_schedule
-                        //.client_handshake_traffic_secret(shared.as_bytes());
-                        log::info!("***** handshake key schedule initialized");
+                            log::info!("***** handshake key schedule initialized");
+                        }
                     }
-                    //self.crypto_engine.replace(crypto_engine);
+                },
+                ServerRecord::Alert => {
+                    unimplemented!("alert not handled")
                 }
-            },
-            ServerRecord::Alert => {
-                unimplemented!("alert not handled")
-            }
-            ServerRecord::ApplicationData(..) => {
-                unimplemented!("application data not handled")
-            }
-            ServerRecord::ChangeCipherSpec(..) => {
-                unimplemented!("change cipher spec data not handled")
+                ServerRecord::ApplicationData(application_data) => {
+                    match application_data {
+                        ApplicationData { header, mut data } => {
+                            log::info!("decrypting {:x?}", &header);
+                            let crypto = Aes128Gcm::new(&self.key_schedule.get_server_key());
+                            let nonce = &self.key_schedule.get_server_nonce();
+                            log::info!("server write nonce {:x?}", nonce);
+                            let result = crypto.decrypt_in_place(
+                                &self.key_schedule.get_server_nonce(),
+                                &header,
+                                &mut data,
+                            );
+                            log::debug!("decrypt result {:?}", result);
+                            log::debug!("decrypted --> {:x?}", data);
+                        }
+                    }
+                    self.key_schedule.increment_read_counter();
+                }
+                ServerRecord::ChangeCipherSpec(..) => {
+                    // ignore fake CCS
+                }
             }
         }
 
-        //self.key_schedule.increment_read_counter();
         Ok(())
     }
 

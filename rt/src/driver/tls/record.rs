@@ -89,7 +89,7 @@ pub enum ServerRecord {
 }
 
 impl ServerRecord {
-    pub async fn parse<D: Digest, T: TcpStack>(
+    pub async fn read<D: Digest, T: TcpStack>(
         socket: &mut TcpSocket<T>,
         digest: &mut D,
     ) -> Result<ServerRecord, TlsError> {

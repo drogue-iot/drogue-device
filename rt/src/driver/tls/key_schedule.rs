@@ -48,10 +48,6 @@ where
             secret: Self::zero(),
             transcript_hash: D::new(),
             hkdf: None,
-            //client_write_iv: None,
-            //client_write_key: None,
-            //server_write_iv: None,
-            //server_write_key: None,
             client_traffic_secret: None,
             server_traffic_secret: None,
             read_counter: 0,
@@ -110,8 +106,13 @@ where
     }
 
     fn get_nonce(&self, counter: u64, iv: &GenericArray<u8, IvLen>) -> GenericArray<u8, IvLen> {
-        log::debug!("counter = {}", counter);
-        let counter = Self::pad::<IvLen>(&counter.to_ne_bytes());
+        log::debug!(
+            "counter = {} {:x?}, {:x?}",
+            counter,
+            &counter.to_be_bytes(),
+            &counter.to_ne_bytes()
+        );
+        let counter = Self::pad::<IvLen>(&counter.to_be_bytes());
 
         log::debug!("counter = {:x?}", counter);
         log::debug!("iv = {:x?}", iv);
@@ -189,6 +190,8 @@ where
         self.server_traffic_secret
             .replace(Hkdf::from_prk(&server_secret).unwrap());
         log::info!("s traffic secret {:x?}", server_secret);
+        self.read_counter = 0;
+        self.write_counter = 0;
     }
 
     fn derive_secret(
