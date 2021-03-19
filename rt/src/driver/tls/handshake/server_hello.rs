@@ -1,4 +1,4 @@
-use heapless::{consts::*, Vec};
+use heapless::{consts::*, ArrayLength, Vec};
 
 use crate::api::ip::tcp::{TcpSocket, TcpStack};
 use crate::driver::tls::cipher_suites::CipherSuite;
@@ -22,14 +22,15 @@ pub struct ServerHello {
 }
 
 impl ServerHello {
-    pub async fn parse<D: Digest, T: TcpStack>(
+    pub async fn read<D: Digest, T: TcpStack>(
         socket: &mut TcpSocket<T>,
         content_length: usize,
         digest: &mut D,
     ) -> Result<ServerHello, TlsError> {
         log::info!("parsing ServerHello");
 
-        let mut buf = [0; 1024];
+        let mut buf = Vec::<u8, U1024>::new();
+        buf.resize(content_length, 0);
         let mut pos = 0;
 
         loop {
@@ -40,9 +41,13 @@ impl ServerHello {
         }
 
         log::info!("hash [{:x?}]", &buf[0..content_length]);
-        digest.update(&buf[0..content_length]);
+        digest.update(&buf);
+        Self::parse(&mut buf, digest)
+    }
 
-        let mut buf = ParseBuffer::new(&buf[0..content_length]);
+    pub fn parse<D: Digest>(buf: &[u8], digest: &mut D) -> Result<Self, TlsError> {
+        //let mut buf = ParseBuffer::new(&buf[0..content_length]);
+        let mut buf = ParseBuffer::new(&buf);
 
         let version = buf.read_u16();
 

@@ -1,11 +1,12 @@
 use crate::api::ip::tcp::{TcpSocket, TcpStack};
 use crate::driver::tls::TlsError;
+use heapless::{ArrayLength, Vec};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ChangeCipherSpec {}
 
 impl ChangeCipherSpec {
-    pub async fn parse<T: TcpStack>(socket: &mut TcpSocket<T>, len: u16) -> Result<Self, TlsError> {
+    pub async fn read<T: TcpStack>(socket: &mut TcpSocket<T>, len: u16) -> Result<Self, TlsError> {
         log::info!("application data of len={}", len);
         let mut buf: [u8; 2048] = [0; 2048];
 
@@ -22,6 +23,10 @@ impl ChangeCipherSpec {
                 break;
             }
         }
+        Ok(Self {})
+    }
+
+    pub fn parse<N: ArrayLength<u8>>(buf: &Vec<u8, N>) -> Result<Self, TlsError> {
         Ok(Self {})
     }
 }

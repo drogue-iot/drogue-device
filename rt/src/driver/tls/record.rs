@@ -111,17 +111,19 @@ impl ServerRecord {
                 match content_type {
                     ContentType::Invalid => Err(TlsError::Unimplemented),
                     ContentType::ChangeCipherSpec => Ok(ServerRecord::ChangeCipherSpec(
-                        ChangeCipherSpec::parse(socket, content_length).await?,
+                        ChangeCipherSpec::read(socket, content_length).await?,
                     )),
                     ContentType::Alert => Err(TlsError::Unimplemented),
                     ContentType::Handshake => Ok(ServerRecord::Handshake(
-                        ServerHandshake::parse(socket, content_length, digest).await?,
+                        ServerHandshake::read(socket, content_length, digest).await?,
                     )),
                     ContentType::ApplicationData => Ok(ServerRecord::ApplicationData(
-                        ApplicationData::parse(socket, content_length, &header).await?,
+                        ApplicationData::read(socket, content_length, &header).await?,
                     )),
                 }
             }
         }
     }
+
+    //pub fn parse<D: Digest>(buf: &[u8]) -> Result<Self, TlsError> {}
 }

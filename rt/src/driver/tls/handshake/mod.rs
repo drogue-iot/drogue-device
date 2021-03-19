@@ -8,9 +8,11 @@ use crate::driver::tls::cipher_suites::CipherSuite;
 //use p256::elliptic_curve::AffinePoint;
 use crate::driver::tls::config::Config;
 use crate::driver::tls::content_types::ContentType;
+use crate::driver::tls::content_types::ContentType::Handshake;
 use crate::driver::tls::extensions::ClientExtension;
 use crate::driver::tls::extensions::ExtensionType::SupportedVersions;
 use crate::driver::tls::handshake::client_hello::ClientHello;
+use crate::driver::tls::handshake::encrypted_extensions::EncryptedExtensions;
 use crate::driver::tls::handshake::server_hello::ServerHello;
 use crate::driver::tls::max_fragment_length::MaxFragmentLength;
 use crate::driver::tls::named_groups::NamedGroup;
@@ -21,6 +23,7 @@ use crate::driver::tls::TlsError::InvalidHandshake;
 use sha2::Digest;
 
 pub mod client_hello;
+pub mod encrypted_extensions;
 pub mod server_hello;
 
 const LEGACY_VERSION: u16 = 0x0303;
@@ -75,10 +78,11 @@ where
 #[derive(Debug)]
 pub enum ServerHandshake {
     ServerHello(ServerHello),
+    EncryptedExtensions(EncryptedExtensions),
 }
 
 impl ServerHandshake {
-    pub async fn parse<D: Digest, T: TcpStack>(
+    pub async fn read<D: Digest, T: TcpStack>(
         socket: &mut TcpSocket<T>,
         len: u16,
         digest: &mut D,
@@ -102,7 +106,7 @@ impl ServerHandshake {
                         log::info!("hash [{:x?}]", &header);
                         digest.update(&header);
                         Ok(ServerHandshake::ServerHello(
-                            ServerHello::parse(socket, length as usize, digest).await?,
+                            ServerHello::read(socket, length as usize, digest).await?,
                         ))
                     }
                     HandshakeType::NewSessionTicket => Err(TlsError::Unimplemented),
@@ -116,6 +120,31 @@ impl ServerHandshake {
                     HandshakeType::MessageHash => Err(TlsError::Unimplemented),
                 }
             }
+        }
+    }
+
+    pub fn parse(buf: &[u8]) -> Result<Self, TlsError> {
+        let handshake_type = HandshakeType::of(buf[0]).ok_or(TlsError::InvalidHandshake)?;
+
+        let content_len = u32::from_be_bytes([0, buf[1], buf[2], buf[3]]);
+
+        let buf = &buf[4..];
+
+        match handshake_type {
+            //HandshakeType::ClientHello => {}
+            //HandshakeType::ServerHello => {}
+            //HandshakeType::NewSessionTicket => {}
+            //HandshakeType::EndOfEarlyData => {}
+            HandshakeType::EncryptedExtensions => Ok(ServerHandshake::EncryptedExtensions(
+                EncryptedExtensions::parse(buf)?,
+            )),
+            //HandshakeType::Certificate => {}
+            //HandshakeType::CertificateRequest => {}
+            //HandshakeType::CertificateVerify => {}
+            //HandshakeType::Finished => {}
+            //HandshakeType::KeyUpdate => {}
+            //HandshakeType::MessageHash => {}
+            _ => Err(TlsError::Unimplemented),
         }
     }
 }

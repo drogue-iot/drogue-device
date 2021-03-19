@@ -13,7 +13,8 @@ use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
 
 use crate::driver::tls::application_data::ApplicationData;
-use aes_gcm::aead::{generic_array::GenericArray, AeadInPlace, NewAead};
+use crate::driver::tls::content_types::ContentType;
+use aes_gcm::aead::{generic_array::GenericArray, AeadInPlace, Buffer, NewAead};
 use aes_gcm::Aes128Gcm;
 
 pub struct TlsConnection<RNG, D>
@@ -78,6 +79,7 @@ where
 
         log::info!("handshake complete");
 
+        /*
         loop {
             let next_record = self.receive().await?;
             log::debug!("server record --> {:?}", next_record);
@@ -96,7 +98,10 @@ where
                         &mut data,
                     );
                     log::debug!("decrypt result {:?}", result);
-                    log::debug!("decrypted --> {:x?}", data);
+                    let content_type = ContentType::of(data[data.len() - 1]);
+                    log::debug!("content-type {:?}", content_type);
+                    //log::debug!("decrypted --> {:x?}", data);
+                    log::debug!("hi");
                     //ServerRecord::parse(result);
                     if result.is_err() {
                         panic!("unable to decrypt");
@@ -107,6 +112,8 @@ where
                 ServerRecord::ChangeCipherSpec(_) => {}
             }
         }
+
+         */
         Ok(())
     }
 
@@ -118,7 +125,6 @@ where
 
         loop {
             let record = self.receive().await?;
-            log::info!("record -> {:?}", record);
 
             match record {
                 ServerRecord::Handshake(handshake) => match handshake {
@@ -140,6 +146,7 @@ where
                             log::info!("***** handshake key schedule initialized");
                         }
                     }
+                    ServerHandshake::EncryptedExtensions(_) => {}
                 },
                 ServerRecord::Alert => {
                     unimplemented!("alert not handled")
@@ -156,8 +163,22 @@ where
                                 &header,
                                 &mut data,
                             );
+
+                            let content_type = ContentType::of(*data.last().unwrap())
+                                .ok_or(TlsError::InvalidRecord)?;
+
+                            match content_type {
+                                ContentType::Invalid => {}
+                                ContentType::ChangeCipherSpec => {}
+                                ContentType::Alert => {}
+                                ContentType::Handshake => {
+                                    let inner = ServerHandshake::parse(&data[..data.len() - 1]);
+                                    log::debug!("===> inner ==> {:?}", inner);
+                                }
+                                ContentType::ApplicationData => {}
+                            }
                             log::debug!("decrypt result {:?}", result);
-                            log::debug!("decrypted --> {:x?}", data);
+                            log::debug!("decrypted {:?} --> {:x?}", content_type, data);
                         }
                     }
                     self.key_schedule.increment_read_counter();
