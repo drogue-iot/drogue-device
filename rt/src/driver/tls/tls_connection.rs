@@ -89,7 +89,7 @@ where
                     match application_data {
                         ApplicationData { header, mut data } => {
                             log::info!("decrypting {:x?}", &header);
-                            let crypto = Aes128Gcm::new(self.key_schedule.server_write_key());
+                            let crypto = Aes128Gcm::new(&self.key_schedule.get_server_key());
                             let nonce = &self.key_schedule.get_server_nonce();
                             log::info!("server write nonce {:x?}", nonce);
                             let result = crypto.decrypt_in_place(

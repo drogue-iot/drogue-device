@@ -17,12 +17,16 @@ where
     secret: GenericArray<u8, D::OutputSize>,
     transcript_hash: D,
     hkdf: Option<Hkdf<D>>,
-    client_write_iv: Option<GenericArray<u8, IvLen>>,
-    client_write_key: Option<GenericArray<u8, KeyLen>>,
-    server_write_iv: Option<GenericArray<u8, IvLen>>,
-    server_write_key: Option<GenericArray<u8, KeyLen>>,
+    //client_write_iv: Option<GenericArray<u8, IvLen>>,
+    //client_write_key: Option<GenericArray<u8, KeyLen>>,
+    //server_write_iv: Option<GenericArray<u8, IvLen>>,
+    //server_write_key: Option<GenericArray<u8, KeyLen>>,
+    client_traffic_secret: Option<Hkdf<D>>,
+    server_traffic_secret: Option<Hkdf<D>>,
     read_counter: u64,
     write_counter: u64,
+    _key_len: PhantomData<KeyLen>,
+    _iv_len: PhantomData<IvLen>,
 }
 
 enum ContextType {
@@ -44,12 +48,16 @@ where
             secret: Self::zero(),
             transcript_hash: D::new(),
             hkdf: None,
-            client_write_iv: None,
-            client_write_key: None,
-            server_write_iv: None,
-            server_write_key: None,
+            //client_write_iv: None,
+            //client_write_key: None,
+            //server_write_iv: None,
+            //server_write_key: None,
+            client_traffic_secret: None,
+            server_traffic_secret: None,
             read_counter: 0,
             write_counter: 0,
+            _key_len: PhantomData,
+            _iv_len: PhantomData,
         }
     }
 
@@ -66,16 +74,39 @@ where
     }
 
     pub(crate) fn get_server_nonce(&self) -> GenericArray<u8, IvLen> {
-        log::info!(
-            "seq {} server iv {:x?}",
-            self.read_counter,
-            self.server_write_iv.as_ref().unwrap()
-        );
-        self.get_nonce(self.read_counter, self.server_write_iv.as_ref().unwrap())
+        self.get_nonce(self.read_counter, &self.get_server_iv())
     }
 
     pub(crate) fn get_client_nonce(&self) -> GenericArray<u8, IvLen> {
-        self.get_nonce(self.write_counter, self.client_write_iv.as_ref().unwrap())
+        self.get_nonce(self.write_counter, &self.get_client_iv())
+    }
+
+    pub(crate) fn get_server_key(&self) -> GenericArray<u8, KeyLen> {
+        self.hkdf_expand_label(
+            &self.server_traffic_secret.as_ref().unwrap(),
+            &self.make_hkdf_label(b"key", ContextType::None, KeyLen::to_u16()),
+        )
+    }
+
+    pub(crate) fn get_client_key(&self) -> GenericArray<u8, KeyLen> {
+        self.hkdf_expand_label(
+            &self.client_traffic_secret.as_ref().unwrap(),
+            &self.make_hkdf_label(b"key", ContextType::None, KeyLen::to_u16()),
+        )
+    }
+
+    fn get_server_iv(&self) -> GenericArray<u8, IvLen> {
+        self.hkdf_expand_label(
+            &self.server_traffic_secret.as_ref().unwrap(),
+            &self.make_hkdf_label(b"iv", ContextType::None, IvLen::to_u16()),
+        )
+    }
+
+    fn get_client_iv(&self) -> GenericArray<u8, IvLen> {
+        self.hkdf_expand_label(
+            &self.client_traffic_secret.as_ref().unwrap(),
+            &self.make_hkdf_label(b"iv", ContextType::None, IvLen::to_u16()),
+        )
     }
 
     fn get_nonce(&self, counter: u64, iv: &GenericArray<u8, IvLen>) -> GenericArray<u8, IvLen> {
@@ -136,40 +167,7 @@ where
         let (secret, hkdf) = Hkdf::<D>::extract(Some(self.secret.as_ref()), ikm);
         self.secret = secret;
         self.hkdf.replace(hkdf);
-
-        log::info!("handshake secret {:x?}", self.secret);
-
-        let client_secret = self.derive_secret(b"c hs traffic", ContextType::TranscriptHash);
-        log::info!("c hs secret {:x?}", client_secret);
-        let server_secret = self.derive_secret(b"s hs traffic", ContextType::TranscriptHash);
-        log::info!("s hs secret {:x?}", server_secret);
-
-        //let client_write_hkdf = Hkdf::<D>::new(None, client_secret.as_slice());
-        let client_write_hkdf = Hkdf::from_prk(client_secret.as_slice()).unwrap();
-        self.client_write_iv.replace(self.hkdf_expand_label(
-            &client_write_hkdf,
-            &self.make_hkdf_label(b"iv", ContextType::None, IvLen::to_u16()),
-        ));
-        log::info!("client write IV: {:x?}", self.client_write_iv);
-        self.client_write_key.replace(self.hkdf_expand_label(
-            &client_write_hkdf,
-            &self.make_hkdf_label(b"key", ContextType::None, KeyLen::to_u16()),
-        ));
-
-        //let server_write_hkdf = Hkdf::<D>::new(None, &server_secret);
-        let server_write_hkdf = Hkdf::from_prk(&server_secret).unwrap();
-        log::info!("generate server write IV using {:x?}", server_secret);
-        self.server_write_iv.replace(self.hkdf_expand_label(
-            &server_write_hkdf,
-            &self.make_hkdf_label(b"iv", ContextType::None, IvLen::to_u16()),
-        ));
-        log::info!("server write IV: {:x?}", self.server_write_iv);
-        log::info!("generate server write key");
-        self.server_write_key.replace(self.hkdf_expand_label(
-            &server_write_hkdf,
-            &self.make_hkdf_label(b"key", ContextType::None, KeyLen::to_u16()),
-        ));
-
+        self.calculate_traffic_secrets();
         self.derived();
     }
 
@@ -178,35 +176,19 @@ where
             Hkdf::<D>::extract(Some(self.secret.as_ref()), Self::zero().as_slice());
         self.secret = secret;
         self.hkdf.replace(hkdf);
+        self.calculate_traffic_secrets();
+        self.derived();
+    }
 
-        log::info!("traffic secret {:x?}", self.secret);
-
+    fn calculate_traffic_secrets(&mut self) {
         let client_secret = self.derive_secret(b"c hs traffic", ContextType::TranscriptHash);
+        self.client_traffic_secret
+            .replace(Hkdf::from_prk(&client_secret).unwrap());
         log::info!("c traffic secret {:x?}", client_secret);
         let server_secret = self.derive_secret(b"s hs traffic", ContextType::TranscriptHash);
+        self.server_traffic_secret
+            .replace(Hkdf::from_prk(&server_secret).unwrap());
         log::info!("s traffic secret {:x?}", server_secret);
-
-        //let client_write_hkdf = Hkdf::<D>::new(None, client_secret.as_slice());
-        let client_write_hkdf = Hkdf::from_prk(client_secret.as_slice()).unwrap();
-        self.client_write_iv.replace(self.hkdf_expand_label(
-            &client_write_hkdf,
-            &self.make_hkdf_label(b"iv", ContextType::None, IvLen::to_u16()),
-        ));
-        self.client_write_key.replace(self.hkdf_expand_label(
-            &client_write_hkdf,
-            &self.make_hkdf_label(b"key", ContextType::None, KeyLen::to_u16()),
-        ));
-
-        //let server_write_hkdf = Hkdf::<D>::new(None, server_secret.as_slice());
-        let server_write_hkdf = Hkdf::from_prk(server_secret.as_slice()).unwrap();
-        self.server_write_iv.replace(self.hkdf_expand_label(
-            &server_write_hkdf,
-            &self.make_hkdf_label(b"iv", ContextType::None, IvLen::to_u16()),
-        ));
-        self.server_write_key.replace(self.hkdf_expand_label(
-            &server_write_hkdf,
-            &self.make_hkdf_label(b"key", ContextType::None, KeyLen::to_u16()),
-        ));
     }
 
     fn derive_secret(
@@ -255,21 +237,5 @@ where
             }
         }
         hkdf_label
-    }
-
-    fn client_write_iv(&self) -> &GenericArray<u8, IvLen> {
-        self.client_write_iv.as_ref().unwrap()
-    }
-
-    fn client_write_key(&self) -> &GenericArray<u8, KeyLen> {
-        self.client_write_key.as_ref().unwrap()
-    }
-
-    fn server_write_iv(&self) -> &GenericArray<u8, IvLen> {
-        self.server_write_iv.as_ref().unwrap()
-    }
-
-    pub(crate) fn server_write_key(&self) -> &GenericArray<u8, KeyLen> {
-        self.server_write_key.as_ref().unwrap()
     }
 }
