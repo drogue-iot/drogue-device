@@ -1,4 +1,4 @@
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum SignatureScheme {
     /* RSASSA-PKCS1-v1_5 algorithms */
     RsaPkcs1Sha256 = 0x0401,

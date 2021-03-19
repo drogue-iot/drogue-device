@@ -2,10 +2,16 @@ use heapless::{consts::*, Vec};
 
 use crate::api::ip::tcp::{TcpSocket, TcpStack};
 use crate::driver::tls::cipher_suites::CipherSuite;
+use crate::driver::tls::crypto_engine::CryptoEngine;
+use crate::driver::tls::extensions::common::KeyShareEntry;
 use crate::driver::tls::extensions::server::ServerExtension;
 use crate::driver::tls::handshake::Random;
+use crate::driver::tls::named_groups::NamedGroup;
 use crate::driver::tls::parse_buffer::ParseBuffer;
 use crate::driver::tls::TlsError;
+use p256::ecdh::{EphemeralSecret, SharedSecret};
+use p256::PublicKey;
+use sha2::Digest;
 
 #[derive(Debug)]
 pub struct ServerHello {
@@ -16,9 +22,10 @@ pub struct ServerHello {
 }
 
 impl ServerHello {
-    pub async fn parse<T: TcpStack>(
+    pub async fn parse<D: Digest, T: TcpStack>(
         socket: &mut TcpSocket<T>,
         content_length: usize,
+        digest: &mut D,
     ) -> Result<ServerHello, TlsError> {
         log::info!("parsing ServerHello");
 
@@ -31,6 +38,9 @@ impl ServerHello {
                 break;
             }
         }
+
+        log::info!("hash [{:x?}]", &buf[0..content_length]);
+        digest.update(&buf[0..content_length]);
 
         let mut buf = ParseBuffer::new(&buf[0..content_length]);
 
@@ -77,5 +87,36 @@ impl ServerHello {
             cipher_suite,
             extensions,
         })
+    }
+
+    pub fn key_share(&self) -> Option<KeyShareEntry> {
+        let key_share = self
+            .extensions
+            .iter()
+            .find(|e| matches!(e, ServerExtension::KeyShare(..)))?;
+
+        match key_share {
+            ServerExtension::KeyShare(key_share) => Some(key_share.0.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn calculate_shared_secret(&self, secret: &EphemeralSecret) -> Option<SharedSecret> {
+        let server_key_share = self.key_share()?;
+        let server_public_key =
+            PublicKey::from_sec1_bytes(server_key_share.opaque.as_ref()).ok()?;
+        Some(secret.diffie_hellman(&server_public_key))
+    }
+
+    pub fn initialize_crypto_engine(&self, secret: EphemeralSecret) -> Option<CryptoEngine> {
+        let server_key_share = self.key_share()?;
+
+        let group = server_key_share.group;
+
+        let server_public_key =
+            PublicKey::from_sec1_bytes(server_key_share.opaque.as_ref()).ok()?;
+        let shared = secret.diffie_hellman(&server_public_key);
+
+        Some(CryptoEngine::new(group, shared))
     }
 }

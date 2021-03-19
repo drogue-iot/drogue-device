@@ -37,6 +37,7 @@ use stm32l4xx_hal::{
 };
 use drogue_device::driver::tls::tls_tcp_stack::TlsTcpStack;
 use drogue_device::platform::cortex_m::stm32l4xx::rng::Random;
+use drogue_device::driver::tls::config::Config;
 
 type Ld1Pin = PA5<Output<PushPull>>;
 type Ld2Pin = PB14<Output<PushPull>>;
@@ -82,6 +83,7 @@ pub type WifiAdapter = EsWifi<
 >;
 
 pub struct MyDevice {
+    pub tls_config: Config<Random>,
     pub spi: SpiPackage,
     pub wifi: WifiAdapter,
     pub tls: ActorContext<Tls>,
@@ -105,7 +107,7 @@ impl Device for MyDevice {
 
         let wifi_addr = self.wifi.mount((spi_addr, timer_addr), supervisor);
 
-        let tls_addr = self.tls.mount( (wifi_addr), supervisor );
+        let tls_addr = self.tls.mount( (&self.tls_config, wifi_addr), supervisor );
 
         self.logic.mount((wifi_addr, tls_addr), supervisor);
         self.memory.mount((), supervisor);

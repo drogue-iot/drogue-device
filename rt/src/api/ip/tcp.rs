@@ -1,7 +1,7 @@
 use crate::api::ip::{IpProtocol, SocketAddress};
 use crate::prelude::*;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum TcpError {
     ConnectError,
     ReadError,

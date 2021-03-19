@@ -79,6 +79,26 @@ features = [ "ecdh", "arithmetic" ]
 version = "0.6.2"
 default-features = false
 
+[dependencies.hkdf]
+version = "0.10.0"
+
+[dependencies.hmac]
+version = "0.10.1"
+
+[dependencies.sha2]
+version = "0.9.3"
+default-features = false
+
+[dependencies.aes-gcm]
+#version = "0.8.0"
+path = "../../AEADs/aes-gcm"
+default-features = false
+features = ["heapless", "aes"]
+
+[dependencies.digest]
+version = "0.9"
+default-features = false
+
 # ----------------------------------------
 # es-wifi dependencies
 # ----------------------------------------

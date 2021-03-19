@@ -10,6 +10,7 @@ use crate::driver::tls::config::Config;
 use crate::driver::tls::content_types::ContentType;
 use crate::driver::tls::extensions::ClientExtension;
 use crate::driver::tls::extensions::ExtensionType::SupportedVersions;
+use crate::driver::tls::handshake::client_hello::ClientHello;
 use crate::driver::tls::handshake::server_hello::ServerHello;
 use crate::driver::tls::max_fragment_length::MaxFragmentLength;
 use crate::driver::tls::named_groups::NamedGroup;
@@ -17,6 +18,7 @@ use crate::driver::tls::signature_schemes::SignatureScheme;
 use crate::driver::tls::supported_versions::{ProtocolVersion, TLS13};
 use crate::driver::tls::TlsError;
 use crate::driver::tls::TlsError::InvalidHandshake;
+use sha2::Digest;
 
 pub mod client_hello;
 pub mod server_hello;
@@ -63,16 +65,24 @@ impl HandshakeType {
     }
 }
 
+pub enum ClientHandshake<'config, R>
+where
+    R: CryptoRng + RngCore + Copy,
+{
+    ClientHello(ClientHello<'config, R>),
+}
+
 #[derive(Debug)]
-pub enum Handshake {
+pub enum ServerHandshake {
     ServerHello(ServerHello),
 }
 
-impl Handshake {
-    pub async fn parse<T: TcpStack>(
+impl ServerHandshake {
+    pub async fn parse<D: Digest, T: TcpStack>(
         socket: &mut TcpSocket<T>,
         len: u16,
-    ) -> Result<Handshake, TlsError> {
+        digest: &mut D,
+    ) -> Result<Self, TlsError> {
         let mut header = [0; 4];
         let mut pos = 0;
         loop {
@@ -88,9 +98,13 @@ impl Handshake {
                 let length = u32::from_be_bytes([0, header[1], header[2], header[3]]);
                 match handshake_type {
                     HandshakeType::ClientHello => Err(TlsError::Unimplemented),
-                    HandshakeType::ServerHello => Ok(Handshake::ServerHello(
-                        ServerHello::parse(socket, length as usize).await?,
-                    )),
+                    HandshakeType::ServerHello => {
+                        log::info!("hash [{:x?}]", &header);
+                        digest.update(&header);
+                        Ok(ServerHandshake::ServerHello(
+                            ServerHello::parse(socket, length as usize, digest).await?,
+                        ))
+                    }
                     HandshakeType::NewSessionTicket => Err(TlsError::Unimplemented),
                     HandshakeType::EndOfEarlyData => Err(TlsError::Unimplemented),
                     HandshakeType::EncryptedExtensions => Err(TlsError::Unimplemented),

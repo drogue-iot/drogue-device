@@ -26,7 +26,7 @@ impl SupportedVersion {
 }
 
 #[derive(Debug)]
-pub struct KeyShare(KeyShareEntry);
+pub struct KeyShare(pub(crate) KeyShareEntry);
 
 impl KeyShare {
     pub fn parse(buf: &mut ParseBuffer) -> Result<KeyShare, ParseError> {

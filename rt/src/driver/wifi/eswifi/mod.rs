@@ -19,6 +19,7 @@ use crate::driver::wifi::eswifi::ready::{EsWifiReady, EsWifiReadyPin};
 use crate::hal::gpio::InterruptPin;
 use crate::prelude::*;
 use core::fmt::Write;
+use core::str::from_utf8;
 use cortex_m::interrupt::Nr;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
 use heapless::{consts::*, ArrayLength, String};
@@ -248,7 +249,7 @@ where
         command: &[u8],
         response: &'a mut [u8],
     ) -> Result<&'a [u8], SpiError> {
-        //log::info!("send {:?}", core::str::from_utf8(command).unwrap());
+        log::info!("send {:x?}", core::str::from_utf8(command).unwrap());
 
         self.await_data_ready().await;
         {
@@ -282,10 +283,10 @@ where
             let result = spi.spi_transfer(&mut xfer).await?;
             response[pos] = xfer[1];
             pos += 1;
-            if xfer[0] != NAK {
-                response[pos] = xfer[0];
-                pos += 1;
-            }
+            //if xfer[0] != NAK {
+            response[pos] = xfer[0];
+            pos += 1;
+            //}
         }
         Ok(&response[0..pos])
     }
@@ -433,11 +434,11 @@ where
         unsafe {
             Response::defer_unchecked(async move {
                 let mut len = buf.len();
-                if len > 1046 {
-                    len = 1046
+                if len > 1460 {
+                    len = 1460
                 }
 
-                let mut response = [0u8; 1024];
+                let mut response = [0u8; 1460];
 
                 let result = async {
                     let command = command!(U8, "P0={}", handle);
@@ -445,17 +446,25 @@ where
                         .await
                         .map_err(|_| TcpError::WriteError)?;
 
-                    self.send_string(&command!(U8, "P0={}", handle), &mut response)
-                        .await
-                        .map_err(|_| TcpError::WriteError)?;
+                    //self.send_string(&command!(U8, "P0={}", handle), &mut response)
+                    //.await
+                    //.map_err(|_| TcpError::WriteError)?;
 
                     self.send_string(&command!(U16, "S1={}", len), &mut response)
                         .await
                         .map_err(|_| TcpError::WriteError)?;
 
+                    self.send_string(&command!(U8, "MT=0"), &mut response)
+                        .await
+                        .unwrap();
+
                     // to ensure it's an even number of bytes, abscond with 1 byte from the payload.
                     let prefix = [b'S', b'0', b'\r', buf[0]];
                     let remainder = &buf[1..len];
+
+                    log::info!("writing {} bytes", len);
+
+                    let mut num_sent = 0;
 
                     self.await_data_ready().await;
                     {
@@ -473,21 +482,26 @@ where
                             }
 
                             spi.spi_transfer(&mut xfer).await.unwrap();
+                            num_sent += 1;
                         }
 
                         for chunk in remainder.chunks(2) {
                             let mut xfer: [u8; 2] = [0; 2];
                             xfer[1] = chunk[0];
                             if chunk.len() == 2 {
-                                xfer[0] = chunk[1]
+                                xfer[0] = chunk[1];
+                                num_sent += 2;
                             } else {
-                                xfer[0] = 0x0A
+                                num_sent += 1;
+                                xfer[0] = 0x0A;
                             }
 
-                            //log::info!("transfer {:?}", xfer);
+                            log::info!("transfer {:?}", xfer);
                             spi.spi_transfer(&mut xfer).await.unwrap();
                         }
                     }
+
+                    log::info!("wrote {} bytes {}", len, num_sent);
 
                     self.await_data_ready().await;
 
@@ -495,6 +509,8 @@ where
                         .receive(&mut response)
                         .await
                         .map_err(|_| TcpError::WriteError)?;
+
+                    log::info!("response {}", from_utf8(response).unwrap());
 
                     if let Ok((_, WriteResponse::Ok(len))) = parser::write_response(response) {
                         Ok(len)
@@ -519,7 +535,7 @@ where
                 let mut buf_available = buf.len();
                 loop {
                     let result = async {
-                        let mut response = [0u8; 1100];
+                        let mut response = [0u8; 1460];
 
                         self.send_string(&command!(U8, "P0={}", handle), &mut response)
                             .await
@@ -562,8 +578,9 @@ where
                             .map_err(|_| TcpError::ReadError)?;
 
                         if let Ok((_, ReadResponse::Ok(data))) = parser::read_response(&response) {
+                            log::info!("read {}", data.len());
                             for (i, b) in data.iter().enumerate() {
-                                buf[i] = *b;
+                                buf[i + pos] = *b;
                             }
                             Ok(data.len())
                         } else {
@@ -578,6 +595,7 @@ where
                             log::info!("read {} at {}", len, pos);
                             pos += len;
                             buf_available -= len;
+                            //log::info!("==== {:x?}", &buf[0..pos]);
                             if len == 0 || buf_available == 0 {
                                 return (self, Ok(pos));
                             }

@@ -107,7 +107,7 @@ impl ClientExtension {
         .to_be_bytes()
     }
 
-    pub fn fill<N: ArrayLength<u8>>(&self, buf: &mut Vec<u8, N>) {
+    pub fn encode<N: ArrayLength<u8>>(&self, buf: &mut Vec<u8, N>) {
         buf.extend_from_slice(&self.extension_type());
         let extension_length_marker = buf.len();
         log::info!("marker at {}", extension_length_marker);

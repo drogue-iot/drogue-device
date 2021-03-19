@@ -4,8 +4,17 @@ use heapless::{consts::*, Vec};
 
 #[derive(Debug)]
 pub struct KeyShareEntry {
-    group: NamedGroup,
-    opaque: Vec<u8, U128>,
+    pub(crate) group: NamedGroup,
+    pub(crate) opaque: Vec<u8, U128>,
+}
+
+impl Clone for KeyShareEntry {
+    fn clone(&self) -> Self {
+        Self {
+            group: self.group,
+            opaque: self.opaque.clone(),
+        }
+    }
 }
 
 impl KeyShareEntry {

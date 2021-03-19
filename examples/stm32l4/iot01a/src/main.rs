@@ -199,9 +199,9 @@ fn main() -> ! {
     // == TLS ==
 
     let rng = Random::initialize(rng);
-    let config = Config::<Random>::new(rng);
+    let tls_config = Config::<Random>::new(rng);
 
-    let tls = TlsTcpStack::<<WifiAdapter as Package>::Primary, Random>::new( config );
+    let tls = TlsTcpStack::<<WifiAdapter as Package>::Primary, Random>::new();
 
     // == Application Logic ==
 
@@ -210,6 +210,7 @@ fn main() -> ! {
     // == Device ==
 
     let device = MyDevice {
+        tls_config,
         spi,
         wifi,
         tls: ActorContext::new( tls ).with_name("tls"),
@@ -225,5 +226,5 @@ fn main() -> ! {
         timer,
     };
 
-    device!( MyDevice = device; 10240 );
+    device!( MyDevice = device; 20480 );
 }

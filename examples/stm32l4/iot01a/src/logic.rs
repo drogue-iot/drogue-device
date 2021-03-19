@@ -76,8 +76,8 @@ where
                         Ok(_) => {
                             log::info!("connected to TLS server");
                         }
-                        Err(_) => {
-                            log::info!("unable to connect TLS server");
+                        Err(e) => {
+                            log::info!("unable to connect TLS server {:?}", e);
                         }
                     }
                 }

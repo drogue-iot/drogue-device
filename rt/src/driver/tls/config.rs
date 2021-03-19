@@ -5,6 +5,7 @@ use crate::driver::tls::signature_schemes::SignatureScheme;
 use heapless::{consts::*, Vec};
 use rand_core::{CryptoRng, RngCore};
 
+#[derive(Debug)]
 pub struct Config<RNG>
 where
     RNG: CryptoRng + RngCore,
