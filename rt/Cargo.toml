@@ -44,6 +44,10 @@ version = "1.0.0"
 [dependencies.bbqueue]
 version = "0.4"
 
+[dependencies.stm32f4xx-hal]
+version = "0.8"
+optional = true
+
 [dependencies.stm32l4xx-hal]
 version = "0.6.0"
 features = ["rt"]
@@ -126,6 +130,7 @@ default-features = false
 # let's deprecate these
 stm32l4xx = [ "stm32l4xx-hal" ]
 
+"chip+stm32f4xx" = [ "stm32f4xx-hal" ]
 "chip+stm32l4xx" = [ "stm32l4xx-hal" ]
 "chip+nrf52833" = [ "nrf52833-hal" ]
 "chip+nrf51" = [ "nrf51-hal", "bbqueue/thumbv6", "drogue-arch/isa+thumbv6" ]
