@@ -5,5 +5,3 @@ Cargo.lock
 logs
 .DS_Store
 log
-
-wifi.*.txt
