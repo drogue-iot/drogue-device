@@ -33,9 +33,9 @@ use lora_common::*;
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
 
-const DEV_EUI: &str = include_str!("dev_eui.txt");
-const APP_EUI: &str = include_str!("app_eui.txt");
-const APP_KEY: &str = include_str!("app_key.txt");
+const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/dev_eui.txt"));
+const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_eui.txt"));
+const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_key.txt"));
 
 #[entry]
 fn main() -> ! {

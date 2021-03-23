@@ -22,8 +22,8 @@ will assume cargo-embed is used.
 === Configuring
 
 To use this example, you need to edit the ENDPOINT and ENDPOINT_PORT variables in `src/main.rs`. You
-also need to store your WiFi access point ssid in `src/wifi.ssid.txt` and pre-shared key in
-`src/wifi.password.txt`.
+also need to store your WiFi access point ssid in `config/wifi.ssid.txt` and pre-shared key in
+`config/wifi.password.txt`.
 
 === Building
 

@@ -18,6 +18,12 @@ https://crates.io/crates/cargo-embed[cargo-embed] installed. In pratice
 you can use whatever tool you want to flash the device, but this guide
 will assume cargo-embed is used.
 
+=== Configuring
+
+To use this example, you need to create the files `config/dev_eui.txt`, `config/app_eui.txt`, and
+`config/app_key.txt` to configure the device EUI, application EUI, and application key for OTAA
+configuration of your device.
+
 === Building
 
 Make sure you have the correct target architecture supported in rust:

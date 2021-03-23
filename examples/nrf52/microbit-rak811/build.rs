@@ -9,9 +9,23 @@
 //! new memory settings.
 
 use std::env;
-use std::fs::File;
+use std::fs::{self, File, OpenOptions};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+fn copy_config(out: &PathBuf, file: &str) {
+    if Path::new(file).exists() {
+        fs::copy(file, out.join(file)).expect("error copying file");
+        println!("cargo:rerun-if-changed={}", file);
+    } else {
+        println!("Unable to locate config file {}. Creating empty file (your application may not work)", file);
+        // Ok if this doesnt work, it will fail during build
+        let _ = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(out.join(file));
+    }
+}
 
 fn main() {
     // Put `memory.x` in our output directory and ensure it's
@@ -22,6 +36,12 @@ fn main() {
         .write_all(include_bytes!("memory.x"))
         .unwrap();
     println!("cargo:rustc-link-search={}", out.display());
+
+    // Copy credentials
+    fs::create_dir_all(out.join("config")).expect("error creating output directory for config");
+    copy_config(&out, "config/dev_eui.txt");
+    copy_config(&out, "config/app_eui.txt");
+    copy_config(&out, "config/app_key.txt");
 
     // By default, Cargo will re-run a build script whenever
     // any file in the project changes. By specifying `memory.x`
