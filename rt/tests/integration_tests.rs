@@ -23,10 +23,6 @@ fn setup() {
     });
 }
 
-fn make_static<T>(v: &T) -> &'static T {
-    unsafe { std::mem::transmute(v) }
-}
-
 fn panic_after<T, F>(d: Duration, f: F) -> T
 where
     T: Send + 'static,
@@ -46,21 +42,25 @@ where
     }
 }
 
+static INITIALIZED: AtomicBool = AtomicBool::new(false);
+
 #[test]
 fn test_device_setup() {
     setup();
 
-    let mount_called = AtomicBool::new(false);
-    let initialized = make_static(&mount_called);
-    let device = MyDevice { initialized };
-
     thread::spawn(|| {
-        device!(MyDevice = device; 1024);
+        device!(MyDevice = configure; 1024);
     });
 
     panic_after(Duration::from_secs(5), move || {
-        while !initialized.load(Ordering::SeqCst) {}
+        while !INITIALIZED.load(Ordering::SeqCst) {}
     })
+}
+
+fn configure() -> MyDevice {
+    MyDevice {
+        initialized: &INITIALIZED,
+    }
 }
 
 struct MyDevice {

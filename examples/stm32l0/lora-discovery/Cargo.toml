@@ -1,0 +1,47 @@
+[package]
+name = "lora-discovery"
+version = "0.1.0"
+authors = ["Ulf Lilleengen <ulf.lilleenge@gmail.com>"]
+edition = "2018"
+categories = [
+    "embedded",
+    "hardware-support",
+    "no-std",
+]
+
+[dependencies]
+cortex-m = "0.6"
+cortex-m-rt = {version = "0.6", features = ["device"] }
+rtt-target = {version = "0.2.0", features = ["cortex-m"] }
+panic-rtt-target = { version = "0.1.1", features = ["cortex-m"] }
+log = "0.4.11"
+rtt-logger = "0.1.0"
+lora-common = { path = "../../common/lora" }
+drogue-device = { path = "../../../rt", features = ["chip+stm32l0xx", "lora+sx127x"]}
+
+#[dependencies.sx12xx]
+#path = "../../../../../rust-sx12xx"
+
+#[dependencies.lorawan-device]
+##git = "https://github.com/lulf/rust-lorawan.git"
+#path = "../../../../../rust-lorawan/device"
+#default-features = false
+#features = ["region+eu868"]
+#
+#[dependencies.lorawan-crypto]
+## git = "https://github.com/lulf/rust-lorawan-crypto.git"
+#path = "../../../../../rust-lorawan-crypto"
+
+[dependencies.stm32l0xx-hal]
+git                    = "https://github.com/stm32-rs/stm32l0xx-hal.git"
+features               = ["stm32l0x2","rt", "io-STM32L071"]
+branch                 = "master"
+
+[profile.release]
+debug = true
+#opt-level = 1
+opt-level = "z"
+lto = true
+
+[patch.crates-io]
+cortex-m-rt = {branch = "v0.6.x", git = "https://github.com/lulf/cortex-m-rt.git", features = ["device"]}

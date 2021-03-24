@@ -37,8 +37,7 @@ const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/dev_eui.txt
 const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_eui.txt"));
 const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_key.txt"));
 
-#[entry]
-fn main() -> ! {
+fn configure() -> MyDevice {
     //rtt_init_print!();
     rtt_init_print!();
     log::set_logger(&LOGGER).unwrap();
@@ -81,7 +80,7 @@ fn main() -> ! {
         hal::pac::Interrupt::UARTE0_UART0,
     );
 
-    let device = MyDevice {
+    MyDevice {
         button: ActorContext::new(Button::new(button_pin, Active::Low)).with_name("button"),
         gpiote: InterruptContext::new(Gpiote::new(gpiote), hal::pac::Interrupt::GPIOTE)
             .with_name("gpiote"),
@@ -98,7 +97,10 @@ fn main() -> ! {
                 .app_key(&APP_KEY.into()),
         ))
         .with_name("application"),
-    };
+    }
+}
 
-    device!( MyDevice = device; 8192);
+#[entry]
+fn main() -> ! {
+    device!(MyDevice = configure; 8192);
 }

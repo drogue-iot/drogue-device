@@ -13,7 +13,7 @@ use core::task::{Context, Poll, Waker};
 use cortex_m::interrupt::Nr;
 
 pub trait Schedulable {
-    fn run(&self);
+    fn run(&mut self);
     fn get_expiration(&self) -> Milliseconds;
     fn set_expiration(&mut self, expiration: Milliseconds);
 }
@@ -110,7 +110,7 @@ impl<T: HalTimer> Scheduler for TimerActor<T> {
     where
         A: Actor + NotifyHandler<E> + 'static,
         DUR: Duration + Into<Milliseconds> + 'static,
-        E: Clone + 'static,
+        E: 'static,
     {
         let ms: Milliseconds = message.delay.into();
         // log::info!("schedule request {:?}", ms);
@@ -289,7 +289,7 @@ struct ScheduleDeadline<A, DUR, E>
 where
     A: Actor + NotifyHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds>,
-    E: Clone + 'static,
+    E: 'static,
 {
     expiration: Milliseconds,
     schedule: Schedule<A, DUR, E>,
@@ -299,10 +299,12 @@ impl<A, DUR, E> Schedulable for ScheduleDeadline<A, DUR, E>
 where
     A: Actor + NotifyHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds>,
-    E: Clone + 'static,
+    E: 'static,
 {
-    fn run(&self) {
-        self.schedule.address.notify(self.schedule.event.clone());
+    fn run(&mut self) {
+        self.schedule
+            .address
+            .notify(self.schedule.event.take().unwrap());
     }
 
     fn get_expiration(&self) -> Milliseconds {
@@ -314,11 +316,8 @@ where
     }
 }
 
-impl<
-        A: Actor + NotifyHandler<E> + 'static,
-        DUR: Duration + Into<Milliseconds>,
-        E: Clone + 'static,
-    > ScheduleDeadline<A, DUR, E>
+impl<A: Actor + NotifyHandler<E> + 'static, DUR: Duration + Into<Milliseconds>, E: 'static>
+    ScheduleDeadline<A, DUR, E>
 {
     fn new(expiration: Milliseconds, schedule: Schedule<A, DUR, E>) -> Self {
         Self {

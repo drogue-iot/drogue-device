@@ -12,6 +12,7 @@ where
     cortex_m::interrupt::free(f)
 }
 
+
 // Copyright James Munns, original code copied from https://github.com/jamesmunns/bbqueue and modified to match
 // the atomic types used by drogue-device.
 #[cfg(feature = "isa+thumbv6")]
@@ -21,10 +22,13 @@ pub mod atomic {
         Ordering::{self, Acquire, Release},
     };
     use cortex_m::interrupt::free;
+use cortex_m::interrupt::Mutex;
+    static GLOBAL: Mutex<()> = Mutex::new(());
 
     #[inline(always)]
     pub fn fetch_add(atomic: &AtomicU8, val: u8, _order: Ordering) -> u8 {
-        free(|_| {
+        free(|cs| {
+            let _guard = GLOBAL.borrow(cs);
             let prev = atomic.load(Acquire);
             atomic.store(prev.wrapping_add(val), Release);
             prev
@@ -33,7 +37,8 @@ pub mod atomic {
 
     #[inline(always)]
     pub fn fetch_sub(atomic: &AtomicU8, val: u8, _order: Ordering) -> u8 {
-        free(|_| {
+        free(|cs| {
+            let _guard = GLOBAL.borrow(cs);
             let prev = atomic.load(Acquire);
             atomic.store(prev.wrapping_sub(val), Release);
             prev
@@ -42,7 +47,8 @@ pub mod atomic {
 
     #[inline(always)]
     pub fn swap(atomic: &AtomicBool, val: bool, _order: Ordering) -> bool {
-        free(|_| {
+        free(|cs| {
+            let _guard = GLOBAL.borrow(cs);
             let prev = atomic.load(Acquire);
             atomic.store(val, Release);
             prev

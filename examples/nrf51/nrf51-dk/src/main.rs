@@ -27,8 +27,7 @@ use crate::device::*;
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
 
-#[entry]
-fn main() -> ! {
+fn configure() -> MyDevice {
     rtt_init_print!();
     unsafe {
         log::set_logger_racy(&LOGGER).unwrap();
@@ -51,11 +50,14 @@ fn main() -> ! {
 
     let timer = Timer::new(NrfTimer::new(device.TIMER0), hal::pac::Interrupt::TIMER0);
 
-    let device = MyDevice {
+    MyDevice {
         led: ActorContext::new(led).with_name("led"),
         blinker: ActorContext::new(blinker).with_name("blinker"),
         timer,
-    };
+    }
+}
 
-    device!( MyDevice = device; 1024);
+#[entry]
+fn main() -> ! {
+    device!( MyDevice = configure; 1024);
 }

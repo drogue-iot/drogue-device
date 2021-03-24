@@ -24,19 +24,35 @@ path = "../arch"
 path = "../arena"
 
 [dependencies.cortex-m]
-version = "0.6.0"
+version = "0.6"
 
 [target.'cfg(target_arch="arm")'.dependencies.cortex-m-rt]
-version = "0.6.13"
+version = "0.6"
 
 [dependencies.log]
-version = "0.4.13"
+version = "0.4"
 
 [dependencies.embedded-hal]
 version = "0.2.4"
 features = ["unproven"]
 
+[dependencies.lorawan-device]
+git = "https://github.com/lulf/rust-lorawan.git"
+branch = "update-aes-cmac"
+default-features = false
+features = ["region+eu868"]
+optional = true
 
+[dependencies.lorawan-encoding]
+git = "https://github.com/lulf/rust-lorawan.git"
+branch = "update-aes-cmac"
+default-features = false
+optional = true
+features = ["default-crypto"]
+
+[dependencies.bit_field]
+version = "0.10"
+optional = true
 
 [dependencies.nb]
 version = "1.0.0"
@@ -50,7 +66,7 @@ features = ["rt"]
 optional = true
 
 [dependencies.stm32l0xx-hal]
-git = "https://github.com/lulf/stm32l0xx-hal.git"
+git = "https://github.com/stm32-rs/stm32l0xx-hal.git"
 features = ["rt", "disable-linker-script"]
 branch   = "master"
 optional = true
@@ -135,7 +151,8 @@ driver-rak811 = [ "drogue-rak811" ]
 fonts = []
 
 lora = []
-"lora+rak811" = [ "drogue-rak811" ]
+"lora+rak811" = [ "lora", "drogue-rak811" ]
+"lora+sx127x" = [ "lora", "lorawan-device", "lorawan-encoding", "bit_field" ]
 
 wifi = []
 "wifi+eswifi" = [ "wifi" ]

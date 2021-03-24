@@ -73,6 +73,8 @@ macro_rules! hal {
                     let ticks = *clock_rate.integer() / *deadline.integer() as u64;
                     let psc = ((ticks - 1) / (1 << 16));
 
+                    log::info!("Duration {}. Ticks: {}", duration, ticks);
+
                     self.tim.psc.write(|w| unsafe { w.psc().bits(psc as u16) });
 
                     let arr = ((ticks / (psc + 1)) & 0xFFFF) as u16;

@@ -46,8 +46,7 @@ use stm32l4xx_hal::time::MegaHertz;
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
 //static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
 
-#[entry]
-fn main() -> ! {
+fn configure() -> MyDevice {
     //rtt_init_print!();
     rtt_init_print!(BlockIfFull);
     log::set_logger(&LOGGER).unwrap();
@@ -190,7 +189,7 @@ fn main() -> ! {
 
     // == Device ==
 
-    let device = MyDevice {
+    MyDevice {
         spi,
         wifi,
         logic: ActorContext::new(logic).with_name("logic"),
@@ -203,7 +202,10 @@ fn main() -> ! {
         hts221,
         button: InterruptContext::new(button, EXTI15_10).with_name("button"),
         timer,
-    };
+    }
+}
 
-    device!( MyDevice = device; 10240 );
+#[entry]
+fn main() -> ! {
+    device!(MyDevice = configure; 10240);
 }
