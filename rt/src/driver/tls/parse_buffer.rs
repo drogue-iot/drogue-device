@@ -19,6 +19,12 @@ impl<'b> Into<ParseBuffer<'b>> for &'b [u8] {
     }
 }
 
+impl<'b, N: ArrayLength<u8>> Into<Result<Vec<u8, N>, ()>> for ParseBuffer<'b> {
+    fn into(self) -> Result<Vec<u8, N>, ()> {
+        Vec::from_slice(&self.buffer[self.pos..])
+    }
+}
+
 impl<'b> ParseBuffer<'b> {
     pub fn new(buffer: &'b [u8]) -> Self {
         Self { pos: 0, buffer }

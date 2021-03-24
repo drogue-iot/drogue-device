@@ -14,8 +14,14 @@ use sha2::{Digest, Sha256};
 
 use crate::driver::tls::application_data::ApplicationData;
 use crate::driver::tls::content_types::ContentType;
+use crate::driver::tls::parse_buffer::ParseBuffer;
 use aes_gcm::aead::{generic_array::GenericArray, AeadInPlace, Buffer, NewAead};
 use aes_gcm::Aes128Gcm;
+
+enum State {
+    Handhshaking,
+    HandshakeComplete,
+}
 
 pub struct TlsConnection<RNG, D>
 where
@@ -24,6 +30,7 @@ where
 {
     delegate: TcpSocket<D>,
     config: &'static Config<RNG>,
+    state: State,
     key_schedule: KeySchedule<Sha256, U16, U12>,
 }
 
@@ -36,6 +43,7 @@ where
         Self {
             delegate,
             config,
+            state: State::Handhshaking,
             key_schedule: KeySchedule::new(),
         }
     }
@@ -58,8 +66,41 @@ where
     }
 
     async fn receive(&mut self) -> Result<ServerRecord, TlsError> {
-        let record =
+        let mut record =
             ServerRecord::read(&mut self.delegate, self.key_schedule.transcript_hash()).await?;
+
+        if let State::Handhshaking = self.state {
+            if let ServerRecord::ApplicationData(ApplicationData { header, mut data }) = record {
+                log::info!("decrypting {:x?}", &header);
+                let crypto = Aes128Gcm::new(&self.key_schedule.get_server_key());
+                let nonce = &self.key_schedule.get_server_nonce();
+                log::info!("server write nonce {:x?}", nonce);
+                let result = crypto.decrypt_in_place(
+                    &self.key_schedule.get_server_nonce(),
+                    &header,
+                    &mut data,
+                );
+
+                let content_type =
+                    ContentType::of(*data.last().unwrap()).ok_or(TlsError::InvalidRecord)?;
+
+                match content_type {
+                    ContentType::Handshake => {
+                        let mut buf = ParseBuffer::new(&data[..data.len() - 1]);
+                        //let inner = ServerHandshake::parse(&data[..data.len() - 1]);
+                        let inner = ServerHandshake::parse(&mut buf);
+                        log::debug!("===> inner ==> {:?}", inner);
+                        record = ServerRecord::Handshake(inner.unwrap());
+                    }
+                    _ => {
+                        return Err(TlsError::InvalidHandshake);
+                    }
+                }
+                log::debug!("decrypt result {:?}", result);
+                log::debug!("decrypted {:?} --> {:x?}", content_type, data);
+                self.key_schedule.increment_read_counter();
+            }
+        };
         log::info!(
             "**** receive, hash={:x?}",
             self.key_schedule.transcript_hash().clone().finalize()
@@ -73,47 +114,8 @@ where
             .connect(proto, dst)
             .await
             .map_err(|e| TlsError::TcpError(e))?;
-        log::info!("connected delegate socket");
-
         self.handshake().await?;
-
         log::info!("handshake complete");
-
-        /*
-        loop {
-            let next_record = self.receive().await?;
-            log::debug!("server record --> {:?}", next_record);
-
-            match next_record {
-                ServerRecord::Handshake(_) => {}
-                ServerRecord::Alert => {}
-                ServerRecord::ApplicationData(ApplicationData { header, mut data }) => {
-                    log::info!("decrypting {:x?}", &header);
-                    let crypto = Aes128Gcm::new(&self.key_schedule.get_server_key());
-                    let nonce = &self.key_schedule.get_server_nonce();
-                    log::info!("server write nonce {:x?}", nonce);
-                    let result = crypto.decrypt_in_place(
-                        &self.key_schedule.get_server_nonce(),
-                        &header,
-                        &mut data,
-                    );
-                    log::debug!("decrypt result {:?}", result);
-                    let content_type = ContentType::of(data[data.len() - 1]);
-                    log::debug!("content-type {:?}", content_type);
-                    //log::debug!("decrypted --> {:x?}", data);
-                    log::debug!("hi");
-                    //ServerRecord::parse(result);
-                    if result.is_err() {
-                        panic!("unable to decrypt");
-                        break;
-                    }
-                    self.key_schedule.increment_read_counter();
-                }
-                ServerRecord::ChangeCipherSpec(_) => {}
-            }
-        }
-
-         */
         Ok(())
     }
 
@@ -138,20 +140,22 @@ where
                                 .calculate_shared_secret(&client_hello.secret)
                                 .ok_or(TlsError::InvalidKeyShare)?;
 
-                            log::info!("ecdhe {:x?}", shared.as_bytes());
-
                             self.key_schedule
                                 .initialize_handshake_secret(shared.as_bytes());
-
-                            log::info!("***** handshake key schedule initialized");
                         }
                     }
                     ServerHandshake::EncryptedExtensions(_) => {}
+                    ServerHandshake::Certificate(_) => {}
+                    ServerHandshake::CertificateVerify(_) => {}
+                    ServerHandshake::Finished(_) => {
+                        log::info!("FINISHED!")
+                    }
                 },
                 ServerRecord::Alert => {
                     unimplemented!("alert not handled")
                 }
                 ServerRecord::ApplicationData(application_data) => {
+                    /*
                     match application_data {
                         ApplicationData { header, mut data } => {
                             log::info!("decrypting {:x?}", &header);
@@ -172,7 +176,9 @@ where
                                 ContentType::ChangeCipherSpec => {}
                                 ContentType::Alert => {}
                                 ContentType::Handshake => {
-                                    let inner = ServerHandshake::parse(&data[..data.len() - 1]);
+                                    let mut buf = ParseBuffer::new(&data[..data.len() - 1]);
+                                    //let inner = ServerHandshake::parse(&data[..data.len() - 1]);
+                                    let inner = ServerHandshake::parse(&mut buf);
                                     log::debug!("===> inner ==> {:?}", inner);
                                 }
                                 ContentType::ApplicationData => {}
@@ -182,6 +188,7 @@ where
                         }
                     }
                     self.key_schedule.increment_read_counter();
+                     */
                 }
                 ServerRecord::ChangeCipherSpec(..) => {
                     // ignore fake CCS

@@ -1,4 +1,5 @@
 use crate::api::ip::tcp::{TcpSocket, TcpStack};
+use crate::driver::tls::parse_buffer::ParseBuffer;
 use crate::driver::tls::TlsError;
 use heapless::{ArrayLength, Vec};
 
@@ -26,7 +27,7 @@ impl ChangeCipherSpec {
         Ok(Self {})
     }
 
-    pub fn parse<N: ArrayLength<u8>>(buf: &Vec<u8, N>) -> Result<Self, TlsError> {
+    pub fn parse<N: ArrayLength<u8>>(buf: &mut ParseBuffer) -> Result<Self, TlsError> {
         Ok(Self {})
     }
 }

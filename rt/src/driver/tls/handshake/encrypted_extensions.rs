@@ -10,11 +10,13 @@ pub struct EncryptedExtensions {
 }
 
 impl EncryptedExtensions {
-    pub fn parse(buf: &[u8]) -> Result<Self, TlsError> {
-        let extensions_len = u16::from_be_bytes([buf[0], buf[1]]) as usize;
-        let buf = &buf[2..];
+    pub fn parse(buf: &mut ParseBuffer) -> Result<Self, TlsError> {
+        //let extensions_len = u16::from_be_bytes([buf[0], buf[1]]) as usize;
+        let extensions_len = buf
+            .read_u16()
+            .map_err(|_| TlsError::InvalidExtensionsLength)?;
         log::info!("extensions length: {}", extensions_len);
-        let extensions = ServerExtension::parse_vector(&mut ParseBuffer::new(&buf))?;
+        let extensions = ServerExtension::parse_vector(buf)?;
         Ok(Self { extensions })
     }
 }

@@ -226,5 +226,5 @@ fn main() -> ! {
         timer,
     };
 
-    device!( MyDevice = device; 40960 );
+    device!( MyDevice = device; 65536 );
 }

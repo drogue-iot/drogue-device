@@ -11,19 +11,26 @@ use crate::driver::tls::content_types::ContentType;
 use crate::driver::tls::content_types::ContentType::Handshake;
 use crate::driver::tls::extensions::ClientExtension;
 use crate::driver::tls::extensions::ExtensionType::SupportedVersions;
+use crate::driver::tls::handshake::certificate::Certificate;
+use crate::driver::tls::handshake::certificate_verify::CertificateVerify;
 use crate::driver::tls::handshake::client_hello::ClientHello;
 use crate::driver::tls::handshake::encrypted_extensions::EncryptedExtensions;
+use crate::driver::tls::handshake::finished::Finished;
 use crate::driver::tls::handshake::server_hello::ServerHello;
 use crate::driver::tls::max_fragment_length::MaxFragmentLength;
 use crate::driver::tls::named_groups::NamedGroup;
+use crate::driver::tls::parse_buffer::ParseBuffer;
 use crate::driver::tls::signature_schemes::SignatureScheme;
 use crate::driver::tls::supported_versions::{ProtocolVersion, TLS13};
 use crate::driver::tls::TlsError;
 use crate::driver::tls::TlsError::InvalidHandshake;
 use sha2::Digest;
 
+pub mod certificate;
+pub mod certificate_verify;
 pub mod client_hello;
 pub mod encrypted_extensions;
+pub mod finished;
 pub mod server_hello;
 
 const LEGACY_VERSION: u16 = 0x0303;
@@ -51,6 +58,7 @@ pub enum HandshakeType {
 
 impl HandshakeType {
     pub fn of(num: u8) -> Option<Self> {
+        log::info!("find handshake type of {}", num);
         match num {
             1 => Some(HandshakeType::ClientHello),
             2 => Some(HandshakeType::ServerHello),
@@ -79,6 +87,9 @@ where
 pub enum ServerHandshake {
     ServerHello(ServerHello),
     EncryptedExtensions(EncryptedExtensions),
+    Certificate(Certificate),
+    CertificateVerify(CertificateVerify),
+    Finished(Finished),
 }
 
 impl ServerHandshake {
@@ -123,12 +134,12 @@ impl ServerHandshake {
         }
     }
 
-    pub fn parse(buf: &[u8]) -> Result<Self, TlsError> {
-        let handshake_type = HandshakeType::of(buf[0]).ok_or(TlsError::InvalidHandshake)?;
+    pub fn parse(buf: &mut ParseBuffer) -> Result<Self, TlsError> {
+        let handshake_type =
+            HandshakeType::of(buf.read_u8().map_err(|_| TlsError::InvalidHandshake)?)
+                .ok_or(TlsError::InvalidHandshake)?;
 
-        let content_len = u32::from_be_bytes([0, buf[1], buf[2], buf[3]]);
-
-        let buf = &buf[4..];
+        let content_len = buf.read_u24().map_err(|_| TlsError::InvalidHandshake)?;
 
         match handshake_type {
             //HandshakeType::ClientHello => {}
@@ -138,10 +149,18 @@ impl ServerHandshake {
             HandshakeType::EncryptedExtensions => Ok(ServerHandshake::EncryptedExtensions(
                 EncryptedExtensions::parse(buf)?,
             )),
-            //HandshakeType::Certificate => {}
+            HandshakeType::Certificate => {
+                Ok(ServerHandshake::Certificate(Certificate::parse(buf)?))
+            }
+
             //HandshakeType::CertificateRequest => {}
-            //HandshakeType::CertificateVerify => {}
-            //HandshakeType::Finished => {}
+            HandshakeType::CertificateVerify => Ok(ServerHandshake::CertificateVerify(
+                CertificateVerify::parse(buf)?,
+            )),
+            HandshakeType::Finished => Ok(ServerHandshake::Finished(Finished::parse(
+                buf,
+                content_len,
+            )?)),
             //HandshakeType::KeyUpdate => {}
             //HandshakeType::MessageHash => {}
             _ => Err(TlsError::Unimplemented),

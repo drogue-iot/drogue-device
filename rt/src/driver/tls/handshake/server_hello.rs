@@ -42,14 +42,14 @@ impl ServerHello {
 
         log::info!("hash [{:x?}]", &buf[0..content_length]);
         digest.update(&buf);
-        Self::parse(&mut buf, digest)
+        Self::parse(&mut ParseBuffer::new(&mut buf))
     }
 
-    pub fn parse<D: Digest>(buf: &[u8], digest: &mut D) -> Result<Self, TlsError> {
+    pub fn parse(buf: &mut ParseBuffer) -> Result<Self, TlsError> {
         //let mut buf = ParseBuffer::new(&buf[0..content_length]);
-        let mut buf = ParseBuffer::new(&buf);
+        //let mut buf = ParseBuffer::new(&buf);
 
-        let version = buf.read_u16();
+        let version = buf.read_u16().map_err(|_| TlsError::InvalidHandshake)?;
 
         let mut random = [0; 32];
         buf.fill(&mut random);
@@ -78,7 +78,7 @@ impl ServerHello {
             .map_err(|_| TlsError::InvalidExtensionsLength)?;
         //log::info!("sh 5 {}", extensions_length);
 
-        let extensions = ServerExtension::parse_vector(&mut buf)?;
+        let extensions = ServerExtension::parse_vector(buf)?;
         //log::info!("sh 6");
 
         log::info!("server random {:x?}", random);

@@ -1,6 +1,7 @@
 use crate::api::ip::tcp::TcpError;
 
 pub mod application_data;
+pub mod certificate_types;
 pub mod change_cipher_spec;
 pub mod cipher_suites;
 pub mod config;
@@ -27,11 +28,14 @@ pub enum TlsError {
     UnknownExtensionType,
     InvalidHandshake,
     InvalidCipherSuite,
+    InvalidSignatureScheme,
+    InvalidSignature,
     InvalidExtensionsLength,
     InvalidSessionIdLength,
     InvalidSupportedVersions,
     InvalidApplicationData,
     InvalidKeyShare,
+    InvalidCertificate,
     UnableToInitializeCryptoEngine,
 }
 
