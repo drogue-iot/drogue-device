@@ -8,7 +8,7 @@ use crate::domain::time::{
     fixed_point::FixedPoint,
     rate::{Hertz, Millihertz},
 };
-use core::sync::atomic::{compiler_fence, Ordering::SeqCst};
+use atomic_polyfill::{compiler_fence, Ordering::SeqCst};
 
 /// Hardware timers
 pub struct HardwareTimer<T> {

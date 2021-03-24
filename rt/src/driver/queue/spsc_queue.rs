@@ -2,11 +2,10 @@ use crate::api::queue::*;
 use crate::arch::atomic;
 use crate::prelude::*;
 use crate::synchronization::Signal;
+use atomic_polyfill::{AtomicBool, Ordering};
 use core::cell::{RefCell, UnsafeCell};
 use core::future::Future;
 use core::pin::Pin;
-use core::sync::atomic::AtomicBool;
-use core::sync::atomic::Ordering;
 use core::task::{Context, Poll};
 use heapless::{
     spsc::{Consumer, Producer, Queue as HQueue},

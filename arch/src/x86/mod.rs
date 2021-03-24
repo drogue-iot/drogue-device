@@ -34,7 +34,7 @@ where
 
 #[cfg(not(feature = "thumbv6"))]
 pub mod atomic {
-    use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+    use atomic_polyfill::{AtomicBool, AtomicU8, Ordering};
 
     #[inline(always)]
     pub fn fetch_add(atomic: &AtomicU8, val: u8, order: Ordering) -> u8 {

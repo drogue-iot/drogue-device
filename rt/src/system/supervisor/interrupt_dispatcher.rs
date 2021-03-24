@@ -1,7 +1,7 @@
 use heapless::{consts::*, Vec};
 
 use crate::prelude::*;
-use core::sync::atomic::Ordering;
+use atomic_polyfill::Ordering;
 use cortex_m::interrupt::Nr;
 use cortex_m::peripheral::NVIC;
 

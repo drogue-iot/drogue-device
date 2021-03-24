@@ -89,6 +89,10 @@ branch = "uarte-embedded-serial"
 features = ["rt"]
 optional = true
 
+[dependencies.atomic-polyfill]
+git = "https://github.com/embassy-rs/atomic-polyfill"
+branch = "main"
+
 # ----------------------------------------
 # es-wifi dependencies
 # ----------------------------------------

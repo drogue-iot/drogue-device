@@ -2,10 +2,9 @@ use crate::api::uart::Error;
 use crate::arch::atomic;
 use crate::synchronization::Signal;
 use crate::util::dma::async_bbqueue::*;
+use atomic_polyfill::{AtomicBool, Ordering};
 use core::future::Future;
 use core::pin::Pin;
-use core::sync::atomic::AtomicBool;
-use core::sync::atomic::Ordering;
 use core::task::{Context, Poll};
 
 const READY_STATE: bool = false;

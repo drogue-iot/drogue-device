@@ -1,10 +1,10 @@
 use crate::arch::with_critical_section;
 use crate::hal::gpio::InterruptPin;
 use crate::prelude::*;
+use atomic_polyfill::{AtomicBool, Ordering};
 use core::cell::RefCell;
 use core::future::Future;
 use core::pin::Pin;
-use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll, Waker};
 use cortex_m::interrupt::Nr;
 use embedded_hal::digital::v2::InputPin;

@@ -522,7 +522,7 @@ mod tests {
     extern crate std;
     use super::*;
     use crate::driver::timer::TimerActor;
-    use core::sync::atomic::*;
+    use atomic_polyfill::*;
     use futures::executor::block_on;
     use std::boxed::Box;
 

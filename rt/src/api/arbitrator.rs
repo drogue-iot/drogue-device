@@ -1,9 +1,9 @@
 use crate::arch::atomic;
 use crate::prelude::*;
+use atomic_polyfill::{AtomicBool, Ordering};
 use core::cell::RefCell;
 use core::future::Future;
 use core::pin::Pin;
-use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll, Waker};
 use heapless::{consts::*, spsc::Queue};
 

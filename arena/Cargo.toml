@@ -22,3 +22,7 @@ version = "0.4"
 
 [dependencies.paste]
 version = "1.0.4"
+
+[dependencies.atomic-polyfill]
+git = "https://github.com/embassy-rs/atomic-polyfill"
+branch = "main"

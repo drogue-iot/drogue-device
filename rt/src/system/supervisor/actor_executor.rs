@@ -3,8 +3,8 @@ use heapless::{consts::*, Vec};
 use crate::arch::atomic;
 use crate::system::actor::{Actor, ActorContext, CURRENT};
 use crate::system::device::Lifecycle;
+use atomic_polyfill::{AtomicU8, Ordering};
 use core::cmp::PartialEq;
-use core::sync::atomic::{AtomicU8, Ordering};
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
 #[derive(PartialEq)]

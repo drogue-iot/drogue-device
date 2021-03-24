@@ -17,6 +17,10 @@ keywords = ["embedded", "no_std"]
 [dependencies.cortex-m]
 version = "0.6.0"
 
+[dependencies.atomic-polyfill]
+git = "https://github.com/embassy-rs/atomic-polyfill"
+branch = "main"
+
 [target.'cfg(target_arch="arm")'.dependencies.cortex-m-rt]
 version = "0.6.13"
 

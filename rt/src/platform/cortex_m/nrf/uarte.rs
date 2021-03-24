@@ -13,7 +13,7 @@ use hal::pac::{uarte0_ns as uarte0, UARTE0_NS as UARTE0, UARTE1_NS as UARTE1};
 use hal::pac::uarte0;
 
 use crate::api::uart::Error;
-use core::sync::atomic::{compiler_fence, Ordering::SeqCst};
+use atomic_polyfill::{compiler_fence, Ordering::SeqCst};
 
 use crate::arch::with_critical_section;
 use embedded_hal::serial;

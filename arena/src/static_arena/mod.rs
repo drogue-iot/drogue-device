@@ -12,8 +12,8 @@ use core::cell::RefCell;
 //use core::heap::Layout;
 use core::ptr::NonNull;
 
+use atomic_polyfill::{AtomicUsize, Ordering};
 use core::mem;
-use core::sync::atomic::{AtomicUsize, Ordering};
 use heap::layout::Layout;
 use heap::Heap;
 //use static_arena::interrupt::Mutex;

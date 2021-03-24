@@ -1,11 +1,11 @@
 //! Actor-related types and traits.
 
 use crate::arena::Arena;
+use atomic_polyfill::{AtomicBool, AtomicU8, Ordering};
 use core::cell::{RefCell, UnsafeCell};
 use core::future::Future;
 use core::mem::transmute;
 use core::pin::Pin;
-use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use core::task::{Context, Poll, Waker};
 
 use heapless::spsc::{Consumer, Producer};
