@@ -17,11 +17,11 @@ use embedded_hal::{
     digital::v2::{InputPin, OutputPin},
 };
 
-use lorawan_crypto::LorawanCrypto as Crypto;
 use lorawan_device::{
     radio, Device as LorawanDevice, Error as LorawanError, Event as LorawanEvent,
     Region as LorawanRegion, Response as LorawanResponse,
 };
+use lorawan_encoding::default_crypto::DefaultFactory as Crypto;
 
 mod sx127x_lora;
 mod sx127x_radio;

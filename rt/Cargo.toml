@@ -36,28 +36,19 @@ version = "0.4"
 version = "0.2.4"
 features = ["unproven"]
 
-[dependencies.lorawan-crypto]
-# path = "../../../rust-lorawan-crypto"
-git = "https://github.com/lthiery/rust-lorawan-crypto"
-branch = "master"
-default-features = false
-optional = true
-
 [dependencies.lorawan-device]
-# path = "../../../rust-lorawan/device"
-git = "https://github.com/ivajloip/rust-lorawan.git"
-branch = "master"
+git = "https://github.com/lulf/rust-lorawan.git"
+branch = "update-aes-cmac"
 default-features = false
 features = ["region+eu868"]
 optional = true
 
 [dependencies.lorawan-encoding]
-#path = "../../../rust-lorawan/encoding"
-git = "https://github.com/ivajloip/rust-lorawan.git"
-branch = "master"
+git = "https://github.com/lulf/rust-lorawan.git"
+branch = "update-aes-cmac"
 default-features = false
 optional = true
-# features = ["default-crypto"]
+features = ["default-crypto"]
 
 [dependencies.bit_field]
 version = "0.10"
@@ -161,7 +152,7 @@ fonts = []
 
 lora = []
 "lora+rak811" = [ "lora", "drogue-rak811" ]
-"lora+sx127x" = [ "lora", "lorawan-device", "lorawan-encoding", "lorawan-crypto", "bit_field" ]
+"lora+sx127x" = [ "lora", "lorawan-device", "lorawan-encoding", "bit_field" ]
 
 wifi = []
 "wifi+eswifi" = [ "wifi" ]
