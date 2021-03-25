@@ -53,12 +53,13 @@ where
     }
 }
 
-impl<L> NotifyHandler<ButtonEvent> for App<L>
+impl<L> RequestHandler<ButtonEvent> for App<L>
 where
     L: LoraDriver,
 {
-    fn on_notify(self, message: ButtonEvent) -> Completion<Self> {
-        Completion::defer(async move {
+    type Response = ();
+    fn on_request(self, message: ButtonEvent) -> Response<Self, ()> {
+        Response::defer(async move {
             match message {
                 ButtonEvent::Pressed => {
                     log::info!("[{}] button pressed, sending data", ActorInfo::name());
@@ -76,7 +77,7 @@ where
                 }
                 _ => {}
             }
-            self
+            (self, ())
         })
     }
 }

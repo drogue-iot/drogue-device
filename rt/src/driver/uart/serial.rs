@@ -245,15 +245,16 @@ where
     }
 }
 
-impl<TX, S> NotifyHandler<ReadTimeout> for SerialActor<TX, S>
+impl<TX, S> RequestHandler<ReadTimeout> for SerialActor<TX, S>
 where
     TX: Write<u8> + 'static,
     S: Scheduler + 'static,
 {
-    fn on_notify(self, message: ReadTimeout) -> Completion<Self> {
+    type Response = ();
+    fn on_request(self, message: ReadTimeout) -> Response<Self, Self::Response> {
         let state = self.state.as_ref().unwrap();
         state.signal_rx_timeout();
-        Completion::immediate(self)
+        Response::immediate(self, ())
     }
 }
 

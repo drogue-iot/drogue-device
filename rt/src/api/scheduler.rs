@@ -1,9 +1,9 @@
 use crate::domain::time::duration::{Duration, Milliseconds};
-use crate::prelude::{Actor, Address, Completion, NotifyHandler};
+use crate::prelude::{Actor, Address, RequestHandler, Response};
 
 pub struct Schedule<A, DUR, E>
 where
-    A: Actor + NotifyHandler<E> + 'static,
+    A: Actor + RequestHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds>,
     E: 'static,
 {
@@ -14,7 +14,7 @@ where
 
 impl<A, DUR, E> Schedule<A, DUR, E>
 where
-    A: Actor + NotifyHandler<E> + 'static,
+    A: Actor + RequestHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds>,
     E: 'static,
 {
@@ -30,21 +30,22 @@ where
 pub trait Scheduler: Actor {
     fn schedule<A, DUR, E>(&mut self, schedule: Schedule<A, DUR, E>)
     where
-        A: Actor + NotifyHandler<E> + 'static,
+        A: Actor + RequestHandler<E> + 'static,
         DUR: Duration + Into<Milliseconds> + 'static,
         E: 'static;
 }
 
-impl<S, E, A, DUR> NotifyHandler<Schedule<A, DUR, E>> for S
+impl<S, E, A, DUR> RequestHandler<Schedule<A, DUR, E>> for S
 where
     S: Scheduler + Actor + 'static,
     E: 'static,
-    A: Actor + NotifyHandler<E> + 'static,
+    A: Actor + RequestHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds> + 'static,
 {
-    fn on_notify(mut self, message: Schedule<A, DUR, E>) -> Completion<Self> {
+    type Response = ();
+    fn on_request(mut self, message: Schedule<A, DUR, E>) -> Response<Self, Self::Response> {
         self.schedule(message);
-        Completion::immediate(self)
+        Response::immediate(self, ())
     }
 }
 
@@ -53,7 +54,7 @@ impl<S: Scheduler> Address<S> {
     where
         DUR: Duration + Into<Milliseconds> + 'static,
         E: 'static,
-        A: Actor + NotifyHandler<E>,
+        A: Actor + RequestHandler<E>,
     {
         self.notify(Schedule::new(delay, event, address));
     }

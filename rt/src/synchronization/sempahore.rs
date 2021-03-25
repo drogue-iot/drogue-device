@@ -161,16 +161,17 @@ impl RequestHandler<Acquire> for SemaphoreActor {
 
     fn on_request(self, message: Acquire) -> Response<Self, Self::Response> {
         Response::defer(async move {
-            let sempaphore = self.acquire().await;
-            self.respond_with(sempaphore)
+            let semaphore = self.acquire().await;
+            (self, semaphore)
         })
     }
 }
 
-impl NotifyHandler<Release> for SemaphoreActor {
-    fn on_notify(self, message: Release) -> Completion<Self> {
+impl RequestHandler<Release> for SemaphoreActor {
+    type Response = ();
+    fn on_request(self, message: Release) -> Response<Self, Self::Response> {
         self.release();
-        Completion::immediate(self)
+        Response::immediate(self, ())
     }
 }
 

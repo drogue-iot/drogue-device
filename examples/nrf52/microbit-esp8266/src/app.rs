@@ -41,8 +41,8 @@ where
         }
     }
 
-    fn connect(mut self) -> Completion<Self> {
-        Completion::defer(async move {
+    fn connect(mut self) -> Response<Self, ()> {
+        Response::defer(async move {
             let driver = self.driver.as_ref().expect("driver not bound!");
             log::info!("Joining network");
             let ip = driver
@@ -68,12 +68,12 @@ where
                     log::info!("Error connecting to host: {:?}", e);
                 }
             }
-            self
+            (self, ())
         })
     }
 
-    fn send(self) -> Completion<Self> {
-        Completion::defer(async move {
+    fn send(self) -> Response<Self, ()> {
+        Response::defer(async move {
             if self.connected {
                 log::info!("Sending data");
                 let mut socket = self
@@ -111,7 +111,7 @@ where
                     }
                 }
             }
-            self
+            (self, ())
         })
     }
 }
@@ -126,11 +126,12 @@ where
     }
 }
 
-impl<NET> NotifyHandler<ButtonEvent> for App<NET>
+impl<NET> RequestHandler<ButtonEvent> for App<NET>
 where
     NET: WifiSupplicant + TcpStack + 'static,
 {
-    fn on_notify(self, message: ButtonEvent) -> Completion<Self> {
+    type Response = ();
+    fn on_request(self, message: ButtonEvent) -> Response<Self, Self::Response> {
         match message {
             ButtonEvent::Pressed => {
                 if !self.connected {
@@ -139,7 +140,7 @@ where
                     self.send()
                 }
             }
-            _ => Completion::immediate(self),
+            _ => Response::immediate(self, ()),
         }
     }
 }

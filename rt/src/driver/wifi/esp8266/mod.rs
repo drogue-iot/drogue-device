@@ -384,8 +384,8 @@ where
         }
     }
 
-    fn close(mut self, handle: Self::SocketHandle) -> Completion<Self> {
-        Completion::defer(async move {
+    fn close(mut self, handle: Self::SocketHandle) -> Response<Self, ()> {
+        Response::defer(async move {
             let command = Command::CloseConnection(handle as usize);
             match self.send(command).await {
                 Ok(AtResponse::Ok) | Ok(AtResponse::UnlinkFail) => {
@@ -394,7 +394,7 @@ where
                 }
                 _ => {}
             }
-            self
+            (self, ())
         })
     }
 }

@@ -219,16 +219,17 @@ where
     }
 }
 
-impl<T, TXN, RXN> NotifyHandler<ReadTimeout> for UartActor<T, TXN, RXN>
+impl<T, TXN, RXN> RequestHandler<ReadTimeout> for UartActor<T, TXN, RXN>
 where
     T: Scheduler + 'static,
     TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
-    fn on_notify(self, message: ReadTimeout) -> Completion<Self> {
+    type Response = ();
+    fn on_request(self, message: ReadTimeout) -> Response<Self, Self::Response> {
         let shared = self.shared.as_ref().unwrap();
         shared.signal_rx_timeout();
-        Completion::immediate(self)
+        Response::immediate(self, ())
     }
 }
 
@@ -253,14 +254,15 @@ where
     }
 }
 
-impl<U> NotifyHandler<RxTimeout> for UartController<U>
+impl<U> RequestHandler<RxTimeout> for UartController<U>
 where
     U: DmaUartHal,
 {
-    fn on_notify(self, message: RxTimeout) -> Completion<Self> {
+    type Response = ();
+    fn on_request(self, message: RxTimeout) -> Response<Self, Self::Response> {
         let uart = self.uart.as_ref().unwrap();
         uart.cancel_read();
-        Completion::immediate(self)
+        Response::immediate(self, ())
     }
 }
 
@@ -427,31 +429,33 @@ where
     }
 }
 
-impl<U, T, TXN, RXN> NotifyHandler<RxStart> for UartInterrupt<U, T, TXN, RXN>
+impl<U, T, TXN, RXN> RequestHandler<RxStart> for UartInterrupt<U, T, TXN, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
     TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
-    fn on_notify(mut self, message: RxStart) -> Completion<Self> {
+    type Response = ();
+    fn on_request(mut self, message: RxStart) -> Response<Self, Self::Response> {
         // log::info!("RX START");
         self.start_read(READ_SIZE, Milliseconds(READ_TIMEOUT));
-        Completion::immediate(self)
+        Response::immediate(self, ())
     }
 }
 
-impl<U, T, TXN, RXN> NotifyHandler<TxStart> for UartInterrupt<U, T, TXN, RXN>
+impl<U, T, TXN, RXN> RequestHandler<TxStart> for UartInterrupt<U, T, TXN, RXN>
 where
     U: DmaUartHal,
     T: Scheduler + 'static,
     TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
-    fn on_notify(mut self, message: TxStart) -> Completion<Self> {
+    type Response = ();
+    fn on_request(mut self, message: TxStart) -> Response<Self, Self::Response> {
         // log::info!("RX START");
         self.start_write();
-        Completion::immediate(self)
+        Response::immediate(self, ())
     }
 }
 

@@ -134,7 +134,7 @@ where
     }
 }
 
-impl<P, ROWS, COLS, S, F> NotifyHandler<Apply<F>> for LEDMatrix<P, ROWS, COLS, S>
+impl<P, ROWS, COLS, S, F> RequestHandler<Apply<F>> for LEDMatrix<P, ROWS, COLS, S>
 where
     P: OutputPin,
     ROWS: ArrayLength<P>,
@@ -142,59 +142,64 @@ where
     S: Scheduler,
     F: ToFrame,
 {
-    fn on_notify(mut self, message: Apply<F>) -> Completion<Self> {
+    type Response = ();
+    fn on_request(mut self, message: Apply<F>) -> Response<Self, Self::Response> {
         self.apply(message.0.to_frame());
-        Completion::immediate(self)
+        Response::immediate(self, ())
     }
 }
 
-impl<P, ROWS, COLS, S> NotifyHandler<On> for LEDMatrix<P, ROWS, COLS, S>
+impl<P, ROWS, COLS, S> RequestHandler<On> for LEDMatrix<P, ROWS, COLS, S>
 where
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
     S: Scheduler,
 {
-    fn on_notify(mut self, message: On) -> Completion<Self> {
+    type Response = ();
+    fn on_request(mut self, message: On) -> Response<Self, Self::Response> {
         self.on(message.0, message.1);
-        Completion::immediate(self)
+        Response::immediate(self, ())
     }
 }
 
-impl<P, ROWS, COLS, S> NotifyHandler<Off> for LEDMatrix<P, ROWS, COLS, S>
+impl<P, ROWS, COLS, S> RequestHandler<Off> for LEDMatrix<P, ROWS, COLS, S>
 where
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
     S: Scheduler,
 {
-    fn on_notify(mut self, message: Off) -> Completion<Self> {
+    type Response = ();
+    fn on_request(mut self, message: Off) -> Response<Self, Self::Response> {
         self.off(message.0, message.1);
-        Completion::immediate(self)
+        Response::immediate(self, ())
     }
 }
 
-impl<P, ROWS, COLS, S> NotifyHandler<Clear> for LEDMatrix<P, ROWS, COLS, S>
+impl<P, ROWS, COLS, S> RequestHandler<Clear> for LEDMatrix<P, ROWS, COLS, S>
 where
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
     S: Scheduler,
 {
-    fn on_notify(mut self, message: Clear) -> Completion<Self> {
+    type Response = ();
+    fn on_request(mut self, message: Clear) -> Response<Self, Self::Response> {
         self.clear();
-        Completion::immediate(self)
+        Response::immediate(self, ())
     }
 }
 
-impl<P, ROWS, COLS, S> NotifyHandler<Render> for LEDMatrix<P, ROWS, COLS, S>
+impl<P, ROWS, COLS, S> RequestHandler<Render> for LEDMatrix<P, ROWS, COLS, S>
 where
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
     S: Scheduler,
 {
-    fn on_notify(mut self, message: Render) -> Completion<Self> {
+    type Response = ();
+    fn on_request(mut self, message: Render) -> Response<Self, Self::Response> {
         self.render();
         if let Some(address) = self.address {
             self.timer.unwrap().schedule(
@@ -203,7 +208,7 @@ where
                 address,
             );
         }
-        Completion::immediate(self)
+        Response::immediate(self, ())
     }
 }
 

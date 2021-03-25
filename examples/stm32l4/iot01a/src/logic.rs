@@ -101,12 +101,13 @@ where
     }
 }
 
-impl<S> NotifyHandler<SensorAcquisition<Celsius>> for Logic<S>
+impl<S> RequestHandler<SensorAcquisition<Celsius>> for Logic<S>
 where
     S: WifiSupplicant + TcpStack + 'static,
 {
-    fn on_notify(self, message: SensorAcquisition<Celsius>) -> Completion<Self> {
+    type Response = ();
+    fn on_request(self, message: SensorAcquisition<Celsius>) -> Response<Self, ()> {
         //unimplemented!()
-        Completion::immediate(self)
+        Response::immediate(self, ())
     }
 }

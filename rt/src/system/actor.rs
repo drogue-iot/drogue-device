@@ -26,7 +26,7 @@ pub trait Configurable {
 
 /// Trait that each actor must implement.
 ///
-/// See also `NotifyHandler<...>` and `RequestHandler<...>`.
+/// See also `RequestHandler<...>`.
 pub trait Actor: Sized {
     type Configuration;
 
@@ -212,24 +212,27 @@ impl<A: Actor + 'static> ActorContext<A> {
     /// Dispatch a notification.
     pub(crate) fn notify<M>(&'static self, message: M)
     where
-        A: NotifyHandler<M>,
+        A: RequestHandler<M>,
         M: 'static,
     {
         log::trace!("[{}].notify(...)", self.name());
-        let notify = SystemArena::alloc(OnNotify::new(self, message)).unwrap();
-        let notify: Box<dyn ActorFuture<A>, SystemArena> = Box::new(notify);
-        with_critical_section(|cs| {
-            self.items_producer
-                .borrow_mut()
-                .as_mut()
-                .unwrap()
-                .enqueue(notify)
-                .unwrap_or_else(|_| panic!("too many messages"));
-            //self.items.enqueue(notify);
-        });
 
-        let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
+        let request: &mut dyn ActorFuture<A> =
+            SystemArena::alloc(OnNotify::new(self, message)).unwrap();
+
         unsafe {
+            let request: Box<dyn ActorFuture<A>, SystemArena> = Box::new(request);
+            with_critical_section(|cs| {
+                self.items_producer
+                    .borrow_mut()
+                    .as_mut()
+                    .unwrap()
+                    .enqueue(request)
+                    .unwrap_or_else(|_| panic!("message queue full"));
+            });
+
+            //let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
+            let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
             (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
         }
     }
@@ -453,16 +456,16 @@ impl<A: Actor> Future for OnLifecycle<A> {
 
 struct OnNotify<A: Actor, M>
 where
-    A: NotifyHandler<M> + 'static,
+    A: RequestHandler<M> + 'static,
 {
     actor: &'static ActorContext<A>,
     message: Option<M>,
-    defer: Option<Completion<A>>,
+    defer: Option<Response<A, A::Response>>,
 }
 
 impl<A: Actor, M> OnNotify<A, M>
 where
-    A: NotifyHandler<M>,
+    A: RequestHandler<M>,
 {
     pub fn new(actor: &'static ActorContext<A>, message: M) -> Self {
         Self {
@@ -473,13 +476,13 @@ where
     }
 }
 
-impl<A: Actor + NotifyHandler<M>, M> ActorFuture<A> for OnNotify<A, M> {}
+impl<A: Actor + RequestHandler<M>, M> ActorFuture<A> for OnNotify<A, M> {}
 
-impl<A, M> Unpin for OnNotify<A, M> where A: NotifyHandler<M> + Actor {}
+impl<A, M> Unpin for OnNotify<A, M> where A: RequestHandler<M> + Actor {}
 
 impl<A: Actor, M> Future for OnNotify<A, M>
 where
-    A: NotifyHandler<M>,
+    A: RequestHandler<M>,
 {
     type Output = ();
 
@@ -487,52 +490,36 @@ where
         log::trace!("[{}] Notify.poll()", self.actor.name());
         if self.message.is_some() {
             let actor = self.actor.take_actor().expect("actor is missing");
-            log::trace!(
-                "[{}] Notify.poll() - dispatch on_notification",
-                self.actor.name()
-            );
-            let completion = actor.on_notify(self.as_mut().message.take().unwrap());
+            let response = actor.on_request(self.as_mut().message.take().unwrap());
 
-            match completion {
-                Completion::Immediate(actor) => {
+            match response {
+                Response::Immediate(actor, val) => {
                     self.actor.replace_actor(actor);
-                    log::trace!("[{}] Notify.poll() - immediate: Ready", self.actor.name());
                     return Poll::Ready(());
                 }
-                Completion::Defer(_) => {
-                    self.defer.replace(completion);
+                Response::ImmediateFuture(actor, fut) => {
+                    self.actor.replace_actor(actor);
+                    return Poll::Ready(());
+                }
+                defer @ Response::Defer(_) => {
+                    self.defer.replace(defer);
                 }
             }
-            /*
-            if matches!(completion, Completion::Immediate(actor)) {
-                self.actor.replace_actor(actor);
-                log::trace!("[{}] Notify.poll() - immediate: Ready", self.actor.name());
-                return Poll::Ready(());
-            }
-            self.defer.replace(completion);
-
-             */
         }
 
-        log::trace!("[{}] Notify.poll() - check defer", self.actor.name());
-        if let Some(Completion::Defer(ref mut fut)) = &mut self.defer {
+        if let Some(Response::Defer(ref mut fut)) = &mut self.defer {
             let fut = Pin::new(fut);
             let result = fut.poll(cx);
             match result {
-                Poll::Ready(actor) => {
-                    log::trace!("[{}] Notify.poll() - defer: Ready", self.actor.name());
+                Poll::Ready(response) => {
+                    let actor = response.0;
                     self.actor.replace_actor(actor);
-                    //self.sender.send(response);
                     self.defer.take();
                     Poll::Ready(())
                 }
-                Poll::Pending => {
-                    log::trace!("[{}] Notify.poll() - defer: Pending", self.actor.name());
-                    Poll::Pending
-                }
+                Poll::Pending => Poll::Pending,
             }
         } else {
-            log::trace!("[{}] Notify.poll() - ERROR - no defer?", self.actor.name());
             // should not actually get here ever
             Poll::Ready(())
         }
