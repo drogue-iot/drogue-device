@@ -8,6 +8,7 @@ use drogue_device::{
         },
         wifi::{Join, WifiSupplicant},
     },
+    driver::button::ButtonEvent,
     prelude::*,
 };
 
@@ -37,18 +38,7 @@ where
             port,
         }
     }
-}
-
-impl<NET> Actor for App<NET>
-where
-    NET: WifiSupplicant + TcpStack + 'static,
-{
-    type Configuration = Address<NET>;
-    fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
-        log::info!("Bound wifi");
-        self.driver.replace(config);
-    }
-    fn on_start(mut self) -> Completion<Self> {
+    fn connect(mut self) -> Completion<Self> {
         Completion::defer(async move {
             let driver = self.driver.as_ref().expect("driver not bound!");
             log::info!("Joining network");
@@ -76,5 +66,28 @@ where
             }
             self
         })
+    }
+}
+
+impl<NET> Actor for App<NET>
+where
+    NET: WifiSupplicant + TcpStack + 'static,
+{
+    type Configuration = Address<NET>;
+    fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
+        log::info!("Bound wifi");
+        self.driver.replace(config);
+    }
+}
+
+impl<NET> NotifyHandler<ButtonEvent> for App<NET>
+where
+    NET: WifiSupplicant + TcpStack + 'static,
+{
+    fn on_notify(self, message: ButtonEvent) -> Completion<Self> {
+        match message {
+            ButtonEvent::Pressed => self.connect(),
+            _ => Completion::immediate(self),
+        }
     }
 }
