@@ -1,8 +1,11 @@
+use crate::driver::tls::handshake::finished::Finished;
 use core::marker::PhantomData;
 use digest::generic_array::ArrayLength;
 use digest::{BlockInput, FixedOutput, Reset, Update};
 use heapless::{consts::*, Vec};
 use hkdf::Hkdf;
+use hmac::crypto_mac::NewMac;
+use hmac::{Hmac, Mac};
 use sha2::digest::generic_array::{typenum::Unsigned, GenericArray};
 use sha2::Digest;
 
@@ -103,6 +106,24 @@ where
             &self.client_traffic_secret.as_ref().unwrap(),
             &self.make_hkdf_label(b"iv", ContextType::None, IvLen::to_u16()),
         )
+    }
+
+    pub fn verify_server_finished(&self, finished: &Finished<D>) -> bool {
+        log::info!("verify server finished: {:x?}", finished.verify);
+        //self.client_traffic_secret.as_ref().unwrap().expand()
+        log::info!("size ===> {}", D::OutputSize::to_u16());
+        let key: GenericArray<u8, D::OutputSize> = self.hkdf_expand_label(
+            self.server_traffic_secret.as_ref().unwrap(),
+            &self.make_hkdf_label(b"finished", ContextType::None, D::OutputSize::to_u16()),
+        );
+        log::info!("hmac sign key {:x?}", key);
+        let mut hmac = Hmac::<D>::new_varkey(&key).unwrap();
+        log::info!("CHECK HASH {:x?}", &finished.hash.as_ref().unwrap());
+        hmac.update(finished.hash.as_ref().unwrap());
+        //let code = hmac.clone().finalize().into_bytes();
+        hmac.verify(&finished.verify).is_ok()
+        //log::info!("verified {:?}", verified);
+        //unimplemented!()
     }
 
     fn get_nonce(&self, counter: u64, iv: &GenericArray<u8, IvLen>) -> GenericArray<u8, IvLen> {

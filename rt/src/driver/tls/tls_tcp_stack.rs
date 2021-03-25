@@ -9,25 +9,32 @@ use crate::driver::tls::record::{ClientRecord, ServerRecord};
 use crate::driver::tls::tls_connection::TlsConnection;
 use crate::driver::tls::TlsError;
 use crate::prelude::*;
-use heapless::{consts::*, Vec};
+use digest::{BlockInput, Digest, FixedOutput, Reset, Update};
+use heapless::{consts::*, ArrayLength, Vec};
 use rand_core::{CryptoRng, RngCore};
 
-pub struct TlsTcpStack<D, RNG>
+pub struct TlsTcpStack<Tcp, RNG, D>
 where
-    D: TcpStack + 'static,
+    Tcp: TcpStack + 'static,
     RNG: CryptoRng + RngCore + Copy + 'static,
+    D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
+    D::BlockSize: ArrayLength<u8>,
+    D::OutputSize: ArrayLength<u8>,
 {
-    delegate: Option<Address<D>>,
+    delegate: Option<Address<Tcp>>,
     pub(crate) config: Option<&'static Config<RNG>>,
-    connections: [Option<TlsConnection<RNG, D>>; 5],
+    connections: [Option<TlsConnection<RNG, Tcp, D>>; 5],
 }
 
-impl<D, RNG> Actor for TlsTcpStack<D, RNG>
+impl<Tcp, RNG, D> Actor for TlsTcpStack<Tcp, RNG, D>
 where
-    D: TcpStack + 'static,
+    Tcp: TcpStack + 'static,
     RNG: CryptoRng + RngCore + Copy + 'static,
+    D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
+    D::BlockSize: ArrayLength<u8>,
+    D::OutputSize: ArrayLength<u8>,
 {
-    type Configuration = (&'static Config<RNG>, Address<D>);
+    type Configuration = (&'static Config<RNG>, Address<Tcp>);
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where
@@ -38,10 +45,13 @@ where
     }
 }
 
-impl<D, RNG> TlsTcpStack<D, RNG>
+impl<Tcp, RNG, D> TlsTcpStack<Tcp, RNG, D>
 where
-    D: TcpStack + 'static,
+    Tcp: TcpStack + 'static,
     RNG: CryptoRng + RngCore + Copy,
+    D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
+    D::BlockSize: ArrayLength<u8>,
+    D::OutputSize: ArrayLength<u8>,
 {
     pub fn new() -> Self {
         Self {
@@ -52,10 +62,13 @@ where
     }
 }
 
-impl<D, RNG> TcpStack for TlsTcpStack<D, RNG>
+impl<Tcp, RNG, D> TcpStack for TlsTcpStack<Tcp, RNG, D>
 where
-    D: TcpStack + 'static,
+    Tcp: TcpStack + 'static,
     RNG: CryptoRng + RngCore + Copy,
+    D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
+    D::BlockSize: ArrayLength<u8>,
+    D::OutputSize: ArrayLength<u8>,
 {
     type SocketHandle = u8;
 

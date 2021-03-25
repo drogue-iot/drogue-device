@@ -24,6 +24,7 @@ use crate::driver::tls::signature_schemes::SignatureScheme;
 use crate::driver::tls::supported_versions::{ProtocolVersion, TLS13};
 use crate::driver::tls::TlsError;
 use crate::driver::tls::TlsError::InvalidHandshake;
+use core::fmt::{Debug, Formatter};
 use sha2::Digest;
 
 pub mod certificate;
@@ -42,6 +43,7 @@ const HELLO_RETRY_REQUEST_RANDOM: [u8; 32] = [
     0xC2, 0xA2, 0x11, 0x16, 0x7A, 0xBB, 0x8C, 0x5E, 0x07, 0x9E, 0x09, 0xE2, 0xC8, 0xA8, 0x33, 0x9C,
 ];
 
+#[derive(Debug, Copy, Clone)]
 pub enum HandshakeType {
     ClientHello = 1,
     ServerHello = 2,
@@ -83,17 +85,28 @@ where
     ClientHello(ClientHello<'config, R>),
 }
 
-#[derive(Debug)]
-pub enum ServerHandshake {
+pub enum ServerHandshake<D: Digest> {
     ServerHello(ServerHello),
     EncryptedExtensions(EncryptedExtensions),
     Certificate(Certificate),
     CertificateVerify(CertificateVerify),
-    Finished(Finished),
+    Finished(Finished<D>),
 }
 
-impl ServerHandshake {
-    pub async fn read<D: Digest, T: TcpStack>(
+impl<D: Digest> Debug for ServerHandshake<D> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match self {
+            ServerHandshake::ServerHello(inner) => Debug::fmt(inner, f),
+            ServerHandshake::EncryptedExtensions(inner) => Debug::fmt(inner, f),
+            ServerHandshake::Certificate(inner) => Debug::fmt(inner, f),
+            ServerHandshake::CertificateVerify(inner) => Debug::fmt(inner, f),
+            ServerHandshake::Finished(inner) => Debug::fmt(inner, f),
+        }
+    }
+}
+
+impl<D: Digest> ServerHandshake<D> {
+    pub async fn read<T: TcpStack>(
         socket: &mut TcpSocket<T>,
         len: u16,
         digest: &mut D,
@@ -146,9 +159,12 @@ impl ServerHandshake {
             //HandshakeType::ServerHello => {}
             //HandshakeType::NewSessionTicket => {}
             //HandshakeType::EndOfEarlyData => {}
-            HandshakeType::EncryptedExtensions => Ok(ServerHandshake::EncryptedExtensions(
-                EncryptedExtensions::parse(buf)?,
-            )),
+            HandshakeType::EncryptedExtensions => {
+                // todo, move digesting up
+                Ok(ServerHandshake::EncryptedExtensions(
+                    EncryptedExtensions::parse(buf)?,
+                ))
+            }
             HandshakeType::Certificate => {
                 Ok(ServerHandshake::Certificate(Certificate::parse(buf)?))
             }

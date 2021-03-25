@@ -1,7 +1,7 @@
 use crate::api::ip::tcp::{TcpError, TcpSocket, TcpStack};
 use crate::api::ip::{IpProtocol, SocketAddress};
 use crate::driver::tls::config::Config;
-use crate::driver::tls::handshake::{ClientHandshake, ServerHandshake};
+use crate::driver::tls::handshake::{ClientHandshake, HandshakeType, ServerHandshake};
 use crate::driver::tls::key_schedule::KeySchedule;
 use crate::driver::tls::record::{ClientRecord, ServerRecord};
 use crate::driver::tls::TlsError;
@@ -17,29 +17,36 @@ use crate::driver::tls::content_types::ContentType;
 use crate::driver::tls::parse_buffer::ParseBuffer;
 use aes_gcm::aead::{generic_array::GenericArray, AeadInPlace, Buffer, NewAead};
 use aes_gcm::Aes128Gcm;
+use digest::{BlockInput, FixedOutput, Reset, Update};
 
 enum State {
     Handhshaking,
     HandshakeComplete,
 }
 
-pub struct TlsConnection<RNG, D>
+pub struct TlsConnection<RNG, Tcp, D>
 where
     RNG: CryptoRng + RngCore + Copy + 'static,
-    D: TcpStack + 'static,
+    Tcp: TcpStack + 'static,
+    D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
+    D::BlockSize: ArrayLength<u8>,
+    D::OutputSize: ArrayLength<u8>,
 {
-    delegate: TcpSocket<D>,
+    delegate: TcpSocket<Tcp>,
     config: &'static Config<RNG>,
     state: State,
-    key_schedule: KeySchedule<Sha256, U16, U12>,
+    key_schedule: KeySchedule<D, U16, U12>,
 }
 
-impl<RNG, D> TlsConnection<RNG, D>
+impl<RNG, Tcp, D> TlsConnection<RNG, Tcp, D>
 where
     RNG: CryptoRng + RngCore + Copy,
-    D: TcpStack,
+    Tcp: TcpStack,
+    D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
+    D::BlockSize: ArrayLength<u8>,
+    D::OutputSize: ArrayLength<u8>,
 {
-    pub fn new(config: &'static Config<RNG>, delegate: TcpSocket<D>) -> Self {
+    pub fn new(config: &'static Config<RNG>, delegate: TcpSocket<Tcp>) -> Self {
         Self {
             delegate,
             config,
@@ -65,7 +72,7 @@ where
         Ok(())
     }
 
-    async fn receive(&mut self) -> Result<ServerRecord, TlsError> {
+    async fn receive(&mut self) -> Result<ServerRecord<D>, TlsError> {
         let mut record =
             ServerRecord::read(&mut self.delegate, self.key_schedule.transcript_hash()).await?;
 
@@ -86,18 +93,37 @@ where
 
                 match content_type {
                     ContentType::Handshake => {
+                        //let hash_later =
+                        //matches!(HandshakeType::of(data[0]), Some(HandshakeType::Finished));
+                        //if !hash_later {
+                        //self.key_schedule
+                        //.transcript_hash()
+                        //.update(&data[..data.len() - 1]);
+                        //log::info!("hash {:x?}", &data[..data.len() - 1]);
+                        //}
                         let mut buf = ParseBuffer::new(&data[..data.len() - 1]);
                         //let inner = ServerHandshake::parse(&data[..data.len() - 1]);
-                        let inner = ServerHandshake::parse(&mut buf);
+                        let mut inner = ServerHandshake::parse(&mut buf);
+                        if let Ok(ServerHandshake::Finished(ref mut finished)) = inner {
+                            finished
+                                .hash
+                                .replace(self.key_schedule.transcript_hash().clone().finalize());
+                        }
                         log::debug!("===> inner ==> {:?}", inner);
                         record = ServerRecord::Handshake(inner.unwrap());
+                        //if hash_later {
+                        self.key_schedule
+                            .transcript_hash()
+                            .update(&data[..data.len() - 1]);
+                        log::info!("hash {:x?}", &data[..data.len() - 1]);
+                        //}
                     }
                     _ => {
                         return Err(TlsError::InvalidHandshake);
                     }
                 }
                 log::debug!("decrypt result {:?}", result);
-                log::debug!("decrypted {:?} --> {:x?}", content_type, data);
+                //log::debug!("decrypted {:?} --> {:x?}", content_type, data);
                 self.key_schedule.increment_read_counter();
             }
         };
@@ -147,8 +173,10 @@ where
                     ServerHandshake::EncryptedExtensions(_) => {}
                     ServerHandshake::Certificate(_) => {}
                     ServerHandshake::CertificateVerify(_) => {}
-                    ServerHandshake::Finished(_) => {
-                        log::info!("FINISHED!")
+                    ServerHandshake::Finished(finished) => {
+                        let verified = self.key_schedule.verify_server_finished(&finished);
+                        log::info!("FINISHED! {}", verified);
+                        break;
                     }
                 },
                 ServerRecord::Alert => {
@@ -199,7 +227,7 @@ where
         Ok(())
     }
 
-    pub fn delegate_socket(&mut self) -> &mut TcpSocket<D> {
+    pub fn delegate_socket(&mut self) -> &mut TcpSocket<Tcp> {
         &mut self.delegate
     }
 }

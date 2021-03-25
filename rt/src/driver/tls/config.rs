@@ -2,8 +2,11 @@ use crate::driver::tls::cipher_suites::CipherSuite;
 use crate::driver::tls::max_fragment_length::MaxFragmentLength;
 use crate::driver::tls::named_groups::NamedGroup;
 use crate::driver::tls::signature_schemes::SignatureScheme;
+use core::marker::PhantomData;
+use digest::Digest;
 use heapless::{consts::*, Vec};
 use rand_core::{CryptoRng, RngCore};
+pub use sha2::Sha256;
 
 #[derive(Debug)]
 pub struct Config<RNG>

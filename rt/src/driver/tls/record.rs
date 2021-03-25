@@ -81,18 +81,18 @@ where
 }
 
 #[derive(Debug)]
-pub enum ServerRecord {
-    Handshake(ServerHandshake),
+pub enum ServerRecord<D: Digest> {
+    Handshake(ServerHandshake<D>),
     ChangeCipherSpec(ChangeCipherSpec),
     Alert,
     ApplicationData(ApplicationData),
 }
 
-impl ServerRecord {
-    pub async fn read<D: Digest, T: TcpStack>(
+impl<D: Digest> ServerRecord<D> {
+    pub async fn read<T: TcpStack>(
         socket: &mut TcpSocket<T>,
         digest: &mut D,
-    ) -> Result<ServerRecord, TlsError> {
+    ) -> Result<Self, TlsError> {
         let mut header = [0; 5];
         let mut pos = 0;
         loop {
