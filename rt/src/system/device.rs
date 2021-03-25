@@ -57,20 +57,19 @@ pub struct DeviceContext<D: Device + 'static> {
 
 impl<D: Device> DeviceContext<D> {
     pub fn new(device: D) -> Self {
-        log::info!("Creating..");
         let d = Self {
             //device: UnsafeCell::new(device),
             device,
             supervisor: RefCell::new(Supervisor::new()),
             bus: UnsafeCell::new(None),
         };
-        log::info!("Size of device context is {}", core::mem::size_of_val(&d));
-        log::info!("Size of device is {}", core::mem::size_of_val(&d.device));
-        log::info!(
-            "Size of supervisor is {}",
-            core::mem::size_of_val(&d.supervisor)
-        );
-        log::info!("Size of bus is {}", core::mem::size_of_val(&d.bus));
+        //log::info!("Size of device context is {}", core::mem::size_of_val(&d));
+        //log::info!("Size of device is {}", core::mem::size_of_val(&d.device));
+        //log::info!(
+        //    "Size of supervisor is {}",
+        //    core::mem::size_of_val(&d.supervisor)
+        //);
+        //log::info!("Size of bus is {}", core::mem::size_of_val(&d.bus));
         d
     }
 

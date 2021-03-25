@@ -30,6 +30,7 @@ where
     }
 
     fn on_start(self) -> Completion<Self> {
+        log::info!("Starting app!");
         Completion::defer(async move {
             let driver = self.driver.as_ref().unwrap();
             log::info!("[{}] Configuring LoRa driver", ActorInfo::name());
@@ -64,15 +65,24 @@ where
                     log::info!("[{}] button pressed, sending data", ActorInfo::name());
                     let driver = self.driver.as_ref().unwrap();
 
+                    let mut rx_buf = [0; 64];
                     let mut buf = [0; 4];
 
                     let motd = "Ping".as_bytes();
                     buf[..motd.len()].clone_from_slice(motd);
-                    driver
-                        .send(QoS::Confirmed, 1, motd)
+                    let rxed = driver
+                        .send_recv(QoS::Confirmed, 1, motd, &mut rx_buf[..])
                         .await
                         .expect("error sending data");
                     log::info!("[{}] data successfully sent!", ActorInfo::name());
+                    if rxed > 0 {
+                        log::info!(
+                            "[{}] received {} bytes: {:?}",
+                            ActorInfo::name(),
+                            rxed,
+                            &rx_buf[..rxed]
+                        );
+                    }
                 }
                 _ => {}
             }

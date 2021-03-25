@@ -6,8 +6,12 @@ use crate::{
     },
     hal::gpio::InterruptPin,
     prelude::*,
+    synchronization::Signal,
 };
 use core::cell::RefCell;
+use core::future::Future;
+use core::pin::Pin;
+use core::task::{Context, Poll};
 use cortex_m::interrupt::Nr;
 use embedded_hal::{
     blocking::{
@@ -16,10 +20,11 @@ use embedded_hal::{
     },
     digital::v2::{InputPin, OutputPin},
 };
+use heapless::{consts, Vec};
 
 use lorawan_device::{
     radio, Device as LorawanDevice, Error as LorawanError, Event as LorawanEvent,
-    Region as LorawanRegion, Response as LorawanResponse,
+    Region as LorawanRegion, Response as LorawanResponse, Timings as RadioTimings,
 };
 use lorawan_encoding::default_crypto::DefaultFactory as Crypto;
 
@@ -71,6 +76,8 @@ where
     Configured(LorawanDevice<Radio<SPI, CS, RESET, E>, Crypto>),
 }
 
+pub type ControllerResponse = Result<Option<Vec<u8, consts::U255>>, LoraError>;
+
 pub struct Sx127x<S, SPI, CS, RESET, BUSY, DELAY, READY, E>
 where
     S: Scheduler + 'static,
@@ -83,8 +90,16 @@ where
     E: 'static,
 {
     state: DriverState<SPI, CS, RESET, E>,
-    actor: ActorContext<Sx127xActor<S, SPI, CS, RESET, BUSY, DELAY, E>>,
-    interrupt: InterruptContext<Sx127xInterrupt<S, SPI, CS, RESET, BUSY, DELAY, READY, E>>,
+    response: Signal<ControllerResponse>,
+    actor: ActorContext<Sx127xActor<Sx127xController<S, SPI, CS, RESET, BUSY, DELAY, E>>>,
+    controller: ActorContext<Sx127xController<S, SPI, CS, RESET, BUSY, DELAY, E>>,
+    interrupt: InterruptContext<
+        Sx127xInterrupt<
+            Sx127xController<S, SPI, CS, RESET, BUSY, DELAY, E>,
+            Radio<SPI, CS, RESET, E>,
+            READY,
+        >,
+    >,
 }
 
 impl<S, SPI, CS, RESET, BUSY, DELAY, READY, E> Sx127x<S, SPI, CS, RESET, BUSY, DELAY, READY, E>
@@ -112,8 +127,10 @@ where
     {
         Ok(Self {
             state: DriverState::new(spi, cs, reset),
-            actor: ActorContext::new(Sx127xActor::new(busy, delay, get_random)?)
-                .with_name("sx127x_actor"),
+            response: Signal::new(),
+            actor: ActorContext::new(Sx127xActor::new()).with_name("sx127x_actor"),
+            controller: ActorContext::new(Sx127xController::new(busy, delay, get_random)?)
+                .with_name("sx127x_controller"),
             interrupt: InterruptContext::new(Sx127xInterrupt::new(ready), irq)
                 .with_name("sx127x_interrupt"),
         })
@@ -131,15 +148,18 @@ where
     DELAY: DelayMs<u8>,
     READY: InterruptPin,
 {
-    type Primary = Sx127xActor<S, SPI, CS, RESET, BUSY, DELAY, E>;
+    type Primary = Sx127xActor<Sx127xController<S, SPI, CS, RESET, BUSY, DELAY, E>>;
     type Configuration = Address<S>;
     fn mount(
         &'static self,
         config: Self::Configuration,
         supervisor: &mut Supervisor,
     ) -> Address<Self::Primary> {
-        let actor = self.actor.mount((config, &self.state), supervisor);
-        self.interrupt.mount(actor.clone(), supervisor);
+        let controller = self
+            .controller
+            .mount((config, &self.state, &self.response), supervisor);
+        let actor = self.actor.mount((controller, &self.response), supervisor);
+        self.interrupt.mount(controller, supervisor);
         actor
     }
 
@@ -148,7 +168,117 @@ where
     }
 }
 
-pub struct Sx127xActor<S, SPI, CS, RESET, BUSY, DELAY, E>
+pub struct Sx127xActor<H>
+where
+    H: LoraDriver + 'static,
+{
+    controller: Option<Address<H>>,
+    response: Option<&'static Signal<ControllerResponse>>,
+}
+
+impl<H> Sx127xActor<H>
+where
+    H: LoraDriver,
+{
+    pub fn new() -> Self {
+        Self {
+            controller: None,
+            response: None,
+        }
+    }
+}
+
+impl<H> LoraDriver for Sx127xActor<H>
+where
+    H: LoraDriver,
+{
+    fn configure<'a>(mut self, message: Configure<'a>) -> Response<Self, Result<(), LoraError>> {
+        // log_stack("Sx127xActor configure");
+        unsafe {
+            Response::defer_unchecked(async move {
+                let response = self.response.as_ref().unwrap();
+                response.reset();
+                self.controller.as_ref().unwrap().configure(message.0).await;
+                let ret = DriverResponse::new(response).await.map(|r| ());
+                (self, ret)
+            })
+        }
+    }
+
+    fn reset(self, message: Reset) -> Response<Self, Result<(), LoraError>> {
+        Response::immediate(self, Err(LoraError::OtherError))
+    }
+
+    fn join(mut self, message: Join) -> Response<Self, Result<(), LoraError>> {
+        Response::defer(async move {
+            let response = self.response.as_ref().unwrap();
+            response.reset();
+            self.controller.as_ref().unwrap().join(message.0).await;
+            let ret = DriverResponse::new(response).await.map(|r| ());
+            (self, ret)
+        })
+    }
+
+    fn send<'a>(self, message: Send<'a>) -> Response<Self, Result<(), LoraError>> {
+        unsafe {
+            Response::defer_unchecked(async move {
+                let response = self.response.as_ref().unwrap();
+                response.reset();
+                self.controller
+                    .as_ref()
+                    .unwrap()
+                    .request_panicking(message)
+                    .await;
+                match DriverResponse::new(response).await {
+                    Ok(_) => (self, Ok(())),
+                    Err(e) => (self, Err(e)),
+                }
+            })
+        }
+    }
+
+    fn send_recv<'a>(self, message: SendRecv<'a>) -> Response<Self, Result<usize, LoraError>> {
+        unsafe {
+            Response::defer_unchecked(async move {
+                let response = self.response.as_ref().unwrap();
+                response.reset();
+                let mut rx_buf = message.3;
+                self.controller
+                    .as_ref()
+                    .unwrap()
+                    .send(message.0, message.1, message.2)
+                    .await;
+                match DriverResponse::new(response).await {
+                    Ok(Some(data)) => {
+                        if rx_buf.len() < data.len() {
+                            log::warn!("Receive buffer is too small!");
+                            (self, Err(LoraError::RecvBufferTooSmall))
+                        } else {
+                            rx_buf[..data.len()].copy_from_slice(&data[..data.len()]);
+                            (self, Ok(data.len()))
+                        }
+                    }
+                    Ok(None) => (self, Ok(0)),
+                    Err(e) => (self, Err(e)),
+                }
+            })
+        }
+    }
+}
+
+impl<H> Actor for Sx127xActor<H>
+where
+    H: LoraDriver,
+{
+    type Configuration = (Address<H>, &'static Signal<ControllerResponse>);
+
+    fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
+        self.controller.replace(config.0);
+        self.response.replace(config.1);
+    }
+}
+
+pub struct Sx127xController<S, SPI, CS, RESET, BUSY, DELAY, E>
 where
     S: Scheduler + 'static,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
@@ -159,6 +289,7 @@ where
     E: 'static,
 {
     state: Option<&'static DriverState<SPI, CS, RESET, E>>,
+    response: Option<&'static Signal<ControllerResponse>>,
     me: Option<Address<Self>>,
     scheduler: Option<Address<S>>,
     busy: BUSY,
@@ -166,7 +297,7 @@ where
     get_random: fn() -> u32,
 }
 
-impl<S, SPI, CS, RESET, BUSY, DELAY, E> Sx127xActor<S, SPI, CS, RESET, BUSY, DELAY, E>
+impl<S, SPI, CS, RESET, BUSY, DELAY, E> Sx127xController<S, SPI, CS, RESET, BUSY, DELAY, E>
 where
     S: Scheduler + 'static,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
@@ -181,6 +312,7 @@ where
             delay,
             me: None,
             scheduler: None,
+            response: None,
             busy,
             get_random,
         })
@@ -192,19 +324,19 @@ where
             State::Configured(lorawan) => {
                 match &event {
                     LorawanEvent::NewSessionRequest => {
-                        log::info!("New Session Request");
+                        log::trace!("New Session Request");
                     }
                     LorawanEvent::RadioEvent(e) => match e {
                         radio::Event::TxRequest(_, _) => (),
                         radio::Event::RxRequest(_) => (),
                         radio::Event::CancelRx => (),
                         radio::Event::PhyEvent(phy) => {
-                            log::info!("Phy event");
+                            // log::info!("Phy event");
                         }
                     },
                     LorawanEvent::TimeoutFired => (),
                     LorawanEvent::SendDataRequest(_e) => {
-                        log::info!("SendData");
+                        log::trace!("SendData");
                     }
                 }
                 // log_stack("Handling event");
@@ -228,7 +360,7 @@ where
         match response {
             Ok(response) => match response {
                 LorawanResponse::TimeoutRequest(ms) => {
-                    log::info!("TimeoutRequest: {:?}", ms);
+                    log::trace!("TimeoutRequest: {:?}", ms);
                     self.scheduler.as_ref().unwrap().schedule(
                         Milliseconds(ms),
                         LorawanEvent::TimeoutFired,
@@ -236,10 +368,11 @@ where
                     );
                 }
                 LorawanResponse::JoinSuccess => {
-                    log::info!("Join Success: {:?}", lorawan.get_session_keys().unwrap());
+                    log::trace!("Join Success: {:?}", lorawan.get_session_keys().unwrap());
+                    self.response.as_ref().unwrap().signal(Ok(None));
                 }
                 LorawanResponse::ReadyToSend => {
-                    log::info!("RxWindow expired but no ACK expected. Ready to Send");
+                    log::trace!("RxWindow expired but no ACK expected. Ready to Send");
                 }
                 LorawanResponse::DownlinkReceived(fcnt_down) => {
                     if let Some(downlink) = lorawan.take_data_downlink() {
@@ -248,30 +381,35 @@ where
                         use lorawan_encoding::parser::{DataHeader, FRMPayload};
 
                         if let Ok(FRMPayload::Data(data)) = downlink.frm_payload() {
-                            log::info!(
+                            log::trace!(
                                 "Downlink received \t\t(FCntDown={}\tFRM: {:?})",
                                 fcnt_down,
                                 data,
                             );
+                            let mut v = Vec::new();
+                            v.extend_from_slice(data);
+                            self.response.as_ref().unwrap().signal(Ok(Some(v)));
                         } else {
-                            log::info!("Downlink received \t\t(FcntDown={})", fcnt_down);
+                            self.response.as_ref().unwrap().signal(Ok(None));
+                            log::trace!("Downlink received \t\t(FcntDown={})", fcnt_down);
                         }
 
                         let mut mac_commands_len = 0;
                         for mac_command in fopts {
                             if mac_commands_len == 0 {
-                                log::info!("\tFOpts: ");
+                                log::trace!("\tFOpts: ");
                             }
-                            log::info!("{:?},", mac_command);
+                            log::trace!("{:?},", mac_command);
                             mac_commands_len += 1;
                         }
                     }
                 }
                 LorawanResponse::NoAck => {
-                    log::info!("RxWindow expired, expected ACK to confirmed uplink not received");
+                    log::trace!("RxWindow expired, expected ACK to confirmed uplink not received");
+                    self.response.as_ref().unwrap().signal(Ok(None));
                 }
                 LorawanResponse::NoJoinAccept => {
-                    log::info!("No Join Accept Received");
+                    log::info!("No Join Accept Received. Retrying.");
                     self.me
                         .as_ref()
                         .unwrap()
@@ -285,25 +423,26 @@ where
                         .notify(LorawanEvent::NewSessionRequest);
                 }
                 LorawanResponse::NoUpdate => {
-                    log::info!("No update");
+                    // log::info!("No update");
                 }
                 LorawanResponse::UplinkSending(fcnt_up) => {
-                    log::info!("Uplink with FCnt {}", fcnt_up);
+                    log::trace!("Uplink with FCnt {}", fcnt_up);
                 }
                 LorawanResponse::JoinRequestSending => {
-                    log::info!("Join Request Sending");
+                    log::trace!("Join Request Sending");
                 }
             },
             Err(err) => match err {
-                LorawanError::Radio(_) => log::info!("Radio"),
-                LorawanError::Session(e) => log::info!("Session {:?}", e),
-                LorawanError::NoSession(_) => log::info!("NoSession"),
+                LorawanError::Radio(_) => log::error!("Radio error"),
+                LorawanError::Session(e) => log::error!("Session error {:?}", e),
+                LorawanError::NoSession(_) => log::error!("NoSession error"),
             },
         }
     }
 }
 
-impl<S, SPI, CS, RESET, BUSY, DELAY, E> Actor for Sx127xActor<S, SPI, CS, RESET, BUSY, DELAY, E>
+impl<S, SPI, CS, RESET, BUSY, DELAY, E> Actor
+    for Sx127xController<S, SPI, CS, RESET, BUSY, DELAY, E>
 where
     S: Scheduler,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
@@ -312,20 +451,23 @@ where
     BUSY: InputPin,
     DELAY: DelayMs<u8>,
 {
-    type Configuration = (Address<S>, &'static DriverState<SPI, CS, RESET, E>);
+    type Configuration = (
+        Address<S>,
+        &'static DriverState<SPI, CS, RESET, E>,
+        &'static Signal<ControllerResponse>,
+    );
 
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.scheduler.replace(config.0);
         self.state.replace(config.1);
+        self.response.replace(config.2);
         self.me.replace(me);
     }
 
     fn on_initialize(mut self) -> Completion<Self> {
-        log::info!("Initializing");
         let state = self.state.as_ref().unwrap();
         match state.take() {
             State::Uninitialized(spi, cs, reset) => {
-                log::info!("Initializing radio");
                 match Radio::new(spi, cs, reset, &mut self.delay) {
                     Ok(radio) => {
                         state.replace(State::Initialized(radio));
@@ -345,35 +487,12 @@ where
     }
 
     fn on_start(mut self) -> Completion<Self> {
-        log::info!("Started actor");
         Completion::immediate(self)
     }
 }
 
-impl<S, SPI, CS, RESET, BUSY, DELAY, E>
-    NotifyHandler<LorawanEvent<'static, Radio<SPI, CS, RESET, E>>>
-    for Sx127xActor<S, SPI, CS, RESET, BUSY, DELAY, E>
-where
-    S: Scheduler,
-    SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
-    CS: OutputPin + 'static,
-    RESET: OutputPin + 'static,
-    BUSY: InputPin,
-    DELAY: DelayMs<u8>,
-{
-    fn on_notify(
-        mut self,
-        message: LorawanEvent<'static, Radio<SPI, CS, RESET, E>>,
-    ) -> Completion<Self> {
-        Completion::defer(async move {
-            self.process_event(message).await;
-            self
-        })
-    }
-}
-
 impl<S, SPI, CS, RESET, BUSY, DELAY, E> LoraDriver
-    for Sx127xActor<S, SPI, CS, RESET, BUSY, DELAY, E>
+    for Sx127xController<S, SPI, CS, RESET, BUSY, DELAY, E>
 where
     S: Scheduler,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
@@ -400,8 +519,8 @@ where
                     app_key.clone().into(),
                     self.get_random,
                 );
-                log::info!("Device created, updating state");
                 state.replace(State::Configured(lorawan));
+                self.response.as_ref().unwrap().signal(Ok(None));
                 Response::immediate(self, Ok(()))
             }
             other => {
@@ -411,15 +530,18 @@ where
             }
         }
     }
+
     fn reset(self, message: Reset) -> Response<Self, Result<(), LoraError>> {
         Response::immediate(self, Err(LoraError::OtherError))
     }
+
     fn join(mut self, message: Join) -> Response<Self, Result<(), LoraError>> {
         Response::defer(async move {
             self.process_event(LorawanEvent::NewSessionRequest).await;
             (self, Ok(()))
         })
     }
+
     fn send<'a>(self, message: Send<'a>) -> Response<Self, Result<(), LoraError>> {
         unsafe {
             Response::defer_unchecked(async move {
@@ -452,25 +574,15 @@ where
             })
         }
     }
+
+    fn send_recv<'a>(self, message: SendRecv<'a>) -> Response<Self, Result<usize, LoraError>> {
+        Response::immediate(self, Err(LoraError::NotImplemented))
+    }
 }
 
-pub struct Sx127xInterrupt<S, SPI, CS, RESET, BUSY, DELAY, READY, E>
-where
-    S: Scheduler + 'static,
-    SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
-    CS: OutputPin + 'static,
-    RESET: OutputPin + 'static,
-    BUSY: InputPin + 'static,
-    DELAY: DelayMs<u8> + 'static,
-    READY: InterruptPin + 'static,
-    E: 'static,
-{
-    actor: Option<Address<Sx127xActor<S, SPI, CS, RESET, BUSY, DELAY, E>>>,
-    ready: READY,
-}
-
-impl<S, SPI, CS, RESET, BUSY, DELAY, READY, E>
-    Sx127xInterrupt<S, SPI, CS, RESET, BUSY, DELAY, READY, E>
+impl<S, SPI, CS, RESET, BUSY, DELAY, E>
+    NotifyHandler<LorawanEvent<'static, Radio<SPI, CS, RESET, E>>>
+    for Sx127xController<S, SPI, CS, RESET, BUSY, DELAY, E>
 where
     S: Scheduler,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
@@ -478,51 +590,90 @@ where
     RESET: OutputPin + 'static,
     BUSY: InputPin,
     DELAY: DelayMs<u8>,
-    READY: InterruptPin,
+{
+    fn on_notify(
+        mut self,
+        message: LorawanEvent<'static, Radio<SPI, CS, RESET, E>>,
+    ) -> Completion<Self> {
+        Completion::defer(async move {
+            self.process_event(message).await;
+            self
+        })
+    }
+}
+
+pub struct Sx127xInterrupt<H, RADIO, READY>
+where
+    RADIO: radio::PhyRxTx + RadioTimings,
+    H: NotifyHandler<LorawanEvent<'static, RADIO>> + 'static,
+    READY: InterruptPin + 'static,
+{
+    controller: Option<Address<H>>,
+    ready: READY,
+    _phantom: core::marker::PhantomData<RADIO>,
+}
+
+impl<H, RADIO, READY> Sx127xInterrupt<H, RADIO, READY>
+where
+    RADIO: radio::PhyRxTx + RadioTimings,
+    H: NotifyHandler<LorawanEvent<'static, RADIO>>,
+    READY: InterruptPin + 'static,
 {
     pub fn new(ready: READY) -> Self {
-        Self { ready, actor: None }
+        Self {
+            ready,
+            controller: None,
+            _phantom: core::marker::PhantomData,
+        }
     }
 }
 
-impl<S, SPI, CS, RESET, BUSY, DELAY, READY, E> Actor
-    for Sx127xInterrupt<S, SPI, CS, RESET, BUSY, DELAY, READY, E>
+impl<H, RADIO, READY> Actor for Sx127xInterrupt<H, RADIO, READY>
 where
-    S: Scheduler,
-    SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
-    CS: OutputPin + 'static,
-    RESET: OutputPin + 'static,
-    BUSY: InputPin,
-    DELAY: DelayMs<u8>,
-    READY: InterruptPin,
+    RADIO: radio::PhyRxTx + RadioTimings,
+    H: NotifyHandler<LorawanEvent<'static, RADIO>>,
+    READY: InterruptPin + 'static,
 {
-    type Configuration = Address<Sx127xActor<S, SPI, CS, RESET, BUSY, DELAY, E>>;
+    type Configuration = Address<H>;
 
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
-        self.actor.replace(config);
+        self.controller.replace(config);
     }
 }
 
-impl<S, SPI, CS, RESET, BUSY, DELAY, READY, E> Interrupt
-    for Sx127xInterrupt<S, SPI, CS, RESET, BUSY, DELAY, READY, E>
+impl<H, RADIO, READY> Interrupt for Sx127xInterrupt<H, RADIO, READY>
 where
-    S: Scheduler,
-    SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
-    CS: OutputPin + 'static,
-    RESET: OutputPin + 'static,
-    BUSY: InputPin,
-    DELAY: DelayMs<u8>,
-    READY: InterruptPin,
+    RADIO: radio::PhyRxTx<PhyEvent = RadioPhyEvent> + RadioTimings + 'static,
+    H: NotifyHandler<LorawanEvent<'static, RADIO>>,
+    READY: InterruptPin + 'static,
 {
     fn on_interrupt(&mut self) {
         if self.ready.check_interrupt() {
             self.ready.clear_interrupt();
-            self.actor
+            self.controller
                 .as_ref()
                 .unwrap()
                 .notify(LorawanEvent::RadioEvent(radio::Event::PhyEvent(
                     RadioPhyEvent::Irq,
                 )));
         }
+    }
+}
+
+struct DriverResponse {
+    signal: &'static Signal<ControllerResponse>,
+}
+
+impl DriverResponse {
+    pub fn new(signal: &'static Signal<ControllerResponse>) -> Self {
+        Self { signal }
+    }
+}
+
+impl core::future::Future for DriverResponse {
+    type Output = ControllerResponse;
+
+    fn poll(mut self: core::pin::Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.signal.poll_wait(cx)
     }
 }

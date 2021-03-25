@@ -59,7 +59,7 @@ fn get_random_u32() -> u32 {
 }
 
 fn configure() -> MyDevice {
-    rtt_init_print!();
+    rtt_init_print!(BlockIfFull, 1024);
     unsafe {
         log::set_logger_racy(&LOGGER).unwrap();
     }
@@ -135,5 +135,5 @@ fn configure() -> MyDevice {
 
 #[entry]
 fn main() -> ! {
-    device!(MyDevice = configure; 4096);
+    device!(MyDevice = configure; 3000);
 }
