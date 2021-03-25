@@ -351,7 +351,7 @@ where
 }
 
 impl<S, SPI, CS, RESET, BUSY, DELAY, E>
-    NotifyHandler<LorawanEvent<'static, Radio<SPI, CS, RESET, E>>>
+    RequestHandler<LorawanEvent<'static, Radio<SPI, CS, RESET, E>>>
     for Sx127xActor<S, SPI, CS, RESET, BUSY, DELAY, E>
 where
     S: Scheduler,
@@ -361,13 +361,14 @@ where
     BUSY: InputPin,
     DELAY: DelayMs<u8>,
 {
-    fn on_notify(
+    type Response = ();
+    fn on_request(
         mut self,
         message: LorawanEvent<'static, Radio<SPI, CS, RESET, E>>,
-    ) -> Completion<Self> {
-        Completion::defer(async move {
+    ) -> Response<Self, Self::Response> {
+        Response::defer(async move {
             self.process_event(message).await;
-            self
+            (self, ())
         })
     }
 }

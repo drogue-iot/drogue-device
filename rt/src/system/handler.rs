@@ -87,7 +87,7 @@ where
     }
 }
 
-/// Return value from a `NotifyHandler` to allow for immediate synchronous handling
+/// Return value from an `Actor` to allow for immediate synchronous handling
 /// of the notification or asynchronous handling.
 pub enum Completion<A: Actor> {
     /// See `immediate()`
@@ -127,15 +127,6 @@ impl<A: Actor + 'static> Completion<A> {
         Self::Defer(Box::new(f))
     }
      */
-}
-
-/// Trait denoting the capability of being notified.
-pub trait NotifyHandler<M>
-where
-    Self: Actor + Sized,
-{
-    /// Handle the notification.
-    fn on_notify(self, message: M) -> Completion<Self>;
 }
 
 /// Trait to be implemented by a `Device` implementation in order to receive

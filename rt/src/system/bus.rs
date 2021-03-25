@@ -26,13 +26,14 @@ impl<D: Device> Actor for EventBus<D> {
     type Configuration = ();
 }
 
-impl<D: Device, M> NotifyHandler<M> for EventBus<D>
+impl<D: Device, M> RequestHandler<M> for EventBus<D>
 where
     D: EventHandler<M> + 'static,
 {
-    fn on_notify(self, message: M) -> Completion<Self> {
+    type Response = ();
+    fn on_request(self, message: M) -> Response<Self, Self::Response> {
         self.device.on_event(message);
-        Completion::immediate(self)
+        Response::immediate(self, ())
     }
 }
 

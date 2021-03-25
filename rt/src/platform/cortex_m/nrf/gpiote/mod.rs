@@ -53,14 +53,15 @@ impl<D: Device + EventHandler<GpioteEvent> + 'static> Interrupt for Gpiote<D> {
     }
 }
 
-impl<D, P> NotifyHandler<GpioteEvent> for Button<D, P>
+impl<D, P> RequestHandler<GpioteEvent> for Button<D, P>
 where
     D: Device + EventHandler<ButtonEvent> + 'static,
     P: InputPin + GpioteInputPin + 'static,
 {
-    fn on_notify(self, message: GpioteEvent) -> Completion<Self> {
+    type Response = ();
+    fn on_request(self, message: GpioteEvent) -> Response<Self, Self::Response> {
         self.check_pin();
-        Completion::immediate(self)
+        Response::immediate(self, ())
     }
 }
 
