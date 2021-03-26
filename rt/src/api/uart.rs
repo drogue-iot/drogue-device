@@ -17,7 +17,7 @@ pub enum Error {
 /// API for UART access.
 impl<'a, A> Address<A>
 where
-    A: Actor<Request = UartRequest<'a>, Response = UartResponse>
+    A: Actor<Request = UartRequest<'a>, Response = Result<usize, Error>>,
 {
     /// Perform an _async_ write to the uart.
     ///
@@ -27,7 +27,7 @@ where
     /// ensure that the response to the write is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub async fn write(&'a self, tx_buffer: &'a [u8]) -> Result<(), Error> {
+    pub async fn write(&'a self, tx_buffer: &'a [u8]) -> Result<usize, Error> {
         self.request_panicking(UartRequest::Write(tx_buffer)).await
     }
 
@@ -47,14 +47,9 @@ where
 ///
 /// Trait that should be implemented by a UART actors in drogue-device.
 ///
-pub trait Uart<'a>: Actor<Request = UartRequest<'a>, Response = UartResponse> {}
+pub trait Uart<'a>: Actor<Request = UartRequest<'a>, Response = Result<usize, Error>> {}
 
 pub enum UartRequest<'a> {
     Write(&'a [u8]),
     Read(&'a mut [u8]),
-}
-
-pub enum UartResponse {
-    None,
-    Read(usize),
 }

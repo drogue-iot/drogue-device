@@ -8,10 +8,6 @@ use core::task::{Context, Poll, Waker};
 
 use heapless::{consts::*, spsc::Queue};
 
-#[derive(Debug)]
-pub struct Acquire;
-pub struct Release;
-
 pub struct Shared {
     permits: RefCell<usize>,
     waiters: RefCell<Queue<Waker, U16>>,
@@ -144,8 +140,15 @@ impl SemaphoreActor {
     }
 }
 
+pub enum SemaphoreRequest {
+    Acquire,
+    Release,
+}
+
 impl Actor for SemaphoreActor {
     type Configuration = &'static Shared;
+    type Request = SemaphoreRequest;
+    type Response = Option<Permit>;
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where
@@ -154,24 +157,18 @@ impl Actor for SemaphoreActor {
         self.address.replace(address);
         self.shared.replace(config);
     }
-}
 
-impl RequestHandler<Acquire> for SemaphoreActor {
-    type Response = Permit;
-
-    fn on_request(self, message: Acquire) -> Response<Self, Self::Response> {
-        Response::defer(async move {
-            let semaphore = self.acquire().await;
-            (self, semaphore)
-        })
-    }
-}
-
-impl RequestHandler<Release> for SemaphoreActor {
-    type Response = ();
-    fn on_request(self, message: Release) -> Response<Self, Self::Response> {
-        self.release();
-        Response::immediate(self, ())
+    fn on_request(self, request: Self::Request) -> Response<Self> {
+        match request {
+            SemaphoreRequest::Acquire => Response::defer(async move {
+                let semaphore = self.acquire().await;
+                (self, Some(semaphore))
+            }),
+            SemaphoreRequest::Release => {
+                self.release();
+                Response::immediate(self, None)
+            }
+        }
     }
 }
 
@@ -181,12 +178,12 @@ pub struct Permit {
 
 impl Drop for Permit {
     fn drop(&mut self) {
-        self.address.notify(Release);
+        self.address.notify(SemaphoreRequest::Release);
     }
 }
 
 impl Address<SemaphoreActor> {
     pub async fn acquire(&self) -> Permit {
-        self.request(Acquire).await
+        self.request(SemaphoreRequest::Acquire).await
     }
 }

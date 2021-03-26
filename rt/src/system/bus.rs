@@ -20,7 +20,9 @@ impl<D: Device + 'static> Copy for EventBus<D> {}
 
 impl<D: Device + 'static> Clone for EventBus<D> {
     fn clone(&self) -> Self {
-        Self { device: self.device }
+        Self {
+            device: self.device,
+        }
     }
 }
 

@@ -5,10 +5,10 @@ mod socket_pool;
 use socket_pool::SocketPool;
 
 use crate::api::arbitrator::BusArbitrator;
-use crate::api::timer::Timer;
 use crate::api::ip::tcp::{TcpError, TcpStack};
 use crate::api::ip::{IpAddress, IpAddressV4, IpProtocol, SocketAddress};
 use crate::api::spi::{ChipSelect, SpiBus, SpiError};
+use crate::api::timer::Timer;
 use crate::api::wifi::{Join, JoinError, WifiSupplicant};
 use crate::domain::time::duration::Milliseconds;
 use crate::driver::wifi::eswifi::parser::{

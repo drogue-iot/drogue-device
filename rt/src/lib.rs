@@ -3,19 +3,18 @@
 #![allow(unused_variables)]
 
 #[doc(hidden)]
+// pub mod synchronization;
+pub mod api;
+#[doc(hidden)]
 pub mod domain;
 pub mod driver;
-#[doc(hidden)]
-pub mod synchronization;
-
-pub mod api;
 mod future;
 pub mod hal;
 pub mod platform;
 pub use drogue_arch as arch;
 pub use drogue_arena as arena;
 pub mod system;
-pub(crate) mod util;
+// pub(crate) mod util;
 
 /// Easy imports for common types and traits.
 pub mod prelude {

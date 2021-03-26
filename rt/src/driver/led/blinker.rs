@@ -1,5 +1,5 @@
-use crate::api::timer::Timer;
 use crate::api::switchable::Switchable;
+use crate::api::timer::Timer;
 use crate::domain::time::duration::Milliseconds;
 use crate::prelude::*;
 

@@ -24,13 +24,25 @@ where
     TX: Write<u8> + 'static,
 {
     type Configuration = ();
+    type Request = UartRequest<'static>;
+    type Response = Result<usize, Error>;
+
+    fn on_request<'a>(mut self, request: UartRequest<'a>) -> Response<Self> {
+        match request {
+            UartRequest::Write(buf) => {
+                let result = self.write_str(buf);
+                Response::immediate(self, result)
+            }
+            _ => Response::immediate(self, Err(Error::Receive)),
+        }
+    }
 }
 
 impl<TX> SerialTx<TX>
 where
     TX: Write<u8> + 'static,
 {
-    fn write_str(&mut self, buf: &[u8]) -> Result<(), Error> {
+    fn write_str(&mut self, buf: &[u8]) -> Result<usize, Error> {
         for b in buf.iter() {
             loop {
                 match self.tx.write(*b) {
@@ -43,17 +55,6 @@ where
             }
         }
         nb::block!(self.tx.flush()).map_err(|_| Error::Transmit)?;
-        Ok(())
-    }
-}
-
-impl<TX> UartWriter for SerialTx<TX>
-where
-    TX: Write<u8> + 'static,
-{
-    fn write(mut self, message: UartWrite<'_>) -> Response<Self, Result<(), Error>> {
-        let buf = message.0;
-        let result = self.write_str(message.0);
-        Response::immediate(self, result)
+        Ok(buf.len())
     }
 }

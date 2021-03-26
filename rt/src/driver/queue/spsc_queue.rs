@@ -154,43 +154,39 @@ where
     }
 }
 
-impl<T, N> Queue for SpscQueueActor<T, N>
-where
-    T: 'static,
-    N: ArrayLength<T> + 'static,
-{
-    type T = T;
-    fn enqueue(self, message: Enqueue<T>) -> Response<Self, Result<(), Error>> {
-        let shared = self.shared.as_ref().unwrap();
-        if shared.try_producer_busy() {
-            shared.pending_enqueue.borrow_mut().replace(message.0);
-            let future = EnqueueFuture::new(shared);
-            Response::immediate_future(self, future)
-        } else {
-            Response::immediate(self, Err(Error::ProducerBusy))
-        }
-    }
-
-    fn dequeue(self, message: Dequeue) -> Response<Self, Result<T, Error>> {
-        let shared = self.shared.as_ref().unwrap();
-        if shared.try_consumer_busy() {
-            let future = DequeueFuture::new(shared);
-            Response::immediate_future(self, future)
-        } else {
-            Response::immediate(self, Err(Error::ConsumerBusy))
-        }
-    }
-}
-
 impl<T, N> Actor for SpscQueueActor<T, N>
 where
     N: ArrayLength<T> + 'static,
 {
     type Configuration = &'static Shared<T, N>;
-    type Request = QueueRequest;
-    type Response = QueueResponse;
+    type Request = QueueRequest<T>;
+    type Response = QueueResponse<T>;
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.shared.replace(config);
+    }
+
+    fn on_request(self, request: QueueRequest<T>) -> Response<Self> {
+        match request {
+            QueueRequest::Enqueue(element) => {
+                let shared = self.shared.as_ref().unwrap();
+                if shared.try_producer_busy() {
+                    shared.pending_enqueue.borrow_mut().replace(element);
+                    let future = EnqueueFuture::new(shared);
+                    Response::immediate_future(self, future)
+                } else {
+                    Response::immediate(self, Err(Error::ProducerBusy))
+                }
+            }
+            QueueRequest::Dequeue => {
+                let shared = self.shared.as_ref().unwrap();
+                if shared.try_consumer_busy() {
+                    let future = DequeueFuture::new(shared);
+                    Response::immediate_future(self, future)
+                } else {
+                    Response::immediate(self, Err(Error::ConsumerBusy))
+                }
+            }
+        }
     }
 }
 

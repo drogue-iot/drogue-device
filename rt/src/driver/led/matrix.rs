@@ -106,16 +106,15 @@ where
     }
 }
 
-impl<P, ROWS, COLS, S, F> Actor for LEDMatrix<P, ROWS, COLS, S>
+impl<P, ROWS, COLS, S> Actor for LEDMatrix<P, ROWS, COLS, S>
 where
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
     S: Timer,
-    F: ToFrame,
 {
     type Configuration = Address<S>;
-    type Request = MatrixCommand<F>;
+    type Request<'a> = MatrixCommand<'a>;
     type Response = ();
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration) {
@@ -136,7 +135,7 @@ where
         Completion::immediate(self)
     }
 
-    fn on_request(mut self, message: MatrixCommand<F>) -> Response<Self> {
+    fn on_request(mut self, message: MatrixCommand<'a>) -> Response<Self> {
         match message {
             MatrixCommand::ApplyFrame(f) => self.apply(f.to_frame()),
             MatrixCommand::On(x, y) => self.on(x, y),
@@ -158,15 +157,12 @@ where
 }
 
 #[derive(Debug)]
-pub enum MatrixCommand<F>
-where
-    F: ToFrame,
-{
+pub enum MatrixCommand<'a> {
     On(usize, usize),
     Off(usize, usize),
     Clear,
     Render,
-    ApplyFrame(F),
+    ApplyFrame(&'a (dyn ToFrame + 'a)),
 }
 
 pub trait ToFrame: Copy + Clone + core::fmt::Debug {

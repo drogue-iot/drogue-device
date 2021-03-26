@@ -61,6 +61,7 @@ fn configure() -> MyDevice {
     let tx = SerialTx::new(tx);
     let rx = SerialRx::new(rx);
 
+    /*
     // LED Matrix
     let mut rows = Vec::<_, consts::U5>::new();
     rows.push(port0.p0_21.into_push_pull_output(Level::Low).degrade())
@@ -88,9 +89,10 @@ fn configure() -> MyDevice {
 
     // Set refresh rate to avoid led flickering
     let led = LedMatrix::new(rows, cols, 200u32.Hz());
+    */
 
     MyDevice {
-        led: ActorContext::new(led).with_name("matrix"),
+        //   led: ActorContext::new(led).with_name("matrix"),
         timer,
         tx: ActorContext::new(tx).with_name("uart_tx"),
         rx: InterruptContext::new(rx, hal::pac::Interrupt::UARTE0_UART0).with_name("uart_rx"),

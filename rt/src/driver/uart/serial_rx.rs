@@ -5,16 +5,16 @@ use embedded_hal::serial::Read;
 
 pub struct SerialRx<D, RX>
 where
-    D: EventHandler<SerialData> + 'static,
+    D: Device + EventHandler<SerialData> + 'static,
     RX: Read<u8> + UartRx + 'static,
 {
     rx: RX,
-    handler: Option<Address<D>>,
+    handler: Option<EventBus<D>>,
 }
 
 impl<D, RX> SerialRx<D, RX>
 where
-    D: EventHandler<SerialData> + 'static,
+    D: Device + EventHandler<SerialData> + 'static,
     RX: Read<u8> + UartRx + 'static,
 {
     pub fn new(rx: RX) -> Self {
@@ -24,10 +24,12 @@ where
 
 impl<D, RX> Actor for SerialRx<D, RX>
 where
-    D: EventHandler<SerialData> + 'static,
+    D: Device + EventHandler<SerialData> + 'static,
     RX: Read<u8> + UartRx + 'static,
 {
-    type Configuration = Address<D>;
+    type Configuration = EventBus<D>;
+    type Request = ();
+    type Response = ();
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.handler.replace(config);
     }
@@ -36,11 +38,15 @@ where
         self.rx.enable_interrupt();
         Completion::immediate(self)
     }
+
+    fn on_request(self, _: Self::Request) -> Response<Self> {
+        Response::immediate(self, ())
+    }
 }
 
 impl<D, RX> Interrupt for SerialRx<D, RX>
 where
-    D: EventHandler<SerialData> + 'static,
+    D: Device + EventHandler<SerialData> + 'static,
     RX: Read<u8> + UartRx + 'static,
 {
     fn on_interrupt(&mut self) {

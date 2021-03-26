@@ -1,5 +1,5 @@
 use drogue_device::{
-    api::{delayer::*, uart::*},
+    api::{timer::Timer as TimerApi, uart::*},
     domain::time::duration::Milliseconds,
     driver::{
         led::*,
@@ -21,11 +21,12 @@ pub type AppTimer = Timer<HalTimer<TIMER0>>;
 pub type AppTx = SerialTx<UarteTx<UARTE0>>;
 pub type AppRx = SerialRx<App<AppTx, <AppTimer as Package>::Primary>, UarteRx<UARTE0>>;
 
+/*
 pub type LedMatrix =
-    LEDMatrix<Pin<Output<PushPull>>, consts::U5, consts::U5, <AppTimer as Package>::Primary>;
+    LEDMatrix<Pin<Output<PushPull>>, consts::U5, consts::U5, <AppTimer as Package>::Primary>;*/
 
 pub struct MyDevice {
-    pub led: ActorContext<LedMatrix>,
+    //    pub led: ActorContext<LedMatrix>,
     pub timer: AppTimer,
     pub tx: ActorContext<AppTx>,
     pub rx: InterruptContext<AppRx>,
@@ -35,12 +36,12 @@ pub struct MyDevice {
 impl Device for MyDevice {
     fn mount(&'static self, _: DeviceConfiguration<Self>, supervisor: &mut Supervisor) {
         let timer = self.timer.mount((), supervisor);
-        let display = self.led.mount(timer, supervisor);
+        //        let display = self.led.mount(timer, supervisor);
         let uart = self.tx.mount((), supervisor);
         let app = self.app.mount(
             AppConfig {
                 uart,
-                display,
+                //        display,
                 timer,
             },
             supervisor,
@@ -53,32 +54,32 @@ impl Device for MyDevice {
 pub struct AppConfig<U, D>
 where
     U: UartWriter + 'static,
-    D: Delayer + 'static,
+    D: TimerApi + 'static,
 {
     uart: Address<U>,
-    display: Address<LedMatrix>,
+    //    display: Address<LedMatrix>,
     timer: Address<D>,
 }
 
 pub struct App<U, D>
 where
     U: UartWriter + 'static,
-    D: Delayer + 'static,
+    D: TimerApi + 'static,
 {
     uart: Option<Address<U>>,
-    display: Option<Address<LedMatrix>>,
+    // display: Option<Address<LedMatrix>>,
     timer: Option<Address<D>>,
 }
 
 impl<U, D> App<U, D>
 where
     U: UartWriter + 'static,
-    D: Delayer,
+    D: TimerApi + 'static,
 {
     pub fn new() -> Self {
         Self {
             uart: None,
-            display: None,
+            //      display: None,
             timer: None,
         }
     }
@@ -86,28 +87,32 @@ where
 impl<U, D> Actor for App<U, D>
 where
     U: UartWriter + 'static,
-    D: Delayer,
+    D: TimerApi + 'static,
 {
+    type Request = ();
+    type Response = ();
     type Configuration = AppConfig<U, D>;
     fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
         self.uart.replace(config.uart);
-        self.display.replace(config.display);
+        // self.display.replace(config.display);
         self.timer.replace(config.timer);
         log::info!("Application ready. Connect to the serial port to use the service.");
     }
 
     fn on_start(self) -> Completion<Self> {
         Completion::defer(async move {
-            let led = self.display.as_ref().unwrap();
+            //  let led = self.display.as_ref().unwrap();
             let timer = self.timer.as_ref().unwrap();
             let uart = self.uart.as_ref().unwrap();
 
+            /*
             for c in r"Hello, World!".chars() {
                 led.notify(Apply(c));
                 timer.delay(Milliseconds(200)).await;
             }
 
             led.notify(Clear);
+            */
 
             let mut buf = [0; 128];
             let motd = "Welcome to the Drogue Echo Service\r\n".as_bytes();
@@ -121,6 +126,10 @@ where
             self
         })
     }
+
+    fn on_request(self, _: Self::Request) -> Response<Self> {
+        Response::immediate(self, ())
+    }
 }
 
 impl<U, D> RequestHandler<SerialData> for App<U, D>
@@ -131,10 +140,11 @@ where
     type Response = ();
     fn on_request(self, event: SerialData) -> Response<Self, ()> {
         Response::defer(async move {
+            /*
             self.display
                 .as_ref()
                 .unwrap()
-                .notify(Apply(event.0 as char));
+                .notify(Apply(event.0 as char));*/
             let mut buf = [0; 1];
             buf[0] = event.0;
             self.uart

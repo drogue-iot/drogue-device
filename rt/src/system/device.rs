@@ -80,7 +80,9 @@ impl<D: Device> DeviceContext<D> {
             // UnsafeCell requierd for circular reference between DeviceContext and the EventBus it holds.
             let bus = EventBus::new(self);
 
-            let config = DeviceConfiguration { event_bus: bus.clone() };
+            let config = DeviceConfiguration {
+                event_bus: bus.clone(),
+            };
             self.device
                 .mount(config, &mut *self.supervisor.borrow_mut());
         }

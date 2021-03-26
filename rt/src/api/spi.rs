@@ -81,7 +81,7 @@ where
 pub struct Selected<'cs, PIN, D>
 where
     PIN: OutputPin + 'static,
-    D: Timer+ 'static,
+    D: Timer + 'static,
 {
     cs: &'cs ChipSelect<PIN, D>,
 }
@@ -89,7 +89,7 @@ where
 impl<'cs, PIN, D> Selected<'cs, PIN, D>
 where
     PIN: OutputPin + 'static,
-    D: Timer+ 'static,
+    D: Timer + 'static,
 {
     fn new(cs: &'cs ChipSelect<PIN, D>) -> Self {
         Self { cs }
@@ -99,7 +99,7 @@ where
 impl<'cs, PIN, D> Drop for Selected<'cs, PIN, D>
 where
     PIN: OutputPin + 'static,
-    D: Timer+ 'static,
+    D: Timer + 'static,
 {
     fn drop(&mut self) {
         self.cs.deselect();

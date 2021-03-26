@@ -69,7 +69,10 @@ pub struct I2cWriteRead<'b> {
     buffer: &'b mut [u8],
 }
 
-impl<'b, I> Actor for I2cPeripheral<I> {
+impl<'b, I> Actor for I2cPeripheral<I>
+where
+    I: WriteRead,
+{
     type Configuration = ();
     type Request = I2cRequest<'b>;
     type Response = Result<(), I::Error>;

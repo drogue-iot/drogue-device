@@ -1,11 +1,11 @@
 use crate::api::timer::{Schedulable, TimerRequest};
 use crate::arch::with_critical_section;
+use crate::arena::Box;
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
-use core::cell::RefCell;
-use crate::arena::{Box};
 use crate::system::SystemArena;
+use core::cell::RefCell;
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
@@ -277,8 +277,7 @@ struct ScheduleDeadline {
 }
 
 impl ScheduleDeadline {
-    fn new(expiration: Milliseconds, scheduled: Box<dyn Schedulable, SystemArena>) -> Self
-    {
+    fn new(expiration: Milliseconds, scheduled: Box<dyn Schedulable, SystemArena>) -> Self {
         Self {
             expiration,
             scheduled,

@@ -3,7 +3,7 @@ use crate::prelude::*;
 pub use crate::api::uart::Error;
 use crate::api::{
     timer::*,
-    uart::{UartRequest},
+    uart::{UartRequest, UartResponse},
 };
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::uart::dma::DmaUartHal;
@@ -172,6 +172,8 @@ where
     }
 }
 
+pub struct RxTimeout;
+
 impl<U> UartController<U>
 where
     U: DmaUartHal,
@@ -205,34 +207,34 @@ where
         self.rx_consumer.replace(config.3);
     }
 
-    fn on_request(self, request: UartRequest<'a>) -> Response<Self, Result<usize, Error>> {
+    fn on_request(self, request: UartRequest<'a>) -> Response<Self> {
         match request {
             // Read bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
             UartRequest::Read(rx_buf) => {
-        let shared = self.shared.as_ref().unwrap();
-        if shared.try_rx_busy() {
-            let rx_consumer = self.rx_consumer.as_ref().unwrap();
-            let future = unsafe { rx_consumer.read(rx_buf) };
-            let future = RxFuture::new(future, shared);
-            Response::immediate_future(self, future)
-        } else {
-            Response::immediate(self, Err(Error::RxInProgress))
-        }
+                let shared = self.shared.as_ref().unwrap();
+                if shared.try_rx_busy() {
+                    let rx_consumer = self.rx_consumer.as_ref().unwrap();
+                    let future = unsafe { rx_consumer.read(rx_buf) };
+                    let future = RxFuture::new(future, shared);
+                    Response::immediate_future(self, future)
+                } else {
+                    Response::immediate(self, Err(Error::RxInProgress))
+                }
             }
             // Transmit bytes from provided tx_buffer over UART. The memory pointed to by the buffer must be available until the return future is await'ed
             UartRequest::Write(tx_buf) => {
-        let shared = self.shared.as_ref().unwrap();
-        if shared.try_tx_busy() {
-            // log::info!("Going to write message");
-            let tx_producer = self.tx_producer.as_ref().unwrap();
-            let future = unsafe { tx_producer.write(tx_buf) };
-            let future = TxFuture::new(future, shared);
-            Response::immediate_future(self, future)
-        } else {
-            Response::immediate(self, Err(Error::TxInProgress))
-        }
+                let shared = self.shared.as_ref().unwrap();
+                if shared.try_tx_busy() {
+                    // log::info!("Going to write message");
+                    let tx_producer = self.tx_producer.as_ref().unwrap();
+                    let future = unsafe { tx_producer.write(tx_buf) };
+                    let future = TxFuture::new(future, shared);
+                    Response::immediate_future(self, future)
+                } else {
+                    Response::immediate(self, Err(Error::TxInProgress))
+                }
             }
-    }
+        }
     }
 }
 
@@ -440,7 +442,6 @@ where
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {

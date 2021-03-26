@@ -12,7 +12,7 @@ pub enum ButtonEvent {
 pub struct Button<D: Device + 'static, PIN> {
     pin: PIN,
     active: Active,
-    bus: Option<Address<EventBus<D>>>,
+    bus: Option<EventBus<D>>,
 }
 
 impl<D, PIN> Actor for Button<D, PIN>
@@ -20,13 +20,19 @@ where
     D: Device,
     PIN: InputPin,
 {
-    type Configuration = Address<EventBus<D>>;
+    type Configuration = EventBus<D>;
+    type Request = ();
+    type Response = ();
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where
         Self: Sized,
     {
         self.bus.replace(config);
+    }
+
+    fn on_request(self, _: Self::Request) -> Response<Self> {
+        Response::immediate(self, ())
     }
 }
 

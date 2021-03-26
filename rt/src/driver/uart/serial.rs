@@ -103,7 +103,7 @@ where
     }
 }
 
-impl<TX, S> Actor for SerialActor<TX, S>
+impl<'a, TX, S> Actor for SerialActor<TX, S>
 where
     TX: Write<u8> + 'static,
     S: Timer + 'static,
@@ -113,11 +113,34 @@ where
         Address<S>,
         AsyncBBConsumer<consts::U1024>,
     );
+    type Request = UartRequest<'a>;
+    type Response = UartResponse;
+
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.me.replace(me);
         self.state.replace(config.0);
         self.scheduler.replace(config.1);
         self.rx_consumer.replace(config.2);
+    }
+
+    fn on_request(self, request: Self::Request) -> Response<Self> {
+        match request {
+            UartRequest::Write(buf) => {
+                let result = self.write_str(buf);
+                Response::immediate(self, result)
+            }
+            UartRequest::Read(buf) => {
+                let state = self.state.as_ref().unwrap();
+                if state.try_rx_busy() {
+                    let rx_consumer = self.rx_consumer.as_ref().unwrap();
+                    let future = unsafe { rx_consumer.read(buf) };
+                    let future = RxFuture::new(future, state);
+                    Response::immediate_future(self, future)
+                } else {
+                    Response::immediate(self, Err(Error::RxInProgress))
+                }
+            }
+        }
     }
 }
 
@@ -189,74 +212,3 @@ where
         Ok(())
     }
 }
-
-impl<TX, S> UartWriter for SerialActor<TX, S>
-where
-    TX: Write<u8> + 'static,
-    S: Timer + 'static,
-{
-    fn write<'a>(mut self, message: UartWrite<'a>) -> Response<Self, Result<(), Error>> {
-        let buf = message.0;
-        let result = self.write_str(message.0);
-        Response::immediate(self, result)
-    }
-}
-
-impl<TX, S> UartReader for SerialActor<TX, S>
-where
-    TX: Write<u8> + 'static,
-    S: Timer + 'static,
-{
-    fn read<'a>(self, message: UartRead<'a>) -> Response<Self, Result<usize, Error>> {
-        let state = self.state.as_ref().unwrap();
-        if state.try_rx_busy() {
-            let rx_consumer = self.rx_consumer.as_ref().unwrap();
-            let future = unsafe { rx_consumer.read(message.0) };
-            let future = RxFuture::new(future, state);
-            Response::immediate_future(self, future)
-        } else {
-            Response::immediate(self, Err(Error::RxInProgress))
-        }
-    }
-
-    fn read_with_timeout<'a, DUR>(
-        self,
-        message: UartReadWithTimeout<'a, DUR>,
-    ) -> Response<Self, Result<usize, Error>>
-    where
-        DUR: Duration + Into<Milliseconds> + 'static,
-    {
-        let state = self.state.as_ref().unwrap();
-        if state.try_rx_busy() {
-            let rx_consumer = self.rx_consumer.as_ref().unwrap();
-            let future = unsafe { rx_consumer.read(message.0) };
-            let future = RxFuture::new(future, state);
-
-            state.reset_rx_timeout();
-            self.scheduler.as_ref().unwrap().schedule(
-                message.1,
-                ReadTimeout,
-                *self.me.as_ref().unwrap(),
-            );
-            Response::immediate_future(self, future)
-        } else {
-            Response::immediate(self, Err(Error::RxInProgress))
-        }
-    }
-}
-
-impl<TX, S> RequestHandler<ReadTimeout> for SerialActor<TX, S>
-where
-    TX: Write<u8> + 'static,
-    S: Timer + 'static,
-{
-    type Response = ();
-    fn on_request(self, message: ReadTimeout) -> Response<Self, Self::Response> {
-        let state = self.state.as_ref().unwrap();
-        state.signal_rx_timeout();
-        Response::immediate(self, ())
-    }
-}
-
-#[derive(Clone)]
-struct ReadTimeout;

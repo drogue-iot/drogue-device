@@ -20,8 +20,10 @@ impl<A: Actor> Clone for Address<A> {
     }
 }
 
-impl<A> Address<A> where
-A: Actor + 'static {
+impl<A> Address<A>
+where
+    A: Actor + 'static,
+{
     pub(crate) fn new(actor: &'static ActorContext<A>) -> Self {
         Self { actor }
     }
@@ -30,8 +32,7 @@ A: Actor + 'static {
     ///
     /// To accept the message, the target must implement `NotificationHandler<...>`
     /// for the appropriate type of message being sent.
-    pub fn notify(&self, message: A::Request)
-    {
+    pub fn notify(&self, message: A::Request) {
         self.actor.notify(message)
     }
 
@@ -39,8 +40,7 @@ A: Actor + 'static {
     ///
     /// To accept the request and provide a response, the target must implement
     /// `Actor<...>` for the appropriate type of message.
-    pub async fn request(&self, message: A::Request) -> A::Response
-    {
+    pub async fn request(&self, message: A::Request) -> A::Response {
         self.actor.request(message).await
     }
 
@@ -55,8 +55,7 @@ A: Actor + 'static {
     /// ensure that the response to the request is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub async fn request_panicking(&self, message: A::Request) -> A::Response
-    {
+    pub async fn request_panicking(&self, message: A::Request) -> A::Response {
         self.actor.request_panicking(message).await
     }
 }
