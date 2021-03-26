@@ -5,3 +5,4 @@ Cargo.lock
 logs
 .DS_Store
 log
+examples/**/config/
