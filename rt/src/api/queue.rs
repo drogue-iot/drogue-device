@@ -17,70 +17,39 @@ where
 {
     /// Perform an _async_ enqueue.
     pub async fn enqueue(&self, element: A::T) -> Result<(), Error> {
-        self.request(Enqueue(element)).await
+        self.request(QueueRequest::Enqueue(element)).await
     }
 
     /// Perform an _async_ dequeue. The result is available when the queue
     /// have elements to be dequeued.
     pub async fn dequeue(&self) -> Result<A::T, Error> {
-        self.request(Dequeue).await
-    }
-
-    /// Perform an _async_ dequeue attempt. If there are no elements in the queue,
-    /// no element is returned.
-    pub async fn try_dequeue(&self) -> Option<A::T> {
-        self.request(TryDequeue).await
+        match self.request(QueueRequest::Dequeue).await {
+            Ok(None) => Err(Error::Receive),
+            Ok(Element(e)) => Ok(e),
+            Err(e) => Err(e),
+        }
     }
 }
 
 ///
 /// Trait that should be implemented by a Queue actors in drogue-device.
 ///
-pub trait Queue: Actor {
+pub trait Queue: Actor<Request = QueueRequest<Self::T>, Response = QueueResponse> {
     type T;
-    fn enqueue(self, message: Enqueue<Self::T>) -> Response<Self, Result<(), Error>>;
-    fn dequeue(self, message: Dequeue) -> Response<Self, Result<Self::T, Error>>;
-    fn try_dequeue(self, message: TryDequeue) -> Response<Self, Option<Self::T>>;
 }
 
 /// Message types used by Queue implementations
 #[derive(Debug)]
-pub struct Enqueue<T>(pub T)
+pub enum QueueRequest<T>
 where
-    T: Sized;
+    T: Sized {
+        Enqueue(T),
+        Dequeue
+    }
+
 #[derive(Debug)]
-pub struct Dequeue;
-
-#[derive(Debug)]
-pub struct TryDequeue;
-
-/// Request handlers wrapper for the UART trait
-impl<A> RequestHandler<Enqueue<A::T>> for A
-where
-    A: Queue + 'static,
-{
-    type Response = Result<(), Error>;
-    fn on_request(self, message: Enqueue<A::T>) -> Response<Self, Self::Response> {
-        self.enqueue(message)
-    }
-}
-
-impl<A> RequestHandler<Dequeue> for A
-where
-    A: Queue + 'static,
-{
-    type Response = Result<A::T, Error>;
-    fn on_request(self, message: Dequeue) -> Response<Self, Self::Response> {
-        self.dequeue(message)
-    }
-}
-
-impl<A> RequestHandler<TryDequeue> for A
-where
-    A: Queue + 'static,
-{
-    type Response = Option<A::T>;
-    fn on_request(self, message: TryDequeue) -> Response<Self, Self::Response> {
-        self.try_dequeue(message)
-    }
+pub enum QueueResponse<T>
+where T: Sized {
+    None,
+    Element(T),
 }

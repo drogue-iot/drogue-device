@@ -8,7 +8,7 @@ pub struct DeviceConfiguration<D>
 where
     D: Device + 'static,
 {
-    pub event_bus: Address<EventBus<D>>,
+    pub event_bus: EventBus<D>,
 }
 
 /// System-wide lifecycle events.
@@ -52,7 +52,7 @@ pub trait Device {
 pub struct DeviceContext<D: Device + 'static> {
     device: D,
     supervisor: RefCell<Supervisor>,
-    bus: UnsafeCell<Option<ActorContext<EventBus<D>>>>,
+    bus: UnsafeCell<Option<EventBus<D>>>,
 }
 
 impl<D: Device> DeviceContext<D> {
@@ -75,16 +75,12 @@ impl<D: Device> DeviceContext<D> {
     }
 
     pub fn mount(&'static self) {
-        let bus = ActorContext::new(EventBus::new(self)).with_name("event-bus");
         unsafe {
             // # Safety
             // UnsafeCell requierd for circular reference between DeviceContext and the EventBus it holds.
-            (&mut *self.bus.get()).replace(bus);
-            let bus = (&*self.bus.get()).as_ref().unwrap();
-            bus.mount((), &mut *self.supervisor.borrow_mut());
+            let bus = EventBus::new(self);
 
-            let event_bus = bus.address();
-            let config = DeviceConfiguration { event_bus };
+            let config = DeviceConfiguration { event_bus: bus.clone() };
             self.device
                 .mount(config, &mut *self.supervisor.borrow_mut());
         }

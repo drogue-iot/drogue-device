@@ -1,4 +1,4 @@
-use crate::api::scheduler::*;
+use crate::api::timer::*;
 use crate::api::uart::*;
 use crate::domain::time::duration::{Duration, Milliseconds};
 
@@ -16,7 +16,7 @@ pub struct Serial<TX, RX, S>
 where
     TX: Write<u8> + 'static,
     RX: Read<u8> + UartRx + 'static,
-    S: Scheduler + 'static,
+    S: Timer + 'static,
 {
     actor: ActorContext<SerialActor<TX, S>>,
     interrupt: InterruptContext<SerialInterrupt<RX>>,
@@ -27,7 +27,7 @@ where
 pub struct SerialActor<TX, S>
 where
     TX: Write<u8> + 'static,
-    S: Scheduler + 'static,
+    S: Timer + 'static,
 {
     me: Option<Address<Self>>,
     tx: TX,
@@ -49,7 +49,7 @@ impl<TX, RX, S> Serial<TX, RX, S>
 where
     TX: Write<u8> + 'static,
     RX: Read<u8> + UartRx + 'static,
-    S: Scheduler + 'static,
+    S: Timer + 'static,
 {
     pub fn new<IRQ>(tx: TX, rx: RX, irq: IRQ) -> Self
     where
@@ -81,7 +81,7 @@ impl<TX, RX, S> Package for Serial<TX, RX, S>
 where
     TX: Write<u8> + 'static,
     RX: Read<u8> + UartRx + 'static,
-    S: Scheduler + 'static,
+    S: Timer + 'static,
 {
     type Primary = SerialActor<TX, S>;
     type Configuration = Address<S>;
@@ -106,7 +106,7 @@ where
 impl<TX, S> Actor for SerialActor<TX, S>
 where
     TX: Write<u8> + 'static,
-    S: Scheduler + 'static,
+    S: Timer + 'static,
 {
     type Configuration = (
         &'static ActorState,
@@ -171,7 +171,7 @@ where
 impl<TX, S> SerialActor<TX, S>
 where
     TX: Write<u8> + 'static,
-    S: Scheduler + 'static,
+    S: Timer + 'static,
 {
     fn write_str(&mut self, buf: &[u8]) -> Result<(), Error> {
         for b in buf.iter() {
@@ -193,7 +193,7 @@ where
 impl<TX, S> UartWriter for SerialActor<TX, S>
 where
     TX: Write<u8> + 'static,
-    S: Scheduler + 'static,
+    S: Timer + 'static,
 {
     fn write<'a>(mut self, message: UartWrite<'a>) -> Response<Self, Result<(), Error>> {
         let buf = message.0;
@@ -205,7 +205,7 @@ where
 impl<TX, S> UartReader for SerialActor<TX, S>
 where
     TX: Write<u8> + 'static,
-    S: Scheduler + 'static,
+    S: Timer + 'static,
 {
     fn read<'a>(self, message: UartRead<'a>) -> Response<Self, Result<usize, Error>> {
         let state = self.state.as_ref().unwrap();
@@ -248,7 +248,7 @@ where
 impl<TX, S> RequestHandler<ReadTimeout> for SerialActor<TX, S>
 where
     TX: Write<u8> + 'static,
-    S: Scheduler + 'static,
+    S: Timer + 'static,
 {
     type Response = ();
     fn on_request(self, message: ReadTimeout) -> Response<Self, Self::Response> {

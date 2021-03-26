@@ -1,12 +1,12 @@
-use crate::api::scheduler::Scheduler;
+use crate::api::timer::Timer;
 use crate::api::switchable::Switchable;
 use crate::domain::time::duration::Milliseconds;
 use crate::prelude::*;
 
 pub struct Blinker<S, T>
 where
-    S: Switchable + 'static,
-    T: Scheduler + 'static,
+    S: Timer + 'static,
+    T: Timer + 'static,
 {
     led: Option<Address<S>>,
     timer: Option<Address<T>>,
@@ -17,7 +17,7 @@ where
 impl<S, T> Blinker<S, T>
 where
     S: Switchable,
-    T: Scheduler,
+    T: Timer,
 {
     pub fn new<DUR: Into<Milliseconds>>(delay: DUR) -> Self {
         Self {
@@ -32,9 +32,11 @@ where
 impl<S, T> Actor for Blinker<S, T>
 where
     S: Switchable,
-    T: Scheduler,
+    T: Timer,
 {
     type Configuration = (Address<S>, Address<T>);
+    type Request = BlinkRequest;
+    type Response = ();
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where
@@ -48,63 +50,46 @@ where
     fn on_start(self) -> Completion<Self> {
         self.timer
             .unwrap()
-            .schedule(self.delay, State::On, self.address.unwrap());
+            .schedule(self.delay, BlinkRequest::On, self.address.unwrap());
         Completion::immediate(self)
     }
-}
 
-#[derive(Copy, Clone, Debug)]
-enum State {
-    On,
-    Off,
-}
-
-impl<S, T> RequestHandler<State> for Blinker<S, T>
-where
-    S: Switchable,
-    T: Scheduler,
-{
-    type Response = ();
-    fn on_request(self, message: State) -> Response<Self, Self::Response> {
+    fn on_request(self, message: Self::Request) -> Response<Self> {
         match message {
-            State::On => {
+            BlinkRequest::On => {
                 self.led.unwrap().turn_on();
                 self.timer
                     .unwrap()
-                    .schedule(self.delay, State::Off, self.address.unwrap());
+                    .schedule(self.delay, BlinkRequest::Off, self.address.unwrap());
             }
-            State::Off => {
+            BlinkRequest::Off => {
                 self.led.unwrap().turn_off();
                 self.timer
                     .unwrap()
-                    .schedule(self.delay, State::On, self.address.unwrap());
+                    .schedule(self.delay, BlinkRequest::On, self.address.unwrap());
+            }
+            BlinkRequest::AdjustDelay(ms) => {
+                self.delay = message.0;
             }
         }
         Response::immediate(self, ())
     }
 }
 
-pub struct AdjustDelay(Milliseconds);
-
-impl<S, T> RequestHandler<AdjustDelay> for Blinker<S, T>
-where
-    S: Switchable,
-    T: Scheduler,
-{
-    type Response = ();
-    fn on_request(mut self, message: AdjustDelay) -> Response<Self, Self::Response> {
-        self.delay = message.0;
-        Response::immediate(self, ())
-    }
+#[derive(Copy, Clone, Debug)]
+pub enum BlinkRequest {
+    On,
+    Off,
+    AdjustDelay(Milliseconds),
 }
 
 impl<S, T> Address<Blinker<S, T>>
 where
     Self: 'static,
     S: Switchable,
-    T: Scheduler,
+    T: Timer,
 {
     pub fn adjust_delay(&self, delay: Milliseconds) {
-        self.notify(AdjustDelay(delay))
+        self.notify(BlinkRequest::AdjustDelay(delay))
     }
 }

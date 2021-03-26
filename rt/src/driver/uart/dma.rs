@@ -2,8 +2,8 @@ use crate::prelude::*;
 
 pub use crate::api::uart::Error;
 use crate::api::{
-    scheduler::*,
-    uart::{UartRead, UartReadWithTimeout, UartReader, UartWrite, UartWriter},
+    timer::*,
+    uart::{UartRequest},
 };
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::uart::dma::DmaUartHal;
@@ -17,7 +17,7 @@ use crate::util::dma::async_bbqueue::{Error as QueueError, *};
 
 pub struct UartActor<T, TXN, RXN>
 where
-    T: Scheduler + 'static,
+    T: Timer + 'static,
     TXN: ArrayLength<u8> + 'static,
     RXN: ArrayLength<u8> + 'static,
 {
@@ -38,7 +38,7 @@ where
 pub struct UartInterrupt<U, T, TXN, RXN>
 where
     U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
+    T: Timer + 'static,
     TXN: ArrayLength<u8> + 'static,
     RXN: ArrayLength<u8> + 'static,
 {
@@ -55,7 +55,7 @@ where
 pub struct DmaUart<U, T, TXN, RXN>
 where
     U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
+    T: Timer + 'static,
     TXN: ArrayLength<u8> + 'static,
     RXN: ArrayLength<u8> + 'static,
 {
@@ -77,7 +77,7 @@ where
 impl<U, T, TXN, RXN> DmaUart<U, T, TXN, RXN>
 where
     U: DmaUartHal + 'static,
-    T: Scheduler + 'static,
+    T: Timer + 'static,
     TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
@@ -105,7 +105,7 @@ where
 impl<U, T, TXN, RXN> Package for DmaUart<U, T, TXN, RXN>
 where
     U: DmaUartHal,
-    T: Scheduler + 'static,
+    T: Timer + 'static,
     TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
@@ -138,7 +138,7 @@ where
 
 impl<T, TXN, RXN> UartActor<T, TXN, RXN>
 where
-    T: Scheduler + 'static,
+    T: Timer + 'static,
     TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
@@ -158,9 +158,17 @@ where
     U: DmaUartHal,
 {
     type Configuration = &'static U;
+    type Request = RxTimeout;
+    type Response = ();
 
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.uart.replace(config);
+    }
+
+    fn on_request(self, message: RxTimeout) -> Response<Self> {
+        let uart = self.uart.as_ref().unwrap();
+        uart.cancel_read();
+        Response::immediate(self, ())
     }
 }
 
@@ -173,102 +181,9 @@ where
     }
 }
 
-// DMA implementation of the trait
-impl<T, TXN, RXN> UartReader for UartActor<T, TXN, RXN>
+impl<'a, T, TXN, RXN> Actor for UartActor<T, TXN, RXN>
 where
-    T: Scheduler + 'static,
-    TXN: ArrayLength<u8>,
-    RXN: ArrayLength<u8>,
-{
-    /// Read bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
-    fn read<'a>(self, message: UartRead<'a>) -> Response<Self, Result<usize, Error>> {
-        let shared = self.shared.as_ref().unwrap();
-        if shared.try_rx_busy() {
-            let rx_consumer = self.rx_consumer.as_ref().unwrap();
-            let future = unsafe { rx_consumer.read(message.0) };
-            let future = RxFuture::new(future, shared);
-            Response::immediate_future(self, future)
-        } else {
-            Response::immediate(self, Err(Error::RxInProgress))
-        }
-    }
-
-    /// Receive bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
-    fn read_with_timeout<'a, DUR>(
-        self,
-        message: UartReadWithTimeout<'a, DUR>,
-    ) -> Response<Self, Result<usize, Error>>
-    where
-        DUR: Duration + Into<Milliseconds> + 'static,
-    {
-        let shared = self.shared.as_ref().unwrap();
-        if shared.try_rx_busy() {
-            let rx_consumer = self.rx_consumer.as_ref().unwrap();
-            let future = unsafe { rx_consumer.read(message.0) };
-            let future = RxFuture::new(future, shared);
-            shared.reset_rx_timeout();
-            self.scheduler.as_ref().unwrap().schedule(
-                message.1,
-                ReadTimeout,
-                *self.me.as_ref().unwrap(),
-            );
-            Response::immediate_future(self, future)
-        } else {
-            Response::immediate(self, Err(Error::RxInProgress))
-        }
-    }
-}
-
-impl<T, TXN, RXN> RequestHandler<ReadTimeout> for UartActor<T, TXN, RXN>
-where
-    T: Scheduler + 'static,
-    TXN: ArrayLength<u8>,
-    RXN: ArrayLength<u8>,
-{
-    type Response = ();
-    fn on_request(self, message: ReadTimeout) -> Response<Self, Self::Response> {
-        let shared = self.shared.as_ref().unwrap();
-        shared.signal_rx_timeout();
-        Response::immediate(self, ())
-    }
-}
-
-impl<T, TXN, RXN> UartWriter for UartActor<T, TXN, RXN>
-where
-    T: Scheduler + 'static,
-    TXN: ArrayLength<u8>,
-    RXN: ArrayLength<u8>,
-{
-    /// Transmit bytes from provided tx_buffer over UART. The memory pointed to by the buffer must be available until the return future is await'ed
-    fn write<'a>(self, message: UartWrite<'a>) -> Response<Self, Result<(), Error>> {
-        let shared = self.shared.as_ref().unwrap();
-        if shared.try_tx_busy() {
-            // log::info!("Going to write message");
-            let tx_producer = self.tx_producer.as_ref().unwrap();
-            let future = unsafe { tx_producer.write(message.0) };
-            let future = TxFuture::new(future, shared);
-            Response::immediate_future(self, future)
-        } else {
-            Response::immediate(self, Err(Error::TxInProgress))
-        }
-    }
-}
-
-impl<U> RequestHandler<RxTimeout> for UartController<U>
-where
-    U: DmaUartHal,
-{
-    type Response = ();
-    fn on_request(self, message: RxTimeout) -> Response<Self, Self::Response> {
-        let uart = self.uart.as_ref().unwrap();
-        uart.cancel_read();
-        Response::immediate(self, ())
-    }
-}
-
-impl<T, TXN, RXN> Actor for UartActor<T, TXN, RXN>
-where
-    T: Scheduler + 'static,
+    T: Timer + 'static,
     TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
@@ -279,6 +194,9 @@ where
         AsyncBBConsumer<RXN>,
     );
 
+    type Request = UartRequest<'a>;
+    type Response = UartResponse;
+
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.me.replace(me);
         self.shared.replace(config.0);
@@ -286,12 +204,42 @@ where
         self.tx_producer.replace(config.2);
         self.rx_consumer.replace(config.3);
     }
+
+    fn on_request(self, request: UartRequest<'a>) -> Response<Self, Result<usize, Error>> {
+        match request {
+            // Read bytes into the provided rx_buffer. The memory pointed to by the buffer must be available until the return future is await'ed
+            UartRequest::Read(rx_buf) => {
+        let shared = self.shared.as_ref().unwrap();
+        if shared.try_rx_busy() {
+            let rx_consumer = self.rx_consumer.as_ref().unwrap();
+            let future = unsafe { rx_consumer.read(rx_buf) };
+            let future = RxFuture::new(future, shared);
+            Response::immediate_future(self, future)
+        } else {
+            Response::immediate(self, Err(Error::RxInProgress))
+        }
+            }
+            // Transmit bytes from provided tx_buffer over UART. The memory pointed to by the buffer must be available until the return future is await'ed
+            UartRequest::Write(tx_buf) => {
+        let shared = self.shared.as_ref().unwrap();
+        if shared.try_tx_busy() {
+            // log::info!("Going to write message");
+            let tx_producer = self.tx_producer.as_ref().unwrap();
+            let future = unsafe { tx_producer.write(tx_buf) };
+            let future = TxFuture::new(future, shared);
+            Response::immediate_future(self, future)
+        } else {
+            Response::immediate(self, Err(Error::TxInProgress))
+        }
+            }
+    }
+    }
 }
 
 impl<U, T, TXN, RXN> UartInterrupt<U, T, TXN, RXN>
 where
     U: DmaUartHal,
-    T: Scheduler + 'static,
+    T: Timer + 'static,
     TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
@@ -322,7 +270,7 @@ where
                     log::error!("Error preparing write, backing off: {:?}", e);
                     self.scheduler.as_ref().unwrap().schedule(
                         Milliseconds(1000),
-                        TxStart,
+                        DmaRequest::TxStart,
                         *self.me.as_ref().unwrap(),
                     );
                 }
@@ -331,7 +279,7 @@ where
                 // TODO: Go to sleep
                 self.scheduler.as_ref().unwrap().schedule(
                     Milliseconds(10),
-                    TxStart,
+                    DmaRequest::TxStart,
                     *self.me.as_ref().unwrap(),
                 );
             }
@@ -339,7 +287,7 @@ where
                 log::error!("Error pulling from queue, backing off: {:?}", e);
                 self.scheduler.as_ref().unwrap().schedule(
                     Milliseconds(1000),
-                    TxStart,
+                    DmaRequest::TxStart,
                     *self.me.as_ref().unwrap(),
                 );
             }
@@ -368,7 +316,7 @@ where
                     log::error!("Error initiating DMA transfer: {:?}", e);
                     self.scheduler.as_ref().unwrap().schedule(
                         Milliseconds(10),
-                        RxStart,
+                        DmaRequest::RxStart,
                         *self.me.as_ref().unwrap(),
                     );
                 }
@@ -377,7 +325,7 @@ where
                 // TODO: Go to sleep
                 self.scheduler.as_ref().unwrap().schedule(
                     Milliseconds(10),
-                    RxStart,
+                    DmaRequest::RxStart,
                     *self.me.as_ref().unwrap(),
                 );
             }
@@ -385,7 +333,7 @@ where
                 log::error!("Producer not ready, backing off: {:?}", e);
                 self.scheduler.as_ref().unwrap().schedule(
                     Milliseconds(1000),
-                    RxStart,
+                    DmaRequest::RxStart,
                     *self.me.as_ref().unwrap(),
                 );
             }
@@ -399,7 +347,7 @@ const READ_SIZE: usize = 255;
 impl<U, T, TXN, RXN> Actor for UartInterrupt<U, T, TXN, RXN>
 where
     U: DmaUartHal,
-    T: Scheduler + 'static,
+    T: Timer + 'static,
     TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
@@ -410,6 +358,8 @@ where
         AsyncBBConsumer<TXN>,
         AsyncBBProducer<RXN>,
     );
+    type Request = DmaRequest;
+    type Response = ();
 
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.uart.replace(config.0);
@@ -427,42 +377,25 @@ where
         self.start_write();
         Completion::immediate(self)
     }
-}
 
-impl<U, T, TXN, RXN> RequestHandler<RxStart> for UartInterrupt<U, T, TXN, RXN>
-where
-    U: DmaUartHal,
-    T: Scheduler + 'static,
-    TXN: ArrayLength<u8>,
-    RXN: ArrayLength<u8>,
-{
-    type Response = ();
-    fn on_request(mut self, message: RxStart) -> Response<Self, Self::Response> {
-        // log::info!("RX START");
-        self.start_read(READ_SIZE, Milliseconds(READ_TIMEOUT));
+    fn on_request(mut self, message: DmaRequest) -> Response<Self> {
+        match message {
+            DmaRequest::RxStart => self.start_read(READ_SIZE, Milliseconds(READ_TIMEOUT)),
+            DmaRequest::TxStart => self.start_write(),
+        }
         Response::immediate(self, ())
     }
 }
 
-impl<U, T, TXN, RXN> RequestHandler<TxStart> for UartInterrupt<U, T, TXN, RXN>
-where
-    U: DmaUartHal,
-    T: Scheduler + 'static,
-    TXN: ArrayLength<u8>,
-    RXN: ArrayLength<u8>,
-{
-    type Response = ();
-    fn on_request(mut self, message: TxStart) -> Response<Self, Self::Response> {
-        // log::info!("RX START");
-        self.start_write();
-        Response::immediate(self, ())
-    }
+pub enum DmaRequest {
+    TxStart,
+    RxStart,
 }
 
 impl<U, T, TXN, RXN> Interrupt for UartInterrupt<U, T, TXN, RXN>
 where
     U: DmaUartHal,
-    T: Scheduler + 'static,
+    T: Timer + 'static,
     TXN: ArrayLength<u8>,
     RXN: ArrayLength<u8>,
 {
@@ -508,17 +441,6 @@ where
     }
 }
 
-#[derive(Clone)]
-struct ReadTimeout;
-
-#[derive(Clone)]
-struct RxTimeout;
-
-#[derive(Clone)]
-struct RxStart;
-
-#[derive(Clone)]
-struct TxStart;
 
 #[cfg(test)]
 mod tests {

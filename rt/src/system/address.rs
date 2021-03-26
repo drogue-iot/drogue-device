@@ -20,7 +20,8 @@ impl<A: Actor> Clone for Address<A> {
     }
 }
 
-impl<A: Actor + 'static> Address<A> {
+impl<A> Address<A> where
+A: Actor + 'static {
     pub(crate) fn new(actor: &'static ActorContext<A>) -> Self {
         Self { actor }
     }
@@ -29,10 +30,7 @@ impl<A: Actor + 'static> Address<A> {
     ///
     /// To accept the message, the target must implement `NotificationHandler<...>`
     /// for the appropriate type of message being sent.
-    pub fn notify<M>(&self, message: M)
-    where
-        A: RequestHandler<M> + 'static,
-        M: 'static,
+    pub fn notify(&self, message: A::Request)
     {
         self.actor.notify(message)
     }
@@ -40,11 +38,8 @@ impl<A: Actor + 'static> Address<A> {
     /// Perform an _async_ request to the actor behind this address.
     ///
     /// To accept the request and provide a response, the target must implement
-    /// `RequestHandler<...>` for the appropriate type of message.
-    pub async fn request<M>(&self, message: M) -> <A as RequestHandler<M>>::Response
-    where
-        A: RequestHandler<M> + 'static,
-        M: 'static,
+    /// `Actor<...>` for the appropriate type of message.
+    pub async fn request(&self, message: A::Request) -> A::Response
     {
         self.actor.request(message).await
     }
@@ -52,7 +47,7 @@ impl<A: Actor + 'static> Address<A> {
     /// Perform an unsafe _async_ request to the actor behind this address.
     ///
     /// To accept the request and provide a response, the target must implement
-    /// `RequestHandler<...>` for the appropriate type of message.
+    /// `Actor<...>` for the appropriate type of message.
     ///
     /// # Panics
     ///
@@ -60,10 +55,7 @@ impl<A: Actor + 'static> Address<A> {
     /// ensure that the response to the request is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub async fn request_panicking<'m, M>(&self, message: M) -> <A as RequestHandler<M>>::Response
-    where
-        A: RequestHandler<M>,
-        M: 'm,
+    pub async fn request_panicking(&self, message: A::Request) -> A::Response
     {
         self.actor.request_panicking(message).await
     }

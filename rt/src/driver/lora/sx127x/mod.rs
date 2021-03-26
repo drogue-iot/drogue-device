@@ -1,5 +1,5 @@
 use crate::{
-    api::{lora::*, scheduler::*},
+    api::{lora::*, timer::*},
     domain::time::{
         duration::Milliseconds,
         rate::{Hertz, Rate},
@@ -73,7 +73,7 @@ where
 
 pub struct Sx127x<S, SPI, CS, RESET, BUSY, DELAY, READY, E>
 where
-    S: Scheduler + 'static,
+    S: Timer + 'static,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -89,7 +89,7 @@ where
 
 impl<S, SPI, CS, RESET, BUSY, DELAY, READY, E> Sx127x<S, SPI, CS, RESET, BUSY, DELAY, READY, E>
 where
-    S: Scheduler,
+    S: Timer,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
@@ -123,7 +123,7 @@ where
 impl<S, SPI, CS, RESET, BUSY, DELAY, READY, E> Package
     for Sx127x<S, SPI, CS, RESET, BUSY, DELAY, READY, E>
 where
-    S: Scheduler,
+    S: Timer,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -150,7 +150,7 @@ where
 
 pub struct Sx127xActor<S, SPI, CS, RESET, BUSY, DELAY, E>
 where
-    S: Scheduler + 'static,
+    S: Timer + 'static,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -168,7 +168,7 @@ where
 
 impl<S, SPI, CS, RESET, BUSY, DELAY, E> Sx127xActor<S, SPI, CS, RESET, BUSY, DELAY, E>
 where
-    S: Scheduler + 'static,
+    S: Timer + 'static,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -305,7 +305,7 @@ where
 
 impl<S, SPI, CS, RESET, BUSY, DELAY, E> Actor for Sx127xActor<S, SPI, CS, RESET, BUSY, DELAY, E>
 where
-    S: Scheduler,
+    S: Timer,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -354,7 +354,7 @@ impl<S, SPI, CS, RESET, BUSY, DELAY, E>
     RequestHandler<LorawanEvent<'static, Radio<SPI, CS, RESET, E>>>
     for Sx127xActor<S, SPI, CS, RESET, BUSY, DELAY, E>
 where
-    S: Scheduler,
+    S: Timer,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -376,7 +376,7 @@ where
 impl<S, SPI, CS, RESET, BUSY, DELAY, E> LoraDriver
     for Sx127xActor<S, SPI, CS, RESET, BUSY, DELAY, E>
 where
-    S: Scheduler,
+    S: Timer,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -457,7 +457,7 @@ where
 
 pub struct Sx127xInterrupt<S, SPI, CS, RESET, BUSY, DELAY, READY, E>
 where
-    S: Scheduler + 'static,
+    S: Timer + 'static,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -473,7 +473,7 @@ where
 impl<S, SPI, CS, RESET, BUSY, DELAY, READY, E>
     Sx127xInterrupt<S, SPI, CS, RESET, BUSY, DELAY, READY, E>
 where
-    S: Scheduler,
+    S: Timer,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -489,7 +489,7 @@ where
 impl<S, SPI, CS, RESET, BUSY, DELAY, READY, E> Actor
     for Sx127xInterrupt<S, SPI, CS, RESET, BUSY, DELAY, READY, E>
 where
-    S: Scheduler,
+    S: Timer,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
@@ -507,7 +507,7 @@ where
 impl<S, SPI, CS, RESET, BUSY, DELAY, READY, E> Interrupt
     for Sx127xInterrupt<S, SPI, CS, RESET, BUSY, DELAY, READY, E>
 where
-    S: Scheduler,
+    S: Timer,
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,

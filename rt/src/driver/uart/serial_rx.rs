@@ -5,7 +5,7 @@ use embedded_hal::serial::Read;
 
 pub struct SerialRx<D, RX>
 where
-    D: RequestHandler<SerialData> + 'static,
+    D: EventHandler<SerialData> + 'static,
     RX: Read<u8> + UartRx + 'static,
 {
     rx: RX,
@@ -14,7 +14,7 @@ where
 
 impl<D, RX> SerialRx<D, RX>
 where
-    D: RequestHandler<SerialData> + 'static,
+    D: EventHandler<SerialData> + 'static,
     RX: Read<u8> + UartRx + 'static,
 {
     pub fn new(rx: RX) -> Self {
@@ -24,7 +24,7 @@ where
 
 impl<D, RX> Actor for SerialRx<D, RX>
 where
-    D: RequestHandler<SerialData> + 'static,
+    D: EventHandler<SerialData> + 'static,
     RX: Read<u8> + UartRx + 'static,
 {
     type Configuration = Address<D>;
@@ -40,7 +40,7 @@ where
 
 impl<D, RX> Interrupt for SerialRx<D, RX>
 where
-    D: RequestHandler<SerialData> + 'static,
+    D: EventHandler<SerialData> + 'static,
     RX: Read<u8> + UartRx + 'static,
 {
     fn on_interrupt(&mut self) {
@@ -49,7 +49,7 @@ where
             loop {
                 match self.rx.read() {
                     Ok(b) => {
-                        handler.notify(SerialData(b));
+                        handler.publish(SerialData(b));
                     }
                     Err(nb::Error::WouldBlock) => {
                         break;

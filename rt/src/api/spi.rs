@@ -1,5 +1,5 @@
 use crate::api::arbitrator::BusTransaction;
-use crate::api::delayer::Delayer;
+use crate::api::timer::Timer;
 use crate::domain::time::duration::Milliseconds;
 use crate::prelude::*;
 use core::cell::RefCell;
@@ -43,7 +43,7 @@ where
 pub struct ChipSelect<PIN, D>
 where
     PIN: OutputPin + 'static,
-    D: Delayer + 'static,
+    D: Timer + 'static,
 {
     select_delay: Milliseconds,
     pin: RefCell<PIN>,
@@ -53,7 +53,7 @@ where
 impl<PIN, D> ChipSelect<PIN, D>
 where
     PIN: OutputPin,
-    D: Delayer,
+    D: Timer,
 {
     pub fn new(pin: PIN, select_delay: Milliseconds) -> Self {
         Self {
@@ -81,7 +81,7 @@ where
 pub struct Selected<'cs, PIN, D>
 where
     PIN: OutputPin + 'static,
-    D: Delayer + 'static,
+    D: Timer+ 'static,
 {
     cs: &'cs ChipSelect<PIN, D>,
 }
@@ -89,7 +89,7 @@ where
 impl<'cs, PIN, D> Selected<'cs, PIN, D>
 where
     PIN: OutputPin + 'static,
-    D: Delayer + 'static,
+    D: Timer+ 'static,
 {
     fn new(cs: &'cs ChipSelect<PIN, D>) -> Self {
         Self { cs }
@@ -99,7 +99,7 @@ where
 impl<'cs, PIN, D> Drop for Selected<'cs, PIN, D>
 where
     PIN: OutputPin + 'static,
-    D: Delayer + 'static,
+    D: Timer+ 'static,
 {
     fn drop(&mut self) {
         self.cs.deselect();

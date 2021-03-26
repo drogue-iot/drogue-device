@@ -57,6 +57,8 @@ where
     I: WriteRead + Read + Write,
 {
     type Configuration = (Address<EventBus<D>>, Address<I2cPeripheral<I>>);
+    type Request = DataReady;
+    type Response = ();
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where
@@ -114,15 +116,8 @@ where
             self
         })
     }
-}
 
-impl<D, I> RequestHandler<DataReady> for Sensor<D, I>
-where
-    D: Device + EventHandler<SensorAcquisition<Celsius>>,
-    I: WriteRead + Read + Write,
-{
-    type Response = ();
-    fn on_request(self, message: DataReady) -> Response<Self, Self::Response> {
+    fn on_request(self, message: DataReady) -> Response<Self> {
         Response::defer(async move {
             if self.i2c.is_some() {
                 let i2c = self.i2c.unwrap();

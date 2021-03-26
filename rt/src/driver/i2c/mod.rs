@@ -44,8 +44,10 @@ impl<I> I2cPeripheral<I> {
     }
 }
 
-impl<I> Actor for I2cPeripheral<I> {
-    type Configuration = ();
+pub enum I2cRequest<'b> {
+    Read(I2cRead<'b>),
+    Write(I2cWrite<'b>),
+    WriteRead(I2cWriteRead<'b>),
 }
 
 #[derive(Debug)]
@@ -54,34 +56,10 @@ pub struct I2cRead<'b> {
     buffer: &'b mut [u8],
 }
 
-impl<'b, I> RequestHandler<I2cRead<'b>> for I2cPeripheral<I>
-where
-    I: Read + 'static,
-{
-    type Response = Result<(), I::Error>;
-
-    fn on_request(mut self, message: I2cRead<'b>) -> Response<Self, Self::Response> {
-        let result = self.i2c.read(message.address.into(), message.buffer);
-        Response::immediate(self, result)
-    }
-}
-
 #[derive(Debug)]
 pub struct I2cWrite<'b> {
     address: I2cAddress,
     buffer: &'b [u8],
-}
-
-impl<'b, I> RequestHandler<I2cWrite<'b>> for I2cPeripheral<I>
-where
-    I: Write + 'static,
-{
-    type Response = Result<(), I::Error>;
-
-    fn on_request(mut self, message: I2cWrite<'b>) -> Response<Self, Self::Response> {
-        let result = self.i2c.write(message.address.into(), message.buffer);
-        Response::immediate(self, result)
-    }
 }
 
 #[derive(Debug)]
@@ -91,16 +69,20 @@ pub struct I2cWriteRead<'b> {
     buffer: &'b mut [u8],
 }
 
-impl<'b, I> RequestHandler<I2cWriteRead<'b>> for I2cPeripheral<I>
-where
-    I: WriteRead + 'static,
-{
+impl<'b, I> Actor for I2cPeripheral<I> {
+    type Configuration = ();
+    type Request = I2cRequest<'b>;
     type Response = Result<(), I::Error>;
 
-    fn on_request(mut self, message: I2cWriteRead<'b>) -> Response<Self, Self::Response> {
-        let result = self
-            .i2c
-            .write_read(message.address.into(), message.bytes, message.buffer);
+    fn on_request(mut self, message: I2cRequest<'b>) -> Response<Self> {
+        let result = match message {
+            I2cRequest::Write(message) => self.i2c.write(message.address.into(), message.buffer),
+            I2cRequest::Read(message) => self.i2c.read(message.address.into(), message.buffer),
+            I2cRequest::WriteRead(message) => {
+                self.i2c
+                    .write_read(message.address.into(), message.bytes, message.buffer)
+            }
+        };
         Response::immediate(self, result)
     }
 }

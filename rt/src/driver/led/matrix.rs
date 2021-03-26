@@ -1,7 +1,7 @@
 use crate::domain::time::duration::Milliseconds;
 use crate::domain::time::rate::{Hertz, Rate};
 
-use crate::api::scheduler::Scheduler;
+use crate::api::timer::Timer;
 use crate::prelude::*;
 use embedded_hal::digital::v2::OutputPin;
 use heapless::{ArrayLength, Vec};
@@ -12,7 +12,7 @@ where
     P: OutputPin + 'static,
     ROWS: ArrayLength<P> + 'static,
     COLS: ArrayLength<P> + 'static,
-    S: Scheduler + 'static,
+    S: Timer + 'static,
 {
     address: Option<Address<Self>>,
     pin_rows: Vec<P, ROWS>,
@@ -59,7 +59,7 @@ where
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
-    S: Scheduler,
+    S: Timer,
 {
     pub fn new(pin_rows: Vec<P, ROWS>, pin_cols: Vec<P, COLS>, refresh_rate: Hertz) -> Self {
         LEDMatrix {
@@ -106,14 +106,17 @@ where
     }
 }
 
-impl<P, ROWS, COLS, S> Actor for LEDMatrix<P, ROWS, COLS, S>
+impl<P, ROWS, COLS, S, F> Actor for LEDMatrix<P, ROWS, COLS, S>
 where
     P: OutputPin,
     ROWS: ArrayLength<P>,
     COLS: ArrayLength<P>,
-    S: Scheduler,
+    S: Timer,
+    F: ToFrame,
 {
     type Configuration = Address<S>;
+    type Request = MatrixCommand<F>;
+    type Response = ();
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration) {
         self.address.replace(address);
@@ -125,105 +128,46 @@ where
             if let Some(timer) = self.timer {
                 timer.schedule(
                     self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
-                    Render,
+                    MatrixCommand::Render,
                     address,
                 );
             }
         }
         Completion::immediate(self)
     }
-}
 
-impl<P, ROWS, COLS, S, F> RequestHandler<Apply<F>> for LEDMatrix<P, ROWS, COLS, S>
-where
-    P: OutputPin,
-    ROWS: ArrayLength<P>,
-    COLS: ArrayLength<P>,
-    S: Scheduler,
-    F: ToFrame,
-{
-    type Response = ();
-    fn on_request(mut self, message: Apply<F>) -> Response<Self, Self::Response> {
-        self.apply(message.0.to_frame());
-        Response::immediate(self, ())
-    }
-}
-
-impl<P, ROWS, COLS, S> RequestHandler<On> for LEDMatrix<P, ROWS, COLS, S>
-where
-    P: OutputPin,
-    ROWS: ArrayLength<P>,
-    COLS: ArrayLength<P>,
-    S: Scheduler,
-{
-    type Response = ();
-    fn on_request(mut self, message: On) -> Response<Self, Self::Response> {
-        self.on(message.0, message.1);
-        Response::immediate(self, ())
-    }
-}
-
-impl<P, ROWS, COLS, S> RequestHandler<Off> for LEDMatrix<P, ROWS, COLS, S>
-where
-    P: OutputPin,
-    ROWS: ArrayLength<P>,
-    COLS: ArrayLength<P>,
-    S: Scheduler,
-{
-    type Response = ();
-    fn on_request(mut self, message: Off) -> Response<Self, Self::Response> {
-        self.off(message.0, message.1);
-        Response::immediate(self, ())
-    }
-}
-
-impl<P, ROWS, COLS, S> RequestHandler<Clear> for LEDMatrix<P, ROWS, COLS, S>
-where
-    P: OutputPin,
-    ROWS: ArrayLength<P>,
-    COLS: ArrayLength<P>,
-    S: Scheduler,
-{
-    type Response = ();
-    fn on_request(mut self, message: Clear) -> Response<Self, Self::Response> {
-        self.clear();
-        Response::immediate(self, ())
-    }
-}
-
-impl<P, ROWS, COLS, S> RequestHandler<Render> for LEDMatrix<P, ROWS, COLS, S>
-where
-    P: OutputPin,
-    ROWS: ArrayLength<P>,
-    COLS: ArrayLength<P>,
-    S: Scheduler,
-{
-    type Response = ();
-    fn on_request(mut self, message: Render) -> Response<Self, Self::Response> {
-        self.render();
-        if let Some(address) = self.address {
-            self.timer.unwrap().schedule(
-                self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
-                Render,
-                address,
-            );
+    fn on_request(mut self, message: MatrixCommand<F>) -> Response<Self> {
+        match message {
+            MatrixCommand::ApplyFrame(f) => self.apply(f.to_frame()),
+            MatrixCommand::On(x, y) => self.on(x, y),
+            MatrixCommand::Off(x, y) => self.off(x, y),
+            MatrixCommand::Clear => self.clear(),
+            MatrixCommand::Render => {
+                self.render();
+                if let Some(address) = self.address {
+                    self.timer.unwrap().schedule(
+                        self.refresh_rate.to_duration::<Milliseconds>().unwrap(),
+                        MatrixCommand::Render,
+                        address,
+                    );
+                }
+            }
         }
         Response::immediate(self, ())
     }
 }
 
 #[derive(Debug)]
-pub struct On(pub usize, pub usize);
-#[derive(Debug)]
-pub struct Off(pub usize, pub usize);
-#[derive(Debug)]
-pub struct Clear;
-#[derive(Debug, Clone)]
-pub struct Render;
-#[derive(Debug)]
-pub struct Apply<F>(pub F)
+pub enum MatrixCommand<F>
 where
-    F: ToFrame;
+    F: ToFrame,
+{
+    On(usize, usize),
+    Off(usize, usize),
+    Clear,
+    Render,
+    ApplyFrame(F),
+}
 
 pub trait ToFrame: Copy + Clone + core::fmt::Debug {
     fn to_frame(&self) -> Frame;

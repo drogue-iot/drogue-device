@@ -180,27 +180,6 @@ where
             Response::immediate(self, Err(Error::ConsumerBusy))
         }
     }
-
-    fn try_dequeue(self, message: TryDequeue) -> Response<Self, Option<T>> {
-        let shared = self.shared.as_ref().unwrap();
-        if shared.try_consumer_busy() {
-            let consumer = shared.consumer.borrow();
-            let mut consumer = consumer.as_ref().unwrap().borrow_mut();
-            match consumer.dequeue() {
-                Some(item) => {
-                    shared.set_consumer_ready();
-                    shared.notify_producer();
-                    Response::immediate(self, Some(item))
-                }
-                None => {
-                    shared.set_consumer_ready();
-                    Response::immediate(self, None)
-                }
-            }
-        } else {
-            Response::immediate(self, None)
-        }
-    }
 }
 
 impl<T, N> Actor for SpscQueueActor<T, N>
@@ -208,6 +187,8 @@ where
     N: ArrayLength<T> + 'static,
 {
     type Configuration = &'static Shared<T, N>;
+    type Request = QueueRequest;
+    type Response = QueueResponse;
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.shared.replace(config);
     }

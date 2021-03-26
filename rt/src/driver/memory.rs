@@ -25,11 +25,9 @@ impl<A: Arena> Default for Memory<A> {
 
 impl<A: Arena> Actor for Memory<A> {
     type Configuration = ();
-}
-
-impl<A: Arena + 'static> RequestHandler<Query> for Memory<A> {
+    type Request = Query;
     type Response = ();
-    fn on_request(self, message: Query) -> Response<Self, Self::Response> {
+    fn on_request(self, message: Query) -> Response<Self> {
         let info = A::info();
         log::info!(
             "[{}] used={}, free={} || high={}",

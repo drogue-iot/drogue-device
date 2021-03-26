@@ -25,10 +25,10 @@ pub trait Configurable {
 }
 
 /// Trait that each actor must implement.
-///
-/// See also `RequestHandler<...>`.
 pub trait Actor: Sized {
     type Configuration;
+    type Request;
+    type Response;
 
     /// Called to mount an actor into the system.
     ///
@@ -80,6 +80,8 @@ pub trait Actor: Sized {
     {
         Completion::immediate(self)
     }
+
+    fn on_request(self, request: Self::Request) -> Response<Self>;
 }
 
 /// Global methods for acquiring the current actor's infomation.
@@ -210,11 +212,7 @@ impl<A: Actor + 'static> ActorContext<A> {
     }
 
     /// Dispatch a notification.
-    pub(crate) fn notify<M>(&'static self, message: M)
-    where
-        A: RequestHandler<M>,
-        M: 'static,
-    {
+    pub(crate) fn notify(&'static self, message: A::Request) {
         log::trace!("[{}].notify(...)", self.name());
 
         let request: &mut dyn ActorFuture<A> =
@@ -238,11 +236,7 @@ impl<A: Actor + 'static> ActorContext<A> {
     }
 
     /// Dispatch an async request.
-    pub(crate) async fn request<M>(&'static self, message: M) -> <A as RequestHandler<M>>::Response
-    where
-        A: RequestHandler<M>,
-        M: 'static,
-    {
+    pub(crate) async fn request(&'static self, message: A::Request) -> A::Response {
         let signal = Rc::new(CompletionHandle::new());
         let sender = CompletionSender::new(signal.clone());
         let receiver = CompletionReceiver::new(signal);
@@ -270,13 +264,7 @@ impl<A: Actor + 'static> ActorContext<A> {
     }
 
     /// Dispatch an async request.
-    pub(crate) async fn request_cancellable<M>(
-        &'static self,
-        message: M,
-    ) -> <A as RequestHandler<M>>::Response
-    where
-        A: RequestHandler<M>,
-    {
+    pub(crate) async fn request_cancellable(&'static self, message: A::Request) -> A::Response {
         let signal = Rc::new(CompletionHandle::new());
         let sender = CompletionSender::new(signal.clone());
         let receiver = CompletionReceiver::new(signal);
@@ -305,13 +293,7 @@ impl<A: Actor + 'static> ActorContext<A> {
     }
 
     /// Dispatch an async request.
-    pub(crate) async fn request_panicking<M>(
-        &'static self,
-        message: M,
-    ) -> <A as RequestHandler<M>>::Response
-    where
-        A: RequestHandler<M>,
-    {
+    pub(crate) async fn request_panicking(&'static self, message: A::Request) -> A::Response {
         let signal = Rc::new(CompletionHandle::new());
         let sender = CompletionSender::new(signal.clone());
         let receiver = CompletionReceiver::new(signal);
@@ -454,20 +436,20 @@ impl<A: Actor> Future for OnLifecycle<A> {
     }
 }
 
-struct OnNotify<A: Actor, M>
+struct OnNotify<A>
 where
-    A: RequestHandler<M> + 'static,
+    A: Actor + 'static,
 {
     actor: &'static ActorContext<A>,
-    message: Option<M>,
-    defer: Option<Response<A, A::Response>>,
+    message: Option<A::Request>,
+    defer: Option<Response<A>>,
 }
 
-impl<A: Actor, M> OnNotify<A, M>
+impl<A> OnNotify<A>
 where
-    A: RequestHandler<M>,
+    A: Actor,
 {
-    pub fn new(actor: &'static ActorContext<A>, message: M) -> Self {
+    pub fn new(actor: &'static ActorContext<A>, message: A::Request) -> Self {
         Self {
             actor,
             message: Some(message),
@@ -476,13 +458,13 @@ where
     }
 }
 
-impl<A: Actor + RequestHandler<M>, M> ActorFuture<A> for OnNotify<A, M> {}
+impl<A> ActorFuture<A> for OnNotify<A> where A: Actor {}
 
-impl<A, M> Unpin for OnNotify<A, M> where A: RequestHandler<M> + Actor {}
+impl<A> Unpin for OnNotify<A> where A: Actor {}
 
-impl<A: Actor, M> Future for OnNotify<A, M>
+impl<A> Future for OnNotify<A>
 where
-    A: RequestHandler<M>,
+    A: Actor,
 {
     type Output = ();
 
@@ -526,23 +508,23 @@ where
     }
 }
 
-struct OnRequest<A, M>
+struct OnRequest<A>
 where
-    A: Actor + RequestHandler<M> + 'static,
+    A: Actor + 'static,
 {
     actor: &'static ActorContext<A>,
-    message: Option<M>,
+    message: Option<A::Request>,
     sender: CompletionSender<A::Response>,
-    defer: Option<Response<A, A::Response>>,
+    defer: Option<Response<A>>,
 }
 
-impl<A, M> OnRequest<A, M>
+impl<A> OnRequest<A>
 where
-    A: Actor + RequestHandler<M>,
+    A: Actor,
 {
     pub fn new(
         actor: &'static ActorContext<A>,
-        message: M,
+        message: A::Request,
         sender: CompletionSender<A::Response>,
     ) -> Self {
         Self {
@@ -554,15 +536,15 @@ where
     }
 }
 
-impl<A, M> OnRequest<A, M> where A: Actor + RequestHandler<M> + 'static {}
+impl<A> OnRequest<A> where A: Actor + 'static {}
 
-impl<A: Actor + RequestHandler<M>, M> ActorFuture<A> for OnRequest<A, M> {}
+impl<A> ActorFuture<A> for OnRequest<A> where A: Actor {}
 
-impl<A, M> Unpin for OnRequest<A, M> where A: Actor + RequestHandler<M> + 'static {}
+impl<A> Unpin for OnRequest<A> where A: Actor + 'static {}
 
-impl<A, M> Future for OnRequest<A, M>
+impl<A> Future for OnRequest<A>
 where
-    A: Actor + RequestHandler<M>,
+    A: Actor,
 {
     type Output = ();
 

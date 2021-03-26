@@ -1,27 +1,20 @@
-use crate::api::delayer::{Delay, Delayer};
-use crate::api::scheduler::{Schedule, Scheduler};
+use crate::api::timer::{Schedulable, TimerRequest};
 use crate::arch::with_critical_section;
-use crate::arena::{Arena, Box};
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::hal::timer::Timer as HalTimer;
 use crate::prelude::*;
-use crate::system::SystemArena;
 use core::cell::RefCell;
+use crate::arena::{Box};
+use crate::system::SystemArena;
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 use cortex_m::interrupt::Nr;
 
-pub trait Schedulable {
-    fn run(&mut self);
-    fn get_expiration(&self) -> Milliseconds;
-    fn set_expiration(&mut self, expiration: Milliseconds);
-}
-
 pub struct Shared {
     current_deadline: RefCell<Option<Milliseconds>>,
     delay_deadlines: RefCell<[Option<DelayDeadline>; 16]>,
-    schedule_deadlines: RefCell<[Option<Box<dyn Schedulable, SystemArena>>; 16]>,
+    schedule_deadlines: RefCell<[Option<ScheduleDeadline>; 16]>,
 }
 
 impl Shared {
@@ -105,90 +98,83 @@ impl<T: HalTimer> TimerActor<T> {
     }
 }
 
-impl<T: HalTimer> Scheduler for TimerActor<T> {
-    fn schedule<A, DUR, E>(&mut self, message: Schedule<A, DUR, E>)
-    where
-        A: Actor + RequestHandler<E> + 'static,
-        DUR: Duration + Into<Milliseconds> + 'static,
-        E: 'static,
-    {
-        let ms: Milliseconds = message.delay.into();
-        // log::info!("schedule request {:?}", ms);
-        let mut deadlines = self.shared.unwrap().schedule_deadlines.borrow_mut();
-        let mut current_deadline = self.shared.unwrap().current_deadline.borrow_mut();
-
-        if let Some((index, slot)) = deadlines
-            .iter_mut()
-            .enumerate()
-            .find(|e| matches!(e, (_, None)))
-        {
-            deadlines[index].replace(Box::new(
-                SystemArena::alloc(ScheduleDeadline::new(ms, message)).unwrap(),
-            ));
-            if let Some(current) = &*current_deadline {
-                if *current > ms {
-                    current_deadline.replace(ms);
-                    self.timer.start(ms);
-                } else {
-                    //log::info!("timer already running for {:?}", current_deadline );
-                }
-            } else {
-                current_deadline.replace(ms);
-                //log::info!("start new timer for {:?}", ms);
-                self.timer.start(ms);
-            }
-        }
-    }
-}
-
-impl<T: HalTimer> Delayer for TimerActor<T> {
-    fn delay<DUR>(mut self, message: Delay<DUR>) -> Response<Self, ()>
-    where
-        DUR: Duration + Into<Milliseconds> + 'static,
-    {
-        let ms: Milliseconds = message.0.into();
-
-        let mut delay_deadlines = self.shared.unwrap().delay_deadlines.borrow_mut();
-        if let Some((index, slot)) = delay_deadlines
-            .iter_mut()
-            .enumerate()
-            .find(|e| matches!(e, (_, None)))
-        {
-            delay_deadlines[index].replace(DelayDeadline::new(ms));
-            let mut current_deadline = self.shared.unwrap().current_deadline.borrow_mut();
-            let (new_deadline, should_replace) = if let Some(current_deadline) = *current_deadline {
-                if current_deadline > ms {
-                    //log::info!("start shorter timer for {:?}", ms);
-                    (ms, true)
-                } else {
-                    //log::info!("timer already running for {:?}", current_deadline );
-                    (ms, false)
-                }
-            } else {
-                //log::info!("start new timer for {:?}", ms);
-                (ms, true)
-            };
-
-            if should_replace {
-                current_deadline.replace(new_deadline);
-                self.timer.start(new_deadline);
-            }
-            let future = DelayFuture::new(index, self.shared.as_ref().unwrap());
-            Response::immediate_future(self, future)
-        } else {
-            Response::immediate(self, ())
-        }
-    }
-}
-
-impl<T: HalTimer> Actor for TimerActor<T> {
+impl<T: HalTimer> Actor for TimerActor<T>
+where
+    T: HalTimer,
+{
     type Configuration = &'static Shared;
+    type Request = TimerRequest;
+    type Response = ();
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where
         Self: Sized,
     {
         self.shared.replace(config);
+    }
+
+    fn on_request(mut self, message: Self::Request) -> Response<Self> {
+        match message {
+            TimerRequest::Schedule(ms, deadline) => {
+                // log::info!("schedule request {:?}", ms);
+                let mut deadlines = self.shared.unwrap().schedule_deadlines.borrow_mut();
+                let mut current_deadline = self.shared.unwrap().current_deadline.borrow_mut();
+
+                if let Some((index, slot)) = deadlines
+                    .iter_mut()
+                    .enumerate()
+                    .find(|e| matches!(e, (_, None)))
+                {
+                    deadlines[index].replace(ScheduleDeadline::new(ms, deadline));
+                    if let Some(current) = &*current_deadline {
+                        if *current > ms {
+                            current_deadline.replace(ms);
+                            self.timer.start(ms);
+                        } else {
+                            //log::info!("timer already running for {:?}", current_deadline );
+                        }
+                    } else {
+                        current_deadline.replace(ms);
+                        //log::info!("start new timer for {:?}", ms);
+                        self.timer.start(ms);
+                    }
+                }
+                Response::immediate(self, ())
+            }
+            TimerRequest::Delay(ms) => {
+                let mut delay_deadlines = self.shared.unwrap().delay_deadlines.borrow_mut();
+                if let Some((index, slot)) = delay_deadlines
+                    .iter_mut()
+                    .enumerate()
+                    .find(|e| matches!(e, (_, None)))
+                {
+                    delay_deadlines[index].replace(DelayDeadline::new(ms));
+                    let mut current_deadline = self.shared.unwrap().current_deadline.borrow_mut();
+                    let (new_deadline, should_replace) =
+                        if let Some(current_deadline) = *current_deadline {
+                            if current_deadline > ms {
+                                //log::info!("start shorter timer for {:?}", ms);
+                                (ms, true)
+                            } else {
+                                //log::info!("timer already running for {:?}", current_deadline );
+                                (ms, false)
+                            }
+                        } else {
+                            //log::info!("start new timer for {:?}", ms);
+                            (ms, true)
+                        };
+
+                    if should_replace {
+                        current_deadline.replace(new_deadline);
+                        self.timer.start(new_deadline);
+                    }
+                    let future = DelayFuture::new(index, self.shared.as_ref().unwrap());
+                    Response::immediate_future(self, future)
+                } else {
+                    Response::immediate(self, ())
+                }
+            }
+        }
     }
 }
 
@@ -285,26 +271,22 @@ impl DelayDeadline {
     }
 }
 
-struct ScheduleDeadline<A, DUR, E>
-where
-    A: Actor + RequestHandler<E> + 'static,
-    DUR: Duration + Into<Milliseconds>,
-    E: 'static,
-{
+struct ScheduleDeadline {
     expiration: Milliseconds,
-    schedule: Schedule<A, DUR, E>,
+    scheduled: Box<dyn Schedulable, SystemArena>,
 }
 
-impl<A, DUR, E> Schedulable for ScheduleDeadline<A, DUR, E>
-where
-    A: Actor + RequestHandler<E> + 'static,
-    DUR: Duration + Into<Milliseconds>,
-    E: 'static,
-{
+impl ScheduleDeadline {
+    fn new(expiration: Milliseconds, scheduled: Box<dyn Schedulable, SystemArena>) -> Self
+    {
+        Self {
+            expiration,
+            scheduled,
+        }
+    }
+
     fn run(&mut self) {
-        self.schedule
-            .address
-            .notify(self.schedule.event.take().unwrap());
+        self.scheduled.run()
     }
 
     fn get_expiration(&self) -> Milliseconds {
@@ -313,17 +295,6 @@ where
 
     fn set_expiration(&mut self, expiration: Milliseconds) {
         self.expiration = expiration;
-    }
-}
-
-impl<A: Actor + RequestHandler<E> + 'static, DUR: Duration + Into<Milliseconds>, E: 'static>
-    ScheduleDeadline<A, DUR, E>
-{
-    fn new(expiration: Milliseconds, schedule: Schedule<A, DUR, E>) -> Self {
-        Self {
-            expiration,
-            schedule,
-        }
     }
 }
 

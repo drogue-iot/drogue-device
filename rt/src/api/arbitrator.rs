@@ -38,7 +38,7 @@ impl Shared {
 
 pub struct Arbitrator<BUS>
 where
-    BUS: Actor + 'static,
+    BUS: Actor<Request = ArbitratorRequest> + 'static,
 {
     shared: Shared,
     arbitrator: ActorContext<BusArbitrator<BUS>>,
@@ -89,7 +89,7 @@ where
 
 pub struct BusArbitrator<BUS>
 where
-    BUS: Actor + 'static,
+    BUS: Actor<Request = ArbitratorRequest> + 'static,
 {
     shared: Option<&'static Shared>,
     address: Option<Address<Self>>,
@@ -101,6 +101,8 @@ where
     BUS: Actor + 'static,
 {
     type Configuration = (&'static Shared, Address<BUS>);
+    type Request = ArbitratorRequest;
+    type Response = Option<BusTransaction<BUS>>;
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where
@@ -109,6 +111,23 @@ where
         self.address.replace(address);
         self.shared.replace(config.0);
         self.bus.replace(config.1);
+    }
+
+    fn on_request(self, message: ArbitratorRequest) -> Response<Self> {
+        match message {
+            ArbitratorRequest::BeginTransaction => {
+                let future = BeginTransactionFuture::new(
+                    &self.shared.unwrap(),
+                    self.address.unwrap(),
+                    self.bus.unwrap(),
+                );
+                Response::immediate_future(self, future)
+            }
+            ArbitratorRequest::EndTransaction => {
+                self.shared.unwrap().end_transaction();
+                Response::immediate(self, None)
+            }
+        }
     }
 }
 
@@ -134,34 +153,9 @@ where
     }
 }
 
-struct BeginTransaction;
-struct EndTransaction;
-
-impl<BUS> RequestHandler<BeginTransaction> for BusArbitrator<BUS>
-where
-    BUS: Actor + 'static,
-{
-    type Response = BusTransaction<BUS>;
-
-    fn on_request(self, message: BeginTransaction) -> Response<Self, Self::Response> {
-        let future = BeginTransactionFuture::new(
-            &self.shared.unwrap(),
-            self.address.unwrap(),
-            self.bus.unwrap(),
-        );
-        Response::immediate_future(self, future)
-    }
-}
-
-impl<BUS> RequestHandler<EndTransaction> for BusArbitrator<BUS>
-where
-    BUS: Actor + 'static,
-{
-    type Response = ();
-    fn on_request(self, message: EndTransaction) -> Response<Self, Self::Response> {
-        self.shared.unwrap().end_transaction();
-        Response::immediate(self, ())
-    }
+pub enum ArbitratorRequest {
+    BeginTransaction,
+    EndTransaction,
 }
 
 impl<BUS> Address<BusArbitrator<BUS>>
@@ -169,7 +163,9 @@ where
     BUS: Actor + 'static,
 {
     pub async fn begin_transaction(&self) -> BusTransaction<BUS> {
-        self.request(BeginTransaction).await
+        self.request(ArbitratorRequest::BeginTransaction)
+            .await
+            .unwrap()
     }
 }
 
@@ -195,7 +191,7 @@ where
     BUS: Actor + 'static,
 {
     fn drop(&mut self) {
-        self.arbitrator.notify(EndTransaction {});
+        self.arbitrator.notify(ArbitratorRequest::EndTransaction);
     }
 }
 
@@ -230,11 +226,11 @@ impl<BUS> Future for BeginTransactionFuture<BUS>
 where
     BUS: Actor + 'static,
 {
-    type Output = BusTransaction<BUS>;
+    type Output = Option<BusTransaction<BUS>>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.shared.begin_transaction() {
-            return Poll::Ready(BusTransaction::new(self.arbitrator, self.bus));
+            return Poll::Ready(Some(BusTransaction::new(self.arbitrator, self.bus)));
         }
         if !self.waiting {
             self.shared.add_waiter(cx.waker().clone());

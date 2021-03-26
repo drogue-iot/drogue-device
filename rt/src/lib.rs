@@ -26,7 +26,7 @@ pub mod prelude {
         address::Address,
         bus::EventBus,
         device::{Device, DeviceConfiguration},
-        handler::{Completion, EventHandler, RequestHandler, Response},
+        handler::{Completion, EventHandler, Response},
         interrupt::{Interrupt, InterruptContext},
         package::Package,
         supervisor::Supervisor,

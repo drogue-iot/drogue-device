@@ -1,4 +1,4 @@
-use crate::api::switchable::{Off, On, Switchable};
+use crate::api::switchable::{Switch, Switchable};
 use crate::hal::gpio::ActiveOutput;
 use crate::hal::Active;
 use crate::prelude::*;
@@ -48,30 +48,14 @@ where
     A: ActiveOutput,
 {
     type Configuration = ();
-}
-
-impl<P, A> RequestHandler<On> for SimpleLED<P, A>
-where
-    P: OutputPin + 'static,
-    A: ActiveOutput + 'static,
-{
+    type Request = Switch;
     type Response = ();
-    fn on_request(mut self, message: On) -> Response<Self, Self::Response> {
-        self.turn_on();
+
+    fn on_request(mut self, message: Self::Request) -> Response<Self> {
+        match message {
+            Switch::On => self.turn_on(),
+            Switch::Off => self.turn_off(),
+        }
         Response::immediate(self, ())
-    }
-}
-
-impl<P, A> RequestHandler<Off> for SimpleLED<P, A>
-where
-    P: OutputPin + 'static,
-    A: ActiveOutput + 'static,
-{
-    type Response = ();
-    fn on_request(mut self, message: Off) -> Response<Self, Self::Response> {
-        Response::defer(async move {
-            self.turn_off();
-            (self, ())
-        })
     }
 }

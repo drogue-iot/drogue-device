@@ -5,7 +5,7 @@ mod socket_pool;
 use socket_pool::SocketPool;
 
 use crate::api::arbitrator::BusArbitrator;
-use crate::api::delayer::Delayer;
+use crate::api::timer::Timer;
 use crate::api::ip::tcp::{TcpError, TcpStack};
 use crate::api::ip::{IpAddress, IpAddressV4, IpProtocol, SocketAddress};
 use crate::api::spi::{ChipSelect, SpiBus, SpiError};
@@ -38,7 +38,7 @@ impl Shared {
 pub struct EsWifi<SPI, T, CS, READY, RESET, WAKEUP>
 where
     SPI: SpiBus<Word = u8> + 'static,
-    T: Delayer + 'static,
+    T: Timer + 'static,
     CS: OutputPin + 'static,
     READY: InputPin + InterruptPin + 'static,
     RESET: OutputPin + 'static,
@@ -52,7 +52,7 @@ where
 impl<SPI, T, CS, READY, RESET, WAKEUP> EsWifi<SPI, T, CS, READY, RESET, WAKEUP>
 where
     SPI: SpiBus<Word = u8>,
-    T: Delayer + 'static,
+    T: Timer + 'static,
     CS: OutputPin + 'static,
     READY: InputPin + InterruptPin + 'static,
     RESET: OutputPin + 'static,
@@ -78,7 +78,7 @@ where
 impl<SPI, T, CS, READY, RESET, WAKEUP> Package for EsWifi<SPI, T, CS, READY, RESET, WAKEUP>
 where
     SPI: SpiBus<Word = u8>,
-    T: Delayer + 'static,
+    T: Timer + 'static,
     CS: OutputPin,
     READY: InputPin + InterruptPin,
     RESET: OutputPin,
@@ -110,7 +110,7 @@ enum State {
 pub struct EsWifiController<SPI, T, CS, RESET, WAKEUP>
 where
     SPI: SpiBus<Word = u8> + 'static,
-    T: Delayer + 'static,
+    T: Timer + 'static,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
@@ -140,7 +140,7 @@ macro_rules! command {
 impl<SPI, T, CS, RESET, WAKEUP> EsWifiController<SPI, T, CS, RESET, WAKEUP>
 where
     SPI: SpiBus<Word = u8> + 'static,
-    T: Delayer + 'static,
+    T: Timer + 'static,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
@@ -340,7 +340,7 @@ where
 impl<SPI, T, CS, RESET, WAKEUP> WifiSupplicant for EsWifiController<SPI, T, CS, RESET, WAKEUP>
 where
     SPI: SpiBus<Word = u8>,
-    T: Delayer + 'static,
+    T: Timer + 'static,
     CS: OutputPin,
     RESET: OutputPin,
     WAKEUP: OutputPin,
@@ -362,7 +362,7 @@ where
 impl<SPI, T, CS, RESET, WAKEUP> TcpStack for EsWifiController<SPI, T, CS, RESET, WAKEUP>
 where
     SPI: SpiBus<Word = u8>,
-    T: Delayer + 'static,
+    T: Timer + 'static,
     CS: OutputPin,
     RESET: OutputPin,
     WAKEUP: OutputPin,
@@ -624,7 +624,7 @@ const NAK: u8 = 0x15;
 impl<SPI, T, CS, RESET, WAKEUP> Actor for EsWifiController<SPI, T, CS, RESET, WAKEUP>
 where
     SPI: SpiBus<Word = u8>,
-    T: Delayer + 'static,
+    T: Timer + 'static,
     CS: OutputPin,
     RESET: OutputPin,
     WAKEUP: OutputPin,
@@ -660,7 +660,7 @@ where
 impl<SPI, T, CS, RESET, WAKEUP> RequestHandler<Join> for EsWifiController<SPI, T, CS, RESET, WAKEUP>
 where
     SPI: SpiBus<Word = u8>,
-    T: Delayer + 'static,
+    T: Timer + 'static,
     CS: OutputPin,
     RESET: OutputPin,
     WAKEUP: OutputPin,
@@ -676,7 +676,7 @@ where
 impl<SPI, T, CS, RESET, WAKEUP> Address<EsWifiController<SPI, T, CS, RESET, WAKEUP>>
 where
     SPI: SpiBus<Word = u8>,
-    T: Delayer + 'static,
+    T: Timer + 'static,
     CS: OutputPin,
     RESET: OutputPin,
     WAKEUP: OutputPin,
