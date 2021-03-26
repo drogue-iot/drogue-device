@@ -3,7 +3,7 @@ use crate::driver::tls::TlsError;
 use core::fmt::{Debug, Formatter};
 use digest::generic_array::GenericArray;
 use digest::Digest;
-use heapless::{consts::*, Vec};
+use heapless::{consts::*, ArrayLength, Vec};
 
 pub struct Finished<D: Digest> {
     pub verify: GenericArray<u8, D::OutputSize>,
@@ -32,5 +32,12 @@ impl<D: Digest> Finished<D> {
         //let hash = hash.map_err(|_| TlsError::InvalidHandshake)?;
         log::info!("hash ng {:?}", verify);
         Ok(Self { verify, hash: None })
+    }
+
+    pub(crate) fn encode<N: ArrayLength<u8>>(&self, buf: &mut Vec<u8, N>) -> Result<(), TlsError> {
+        //let len = self.verify.len().to_be_bytes();
+        //buf.extend_from_slice(&[len[1], len[2], len[3]]);
+        buf.extend(self.verify.iter());
+        Ok(())
     }
 }

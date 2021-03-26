@@ -278,9 +278,17 @@ where
         let spi = self.spi.unwrap().begin_transaction().await;
         let _cs = self.cs.select().await;
 
+        let mut started = false;
+
         while self.is_data_ready().await {
             let mut xfer: [u8; 2] = [0x0A, 0x0A];
             let result = spi.spi_transfer(&mut xfer).await?;
+            if !started {
+                if xfer[1] == NAK {
+                    continue;
+                }
+                started = true;
+            }
             response[pos] = xfer[1];
             pos += 1;
             //if xfer[0] != NAK {

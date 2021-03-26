@@ -11,22 +11,32 @@ use heapless::{consts::*, ArrayLength, Vec};
 use rand_core::{CryptoRng, RngCore};
 use sha2::Digest;
 
-pub enum ClientRecord<'config, R>
+pub enum ClientRecord<'config, R, D>
 where
     R: CryptoRng + RngCore + Copy,
+    D: Digest,
 {
-    Handshake(ClientHandshake<'config, R>),
+    Handshake(ClientHandshake<'config, R, D>),
+    ApplicationData(ApplicationData),
 }
 
-impl<'config, R> ClientRecord<'config, R>
+impl<'config, R, D> ClientRecord<'config, R, D>
 where
     R: CryptoRng + RngCore + Copy,
+    D: Digest,
 {
+    pub fn content_type(&self) -> ContentType {
+        match self {
+            ClientRecord::Handshake(_) => ContentType::Handshake,
+            ClientRecord::ApplicationData(_) => ContentType::ApplicationData,
+        }
+    }
+
     pub fn client_hello(config: &'config Config<R>) -> Self {
         ClientRecord::Handshake(ClientHandshake::ClientHello(ClientHello::new(config)))
     }
 
-    pub fn encode<D: Digest, N: ArrayLength<u8>>(
+    pub fn encode<N: ArrayLength<u8>>(
         &self,
         buf: &mut Vec<u8, N>,
         digest: &mut D,
@@ -36,42 +46,38 @@ where
                 buf.push(ContentType::Handshake as u8);
                 buf.extend_from_slice(&[0x03, 0x01]);
             }
+            ClientRecord::ApplicationData(_) => {
+                buf.push(ContentType::ApplicationData as u8);
+                buf.extend_from_slice(&[0x03, 0x03]);
+            }
         }
 
         let record_length_marker = buf.len();
         buf.push(0);
         buf.push(0);
 
-        let content_marker = buf.len();
-
         match self {
             ClientRecord::Handshake(handshake) => {
+                /*
                 match handshake {
-                    ClientHandshake::ClientHello(client_hello) => {
+                    ClientHandshake::ClientHello(_) => {
                         buf.push(HandshakeType::ClientHello as u8);
                     }
-                }
-                let content_length_marker = buf.len();
-                buf.push(0);
-                buf.push(0);
-                buf.push(0);
-                match handshake {
-                    ClientHandshake::ClientHello(client_hello) => {
-                        client_hello.encode(buf);
+                    ClientHandshake::Finished(_) => {
+                        buf.push(HandshakeType::Finished as u8);
                     }
                 }
-                let content_length = (buf.len() as u32 - content_length_marker as u32) - 3;
-
-                buf[content_length_marker] = content_length.to_be_bytes()[1];
-                buf[content_length_marker + 1] = content_length.to_be_bytes()[2];
-                buf[content_length_marker + 2] = content_length.to_be_bytes()[3];
-
-                log::info!("hash [{:x?}]", &buf[content_marker..]);
-                digest.update(&buf[content_marker..]);
+                 */
+                handshake.encode(buf, digest)?;
+            }
+            ClientRecord::ApplicationData(application_data) => {
+                buf.extend(application_data.data.iter());
             }
         }
 
         let record_length = (buf.len() as u16 - record_length_marker as u16) - 2;
+
+        log::info!("record len {}", record_length);
 
         buf[record_length_marker] = record_length.to_be_bytes()[0];
         buf[record_length_marker + 1] = record_length.to_be_bytes()[1];

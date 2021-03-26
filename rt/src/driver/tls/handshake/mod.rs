@@ -1,4 +1,4 @@
-use heapless::{consts::*, Vec};
+use heapless::{consts::*, ArrayLength, Vec};
 use p256::ecdh::EphemeralSecret;
 use p256::{EncodedPoint, NistP256};
 use rand_core::{CryptoRng, RngCore};
@@ -78,11 +78,54 @@ impl HandshakeType {
     }
 }
 
-pub enum ClientHandshake<'config, R>
+pub enum ClientHandshake<'config, R, D>
 where
     R: CryptoRng + RngCore + Copy,
+    D: Digest,
 {
     ClientHello(ClientHello<'config, R>),
+    Finished(Finished<D>),
+}
+
+impl<'config, R, D> ClientHandshake<'config, R, D>
+where
+    R: CryptoRng + RngCore + Copy,
+    D: Digest,
+{
+    pub fn encode<N: ArrayLength<u8>>(
+        &self,
+        buf: &mut Vec<u8, N>,
+        digest: &mut D,
+    ) -> Result<(), TlsError> {
+        let content_marker = buf.len();
+        match self {
+            ClientHandshake::ClientHello(_) => {
+                buf.push(HandshakeType::ClientHello as u8);
+            }
+            ClientHandshake::Finished(_) => {
+                buf.push(HandshakeType::Finished as u8);
+            }
+        }
+
+        let content_length_marker = buf.len();
+        buf.push(0);
+        buf.push(0);
+        buf.push(0);
+        match self {
+            ClientHandshake::ClientHello(inner) => inner.encode(buf)?,
+            ClientHandshake::Finished(inner) => inner.encode(buf)?,
+        }
+        let content_length = (buf.len() as u32 - content_length_marker as u32) - 3;
+
+        buf[content_length_marker] = content_length.to_be_bytes()[1];
+        buf[content_length_marker + 1] = content_length.to_be_bytes()[2];
+        buf[content_length_marker + 2] = content_length.to_be_bytes()[3];
+
+        log::info!("hash [{:x?}]", &buf[content_marker..]);
+        digest.update(&buf[content_marker..]);
+
+        Ok(())
+    }
 }
 
 pub enum ServerHandshake<D: Digest> {

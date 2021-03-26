@@ -37,6 +37,7 @@ pub enum TlsError {
     InvalidKeyShare,
     InvalidCertificate,
     UnableToInitializeCryptoEngine,
+    CryptoError,
 }
 
 impl From<TcpError> for TlsError {
