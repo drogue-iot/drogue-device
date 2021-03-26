@@ -1,8 +1,8 @@
 #![no_main]
 #![no_std]
 
-const WIFI_SSID: &str = include_str!("wifi.ssid.txt");
-const WIFI_PSK: &str = include_str!("wifi.password.txt");
+const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.ssid.txt"));
+const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.password.txt"));
 const ENDPOINT: IpAddress = IpAddress::new_v4(192, 168, 1, 2);
 const ENDPOINT_PORT: u16 = 12345;
 
