@@ -1,9 +1,11 @@
 use heapless::{consts::*, Vec};
 
 use crate::arch::atomic;
-use crate::system::actor::{Actor, ActorContext, CURRENT};
+use crate::system::actor::{Actor, ActorContext, CURRENT, ActorRequest};
 use crate::system::device::Lifecycle;
 use core::cmp::PartialEq;
+use core::pin::Pin;
+use core::future::Future;
 use core::sync::atomic::{AtomicU8, Ordering};
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
@@ -51,9 +53,6 @@ impl Supervised {
     }
 
     fn poll(&mut self) -> bool {
-        if self.actor.name() == "uart_actor" || self.actor.name() == "rak811_ingress" {
-            log::trace!("[{}] is ready {}", self.actor.name(), self.is_ready());
-        }
         if self.is_ready() {
             log::trace!("polling actor {}", self.actor.name());
             match self.actor.do_poll(self.get_state_flag_handle()) {
@@ -86,32 +85,16 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
     }
 
     fn do_poll(&self, state_flag_handle: *const ()) -> Poll<()> {
-        if self.name() == "uart_actor" {
-            log::trace!("[{}] executor: do_poll", self.name());
-        }
         unsafe {
             CURRENT.name.replace(self.name());
-        }
-        if self.name() == "uart_actor" {
-            log::trace!("[{}] Replaced name", self.name());
         }
         loop {
             if self.current.borrow().is_none() {
                 if let Some(next) = self.items_consumer.borrow_mut().as_mut().unwrap().dequeue() {
-                    if self.name() == "uart_actor" {
-                        log::trace!("[{}] executor: set current task", self.name());
-                    }
                     self.current.borrow_mut().replace(next);
                     self.in_flight.store(true, Ordering::Release);
                 } else {
-                    if self.name() == "uart_actor" {
-                        log::trace!("[{}] executor: no current task", self.name());
-                    }
                     self.in_flight.store(false, Ordering::Release);
-                }
-            } else {
-                if self.name() == "uart_actor" {
-                    log::trace!("[{}] executor: in-flight current task", self.name());
                 }
             }
 
@@ -122,18 +105,13 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
                 let waker = unsafe { Waker::from_raw(raw_waker) };
                 let mut cx = Context::from_waker(&waker);
 
+                let item = Pin::new(item);
                 let result = item.poll(&mut cx);
                 match result {
                     Poll::Ready(_) => {
-                        if self.name() == "uart_actor" {
-                            log::trace!("[{}] executor: task complete", self.name());
-                        }
                         should_drop = true;
                     }
                     Poll::Pending => {
-                        if self.name() == "uart_actor" {
-                            log::trace!("[{}] executor: task pending", self.name());
-                        }
                         break;
                     }
                 }
@@ -142,9 +120,6 @@ impl<A: Actor> ActiveActor for ActorContext<A> {
             }
             if should_drop {
                 let task = self.current.borrow_mut().take().unwrap();
-                if self.name() == "uart_actor" {
-                    log::trace!("[{}] executor: task drop", self.name());
-                }
             }
         }
 
