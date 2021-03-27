@@ -15,13 +15,15 @@ pub struct Button<D: Device + 'static, PIN> {
     bus: Option<EventBus<D>>,
 }
 
+pub struct PinInterrupt;
+
 impl<D, PIN> Actor for Button<D, PIN>
 where
-    D: Device,
+    D: Device + EventHandler<ButtonEvent> + 'static,
     PIN: InputPin,
 {
     type Configuration = EventBus<D>;
-    type Request = ();
+    type Request = PinInterrupt;
     type Response = ();
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
@@ -31,7 +33,8 @@ where
         self.bus.replace(config);
     }
 
-    fn on_request(self, _: Self::Request) -> Response<Self> {
+    fn on_request(self, interrupt: Self::Request) -> Response<Self> {
+        self.check_pin();
         Response::immediate(self, ())
     }
 }

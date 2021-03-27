@@ -1,4 +1,4 @@
-use crate::api::timer::{Schedulable, TimerRequest};
+use crate::api::timer::{Schedulable, TimerRequest, Timer as TimerApi};
 use crate::arch::with_critical_section;
 use crate::arena::Box;
 use crate::domain::time::duration::{Duration, Milliseconds};
@@ -97,6 +97,11 @@ impl<T: HalTimer> TimerActor<T> {
         }
     }
 }
+
+impl<T: HalTimer> TimerApi for TimerActor<T>
+where
+    T: HalTimer,
+{}
 
 impl<T: HalTimer> Actor for TimerActor<T>
 where

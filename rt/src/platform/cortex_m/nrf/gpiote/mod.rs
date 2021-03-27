@@ -14,14 +14,22 @@ where
     D: Device + EventHandler<GpioteEvent> + 'static,
 {
     gpiote: hal::gpiote::Gpiote,
-    bus: Option<Address<EventBus<D>>>,
+    bus: Option<EventBus<D>>,
 }
 
 impl<D: Device + EventHandler<GpioteEvent>> Actor for Gpiote<D> {
-    type Configuration = Address<EventBus<D>>;
+    type Configuration = EventBus<D>;
+    type Request = ();
+    type Response = ();
     fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
         self.bus.replace(config);
     }
+
+    fn on_request(self, _: Self::Request) -> Response<Self> {
+        Response::immediate(self, ())
+    }
+
+
 }
 
 impl<D: Device + EventHandler<GpioteEvent>> Gpiote<D> {
@@ -50,18 +58,6 @@ impl<D: Device + EventHandler<GpioteEvent> + 'static> Interrupt for Gpiote<D> {
             }
         }
         self.gpiote.reset_events();
-    }
-}
-
-impl<D, P> RequestHandler<GpioteEvent> for Button<D, P>
-where
-    D: Device + EventHandler<ButtonEvent> + 'static,
-    P: InputPin + GpioteInputPin + 'static,
-{
-    type Response = ();
-    fn on_request(self, message: GpioteEvent) -> Response<Self, Self::Response> {
-        self.check_pin();
-        Response::immediate(self, ())
     }
 }
 

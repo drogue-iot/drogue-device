@@ -19,6 +19,11 @@ where
     }
 }
 
+impl<TX> Uart for SerialTx<TX> 
+where
+    TX: Write<u8> + 'static,
+{}
+
 impl<TX> Actor for SerialTx<TX>
 where
     TX: Write<u8> + 'static,

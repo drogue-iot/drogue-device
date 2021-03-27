@@ -15,9 +15,9 @@ pub enum Error {
 }
 
 /// API for UART access.
-impl<'a, A> Address<A>
+impl<A> Address<A>
 where
-    A: Actor<Request = UartRequest<'a>, Response = Result<usize, Error>>,
+    A: Actor<Request = UartRequest<'static>, Response = Result<usize, Error>>,
 {
     /// Perform an _async_ write to the uart.
     ///
@@ -27,8 +27,11 @@ where
     /// ensure that the response to the write is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub async fn write(&'a self, tx_buffer: &'a [u8]) -> Result<usize, Error> {
-        self.request_panicking(UartRequest::Write(tx_buffer)).await
+    pub async fn write<'a>(&'a self, tx_buffer: &'a [u8]) -> Result<usize, Error> {
+        let req = UartRequest::Write(tx_buffer);
+        // TODO: Generic associcated types...
+        let req = unsafe { core::mem::transmute::<_, UartRequest<'static>>(req) };
+        self.request_panicking(req).await
     }
 
     /// Perform an _async_ read from the uart.
@@ -39,15 +42,17 @@ where
     /// ensure that the response to the read is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub async fn read(&'a self, rx_buffer: &'a mut [u8]) -> Result<usize, Error> {
-        self.request_panicking(UartRequest::Read(rx_buffer)).await
+    pub async fn read<'a>(&'a self, rx_buffer: &'a mut [u8]) -> Result<usize, Error> {
+        let req = UartRequest::Read(rx_buffer);
+        let req = unsafe { core::mem::transmute::<_, UartRequest<'static>>(req) };
+        self.request_panicking(req).await
     }
 }
 
 ///
 /// Trait that should be implemented by a UART actors in drogue-device.
 ///
-pub trait Uart<'a>: Actor<Request = UartRequest<'a>, Response = Result<usize, Error>> {}
+pub trait Uart: Actor<Request = UartRequest<'static>, Response = Result<usize, Error>> {}
 
 pub enum UartRequest<'a> {
     Write(&'a [u8]),

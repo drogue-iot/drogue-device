@@ -1,8 +1,8 @@
 use drogue_device::{
-    api::{timer::Timer as TimerApi, uart::*},
+    api::{timer::Timer as TimerApi, uart::Uart},
     domain::time::duration::Milliseconds,
     driver::{
-        led::*,
+        //led::*,
         timer::*,
         uart::{serial_rx::*, serial_tx::*},
     },
@@ -53,7 +53,7 @@ impl Device for MyDevice {
 
 pub struct AppConfig<U, D>
 where
-    U: UartWriter + 'static,
+    U: Uart + 'static,
     D: TimerApi + 'static,
 {
     uart: Address<U>,
@@ -63,7 +63,7 @@ where
 
 pub struct App<U, D>
 where
-    U: UartWriter + 'static,
+    U: Uart + 'static,
     D: TimerApi + 'static,
 {
     uart: Option<Address<U>>,
@@ -73,7 +73,7 @@ where
 
 impl<U, D> App<U, D>
 where
-    U: UartWriter + 'static,
+    U: Uart + 'static,
     D: TimerApi + 'static,
 {
     pub fn new() -> Self {
@@ -86,10 +86,10 @@ where
 }
 impl<U, D> Actor for App<U, D>
 where
-    U: UartWriter + 'static,
+    U: Uart + 'static,
     D: TimerApi + 'static,
 {
-    type Request = ();
+    type Request = SerialData;
     type Response = ();
     type Configuration = AppConfig<U, D>;
     fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
@@ -127,18 +127,7 @@ where
         })
     }
 
-    fn on_request(self, _: Self::Request) -> Response<Self> {
-        Response::immediate(self, ())
-    }
-}
-
-impl<U, D> RequestHandler<SerialData> for App<U, D>
-where
-    U: UartWriter + 'static,
-    D: Delayer + 'static,
-{
-    type Response = ();
-    fn on_request(self, event: SerialData) -> Response<Self, ()> {
+    fn on_request(self, event: Self::Request) -> Response<Self> {
         Response::defer(async move {
             /*
             self.display
