@@ -1,7 +1,7 @@
 use crate::arena::{Arena, Box};
 use crate::domain::time::duration::{Duration, Milliseconds};
 use crate::prelude::*;
-use crate::system::SystemArena;
+//use crate::system::SystemArena;
 
 pub trait Timer: Actor<Request = TimerRequest, Response = ()> {
     /*

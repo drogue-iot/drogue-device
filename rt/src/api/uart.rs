@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{prelude::*, system::actor::RequestResponseFuture};
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -29,11 +29,11 @@ where
     /// ensure that the response to the write is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub async fn write<'a>(&'a self, tx_buffer: &'a [u8]) -> Result<usize, Error> {
+    pub fn write<'a>(&'a self, tx_buffer: &'a [u8]) -> RequestResponseFuture<A> {
         let req = UartRequest::Write(tx_buffer);
         // TODO: Generic associcated types...
         let req = unsafe { core::mem::transmute::<_, UartRequest<'static>>(req) };
-        self.request_panicking(req).await.unwrap()
+        self.request_panicking(req)
     }
 
     /// Perform an _async_ read from the uart.
@@ -44,10 +44,10 @@ where
     /// ensure that the response to the read is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub async fn read<'a>(&'a self, rx_buffer: &'a mut [u8]) -> Result<usize, Error> {
+    pub fn read<'a>(&'a self, rx_buffer: &'a mut [u8]) -> RequestResponseFuture<A> {
         let req = UartRequest::Read(rx_buffer);
         let req = unsafe { core::mem::transmute::<_, UartRequest<'static>>(req) };
-        self.request_panicking(req).await.unwrap()
+        self.request_panicking(req)
     }
 }
 

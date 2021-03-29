@@ -17,7 +17,7 @@ use crate::prelude::*;
 use crate::system::device::Lifecycle;
 use crate::system::supervisor::actor_executor::ActiveActor;
 use crate::system::supervisor::{actor_executor::ActorState, Supervisor};
-use crate::system::SystemArena;
+// use crate::system::SystemArena;
 
 pub trait Configurable {
     type Configuration;
@@ -522,6 +522,8 @@ impl<A: Actor> Drop for RequestResponseFuture<A> {
         }
     }
 }
+
+impl<A: Actor> Unpin for RequestResponseFuture<A> {}
 
 impl<A: Actor> RequestResponseFuture<A> {
     fn new(receiver: CompletionReceiver<A>) -> Self {

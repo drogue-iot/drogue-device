@@ -1,13 +1,13 @@
 use crate::prelude::*;
 
 use crate::arena::Arena;
-use crate::system::SystemArena;
+//use crate::system::SystemArena;
 use core::marker::PhantomData;
 //use crate::arena::HEAP;
 
 pub struct Query;
 
-pub struct Memory<A: Arena = SystemArena> {
+pub struct Memory<A: Arena> {
     arena: PhantomData<A>,
 }
 

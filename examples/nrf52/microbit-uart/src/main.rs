@@ -8,12 +8,9 @@ use panic_rtt_target as _;
 use cortex_m_rt::{entry, exception};
 use drogue_device::{
     domain::time::rate::Extensions,
-    driver::timer::Timer,
+    //    driver::timer::Timer,
     driver::uart::{serial_rx::*, serial_tx::*},
-    platform::cortex_m::nrf::{
-        timer::Timer as HalTimer,
-        uarte::{Baudrate, Parity, Pins, Uarte},
-    },
+    platform::cortex_m::nrf::uarte::{Baudrate, Parity, Pins, Uarte},
     prelude::*,
 };
 use hal::gpio::Level;
@@ -42,7 +39,7 @@ fn configure() -> MyDevice {
     let _clocks = clocks.start_lfclk();
 
     // Timer
-    let timer = Timer::new(HalTimer::new(device.TIMER0), hal::pac::Interrupt::TIMER0);
+    // let timer = Timer::new(HalTimer::new(device.TIMER0), hal::pac::Interrupt::TIMER0);
 
     // Uart
     static mut RX_BUF: [u8; 1] = [0; 1];
@@ -93,7 +90,7 @@ fn configure() -> MyDevice {
 
     MyDevice {
         //   led: ActorContext::new(led).with_name("matrix"),
-        timer,
+        //        timer,
         tx: ActorContext::new(tx).with_name("uart_tx"),
         rx: InterruptContext::new(rx, hal::pac::Interrupt::UARTE0_UART0).with_name("uart_rx"),
         app: ActorContext::new(App::new()),

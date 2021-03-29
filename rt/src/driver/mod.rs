@@ -8,6 +8,6 @@ pub mod memory;
 // pub mod queue;
 // pub mod sensor;
 // pub mod spi;
-pub mod timer;
+// pub mod timer;
 pub mod uart;
 //pub mod wifi;

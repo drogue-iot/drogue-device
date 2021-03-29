@@ -23,7 +23,6 @@
 #[macro_export]
 macro_rules! device {
     ($ty:ty = $configure:expr; $memory:literal  ) => {
-
         static mut DEVICE: Option<$crate::system::DeviceContext<$ty>> = None;
 
         // Make sure device don't end up consuming our stack
@@ -37,11 +36,11 @@ macro_rules! device {
 
         let device = initialize();
 
-        $crate::arena::init_arena!($crate::system| SystemArena => $memory);
+        //         $crate::arena::init_arena!($crate::system| SystemArena => $memory);
 
         device.mount();
 
-        #[cfg(target_arch="arm")]
+        #[cfg(target_arch = "arm")]
         #[exception]
         fn DefaultHandler(irqn: i16) {
             unsafe {

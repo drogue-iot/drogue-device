@@ -2,27 +2,19 @@ use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use drogue_device::{
-    api::{timer::Timer as TimerApi, uart::Uart},
+    api::uart::Uart,
     domain::time::duration::Milliseconds,
-    driver::{
-        //led::*,
-        timer::*,
-        uart::{serial_rx::*, serial_tx::*},
-    },
-    platform::cortex_m::nrf::{
-        timer::Timer as HalTimer,
-        uarte::{UarteRx, UarteTx},
-    },
+    driver::uart::{serial_rx::*, serial_tx::*},
+    platform::cortex_m::nrf::uarte::{UarteRx, UarteTx},
     prelude::*,
 };
 use hal::gpio::{Output, Pin as GpioPin, PushPull};
-use hal::pac::{TIMER0, UARTE0};
+use hal::pac::UARTE0;
 use heapless::consts;
 use nrf52833_hal as hal;
 
-pub type AppTimer = Timer<HalTimer<TIMER0>>;
 pub type AppTx = SerialTx<UarteTx<UARTE0>>;
-pub type AppRx = SerialRx<App<AppTx, <AppTimer as Package>::Primary>, UarteRx<UARTE0>>;
+pub type AppRx = SerialRx<App<AppTx>, UarteRx<UARTE0>>;
 
 /*
 pub type LedMatrix =
@@ -30,22 +22,20 @@ pub type LedMatrix =
 
 pub struct MyDevice {
     //    pub led: ActorContext<LedMatrix>,
-    pub timer: AppTimer,
     pub tx: ActorContext<AppTx>,
     pub rx: InterruptContext<AppRx>,
-    pub app: ActorContext<App<AppTx, <AppTimer as Package>::Primary>>,
+    pub app: ActorContext<App<AppTx>>,
 }
 
 impl Device for MyDevice {
     fn mount(&'static self, _: DeviceConfiguration<Self>, supervisor: &mut Supervisor) {
-        let timer = self.timer.mount((), supervisor);
         //        let display = self.led.mount(timer, supervisor);
         let uart = self.tx.mount((), supervisor);
         let app = self.app.mount(
             AppConfig {
                 uart,
                 //        display,
-                timer,
+                // timer,
             },
             supervisor,
         );
@@ -54,53 +44,46 @@ impl Device for MyDevice {
     }
 }
 
-pub struct AppConfig<U, D>
+pub struct AppConfig<U>
 where
     U: Uart + 'static,
-    D: TimerApi + 'static,
 {
     uart: Address<U>,
     //    display: Address<LedMatrix>,
-    timer: Address<D>,
+    // timer: Address<D>,
 }
 
-pub struct App<U, D>
+pub struct App<U>
 where
     U: Uart + 'static,
-    D: TimerApi + 'static,
 {
     uart: Option<Address<U>>,
     // display: Option<Address<LedMatrix>>,
-    timer: Option<Address<D>>,
 }
 
-impl<U, D> App<U, D>
+impl<U> App<U>
 where
     U: Uart + 'static,
-    D: TimerApi + 'static,
 {
     pub fn new() -> Self {
         Self {
             uart: None,
             //      display: None,
-            timer: None,
         }
     }
 }
-impl<U, D> Actor for App<U, D>
+impl<U> Actor for App<U>
 where
     U: Uart + 'static,
-    D: TimerApi + 'static,
 {
     type Request = SerialData;
     type Response = ();
     type ImmediateFuture = DefaultImmediate<Self>;
-    type DeferredFuture = AppLogic<U, D>;
-    type Configuration = AppConfig<U, D>;
+    type DeferredFuture = AppLogic<U>;
+    type Configuration = AppConfig<U>;
     fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
         self.uart.replace(config.uart);
         // self.display.replace(config.display);
-        self.timer.replace(config.timer);
         log::info!("Application ready. Connect to the serial port to use the service.");
     }
 
@@ -135,34 +118,29 @@ where
     }
 }
 
-pub struct AppLogic<U, D>
+pub struct AppLogic<U>
 where
     U: Uart + 'static,
-    D: TimerApi + 'static,
 {
-    app: Option<App<U, D>>,
-    fut: U::ImmediateFuture,
+    app: Option<App<U>>,
+    fut: RequestResponseFuture<U>,
 }
 
-impl<U, D> Unpin for AppLogic<U, D>
-where
-    U: Uart + 'static,
-    D: TimerApi + 'static,
-{
-}
+impl<U> Unpin for AppLogic<U> where U: Uart + 'static {}
 
-impl<U, D> Future for AppLogic<U, D>
+impl<U> Future for AppLogic<U>
 where
     U: Uart + 'static,
-    D: TimerApi + 'static,
 {
-    type Output = (App<U, D>, ());
+    type Output = (App<U>, ());
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        match self.fut.poll(cx) {
+        log::info!("Polling future!");
+        let fut = Pin::new(&mut self.fut);
+        match fut.poll(cx) {
             Poll::Ready(val) => {
                 log::info!("App logic polled future, got val: {:?}", val);
-                (self.app.take().unwrap(), ())
+                Poll::Ready((self.app.take().unwrap(), ()))
             }
             Poll::Pending => Poll::Pending,
         }

@@ -6,6 +6,6 @@
 // pub mod queue;
 // pub mod spi;
 // pub mod switchable;
-pub mod timer;
+// pub mod timer;
 pub mod uart;
 // pub mod wifi;
