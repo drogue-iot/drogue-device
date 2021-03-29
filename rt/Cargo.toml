@@ -37,15 +37,15 @@ version = "0.2.4"
 features = ["unproven"]
 
 [dependencies.lorawan-device]
-git = "https://github.com/lulf/rust-lorawan.git"
-branch = "update-aes-cmac"
+git = "https://github.com/ivajloip/rust-lorawan.git"
+branch   = "master"
 default-features = false
 features = ["region+eu868"]
 optional = true
 
 [dependencies.lorawan-encoding]
-git = "https://github.com/lulf/rust-lorawan.git"
-branch = "update-aes-cmac"
+git = "https://github.com/ivajloip/rust-lorawan.git"
+branch   = "master"
 default-features = false
 optional = true
 features = ["default-crypto"]
