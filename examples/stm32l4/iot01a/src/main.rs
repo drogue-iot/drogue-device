@@ -225,5 +225,6 @@ fn main() -> ! {
         timer,
     };
 
-    device!( MyDevice = device; 131072 );
+    //device!( MyDevice = device; 131072 );
+    device!( MyDevice = device; 200704 );
 }

@@ -21,6 +21,7 @@ use crate::driver::tls::parse_buffer::ParseBuffer;
 use aes_gcm::aead::{generic_array::GenericArray, AeadInPlace, Buffer, NewAead};
 use aes_gcm::Error;
 use digest::{BlockInput, FixedOutput, Reset, Update};
+use heapless::spsc::Queue;
 
 enum State {
     Unencrypted,
@@ -41,6 +42,7 @@ where
     key_schedule: KeySchedule<CipherSuite::Hash, CipherSuite::KeyLen, CipherSuite::IvLen>,
     tx_buf: Vec<u8, TxBufLen>,
     rx_buf: Vec<u8, RxBufLen>,
+    queue: Queue<ServerRecord<<CipherSuite::Hash as FixedOutput>::OutputSize>, U4>,
 }
 
 impl<RNG, Tcp, CipherSuite, TxBufLen, RxBufLen>
@@ -60,6 +62,7 @@ where
             key_schedule: KeySchedule::new(),
             tx_buf: Vec::new(),
             rx_buf: Vec::new(),
+            queue: Queue::new(),
         }
     }
 
@@ -132,6 +135,10 @@ where
     async fn receive(
         &mut self,
     ) -> Result<ServerRecord<<CipherSuite::Hash as FixedOutput>::OutputSize>, TlsError> {
+        if let Some(queued) = self.queue.dequeue() {
+            return Ok(queued);
+        }
+
         let mut record =
             ServerRecord::read(&mut self.delegate, self.key_schedule.transcript_hash()).await?;
 
@@ -168,20 +175,23 @@ where
                 match content_type {
                     ContentType::Handshake => {
                         let mut buf = ParseBuffer::new(&data[..data.len() - 1]);
-                        let mut inner = ServerHandshake::parse(&mut buf);
-                        if let Ok(ServerHandshake::Finished(ref mut finished)) = inner {
-                            finished
-                                .hash
-                                .replace(self.key_schedule.transcript_hash().clone().finalize());
+                        while buf.remaining() > 1 {
+                            let mut inner = ServerHandshake::parse(&mut buf);
+                            if let Ok(ServerHandshake::Finished(ref mut finished)) = inner {
+                                finished.hash.replace(
+                                    self.key_schedule.transcript_hash().clone().finalize(),
+                                );
+                            }
+                            log::debug!("===> inner ==> {:?}", inner);
+                            record = ServerRecord::Handshake(inner.unwrap());
+                            //if hash_later {
+                            Digest::update(
+                                self.key_schedule.transcript_hash(),
+                                &data[..data.len() - 1],
+                            );
+                            log::info!("hash {:x?}", &data[..data.len() - 1]);
+                            self.queue.enqueue(record);
                         }
-                        log::debug!("===> inner ==> {:?}", inner);
-                        record = ServerRecord::Handshake(inner.unwrap());
-                        //if hash_later {
-                        Digest::update(
-                            self.key_schedule.transcript_hash(),
-                            &data[..data.len() - 1],
-                        );
-                        log::info!("hash {:x?}", &data[..data.len() - 1]);
                         //}
                     }
                     _ => {
@@ -196,7 +206,12 @@ where
             "**** receive, hash={:x?}",
             self.key_schedule.transcript_hash().clone().finalize()
         );
-        Ok(record)
+        if let Some(queued) = self.queue.dequeue() {
+            return Ok(queued);
+        } else {
+            Err(TlsError::InvalidApplicationData)
+        }
+        //Ok(record)
     }
 
     pub async fn connect(&mut self, proto: IpProtocol, dst: SocketAddress) -> Result<(), TlsError> {
@@ -253,7 +268,7 @@ where
                             let client_finished =
                                 ClientHandshake::<RNG, CipherSuite>::Finished(client_finished);
 
-                            let mut buf = Vec::<u8, U1024>::new();
+                            let mut buf = Vec::<u8, U128>::new();
                             let mut next_hash = self.key_schedule.transcript_hash().clone();
                             let range = client_finished.encode(&mut buf)?;
                             Update::update(&mut next_hash, &buf[range]);
