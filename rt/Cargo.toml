@@ -23,9 +23,6 @@ path = "../arch"
 [dependencies.drogue-arena]
 path = "../arena"
 
-[dependencies.async-trait]
-version = "0.1"
-
 [dependencies.cortex-m]
 version = "0.6"
 
