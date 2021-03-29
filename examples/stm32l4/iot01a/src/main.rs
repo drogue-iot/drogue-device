@@ -46,7 +46,7 @@ use stm32l4xx_hal::pac::rcc::ahb2enr::RNGEN_R;
 use stm32l4xx_hal::rng::Rng as HalRng;
 use drogue_device::driver::tls::tls_tcp_stack::TlsTcpStack;
 use drogue_device::platform::cortex_m::stm32l4xx::rng::{Random};
-use drogue_device::driver::tls::config::{Config, Sha256};
+use drogue_device::driver::tls::config::{Config, Sha256, Aes128GcmSha256};
 use crate::device::WifiAdapter;
 
 
@@ -199,9 +199,9 @@ fn main() -> ! {
     // == TLS ==
 
     let rng = Random::initialize(rng);
-    let tls_config = Config::<Random>::new(rng);
+    let tls_config = Config::<Random, Aes128GcmSha256>::new(rng);
 
-    let tls = TlsTcpStack::<<WifiAdapter as Package>::Primary, Random, Sha256>::new();
+    let tls = TlsTcpStack::<<WifiAdapter as Package>::Primary, Random, Aes128GcmSha256>::new();
 
     // == Application Logic ==
 

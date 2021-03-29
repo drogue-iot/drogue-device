@@ -1,6 +1,6 @@
 use crate::api::ip::tcp::{TcpError, TcpSocket, TcpStack};
 use crate::api::ip::{IpProtocol, SocketAddress};
-use crate::driver::tls::config::Config;
+use crate::driver::tls::config::{Config, TlsCipherSuite};
 use crate::driver::tls::handshake::{ClientHandshake, HandshakeType, ServerHandshake};
 use crate::driver::tls::key_schedule::KeySchedule;
 use crate::driver::tls::record::{ClientRecord, ServerRecord};
@@ -14,11 +14,12 @@ use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha256};
 
 use crate::driver::tls::application_data::ApplicationData;
+use crate::driver::tls::buffer::CryptoBuffer;
 use crate::driver::tls::content_types::ContentType;
 use crate::driver::tls::handshake::HandshakeType::Finished;
 use crate::driver::tls::parse_buffer::ParseBuffer;
 use aes_gcm::aead::{generic_array::GenericArray, AeadInPlace, Buffer, NewAead};
-use aes_gcm::Aes128Gcm;
+use aes_gcm::{Aes128Gcm, Error};
 use digest::{BlockInput, FixedOutput, Reset, Update};
 
 enum State {
@@ -26,29 +27,31 @@ enum State {
     Encrypted,
 }
 
-pub struct TlsConnection<RNG, Tcp, D>
+pub struct TlsConnection<RNG, Tcp, CipherSuite>
 where
     RNG: CryptoRng + RngCore + Copy + 'static,
     Tcp: TcpStack + 'static,
-    D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
-    D::BlockSize: ArrayLength<u8>,
-    D::OutputSize: ArrayLength<u8>,
+    CipherSuite: TlsCipherSuite + 'static,
+    //D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
+    //D::BlockSize: ArrayLength<u8>,
+    //D::OutputSize: ArrayLength<u8>,
 {
     delegate: TcpSocket<Tcp>,
-    config: &'static Config<RNG>,
+    config: &'static Config<RNG, CipherSuite>,
     state: State,
-    key_schedule: KeySchedule<D, U16, U12>,
+    key_schedule: KeySchedule<CipherSuite::Hash, CipherSuite::KeyLen, CipherSuite::IvLen>,
 }
 
-impl<RNG, Tcp, D> TlsConnection<RNG, Tcp, D>
+impl<RNG, Tcp, CipherSuite> TlsConnection<RNG, Tcp, CipherSuite>
 where
     RNG: CryptoRng + RngCore + Copy,
     Tcp: TcpStack,
-    D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
-    D::BlockSize: ArrayLength<u8>,
-    D::OutputSize: ArrayLength<u8>,
+    CipherSuite: TlsCipherSuite,
+    //D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
+    //D::BlockSize: ArrayLength<u8>,
+    //D::OutputSize: ArrayLength<u8>,
 {
-    pub fn new(config: &'static Config<RNG>, delegate: TcpSocket<Tcp>) -> Self {
+    pub fn new(config: &'static Config<RNG, CipherSuite>, delegate: TcpSocket<Tcp>) -> Self {
         Self {
             delegate,
             config,
@@ -65,7 +68,8 @@ where
         log::info!("encrypt key {:x?}", self.key_schedule.get_client_key());
         log::info!("encrypt nonce {:x?}", self.key_schedule.get_client_nonce());
         log::info!("plaintext {} {:x?}", buf.len(), buf);
-        let crypto = Aes128Gcm::new_varkey(&self.key_schedule.get_client_key()).unwrap();
+        //let crypto = Aes128Gcm::new_varkey(&self.key_schedule.get_client_key()).unwrap();
+        let crypto = CipherSuite::Cipher::new(&self.key_schedule.get_client_key());
         let nonce = &self.key_schedule.get_client_nonce();
         log::info!("client write nonce {:x?}", nonce);
         let len = (buf.len() + <Aes128Gcm as AeadInPlace>::TagSize::to_usize());
@@ -82,7 +86,7 @@ where
             len_bytes[1],
         ];
         crypto
-            .encrypt_in_place(nonce, &additional_data, buf)
+            .encrypt_in_place(nonce, &additional_data, &mut CryptoBuffer::wrap(buf))
             .map_err(|_| TlsError::InvalidApplicationData)?;
         log::info!("aad {:x?}", additional_data);
         log::info!("ciphertext ## {} ## {:x?}", buf.len(), buf);
@@ -97,9 +101,15 @@ where
         //Ok(())
     }
 
-    async fn transmit(&mut self, record: &ClientRecord<'_, RNG, D>) -> Result<(), TlsError> {
+    async fn transmit(
+        &mut self,
+        record: &ClientRecord<'_, RNG, CipherSuite>,
+    ) -> Result<(), TlsError> {
         let mut buf: Vec<u8, U1024> = Vec::new();
-        record.encode(&mut buf, self.key_schedule.transcript_hash());
+        let range = record.encode(&mut buf)?;
+        if let Some(range) = range {
+            Digest::update(self.key_schedule.transcript_hash(), &buf[range]);
+        }
         log::info!(
             "**** transmit, hash={:x?}",
             self.key_schedule.transcript_hash().clone().finalize()
@@ -126,7 +136,9 @@ where
         Ok(())
     }
 
-    async fn receive(&mut self) -> Result<ServerRecord<D>, TlsError> {
+    async fn receive(
+        &mut self,
+    ) -> Result<ServerRecord<<CipherSuite::Hash as FixedOutput>::OutputSize>, TlsError> {
         let mut record =
             ServerRecord::read(&mut self.delegate, self.key_schedule.transcript_hash()).await?;
 
@@ -137,13 +149,14 @@ where
         if let State::Encrypted = self.state {
             if let ServerRecord::ApplicationData(ApplicationData { header, mut data }) = record {
                 log::info!("decrypting {:x?} with {}", &header, data.len());
-                let crypto = Aes128Gcm::new(&self.key_schedule.get_server_key());
+                //let crypto = Aes128Gcm::new(&self.key_schedule.get_server_key());
+                let crypto = CipherSuite::Cipher::new(&self.key_schedule.get_server_key());
                 let nonce = &self.key_schedule.get_server_nonce();
                 log::info!("server write nonce {:x?}", nonce);
                 let result = crypto.decrypt_in_place(
                     &self.key_schedule.get_server_nonce(),
                     &header,
-                    &mut data,
+                    &mut CryptoBuffer::wrap(&mut data),
                 );
 
                 let content_type =
@@ -161,9 +174,10 @@ where
                         log::debug!("===> inner ==> {:?}", inner);
                         record = ServerRecord::Handshake(inner.unwrap());
                         //if hash_later {
-                        self.key_schedule
-                            .transcript_hash()
-                            .update(&data[..data.len() - 1]);
+                        Digest::update(
+                            self.key_schedule.transcript_hash(),
+                            &data[..data.len() - 1],
+                        );
                         log::info!("hash {:x?}", &data[..data.len() - 1]);
                         //}
                     }
@@ -234,30 +248,16 @@ where
                                 .create_client_finished()
                                 .map_err(|_| TlsError::InvalidHandshake)?;
 
-                            //let client_finished =
-                            //ClientRecord::Handshake(ClientHandshake::Finished(client_finished));
                             let client_finished =
-                                ClientHandshake::<RNG, D>::Finished(client_finished);
+                                ClientHandshake::<RNG, CipherSuite>::Finished(client_finished);
+
                             let mut buf = Vec::<u8, U1024>::new();
                             let mut next_hash = self.key_schedule.transcript_hash().clone();
-                            client_finished.encode(&mut buf, &mut next_hash);
+                            let range = client_finished.encode(&mut buf)?;
+                            Update::update(&mut next_hash, &buf[range]);
+
                             buf.push(ContentType::Handshake as u8);
                             let client_finished = self.encrypt(&mut buf)?;
-
-                            // ----------------------------------------
-                            let crypto = Aes128Gcm::new(&self.key_schedule.get_client_key());
-                            let nonce = &self.key_schedule.get_client_nonce();
-                            log::info!("server write nonce {:x?}", nonce);
-                            let mut decrypt_buf = Vec::<u8, U1024>::new();
-                            decrypt_buf.extend(client_finished.data.iter());
-                            let result = crypto.decrypt_in_place(
-                                &nonce,
-                                &client_finished.header,
-                                &mut decrypt_buf,
-                            );
-                            log::info!("decrypted my own {:?} {:x?}", result, decrypt_buf);
-                            // ----------------------------------------
-
                             let client_finished = ClientRecord::ApplicationData(client_finished);
 
                             log::info!("sending client FINISH");

@@ -14,6 +14,7 @@ where
     D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
     D::BlockSize: ArrayLength<u8>,
     D::OutputSize: ArrayLength<u8>,
+    //D: Digest,
     KeyLen: ArrayLength<u8>,
     IvLen: ArrayLength<u8>,
 {
@@ -108,7 +109,7 @@ where
         )
     }
 
-    pub fn create_client_finished(&self) -> Result<Finished<D>, ()> {
+    pub fn create_client_finished(&self) -> Result<Finished<D::OutputSize>, ()> {
         let key: GenericArray<u8, D::OutputSize> = self.hkdf_expand_label(
             self.client_traffic_secret.as_ref().unwrap(),
             &self.make_hkdf_label(b"finished", ContextType::None, D::OutputSize::to_u16()),
@@ -121,7 +122,7 @@ where
         Ok(Finished { verify, hash: None })
     }
 
-    pub fn verify_server_finished(&self, finished: &Finished<D>) -> bool {
+    pub fn verify_server_finished(&self, finished: &Finished<D::OutputSize>) -> bool {
         log::info!("verify server finished: {:x?}", finished.verify);
         //self.client_traffic_secret.as_ref().unwrap().expand()
         log::info!("size ===> {}", D::OutputSize::to_u16());

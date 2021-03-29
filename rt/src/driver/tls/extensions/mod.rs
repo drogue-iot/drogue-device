@@ -9,7 +9,7 @@ use crate::driver::tls::max_fragment_length::MaxFragmentLength;
 use crate::driver::tls::named_groups::NamedGroup;
 use crate::driver::tls::supported_versions::{ProtocolVersion, ProtocolVersions};
 use crate::driver::tls::TlsError;
-use bbqueue::ArrayLength;
+use generic_array::ArrayLength;
 use heapless::{consts::*, Vec};
 use nom::number::complete::u16;
 

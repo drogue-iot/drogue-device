@@ -1,6 +1,7 @@
 use crate::api::ip::tcp::TcpError;
 
 pub mod application_data;
+pub mod buffer;
 pub mod certificate_types;
 pub mod change_cipher_spec;
 pub mod cipher_suites;

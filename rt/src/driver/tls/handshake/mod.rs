@@ -6,7 +6,7 @@ use rand_core::{CryptoRng, RngCore};
 use crate::api::ip::tcp::{TcpError, TcpSocket, TcpStack};
 use crate::driver::tls::cipher_suites::CipherSuite;
 //use p256::elliptic_curve::AffinePoint;
-use crate::driver::tls::config::Config;
+use crate::driver::tls::config::{Config, TlsCipherSuite};
 use crate::driver::tls::content_types::ContentType;
 use crate::driver::tls::content_types::ContentType::Handshake;
 use crate::driver::tls::extensions::ClientExtension;
@@ -25,6 +25,7 @@ use crate::driver::tls::supported_versions::{ProtocolVersion, TLS13};
 use crate::driver::tls::TlsError;
 use crate::driver::tls::TlsError::InvalidHandshake;
 use core::fmt::{Debug, Formatter};
+use core::ops::Range;
 use sha2::Digest;
 
 pub mod certificate;
@@ -78,25 +79,24 @@ impl HandshakeType {
     }
 }
 
-pub enum ClientHandshake<'config, R, D>
+pub enum ClientHandshake<'config, RNG, CipherSuite>
 where
-    R: CryptoRng + RngCore + Copy,
-    D: Digest,
+    RNG: CryptoRng + RngCore + Copy,
+    CipherSuite: TlsCipherSuite,
 {
-    ClientHello(ClientHello<'config, R>),
-    Finished(Finished<D>),
+    ClientHello(ClientHello<'config, RNG, CipherSuite>),
+    Finished(Finished<<CipherSuite::Hash as Digest>::OutputSize>),
 }
 
-impl<'config, R, D> ClientHandshake<'config, R, D>
+impl<'config, RNG, CipherSuite> ClientHandshake<'config, RNG, CipherSuite>
 where
-    R: CryptoRng + RngCore + Copy,
-    D: Digest,
+    RNG: CryptoRng + RngCore + Copy,
+    CipherSuite: TlsCipherSuite,
 {
-    pub fn encode<N: ArrayLength<u8>>(
+    pub fn encode<O: ArrayLength<u8>>(
         &self,
-        buf: &mut Vec<u8, N>,
-        digest: &mut D,
-    ) -> Result<(), TlsError> {
+        buf: &mut Vec<u8, O>,
+    ) -> Result<Range<usize>, TlsError> {
         let content_marker = buf.len();
         match self {
             ClientHandshake::ClientHello(_) => {
@@ -122,21 +122,21 @@ where
         buf[content_length_marker + 2] = content_length.to_be_bytes()[3];
 
         log::info!("hash [{:x?}]", &buf[content_marker..]);
-        digest.update(&buf[content_marker..]);
+        //digest.update(&buf[content_marker..]);
 
-        Ok(())
+        Ok(content_marker..buf.len())
     }
 }
 
-pub enum ServerHandshake<D: Digest> {
+pub enum ServerHandshake<N: ArrayLength<u8>> {
     ServerHello(ServerHello),
     EncryptedExtensions(EncryptedExtensions),
     Certificate(Certificate),
     CertificateVerify(CertificateVerify),
-    Finished(Finished<D>),
+    Finished(Finished<N>),
 }
 
-impl<D: Digest> Debug for ServerHandshake<D> {
+impl<N: ArrayLength<u8>> Debug for ServerHandshake<N> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             ServerHandshake::ServerHello(inner) => Debug::fmt(inner, f),
@@ -148,8 +148,8 @@ impl<D: Digest> Debug for ServerHandshake<D> {
     }
 }
 
-impl<D: Digest> ServerHandshake<D> {
-    pub async fn read<T: TcpStack>(
+impl<N: ArrayLength<u8>> ServerHandshake<N> {
+    pub async fn read<T: TcpStack, D: Digest>(
         socket: &mut TcpSocket<T>,
         len: u16,
         digest: &mut D,

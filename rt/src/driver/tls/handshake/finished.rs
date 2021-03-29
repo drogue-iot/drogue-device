@@ -1,16 +1,17 @@
 use crate::driver::tls::parse_buffer::ParseBuffer;
 use crate::driver::tls::TlsError;
 use core::fmt::{Debug, Formatter};
-use digest::generic_array::GenericArray;
+//use digest::generic_array::{ArrayLength, GenericArray};
 use digest::Digest;
-use heapless::{consts::*, ArrayLength, Vec};
+use generic_array::{ArrayLength, GenericArray};
+use heapless::{consts::*, Vec};
 
-pub struct Finished<D: Digest> {
-    pub verify: GenericArray<u8, D::OutputSize>,
-    pub hash: Option<GenericArray<u8, D::OutputSize>>,
+pub struct Finished<N: ArrayLength<u8>> {
+    pub verify: GenericArray<u8, N>,
+    pub hash: Option<GenericArray<u8, N>>,
 }
 
-impl<D: Digest> Debug for Finished<D> {
+impl<N: ArrayLength<u8>> Debug for Finished<N> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Finished")
             .field("verify", &self.hash)
@@ -18,7 +19,7 @@ impl<D: Digest> Debug for Finished<D> {
     }
 }
 
-impl<D: Digest> Finished<D> {
+impl<N: ArrayLength<u8>> Finished<N> {
     pub fn parse(buf: &mut ParseBuffer, len: u32) -> Result<Self, TlsError> {
         log::info!("finished len: {}", len);
         let mut verify = GenericArray::default();
@@ -34,7 +35,7 @@ impl<D: Digest> Finished<D> {
         Ok(Self { verify, hash: None })
     }
 
-    pub(crate) fn encode<N: ArrayLength<u8>>(&self, buf: &mut Vec<u8, N>) -> Result<(), TlsError> {
+    pub(crate) fn encode<O: ArrayLength<u8>>(&self, buf: &mut Vec<u8, O>) -> Result<(), TlsError> {
         //let len = self.verify.len().to_be_bytes();
         //buf.extend_from_slice(&[len[1], len[2], len[3]]);
         buf.extend(self.verify.iter());

@@ -37,7 +37,7 @@ use stm32l4xx_hal::{
 };
 use drogue_device::driver::tls::tls_tcp_stack::TlsTcpStack;
 use drogue_device::platform::cortex_m::stm32l4xx::rng::Random;
-use drogue_device::driver::tls::config::{Config, Sha256};
+use drogue_device::driver::tls::config::{Config, Aes128GcmSha256};
 
 type Ld1Pin = PA5<Output<PushPull>>;
 type Ld2Pin = PB14<Output<PushPull>>;
@@ -65,7 +65,7 @@ type SpiMosi = PC12<Alternate<AF6, Input<Floating>>>;
 type HardwareSpi = HalSpi<SPI3, (SpiClk, SpiMiso, SpiMosi)>;
 type SpiPackage = Spi<HardwareSpi, u8>;
 
-type Tls = TlsTcpStack<<WifiAdapter as Package>::Primary, Random, Sha256>;
+type Tls = TlsTcpStack<<WifiAdapter as Package>::Primary, Random, Aes128GcmSha256>;
 
 type WifiCs = PE0<Output<PushPull>>;
 //type WifiCs = PE10<Output<PullUp>>;
@@ -83,7 +83,7 @@ pub type WifiAdapter = EsWifi<
 >;
 
 pub struct MyDevice {
-    pub tls_config: Config<Random>,
+    pub tls_config: Config<Random, Aes128GcmSha256>,
     pub spi: SpiPackage,
     pub wifi: WifiAdapter,
     pub tls: ActorContext<Tls>,

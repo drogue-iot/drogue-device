@@ -15,7 +15,7 @@ categories = ["embedded", "no-std", "async", "actor"]
 keywords = ["async", "embedded", "actor", "no_std"]
 
 [dependencies.heapless]
-version = "0.5.6"
+version = "0.6.1"
 
 [dependencies.drogue-arch]
 path = "../arch"
@@ -90,14 +90,21 @@ version = "0.9.3"
 default-features = false
 
 [dependencies.aes-gcm]
-#version = "0.8.0"
-path = "../../AEADs/aes-gcm"
+version = "0.8.0"
+#path = "../../AEADs/aes-gcm"
 default-features = false
-features = ["heapless", "aes"]
+#features = ["heapless", "aes"]
+features = ["aes"]
 
 [dependencies.digest]
-version = "0.9"
+version = "0.9.0"
 default-features = false
+
+[dependencies.typenum]
+version = "1.13.0"
+
+[dependencies.generic-array]
+version = "0.14.4"
 
 # ----------------------------------------
 # es-wifi dependencies

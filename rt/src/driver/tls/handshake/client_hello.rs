@@ -4,7 +4,7 @@ use p256::elliptic_curve::rand_core::{CryptoRng, RngCore};
 use p256::EncodedPoint;
 
 use crate::api::ip::tcp::{TcpError, TcpSocket, TcpStack};
-use crate::driver::tls::config::Config;
+use crate::driver::tls::config::{Config, TlsCipherSuite};
 use crate::driver::tls::content_types::ContentType;
 use crate::driver::tls::extensions::common::KeyShareEntry;
 use crate::driver::tls::extensions::ClientExtension;
@@ -15,20 +15,22 @@ use crate::driver::tls::supported_versions::{ProtocolVersion, TLS13};
 use crate::driver::tls::TlsError;
 use sha2::Digest;
 
-pub struct ClientHello<'config, R>
+pub struct ClientHello<'config, RNG, CipherSuite>
 where
-    R: CryptoRng + RngCore + Copy,
+    RNG: CryptoRng + RngCore + Copy,
+    CipherSuite: TlsCipherSuite,
 {
-    config: &'config Config<R>,
+    config: &'config Config<RNG, CipherSuite>,
     random: Random,
     pub(crate) secret: EphemeralSecret,
 }
 
-impl<'config, R> ClientHello<'config, R>
+impl<'config, RNG, CipherSuite> ClientHello<'config, RNG, CipherSuite>
 where
-    R: CryptoRng + RngCore + Copy,
+    RNG: CryptoRng + RngCore + Copy,
+    CipherSuite: TlsCipherSuite,
 {
-    pub fn new(config: &'config Config<R>) -> Self {
+    pub fn new(config: &'config Config<RNG, CipherSuite>) -> Self {
         let mut random = [0; 32];
         let mut rng = config.rng;
         rng.fill_bytes(&mut random);
@@ -51,10 +53,12 @@ where
         buf.push(0);
 
         // cipher suites (2+)
-        buf.extend_from_slice(&((self.config.cipher_suites.len() * 2) as u16).to_be_bytes());
-        for c in self.config.cipher_suites.iter() {
-            buf.extend_from_slice(&(*c as u16).to_be_bytes());
-        }
+        //buf.extend_from_slice(&((self.config.cipher_suites.len() * 2) as u16).to_be_bytes());
+        //for c in self.config.cipher_suites.iter() {
+        //buf.extend_from_slice(&(*c as u16).to_be_bytes());
+        //}
+        buf.extend_from_slice(&2u16.to_be_bytes());
+        buf.extend_from_slice(&CipherSuite::CODE_POINT.to_be_bytes());
 
         // compression methods, 1 byte of 0
         buf.push(1);

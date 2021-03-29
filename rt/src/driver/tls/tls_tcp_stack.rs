@@ -1,6 +1,6 @@
 use crate::api::ip::tcp::{TcpError, TcpSocket, TcpStack};
 use crate::api::ip::{IpProtocol, SocketAddress};
-use crate::driver::tls::config::Config;
+use crate::driver::tls::config::{Config, TlsCipherSuite};
 use crate::driver::tls::crypto_engine::CryptoEngine;
 use crate::driver::tls::handshake::client_hello::ClientHello;
 use crate::driver::tls::handshake::server_hello::ServerHello;
@@ -13,28 +13,30 @@ use digest::{BlockInput, Digest, FixedOutput, Reset, Update};
 use heapless::{consts::*, ArrayLength, Vec};
 use rand_core::{CryptoRng, RngCore};
 
-pub struct TlsTcpStack<Tcp, RNG, D>
+pub struct TlsTcpStack<Tcp, RNG, CipherSuite>
 where
     Tcp: TcpStack + 'static,
     RNG: CryptoRng + RngCore + Copy + 'static,
-    D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
-    D::BlockSize: ArrayLength<u8>,
-    D::OutputSize: ArrayLength<u8>,
+    //D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
+    //D::BlockSize: ArrayLength<u8>,
+    //D::OutputSize: ArrayLength<u8>,
+    CipherSuite: TlsCipherSuite + 'static,
 {
     delegate: Option<Address<Tcp>>,
-    pub(crate) config: Option<&'static Config<RNG>>,
-    connections: [Option<TlsConnection<RNG, Tcp, D>>; 5],
+    pub(crate) config: Option<&'static Config<RNG, CipherSuite>>,
+    connections: [Option<TlsConnection<RNG, Tcp, CipherSuite>>; 5],
 }
 
-impl<Tcp, RNG, D> Actor for TlsTcpStack<Tcp, RNG, D>
+impl<Tcp, RNG, CipherSuite> Actor for TlsTcpStack<Tcp, RNG, CipherSuite>
 where
     Tcp: TcpStack + 'static,
     RNG: CryptoRng + RngCore + Copy + 'static,
-    D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
-    D::BlockSize: ArrayLength<u8>,
-    D::OutputSize: ArrayLength<u8>,
+    //D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
+    //D::BlockSize: ArrayLength<u8>,
+    //D::OutputSize: ArrayLength<u8>,
+    CipherSuite: TlsCipherSuite + 'static,
 {
-    type Configuration = (&'static Config<RNG>, Address<Tcp>);
+    type Configuration = (&'static Config<RNG, CipherSuite>, Address<Tcp>);
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where
@@ -45,13 +47,14 @@ where
     }
 }
 
-impl<Tcp, RNG, D> TlsTcpStack<Tcp, RNG, D>
+impl<Tcp, RNG, CipherSuite> TlsTcpStack<Tcp, RNG, CipherSuite>
 where
     Tcp: TcpStack + 'static,
     RNG: CryptoRng + RngCore + Copy,
-    D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
-    D::BlockSize: ArrayLength<u8>,
-    D::OutputSize: ArrayLength<u8>,
+    //D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
+    //D::BlockSize: ArrayLength<u8>,
+    //D::OutputSize: ArrayLength<u8>,
+    CipherSuite: TlsCipherSuite,
 {
     pub fn new() -> Self {
         Self {
@@ -62,13 +65,14 @@ where
     }
 }
 
-impl<Tcp, RNG, D> TcpStack for TlsTcpStack<Tcp, RNG, D>
+impl<Tcp, RNG, CipherSuite> TcpStack for TlsTcpStack<Tcp, RNG, CipherSuite>
 where
     Tcp: TcpStack + 'static,
     RNG: CryptoRng + RngCore + Copy,
-    D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
-    D::BlockSize: ArrayLength<u8>,
-    D::OutputSize: ArrayLength<u8>,
+    //D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
+    //D::BlockSize: ArrayLength<u8>,
+    //D::OutputSize: ArrayLength<u8>,
+    CipherSuite: TlsCipherSuite,
 {
     type SocketHandle = u8;
 

@@ -1,29 +1,32 @@
 use crate::api::ip::tcp::{TcpSocket, TcpStack};
 use crate::driver::tls::application_data::ApplicationData;
 use crate::driver::tls::change_cipher_spec::ChangeCipherSpec;
-use crate::driver::tls::config::Config;
+use crate::driver::tls::config::{Config, TlsCipherSuite};
 use crate::driver::tls::content_types;
 use crate::driver::tls::content_types::ContentType;
 use crate::driver::tls::handshake::client_hello::ClientHello;
 use crate::driver::tls::handshake::{ClientHandshake, HandshakeType, ServerHandshake};
 use crate::driver::tls::TlsError;
+use core::ops::Range;
 use heapless::{consts::*, ArrayLength, Vec};
 use rand_core::{CryptoRng, RngCore};
 use sha2::Digest;
 
-pub enum ClientRecord<'config, R, D>
+pub enum ClientRecord<'config, R, CipherSuite>
 where
     R: CryptoRng + RngCore + Copy,
-    D: Digest,
+    // N: ArrayLength<u8>,
+    CipherSuite: TlsCipherSuite,
 {
-    Handshake(ClientHandshake<'config, R, D>),
+    Handshake(ClientHandshake<'config, R, CipherSuite>),
     ApplicationData(ApplicationData),
 }
 
-impl<'config, R, D> ClientRecord<'config, R, D>
+impl<'config, RNG, CipherSuite> ClientRecord<'config, RNG, CipherSuite>
 where
-    R: CryptoRng + RngCore + Copy,
-    D: Digest,
+    RNG: CryptoRng + RngCore + Copy,
+    //N: ArrayLength<u8>,
+    CipherSuite: TlsCipherSuite,
 {
     pub fn content_type(&self) -> ContentType {
         match self {
@@ -32,15 +35,14 @@ where
         }
     }
 
-    pub fn client_hello(config: &'config Config<R>) -> Self {
+    pub fn client_hello(config: &'config Config<RNG, CipherSuite>) -> Self {
         ClientRecord::Handshake(ClientHandshake::ClientHello(ClientHello::new(config)))
     }
 
-    pub fn encode<N: ArrayLength<u8>>(
+    pub fn encode<O: ArrayLength<u8>>(
         &self,
-        buf: &mut Vec<u8, N>,
-        digest: &mut D,
-    ) -> Result<(), TlsError> {
+        buf: &mut Vec<u8, O>,
+    ) -> Result<Option<Range<usize>>, TlsError> {
         match self {
             ClientRecord::Handshake(_) => {
                 buf.push(ContentType::Handshake as u8);
@@ -56,24 +58,13 @@ where
         buf.push(0);
         buf.push(0);
 
-        match self {
-            ClientRecord::Handshake(handshake) => {
-                /*
-                match handshake {
-                    ClientHandshake::ClientHello(_) => {
-                        buf.push(HandshakeType::ClientHello as u8);
-                    }
-                    ClientHandshake::Finished(_) => {
-                        buf.push(HandshakeType::Finished as u8);
-                    }
-                }
-                 */
-                handshake.encode(buf, digest)?;
-            }
+        let range = match self {
+            ClientRecord::Handshake(handshake) => Some(handshake.encode(buf)?),
             ClientRecord::ApplicationData(application_data) => {
                 buf.extend(application_data.data.iter());
+                None
             }
-        }
+        };
 
         let record_length = (buf.len() as u16 - record_length_marker as u16) - 2;
 
@@ -82,20 +73,20 @@ where
         buf[record_length_marker] = record_length.to_be_bytes()[0];
         buf[record_length_marker + 1] = record_length.to_be_bytes()[1];
 
-        Ok(())
+        Ok(range)
     }
 }
 
 #[derive(Debug)]
-pub enum ServerRecord<D: Digest> {
-    Handshake(ServerHandshake<D>),
+pub enum ServerRecord<N: ArrayLength<u8>> {
+    Handshake(ServerHandshake<N>),
     ChangeCipherSpec(ChangeCipherSpec),
     Alert,
     ApplicationData(ApplicationData),
 }
 
-impl<D: Digest> ServerRecord<D> {
-    pub async fn read<T: TcpStack>(
+impl<N: ArrayLength<u8>> ServerRecord<N> {
+    pub async fn read<T: TcpStack, D: Digest>(
         socket: &mut TcpSocket<T>,
         digest: &mut D,
     ) -> Result<Self, TlsError> {
