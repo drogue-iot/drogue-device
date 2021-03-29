@@ -315,6 +315,10 @@ where
             (self, result)
         })
     }
+
+    fn send_recv<'a>(mut self, message: SendRecv<'a>) -> Response<Self, Result<usize, LoraError>> {
+        Response::immediate(self, Err(LoraError::NotImplemented))
+    }
 }
 
 impl<U, Q> Rak811Ingress<U, Q>
