@@ -1,6 +1,5 @@
 //! Actor-related types and traits.
 
-use crate::arena::Arena;
 use core::cell::{RefCell, UnsafeCell};
 use core::future::Future;
 use core::mem::transmute;
@@ -12,7 +11,6 @@ use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue, String};
 
 use crate::arch::with_critical_section;
-use crate::arena::Box;
 use crate::prelude::*;
 use crate::system::device::Lifecycle;
 use crate::system::supervisor::actor_executor::ActiveActor;

@@ -20,8 +20,8 @@ version = "0.5.6"
 [dependencies.drogue-arch]
 path = "../arch"
 
-[dependencies.drogue-arena]
-path = "../arena"
+# [dependencies.drogue-arena]
+# path = "../arena"
 
 [dependencies.cortex-m]
 version = "0.6"

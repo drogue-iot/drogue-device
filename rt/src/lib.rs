@@ -12,7 +12,7 @@ mod future;
 pub mod hal;
 pub mod platform;
 pub use drogue_arch as arch;
-pub use drogue_arena as arena;
+// pub use drogue_arena as arena;
 pub mod system;
 // pub(crate) mod util;
 

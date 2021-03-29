@@ -4,7 +4,7 @@ pub mod button;
 // pub mod i2c;
 // pub mod led;
 // pub mod lora;
-pub mod memory;
+// pub mod memory;
 // pub mod queue;
 // pub mod sensor;
 // pub mod spi;
