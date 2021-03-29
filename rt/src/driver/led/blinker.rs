@@ -59,13 +59,12 @@ enum State {
     Off,
 }
 
-impl<S, T> RequestHandler<State> for Blinker<S, T>
+impl<S, T> NotifyHandler<State> for Blinker<S, T>
 where
     S: Switchable,
     T: Scheduler,
 {
-    type Response = ();
-    fn on_request(self, message: State) -> Response<Self, Self::Response> {
+    fn on_notify(self, message: State) -> Completion<Self> {
         match message {
             State::On => {
                 self.led.unwrap().turn_on();
@@ -80,21 +79,20 @@ where
                     .schedule(self.delay, State::On, self.address.unwrap());
             }
         }
-        Response::immediate(self, ())
+        Completion::immediate(self)
     }
 }
 
 pub struct AdjustDelay(Milliseconds);
 
-impl<S, T> RequestHandler<AdjustDelay> for Blinker<S, T>
+impl<S, T> NotifyHandler<AdjustDelay> for Blinker<S, T>
 where
     S: Switchable,
     T: Scheduler,
 {
-    type Response = ();
-    fn on_request(mut self, message: AdjustDelay) -> Response<Self, Self::Response> {
+    fn on_notify(mut self, message: AdjustDelay) -> Completion<Self> {
         self.delay = message.0;
-        Response::immediate(self, ())
+        Completion::immediate(self)
     }
 }
 

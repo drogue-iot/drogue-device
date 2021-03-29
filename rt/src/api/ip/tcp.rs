@@ -30,7 +30,7 @@ pub trait TcpStack: Actor {
         handle: Self::SocketHandle,
         buf: &mut [u8],
     ) -> Response<Self, Result<usize, TcpError>>;
-    fn close(self, handle: Self::SocketHandle) -> Response<Self, ()>;
+    fn close(self, handle: Self::SocketHandle) -> Completion<Self>;
 }
 
 pub struct TcpSocket<S>
@@ -132,12 +132,11 @@ pub struct Close<S>(S::SocketHandle)
 where
     S: TcpStack;
 
-impl<S> RequestHandler<Close<S>> for S
+impl<S> NotifyHandler<Close<S>> for S
 where
     S: TcpStack,
 {
-    type Response = ();
-    fn on_request(self, message: Close<S>) -> Response<Self, Self::Response> {
+    fn on_notify(self, message: Close<S>) -> Completion<Self> {
         self.close(message.0)
     }
 }

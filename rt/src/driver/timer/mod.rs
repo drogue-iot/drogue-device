@@ -108,7 +108,7 @@ impl<T: HalTimer> TimerActor<T> {
 impl<T: HalTimer> Scheduler for TimerActor<T> {
     fn schedule<A, DUR, E>(&mut self, message: Schedule<A, DUR, E>)
     where
-        A: Actor + RequestHandler<E> + 'static,
+        A: Actor + NotifyHandler<E> + 'static,
         DUR: Duration + Into<Milliseconds> + 'static,
         E: 'static,
     {
@@ -287,7 +287,7 @@ impl DelayDeadline {
 
 struct ScheduleDeadline<A, DUR, E>
 where
-    A: Actor + RequestHandler<E> + 'static,
+    A: Actor + NotifyHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds>,
     E: 'static,
 {
@@ -297,7 +297,7 @@ where
 
 impl<A, DUR, E> Schedulable for ScheduleDeadline<A, DUR, E>
 where
-    A: Actor + RequestHandler<E> + 'static,
+    A: Actor + NotifyHandler<E> + 'static,
     DUR: Duration + Into<Milliseconds>,
     E: 'static,
 {
@@ -316,7 +316,7 @@ where
     }
 }
 
-impl<A: Actor + RequestHandler<E> + 'static, DUR: Duration + Into<Milliseconds>, E: 'static>
+impl<A: Actor + NotifyHandler<E> + 'static, DUR: Duration + Into<Milliseconds>, E: 'static>
     ScheduleDeadline<A, DUR, E>
 {
     fn new(expiration: Milliseconds, schedule: Schedule<A, DUR, E>) -> Self {

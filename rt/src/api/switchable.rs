@@ -1,14 +1,14 @@
-use crate::prelude::{Actor, Address, RequestHandler};
+use crate::prelude::{Actor, Address, NotifyHandler};
 
 pub struct On;
 
 pub struct Off;
 
-pub trait Switchable: Actor + RequestHandler<On> + RequestHandler<Off> {}
+pub trait Switchable: Actor + NotifyHandler<On> + NotifyHandler<Off> {}
 
 impl<S> Address<S>
 where
-    S: RequestHandler<On>,
+    S: NotifyHandler<On>,
     S: Actor + 'static,
 {
     pub fn turn_on(&self) {
@@ -18,7 +18,7 @@ where
 
 impl<S> Address<S>
 where
-    S: RequestHandler<Off>,
+    S: NotifyHandler<Off>,
     S: Actor + 'static,
 {
     pub fn turn_off(&self) {

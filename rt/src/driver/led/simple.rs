@@ -50,28 +50,26 @@ where
     type Configuration = ();
 }
 
-impl<P, A> RequestHandler<On> for SimpleLED<P, A>
+impl<P, A> NotifyHandler<On> for SimpleLED<P, A>
 where
     P: OutputPin + 'static,
     A: ActiveOutput + 'static,
 {
-    type Response = ();
-    fn on_request(mut self, message: On) -> Response<Self, Self::Response> {
+    fn on_notify(mut self, message: On) -> Completion<Self> {
         self.turn_on();
-        Response::immediate(self, ())
+        Completion::immediate(self)
     }
 }
 
-impl<P, A> RequestHandler<Off> for SimpleLED<P, A>
+impl<P, A> NotifyHandler<Off> for SimpleLED<P, A>
 where
     P: OutputPin + 'static,
     A: ActiveOutput + 'static,
 {
-    type Response = ();
-    fn on_request(mut self, message: Off) -> Response<Self, Self::Response> {
-        Response::defer(async move {
+    fn on_notify(mut self, message: Off) -> Completion<Self> {
+        Completion::defer(async move {
             self.turn_off();
-            (self, ())
+            self
         })
     }
 }

@@ -153,14 +153,13 @@ where
     }
 }
 
-impl<BUS> RequestHandler<EndTransaction> for BusArbitrator<BUS>
+impl<BUS> NotifyHandler<EndTransaction> for BusArbitrator<BUS>
 where
     BUS: Actor + 'static,
 {
-    type Response = ();
-    fn on_request(self, message: EndTransaction) -> Response<Self, Self::Response> {
+    fn on_notify(self, message: EndTransaction) -> Completion<Self> {
         self.shared.unwrap().end_transaction();
-        Response::immediate(self, ())
+        Completion::immediate(self)
     }
 }
 

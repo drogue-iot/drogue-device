@@ -123,14 +123,13 @@ where
     }
 }
 
-impl<U, D> RequestHandler<SerialData> for App<U, D>
+impl<U, D> NotifyHandler<SerialData> for App<U, D>
 where
     U: UartWriter + 'static,
     D: Delayer + 'static,
 {
-    type Response = ();
-    fn on_request(self, event: SerialData) -> Response<Self, ()> {
-        Response::defer(async move {
+    fn on_notify(self, event: SerialData) -> Completion<Self> {
+        Completion::defer(async move {
             self.display
                 .as_ref()
                 .unwrap()
@@ -143,7 +142,7 @@ where
                 .write(&buf[..])
                 .await
                 .expect("error writing data");
-            (self, ())
+            self
         })
     }
 }

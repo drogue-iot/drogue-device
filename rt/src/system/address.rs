@@ -31,7 +31,7 @@ impl<A: Actor + 'static> Address<A> {
     /// for the appropriate type of message being sent.
     pub fn notify<M>(&self, message: M)
     where
-        A: RequestHandler<M> + 'static,
+        A: NotifyHandler<M>,
         M: 'static,
     {
         self.actor.notify(message)

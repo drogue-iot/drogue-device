@@ -593,8 +593,8 @@ where
         }
     }
 
-    fn close(mut self, handle: Self::SocketHandle) -> Response<Self, ()> {
-        Response::defer(async move {
+    fn close(mut self, handle: Self::SocketHandle) -> Completion<Self> {
+        Completion::defer(async move {
             let mut response = [0u8; 1024];
 
             let result = async {
@@ -614,7 +614,7 @@ where
                 }
             }
             .await;
-            (self, ())
+            self
         })
     }
 }

@@ -116,14 +116,13 @@ where
     }
 }
 
-impl<D, I> RequestHandler<DataReady> for Sensor<D, I>
+impl<D, I> NotifyHandler<DataReady> for Sensor<D, I>
 where
     D: Device + EventHandler<SensorAcquisition<Celsius>>,
     I: WriteRead + Read + Write,
 {
-    type Response = ();
-    fn on_request(self, message: DataReady) -> Response<Self, Self::Response> {
-        Response::defer(async move {
+    fn on_notify(self, message: DataReady) -> Completion<Self> {
+        Completion::defer(async move {
             if self.i2c.is_some() {
                 let i2c = self.i2c.unwrap();
 
@@ -144,7 +143,7 @@ where
                     log::warn!("[hts221] no calibration data available")
                 }
             }
-            (self, ())
+            self
         })
     }
 }

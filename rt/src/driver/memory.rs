@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use crate::arena::Arena;
+use crate::arena::{Arena, Info};
 use crate::system::SystemArena;
 use core::marker::PhantomData;
 //use crate::arena::HEAP;
@@ -28,8 +28,17 @@ impl<A: Arena> Actor for Memory<A> {
 }
 
 impl<A: Arena + 'static> RequestHandler<Query> for Memory<A> {
-    type Response = ();
+    type Response = Info;
+
     fn on_request(self, message: Query) -> Response<Self, Self::Response> {
+        //let heap = unsafe { HEAP.as_ref().unwrap() };
+        //Response::immediate(self, Info::new(unsafe { HEAP.as_ref().unwrap() }))
+        Response::immediate(self, A::info())
+    }
+}
+
+impl<A: Arena + 'static> NotifyHandler<Query> for Memory<A> {
+    fn on_notify(self, message: Query) -> Completion<Self> {
         let info = A::info();
         log::info!(
             "[{}] used={}, free={} || high={}",
@@ -38,6 +47,6 @@ impl<A: Arena + 'static> RequestHandler<Query> for Memory<A> {
             info.free,
             info.high_watermark,
         );
-        Response::immediate(self, ())
+        Completion::immediate(self)
     }
 }
