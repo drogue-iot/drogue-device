@@ -19,10 +19,7 @@ where
     }
 }
 
-impl<TX> Uart for SerialTx<TX> 
-where
-    TX: Write<u8> + 'static,
-{}
+impl<TX> Uart for SerialTx<TX> where TX: Write<u8> + 'static {}
 
 impl<TX> Actor for SerialTx<TX>
 where
@@ -30,15 +27,15 @@ where
 {
     type Configuration = ();
     type Request = UartRequest<'static>;
-    type Response = Result<usize, Error>;
+    type Response = UartResponse;
 
-    fn on_request<'a>(mut self, request: UartRequest<'a>) -> Response<Self> {
+    fn on_request(mut self, request: UartRequest<'static>) -> Response<Self> {
         match request {
             UartRequest::Write(buf) => {
                 let result = self.write_str(buf);
-                Response::immediate(self, result)
+                Response::immediate(self, Some(result))
             }
-            _ => Response::immediate(self, Err(Error::Receive)),
+            _ => Response::immediate(self, None),
         }
     }
 }

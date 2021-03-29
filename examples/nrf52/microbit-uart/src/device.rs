@@ -127,8 +127,8 @@ where
         })
     }
 
-    fn on_request(self, event: Self::Request) -> Response<Self> {
-        Response::defer(async move {
+    fn on_notify(self, event: Self::Request) -> Completion<Self> {
+        Completion::defer(async move {
             /*
             self.display
                 .as_ref()
@@ -142,7 +142,7 @@ where
                 .write(&buf[..])
                 .await
                 .expect("error writing data");
-            (self, ())
+            self
         })
     }
 }

@@ -14,10 +14,12 @@ pub enum Error {
     BufferNotInRAM,
 }
 
+pub type UartResponse = Option<Result<usize, Error>>;
+
 /// API for UART access.
 impl<A> Address<A>
 where
-    A: Actor<Request = UartRequest<'static>, Response = Result<usize, Error>>,
+    A: Actor<Request = UartRequest<'static>, Response = UartResponse>,
 {
     /// Perform an _async_ write to the uart.
     ///
@@ -31,7 +33,7 @@ where
         let req = UartRequest::Write(tx_buffer);
         // TODO: Generic associcated types...
         let req = unsafe { core::mem::transmute::<_, UartRequest<'static>>(req) };
-        self.request_panicking(req).await
+        self.request_panicking(req).await.unwrap()
     }
 
     /// Perform an _async_ read from the uart.
@@ -45,14 +47,14 @@ where
     pub async fn read<'a>(&'a self, rx_buffer: &'a mut [u8]) -> Result<usize, Error> {
         let req = UartRequest::Read(rx_buffer);
         let req = unsafe { core::mem::transmute::<_, UartRequest<'static>>(req) };
-        self.request_panicking(req).await
+        self.request_panicking(req).await.unwrap()
     }
 }
 
 ///
 /// Trait that should be implemented by a UART actors in drogue-device.
 ///
-pub trait Uart: Actor<Request = UartRequest<'static>, Response = Result<usize, Error>> {}
+pub trait Uart: Actor<Request = UartRequest<'static>, Response = UartResponse> {}
 
 pub enum UartRequest<'a> {
     Write(&'a [u8]),

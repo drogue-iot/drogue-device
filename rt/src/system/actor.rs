@@ -12,7 +12,7 @@ use heapless::spsc::{Consumer, Producer};
 use heapless::{consts::*, spsc::Queue, String};
 
 use crate::arch::with_critical_section;
-use crate::arena::{Box, Rc};
+use crate::arena::Box;
 use crate::prelude::*;
 use crate::system::device::Lifecycle;
 use crate::system::supervisor::actor_executor::ActiveActor;
@@ -28,7 +28,8 @@ pub trait Configurable {
 pub trait Actor: Sized {
     type Configuration;
     type Request;
-    type Response;
+    type Response: Default;
+    //    type ResponseFuture: Future<Output = Self::Response>;
 
     /// Called to mount an actor into the system.
     ///
@@ -81,16 +82,14 @@ pub trait Actor: Sized {
         Completion::immediate(self)
     }
 
-    fn on_request(self, message: Self::Request) -> Response<Self> 
-    where 
-        Self: 'static;
-    /*
-        Self::Response: core::default::Default,
+    fn on_request(self, message: Self::Request) -> Response<Self>
+    where
+        Self: 'static,
     {
         Response::immediate(self, Default::default())
-    }*/
+    }
 
-    fn on_notify(self, message: Self::Request) -> Completion<Self> 
+    fn on_notify(self, message: Self::Request) -> Completion<Self>
     where
         Self: 'static,
     {
@@ -112,10 +111,8 @@ impl ActorInfo {
 
 pub(crate) static mut CURRENT: ActorInfo = ActorInfo { name: None };
 
-type ItemsProducer<A: Actor> =
-    RefCell<Option<Producer<'static, ActorRequest<A>, U8>>>;
-type ItemsConsumer<A: Actor> =
-    RefCell<Option<Consumer<'static, ActorRequest<A>, U8>>>;
+type ItemsProducer<A: Actor> = RefCell<Option<Producer<'static, ActorRequest<A>, U8>>>;
+type ItemsConsumer<A: Actor> = RefCell<Option<Consumer<'static, ActorRequest<A>, U8>>>;
 
 /// Struct which is capable of holding an `Actor` instance
 /// and connects it to the actor system.
@@ -210,7 +207,11 @@ impl<A: Actor + 'static> ActorContext<A> {
                 .borrow_mut()
                 .as_mut()
                 .unwrap()
-                .enqueue(ActorRequest::new(self, ActorMessage::Lifecycle(event), None))
+                .enqueue(ActorRequest::new(
+                    self,
+                    ActorMessage::Lifecycle(event),
+                    None,
+                ))
                 .unwrap_or_else(|_| panic!("too many messages"));
         });
 
@@ -244,9 +245,11 @@ impl<A: Actor + 'static> ActorContext<A> {
 
     /// Dispatch an async request.
     pub(crate) async fn request(&'static self, message: A::Request) -> A::Response {
-        let signal = Rc::new(CompletionHandle::new());
-        let sender = CompletionSender::new(signal.clone());
-        let receiver = CompletionReceiver::new(signal);
+        let signal: CompletionHandle<A> = CompletionHandle::new();
+        let sender = CompletionSender::new(unsafe {
+            core::mem::transmute::<_, &'static CompletionHandle<A>>(&signal)
+        });
+        let receiver = CompletionReceiver::new(&signal);
         let response = RequestResponseFuture::new(receiver);
 
         unsafe {
@@ -255,7 +258,11 @@ impl<A: Actor + 'static> ActorContext<A> {
                     .borrow_mut()
                     .as_mut()
                     .unwrap()
-                    .enqueue(ActorRequest::new(self, ActorMessage::Request(message), Some(sender)))
+                    .enqueue(ActorRequest::new(
+                        self,
+                        ActorMessage::Request(message),
+                        Some(sender),
+                    ))
                     .unwrap_or_else(|_| panic!("message queue full"));
             });
 
@@ -269,9 +276,11 @@ impl<A: Actor + 'static> ActorContext<A> {
 
     /// Dispatch an async request.
     pub(crate) async fn request_cancellable(&'static self, message: A::Request) -> A::Response {
-        let signal = Rc::new(CompletionHandle::new());
-        let sender = CompletionSender::new(signal.clone());
-        let receiver = CompletionReceiver::new(signal);
+        let signal: CompletionHandle<A> = CompletionHandle::new();
+        let receiver = CompletionReceiver::new(&signal);
+        let sender = CompletionSender::new(unsafe {
+            core::mem::transmute::<_, &'static CompletionHandle<A>>(&signal)
+        });
         let response = RequestResponseFuture::new(receiver);
 
         unsafe {
@@ -280,7 +289,11 @@ impl<A: Actor + 'static> ActorContext<A> {
                     .borrow_mut()
                     .as_mut()
                     .unwrap()
-                    .enqueue(ActorRequest::new(self, ActorMessage::Request(message), Some(sender)))
+                    .enqueue(ActorRequest::new(
+                        self,
+                        ActorMessage::Request(message),
+                        Some(sender),
+                    ))
                     .unwrap_or_else(|_| panic!("message queue full"));
             });
 
@@ -294,9 +307,11 @@ impl<A: Actor + 'static> ActorContext<A> {
 
     /// Dispatch an async request.
     pub(crate) async fn request_panicking(&'static self, message: A::Request) -> A::Response {
-        let signal = Rc::new(CompletionHandle::new());
-        let sender = CompletionSender::new(signal.clone());
-        let receiver = CompletionReceiver::new(signal);
+        let signal: CompletionHandle<A> = CompletionHandle::new();
+        let sender = CompletionSender::new(unsafe {
+            core::mem::transmute::<_, &'static CompletionHandle<A>>(&signal)
+        });
+        let receiver = CompletionReceiver::new(&signal);
 
         let debug = "unknown".into();
         //write!(debug, "{:?}", type_name::<M>()).unwrap();
@@ -309,7 +324,11 @@ impl<A: Actor + 'static> ActorContext<A> {
                     .borrow_mut()
                     .as_mut()
                     .unwrap()
-                    .enqueue(ActorRequest::new(self, ActorMessage::Request(message), Some(sender)))
+                    .enqueue(ActorRequest::new(
+                        self,
+                        ActorMessage::Request(message),
+                        Some(sender),
+                    ))
                     .unwrap_or_else(|_| panic!("message queue full"));
             });
 
@@ -335,7 +354,6 @@ impl<A: Actor> Future for ActorRequest<A> {
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let actor = self.actor.take_actor().expect("actor is missing");
         match self.message.take() {
             Some(ActorMessage::Lifecycle(event)) => {
                 log::trace!(
@@ -343,6 +361,7 @@ impl<A: Actor> Future for ActorRequest<A> {
                     self.actor.name(),
                     event
                 );
+                let actor = self.actor.take_actor().expect("actor is missing");
                 let completion = match event {
                     Lifecycle::Initialize => actor.on_initialize(),
                     Lifecycle::Start => actor.on_start(),
@@ -365,14 +384,12 @@ impl<A: Actor> Future for ActorRequest<A> {
                 }
             }
             Some(ActorMessage::Notify(message)) => {
+                let actor = self.actor.take_actor().expect("actor is missing");
                 let completion = actor.on_notify(message);
                 match completion {
                     Completion::Immediate(actor) => {
                         self.actor.replace_actor(actor);
-                        log::trace!(
-                            "[{}] Notify.poll() - immediate: Ready",
-                            self.actor.name()
-                        );
+                        log::trace!("[{}] Notify.poll() - immediate: Ready", self.actor.name());
                         return Poll::Ready(());
                     }
                     Completion::Defer(_) => {
@@ -381,6 +398,7 @@ impl<A: Actor> Future for ActorRequest<A> {
                 }
             }
             Some(ActorMessage::Request(message)) => {
+                let actor = self.actor.take_actor().expect("actor is missing");
                 let response = actor.on_request(message);
                 match response {
                     Response::Immediate(actor, val) => {
@@ -401,34 +419,26 @@ impl<A: Actor> Future for ActorRequest<A> {
             _ => {}
         }
 
-        log::trace!(
-            "[{}] Request .poll() - check defer",
-            self.actor.name(),
-        );
+        log::trace!("[{}] Request .poll() - check defer", self.actor.name(),);
 
         if let Some(ActorResponse::Completion(Completion::Defer(ref mut fut))) = &mut self.defer {
             let fut = Pin::new(fut);
             let result = fut.poll(cx);
             match result {
                 Poll::Ready(actor) => {
-                    log::trace!(
-                        "[{}] Completion.poll() - defer: Ready",
-                        self.actor.name(),
-                    );
+                    log::trace!("[{}] Completion.poll() - defer: Ready", self.actor.name(),);
                     self.actor.replace_actor(actor);
                     //self.sender.send(response);
                     self.defer.take();
                     Poll::Ready(())
                 }
                 Poll::Pending => {
-                    log::trace!(
-                        "[{}] Completion.poll() - defer: Pending",
-                        self.actor.name(),
-                    );
+                    log::trace!("[{}] Completion.poll() - defer: Pending", self.actor.name(),);
                     Poll::Pending
                 }
             }
-        } else if let Some(ActorResponse::Response(Response::Defer(ref mut fut))) = &mut self.defer {
+        } else if let Some(ActorResponse::Response(Response::Defer(ref mut fut))) = &mut self.defer
+        {
             let fut = Pin::new(fut);
             let result = fut.poll(cx);
             match result {
@@ -460,20 +470,27 @@ where
 {
     actor: &'static ActorContext<A>,
     message: Option<ActorMessage<A>>,
-    sender: Option<CompletionSender<A>>,
+    sender: Option<CompletionSender<'static, A>>,
     defer: Option<ActorResponse<A>>,
 }
 
 enum ActorResponse<A>
 where
-    A: Actor + 'static
+    A: Actor + 'static,
 {
     Response(Response<A>),
     Completion(Completion<A>),
 }
 
-impl<A> ActorRequest<A> where A: Actor {
-    fn new(actor: &'static ActorContext<A>, message: ActorMessage<A>, sender: Option<CompletionSender<A>>) -> Self {
+impl<A> ActorRequest<A>
+where
+    A: Actor,
+{
+    fn new(
+        actor: &'static ActorContext<A>,
+        message: ActorMessage<A>,
+        sender: Option<CompletionSender<'static, A>>,
+    ) -> Self {
         Self {
             actor,
             message: Some(message),
@@ -483,13 +500,12 @@ impl<A> ActorRequest<A> where A: Actor {
     }
 }
 
-struct RequestResponseFuture<A: Actor + 'static>
-{
-    receiver: CompletionReceiver<A>,
+struct RequestResponseFuture<'a, A: Actor + 'static> {
+    receiver: CompletionReceiver<'a, A>,
     panicking: Option<String<U32>>,
 }
 
-impl<A: Actor> Drop for RequestResponseFuture<A> {
+impl<'a, A: Actor> Drop for RequestResponseFuture<'a, A> {
     fn drop(&mut self) {
         if self.panicking.is_some() && !self.receiver.has_received() {
             panic!(
@@ -500,15 +516,15 @@ impl<A: Actor> Drop for RequestResponseFuture<A> {
     }
 }
 
-impl<A: Actor> RequestResponseFuture<A> {
-    fn new(receiver: CompletionReceiver<A>) -> Self {
+impl<'a, A: Actor> RequestResponseFuture<'a, A> {
+    fn new(receiver: CompletionReceiver<'a, A>) -> Self {
         Self {
             receiver,
             panicking: None,
         }
     }
 
-    fn new_panicking(receiver: CompletionReceiver<A>, debug: String<U32>) -> Self {
+    fn new_panicking(receiver: CompletionReceiver<'a, A>, debug: String<U32>) -> Self {
         Self {
             receiver,
             panicking: Some(debug),
@@ -516,7 +532,7 @@ impl<A: Actor> RequestResponseFuture<A> {
     }
 }
 
-impl<A: Actor> Future for RequestResponseFuture<A> {
+impl<'a, A: Actor> Future for RequestResponseFuture<'a, A> {
     type Output = A::Response;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -594,39 +610,37 @@ impl<A: Actor + 'static> CompletionHandle<A> {
     }
 }
 
-struct CompletionSender<A: Actor + 'static> {
-    handle: Rc<CompletionHandle<A>, SystemArena>,
+struct CompletionSender<'a, A: Actor + 'static> {
+    handle: &'a CompletionHandle<A>,
     sent: AtomicBool,
 }
 
-impl<A: Actor + 'static> CompletionSender<A> {
-    pub(crate) fn new(handle: Rc<CompletionHandle<A>, SystemArena>) -> Self {
+impl<'a, A: Actor + 'static> CompletionSender<'a, A> {
+    pub(crate) fn new(handle: &'a CompletionHandle<A>) -> Self {
         Self {
             handle,
             sent: AtomicBool::new(false),
         }
     }
 
-    pub(crate) fn send_value(&self, response: A::Response)
-    {
+    pub(crate) fn send_value(&self, response: A::Response) {
         self.sent.store(true, Ordering::Release);
         self.handle.send_value(response);
     }
 
-    pub(crate) fn send_future(&self, response: Box<dyn Future<Output = A::Response>, SystemArena>)
-    {
+    pub(crate) fn send_future(&self, response: Box<dyn Future<Output = A::Response>, SystemArena>) {
         self.sent.store(true, Ordering::Release);
         self.handle.send_future(response);
     }
 }
 
-struct CompletionReceiver<A: Actor + 'static> {
-    handle: Rc<CompletionHandle<A>, SystemArena>,
+struct CompletionReceiver<'a, A: Actor + 'static> {
+    handle: &'a CompletionHandle<A>,
     received: bool,
 }
 
-impl<A: Actor + 'static> CompletionReceiver<A> {
-    pub(crate) fn new(handle: Rc<CompletionHandle<A>, SystemArena>) -> Self {
+impl<'a, A: Actor + 'static> CompletionReceiver<'a, A> {
+    pub(crate) fn new(handle: &'a CompletionHandle<A>) -> Self {
         Self {
             handle,
             received: false,
@@ -637,8 +651,7 @@ impl<A: Actor + 'static> CompletionReceiver<A> {
         self.received
     }
 
-    pub(crate) fn poll(&mut self, cx: &mut Context) -> Poll<A::Response>
-    {
+    pub(crate) fn poll(&mut self, cx: &mut Context) -> Poll<A::Response> {
         let result = self.handle.poll(cx);
 
         if let Poll::Ready(_) = result {
