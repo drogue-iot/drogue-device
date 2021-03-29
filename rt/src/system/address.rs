@@ -1,6 +1,6 @@
 //! Actor addresses
 
-use crate::prelude::*;
+use crate::{prelude::*, system::actor::RequestResponseFuture};
 
 /// A handle to another actor for dispatching notifications and requests.
 ///
@@ -40,8 +40,8 @@ where
     ///
     /// To accept the request and provide a response, the target must implement
     /// `Actor<...>` for the appropriate type of message.
-    pub async fn request(&self, message: A::Request) -> A::Response {
-        self.actor.request(message).await
+    pub fn request(&self, message: A::Request) -> RequestResponseFuture<A> {
+        self.actor.request(message)
     }
 
     /// Perform an unsafe _async_ request to the actor behind this address.
@@ -55,7 +55,7 @@ where
     /// ensure that the response to the request is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub async fn request_panicking(&self, message: A::Request) -> A::Response {
-        self.actor.request_panicking(message).await
+    pub fn request_panicking(&self, message: A::Request) -> RequestResponseFuture<A> {
+        self.actor.request_panicking(message)
     }
 }

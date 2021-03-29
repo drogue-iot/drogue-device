@@ -1,4 +1,4 @@
-use crate::api::timer::{Schedulable, TimerRequest, Timer as TimerApi};
+use crate::api::timer::{Schedulable, Timer as TimerApi, TimerRequest};
 use crate::arch::with_critical_section;
 use crate::arena::Box;
 use crate::domain::time::duration::{Duration, Milliseconds};
@@ -98,10 +98,7 @@ impl<T: HalTimer> TimerActor<T> {
     }
 }
 
-impl<T: HalTimer> TimerApi for TimerActor<T>
-where
-    T: HalTimer,
-{}
+impl<T: HalTimer> TimerApi for TimerActor<T> where T: HalTimer {}
 
 impl<T: HalTimer> Actor for TimerActor<T>
 where
@@ -110,6 +107,8 @@ where
     type Configuration = &'static Shared;
     type Request = TimerRequest;
     type Response = ();
+    type ImmediateFuture = DelayFuture;
+    type DeferredFuture = DefaultDeferred<Self>;
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where
@@ -302,7 +301,7 @@ impl ScheduleDeadline {
     }
 }
 
-struct DelayFuture {
+pub struct DelayFuture {
     index: usize,
     shared: &'static Shared,
     expired: bool,

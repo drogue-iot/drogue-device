@@ -29,6 +29,9 @@ pub trait Actor: Sized {
     type Configuration;
     type Request;
     type Response: Default;
+    type DeferredFuture: Future<Output = (Self, Self::Response)> + Unpin;
+    type ImmediateFuture: Future<Output = Self::Response> + Unpin;
+
     //    type ResponseFuture: Future<Output = Self::Response>;
 
     /// Called to mount an actor into the system.
@@ -244,42 +247,11 @@ impl<A: Actor + 'static> ActorContext<A> {
     }
 
     /// Dispatch an async request.
-    pub(crate) async fn request(&'static self, message: A::Request) -> A::Response {
+    pub(crate) fn request<'a>(&'static self, message: A::Request) -> RequestResponseFuture<A> {
         let signal: CompletionHandle<A> = CompletionHandle::new();
+        let receiver = CompletionReceiver::new(signal);
         let sender = CompletionSender::new(unsafe {
-            core::mem::transmute::<_, &'static CompletionHandle<A>>(&signal)
-        });
-        let receiver = CompletionReceiver::new(&signal);
-        let response = RequestResponseFuture::new(receiver);
-
-        unsafe {
-            with_critical_section(|cs| {
-                self.items_producer
-                    .borrow_mut()
-                    .as_mut()
-                    .unwrap()
-                    .enqueue(ActorRequest::new(
-                        self,
-                        ActorMessage::Request(message),
-                        Some(sender),
-                    ))
-                    .unwrap_or_else(|_| panic!("message queue full"));
-            });
-
-            //let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
-            let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
-            (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
-        }
-
-        response.await
-    }
-
-    /// Dispatch an async request.
-    pub(crate) async fn request_cancellable(&'static self, message: A::Request) -> A::Response {
-        let signal: CompletionHandle<A> = CompletionHandle::new();
-        let receiver = CompletionReceiver::new(&signal);
-        let sender = CompletionSender::new(unsafe {
-            core::mem::transmute::<_, &'static CompletionHandle<A>>(&signal)
+            core::mem::transmute::<_, &'static CompletionHandle<A>>(receiver.signal())
         });
         let response = RequestResponseFuture::new(receiver);
 
@@ -302,16 +274,51 @@ impl<A: Actor + 'static> ActorContext<A> {
             (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
         }
 
-        response.await
+        response
     }
 
     /// Dispatch an async request.
-    pub(crate) async fn request_panicking(&'static self, message: A::Request) -> A::Response {
-        let signal: CompletionHandle<A> = CompletionHandle::new();
+    pub(crate) fn request_cancellable<'a>(
+        &'static self,
+        message: A::Request,
+    ) -> RequestResponseFuture<A> {
+        let receiver = CompletionReceiver::new(CompletionHandle::new());
         let sender = CompletionSender::new(unsafe {
-            core::mem::transmute::<_, &'static CompletionHandle<A>>(&signal)
+            core::mem::transmute::<_, &'static CompletionHandle<A>>(receiver.signal())
         });
-        let receiver = CompletionReceiver::new(&signal);
+        let response = RequestResponseFuture::new(receiver);
+
+        unsafe {
+            with_critical_section(|cs| {
+                self.items_producer
+                    .borrow_mut()
+                    .as_mut()
+                    .unwrap()
+                    .enqueue(ActorRequest::new(
+                        self,
+                        ActorMessage::Request(message),
+                        Some(sender),
+                    ))
+                    .unwrap_or_else(|_| panic!("message queue full"));
+            });
+
+            //let flag_ptr = (&*self.state_flag_handle.get()).unwrap() as *const AtomicU8;
+            let flag_ptr = self.state_flag_handle.borrow_mut().unwrap() as *const AtomicU8;
+            (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
+        }
+
+        response
+    }
+
+    /// Dispatch an async request.
+    pub(crate) fn request_panicking<'a>(
+        &'static self,
+        message: A::Request,
+    ) -> RequestResponseFuture<A> {
+        let receiver = CompletionReceiver::new(CompletionHandle::new());
+        let sender = CompletionSender::new(unsafe {
+            core::mem::transmute::<_, &'static CompletionHandle<A>>(receiver.signal())
+        });
 
         let debug = "unknown".into();
         //write!(debug, "{:?}", type_name::<M>()).unwrap();
@@ -337,7 +344,7 @@ impl<A: Actor + 'static> ActorContext<A> {
             (*flag_ptr).store(ActorState::READY.into(), Ordering::Release);
         }
 
-        response.await
+        response
     }
 
     pub(crate) fn interrupt(&self)
@@ -425,7 +432,7 @@ impl<A: Actor> Future for ActorRequest<A> {
             let fut = Pin::new(fut);
             let result = fut.poll(cx);
             match result {
-                Poll::Ready(actor) => {
+                Poll::Ready((actor, _)) => {
                     log::trace!("[{}] Completion.poll() - defer: Ready", self.actor.name(),);
                     self.actor.replace_actor(actor);
                     //self.sender.send(response);
@@ -500,12 +507,12 @@ where
     }
 }
 
-struct RequestResponseFuture<'a, A: Actor + 'static> {
-    receiver: CompletionReceiver<'a, A>,
+pub struct RequestResponseFuture<A: Actor + 'static> {
+    receiver: CompletionReceiver<A>,
     panicking: Option<String<U32>>,
 }
 
-impl<'a, A: Actor> Drop for RequestResponseFuture<'a, A> {
+impl<A: Actor> Drop for RequestResponseFuture<A> {
     fn drop(&mut self) {
         if self.panicking.is_some() && !self.receiver.has_received() {
             panic!(
@@ -516,15 +523,15 @@ impl<'a, A: Actor> Drop for RequestResponseFuture<'a, A> {
     }
 }
 
-impl<'a, A: Actor> RequestResponseFuture<'a, A> {
-    fn new(receiver: CompletionReceiver<'a, A>) -> Self {
+impl<A: Actor> RequestResponseFuture<A> {
+    fn new(receiver: CompletionReceiver<A>) -> Self {
         Self {
             receiver,
             panicking: None,
         }
     }
 
-    fn new_panicking(receiver: CompletionReceiver<'a, A>, debug: String<U32>) -> Self {
+    fn new_panicking(receiver: CompletionReceiver<A>, debug: String<U32>) -> Self {
         Self {
             receiver,
             panicking: Some(debug),
@@ -532,7 +539,7 @@ impl<'a, A: Actor> RequestResponseFuture<'a, A> {
     }
 }
 
-impl<'a, A: Actor> Future for RequestResponseFuture<'a, A> {
+impl<A: Actor> Future for RequestResponseFuture<A> {
     type Output = A::Response;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -541,13 +548,13 @@ impl<'a, A: Actor> Future for RequestResponseFuture<'a, A> {
 }
 
 struct CompletionHandle<A: Actor> {
-    value: RefCell<Option<CompletionValue<A::Response>>>,
+    value: RefCell<Option<CompletionValue<A>>>,
     waker: RefCell<Option<Waker>>,
 }
 
-enum CompletionValue<T> {
-    Immediate(T),
-    Future(Box<dyn Future<Output = T>, SystemArena>),
+enum CompletionValue<A: Actor> {
+    Immediate(A::Response),
+    Future(A::ImmediateFuture),
 }
 
 impl<A: Actor> CompletionHandle<A> {
@@ -575,7 +582,7 @@ impl<A: Actor + 'static> CompletionHandle<A> {
         }
     }
 
-    pub fn send_future(&self, value: Box<dyn Future<Output = A::Response>, SystemArena>) {
+    pub fn send_future(&self, value: A::ImmediateFuture) {
         self.value
             .borrow_mut()
             .replace(CompletionValue::Future(value));
@@ -628,36 +635,89 @@ impl<'a, A: Actor + 'static> CompletionSender<'a, A> {
         self.handle.send_value(response);
     }
 
-    pub(crate) fn send_future(&self, response: Box<dyn Future<Output = A::Response>, SystemArena>) {
+    pub(crate) fn send_future(&self, response: A::ImmediateFuture) {
         self.sent.store(true, Ordering::Release);
         self.handle.send_future(response);
     }
 }
 
-struct CompletionReceiver<'a, A: Actor + 'static> {
-    handle: &'a CompletionHandle<A>,
-    received: bool,
+struct CompletionReceiver<A: Actor + 'static> {
+    handle: CompletionHandle<A>,
+    received: AtomicBool,
 }
 
-impl<'a, A: Actor + 'static> CompletionReceiver<'a, A> {
-    pub(crate) fn new(handle: &'a CompletionHandle<A>) -> Self {
+impl<A: Actor + 'static> CompletionReceiver<A> {
+    fn signal(&self) -> &CompletionHandle<A> {
+        &self.handle
+    }
+}
+
+impl<A: Actor + 'static> CompletionReceiver<A> {
+    pub(crate) fn new(handle: CompletionHandle<A>) -> Self {
         Self {
             handle,
-            received: false,
+            received: AtomicBool::new(false),
         }
     }
 
     pub(crate) fn has_received(&self) -> bool {
-        self.received
+        self.received.load(Ordering::Acquire)
     }
 
-    pub(crate) fn poll(&mut self, cx: &mut Context) -> Poll<A::Response> {
+    pub(crate) fn poll(&self, cx: &mut Context) -> Poll<A::Response> {
+        //pub(crate) fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<A::Response> {
         let result = self.handle.poll(cx);
 
         if let Poll::Ready(_) = result {
-            self.received = true;
+            self.received.store(true, Ordering::Release);
         }
 
         result
+    }
+}
+
+pub struct DefaultImmediate<A: Actor> {
+    _marker: core::marker::PhantomData<A>,
+}
+
+impl<A: Actor> DefaultImmediate<A> {
+    pub fn new() -> Self {
+        Self {
+            _marker: core::marker::PhantomData,
+        }
+    }
+}
+
+impl<A: Actor> Default for DefaultImmediate<A> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<A: Actor> Unpin for DefaultImmediate<A> {}
+
+impl<A: Actor> Future for DefaultImmediate<A> {
+    type Output = A::Response;
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        Poll::Ready(Default::default())
+    }
+}
+
+pub struct DefaultDeferred<A: Actor> {
+    a: Option<A>,
+}
+
+impl<A: Actor> DefaultDeferred<A> {
+    pub fn new(a: A) -> Self {
+        Self { a: Some(a) }
+    }
+}
+
+impl<A: Actor> Unpin for DefaultDeferred<A> {}
+
+impl<A: Actor> Future for DefaultDeferred<A> {
+    type Output = (A, A::Response);
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        Poll::Ready((self.a.take().unwrap(), Default::default()))
     }
 }

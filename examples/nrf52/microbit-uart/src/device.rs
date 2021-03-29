@@ -1,3 +1,6 @@
+use core::future::Future;
+use core::pin::Pin;
+use core::task::{Context, Poll};
 use drogue_device::{
     api::{timer::Timer as TimerApi, uart::Uart},
     domain::time::duration::Milliseconds,
@@ -12,7 +15,7 @@ use drogue_device::{
     },
     prelude::*,
 };
-use hal::gpio::{Output, Pin, PushPull};
+use hal::gpio::{Output, Pin as GpioPin, PushPull};
 use hal::pac::{TIMER0, UARTE0};
 use heapless::consts;
 use nrf52833_hal as hal;
@@ -91,6 +94,8 @@ where
 {
     type Request = SerialData;
     type Response = ();
+    type ImmediateFuture = DefaultImmediate<Self>;
+    type DeferredFuture = AppLogic<U, D>;
     type Configuration = AppConfig<U, D>;
     fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
         self.uart.replace(config.uart);
@@ -100,49 +105,66 @@ where
     }
 
     fn on_start(self) -> Completion<Self> {
-        Completion::defer(async move {
-            //  let led = self.display.as_ref().unwrap();
-            let timer = self.timer.as_ref().unwrap();
-            let uart = self.uart.as_ref().unwrap();
+        let uart = self.uart.as_ref().unwrap();
+        let mut buf = [0; 128];
+        let motd = "Welcome to the Drogue Echo Service\r\n".as_bytes();
+        buf[..motd.len()].clone_from_slice(motd);
 
-            /*
-            for c in r"Hello, World!".chars() {
-                led.notify(Apply(c));
-                timer.delay(Milliseconds(200)).await;
-            }
+        let fut = uart.write(&buf[..motd.len()]);
+        /*
+        .await
+        .map_err(|e| log::error!("Error writing MOTD: {:?}", e))
+        .ok();*/
 
-            led.notify(Clear);
-            */
-
-            let mut buf = [0; 128];
-            let motd = "Welcome to the Drogue Echo Service\r\n".as_bytes();
-            buf[..motd.len()].clone_from_slice(motd);
-
-            uart.write(&buf[..motd.len()])
-                .await
-                .map_err(|e| log::error!("Error writing MOTD: {:?}", e))
-                .ok();
-
-            self
+        Completion::defer(AppLogic {
+            app: Some(self),
+            fut: fut,
         })
     }
 
     fn on_notify(self, event: Self::Request) -> Completion<Self> {
-        Completion::defer(async move {
-            /*
-            self.display
-                .as_ref()
-                .unwrap()
-                .notify(Apply(event.0 as char));*/
-            let mut buf = [0; 1];
-            buf[0] = event.0;
-            self.uart
-                .as_ref()
-                .unwrap()
-                .write(&buf[..])
-                .await
-                .expect("error writing data");
-            self
+        let uart = self.uart.as_ref().unwrap();
+        let mut buf = [0; 1];
+        buf[0] = event.0;
+        let fut = self.uart.as_ref().unwrap().write(&buf[..]);
+
+        Completion::defer(AppLogic {
+            app: Some(self),
+            fut,
         })
+    }
+}
+
+pub struct AppLogic<U, D>
+where
+    U: Uart + 'static,
+    D: TimerApi + 'static,
+{
+    app: Option<App<U, D>>,
+    fut: U::ImmediateFuture,
+}
+
+impl<U, D> Unpin for AppLogic<U, D>
+where
+    U: Uart + 'static,
+    D: TimerApi + 'static,
+{
+}
+
+impl<U, D> Future for AppLogic<U, D>
+where
+    U: Uart + 'static,
+    D: TimerApi + 'static,
+{
+    type Output = (App<U, D>, ());
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match self.fut.poll(cx) {
+            Poll::Ready(val) => {
+                log::info!("App logic polled future, got val: {:?}", val);
+                (self.app.take().unwrap(), ())
+            }
+            Poll::Pending => Poll::Pending,
+        }
     }
 }

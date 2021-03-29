@@ -27,6 +27,8 @@ impl<A: Arena> Actor for Memory<A> {
     type Configuration = ();
     type Request = Query;
     type Response = ();
+    type DeferredFuture = DefaultDeferred<Self>;
+    type ImmediateFuture = DefaultImmediate<Self>;
     fn on_request(self, message: Query) -> Response<Self> {
         let info = A::info();
         log::info!(

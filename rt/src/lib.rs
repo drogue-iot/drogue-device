@@ -21,7 +21,7 @@ pub mod prelude {
     pub use crate::device;
     //pub use crate::platform::exception;
     pub use crate::system::{
-        actor::{Actor, ActorContext, ActorInfo, Configurable},
+        actor::{Actor, ActorContext, ActorInfo, Configurable, DefaultDeferred, DefaultImmediate},
         address::Address,
         bus::EventBus,
         device::{Device, DeviceConfiguration},

@@ -1,11 +1,11 @@
 use heapless::{consts::*, Vec};
 
 use crate::arch::atomic;
-use crate::system::actor::{Actor, ActorContext, CURRENT, ActorRequest};
+use crate::system::actor::{Actor, ActorContext, ActorRequest, CURRENT};
 use crate::system::device::Lifecycle;
 use core::cmp::PartialEq;
-use core::pin::Pin;
 use core::future::Future;
+use core::pin::Pin;
 use core::sync::atomic::{AtomicU8, Ordering};
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 

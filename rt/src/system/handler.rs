@@ -1,11 +1,6 @@
 //! Traits and types for notify, request and event handlers.
 
-use core::future::Future;
-
-use crate::arena::{Arena, Box};
 use crate::prelude::Actor;
-use crate::system::SystemArena;
-use core::mem::transmute;
 
 /// Return value from a `Actor` to allow for synchronous or
 /// asynchronous handling of the request.
@@ -18,10 +13,10 @@ pub enum Response<A: Actor + 'static> {
     Immediate(A, A::Response),
 
     /// See `defer(future)`.
-    Defer(Box<dyn Future<Output = (A, A::Response)>, SystemArena>),
+    Defer(A::DeferredFuture),
 
     /// See `immediate_future(future)`.
-    ImmediateFuture(A, Box<dyn Future<Output = A::Response>, SystemArena>),
+    ImmediateFuture(A, A::ImmediateFuture),
 }
 
 impl<A: Actor + 'static> Response<A> {
@@ -33,8 +28,8 @@ impl<A: Actor + 'static> Response<A> {
 
     /// Return a value asynchornously using the supplied future
     /// within the context of *this* actor to calculate the value.
-    pub fn defer<F: Future<Output = (A, A::Response)> + 'static>(f: F) -> Self {
-        Self::Defer(Box::new(SystemArena::alloc(f).unwrap()))
+    pub fn defer(f: A::DeferredFuture) -> Self {
+        Self::Defer(f)
     }
 
     /// Return a _non-static_-containing future,
@@ -48,17 +43,17 @@ impl<A: Actor + 'static> Response<A> {
     /// will have been invoked using `request_panicking` which will protect against
     /// undefined behaviour by panicking if the caller drops the request future
     /// before completion.
-    pub unsafe fn defer_unchecked<F: Future<Output = (A, A::Response)>>(f: F) -> Self {
-        let f: &mut dyn Future<Output = (A, A::Response)> = SystemArena::alloc(f).unwrap();
+    /*
+    pub unsafe fn defer_unchecked(f: A::DeferredFuture) -> Self {
         let f = transmute::<_, &mut (dyn Future<Output = (A, A::Response)> + 'static)>(f);
-        Self::Defer(Box::new(f))
-    }
+        Self::Defer(f)
+    }*/
 
     /// Return an immediate future, synchronously, which will be
     /// executed asynchronously within the *requester's* context
     /// before the original `.request(...).await` completes.
-    pub fn immediate_future<F: Future<Output = A::Response> + 'static>(actor: A, f: F) -> Self {
-        Self::ImmediateFuture(actor, Box::new(SystemArena::alloc(f).unwrap()))
+    pub fn immediate_future(actor: A, f: A::ImmediateFuture) -> Self {
+        Self::ImmediateFuture(actor, f)
     }
 }
 
@@ -69,7 +64,7 @@ pub enum Completion<A: Actor> {
     Immediate(A),
 
     /// See `defer(future)`
-    Defer(Box<dyn Future<Output = A>, SystemArena>),
+    Defer(A::DeferredFuture),
 }
 
 impl<A: Actor + 'static> Completion<A> {
@@ -80,8 +75,8 @@ impl<A: Actor + 'static> Completion<A> {
 
     /// Provide a future for asynchronous handling of the notification
     /// within this actor's context.
-    pub fn defer<F: Future<Output = A> + 'static>(f: F) -> Self {
-        Self::Defer(Box::new(SystemArena::alloc(f).unwrap()))
+    pub fn defer(f: A::DeferredFuture) -> Self {
+        Self::Defer(f)
     }
 
     /*

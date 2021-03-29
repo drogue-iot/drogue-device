@@ -21,6 +21,8 @@ impl<D: Device + EventHandler<GpioteEvent>> Actor for Gpiote<D> {
     type Configuration = EventBus<D>;
     type Request = ();
     type Response = ();
+    type DeferredFuture = DefaultDeferred<Self>;
+    type ImmediateFuture = DefaultImmediate<Self>;
     fn on_mount(&mut self, _: Address<Self>, config: Self::Configuration) {
         self.bus.replace(config);
     }
@@ -28,8 +30,6 @@ impl<D: Device + EventHandler<GpioteEvent>> Actor for Gpiote<D> {
     fn on_request(self, _: Self::Request) -> Response<Self> {
         Response::immediate(self, ())
     }
-
-
 }
 
 impl<D: Device + EventHandler<GpioteEvent>> Gpiote<D> {

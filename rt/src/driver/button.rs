@@ -25,6 +25,8 @@ where
     type Configuration = EventBus<D>;
     type Request = PinInterrupt;
     type Response = ();
+    type DeferredFuture = DefaultDeferred<Self>;
+    type ImmediateFuture = DefaultImmediate<Self>;
 
     fn on_mount(&mut self, address: Address<Self>, config: Self::Configuration)
     where

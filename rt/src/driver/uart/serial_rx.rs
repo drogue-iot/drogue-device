@@ -30,6 +30,8 @@ where
     type Configuration = Address<D>;
     type Request = ();
     type Response = ();
+    type DeferredFuture = DefaultDeferred<Self>;
+    type ImmediateFuture = DefaultImmediate<Self>;
     fn on_mount(&mut self, me: Address<Self>, config: Self::Configuration) {
         self.handler.replace(config);
     }

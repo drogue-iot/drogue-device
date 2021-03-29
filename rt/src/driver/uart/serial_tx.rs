@@ -28,6 +28,8 @@ where
     type Configuration = ();
     type Request = UartRequest<'static>;
     type Response = UartResponse;
+    type DeferredFuture = DefaultDeferred<Self>;
+    type ImmediateFuture = DefaultImmediate<Self>;
 
     fn on_request(mut self, request: UartRequest<'static>) -> Response<Self> {
         match request {
