@@ -92,9 +92,9 @@ where
             opaque,
         });
 
-        extensions.push(ClientExtension::MaxFragmentLength(
-            self.config.max_fragment_length,
-        ));
+        //extensions.push(ClientExtension::MaxFragmentLength(
+        //self.config.max_fragment_length,
+        //));
 
         // ----------------------------------------
         // ----------------------------------------

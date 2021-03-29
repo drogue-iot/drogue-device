@@ -51,6 +51,9 @@ features = ["stm32l4x5", "rt" ]
 version = "0.2.4"
 features = ["unproven"]
 
+[dependencies.heapless]
+version = "0.6.1"
+
 [profile.release]
 opt-level = "z"
 lto = true

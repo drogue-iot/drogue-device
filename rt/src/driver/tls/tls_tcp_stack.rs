@@ -13,28 +13,27 @@ use digest::{BlockInput, Digest, FixedOutput, Reset, Update};
 use heapless::{consts::*, ArrayLength, Vec};
 use rand_core::{CryptoRng, RngCore};
 
-pub struct TlsTcpStack<Tcp, RNG, CipherSuite>
+pub struct TlsTcpStack<Tcp, RNG, CipherSuite, TxBufLen, RxBufLen>
 where
     Tcp: TcpStack + 'static,
     RNG: CryptoRng + RngCore + Copy + 'static,
-    //D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
-    //D::BlockSize: ArrayLength<u8>,
-    //D::OutputSize: ArrayLength<u8>,
     CipherSuite: TlsCipherSuite + 'static,
+    TxBufLen: ArrayLength<u8>,
+    RxBufLen: ArrayLength<u8>,
 {
     delegate: Option<Address<Tcp>>,
     pub(crate) config: Option<&'static Config<RNG, CipherSuite>>,
-    connections: [Option<TlsConnection<RNG, Tcp, CipherSuite>>; 5],
+    connections: [Option<TlsConnection<RNG, Tcp, CipherSuite, TxBufLen, RxBufLen>>; 1],
 }
 
-impl<Tcp, RNG, CipherSuite> Actor for TlsTcpStack<Tcp, RNG, CipherSuite>
+impl<Tcp, RNG, CipherSuite, TxBufLen, RxBufLen> Actor
+    for TlsTcpStack<Tcp, RNG, CipherSuite, TxBufLen, RxBufLen>
 where
     Tcp: TcpStack + 'static,
     RNG: CryptoRng + RngCore + Copy + 'static,
-    //D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
-    //D::BlockSize: ArrayLength<u8>,
-    //D::OutputSize: ArrayLength<u8>,
     CipherSuite: TlsCipherSuite + 'static,
+    TxBufLen: ArrayLength<u8>,
+    RxBufLen: ArrayLength<u8>,
 {
     type Configuration = (&'static Config<RNG, CipherSuite>, Address<Tcp>);
 
@@ -47,14 +46,14 @@ where
     }
 }
 
-impl<Tcp, RNG, CipherSuite> TlsTcpStack<Tcp, RNG, CipherSuite>
+impl<Tcp, RNG, CipherSuite, TxBufLen, RxBufLen>
+    TlsTcpStack<Tcp, RNG, CipherSuite, TxBufLen, RxBufLen>
 where
     Tcp: TcpStack + 'static,
     RNG: CryptoRng + RngCore + Copy,
-    //D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
-    //D::BlockSize: ArrayLength<u8>,
-    //D::OutputSize: ArrayLength<u8>,
     CipherSuite: TlsCipherSuite,
+    TxBufLen: ArrayLength<u8>,
+    RxBufLen: ArrayLength<u8>,
 {
     pub fn new() -> Self {
         Self {
@@ -65,14 +64,14 @@ where
     }
 }
 
-impl<Tcp, RNG, CipherSuite> TcpStack for TlsTcpStack<Tcp, RNG, CipherSuite>
+impl<Tcp, RNG, CipherSuite, TxBufLen, RxBufLen> TcpStack
+    for TlsTcpStack<Tcp, RNG, CipherSuite, TxBufLen, RxBufLen>
 where
     Tcp: TcpStack + 'static,
     RNG: CryptoRng + RngCore + Copy,
-    //D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
-    //D::BlockSize: ArrayLength<u8>,
-    //D::OutputSize: ArrayLength<u8>,
     CipherSuite: TlsCipherSuite,
+    TxBufLen: ArrayLength<u8>,
+    RxBufLen: ArrayLength<u8>,
 {
     type SocketHandle = u8;
 

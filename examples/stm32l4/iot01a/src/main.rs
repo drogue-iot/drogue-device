@@ -199,9 +199,8 @@ fn main() -> ! {
     // == TLS ==
 
     let rng = Random::initialize(rng);
-    let tls_config = Config::<Random, Aes128GcmSha256>::new(rng);
-
-    let tls = TlsTcpStack::<<WifiAdapter as Package>::Primary, Random, Aes128GcmSha256>::new();
+    let tls_config = Config::new(rng);
+    let tls = TlsTcpStack::new();
 
     // == Application Logic ==
 
@@ -226,5 +225,5 @@ fn main() -> ! {
         timer,
     };
 
-    device!( MyDevice = device; 65536 );
+    device!( MyDevice = device; 131072 );
 }

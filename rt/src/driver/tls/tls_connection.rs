@@ -19,7 +19,7 @@ use crate::driver::tls::content_types::ContentType;
 use crate::driver::tls::handshake::HandshakeType::Finished;
 use crate::driver::tls::parse_buffer::ParseBuffer;
 use aes_gcm::aead::{generic_array::GenericArray, AeadInPlace, Buffer, NewAead};
-use aes_gcm::{Aes128Gcm, Error};
+use aes_gcm::Error;
 use digest::{BlockInput, FixedOutput, Reset, Update};
 
 enum State {
@@ -27,29 +27,30 @@ enum State {
     Encrypted,
 }
 
-pub struct TlsConnection<RNG, Tcp, CipherSuite>
+pub struct TlsConnection<RNG, Tcp, CipherSuite, TxBufLen, RxBufLen>
 where
     RNG: CryptoRng + RngCore + Copy + 'static,
     Tcp: TcpStack + 'static,
     CipherSuite: TlsCipherSuite + 'static,
-    //D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
-    //D::BlockSize: ArrayLength<u8>,
-    //D::OutputSize: ArrayLength<u8>,
+    TxBufLen: ArrayLength<u8>,
+    RxBufLen: ArrayLength<u8>,
 {
     delegate: TcpSocket<Tcp>,
     config: &'static Config<RNG, CipherSuite>,
     state: State,
     key_schedule: KeySchedule<CipherSuite::Hash, CipherSuite::KeyLen, CipherSuite::IvLen>,
+    tx_buf: Vec<u8, TxBufLen>,
+    rx_buf: Vec<u8, RxBufLen>,
 }
 
-impl<RNG, Tcp, CipherSuite> TlsConnection<RNG, Tcp, CipherSuite>
+impl<RNG, Tcp, CipherSuite, TxBufLen, RxBufLen>
+    TlsConnection<RNG, Tcp, CipherSuite, TxBufLen, RxBufLen>
 where
     RNG: CryptoRng + RngCore + Copy,
     Tcp: TcpStack,
     CipherSuite: TlsCipherSuite,
-    //D: Update + BlockInput + FixedOutput + Reset + Default + Clone,
-    //D::BlockSize: ArrayLength<u8>,
-    //D::OutputSize: ArrayLength<u8>,
+    TxBufLen: ArrayLength<u8>,
+    RxBufLen: ArrayLength<u8>,
 {
     pub fn new(config: &'static Config<RNG, CipherSuite>, delegate: TcpSocket<Tcp>) -> Self {
         Self {
@@ -57,6 +58,8 @@ where
             config,
             state: State::Unencrypted,
             key_schedule: KeySchedule::new(),
+            tx_buf: Vec::new(),
+            rx_buf: Vec::new(),
         }
     }
 
@@ -72,10 +75,10 @@ where
         let crypto = CipherSuite::Cipher::new(&self.key_schedule.get_client_key());
         let nonce = &self.key_schedule.get_client_nonce();
         log::info!("client write nonce {:x?}", nonce);
-        let len = (buf.len() + <Aes128Gcm as AeadInPlace>::TagSize::to_usize());
+        let len = (buf.len() + <CipherSuite::Cipher as AeadInPlace>::TagSize::to_usize());
         log::info!(
             "output size {}",
-            <Aes128Gcm as AeadInPlace>::TagSize::to_usize()
+            <CipherSuite::Cipher as AeadInPlace>::TagSize::to_usize()
         );
         let len_bytes = (len as u16).to_be_bytes();
         let additional_data = [
@@ -105,34 +108,24 @@ where
         &mut self,
         record: &ClientRecord<'_, RNG, CipherSuite>,
     ) -> Result<(), TlsError> {
-        let mut buf: Vec<u8, U1024> = Vec::new();
-        let range = record.encode(&mut buf)?;
+        self.tx_buf.clear();
+        let range = record.encode(&mut self.tx_buf)?;
         if let Some(range) = range {
-            Digest::update(self.key_schedule.transcript_hash(), &buf[range]);
+            Digest::update(self.key_schedule.transcript_hash(), &self.tx_buf[range]);
         }
         log::info!(
             "**** transmit, hash={:x?}",
             self.key_schedule.transcript_hash().clone().finalize()
         );
 
-        /*
-        if let State::Encrypted = self.state {
-            log::info!("ENCRYPTING {:x?}", buf);
-            log::info!(" push content type {}", record.content_type() as u8);
-            buf.push(record.content_type() as u8);
-            let encrypted = ClientRecord::<RNG, D>::ApplicationData(self.encrypt(&mut buf)?);
-            buf.clear();
-            encrypted.encode(&mut buf, self.key_schedule.transcript_hash());
-        }
-         */
-
-        self.delegate_socket()
-            .write(&buf)
+        self.delegate
+            .write(&self.tx_buf)
             .await
             .map(|_| ())
             .map_err(|e| TlsError::TcpError(e))?;
 
         self.key_schedule.increment_write_counter();
+        self.tx_buf.clear();
         Ok(())
     }
 
@@ -153,11 +146,21 @@ where
                 let crypto = CipherSuite::Cipher::new(&self.key_schedule.get_server_key());
                 let nonce = &self.key_schedule.get_server_nonce();
                 log::info!("server write nonce {:x?}", nonce);
-                let result = crypto.decrypt_in_place(
-                    &self.key_schedule.get_server_nonce(),
-                    &header,
-                    &mut CryptoBuffer::wrap(&mut data),
-                );
+                crypto
+                    .decrypt_in_place(
+                        &self.key_schedule.get_server_nonce(),
+                        &header,
+                        &mut CryptoBuffer::wrap(&mut data),
+                    )
+                    .map_err(|_| TlsError::CryptoError)?;
+                log::info!("decrypted with padding {:x?}", data);
+
+                let padding = data.iter().enumerate().rfind(|(index, b)| **b != 0);
+                if let Some((index, _)) = padding {
+                    data.truncate(index + 1);
+                }
+
+                log::info!("decrypted {:x?}", data);
 
                 let content_type =
                     ContentType::of(*data.last().unwrap()).ok_or(TlsError::InvalidRecord)?;
@@ -185,7 +188,6 @@ where
                         return Err(TlsError::InvalidHandshake);
                     }
                 }
-                log::debug!("decrypt result {:?}", result);
                 //log::debug!("decrypted {:?} --> {:x?}", content_type, data);
                 self.key_schedule.increment_read_counter();
             }

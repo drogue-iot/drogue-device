@@ -76,6 +76,9 @@ impl ServerExtension {
                         .map_err(|_| TlsError::InvalidKeyShare)?,
                     ));
                 }
+                ExtensionType::SupportedGroups => {
+                    let _ = buf.slice(extension_length as usize);
+                }
                 _ => return Err(TlsError::Unimplemented),
             }
         }
