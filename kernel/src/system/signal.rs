@@ -47,7 +47,7 @@ impl Default for SignalSlot {
 
 pub(crate) struct Signal {
     state: UnsafeCell<State>,
-    lock: std::sync::Mutex<()>,
+    locked: AtomicBool,
 }
 
 enum State {
@@ -62,9 +62,10 @@ unsafe impl Sync for Signal {}
 
 impl Signal {
     pub fn new() -> Self {
+        log::info!("Created new signal");
         Self {
             state: UnsafeCell::new(State::None),
-            lock: std::sync::Mutex::new(()),
+            locked: AtomicBool::new(false),
         }
     }
 
@@ -72,8 +73,10 @@ impl Signal {
     where
         F: FnOnce() -> R,
     {
-        let _guard = self.lock.lock().unwrap();
-        f()
+        while self.locked.swap(true, Ordering::SeqCst) {}
+        let r = f();
+        self.locked.store(false, Ordering::SeqCst);
+        r
     }
 
     #[allow(clippy::single_match)]
