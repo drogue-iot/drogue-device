@@ -1,4 +1,4 @@
-use crate::system::actor::{Actor, ActorHandle};
+use crate::system::actor::{Actor, ActorHandle, Message};
 
 pub struct Address<'a, A: Actor> {
     runner: &'a dyn ActorHandle<A>,
@@ -21,6 +21,6 @@ impl<'a, A: Actor> Address<'a, A> {
 
     pub async fn process(&self, message: &mut A::Message) {
         log::info!("Calling process message!");
-        self.runner.process_message(message).await
+        self.runner.process_message(Message::Actor(message)).await
     }
 }

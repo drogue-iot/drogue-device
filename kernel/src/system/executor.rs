@@ -1,5 +1,5 @@
 use crate::system::{
-    actor::{Actor, ActorContext, ActorMessage, ActorState},
+    actor::{Actor, ActorContext, MessageContext, ActorState, Message},
     signal::SignalSlot,
 };
 use core::sync::atomic::{AtomicU8, Ordering};
@@ -12,7 +12,7 @@ trait ActiveActor {
     fn do_poll(&self);
 }
 
-impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>> ActiveActor
+impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>> ActiveActor
     for ActorContext<A, Q>
 {
     fn is_ready(&self) -> bool {
@@ -44,10 +44,17 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>> Active
             let mut actor = self.actor.borrow_mut();
             let actor = actor.as_mut().unwrap();
             log::info!("Polling actor");
-            if let Poll::Ready(_) =
-                actor.poll_message(unsafe { &mut **item.inner.get_mut() }, &mut cx)
-            {
-                unsafe { &**item.signal.borrow() }.signal()
+            match &*item.inner.borrow_mut() {
+                Message::Actor(m) => {
+                    if let Poll::Ready(_) =
+                        actor.poll_message(unsafe { &mut **m }, &mut cx)
+                    {
+                        unsafe { &**item.signal.borrow() }.signal()
+                    }
+                }
+                Message::Lifecycle(event) => {
+                    log::info!("Lifecycle event!");
+                }
             }
         }
 
@@ -67,7 +74,7 @@ struct Supervised<'a> {
 }
 
 impl<'a> Supervised<'a> {
-    fn new<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>>(
+    fn new<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>>(
         actor: &'a ActorContext<A, Q>,
     ) -> Self {
         Self { actor }
@@ -90,7 +97,7 @@ impl<'a> ActorExecutor<'a> {
 
     pub(crate) fn activate_actor<
         A: Actor,
-        Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>,
+        Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>,
     >(
         &mut self,
         actor: &'a ActorContext<A, Q>,

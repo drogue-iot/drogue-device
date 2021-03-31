@@ -12,13 +12,13 @@ use heapless::{
     ArrayLength,
 };
 
-pub struct ActorMessage<A: Actor> {
+pub struct MessageContext<A: Actor> {
     pub(crate) signal: RefCell<*const SignalSlot>,
-    pub(crate) inner: RefCell<*mut A::Message>,
+    pub(crate) inner: RefCell<Message<A>>,
 }
 
-impl<A: Actor> ActorMessage<A> {
-    pub fn new(message: &mut A::Message, signal: &SignalSlot) -> Self {
+impl<A: Actor> MessageContext<A> {
+    pub fn new(message: Message<A>, signal: &SignalSlot) -> Self {
         Self {
             inner: RefCell::new(message),
             signal: RefCell::new(signal),
@@ -34,10 +34,20 @@ pub trait Actor: Sized {
     fn poll_message(&mut self, message: &mut Self::Message, cx: &mut Context<'_>) -> Poll<()>;
 }
 
+pub enum Lifecycle {
+    Initialize,
+    Start,
+}
+
+pub enum Message<A: Actor> {
+    Lifecycle(Lifecycle),
+    Actor(*mut A::Message),
+}
+
 pub trait ActorHandle<A: Actor> {
     fn process_message<'s, 'm>(
         &'s self,
-        message: &'m mut A::Message,
+        message: Message<A>,
     ) -> ActorResponseFuture<'s, 'm>;
 }
 
@@ -53,20 +63,20 @@ impl Into<u8> for ActorState {
     }
 }
 
-pub struct ActorContext<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>> {
+pub struct ActorContext<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>> {
     pub(crate) actor: RefCell<Option<A>>,
-    pub(crate) current: RefCell<Option<ActorMessage<A>>>,
+    pub(crate) current: RefCell<Option<MessageContext<A>>>,
     pub(crate) state: AtomicU8,
     pub(crate) in_flight: AtomicBool,
 
     signals: UnsafeCell<GenericArray<SignalSlot, Q>>,
-    messages: UnsafeCell<Queue<ActorMessage<A>, Q>>,
+    messages: UnsafeCell<Queue<MessageContext<A>, Q>>,
 
-    message_producer: RefCell<Option<Producer<'static, ActorMessage<A>, Q>>>,
-    message_consumer: RefCell<Option<Consumer<'static, ActorMessage<A>, Q>>>,
+    message_producer: RefCell<Option<Producer<'static, MessageContext<A>, Q>>>,
+    message_consumer: RefCell<Option<Consumer<'static, MessageContext<A>, Q>>>,
 }
 
-impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>> ActorContext<A, Q> {
+impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>> ActorContext<A, Q> {
     pub fn new(actor: A) -> Self {
         Self {
             actor: RefCell::new(Some(actor)),
@@ -91,7 +101,7 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>> ActorC
         self.actor.borrow_mut().as_mut().unwrap().mount(config);
     }
 
-    pub(crate) fn next_message(&self) -> Option<ActorMessage<A>> {
+    pub(crate) fn next_message(&self) -> Option<MessageContext<A>> {
         log::info!("Dequeueing message");
         self.message_consumer
             .borrow_mut()
@@ -100,7 +110,7 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>> ActorC
             .dequeue()
     }
 
-    fn enqueue_message(&self, message: ActorMessage<A>) {
+    fn enqueue_message(&self, message: MessageContext<A>) {
         log::info!("Enqueueing message!");
         self.message_producer
             .borrow_mut()
@@ -129,17 +139,17 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>> ActorC
     }
 }
 
-impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>> ActorHandle<A>
+impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>> ActorHandle<A>
     for ActorContext<A, Q>
 {
     fn process_message<'s, 'm>(
         &'s self,
-        message: &'m mut A::Message,
+        message: Message<A>,
     ) -> ActorResponseFuture<'s, 'm> {
         log::info!("Process messaage!");
         let signal = self.acquire_signal();
         log::info!("Signal acquired");
-        let message = ActorMessage::new(message, signal);
+        let message = MessageContext::new(message, signal);
         log::info!("Message created");
         self.enqueue_message(message);
         self.state.fetch_add(1, Ordering::AcqRel);
