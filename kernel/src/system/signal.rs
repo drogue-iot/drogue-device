@@ -62,7 +62,6 @@ unsafe impl Sync for Signal {}
 
 impl Signal {
     pub fn new() -> Self {
-        log::info!("Created new signal");
         Self {
             state: UnsafeCell::new(State::None),
             locked: AtomicBool::new(false),
