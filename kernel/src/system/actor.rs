@@ -1,7 +1,4 @@
-use crate::system::{
-    executor::ActorExecutor,
-    signal::{SignalSlot},
-};
+use crate::system::{executor::ActorExecutor, signal::SignalSlot};
 use core::cell::{RefCell, UnsafeCell};
 use core::fmt::Debug;
 use core::future::Future;

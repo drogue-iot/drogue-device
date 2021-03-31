@@ -1,4 +1,4 @@
-use core::cell::{UnsafeCell};
+use core::cell::UnsafeCell;
 use core::mem;
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll, Waker};

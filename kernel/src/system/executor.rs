@@ -1,13 +1,10 @@
 use crate::system::{
     actor::{Actor, ActorContext, ActorMessage, ActorState},
-    signal::{SignalSlot},
+    signal::SignalSlot,
 };
 use core::sync::atomic::{AtomicU8, Ordering};
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
-use heapless::{
-    consts,
-    ArrayLength, Vec,
-};
+use heapless::{consts, ArrayLength, Vec};
 
 trait ActiveActor {
     fn is_ready(&self) -> bool;
