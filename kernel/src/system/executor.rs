@@ -26,6 +26,7 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>> Active
     fn do_poll(&self) {
         log::info!("[ActiveActor] do_poll()");
         if self.current.borrow().is_none() {
+            log::info!("Picking next message");
             if let Some(next) = self.next_message() {
                 self.current.borrow_mut().replace(next);
                 self.in_flight.store(true, Ordering::Release);
@@ -42,6 +43,7 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>> Active
 
             let mut actor = self.actor.borrow_mut();
             let actor = actor.as_mut().unwrap();
+            log::info!("Polling actor");
             if let Poll::Ready(_) =
                 actor.poll_message(unsafe { &mut **item.inner.get_mut() }, &mut cx)
             {

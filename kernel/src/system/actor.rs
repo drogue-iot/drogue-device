@@ -92,6 +92,7 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>> ActorC
     }
 
     pub(crate) fn next_message(&self) -> Option<ActorMessage<A>> {
+        log::info!("Dequeueing message");
         self.message_consumer
             .borrow_mut()
             .as_mut()
@@ -100,6 +101,7 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>> ActorC
     }
 
     fn enqueue_message(&self, message: ActorMessage<A>) {
+        log::info!("Enqueueing message!");
         self.message_producer
             .borrow_mut()
             .as_mut()
@@ -109,14 +111,20 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>> ActorC
     }
 
     fn acquire_signal(&self) -> &SignalSlot {
+        log::info!("Getting signal slot...");
         let signals = unsafe { &mut *self.signals.get() };
+        log::info!("Got signals: {}", signals.len());
         let mut i = 0;
         while i < signals.len() {
             if signals[i].acquire() {
+                log::info!("Found signal!");
                 return &signals[i];
+            } else {
+                log::info!("Signal not acquired...");
             }
             i += 1;
         }
+        log::info!("No signal found");
         panic!("not enough signals!");
     }
 }
@@ -128,10 +136,13 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<ActorMessage<A>>> ActorH
         &'s self,
         message: &'m mut A::Message,
     ) -> ActorResponseFuture<'s, 'm> {
+        log::info!("Process messaage!");
         let signal = self.acquire_signal();
+        log::info!("Signal acquired");
         let message = ActorMessage::new(message, signal);
+        log::info!("Message created");
         self.enqueue_message(message);
-        self.state.store(ActorState::READY.into(), Ordering::SeqCst);
+        self.state.fetch_add(1, Ordering::AcqRel);
         ActorResponseFuture::new(signal)
     }
 }

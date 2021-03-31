@@ -13,9 +13,12 @@ pub struct SignalSlot {
 impl SignalSlot {
     pub fn acquire(&self) -> bool {
         if self.free.swap(false, Ordering::AcqRel) {
+            log::info!("Acquired signal!");
             self.signal.reset();
+            log::info!("Reset...");
             true
         } else {
+            log::info!("Signal already in use");
             false
         }
     }

@@ -37,16 +37,17 @@ fn launch_actors() {
     foo_runner.mount(bar_addr, &mut executor);
     bar_runner.mount(foo_addr, &mut executor);
 
+    let mut foo_req = MyMessage::new(1, 2, 2);
+    let mut bar_req = MyMessage::new(3, 4, 2);
+
+    log::info!("Calling process!");
+    let foo_fut = foo_addr.process(&mut foo_req);
+    let bar_fut = bar_addr.process(&mut bar_req);
+
     log::info!("spawning executor");
     std::thread::spawn(move || {
         executor.run_forever();
     });
-
-    let mut foo_req = MyMessage::new(1, 2, 2);
-    let mut bar_req = MyMessage::new(3, 4, 2);
-
-    let foo_fut = foo_addr.process(&mut foo_req);
-    let bar_fut = bar_addr.process(&mut bar_req);
 
     log::info!("block on foo");
     block_on(foo_fut);

@@ -20,6 +20,7 @@ impl<'a, A: Actor> Address<'a, A> {
     }
 
     pub async fn process(&self, message: &mut A::Message) {
+        log::info!("Calling process message!");
         self.runner.process_message(message).await
     }
 }
