@@ -12,25 +12,18 @@ use heapless::{
     ArrayLength,
 };
 
-pub struct MessageContext<A: Actor> {
-    pub(crate) signal: RefCell<*const SignalSlot>,
-    pub(crate) inner: RefCell<Message<A>>,
-}
-
-impl<A: Actor> MessageContext<A> {
-    pub fn new(message: Message<A>, signal: &SignalSlot) -> Self {
-        Self {
-            inner: RefCell::new(message),
-            signal: RefCell::new(signal),
-        }
-    }
-}
 
 pub trait Actor: Sized {
     type Configuration;
     type Message: Debug;
 
     fn mount(&mut self, _: Self::Configuration);
+    fn poll_initialize(&mut self, _: &mut Context<'_>) -> Poll<()> {
+        Poll::Ready(())
+    }
+    fn poll_start(&mut self, _: &mut Context<'_>) -> Poll<()> {
+        Poll::Ready(())
+    }
     fn poll_message(&mut self, message: &mut Self::Message, cx: &mut Context<'_>) -> Poll<()>;
 }
 
@@ -41,13 +34,13 @@ pub enum Lifecycle {
 
 pub enum Message<A: Actor> {
     Lifecycle(Lifecycle),
-    Actor(*mut A::Message),
+    Actor(*mut A::Message, *const SignalSlot),
 }
 
 pub trait ActorHandle<A: Actor> {
     fn process_message<'s, 'm>(
         &'s self,
-        message: Message<A>,
+        message: &'m mut A::Message,
     ) -> ActorResponseFuture<'s, 'm>;
 }
 
@@ -63,20 +56,20 @@ impl Into<u8> for ActorState {
     }
 }
 
-pub struct ActorContext<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>> {
+pub struct ActorContext<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<Message<A>>> {
     pub(crate) actor: RefCell<Option<A>>,
-    pub(crate) current: RefCell<Option<MessageContext<A>>>,
+    pub(crate) current: RefCell<Option<Message<A>>>,
     pub(crate) state: AtomicU8,
     pub(crate) in_flight: AtomicBool,
 
     signals: UnsafeCell<GenericArray<SignalSlot, Q>>,
-    messages: UnsafeCell<Queue<MessageContext<A>, Q>>,
+    messages: UnsafeCell<Queue<Message<A>, Q>>,
 
-    message_producer: RefCell<Option<Producer<'static, MessageContext<A>, Q>>>,
-    message_consumer: RefCell<Option<Consumer<'static, MessageContext<A>, Q>>>,
+    message_producer: RefCell<Option<Producer<'static, Message<A>, Q>>>,
+    message_consumer: RefCell<Option<Consumer<'static, Message<A>, Q>>>,
 }
 
-impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>> ActorContext<A, Q> {
+impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<Message<A>>> ActorContext<A, Q> {
     pub fn new(actor: A) -> Self {
         Self {
             actor: RefCell::new(Some(actor)),
@@ -101,7 +94,7 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>> Acto
         self.actor.borrow_mut().as_mut().unwrap().mount(config);
     }
 
-    pub(crate) fn next_message(&self) -> Option<MessageContext<A>> {
+    pub(crate) fn next_message(&self) -> Option<Message<A>> {
         log::info!("Dequeueing message");
         self.message_consumer
             .borrow_mut()
@@ -110,7 +103,7 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>> Acto
             .dequeue()
     }
 
-    fn enqueue_message(&self, message: MessageContext<A>) {
+    fn enqueue_message(&self, message: Message<A>) {
         log::info!("Enqueueing message!");
         self.message_producer
             .borrow_mut()
@@ -137,19 +130,26 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>> Acto
         log::info!("No signal found");
         panic!("not enough signals!");
     }
+
+    fn notify_lifecycle<'s>(
+        &'s self,
+        lifecycle: Lifecycle) {
+        self.enqueue_message(Message::Lifecycle(lifecycle));
+        self.state.fetch_add(1, Ordering::AcqRel);
+    }
 }
 
-impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>> ActorHandle<A>
+impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<Message<A>>> ActorHandle<A>
     for ActorContext<A, Q>
 {
     fn process_message<'s, 'm>(
         &'s self,
-        message: Message<A>,
+        message: &'m mut A::Message,
     ) -> ActorResponseFuture<'s, 'm> {
         log::info!("Process messaage!");
         let signal = self.acquire_signal();
         log::info!("Signal acquired");
-        let message = MessageContext::new(message, signal);
+        let message = Message::Actor(message, signal);
         log::info!("Message created");
         self.enqueue_message(message);
         self.state.fetch_add(1, Ordering::AcqRel);

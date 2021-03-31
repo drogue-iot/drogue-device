@@ -15,7 +15,7 @@ fn setup() {
 }
 
 // Completely and totally not safe.
-fn staticize<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>>(
+fn staticize<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<Message<A>>>(
     runner: &ActorContext<A, Q>,
 ) -> &'static ActorContext<A, Q> {
     unsafe { core::mem::transmute::<_, &'static ActorContext<A, Q>>(runner) }

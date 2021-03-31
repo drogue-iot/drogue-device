@@ -1,5 +1,5 @@
 use crate::system::{
-    actor::{Actor, ActorContext, MessageContext, ActorState, Message},
+    actor::{Actor, ActorContext, ActorState, Message, Lifecycle},
     signal::SignalSlot,
 };
 use core::sync::atomic::{AtomicU8, Ordering};
@@ -12,7 +12,7 @@ trait ActiveActor {
     fn do_poll(&self);
 }
 
-impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>> ActiveActor
+impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<Message<A>>> ActiveActor
     for ActorContext<A, Q>
 {
     fn is_ready(&self) -> bool {
@@ -26,8 +26,8 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>> Acti
     fn do_poll(&self) {
         log::info!("[ActiveActor] do_poll()");
         if self.current.borrow().is_none() {
-            log::info!("Picking next message");
             if let Some(next) = self.next_message() {
+                log::info!("Picking next message");
                 self.current.borrow_mut().replace(next);
                 self.in_flight.store(true, Ordering::Release);
             } else {
@@ -35,7 +35,8 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>> Acti
             }
         }
 
-        if let Some(item) = &mut *self.current.borrow_mut() {
+        let mut current = self.current.borrow_mut();
+        if let Some(item) = current.take() {
             let state_flag_handle = &self.state as *const _ as *const ();
             let raw_waker = RawWaker::new(state_flag_handle, &VTABLE);
             let waker = unsafe { Waker::from_raw(raw_waker) };
@@ -44,19 +45,26 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>> Acti
             let mut actor = self.actor.borrow_mut();
             let actor = actor.as_mut().unwrap();
             log::info!("Polling actor");
-            match &*item.inner.borrow_mut() {
-                Message::Actor(m) => {
-                    if let Poll::Ready(_) =
-                        actor.poll_message(unsafe { &mut **m }, &mut cx)
-                    {
-                        unsafe { &**item.signal.borrow() }.signal()
+            let result = match item {
+                Message::Actor(m, signal) => {
+                    let result = actor.poll_message(unsafe { &mut *m }, &mut cx);
+                    if let Poll::Ready(_) = result {
+                        unsafe { &*signal }.signal()
                     }
-                }
-                Message::Lifecycle(event) => {
-                    log::info!("Lifecycle event!");
-                }
+                    result
+                },
+                Message::Lifecycle(ref event) => match event {
+                    Lifecycle::Initialize => actor.poll_initialize(&mut cx),
+                    Lifecycle::Start => actor.poll_start(&mut cx),
+                },
+            };
+
+            // Drop current item
+            if let Poll::Pending = result {
+                current.replace(item);
             }
         }
+        log::info!("Done with itmes.");
 
         self.state.fetch_sub(1, Ordering::Acquire);
         log::info!(" and done {}", self.is_ready());
@@ -74,7 +82,7 @@ struct Supervised<'a> {
 }
 
 impl<'a> Supervised<'a> {
-    fn new<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>>(
+    fn new<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<Message<A>>>(
         actor: &'a ActorContext<A, Q>,
     ) -> Self {
         Self { actor }
@@ -97,7 +105,7 @@ impl<'a> ActorExecutor<'a> {
 
     pub(crate) fn activate_actor<
         A: Actor,
-        Q: ArrayLength<SignalSlot> + ArrayLength<MessageContext<A>>,
+        Q: ArrayLength<SignalSlot> + ArrayLength<Message<A>>,
     >(
         &mut self,
         actor: &'a ActorContext<A, Q>,
