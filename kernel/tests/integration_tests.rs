@@ -1,10 +1,9 @@
-
 use core::fmt::Debug;
 use core::task::{Context, Poll};
-use std::sync::Once;
 use drogue_device::prelude::*;
 use futures::executor::block_on;
 use heapless::{consts, ArrayLength};
+use std::sync::Once;
 use std::time::{Duration, SystemTime};
 
 static INIT: Once = Once::new();
