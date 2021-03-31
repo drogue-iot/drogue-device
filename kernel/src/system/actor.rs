@@ -1,4 +1,4 @@
-use crate::system::{executor::ActorExecutor, signal::SignalSlot};
+use crate::system::{executor::ActorExecutor, signal::SignalSlot, address::Address};
 use core::cell::{RefCell, UnsafeCell};
 use core::fmt::Debug;
 use core::future::Future;
@@ -27,6 +27,7 @@ pub trait Actor: Sized {
     fn poll_message(&mut self, message: &mut Self::Message, cx: &mut Context<'_>) -> Poll<()>;
 }
 
+#[derive(Clone, Copy)]
 pub enum Lifecycle {
     Initialize,
     Start,
@@ -84,7 +85,7 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<Message<A>>> ActorContex
         }
     }
 
-    pub fn mount(&'static self, config: A::Configuration, executor: &mut ActorExecutor) {
+    pub fn mount(&'static self, config: A::Configuration, executor: &mut ActorExecutor) -> Address<A> {
         executor.activate_actor(self);
         let (mp, mc) = unsafe { (&mut *self.messages.get()).split() };
 
@@ -92,6 +93,7 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<Message<A>>> ActorContex
         self.message_consumer.borrow_mut().replace(mc);
 
         self.actor.borrow_mut().as_mut().unwrap().mount(config);
+        Address::new(self)
     }
 
     pub(crate) fn next_message(&self) -> Option<Message<A>> {
@@ -131,7 +133,7 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<Message<A>>> ActorContex
         panic!("not enough signals!");
     }
 
-    fn notify_lifecycle<'s>(
+    pub(crate) fn dispatch_lifecycle_event<'s>(
         &'s self,
         lifecycle: Lifecycle) {
         self.enqueue_message(Message::Lifecycle(lifecycle));

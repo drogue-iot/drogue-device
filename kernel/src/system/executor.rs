@@ -10,6 +10,7 @@ trait ActiveActor {
     fn is_ready(&self) -> bool;
     fn is_waiting(&self) -> bool;
     fn do_poll(&self);
+    fn dispatch_lifecycle_event(&self, event: Lifecycle);
 }
 
 impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<Message<A>>> ActiveActor
@@ -69,6 +70,10 @@ impl<A: Actor, Q: ArrayLength<SignalSlot> + ArrayLength<Message<A>>> ActiveActor
         self.state.fetch_sub(1, Ordering::Acquire);
         log::info!(" and done {}", self.is_ready());
     }
+
+    fn dispatch_lifecycle_event(&self, event: Lifecycle) {
+        self.dispatch_lifecycle_event(event)
+    }
 }
 
 unsafe impl Send for Supervised<'_> {}
@@ -96,6 +101,10 @@ impl<'a> Supervised<'a> {
             false
         }
     }
+
+    pub(crate) fn dispatch_lifecycle_event(&self, event: Lifecycle) {
+        self.actor.dispatch_lifecycle_event(event)
+    }
 }
 
 impl<'a> ActorExecutor<'a> {
@@ -116,6 +125,12 @@ impl<'a> ActorExecutor<'a> {
             .unwrap_or_else(|_| panic!("too many actors"));
     }
 
+    pub(crate) fn dispatch_lifecycle_event(&mut self, event: Lifecycle) {
+        for actor in self.actors.iter() {
+            actor.dispatch_lifecycle_event(event);
+        }
+    }
+
     pub(crate) fn run_until_quiescence(&mut self) {
         let mut run_again = true;
         while run_again {
@@ -129,6 +144,9 @@ impl<'a> ActorExecutor<'a> {
     }
 
     pub fn run_forever(&mut self) -> ! {
+        self.dispatch_lifecycle_event(Lifecycle::Initialize);
+        self.run_until_quiescence();
+        self.dispatch_lifecycle_event(Lifecycle::Start);
         loop {
             self.run_until_quiescence();
         }
