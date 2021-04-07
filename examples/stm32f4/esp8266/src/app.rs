@@ -22,6 +22,7 @@ where
     psk: &'static str,
     ip: IpAddress,
     port: u16,
+    connected: bool,
 }
 
 impl<NET> App<NET>
@@ -36,6 +37,7 @@ where
             psk,
             ip,
             port,
+            connected: false,
         }
     }
     fn connect(mut self) -> Completion<Self> {
@@ -58,10 +60,54 @@ where
             match result {
                 Ok(_) => {
                     log::info!("Connected!");
+                    self.connected = true;
                     self.socket.replace(RefCell::new(socket));
                 }
                 Err(e) => {
                     log::info!("Error connecting to host: {:?}", e);
+                }
+            }
+            self
+        })
+    }
+
+    fn send(self) -> Completion<Self> {
+        Completion::defer(async move {
+            if self.connected {
+                log::info!("Sending data");
+                let mut socket = self
+                    .socket
+                    .as_ref()
+                    .expect("socket not bound!")
+                    .borrow_mut();
+                log::info!("Writing data to socket");
+                let result = socket.write(b"{\"temp\": 24.3}\r\n").await;
+                match result {
+                    Ok(_) => {
+                        log::info!("Data sent");
+                        let mut rx_buf = [0; 8];
+                        loop {
+                            let result = socket.read(&mut rx_buf[..]).await;
+                            match result {
+                                Ok(len) if &rx_buf[0..len] == b"OK\r\n" => {
+                                    log::info!("Measurement confirmed");
+                                    break;
+                                }
+                                Ok(len) if &rx_buf[0..len] == b"ERROR\r\n" => {
+                                    log::info!("Error reporting measurement");
+                                    break;
+                                }
+                                Ok(_) => {}
+                                Err(e) => {
+                                    log::warn!("Error reading response: {:?}", e);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        log::warn!("Error sending measurement: {:?}", e);
+                    }
                 }
             }
             self
@@ -86,7 +132,13 @@ where
 {
     fn on_notify(self, message: ButtonEvent) -> Completion<Self> {
         match message {
-            ButtonEvent::Pressed => self.connect(),
+            ButtonEvent::Pressed => {
+                if !self.connected {
+                    self.connect()
+                } else {
+                    self.send()
+                }
+            }
             _ => Completion::immediate(self),
         }
     }
