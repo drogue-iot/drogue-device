@@ -23,7 +23,7 @@ use embedded_hal::{
 use heapless::{consts, Vec};
 
 use lorawan_device::{
-    radio, Device as LorawanDevice, Error as LorawanError, Event as LorawanEvent,
+    radio, region, Device as LorawanDevice, Error as LorawanError, Event as LorawanEvent,
     Region as LorawanRegion, Response as LorawanResponse, Timings as RadioTimings,
 };
 use lorawan_encoding::default_crypto::DefaultFactory as Crypto;
@@ -512,13 +512,16 @@ where
                 let app_eui = config.app_eui.as_ref().expect("app EUI must be set");
                 let app_key = config.app_key.as_ref().expect("app KEY must be set");
                 //log::info!("Creating device");
-                let lorawan: LorawanDevice<Radio<SPI, CS, RESET, E>, Crypto> = LorawanDevice::new(
-                    radio,
-                    dev_eui.reverse().into(),
-                    app_eui.reverse().into(),
-                    app_key.clone().into(),
-                    self.get_random,
-                );
+                let mut lorawan: LorawanDevice<Radio<SPI, CS, RESET, E>, Crypto> =
+                    LorawanDevice::new(
+                        region::EU868::default().into(), // TODO: Make configurable
+                        radio,
+                        dev_eui.reverse().into(),
+                        app_eui.reverse().into(),
+                        app_key.clone().into(),
+                        self.get_random,
+                    );
+                lorawan.set_datarate(5); // Use lower datarate that seems more stable
                 state.replace(State::Configured(lorawan));
                 self.response.as_ref().unwrap().signal(Ok(None));
                 Response::immediate(self, Ok(()))

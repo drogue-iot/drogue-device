@@ -38,14 +38,15 @@ features = ["unproven"]
 
 [dependencies.lorawan-device]
 git = "https://github.com/ivajloip/rust-lorawan.git"
-branch   = "master"
+rev = "565e45611c3d5234a65f7e6fb35e2ddcbe864508"
+# branch   = "master"
 default-features = false
-features = ["region+eu868"]
 optional = true
 
 [dependencies.lorawan-encoding]
 git = "https://github.com/ivajloip/rust-lorawan.git"
-branch   = "master"
+rev = "565e45611c3d5234a65f7e6fb35e2ddcbe864508"
+# branch   = "master"
 default-features = false
 optional = true
 features = ["default-crypto"]
