@@ -63,8 +63,7 @@ impl SocketPool {
         let available = sockets
             .iter()
             .enumerate()
-            .take_while(|e| matches!(e, (_, SocketState::Closed)))
-            .take(1)
+            .filter(|e| matches!(e, (_, SocketState::Closed)))
             .next();
 
         if let Some((index, _)) = available {
