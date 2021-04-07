@@ -46,9 +46,9 @@ fn spreading_factor_to_u8(sf: SpreadingFactor) -> u8 {
 
 fn bandwidth_to_i64(bw: Bandwidth) -> i64 {
     match bw {
-        Bandwidth::_125KHZ => 125_000,
-        Bandwidth::_250KHZ => 250_000,
-        Bandwidth::_500KHZ => 500_000,
+        Bandwidth::_125KHz => 125_000,
+        Bandwidth::_250KHz => 250_000,
+        Bandwidth::_500KHz => 500_000,
     }
 }
 

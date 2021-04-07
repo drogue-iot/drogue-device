@@ -521,7 +521,7 @@ where
                         app_key.clone().into(),
                         self.get_random,
                     );
-                lorawan.set_datarate(5); // Use lower datarate that seems more stable
+                lorawan.set_datarate(region::DR::_5); // Use lower datarate that seems more stable
                 state.replace(State::Configured(lorawan));
                 self.response.as_ref().unwrap().signal(Ok(None));
                 Response::immediate(self, Ok(()))
