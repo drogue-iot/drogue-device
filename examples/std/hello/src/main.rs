@@ -9,7 +9,7 @@ use drogue_device_platform_std::{
     self as drogue, bind, Actor, ActorState, Device, Duration, Forever, Timer,
 };
 
-struct MyActor {
+pub struct MyActor {
     counter: u32,
 }
 
@@ -19,11 +19,11 @@ impl MyActor {
     }
 }
 
-struct SayHello;
+pub struct SayHello(&'static str);
 
 #[drogue::actor]
-async fn process(state: &mut MyActor, _: SayHello) {
-    log::info!("Hello: {}", state.counter);
+async fn process(state: &mut MyActor, message: SayHello) {
+    log::info!("[{}] hello: {}", message.0, state.counter);
     state.counter += 1;
 }
 
@@ -34,10 +34,12 @@ async fn main(device: Device) {
         .format_timestamp_nanos()
         .init();
 
-    // TODO: Generate scaffold
-    let addr = bind!(device, MyActor = MyActor::new());
+    let a1_addr = bind!(device, a1, crate::MyActor, MyActor::new());
+    // TODO: Generates SpawnError::Busy
+    //let a2_addr = bind!(device, a2, crate::MyActor, MyActor::new());
     loop {
         Timer::after(Duration::from_secs(1)).await;
-        addr.send(SayHello).await;
+        a1_addr.send(SayHello("a1")).await;
+        //    a2_addr.send(SayHello("a2")).await;
     }
 }
