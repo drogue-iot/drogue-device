@@ -221,6 +221,7 @@ mod macros {
                     let mut actor = state.actor.borrow_mut();
                     loop {
                         let request = channel.receive().await;
+                        // TODO: When async traits are around, we don't need to "hardcode" type here
                         <$ty>::process(&mut actor, request).await;
                     }
                 }
