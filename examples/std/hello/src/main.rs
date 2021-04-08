@@ -16,6 +16,11 @@ impl MyActor {
     pub fn new() -> Self {
         Self { counter: 0 }
     }
+
+    async fn process(&mut self, message: SayHello) {
+        log::info!("[{}] hello: {}", message.0, self.counter);
+        self.counter += 1;
+    }
 }
 
 impl Actor for MyActor {
@@ -23,11 +28,6 @@ impl Actor for MyActor {
 }
 
 pub struct SayHello(&'static str);
-
-async fn process(state: &mut MyActor, message: SayHello) {
-    log::info!("[{}] hello: {}", message.0, state.counter);
-    state.counter += 1;
-}
 
 #[drogue::main]
 async fn main(device: Device) {
@@ -37,8 +37,8 @@ async fn main(device: Device) {
         .init();
 
     // TODO: Generate scaffold
-    let a_addr = bind!(device, process, a, crate::MyActor, MyActor::new());
-    let b_addr = bind!(device, process, b, crate::MyActor, MyActor::new());
+    let a_addr = bind!(device, a, crate::MyActor, MyActor::new());
+    let b_addr = bind!(device, b, crate::MyActor, MyActor::new());
     loop {
         Timer::after(Duration::from_secs(1)).await;
         a_addr.send(SayHello("a")).await;

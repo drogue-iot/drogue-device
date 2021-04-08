@@ -210,7 +210,7 @@ mod channel {
 mod macros {
     #[macro_export]
     macro_rules! bind {
-        ($device:expr, $proc:ident, $name:ident, $ty:ty, $instance:expr) => {{
+        ($device:expr, $name:ident, $ty:ty, $instance:expr) => {{
             mod $name {
                 use drogue_device_platform_std::{ActorState, Forever};
                 pub static DROGUE_ACTOR: Forever<ActorState<'static, $ty>> = Forever::new();
@@ -221,7 +221,7 @@ mod macros {
                     let mut actor = state.actor.borrow_mut();
                     loop {
                         let request = channel.receive().await;
-                        super::$proc(&mut actor, request).await;
+                        <$ty>::process(&mut actor, request).await;
                     }
                 }
             }
