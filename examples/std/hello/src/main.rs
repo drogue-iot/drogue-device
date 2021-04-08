@@ -8,7 +8,7 @@
 use core::future::Future;
 use core::pin::Pin;
 use drogue_device_platform_std::{
-    self as drogue, bind, Actor, ActorState, Device, Duration, Timer,
+    self as drogue, bind, Actor, ActorState, Device, DeviceContext, Duration, Timer,
 };
 
 pub struct MyActor {
@@ -35,16 +35,36 @@ impl Actor for MyActor {
 
 pub struct SayHello(&'static str);
 
-#[drogue::main]
-async fn main(device: Device) {
+#[derive(Device)]
+pub struct MyDevice {
+    a: ActorState<'static, MyActor>,
+    b: ActorState<'static, MyActor>,
+}
+
+/*
+impl Device for MyDevice {
+    fn mount(&'static self) {
+        self.a.mount();
+        self.b.mount();
+    }
+}*/
+
+fn configure() -> MyDevice {
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .format_timestamp_nanos()
         .init();
 
-    // TODO: Generate scaffold
-    let a_addr = bind!(device, a, crate::MyActor, MyActor::new());
-    let b_addr = bind!(device, b, crate::MyActor, MyActor::new());
+    MyDevice {
+        a: ActorState::new(MyActor::new()),
+        b: ActorState::new(MyActor::new()),
+    }
+}
+
+#[drogue::main(configure)]
+async fn main(context: DeviceContext<MyDevice>) {
+    let a_addr = context.device().a.address();
+    let b_addr = context.device().b.address();
     loop {
         Timer::after(Duration::from_secs(1)).await;
         a_addr.send(SayHello("a")).await;

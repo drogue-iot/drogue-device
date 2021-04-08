@@ -8,7 +8,7 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::spanned::Spanned;
-use syn::{self};
+use syn::{self, Data, DataStruct, Fields};
 
 /*
 #[proc_macro_derive(ActorProcess)]
@@ -177,9 +177,61 @@ pub fn actor(_: TokenStream, item: TokenStream) -> TokenStream {
     result.into()
 }
 
+#[proc_macro_derive(Device)]
+pub fn device_macro_derive(input: TokenStream) -> TokenStream {
+    // Construct a representation of Rust code as a syntax tree
+    // that we can manipulate
+    let input: syn::DeriveInput = syn::parse(input).unwrap();
+    let name = &input.ident;
+
+    let fields = match &input.data {
+        Data::Struct(DataStruct {
+            fields: Fields::Named(fields),
+            ..
+        }) => &fields.named,
+        _ => panic!("expected a struct with named fields"),
+    };
+    let field_name = fields.iter().map(|field| &field.ident);
+    let field_type = fields.iter().map(|field| &field.ty);
+
+    let field_name2 = fields.iter().map(|field| &field.ident);
+
+    dbg!(&fields);
+    let gen = quote! {
+        #(
+            mod #field_name {
+                use drogue_device_platform_std::{Actor, ActorState, Forever};
+                pub static DEVICE_ACTOR: Forever<#field_type> = Forever::new();
+
+                #[embassy::task]
+                pub async fn trampoline(state: &'static #field_type) {
+                    let channel = &state.channel;
+                    let mut actor = unsafe { (&mut *state.actor.get()) };
+                    loop {
+                        let mut pinned = core::pin::Pin::new(&mut *actor);
+                        let request = channel.receive().await;
+                        pinned.process(request).await;
+                    }
+                }
+            }
+        )*
+
+        impl Device for #name {
+            fn mount(&'static self, spawner: embassy::executor::Spawner) {
+                #(
+                    self.#field_name2.mount();
+                    spawner.spawn(#field_name2::trampoline(&self.#field_name2));
+                )*
+            }
+        }
+    };
+    gen.into()
+}
+
 #[proc_macro_attribute]
-pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
-    // let macro_args = syn::parse_macro_input!(args as syn::AttributeArgs);
+pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
+    //let macro_args = syn::parse_macro_input!(args as syn::AttributeArgs);
+    let cfg: syn::Ident = syn::parse(args).unwrap();
     let task_fn = syn::parse_macro_input!(item as syn::ItemFn);
 
     let mut fail = false;
@@ -235,11 +287,13 @@ pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
 
             let mut executor = embassy_std::Executor::new();
             let executor = unsafe { make_static(&mut executor) };
+            let mut device = #cfg();
+            let device = unsafe { make_static(&mut device) };
+            let context = DeviceContext::new(device);
 
             executor.run(|spawner| {
-                let mut device = Device::new();
-                device.set_spawner(spawner);
-                spawner.spawn(__drogue_main(device)).unwrap();
+                context.device().mount(spawner);
+                spawner.spawn(__drogue_main(context)).unwrap();
             })
 
         }

@@ -6,8 +6,8 @@
 #![feature(concat_idents)]
 
 pub use channel::{consts, Channel};
-pub use device::{Actor, ActorState, Address, Device};
-pub use drogue_device_macros::{actor, main};
+pub use device::{Actor, ActorState, Address, Device, DeviceContext};
+pub use drogue_device_macros::{actor, main, Device};
 
 mod device {
     use crate::channel::{consts, Channel};
@@ -16,15 +16,25 @@ mod device {
     use core::pin::Pin;
     use embassy::executor::{SpawnToken, Spawner};
 
-    pub struct Device {
+    pub trait Device {
+        fn mount(&'static self, spawner: Spawner);
+    }
+
+    pub struct DeviceContext<D: Device + 'static> {
+        device: &'static D,
         spawner: RefCell<Option<Spawner>>,
     }
 
-    impl Device {
-        pub fn new() -> Self {
+    impl<D: Device + 'static> DeviceContext<D> {
+        pub fn new(device: &'static D) -> Self {
             Self {
+                device,
                 spawner: RefCell::new(None),
             }
+        }
+
+        pub fn device(&self) -> &'static D {
+            self.device
         }
 
         pub fn set_spawner(&self, spawner: Spawner) {
@@ -57,6 +67,10 @@ mod device {
 
         pub fn mount(&'a self) -> Address<'a, A> {
             self.channel.initialize();
+            Address::new(&self.channel)
+        }
+
+        pub fn address(&'a self) -> Address<'a, A> {
             Address::new(&self.channel)
         }
     }
@@ -120,6 +134,12 @@ mod channel {
         consumer_waker: AtomicWaker,
     }
 
+    impl<'a, T, N: 'a + ArrayLength<T>> Default for ChannelInner<'a, T, N> {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
     impl<'a, T, N: 'a + ArrayLength<T>> ChannelInner<'a, T, N> {
         pub fn new() -> Self {
             Self {
@@ -163,6 +183,12 @@ mod channel {
 
     pub struct Channel<'a, T, N: ArrayLength<T>> {
         inner: ChannelInner<'a, T, N>,
+    }
+
+    impl<'a, T, N: 'a + ArrayLength<T>> Default for Channel<'a, T, N> {
+        fn default() -> Self {
+            Self::new()
+        }
     }
 
     impl<'a, T, N: 'a + ArrayLength<T>> Channel<'a, T, N> {
@@ -230,7 +256,6 @@ mod macros {
                     loop {
                         let mut pinned = core::pin::Pin::new(&mut *actor);
                         let request = channel.receive().await;
-                        // TODO: When async traits are around, we don't need to "hardcode" type here
                         <$ty>::process(pinned, request).await;
                     }
                 }
