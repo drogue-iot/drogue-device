@@ -1,3 +1,4 @@
+#![allow(incomplete_features)]
 #![feature(min_type_alias_impl_trait)]
 #![feature(impl_trait_in_bindings)]
 #![feature(type_alias_impl_trait)]
@@ -18,7 +19,7 @@ struct MyActor {
     struct SayHello;
 
     #[drogue::actor]
-    async fn process(state: &mut MyActor, request: SayHello) {
+    async fn process(state: &mut MyActor, _: SayHello) {
         log::info!("Hello: {}", state.counter);
         state.counter += 1;
     }
@@ -36,7 +37,7 @@ struct MyActor {
         // TODO: Generate scaffold
         let a = A1.put(ActorState::new(MyActor::new()));
         let a_addr = a.mount();
-        device.start(__DROGUE_process_HANDLER(a));
+        device.start(__drogue_process_trampoline(a));
         loop {
             Timer::after(Duration::from_secs(1)).await;
             a_addr.send(SayHello).await;

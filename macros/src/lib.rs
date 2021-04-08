@@ -1,3 +1,4 @@
+#![allow(incomplete_features)]
 #![feature(proc_macro_diagnostic)]
 #![feature(concat_idents)]
 
@@ -17,7 +18,7 @@ pub fn actor_process_macro_derive(input: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse(input).unwrap();
     let name = &ast.ident;
     let name = format_ident!("{}", name);
-    let handler = format!("__DROGUE_{}_HANDLER", name);
+    let handler = format!("__drogue_{}_trampoline", name);
     //    let lowercase_name = Ident::new(&name.to_string().to_lowercase(), name.span());
     let gen = quote! {
 
@@ -62,7 +63,7 @@ pub fn actor(_: TokenStream, item: TokenStream) -> TokenStream {
         fail = true;
     }
 
-    let mut args = task_fn.sig.inputs.clone();
+    let args = task_fn.sig.inputs.clone();
 
     if args.len() != 2 {
         task_fn
@@ -147,7 +148,7 @@ pub fn actor(_: TokenStream, item: TokenStream) -> TokenStream {
     let actor_type = actor_type.unwrap();
     let message_type = message_type.unwrap();
     let name = task_fn.sig.ident.clone();
-    let handler = format_ident!("__DROGUE_{}_HANDLER", name);
+    let handler = format_ident!("__drogue_{}_trampoline", name);
 
     let result = quote! {
         #task_fn
