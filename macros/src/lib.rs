@@ -38,6 +38,23 @@ pub fn actor_process_macro_derive(input: TokenStream) -> TokenStream {
     gen.into()
 }*/
 
+/*
+#[proc_macro]
+pub fn bind(input: TokenStream) -> TokenStream {
+    let ast: syn::DeriveInput = syn::parse(input).unwrap();
+    let name = &ast.ident;
+    dbg!(&ast);
+    let gen = quote! {
+        #ast
+    };
+    gen.into()
+    //let name = syn::parse_macro_input!(item as syn::Ident);
+    //let name = format!("{}", name);
+    //let name_interrupt = format_ident!("{}", name);
+    //let name_handler = format!("__EMBASSY_{}_HANDLER", name);
+}
+*/
+
 #[proc_macro_attribute]
 pub fn actor(_: TokenStream, item: TokenStream) -> TokenStream {
     // let macro_args = syn::parse_macro_input!(args as syn::AttributeArgs);
@@ -148,10 +165,10 @@ pub fn actor(_: TokenStream, item: TokenStream) -> TokenStream {
     let actor_type = actor_type.unwrap();
     let message_type = message_type.unwrap();
     let name = task_fn.sig.ident.clone();
-    let handler = format_ident!("__drogue_{}_trampoline", name);
-
+    let handler = format_ident!("__drogue_trampoline_{}", name);
     let result = quote! {
         #task_fn
+
 
         #[embassy::task]
         async fn #handler(state: &'static ActorState<'static, #actor_type>) {

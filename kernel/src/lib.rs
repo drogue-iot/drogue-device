@@ -2,6 +2,7 @@
 #![feature(min_type_alias_impl_trait)]
 #![feature(impl_trait_in_bindings)]
 #![feature(type_alias_impl_trait)]
+#![feature(concat_idents)]
 
 pub use channel::{consts, Channel};
 pub use device::{Actor, ActorState, Address, Device};
@@ -21,6 +22,13 @@ mod device {
             Self {
                 spawner: RefCell::new(None),
             }
+        }
+
+        pub fn register<A: Actor, F>(
+            &self,
+            actor: A,
+            f: impl FnOnce(&mut A, A::Message) -> SpawnToken<F>,
+        ) {
         }
 
         pub fn set_spawner(&self, spawner: Spawner) {
@@ -203,5 +211,19 @@ mod channel {
         fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
             self.inner.poll_dequeue(cx)
         }
+    }
+}
+
+mod macros {
+    #[macro_export]
+    macro_rules! bind {
+        ($device:expr, $proc:ident, $ty:ty = $instance:expr) => {{
+            // TODO: need type name
+            static DROGUE_ACTOR_A1: Forever<ActorState<'static, $ty>> = Forever::new();
+            let a = DROGUE_ACTOR_A1.put(ActorState::new($instance));
+            let addr = a.mount();
+            $device.start(concat_idents!(__drogue_trampoline_, $proc)(a));
+            addr
+        }};
     }
 }

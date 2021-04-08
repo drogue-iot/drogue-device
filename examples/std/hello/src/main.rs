@@ -2,9 +2,10 @@
 #![feature(min_type_alias_impl_trait)]
 #![feature(impl_trait_in_bindings)]
 #![feature(type_alias_impl_trait)]
+#![feature(concat_idents)]
 
 use drogue_device_platform_std::{
-    self as drogue, Actor, ActorState, Device, Duration, Forever, Timer,
+    self as drogue, bind, Actor, ActorState, Device, Duration, Forever, Timer,
 };
 
 struct MyActor {
@@ -25,9 +26,6 @@ async fn process(state: &mut MyActor, _: SayHello) {
     state.counter += 1;
 }
 
-// TODO: Generate scaffold
-static A1: Forever<ActorState<'static, MyActor>> = Forever::new();
-
 #[drogue::main]
 async fn main(device: Device) {
     env_logger::builder()
@@ -36,11 +34,9 @@ async fn main(device: Device) {
         .init();
 
     // TODO: Generate scaffold
-    let a = A1.put(ActorState::new(MyActor::new()));
-    let a_addr = a.mount();
-    device.start(__drogue_process_trampoline(a));
+    let addr = bind!(device, process, MyActor = MyActor::new());
     loop {
         Timer::after(Duration::from_secs(1)).await;
-        a_addr.send(SayHello).await;
+        addr.send(SayHello).await;
     }
 }
