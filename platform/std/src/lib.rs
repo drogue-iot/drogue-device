@@ -14,6 +14,5 @@ mod tests {
     use log;
 
     #[test]
-    fn test_device_setup() {
-    }
+    fn test_device_setup() {}
 }
