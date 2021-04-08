@@ -218,7 +218,6 @@ mod macros {
     #[macro_export]
     macro_rules! bind {
         ($device:expr, $proc:ident, $name:ident, $ty:ty, $instance:expr) => {{
-            // TODO: need type name
             mod $name {
                 pub static DROGUE_ACTOR: crate::Forever<crate::ActorState<'static, $ty>> =
                     crate::Forever::new();

@@ -18,11 +18,11 @@ impl MyActor {
     }
 }
 
-pub struct SayHello;
+pub struct SayHello(&'static str);
 
 #[drogue::actor]
-async fn process(state: &mut MyActor, _: SayHello) {
-    log::info!("Hello: {}", state.counter);
+async fn process(state: &mut MyActor, message: SayHello) {
+    log::info!("[{}] hello: {}", message.0, state.counter);
     state.counter += 1;
 }
 
@@ -38,7 +38,7 @@ async fn main(device: Device) {
     let b_addr = bind!(device, process, b, crate::MyActor, MyActor::new());
     loop {
         Timer::after(Duration::from_secs(1)).await;
-        a_addr.send(SayHello).await;
-        b_addr.send(SayHello).await;
+        a_addr.send(SayHello("a")).await;
+        b_addr.send(SayHello("b")).await;
     }
 }
