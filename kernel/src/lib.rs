@@ -1,6 +1,7 @@
 #![allow(incomplete_features)]
 #![feature(min_type_alias_impl_trait)]
 #![feature(impl_trait_in_bindings)]
+#![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 #![feature(concat_idents)]
 
@@ -10,7 +11,9 @@ pub use drogue_device_macros::{actor, main};
 
 mod device {
     use crate::channel::{consts, Channel};
-    use core::cell::RefCell;
+    use core::cell::{RefCell, UnsafeCell};
+    use core::future::Future;
+    use core::pin::Pin;
     use embassy::executor::{SpawnToken, Spawner};
 
     pub struct Device {
@@ -39,7 +42,7 @@ mod device {
     }
 
     pub struct ActorState<'a, A: Actor> {
-        pub actor: RefCell<A>,
+        pub actor: UnsafeCell<A>,
         pub channel: Channel<'a, A::Message, consts::U4>,
     }
 
@@ -47,7 +50,7 @@ mod device {
         pub fn new(actor: A) -> Self {
             let channel: Channel<'a, A::Message, consts::U4> = Channel::new();
             Self {
-                actor: RefCell::new(actor),
+                actor: UnsafeCell::new(actor),
                 channel,
             }
         }
@@ -60,6 +63,11 @@ mod device {
 
     pub trait Actor {
         type Message;
+        type ProcessFuture<'a>: Future<Output = ()>
+        where
+            Self: 'a;
+
+        fn process<'a>(self: Pin<&'a mut Self>, message: Self::Message) -> Self::ProcessFuture<'a>;
     }
 
     pub struct Address<'a, A: Actor> {
@@ -212,17 +220,18 @@ mod macros {
     macro_rules! bind {
         ($device:expr, $name:ident, $ty:ty, $instance:expr) => {{
             mod $name {
-                use drogue_device_platform_std::{ActorState, Forever};
+                use drogue_device_platform_std::{Actor, ActorState, Forever};
                 pub static DROGUE_ACTOR: Forever<ActorState<'static, $ty>> = Forever::new();
 
                 #[embassy::task]
                 pub async fn trampoline(state: &'static ActorState<'static, $ty>) {
                     let channel = &state.channel;
-                    let mut actor = state.actor.borrow_mut();
+                    let mut actor = unsafe { (&mut *state.actor.get()) }; // state.actor.borrow_mut();
                     loop {
+                        let mut pinned = core::pin::Pin::new(&mut *actor);
                         let request = channel.receive().await;
                         // TODO: When async traits are around, we don't need to "hardcode" type here
-                        <$ty>::process(&mut actor, request).await;
+                        <$ty>::process(pinned, request).await;
                     }
                 }
             }
