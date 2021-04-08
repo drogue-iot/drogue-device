@@ -8,7 +8,7 @@ use drogue_device_platform_std::{
     self as drogue, bind, Actor, ActorState, Device, Duration, Forever, Timer,
 };
 
-struct MyActor {
+pub struct MyActor {
     counter: u32,
 }
 
@@ -18,7 +18,7 @@ impl MyActor {
     }
 }
 
-struct SayHello;
+pub struct SayHello;
 
 #[drogue::actor]
 async fn process(state: &mut MyActor, _: SayHello) {
@@ -34,9 +34,11 @@ async fn main(device: Device) {
         .init();
 
     // TODO: Generate scaffold
-    let addr = bind!(device, process, MyActor = MyActor::new());
+    let a_addr = bind!(device, process, a, crate::MyActor, MyActor::new());
+    let b_addr = bind!(device, process, b, crate::MyActor, MyActor::new());
     loop {
         Timer::after(Duration::from_secs(1)).await;
-        addr.send(SayHello).await;
+        a_addr.send(SayHello).await;
+        b_addr.send(SayHello).await;
     }
 }

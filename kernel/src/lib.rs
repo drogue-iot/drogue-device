@@ -217,12 +217,25 @@ mod channel {
 mod macros {
     #[macro_export]
     macro_rules! bind {
-        ($device:expr, $proc:ident, $ty:ty = $instance:expr) => {{
+        ($device:expr, $proc:ident, $name:ident, $ty:ty, $instance:expr) => {{
             // TODO: need type name
-            static DROGUE_ACTOR_A1: Forever<ActorState<'static, $ty>> = Forever::new();
-            let a = DROGUE_ACTOR_A1.put(ActorState::new($instance));
+            mod $name {
+                pub static DROGUE_ACTOR: crate::Forever<crate::ActorState<'static, $ty>> =
+                    crate::Forever::new();
+
+                #[embassy::task]
+                pub async fn trampoline(state: &'static crate::ActorState<'static, $ty>) {
+                    let channel = &state.channel;
+                    let mut actor = state.actor.borrow_mut();
+                    loop {
+                        let request = channel.receive().await;
+                        super::$proc(&mut actor, request).await;
+                    }
+                }
+            }
+            let a = $name::DROGUE_ACTOR.put(ActorState::new($instance));
             let addr = a.mount();
-            $device.start(concat_idents!(__drogue_trampoline_, $proc)(a));
+            $device.start($name::trampoline(a));
             addr
         }};
     }
