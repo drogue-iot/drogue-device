@@ -18,9 +18,12 @@ impl MyActor {
     }
 }
 
+impl Actor for MyActor {
+    type Message = SayHello;
+}
+
 pub struct SayHello(&'static str);
 
-#[drogue::actor]
 async fn process(state: &mut MyActor, message: SayHello) {
     log::info!("[{}] hello: {}", message.0, state.counter);
     state.counter += 1;

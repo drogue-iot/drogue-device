@@ -165,20 +165,9 @@ pub fn actor(_: TokenStream, item: TokenStream) -> TokenStream {
     let actor_type = actor_type.unwrap();
     let message_type = message_type.unwrap();
     let name = task_fn.sig.ident.clone();
-    let handler = format_ident!("__drogue_trampoline_{}", name);
     let result = quote! {
         #task_fn
 
-
-        #[embassy::task]
-        async fn #handler(state: &'static ActorState<'static, #actor_type>) {
-            let channel = &state.channel;
-            let mut actor = state.actor.borrow_mut();
-            loop {
-                let request = channel.receive().await;
-                #name(&mut actor, request).await;
-            }
-        }
 
         impl Actor for #actor_type {
             type Message = #message_type;
