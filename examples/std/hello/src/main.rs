@@ -1,6 +1,5 @@
 #![allow(incomplete_features)]
 #![feature(min_type_alias_impl_trait)]
-#![feature(generic_associated_types)]
 #![feature(impl_trait_in_bindings)]
 #![feature(type_alias_impl_trait)]
 #![feature(concat_idents)]
@@ -35,7 +34,7 @@ async fn main(device: Device) {
         .init();
 
     // TODO: Generate scaffold
-    let addr = bind!(device, MyActor = MyActor::new());
+    let addr = bind!(device, process, MyActor = MyActor::new());
     loop {
         Timer::after(Duration::from_secs(1)).await;
         addr.send(SayHello).await;
