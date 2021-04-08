@@ -1,6 +1,7 @@
 #![allow(incomplete_features)]
 #![feature(proc_macro_diagnostic)]
 #![feature(concat_idents)]
+#![feature(generic_associated_types)]
 
 extern crate proc_macro;
 
@@ -167,8 +168,8 @@ pub fn actor(_: TokenStream, item: TokenStream) -> TokenStream {
     let name = task_fn.sig.ident.clone();
     let handler = format_ident!("__drogue_trampoline_{}", name);
     let result = quote! {
-        #task_fn
 
+        #task_fn
 
         #[embassy::task]
         async fn #handler(state: &'static ActorState<'static, #actor_type>) {
@@ -182,6 +183,9 @@ pub fn actor(_: TokenStream, item: TokenStream) -> TokenStream {
 
         impl Actor for #actor_type {
             type Message = #message_type;
+            fn spawn(spawner: &mut embassy::executor::Spawner, state: &'static ActorState<'static, #actor_type>) {
+                spawner.spawn(#handler(state)).unwrap();
+            }
         }
 
     };

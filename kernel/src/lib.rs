@@ -1,5 +1,6 @@
 #![allow(incomplete_features)]
 #![feature(min_type_alias_impl_trait)]
+#![feature(generic_associated_types)]
 #![feature(impl_trait_in_bindings)]
 #![feature(type_alias_impl_trait)]
 #![feature(concat_idents)]
@@ -12,6 +13,7 @@ mod device {
     use crate::channel::{consts, Channel};
     use core::cell::RefCell;
     use embassy::executor::{SpawnToken, Spawner};
+    use heapless::Vec;
 
     pub struct Device {
         spawner: RefCell<Option<Spawner>>,
@@ -24,11 +26,15 @@ mod device {
             }
         }
 
-        pub fn register<A: Actor, F>(
+        pub fn mount<A: Actor>(
             &self,
-            actor: A,
-            f: impl FnOnce(&mut A, A::Message) -> SpawnToken<F>,
-        ) {
+            actor: &'static ActorState<'static, A>,
+        ) -> Address<'static, A> {
+            let addr = actor.mount();
+            let mut spawner = self.spawner.borrow_mut();
+            let mut s = spawner.as_mut().unwrap();
+            A::spawn(&mut s, actor);
+            addr
         }
 
         pub fn set_spawner(&self, spawner: Spawner) {
@@ -65,8 +71,12 @@ mod device {
         }
     }
 
-    pub trait Actor {
+    pub trait Actor: Sized {
         type Message;
+        fn spawn(
+            spawner: &mut embassy::executor::Spawner,
+            state: &'static ActorState<'static, Self>,
+        );
     }
 
     pub struct Address<'a, A: Actor> {
@@ -217,12 +227,13 @@ mod channel {
 mod macros {
     #[macro_export]
     macro_rules! bind {
-        ($device:expr, $proc:ident, $ty:ty = $instance:expr) => {{
+        ($device:expr, $ty:ty = $instance:expr) => {{
             // TODO: need type name
             static DROGUE_ACTOR_A1: Forever<ActorState<'static, $ty>> = Forever::new();
             let a = DROGUE_ACTOR_A1.put(ActorState::new($instance));
-            let addr = a.mount();
-            $device.start(concat_idents!(__drogue_trampoline_, $proc)(a));
+
+            let addr = $device.mount(a);
+            // $device.start(concat_idents!(__drogue_trampoline_, $proc)(a));
             addr
         }};
     }
