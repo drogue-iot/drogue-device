@@ -24,13 +24,6 @@ mod device {
             }
         }
 
-        pub fn register<A: Actor, F>(
-            &self,
-            actor: A,
-            f: impl FnOnce(&mut A, A::Message) -> SpawnToken<F>,
-        ) {
-        }
-
         pub fn set_spawner(&self, spawner: Spawner) {
             self.spawner.borrow_mut().replace(spawner);
         }
@@ -219,11 +212,11 @@ mod macros {
     macro_rules! bind {
         ($device:expr, $proc:ident, $name:ident, $ty:ty, $instance:expr) => {{
             mod $name {
-                pub static DROGUE_ACTOR: crate::Forever<crate::ActorState<'static, $ty>> =
-                    crate::Forever::new();
+                use drogue_device_platform_std::{ActorState, Forever};
+                pub static DROGUE_ACTOR: Forever<ActorState<'static, $ty>> = Forever::new();
 
                 #[embassy::task]
-                pub async fn trampoline(state: &'static crate::ActorState<'static, $ty>) {
+                pub async fn trampoline(state: &'static ActorState<'static, $ty>) {
                     let channel = &state.channel;
                     let mut actor = state.actor.borrow_mut();
                     loop {

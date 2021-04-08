@@ -5,7 +5,7 @@
 #![feature(concat_idents)]
 
 use drogue_device_platform_std::{
-    self as drogue, bind, Actor, ActorState, Device, Duration, Forever, Timer,
+    self as drogue, bind, Actor, ActorState, Device, Duration, Timer,
 };
 
 pub struct MyActor {
