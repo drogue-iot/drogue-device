@@ -1,0 +1,17 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+edition = "2018"
+name = "drogue-device-macros"
+version = "0.1.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "1.0.39", features = ["full", "extra-traits"] }
+quote = "1.0.7"
+darling = "0.10.2"
+proc-macro2 = "1.0.24"

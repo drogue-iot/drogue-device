@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "kernel",
+    "macros",
+    "platform/std",
+    "examples/std/hello",
+]

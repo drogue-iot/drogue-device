@@ -1,0 +1,41 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+edition = "2018"
+name = "drogue-device-kernel"
+version = "0.1.0"
+
+[lib]
+
+[dependencies.async-io]
+version = "1.3.1"
+
+[dependencies.embassy]
+version = "0.1.0"
+git = "https://github.com/embassy-rs/embassy.git"
+
+[dependencies.embassy-std]
+version = "0.1.0"
+git = "https://github.com/embassy-rs/embassy.git"
+
+[dependencies.drogue-device-macros]
+path = "../macros"
+
+[dependencies.heapless]
+version = "0.6"
+
+[dependencies.futures]
+version = "0.3.8"
+default-features = false
+features = ["async-await"]
+
+[dependencies.log]
+version = "0.4.11"
+optional = true
+
+#nix = "0.19.1"
+
+[features]
+default = ["embassy/log", "log"]
