@@ -8,7 +8,7 @@
 use core::future::Future;
 use core::pin::Pin;
 use drogue_device_platform_std::{
-    self as drogue, bind, Actor, ActorState, Device, DeviceContext, Duration, Timer,
+    self as drogue, Actor, ActorState, Device, DeviceContext, Duration, Timer,
 };
 
 pub struct MyActor {
@@ -40,14 +40,6 @@ pub struct MyDevice {
     a: ActorState<'static, MyActor>,
     b: ActorState<'static, MyActor>,
 }
-
-/*
-impl Device for MyDevice {
-    fn mount(&'static self) {
-        self.a.mount();
-        self.b.mount();
-    }
-}*/
 
 fn configure() -> MyDevice {
     env_logger::builder()

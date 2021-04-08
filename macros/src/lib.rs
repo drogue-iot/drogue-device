@@ -1,12 +1,11 @@
 #![allow(incomplete_features)]
 #![feature(proc_macro_diagnostic)]
-#![feature(concat_idents)]
 
 extern crate proc_macro;
 
 // use darling::FromMeta;
 use proc_macro::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::spanned::Spanned;
 use syn::{self, Data, DataStruct, Fields};
 
@@ -55,6 +54,7 @@ pub fn bind(input: TokenStream) -> TokenStream {
 }
 */
 
+/*
 #[proc_macro_attribute]
 pub fn actor(_: TokenStream, item: TokenStream) -> TokenStream {
     // let macro_args = syn::parse_macro_input!(args as syn::AttributeArgs);
@@ -164,10 +164,8 @@ pub fn actor(_: TokenStream, item: TokenStream) -> TokenStream {
 
     let actor_type = actor_type.unwrap();
     let message_type = message_type.unwrap();
-    let name = task_fn.sig.ident.clone();
     let result = quote! {
         #task_fn
-
 
         impl Actor for #actor_type {
             type Message = #message_type;
@@ -176,11 +174,10 @@ pub fn actor(_: TokenStream, item: TokenStream) -> TokenStream {
     };
     result.into()
 }
+*/
 
 #[proc_macro_derive(Device)]
 pub fn device_macro_derive(input: TokenStream) -> TokenStream {
-    // Construct a representation of Rust code as a syntax tree
-    // that we can manipulate
     let input: syn::DeriveInput = syn::parse(input).unwrap();
     let name = &input.ident;
 
@@ -194,33 +191,23 @@ pub fn device_macro_derive(input: TokenStream) -> TokenStream {
     let field_name = fields.iter().map(|field| &field.ident);
     let field_type = fields.iter().map(|field| &field.ty);
 
-    let field_name2 = fields.iter().map(|field| &field.ident);
-
-    dbg!(&fields);
     let gen = quote! {
-        #(
-            mod #field_name {
-                use drogue_device_platform_std::{Actor, ActorState, Forever};
-                pub static DEVICE_ACTOR: Forever<#field_type> = Forever::new();
-
-                #[embassy::task]
-                pub async fn trampoline(state: &'static #field_type) {
-                    let channel = &state.channel;
-                    let mut actor = unsafe { (&mut *state.actor.get()) };
-                    loop {
-                        let mut pinned = core::pin::Pin::new(&mut *actor);
-                        let request = channel.receive().await;
-                        pinned.process(request).await;
-                    }
-                }
-            }
-        )*
-
         impl Device for #name {
             fn mount(&'static self, spawner: embassy::executor::Spawner) {
                 #(
-                    self.#field_name2.mount();
-                    spawner.spawn(#field_name2::trampoline(&self.#field_name2));
+                    #[embassy::task]
+                    async fn #field_name(state: &'static #field_type) {
+                        let channel = &state.channel;
+                        let mut actor = unsafe { (&mut *state.actor.get()) };
+                        loop {
+                            let mut pinned = core::pin::Pin::new(&mut *actor);
+                            let request = channel.receive().await;
+                            pinned.process(request).await;
+                        }
+                    }
+
+                    self.#field_name.mount();
+                    spawner.spawn(#field_name(&self.#field_name)).unwrap();
                 )*
             }
         }

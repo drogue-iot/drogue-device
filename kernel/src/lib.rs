@@ -3,11 +3,10 @@
 #![feature(impl_trait_in_bindings)]
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
-#![feature(concat_idents)]
 
 pub use channel::{consts, Channel};
 pub use device::{Actor, ActorState, Address, Device, DeviceContext};
-pub use drogue_device_macros::{actor, main, Device};
+pub use drogue_device_macros::{main, Device};
 
 mod device {
     use crate::channel::{consts, Channel};
@@ -241,6 +240,7 @@ mod channel {
     }
 }
 
+/*
 mod macros {
     #[macro_export]
     macro_rules! bind {
@@ -267,3 +267,4 @@ mod macros {
         }};
     }
 }
+*/
