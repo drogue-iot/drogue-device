@@ -183,7 +183,7 @@ pub fn actor(_: TokenStream, item: TokenStream) -> TokenStream {
 
         impl Actor for #actor_type {
             type Message = #message_type;
-            fn spawn(spawner: embassy::executor::Spawner, state: &'static ActorState<'static, #actor_type>) {
+            fn spawn(spawner: &mut embassy::executor::Spawner, state: &'static ActorState<'static, #actor_type>) {
                 spawner.spawn(#handler(state)).unwrap();
             }
         }
@@ -252,7 +252,8 @@ pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
             let executor = unsafe { make_static(&mut executor) };
 
             executor.run(|spawner| {
-                let mut device = Device::new(spawner);
+                let mut device = Device::new();
+                device.set_spawner(spawner);
                 spawner.spawn(__drogue_main(device)).unwrap();
             })
 

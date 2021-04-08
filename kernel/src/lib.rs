@@ -13,15 +13,17 @@ mod device {
     use crate::channel::{consts, Channel};
     use core::cell::RefCell;
     use embassy::executor::{SpawnToken, Spawner};
-    // use heapless::Vec;
+    use heapless::Vec;
 
     pub struct Device {
-        spawner: Spawner,
+        spawner: RefCell<Option<Spawner>>,
     }
 
     impl Device {
-        pub fn new(spawner: Spawner) -> Self {
-            Self { spawner }
+        pub fn new() -> Self {
+            Self {
+                spawner: RefCell::new(None),
+            }
         }
 
         pub fn mount<A: Actor>(
@@ -29,8 +31,23 @@ mod device {
             actor: &'static ActorState<'static, A>,
         ) -> Address<'static, A> {
             let addr = actor.mount();
-            A::spawn(self.spawner.clone(), actor);
+            let mut spawner = self.spawner.borrow_mut();
+            let mut s = spawner.as_mut().unwrap();
+            A::spawn(&mut s, actor);
             addr
+        }
+
+        pub fn set_spawner(&self, spawner: Spawner) {
+            self.spawner.borrow_mut().replace(spawner);
+        }
+
+        pub fn start<F>(&self, token: SpawnToken<F>) {
+            self.spawner
+                .borrow_mut()
+                .as_ref()
+                .unwrap()
+                .spawn(token)
+                .unwrap();
         }
     }
 
@@ -56,7 +73,10 @@ mod device {
 
     pub trait Actor: Sized {
         type Message;
-        fn spawn(spawner: embassy::executor::Spawner, state: &'static ActorState<'static, Self>);
+        fn spawn(
+            spawner: &mut embassy::executor::Spawner,
+            state: &'static ActorState<'static, Self>,
+        );
     }
 
     pub struct Address<'a, A: Actor> {
@@ -207,13 +227,10 @@ mod channel {
 mod macros {
     #[macro_export]
     macro_rules! bind {
-        ($device:expr, $name:ident, $ty:ty, $instance:expr) => {{
+        ($device:expr, $ty:ty = $instance:expr) => {{
             // TODO: need type name
-            mod $name {
-                pub static DROGUE_ACTOR: crate::Forever<crate::ActorState<'static, $ty>> =
-                    crate::Forever::new();
-            }
-            let a = $name::DROGUE_ACTOR.put(ActorState::new($instance));
+            static DROGUE_ACTOR_A1: Forever<ActorState<'static, $ty>> = Forever::new();
+            let a = DROGUE_ACTOR_A1.put(ActorState::new($instance));
 
             let addr = $device.mount(a);
             // $device.start(concat_idents!(__drogue_trampoline_, $proc)(a));
