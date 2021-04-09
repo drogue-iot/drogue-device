@@ -203,8 +203,8 @@ pub fn device_macro_derive(input: TokenStream) -> TokenStream {
                         core::pin::Pin::new(&mut *actor).on_start().await;
                         loop {
                             let mut pinned = core::pin::Pin::new(&mut *actor);
-                            let message = channel.receive().await;
-                            pinned.on_message(message).await;
+                            let mut message = channel.receive().await;
+                            pinned.on_message(message.take_message()).await;
                         }
                     }
 
@@ -263,6 +263,10 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
 
     let result = quote! {
 
+        static EXECUTOR: embassy::util::Forever<embassy_std::Executor> = embassy::util::Forever::new();
+        // TODO: Derive from cfg output
+        static DEVICE: embassy::util::Forever<MyDevice> = embassy::util::Forever::new();
+
         #[embassy::task]
         async fn __drogue_main(#args) {
             #task_fn_body
@@ -270,16 +274,13 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
 
         // TODO: Cortex-mi'ify #[cortex_m_rt::entry]
         fn main() -> ! {
-            unsafe fn make_static<T>(t: &mut T) -> &'static mut T {
-                ::core::mem::transmute(t)
-            }
+            let (executor, device) = {
+                let executor = EXECUTOR.put(embassy_std::Executor::new());
+                let device = DEVICE.put(#cfg());
+                (executor, device)
+            };
 
-            let mut executor = embassy_std::Executor::new();
-            let executor = unsafe { make_static(&mut executor) };
-            let mut device = #cfg();
-            let device = unsafe { make_static(&mut device) };
             let context = DeviceContext::new(device);
-
             executor.run(|spawner| {
                 context.device().mount(spawner);
                 spawner.spawn(__drogue_main(context)).unwrap();

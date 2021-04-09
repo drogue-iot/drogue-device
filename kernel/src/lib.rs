@@ -50,27 +50,48 @@ mod device {
         }
     }
 
+    pub struct ActorMessage<A: Actor> {
+        message: Option<A::Message>,
+    }
+
+    impl<A: Actor> ActorMessage<A> {
+        fn new(message: A::Message) -> Self {
+            Self {
+                message: Some(message),
+            }
+        }
+
+        pub fn take_message(&mut self) -> A::Message {
+            self.message.take().unwrap()
+        }
+    }
+
     pub struct ActorState<'a, A: Actor> {
         pub actor: UnsafeCell<A>,
-        pub channel: Channel<'a, A::Message, consts::U4>,
+        pub channel: Channel<'a, ActorMessage<A>, consts::U4>,
     }
 
     impl<'a, A: Actor> ActorState<'a, A> {
         pub fn new(actor: A) -> Self {
-            let channel: Channel<'a, A::Message, consts::U4> = Channel::new();
+            let channel: Channel<'a, ActorMessage<A>, consts::U4> = Channel::new();
             Self {
                 actor: UnsafeCell::new(actor),
                 channel,
             }
         }
 
+        async fn send(&'a self, message: A::Message) {
+            let message = ActorMessage::new(message);
+            self.channel.send(message).await
+        }
+
         pub fn mount(&'a self) -> Address<'a, A> {
             self.channel.initialize();
-            Address::new(&self.channel)
+            Address::new(self)
         }
 
         pub fn address(&'a self) -> Address<'a, A> {
-            Address::new(&self.channel)
+            Address::new(self)
         }
     }
 
@@ -89,18 +110,18 @@ mod device {
     }
 
     pub struct Address<'a, A: Actor> {
-        channel: &'a Channel<'a, A::Message, consts::U4>,
+        state: &'a ActorState<'a, A>,
     }
 
     impl<'a, A: Actor> Address<'a, A> {
-        pub fn new(channel: &'a Channel<'a, A::Message, consts::U4>) -> Self {
-            Self { channel }
+        pub fn new(state: &'a ActorState<'a, A>) -> Self {
+            Self { state }
         }
     }
 
     impl<'a, A: Actor> Address<'a, A> {
         pub async fn send(&self, message: A::Message) {
-            self.channel.send(message).await
+            self.state.send(message).await
         }
     }
 
@@ -108,9 +129,7 @@ mod device {
 
     impl<'a, A: Actor> Clone for Address<'a, A> {
         fn clone(&self) -> Self {
-            Self {
-                channel: self.channel,
-            }
+            Self { state: self.state }
         }
     }
 }
