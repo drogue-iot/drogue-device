@@ -27,14 +27,14 @@ impl Actor for MyActor {
     type OnStartFuture<'a> = impl Future<Output = ()> + 'a;
     type OnMessageFuture<'a> = impl Future<Output = ()> + 'a;
 
-    fn on_start<'a>(self: Pin<&'a mut Self>) -> Self::OnStartFuture<'a> {
+    fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
         async move { log::info!("[{}] started!", self.name) }
     }
 
-    fn on_message<'a>(
-        mut self: Pin<&'a mut Self>,
+    fn on_message(
+        mut self: Pin<&'_ mut Self>,
         message: Self::Message,
-    ) -> Self::OnMessageFuture<'a> {
+    ) -> Self::OnMessageFuture<'_> {
         async move {
             log::info!("[{}] hello {}: {}", self.name, message.0, self.counter);
             self.counter += 1;

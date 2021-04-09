@@ -83,11 +83,9 @@ mod device {
         where
             Self: 'a;
 
-        fn on_start<'a>(self: Pin<&'a mut Self>) -> Self::OnStartFuture<'a>;
-        fn on_message<'a>(
-            self: Pin<&'a mut Self>,
-            message: Self::Message,
-        ) -> Self::OnMessageFuture<'a>;
+        fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_>;
+        fn on_message(self: Pin<&'_ mut Self>, message: Self::Message)
+            -> Self::OnMessageFuture<'_>;
     }
 
     pub struct Address<'a, A: Actor> {
