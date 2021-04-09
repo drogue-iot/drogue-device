@@ -4,8 +4,7 @@
 #![feature(type_alias_impl_trait)]
 
 pub use drogue_device_kernel::*;
-pub use embassy::time::{Duration, Timer};
-pub use embassy::util::Forever;
+pub use embassy_std;
 
 #[cfg(test)]
 mod tests {

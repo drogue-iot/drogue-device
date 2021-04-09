@@ -13,14 +13,19 @@ version = "0.4"
 [dependencies.env_logger]
 version = "0.8"
 
-[dependencies.embassy]
-version = "0.1.0"
-git = "https://github.com/embassy-rs/embassy.git"
-
-[dependencies.embassy-std]
-version = "0.1.0"
-git = "https://github.com/embassy-rs/embassy.git"
-
 [dependencies.drogue-device-platform-std]
 path = "../../../platform/std"
 features = ["log"]
+
+# TODO: Get rid of these
+[dependencies.embassy]
+version = "0.1.0"
+# git = "https://github.com/embassy-rs/embassy.git"
+git = "https://github.com/lulf/embassy.git"
+branch = "signal-std"
+
+[dependencies.embassy-std]
+version = "0.1.0"
+# git = "https://github.com/embassy-rs/embassy.git"
+git = "https://github.com/lulf/embassy.git"
+branch = "signal-std"
