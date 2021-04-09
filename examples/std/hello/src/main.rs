@@ -42,7 +42,7 @@ impl Actor for MyActor {
 
 pub struct SayHello(&'static str);
 
-#[derive(Device)]
+#[derive(drogue::Device)]
 pub struct MyDevice {
     a: ActorState<'static, MyActor>,
     b: ActorState<'static, MyActor>,
