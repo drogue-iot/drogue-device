@@ -102,3 +102,16 @@ impl Future for OpenFuture {
         result
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[async_std::test]
+    async fn max_simultaneous_sockets() {
+	// let pool = SocketPool::new();
+	// let index = pool.open().await;
+        // assert_eq!(0, index);
+	assert_eq!(true, true)
+    }
+}
