@@ -1,4 +1,5 @@
-#![no_std]
+// make `std` available when testing
+#![cfg_attr(not(test), no_std)]
 #![allow(dead_code)]
 #![allow(unused_variables)]
 

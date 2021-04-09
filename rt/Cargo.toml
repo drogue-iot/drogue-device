@@ -135,6 +135,13 @@ features = ["executor"]
 [dev-dependencies.env_logger]
 version = "0.8.2"
 
+[dev-dependencies.arrayvec]
+version = "0.7.0"
+
+[dev-dependencies.async-std]
+version = "1"
+features = ["attributes"]
+
 # ----------------------------------------
 # embedded_time dependencies
 # ----------------------------------------

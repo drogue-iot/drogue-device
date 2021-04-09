@@ -158,8 +158,7 @@ impl Debug for Response {
                 .field("link_id", link_id)
                 .field("len", len)
                 .finish(),
-            //Response::DataReceived(d, l) => dump_data("DataReceived", d, *l, f),
-            Response::DataReceived(_, _) => f.write_str("DataReceived"),
+            Response::DataReceived(d, l) => dump_data("DataReceived", d, *l, f),
             Response::WifiConnected => f.write_str("WifiConnected"),
             Response::WifiConnectionFailure(v) => {
                 f.debug_tuple("WifiConnectionFailure").field(v).finish()
@@ -252,7 +251,7 @@ mod test {
 
     #[test]
     fn test_debug_no_value() {
-        let mut buf = ArrayString::<[u8; 20]>::new();
+        let mut buf = ArrayString::<20>::new();
 
         write!(&mut buf, "{:?}", Response::Ok).expect("Can't write");
         assert_eq!(&buf, "Ok");
@@ -260,7 +259,7 @@ mod test {
 
     #[test]
     fn test_debug_simple_value() {
-        let mut buf = ArrayString::<[u8; 20]>::new();
+        let mut buf = ArrayString::<20>::new();
 
         write!(&mut buf, "{:?}", Response::Connect(1)).expect("Can't write");
         assert_eq!(&buf, "Connect(1)");
@@ -268,10 +267,10 @@ mod test {
 
     #[test]
     fn test_debug_data() {
-        let mut buf = ArrayString::<[u8; 256]>::new();
+        let mut buf = ArrayString::<256>::new();
         let data = b"FOO\0BAR";
 
-        let mut array = [0u8; 128];
+        let mut array = [0u8; BUFFER_LEN];
         for (&x, p) in data.iter().zip(array.iter_mut()) {
             *p = x;
         }
