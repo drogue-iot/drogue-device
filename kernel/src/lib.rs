@@ -76,11 +76,18 @@ mod device {
 
     pub trait Actor {
         type Message;
-        type ProcessFuture<'a>: Future<Output = ()>
+        type OnStartFuture<'a>: Future<Output = ()>
+        where
+            Self: 'a;
+        type OnMessageFuture<'a>: Future<Output = ()>
         where
             Self: 'a;
 
-        fn process<'a>(self: Pin<&'a mut Self>, message: Self::Message) -> Self::ProcessFuture<'a>;
+        fn on_start<'a>(self: Pin<&'a mut Self>) -> Self::OnStartFuture<'a>;
+        fn on_message<'a>(
+            self: Pin<&'a mut Self>,
+            message: Self::Message,
+        ) -> Self::OnMessageFuture<'a>;
     }
 
     pub struct Address<'a, A: Actor> {

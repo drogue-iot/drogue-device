@@ -199,10 +199,12 @@ pub fn device_macro_derive(input: TokenStream) -> TokenStream {
                     async fn #field_name(state: &'static #field_type) {
                         let channel = &state.channel;
                         let mut actor = unsafe { (&mut *state.actor.get()) };
+
+                        core::pin::Pin::new(&mut *actor).on_start().await;
                         loop {
                             let mut pinned = core::pin::Pin::new(&mut *actor);
-                            let request = channel.receive().await;
-                            pinned.process(request).await;
+                            let message = channel.receive().await;
+                            pinned.on_message(message).await;
                         }
                     }
 

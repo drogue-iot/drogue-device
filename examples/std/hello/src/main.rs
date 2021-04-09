@@ -12,22 +12,31 @@ use drogue_device_platform_std::{
 };
 
 pub struct MyActor {
+    name: &'static str,
     counter: u32,
 }
 
 impl MyActor {
-    pub fn new() -> Self {
-        Self { counter: 0 }
+    pub fn new(name: &'static str) -> Self {
+        Self { name, counter: 0 }
     }
 }
 
 impl Actor for MyActor {
     type Message = SayHello;
-    type ProcessFuture<'a> = impl Future<Output = ()> + 'a;
+    type OnStartFuture<'a> = impl Future<Output = ()> + 'a;
+    type OnMessageFuture<'a> = impl Future<Output = ()> + 'a;
 
-    fn process<'a>(mut self: Pin<&'a mut Self>, message: Self::Message) -> Self::ProcessFuture<'a> {
+    fn on_start<'a>(self: Pin<&'a mut Self>) -> Self::OnStartFuture<'a> {
+        async move { log::info!("[{}] started!", self.name) }
+    }
+
+    fn on_message<'a>(
+        mut self: Pin<&'a mut Self>,
+        message: Self::Message,
+    ) -> Self::OnMessageFuture<'a> {
         async move {
-            log::info!("[{}] hello: {}", message.0, self.counter);
+            log::info!("[{}] hello {}: {}", self.name, message.0, self.counter);
             self.counter += 1;
         }
     }
@@ -48,8 +57,8 @@ fn configure() -> MyDevice {
         .init();
 
     MyDevice {
-        a: ActorState::new(MyActor::new()),
-        b: ActorState::new(MyActor::new()),
+        a: ActorState::new(MyActor::new("a")),
+        b: ActorState::new(MyActor::new("b")),
     }
 }
 
@@ -59,7 +68,7 @@ async fn main(context: DeviceContext<MyDevice>) {
     let b_addr = context.device().b.address();
     loop {
         Timer::after(Duration::from_secs(1)).await;
-        a_addr.send(SayHello("a")).await;
-        b_addr.send(SayHello("b")).await;
+        a_addr.send(SayHello("World")).await;
+        b_addr.send(SayHello("You")).await;
     }
 }
