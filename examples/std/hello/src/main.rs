@@ -48,6 +48,7 @@ pub struct MyDevice {
     b: ActorState<'static, MyActor>,
 }
 
+#[drogue::configure]
 fn configure() -> MyDevice {
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
@@ -60,7 +61,7 @@ fn configure() -> MyDevice {
     }
 }
 
-#[drogue::main(configure)]
+#[drogue::main]
 async fn main(context: DeviceContext<MyDevice>) {
     let a_addr = context.device().a.address();
     let b_addr = context.device().b.address();

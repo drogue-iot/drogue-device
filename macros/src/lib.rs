@@ -50,9 +50,87 @@ pub fn device_macro_derive(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
-    //let macro_args = syn::parse_macro_input!(args as syn::AttributeArgs);
-    let cfg: syn::Ident = syn::parse(args).unwrap();
+pub fn configure(_: TokenStream, item: TokenStream) -> TokenStream {
+    let task_fn = syn::parse_macro_input!(item as syn::ItemFn);
+
+    let mut fail = false;
+    if !task_fn.sig.asyncness.is_none() {
+        task_fn
+            .sig
+            .span()
+            .unwrap()
+            .error("configure function must be sync")
+            .emit();
+        fail = true;
+    }
+    if !task_fn.sig.generics.params.is_empty() {
+        task_fn
+            .sig
+            .span()
+            .unwrap()
+            .error("configure function must not be generic")
+            .emit();
+        fail = true;
+    }
+
+    let args = task_fn.sig.inputs.clone();
+    if args.len() != 0 {
+        task_fn
+            .sig
+            .span()
+            .unwrap()
+            .error("configure function must not take any arguments")
+            .emit();
+        fail = true;
+    }
+
+    let device_type: Option<&syn::Ident> = match &task_fn.sig.output {
+        syn::ReturnType::Default => {
+            task_fn
+                .sig
+                .span()
+                .unwrap()
+                .error("return type must be specified")
+                .emit();
+            fail = true;
+            None
+        }
+        syn::ReturnType::Type(_, v) => match &**v {
+            syn::Type::Path(t) => t.path.get_ident(),
+            _ => {
+                task_fn
+                    .sig
+                    .span()
+                    .unwrap()
+                    .error("return type must be a path type")
+                    .emit();
+                fail = true;
+                None
+            }
+        },
+    };
+
+    if fail {
+        return TokenStream::new();
+    }
+
+    let device_type = device_type.unwrap();
+    let task_fn_body = task_fn.block;
+
+    let result = quote! {
+
+        static DEVICE: embassy::util::Forever<#device_type> = embassy::util::Forever::new();
+
+        fn __drogue_configure() -> &'static #device_type {
+            let device = #task_fn_body;
+            DEVICE.put(device)
+        }
+    };
+    result.into()
+}
+
+#[proc_macro_attribute]
+pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
     let task_fn = syn::parse_macro_input!(item as syn::ItemFn);
 
     let mut fail = false;
@@ -96,8 +174,6 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let result = quote! {
 
         static EXECUTOR: embassy::util::Forever<embassy_std::Executor> = embassy::util::Forever::new();
-        // TODO: Derive from cfg output
-        static DEVICE: embassy::util::Forever<MyDevice> = embassy::util::Forever::new();
 
         #[embassy::task]
         async fn __drogue_main(#args) {
@@ -108,7 +184,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
         fn main() -> ! {
             let (executor, device) = {
                 let executor = EXECUTOR.put(embassy_std::Executor::new());
-                let device = DEVICE.put(#cfg());
+                let device = __drogue_configure();
                 (executor, device)
             };
 

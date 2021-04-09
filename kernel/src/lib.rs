@@ -12,7 +12,7 @@ mod signal;
 pub use actor::{Actor, ActorState, Address};
 pub use channel::{consts, Channel};
 pub use device::{Device, DeviceContext};
-pub use drogue_device_macros::{main, Device};
+pub use drogue_device_macros::{configure, main, Device};
 pub use embassy;
 pub use embassy::executor::raw::Task;
 pub use embassy::time::{Duration, Timer};
