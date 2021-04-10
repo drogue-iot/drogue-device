@@ -7,5 +7,5 @@ members = [
 ]
 
 [patch.crates-io]
-cortex-m = {path = "../../cortex-m", features = ["device"]}
+cortex-m = {git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"]}
 
