@@ -5,3 +5,7 @@ members = [
     "platform/std",
     "examples/std/hello",
 ]
+
+[patch.crates-io]
+cortex-m = {path = "../../cortex-m", features = ["device"]}
+
