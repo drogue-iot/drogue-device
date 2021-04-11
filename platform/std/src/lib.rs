@@ -4,7 +4,7 @@
 #![feature(type_alias_impl_trait)]
 
 pub use drogue_device_kernel::*;
-pub use embassy_std;
+pub use embassy_std::Executor;
 
 #[cfg(test)]
 mod tests {

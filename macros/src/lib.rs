@@ -172,17 +172,17 @@ pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
 
     let result = quote! {
 
-        static EXECUTOR: embassy::util::Forever<embassy_std::Executor> = embassy::util::Forever::new();
+        static EXECUTOR: embassy::util::Forever<drogue::Executor> = embassy::util::Forever::new();
 
         #[embassy::task]
         async fn __drogue_main(#args) {
             #task_fn_body
         }
 
-        // TODO: Cortex-mi'ify #[cortex_m_rt::entry]
+       // #[cortex_m_rt::entry]
         fn main() -> ! {
             let (executor, device) = {
-                let executor = EXECUTOR.put(embassy_std::Executor::new());
+                let executor = EXECUTOR.put(drogue::Executor::new());
                 let device = __drogue_configure();
                 (executor, device)
             };
