@@ -1,37 +1,23 @@
-use core::cell::RefCell;
-use embassy::executor::{SpawnToken, Spawner};
+use embassy::executor::Spawner;
 
 pub trait Device {
-    fn mount(&'static self, spawner: Spawner);
+    fn start(&'static self, spawner: Spawner);
 }
 
-pub struct DeviceContext<D: Device + 'static> {
+pub trait DeviceMounter {
+    fn mount(&'static self);
+}
+
+pub struct DeviceContext<D: Device + DeviceMounter + 'static> {
     device: &'static D,
-    spawner: RefCell<Option<Spawner>>,
 }
 
-impl<D: Device + 'static> DeviceContext<D> {
+impl<D: Device + DeviceMounter + 'static> DeviceContext<D> {
     pub fn new(device: &'static D) -> Self {
-        Self {
-            device,
-            spawner: RefCell::new(None),
-        }
+        Self { device }
     }
 
     pub fn device(&self) -> &'static D {
         self.device
-    }
-
-    pub fn set_spawner(&self, spawner: Spawner) {
-        self.spawner.borrow_mut().replace(spawner);
-    }
-
-    pub fn start<F>(&self, token: SpawnToken<F>) {
-        self.spawner
-            .borrow_mut()
-            .as_ref()
-            .unwrap()
-            .spawn(token)
-            .unwrap();
     }
 }

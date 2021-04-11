@@ -21,6 +21,7 @@ impl MyActor {
 }
 
 impl Actor for MyActor {
+    type Configuration = ();
     type Message<'a> = SayHello<'a>;
     type OnStartFuture<'a> = impl Future<Output = ()> + 'a;
     type OnMessageFuture<'a> = impl Future<Output = ()> + 'a;
@@ -48,6 +49,13 @@ pub struct MyDevice {
     b: ActorState<'static, MyActor>,
 }
 
+impl DeviceMounter for MyDevice {
+    fn mount(&'static self) {
+        self.a.mount();
+        self.b.mount();
+    }
+}
+
 #[drogue::configure]
 fn configure() -> MyDevice {
     env_logger::builder()
@@ -63,8 +71,8 @@ fn configure() -> MyDevice {
 
 #[drogue::main]
 async fn main(context: DeviceContext<MyDevice>) {
-    let a_addr = context.device().a.address();
-    let b_addr = context.device().b.address();
+    let a_addr = context.device().a.mount();
+    let b_addr = context.device().b.mount();
     loop {
         Timer::after(Duration::from_secs(1)).await;
         a_addr.send(&SayHello("World")).await;

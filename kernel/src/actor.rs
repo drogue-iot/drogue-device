@@ -7,6 +7,7 @@ use core::task::{Context, Poll};
 use embassy::util::DropBomb;
 
 pub trait Actor {
+    type Configuration;
     type Message<'a>: Sized
     where
         Self: 'a;
@@ -17,6 +18,7 @@ pub trait Actor {
     where
         Self: 'a;
 
+    fn on_mount(&mut self, _: Self::Configuration) {}
     fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_>;
     fn on_message<'m>(
         self: Pin<&'m mut Self>,

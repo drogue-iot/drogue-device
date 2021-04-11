@@ -25,7 +25,7 @@ pub fn device_macro_derive(input: TokenStream) -> TokenStream {
 
     let gen = quote! {
         impl Device for #name {
-            fn mount(&'static self, spawner: embassy::executor::Spawner) {
+            fn start(&'static self, spawner: embassy::executor::Spawner) {
                 #(
                     #[embassy::task]
                     async fn #field_name(state: &'static #field_type) {
@@ -40,7 +40,6 @@ pub fn device_macro_derive(input: TokenStream) -> TokenStream {
                         }
                     }
 
-                    self.#field_name.mount();
                     spawner.spawn(#field_name(&self.#field_name)).unwrap();
                 )*
             }
@@ -189,8 +188,9 @@ pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
             };
 
             let context = DeviceContext::new(device);
+            context.device().mount();
             executor.run(|spawner| {
-                context.device().mount(spawner);
+                context.device().start(spawner);
                 spawner.spawn(__drogue_main(context)).unwrap();
             })
 
