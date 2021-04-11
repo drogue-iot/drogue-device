@@ -36,7 +36,7 @@ pub fn device_macro_derive(input: TokenStream) -> TokenStream {
                         loop {
                             let mut pinned = core::pin::Pin::new(&mut *actor);
                             let mut message = channel.receive().await;
-                            pinned.on_message(message.take_message()).await;
+                            pinned.on_message(message.message()).await;
                         }
                     }
 

@@ -21,7 +21,7 @@ impl MyActor {
 }
 
 impl Actor for MyActor {
-    type Message = SayHello;
+    type Message<'a> = SayHello<'a>;
     type OnStartFuture<'a> = impl Future<Output = ()> + 'a;
     type OnMessageFuture<'a> = impl Future<Output = ()> + 'a;
 
@@ -29,10 +29,10 @@ impl Actor for MyActor {
         async move { log::info!("[{}] started!", self.name) }
     }
 
-    fn on_message(
-        mut self: Pin<&'_ mut Self>,
-        message: Self::Message,
-    ) -> Self::OnMessageFuture<'_> {
+    fn on_message<'m>(
+        mut self: Pin<&'m mut Self>,
+        message: &'m Self::Message<'m>,
+    ) -> Self::OnMessageFuture<'m> {
         async move {
             log::info!("[{}] hello {}: {}", self.name, message.0, self.counter);
             self.counter += 1;
@@ -40,7 +40,7 @@ impl Actor for MyActor {
     }
 }
 
-pub struct SayHello(&'static str);
+pub struct SayHello<'m>(&'m str);
 
 #[derive(drogue::Device)]
 pub struct MyDevice {
@@ -67,7 +67,7 @@ async fn main(context: DeviceContext<MyDevice>) {
     let b_addr = context.device().b.address();
     loop {
         Timer::after(Duration::from_secs(1)).await;
-        a_addr.send(SayHello("World")).await;
-        b_addr.send(SayHello("You")).await;
+        a_addr.send(&SayHello("World")).await;
+        b_addr.send(&SayHello("You")).await;
     }
 }

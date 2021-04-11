@@ -1,11 +1,15 @@
-use crate::channel::{consts, Channel};
+use crate::channel::{consts, Channel, ChannelSend};
 use crate::signal::{SignalFuture, SignalSlot};
 use core::cell::UnsafeCell;
 use core::future::Future;
 use core::pin::Pin;
+use core::task::{Context, Poll};
+use embassy::util::DropBomb;
 
 pub trait Actor {
-    type Message;
+    type Message<'a>: Sized
+    where
+        Self: 'a;
     type OnStartFuture<'a>: Future<Output = ()>
     where
         Self: 'a;
@@ -14,7 +18,10 @@ pub trait Actor {
         Self: 'a;
 
     fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_>;
-    fn on_message(self: Pin<&'_ mut Self>, message: Self::Message) -> Self::OnMessageFuture<'_>;
+    fn on_message<'m>(
+        self: Pin<&'m mut Self>,
+        message: &'m Self::Message<'m>,
+    ) -> Self::OnMessageFuture<'m>;
 }
 
 pub struct Address<'a, A: Actor> {
@@ -28,8 +35,8 @@ impl<'a, A: Actor> Address<'a, A> {
 }
 
 impl<'a, A: Actor> Address<'a, A> {
-    pub async fn send(&self, message: A::Message) {
-        self.state.send(message).await
+    pub fn send<'m>(&self, message: &'m A::Message<'m>) -> SendFuture<'a, 'm, A> {
+        self.state.send(message)
     }
 }
 
@@ -43,7 +50,7 @@ impl<'a, A: Actor> Clone for Address<'a, A> {
 
 pub struct ActorState<'a, A: Actor> {
     pub actor: UnsafeCell<A>,
-    pub channel: Channel<'a, ActorMessage<A>, consts::U4>,
+    pub channel: Channel<'a, ActorMessage<'a, A>, consts::U4>,
     signals: UnsafeCell<[SignalSlot; 4]>,
 }
 
@@ -69,11 +76,19 @@ impl<'a, A: Actor> ActorState<'a, A> {
         panic!("not enough signals!");
     }
 
-    async fn send(&'a self, message: A::Message) {
+    /// Send a message to this actor. The returned future _must_ be awaited before dropped. If it is not
+    /// awaited, it will panic.
+    fn send<'m>(&'a self, message: &'m A::Message<'m>) -> SendFuture<'a, 'm, A>
+    // impl Future<Output = ()> + 'a
+    where
+        A: 'm + 'a,
+    {
         let signal = self.acquire_signal();
+        let message = unsafe { core::mem::transmute::<_, &'a A::Message<'a>>(message) };
         let message = ActorMessage::new(message, signal);
-        self.channel.send(message).await;
-        SignalFuture::new(signal).await
+        let chan = self.channel.send(message);
+        let sig = SignalFuture::new(signal);
+        SendFuture::new(chan, sig)
     }
 
     pub fn mount(&'a self) -> Address<'a, A> {
@@ -86,21 +101,77 @@ impl<'a, A: Actor> ActorState<'a, A> {
     }
 }
 
-pub struct ActorMessage<A: Actor> {
-    message: Option<A::Message>,
+enum SendState {
+    WaitChannel,
+    WaitSignal,
+    Done,
+}
+
+pub struct SendFuture<'a, 'm, A: Actor + 'a> {
+    channel: ChannelSend<'a, ActorMessage<'a, A>, consts::U4>,
+    signal: SignalFuture<'a, 'm>,
+    state: SendState,
+    bomb: Option<DropBomb>,
+}
+
+impl<'a, 'm, A: Actor> SendFuture<'a, 'm, A> {
+    pub fn new(
+        channel: ChannelSend<'a, ActorMessage<'a, A>, consts::U4>,
+        signal: SignalFuture<'a, 'm>,
+    ) -> Self {
+        Self {
+            channel,
+            signal,
+            state: SendState::WaitChannel,
+            bomb: Some(DropBomb::new()),
+        }
+    }
+}
+
+impl<'a, 'm, A: Actor> Future for SendFuture<'a, 'm, A> {
+    type Output = ();
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        loop {
+            let result = match self.state {
+                SendState::WaitChannel => {
+                    let result = Pin::new(&mut self.channel).poll(cx);
+                    if result.is_ready() {
+                        self.state = SendState::WaitSignal;
+                    }
+                    result
+                }
+                SendState::WaitSignal => {
+                    let result = Pin::new(&mut self.signal).poll(cx);
+                    if result.is_ready() {
+                        self.state = SendState::Done;
+                    }
+                    result
+                }
+                SendState::Done => {
+                    self.bomb.take().unwrap().defuse();
+                    return Poll::Ready(());
+                }
+            };
+            if result.is_pending() {
+                return result;
+            }
+        }
+    }
+}
+
+pub struct ActorMessage<'m, A: Actor + 'm> {
+    message: *const A::Message<'m>,
     signal: *const SignalSlot,
 }
 
-impl<A: Actor> ActorMessage<A> {
-    fn new(message: A::Message, signal: *const SignalSlot) -> Self {
-        Self {
-            message: Some(message),
-            signal,
-        }
+impl<'m, A: Actor> ActorMessage<'m, A> {
+    fn new(message: *const A::Message<'m>, signal: *const SignalSlot) -> Self {
+        Self { message, signal }
     }
 
-    pub fn take_message(&mut self) -> A::Message {
-        self.message.take().unwrap()
+    pub fn message(&mut self) -> &A::Message<'m> {
+        unsafe { &*self.message }
     }
 
     pub fn done(&mut self) {
@@ -108,7 +179,7 @@ impl<A: Actor> ActorMessage<A> {
     }
 }
 
-impl<A: Actor> Drop for ActorMessage<A> {
+impl<'m, A: Actor> Drop for ActorMessage<'m, A> {
     fn drop(&mut self) {
         self.done();
     }

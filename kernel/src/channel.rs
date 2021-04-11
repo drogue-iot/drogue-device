@@ -5,11 +5,8 @@ use core::{
     task::{Context, Poll},
 };
 use embassy::util::AtomicWaker;
-pub use heapless::consts;
-use heapless::{
-    spsc::{Consumer, Producer, Queue},
-    ArrayLength,
-};
+use heapless::spsc::{Consumer, Producer, Queue};
+pub use heapless::{consts, ArrayLength};
 
 struct ChannelInner<'a, T, N: ArrayLength<T>> {
     queue: UnsafeCell<Queue<T, N>>,

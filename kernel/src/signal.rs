@@ -21,6 +21,8 @@ impl<'s> SignalFuture<'s, '_> {
     }
 }
 
+// impl Unpin for SignalFuture<'_, '_> {}
+
 impl Future for SignalFuture<'_, '_> {
     type Output = ();
 
