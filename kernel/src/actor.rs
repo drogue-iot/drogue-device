@@ -93,7 +93,8 @@ impl<'a, A: Actor> ActorState<'a, A> {
         SendFuture::new(chan, sig)
     }
 
-    pub fn mount(&'a self) -> Address<'a, A> {
+    pub fn mount(&'a self, config: A::Configuration) -> Address<'a, A> {
+        unsafe { &mut *self.actor.get() }.on_mount(config);
         self.channel.initialize();
         Address::new(self)
     }

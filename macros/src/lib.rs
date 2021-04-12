@@ -25,9 +25,9 @@ pub fn device_macro_derive(input: TokenStream) -> TokenStream {
 
     let gen = quote! {
         impl Device for #name {
-            fn start(&'static self, spawner: embassy::executor::Spawner) {
+            fn start(&'static self, spawner: drogue::Spawner) {
                 #(
-                    #[embassy::task]
+                    #[drogue::task]
                     async fn #field_name(state: &'static #field_type) {
                         let channel = &state.channel;
                         let mut actor = unsafe { (&mut *state.actor.get()) };
@@ -118,7 +118,7 @@ pub fn configure(_: TokenStream, item: TokenStream) -> TokenStream {
 
     let result = quote! {
 
-        static DEVICE: embassy::util::Forever<#device_type> = embassy::util::Forever::new();
+        static DEVICE: drogue::Forever<#device_type> = drogue::Forever::new();
 
         fn __drogue_configure() -> &'static #device_type {
             let device = #task_fn_body;
@@ -138,7 +138,7 @@ pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
             .sig
             .span()
             .unwrap()
-            .error("task functions must be async")
+            .error("main function must be async")
             .emit();
         fail = true;
     }
@@ -172,28 +172,19 @@ pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
 
     let result = quote! {
 
-        static EXECUTOR: embassy::util::Forever<drogue::Executor> = embassy::util::Forever::new();
-
         #[embassy::task]
         async fn __drogue_main(#args) {
             #task_fn_body
         }
 
-       // #[cortex_m_rt::entry]
-        fn main() -> ! {
-            let (executor, device) = {
-                let executor = EXECUTOR.put(drogue::Executor::new());
-                let device = __drogue_configure();
-                (executor, device)
-            };
+        #[embassy::main]
+        async fn main(spawner: drogue::Spawner) {
+            let device = __drogue_configure();
 
             let context = DeviceContext::new(device);
             context.device().mount();
-            executor.run(|spawner| {
-                context.device().start(spawner);
-                spawner.spawn(__drogue_main(context)).unwrap();
-            })
-
+            context.device().start(spawner);
+            spawner.spawn(__drogue_main(context)).unwrap();
         }
     };
     result.into()

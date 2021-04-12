@@ -5,8 +5,6 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll};
 use embassy::util::Signal;
 
-extern crate std;
-
 pub struct SignalFuture<'s, 'm> {
     signal: &'s SignalSlot,
     _marker: PhantomData<&'m ()>,

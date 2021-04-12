@@ -1,3 +1,5 @@
+#![no_std]
+#![no_main]
 #![macro_use]
 #![allow(incomplete_features)]
 #![feature(generic_associated_types)]
@@ -8,7 +10,10 @@
 
 use core::future::Future;
 use core::pin::Pin;
+use defmt_rtt as _;
 use drogue_device_kernel::{self as drogue, *};
+use embassy_nrf::Peripherals;
+use panic_probe as _;
 
 pub struct MyActor {
     name: &'static str,
@@ -28,7 +33,7 @@ impl Actor for MyActor {
     type OnMessageFuture<'a> = impl Future<Output = ()> + 'a;
 
     fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-        async move { log::info!("[{}] started!", self.name) }
+        async move { defmt::info!("[{}] started!", self.name) }
     }
 
     fn on_message<'m>(
@@ -36,7 +41,7 @@ impl Actor for MyActor {
         message: &'m Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         async move {
-            log::info!("[{}] hello {}: {}", self.name, message.0, self.counter);
+            defmt::info!("[{}] hello {}: {}", self.name, message.0, self.counter);
             self.counter += 1;
         }
     }
@@ -59,11 +64,6 @@ impl DeviceMounter for MyDevice {
 
 #[drogue::configure]
 fn configure() -> MyDevice {
-    env_logger::builder()
-        .filter_level(log::LevelFilter::Info)
-        .format_timestamp_nanos()
-        .init();
-
     MyDevice {
         a: ActorState::new(MyActor::new("a")),
         b: ActorState::new(MyActor::new("b")),

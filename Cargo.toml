@@ -2,10 +2,8 @@
 members = [
     "kernel",
     "macros",
-    "platform/std",
-    "examples/std/hello",
+    "xtask",
 ]
 
 [patch.crates-io]
 cortex-m = {git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"]}
-
