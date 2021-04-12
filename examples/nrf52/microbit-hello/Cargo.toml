@@ -19,20 +19,12 @@ version = "0.2"
 path = "../../../kernel"
 features = ["defmt", "defmt-trace" ]
 
-# TODO: Can we get rid of this?
 [dependencies.embassy]
-version = "0.1.0"
-# git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/lulf/embassy.git"
-branch = "drogue-device"
+git = "https://github.com/embassy-rs/embassy.git"
 features = ["defmt", "defmt-trace" ]
 
-# TODO: Can we get rid of this?
 [dependencies.embassy-nrf]
-version = "0.1.0"
-# git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/lulf/embassy.git"
-branch = "drogue-device"
+git = "https://github.com/embassy-rs/embassy.git"
 features = ["defmt", "defmt-trace", "52833" ]
 
 [dependencies.cortex-m-rt]
