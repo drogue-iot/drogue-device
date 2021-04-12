@@ -6,7 +6,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use embassy::util::DropBomb;
 
-pub trait Actor: Unpin {
+pub trait Actor {
     type Configuration;
     type Message<'a>: Sized
     where
