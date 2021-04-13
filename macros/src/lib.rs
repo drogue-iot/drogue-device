@@ -183,11 +183,7 @@ pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
 
         #[embassy::main]
         async fn main(spawner: drogue::Spawner) {
-            let device = __drogue_configure();
-
-            let context = DeviceContext::new(device);
-            context.device().mount();
-            context.device().start(spawner);
+            let context = DeviceContext::new(spawner, __drogue_configure());
             spawner.spawn(__drogue_main(context)).unwrap();
         }
     };

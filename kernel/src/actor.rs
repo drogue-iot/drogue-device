@@ -98,10 +98,6 @@ impl<'a, A: Actor> ActorState<'a, A> {
         self.channel.initialize();
         Address::new(self)
     }
-
-    pub fn address(&'a self) -> Address<'a, A> {
-        Address::new(self)
-    }
 }
 
 enum SendState {

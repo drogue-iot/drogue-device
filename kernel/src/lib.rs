@@ -15,7 +15,7 @@ pub mod signal;
 
 pub use actor::{Actor, ActorState, Address};
 pub use channel::{consts, Channel};
-pub use device::{Device, DeviceContext, DeviceMounter};
+pub use device::{Device, DeviceContext};
 pub use drogue_device_macros::*;
 pub use embassy;
 pub use embassy::executor::{raw::Task, SpawnToken, Spawner};
