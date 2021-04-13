@@ -33,7 +33,7 @@ impl Actor for MyActor {
 
     fn on_message<'m>(
         mut self: Pin<&'m mut Self>,
-        message: &'m Self::Message<'m>,
+        message: &'m mut Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         async move {
             log::info!("[{}] hello {}: {}", self.name, message.0, self.counter);
@@ -76,7 +76,7 @@ async fn main(context: DeviceContext<MyDevice>) {
     let b_addr = context.device().b.address();
     loop {
         Timer::after(Duration::from_secs(1)).await;
-        a_addr.send(&SayHello("World")).await;
-        b_addr.send(&SayHello("You")).await;
+        a_addr.send(&mut SayHello("World")).await;
+        b_addr.send(&mut SayHello("You")).await;
     }
 }

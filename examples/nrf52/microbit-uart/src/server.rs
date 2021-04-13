@@ -37,7 +37,7 @@ impl<U: Write + Read + 'static> Actor for EchoServer<U> {
 
     fn on_message<'m>(
         self: Pin<&'m mut Self>,
-        _: &'m Self::Message<'m>,
+        _: &'m mut Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         async move {}
     }

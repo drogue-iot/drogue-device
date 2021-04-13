@@ -31,12 +31,16 @@ pub fn device_macro_derive(input: TokenStream) -> TokenStream {
                     async fn #field_name(state: &'static #field_type) {
                         let channel = &state.channel;
                         let mut actor = unsafe { (&mut *state.actor.get()) };
-
-                        core::pin::Pin::new(&mut *actor).on_start().await;
+                        core::pin::Pin::new(actor).on_start().await;
                         loop {
-                            let mut pinned = core::pin::Pin::new(&mut *actor);
                             let mut message = channel.receive().await;
-                            pinned.on_message(message.message()).await;
+                            let mut actor = unsafe { (&mut *state.actor.get()) };
+                            let m = message.message();
+                            // Note: we know that the message sender will panic if it doesn't await the completion
+                            // of the message, thus doing a transmute to pretend that message matches the lifetime
+                            // of the receiver should be fine...
+                            let m = unsafe { core::mem::transmute(m) };
+                            core::pin::Pin::new(actor).on_message(m).await;
                         }
                     }
 

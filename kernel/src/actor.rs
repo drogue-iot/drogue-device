@@ -22,7 +22,7 @@ pub trait Actor {
     fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_>;
     fn on_message<'m>(
         self: Pin<&'m mut Self>,
-        message: &'m Self::Message<'m>,
+        message: &'m mut Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m>;
 }
 
@@ -37,7 +37,7 @@ impl<'a, A: Actor> Address<'a, A> {
 }
 
 impl<'a, A: Actor> Address<'a, A> {
-    pub fn send<'m>(&self, message: &'m A::Message<'m>) -> SendFuture<'a, 'm, A> {
+    pub fn send<'m>(&self, message: &'m mut A::Message<'m>) -> SendFuture<'a, 'm, A> {
         self.state.send(message)
     }
 }
@@ -80,13 +80,13 @@ impl<'a, A: Actor> ActorState<'a, A> {
 
     /// Send a message to this actor. The returned future _must_ be awaited before dropped. If it is not
     /// awaited, it will panic.
-    fn send<'m>(&'a self, message: &'m A::Message<'m>) -> SendFuture<'a, 'm, A>
+    fn send<'m>(&'a self, message: &'m mut A::Message<'m>) -> SendFuture<'a, 'm, A>
     // impl Future<Output = ()> + 'a
     where
         A: 'm + 'a,
     {
         let signal = self.acquire_signal();
-        let message = unsafe { core::mem::transmute::<_, &'a A::Message<'a>>(message) };
+        let message = unsafe { core::mem::transmute::<_, &'a mut A::Message<'a>>(message) };
         let message = ActorMessage::new(message, signal);
         let chan = self.channel.send(message);
         let sig = SignalFuture::new(signal);
@@ -164,17 +164,17 @@ impl<'a, 'm, A: Actor> Future for SendFuture<'a, 'm, A> {
 }
 
 pub struct ActorMessage<'m, A: Actor + 'm> {
-    message: *const A::Message<'m>,
+    message: *mut A::Message<'m>,
     signal: *const SignalSlot,
 }
 
 impl<'m, A: Actor> ActorMessage<'m, A> {
-    fn new(message: *const A::Message<'m>, signal: *const SignalSlot) -> Self {
+    fn new(message: *mut A::Message<'m>, signal: *const SignalSlot) -> Self {
         Self { message, signal }
     }
 
-    pub fn message(&mut self) -> &A::Message<'m> {
-        unsafe { &*self.message }
+    pub fn message(&mut self) -> &mut A::Message<'m> {
+        unsafe { &mut *self.message }
     }
 
     pub fn done(&mut self) {
