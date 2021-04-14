@@ -8,9 +8,7 @@ name = "drogue-device-kernel"
 version = "0.1.0"
 
 [dependencies.embassy]
-#git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/lulf/embassy.git"
-branch = "reexport-macro-param"
+git = "https://github.com/embassy-rs/embassy.git"
 default-features = false
 
 [dependencies.heapless]

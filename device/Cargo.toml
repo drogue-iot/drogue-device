@@ -25,29 +25,21 @@ path = "../drivers/lora/sx127x"
 optional = true
 
 [dependencies.embassy]
-# git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/lulf/embassy.git"
-branch = "reexport-macro-param"
+git = "https://github.com/embassy-rs/embassy.git"
 default-features = false
 
 [dependencies.embassy-nrf]
-# git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/lulf/embassy.git"
-branch = "reexport-macro-param"
+git = "https://github.com/embassy-rs/embassy.git"
 default-features = false
 optional = true
 
 [dependencies.embassy-std]
-# git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/lulf/embassy.git"
-branch = "reexport-macro-param"
+git = "https://github.com/embassy-rs/embassy.git"
 default-features = false
 optional = true
 
 [dev-dependencies.embassy-std]
-# git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/lulf/embassy.git"
-branch = "reexport-macro-param"
+git = "https://github.com/embassy-rs/embassy.git"
 default-features = false
 
 [dependencies.log]

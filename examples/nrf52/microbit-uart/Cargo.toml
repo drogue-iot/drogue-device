@@ -21,15 +21,11 @@ features = ["defmt", "defmt-info", "chip+nrf52833"]
 
 # TODO: Get rid of these
 [dependencies.embassy]
-# git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/lulf/embassy.git"
-branch = "reexport-macro-param"
+git = "https://github.com/embassy-rs/embassy.git"
 features = ["defmt", "defmt-info" ]
 
 [dependencies.embassy-nrf]
-# git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/lulf/embassy.git"
-branch = "reexport-macro-param"
+git = "https://github.com/embassy-rs/embassy.git"
 features = ["defmt", "defmt-info", "52833" ]
 
 [dependencies.cortex-m-rt]
