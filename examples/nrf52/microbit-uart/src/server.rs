@@ -4,17 +4,16 @@ use drogue_device::{
     traits::uart::{Read, Write},
     Actor,
 };
-use futures::pin_mut;
 
 pub struct EchoServer<U: Write + Read + 'static> {
-    uart: Option<U>,
+    uart: U,
 }
 
-impl<U: Write + Read> Unpin for EchoServer<U> {}
+impl<'a, U: Write + Read + 'static> Unpin for EchoServer<U> {}
 
-impl<U: Write + Read> EchoServer<U> {
+impl<'a, U: Write + Read + 'static> EchoServer<U> {
     pub fn new(uart: U) -> Self {
-        Self { uart: Some(uart) }
+        Self { uart }
     }
 }
 
@@ -24,11 +23,11 @@ impl<U: Write + Read + 'static> Actor for EchoServer<U> {
     type OnStartFuture<'a> = impl Future<Output = ()> + 'a;
     type OnMessageFuture<'a> = impl Future<Output = ()> + 'a;
 
-    fn on_start(mut self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
+    fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
         let mut buf: [u8; 1] = [0; 1];
+        let this = unsafe { self.get_unchecked_mut() };
+        let mut uart = unsafe { Pin::new_unchecked(&mut this.uart) };
         async move {
-            let uart = self.uart.take().unwrap();
-            pin_mut!(uart);
             defmt::info!("Echo server started!");
             loop {
                 let _ = uart.as_mut().read(&mut buf).await;
