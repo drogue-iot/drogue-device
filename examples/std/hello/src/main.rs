@@ -44,10 +44,22 @@ impl Actor for MyActor {
 
 pub struct SayHello<'m>(&'m str);
 
+#[derive(drogue::Package)]
+pub struct Wrapped {
+    b: ActorState<'static, MyActor>,
+    c: ActorState<'static, MyActor>,
+}
+
+impl Wrapped {
+    fn mount(&'static self) -> (Address<'static, MyActor>, Address<'static, MyActor>) {
+        (self.b.mount(()), self.c.mount(()))
+    }
+}
+
 #[derive(drogue::Device)]
 pub struct MyDevice {
     a: ActorState<'static, MyActor>,
-    b: ActorState<'static, MyActor>,
+    wrapped: Wrapped,
 }
 
 #[drogue::configure]
@@ -59,14 +71,17 @@ fn configure() -> MyDevice {
 
     MyDevice {
         a: ActorState::new(MyActor::new("a")),
-        b: ActorState::new(MyActor::new("b")),
+        wrapped: Wrapped {
+            b: ActorState::new(MyActor::new("b")),
+            c: ActorState::new(MyActor::new("c")),
+        },
     }
 }
 
 #[drogue::main]
 async fn main(mut context: DeviceContext<MyDevice>) {
     let a_addr = context.device().a.mount(());
-    let b_addr = context.device().b.mount(());
+    let (b_addr, c_addr) = context.device().wrapped.mount();
 
     context.start();
 
@@ -74,5 +89,6 @@ async fn main(mut context: DeviceContext<MyDevice>) {
         time::Timer::after(time::Duration::from_secs(1)).await;
         a_addr.send(&mut SayHello("World")).await;
         b_addr.send(&mut SayHello("You")).await;
+        c_addr.send(&mut SayHello("There")).await;
     }
 }

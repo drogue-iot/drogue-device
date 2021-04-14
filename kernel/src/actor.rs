@@ -66,6 +66,25 @@ impl<'a, A: Actor> ActorState<'a, A> {
         }
     }
 
+    pub async fn start(&'static self, _: embassy::executor::Spawner)
+    where
+        A: Unpin,
+    {
+        let channel = &self.channel;
+        let actor = unsafe { &mut *self.actor.get() };
+        core::pin::Pin::new(actor).on_start().await;
+        loop {
+            let mut message = channel.receive().await;
+            let actor = unsafe { &mut *self.actor.get() };
+            let m = message.message();
+            // Note: we know that the message sender will panic if it doesn't await the completion
+            // of the message, thus doing a transmute to pretend that message matches the lifetime
+            // of the receiver should be fine...
+            let m = unsafe { core::mem::transmute(m) };
+            core::pin::Pin::new(actor).on_message(m).await;
+        }
+    }
+
     fn acquire_signal(&self) -> &SignalSlot {
         let signals = unsafe { &mut *self.signals.get() };
         let mut i = 0;

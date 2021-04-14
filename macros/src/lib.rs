@@ -28,24 +28,56 @@ pub fn device_macro_derive(input: TokenStream) -> TokenStream {
             fn start(&'static self, spawner: ::drogue_device::reexport::embassy::executor::Spawner) {
                 #(
                     #[::drogue_device::reexport::embassy::task(embassy_prefix = "::drogue_device::reexport::")]
-                    async fn #field_name(state: &'static #field_type) {
-                        let channel = &state.channel;
-                        let mut actor = unsafe { (&mut *state.actor.get()) };
-                        core::pin::Pin::new(actor).on_start().await;
-                        loop {
-                            let mut message = channel.receive().await;
-                            let mut actor = unsafe { (&mut *state.actor.get()) };
-                            let m = message.message();
-                            // Note: we know that the message sender will panic if it doesn't await the completion
-                            // of the message, thus doing a transmute to pretend that message matches the lifetime
-                            // of the receiver should be fine...
-                            let m = unsafe { core::mem::transmute(m) };
-                            core::pin::Pin::new(actor).on_message(m).await;
-                        }
+                    async fn #field_name(spawner: ::drogue_device::reexport::embassy::executor::Spawner, runner: &'static #field_type) {
+                        runner.start(spawner).await
                     }
 
-                    spawner.spawn(#field_name(&self.#field_name)).unwrap();
+                    spawner.spawn(#field_name(spawner, &self.#field_name)).unwrap();
                 )*
+            }
+        }
+    };
+    gen.into()
+}
+
+#[proc_macro_derive(Package)]
+pub fn package_macro_derive(input: TokenStream) -> TokenStream {
+    let input: syn::DeriveInput = syn::parse(input).unwrap();
+    let name = &input.ident;
+
+    let fields = match &input.data {
+        Data::Struct(DataStruct {
+            fields: Fields::Named(fields),
+            ..
+        }) => &fields.named,
+        _ => panic!("expected a struct with named fields"),
+    };
+    let field_name = fields.iter().map(|field| &field.ident);
+    let field_type = fields.iter().map(|field| &field.ty);
+
+    let gen = quote! {
+        impl Package for #name {
+            /*
+            fn start(&'static self, spawner: ::drogue_device::reexport::embassy::executor::Spawner) {
+                #(
+                    #[::drogue_device::reexport::embassy::task(embassy_prefix = "::drogue_device::reexport::")]
+                    async fn #field_name(spawner: ::drogue_device::reexport::embassy::executor::Spawner, actor: &'static #field_type) {
+                        actor.start(spawner).await
+                    }
+
+                    spawner.spawn(#field_name(spawner, &self.#field_name)).unwrap()
+                )*
+            }*/
+            fn start(&'static self, spawner: ::drogue_device::reexport::embassy::executor::Spawner) -> ImmediateFuture {
+                #(
+                    #[::drogue_device::reexport::embassy::task(embassy_prefix = "::drogue_device::reexport::")]
+                    async fn #field_name(spawner: ::drogue_device::reexport::embassy::executor::Spawner, runner: &'static #field_type) {
+                        runner.start(spawner).await
+                    }
+
+                    spawner.spawn(#field_name(spawner, &self.#field_name)).unwrap();
+                )*
+                ImmediateFuture{}
             }
         }
     };

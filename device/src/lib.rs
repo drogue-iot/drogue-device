@@ -10,6 +10,7 @@ pub use drogue_device_kernel::{
     actor::{Actor, ActorState, Address},
     channel::{consts, Channel},
     device::{Device, DeviceContext},
+    package::{ImmediateFuture, Package},
 };
 pub use drogue_device_macros as drogue;
 pub use embassy::*;
