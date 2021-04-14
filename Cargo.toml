@@ -1,5 +1,7 @@
 [workspace]
 members = [
+    "apis",
+    "drivers",
     "device",
     "kernel",
     "macros",
