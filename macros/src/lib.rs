@@ -57,17 +57,6 @@ pub fn package_macro_derive(input: TokenStream) -> TokenStream {
 
     let gen = quote! {
         impl Package for #name {
-            /*
-            fn start(&'static self, spawner: ::drogue_device::reexport::embassy::executor::Spawner) {
-                #(
-                    #[::drogue_device::reexport::embassy::task(embassy_prefix = "::drogue_device::reexport::")]
-                    async fn #field_name(spawner: ::drogue_device::reexport::embassy::executor::Spawner, actor: &'static #field_type) {
-                        actor.start(spawner).await
-                    }
-
-                    spawner.spawn(#field_name(spawner, &self.#field_name)).unwrap()
-                )*
-            }*/
             fn start(&'static self, spawner: ::drogue_device::reexport::embassy::executor::Spawner) -> ImmediateFuture {
                 #(
                     #[::drogue_device::reexport::embassy::task(embassy_prefix = "::drogue_device::reexport::")]
