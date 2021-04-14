@@ -7,6 +7,9 @@ edition = "2018"
 name = "drogue-device"
 version = "0.1.0"
 
+[lib]
+doctest = false
+
 [dependencies.drogue-device-kernel]
 path = "../kernel"
 
