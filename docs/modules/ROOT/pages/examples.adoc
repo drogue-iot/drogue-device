@@ -1,0 +1,6 @@
+= Examples
+
+There are several examples for different chips to show how drogue device can be used.
+
+* link:https://github.com/drogue-iot/drogue-device-ng/tree/main/examples/std/hello[Hello World in std]
+* link:https://github.com/drogue-iot/drogue-device-ng/tree/main/examples/nrf52/microbit-uart[BBC micro:bit v2.0 UART]

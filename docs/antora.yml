@@ -1,0 +1,5 @@
+name: drogue-device
+title: Drogue Device
+version: dev
+nav:
+  - modules/ROOT/nav.adoc

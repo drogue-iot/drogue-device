@@ -1,0 +1,18 @@
+= Drogue Device
+
+Drogue device is an open source async, no-alloc actor framework for embedded devices. With drogue device, you can write safe, composable and connected embedded applications.
+
+To learn more about drogue device, see the xref:concepts.adoc[concepts] section.
+
+== Built for safety
+
+Drogue device is built using https://www.rust-lang.org[rust], an efficient, memory safe and thread safe programming language.
+
+== Built for Internet of Things
+
+Drogue device offers built-in drivers for internet connectivity, such as WiFi and LoRaWAN.
+
+== Open source
+
+Drogue IoT is all about an open source IoT ecosystem. All software is licensed under the Apache 2.0 open source license.
+
