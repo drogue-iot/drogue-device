@@ -1,0 +1,9 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+name = "drogue-device-lora"
+version = "0.1.0"
+edition = "2018"
+description = "Generic types for LoRa protocol"

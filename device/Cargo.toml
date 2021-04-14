@@ -16,6 +16,14 @@ path = "../kernel"
 [dependencies.drogue-device-macros]
 path = "../macros"
 
+[dependencies.drogue-device-lora]
+path = "../apis/lora"
+optional = true
+
+[dependencies.drogue-device-sx127x]
+path = "../drivers/lora/sx127x"
+optional = true
+
 [dependencies.embassy]
 # git = "https://github.com/embassy-rs/embassy.git"
 git = "https://github.com/lulf/embassy.git"
@@ -52,6 +60,7 @@ optional = true
 
 [features]
 "chip+nrf52833" = ["embassy-nrf", "embassy-nrf/52833"]
+"lora+sx127x" = ["drogue-device-lora", "drogue-device-sx127x"]
 std = ["embassy/std", "embassy-std"]
 defmt-trace = [ ]
 defmt-debug = [ ]

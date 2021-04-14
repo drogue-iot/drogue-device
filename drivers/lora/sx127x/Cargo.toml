@@ -1,0 +1,9 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+name = "drogue-device-sx127x"
+version = "0.1.0"
+edition = "2018"
+description = "Async driver for Semtech Sx127x"
