@@ -7,11 +7,10 @@ edition = "2018"
 name = "drogue-device-kernel"
 version = "0.1.0"
 
-[dependencies.drogue-device-macros]
-path = "../macros"
-
 [dependencies.embassy]
-git = "https://github.com/embassy-rs/embassy.git"
+#git = "https://github.com/embassy-rs/embassy.git"
+git = "https://github.com/lulf/embassy.git"
+branch = "reexport-macro-param"
 default-features = false
 
 [dependencies.heapless]

@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "device",
     "kernel",
     "macros",
     "xtask",

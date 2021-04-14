@@ -15,16 +15,9 @@ version = "0.4"
 [dependencies.env_logger]
 version = "0.8"
 
-[dependencies.drogue-device-kernel]
-path = "../../../kernel"
+[dependencies.drogue-device]
+path = "../../../device"
 features = ["log", "std"]
-
-[dependencies.embassy]
-git = "https://github.com/embassy-rs/embassy.git"
-features = [ "log", "std" ]
-
-[dependencies.embassy-std]
-git = "https://github.com/embassy-rs/embassy.git"
 
 [patch.crates-io]
 cortex-m = {git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"]}

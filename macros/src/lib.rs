@@ -25,9 +25,9 @@ pub fn device_macro_derive(input: TokenStream) -> TokenStream {
 
     let gen = quote! {
         impl Device for #name {
-            fn start(&'static self, spawner: drogue::Spawner) {
+            fn start(&'static self, spawner: ::drogue_device::reexport::embassy::executor::Spawner) {
                 #(
-                    #[drogue::task]
+                    #[::drogue_device::reexport::embassy::task(embassy_prefix = "::drogue_device::reexport::")]
                     async fn #field_name(state: &'static #field_type) {
                         let channel = &state.channel;
                         let mut actor = unsafe { (&mut *state.actor.get()) };
@@ -122,7 +122,7 @@ pub fn configure(_: TokenStream, item: TokenStream) -> TokenStream {
 
     let result = quote! {
 
-        static DEVICE: drogue::Forever<#device_type> = drogue::Forever::new();
+        static DEVICE: ::drogue_device::reexport::embassy::util::Forever<#device_type> = ::drogue_device::reexport::embassy::util::Forever::new();
 
         fn __drogue_configure() -> &'static #device_type {
             let device = #task_fn_body;
@@ -176,13 +176,13 @@ pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
 
     let result = quote! {
 
-        #[embassy::task]
+        #[::drogue_device::reexport::embassy::task(embassy_prefix= "::drogue_device::reexport::")]
         async fn __drogue_main(#args) {
             #task_fn_body
         }
 
-        #[embassy::main]
-        async fn main(spawner: drogue::Spawner) {
+        #[::drogue_device::reexport::embassy::main(embassy_prefix = "::drogue_device::reexport::")]
+        async fn main(spawner: ::drogue_device::reexport::embassy::executor::Spawner) {
             let context = DeviceContext::new(spawner, __drogue_configure());
             spawner.spawn(__drogue_main(context)).unwrap();
         }

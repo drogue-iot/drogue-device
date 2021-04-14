@@ -1,7 +1,9 @@
 use core::future::Future;
 use core::pin::Pin;
-use drogue_device_kernel::Actor;
-use embassy::traits::uart::{Read, Write};
+use drogue_device::{
+    traits::uart::{Read, Write},
+    Actor,
+};
 use futures::pin_mut;
 
 pub struct EchoServer<U: Write + Read + 'static> {

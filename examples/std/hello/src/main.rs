@@ -8,7 +8,7 @@
 
 use core::future::Future;
 use core::pin::Pin;
-use drogue_device_kernel::{self as drogue, *};
+use drogue_device::*;
 
 pub struct MyActor {
     name: &'static str,
@@ -71,7 +71,7 @@ async fn main(mut context: DeviceContext<MyDevice>) {
     context.start();
 
     loop {
-        Timer::after(Duration::from_secs(1)).await;
+        time::Timer::after(time::Duration::from_secs(1)).await;
         a_addr.send(&mut SayHello("World")).await;
         b_addr.send(&mut SayHello("You")).await;
     }

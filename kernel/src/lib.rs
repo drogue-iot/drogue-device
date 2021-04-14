@@ -12,13 +12,3 @@ pub mod actor;
 pub mod channel;
 pub mod device;
 pub mod signal;
-
-pub use actor::{Actor, ActorState, Address};
-pub use channel::{consts, Channel};
-pub use device::{Device, DeviceContext};
-pub use drogue_device_macros::*;
-pub use embassy;
-pub use embassy::executor::{raw::Task, SpawnToken, Spawner};
-pub use embassy::task;
-pub use embassy::time::{Duration, Timer};
-pub use embassy::util::Forever;

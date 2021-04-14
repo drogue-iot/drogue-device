@@ -15,20 +15,22 @@ version = "0.2"
 [dependencies.defmt-rtt]
 version = "0.2"
 
-[dependencies.drogue-device-kernel]
-path = "../../../kernel"
-features = ["defmt", "defmt-trace" ]
+[dependencies.drogue-device]
+path = "../../../device"
+features = ["defmt", "defmt-info", "chip+nrf52833"]
 
+# TODO: Get rid of these
 [dependencies.embassy]
-git = "https://github.com/embassy-rs/embassy.git"
+# git = "https://github.com/embassy-rs/embassy.git"
+git = "https://github.com/lulf/embassy.git"
+branch = "reexport-macro-param"
 features = ["defmt", "defmt-info" ]
 
 [dependencies.embassy-nrf]
-git = "https://github.com/embassy-rs/embassy.git"
+# git = "https://github.com/embassy-rs/embassy.git"
+git = "https://github.com/lulf/embassy.git"
+branch = "reexport-macro-param"
 features = ["defmt", "defmt-info", "52833" ]
-
-[dependencies.embassy-traits]
-git = "https://github.com/embassy-rs/embassy.git"
 
 [dependencies.cortex-m-rt]
 version = "0.6"

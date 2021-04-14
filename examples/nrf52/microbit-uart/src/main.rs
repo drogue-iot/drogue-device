@@ -12,13 +12,21 @@ mod server;
 use server::*;
 
 use defmt_rtt as _;
-use drogue_device_kernel::{self as drogue, Actor, ActorState, Device, DeviceContext};
-use embassy_nrf::{gpio::NoPin, interrupt, peripherals::UARTE0, uarte, Peripherals};
+use drogue_device::{
+    nrf::{
+        gpio::NoPin,
+        interrupt,
+        peripherals::UARTE0,
+        uarte::{self, Uarte},
+        Peripherals,
+    },
+    *,
+};
 use panic_probe as _;
 
 #[derive(drogue::Device)]
 pub struct MyDevice {
-    server: ActorState<'static, EchoServer<embassy_nrf::uarte::Uarte<'static, UARTE0>>>,
+    server: ActorState<'static, EchoServer<Uarte<'static, UARTE0>>>,
 }
 
 #[drogue::configure]
