@@ -36,6 +36,12 @@ branch = "reexport-macro-param"
 default-features = false
 optional = true
 
+[dev-dependencies.embassy-std]
+# git = "https://github.com/embassy-rs/embassy.git"
+git = "https://github.com/lulf/embassy.git"
+branch = "reexport-macro-param"
+default-features = false
+
 [dependencies.log]
 version = "0.4"
 optional = true

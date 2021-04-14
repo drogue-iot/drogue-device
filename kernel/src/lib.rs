@@ -8,6 +8,7 @@
 
 pub(crate) mod fmt;
 
+pub mod util;
 pub mod actor;
 pub mod channel;
 pub mod device;

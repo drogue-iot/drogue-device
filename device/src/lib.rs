@@ -84,7 +84,8 @@ pub use drogue_device_kernel::{
     actor::{Actor, ActorState, Address},
     channel::{consts, Channel},
     device::{Device, DeviceContext},
-    package::{ImmediateFuture, Package},
+    package::Package,
+    util::ImmediateFuture,
 };
 #[doc(hidden)]
 pub use drogue_device_macros as drogue;
