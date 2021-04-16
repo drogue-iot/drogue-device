@@ -21,21 +21,23 @@ pub enum ButtonEvent {
 
 #[rustfmt::skip]
 pub struct Button<
-    P: WaitForAnyEdge + InputPin + 'static,
-    M: FromButtonEvent + 'static,
-    A: Actor<Message<'static> = M> + 'static,
+    'a,
+    P: WaitForAnyEdge + InputPin + 'a,
+    M: FromButtonEvent + 'a,
+    A: Actor<Message<'a> = M> + 'a,
 > {
     pin: P,
-    handler: Option<Address<'static, A>>,
+    handler: Option<Address<'a, A>>,
     _phantom: PhantomData<M>,
 }
 
 #[rustfmt::skip]
 impl<
-        P: WaitForAnyEdge + InputPin + 'static,
-        M: FromButtonEvent + 'static,
-        A: Actor<Message<'static> = M> + 'static,
-    > Button<P, M, A>
+        'a,
+        P: WaitForAnyEdge + InputPin + 'a,
+        M: FromButtonEvent + 'a,
+        A: Actor<Message<'a> = M> + 'a,
+    > Button<'a, P, M, A>
 {
     pub fn new(pin: P) -> Self {
         Self {
@@ -48,24 +50,26 @@ impl<
 
 #[rustfmt::skip]
 impl<
-        P: WaitForAnyEdge + InputPin + 'static,
-        M: FromButtonEvent + 'static,
-        A: Actor<Message<'static> = M> + 'static,
-    > Unpin for Button<P, M, A>
+        'a,
+        P: WaitForAnyEdge + InputPin + 'a,
+        M: FromButtonEvent + 'a,
+        A: Actor<Message<'a> = M> + 'a,
+    > Unpin for Button<'a, P, M, A>
 {
 }
 
 #[rustfmt::skip]
 impl<
-        P: WaitForAnyEdge + InputPin + 'static,
-        M: FromButtonEvent + 'static,
-        A: Actor<Message<'static> = M> + 'static,
-    > Actor for Button<P, M, A>
+        'a,
+        P: WaitForAnyEdge + InputPin + 'a,
+        M: FromButtonEvent + 'a,
+        A: Actor<Message<'a> = M> + 'a,
+    > Actor for Button<'a, P, M, A>
 {
-    type Configuration = Address<'static, A>;
-    type Message<'a> = ();
-    type OnStartFuture<'a> = impl Future<Output = ()> + 'a;
-    type OnMessageFuture<'a> = ImmediateFuture;
+    type Configuration = Address<'a, A>;
+    type Message<'m> where 'a: 'm = ();
+    type OnStartFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
+    type OnMessageFuture<'m> where 'a: 'm = ImmediateFuture;
 
     fn on_mount(&mut self, config: Self::Configuration) {
         self.handler.replace(config);
