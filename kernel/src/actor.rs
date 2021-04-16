@@ -115,7 +115,7 @@ impl<'a, A: Actor> ActorState<'a, A> {
     }
 
     /// Launch the actor main processing loop that never returns.
-    pub async fn start(&'static self, _: embassy::executor::Spawner)
+    pub async fn start(&'a self, _: embassy::executor::Spawner)
     where
         A: Unpin,
     {
