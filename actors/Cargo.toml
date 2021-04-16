@@ -4,17 +4,20 @@ authors = [
     "Bob McWhirter <bmcwhirt@redhat.com>"
 ]
 edition = "2018"
-name = "drogue-device-kernel"
+name = "drogue-device-actors"
 version = "0.1.0"
 
-[dependencies.embassy]
+[dependencies.drogue-device-kernel]
+path = "../kernel"
+
+[dependencies.embedded-hal]
+version = "0.2.4"
+features = ["unproven"]
+
+[dependencies.embassy-traits]
 # git = "https://github.com/embassy-rs/embassy.git"
 git = "https://github.com/lulf/embassy.git"
 branch = "nrf-port-any-edge"
-default-features = false
-
-[dependencies.heapless]
-version = "0.6"
 
 [dependencies.log]
 version = "0.4"
@@ -25,7 +28,6 @@ version = "0.2"
 optional = true
 
 [features]
-std = ["embassy/std"]
 defmt-trace = [ ]
 defmt-debug = [ ]
 defmt-info = [ ]

@@ -87,8 +87,8 @@ async fn main(mut context: DeviceContext<MyDevice>) {
 
     loop {
         time::Timer::after(time::Duration::from_secs(1)).await;
-        a_addr.send(&mut SayHello("World")).await;
-        b_addr.send(&mut SayHello("You")).await;
-        c_addr.send(&mut SayHello("There")).await;
+        a_addr.send(SayHello("World")).await;
+        b_addr.send(SayHello("You")).await;
+        c_addr.send_ref(&mut SayHello("There")).await;
     }
 }

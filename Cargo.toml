@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "apis/lora",
+    "actors",
     "drivers/lora/sx127x",
     "device",
     "kernel",

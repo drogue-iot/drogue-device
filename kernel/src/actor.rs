@@ -69,8 +69,22 @@ impl<'a, A: Actor> Address<'a, A> {
     /// ensure that the response to the request is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub fn send<'m>(&self, message: &'m mut A::Message<'m>) -> SendFuture<'a, 'm, A> {
+    pub fn send_ref<'m>(&self, message: &'m mut A::Message<'m>) -> SendFuture<'a, 'm, A> {
         self.state.send(message)
+    }
+
+    /// Perform an unsafe _async_ message send to the actor behind this address.
+    ///
+    /// The returned future will be driven to completion by the actor processing the message.
+    ///
+    /// # Panics
+    /// While the request message may contain non-static references, the user must
+    /// ensure that the response to the request is fully `.await`'d before returning.
+    /// Leaving an in-flight request dangling while references have gone out of lifetime
+    /// scope will result in a panic.
+    pub async fn send<'m>(&self, mut message: A::Message<'m>) {
+        // Transmute is safe because future is awaited
+        self.state.send(unsafe { core::mem::transmute(&mut message) }).await
     }
 }
 

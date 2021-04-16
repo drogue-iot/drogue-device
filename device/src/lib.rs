@@ -87,6 +87,8 @@ pub use drogue_device_kernel::{
     package::Package,
     util::ImmediateFuture,
 };
+pub use drogue_device_actors as actors;
+
 #[doc(hidden)]
 pub use drogue_device_macros as drogue;
 pub use embassy::*;

@@ -57,7 +57,7 @@ mod tests {
         async fn main(mut context: DeviceContext<MyDevice>) {
             let a_addr = context.device().a.mount(());
             context.start();
-            a_addr.send(&mut Add(10)).await;
+            a_addr.send(Add(10)).await;
         }
 
         std::thread::spawn(move || {
