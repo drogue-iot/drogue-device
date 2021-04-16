@@ -8,6 +8,18 @@ use drogue_device_kernel::{
 use embassy_traits::gpio::WaitForAnyEdge;
 use embedded_hal::digital::v2::InputPin;
 
+pub trait FromButtonEvent {
+    fn from(event: ButtonEvent) -> Option<Self>
+    where
+        Self: Sized;
+}
+
+pub enum ButtonEvent {
+    Pressed,
+    Released,
+}
+
+#[rustfmt::skip]
 pub struct Button<
     P: WaitForAnyEdge + InputPin + 'static,
     M: FromButtonEvent + 'static,
@@ -18,15 +30,7 @@ pub struct Button<
     _phantom: PhantomData<M>,
 }
 
-pub trait FromButtonEvent {
-    fn from(event: ButtonEvent) -> Option<Self> where Self: Sized;
-}
-
-pub enum ButtonEvent {
-    Pressed,
-    Released,
-}
-
+#[rustfmt::skip]
 impl<
         P: WaitForAnyEdge + InputPin + 'static,
         M: FromButtonEvent + 'static,
@@ -42,6 +46,7 @@ impl<
     }
 }
 
+#[rustfmt::skip]
 impl<
         P: WaitForAnyEdge + InputPin + 'static,
         M: FromButtonEvent + 'static,
@@ -50,6 +55,7 @@ impl<
 {
 }
 
+#[rustfmt::skip]
 impl<
         P: WaitForAnyEdge + InputPin + 'static,
         M: FromButtonEvent + 'static,

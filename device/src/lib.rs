@@ -80,6 +80,7 @@
 //! }
 //!```
 //!
+pub use drogue_device_actors as actors;
 pub use drogue_device_kernel::{
     actor::{Actor, ActorState, Address},
     channel::{consts, Channel},
@@ -87,7 +88,6 @@ pub use drogue_device_kernel::{
     package::Package,
     util::ImmediateFuture,
 };
-pub use drogue_device_actors as actors;
 
 #[doc(hidden)]
 pub use drogue_device_macros as drogue;

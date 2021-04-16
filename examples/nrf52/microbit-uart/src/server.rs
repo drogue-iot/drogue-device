@@ -6,14 +6,14 @@ use drogue_device::{
     Actor, Address,
 };
 
-pub struct EchoServer<U: Write + Read + 'static> {
+pub struct EchoServer<'a, U: Write + Read + 'a> {
     uart: U,
-    statistics: Option<Address<'static, Statistics>>,
+    statistics: Option<Address<'a, Statistics>>,
 }
 
-impl<'a, U: Write + Read + 'static> Unpin for EchoServer<U> {}
+impl<'a, U: Write + Read + 'a> Unpin for EchoServer<'a, U> {}
 
-impl<'a, U: Write + Read + 'static> EchoServer<U> {
+impl<'a, U: Write + Read + 'a> EchoServer<'a, U> {
     pub fn new(uart: U) -> Self {
         Self {
             uart,
@@ -22,11 +22,16 @@ impl<'a, U: Write + Read + 'static> EchoServer<U> {
     }
 }
 
-impl<U: Write + Read + 'static> Actor for EchoServer<U> {
-    type Configuration = Address<'static, Statistics>;
-    type Message<'a> = ();
-    type OnStartFuture<'a> = impl Future<Output = ()> + 'a;
-    type OnMessageFuture<'a> = impl Future<Output = ()> + 'a;
+impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
+    type Configuration = Address<'a, Statistics>;
+    type Message<'m>
+    where
+        'a: 'm,
+    = ();
+    #[rustfmt::skip]
+    type OnStartFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
+    #[rustfmt::skip]
+    type OnMessageFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
 
     fn on_mount(&mut self, config: Self::Configuration) {
         self.statistics.replace(config);

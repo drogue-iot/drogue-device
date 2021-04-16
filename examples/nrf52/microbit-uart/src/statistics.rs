@@ -1,6 +1,9 @@
 use core::future::Future;
 use core::pin::Pin;
-use drogue_device::{actors::button::{FromButtonEvent, ButtonEvent}, Actor};
+use drogue_device::{
+    actors::button::{ButtonEvent, FromButtonEvent},
+    Actor,
+};
 
 pub struct Statistics {
     character_counter: u32,

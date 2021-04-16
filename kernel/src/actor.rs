@@ -84,7 +84,9 @@ impl<'a, A: Actor> Address<'a, A> {
     /// scope will result in a panic.
     pub async fn send<'m>(&self, mut message: A::Message<'m>) {
         // Transmute is safe because future is awaited
-        self.state.send(unsafe { core::mem::transmute(&mut message) }).await
+        self.state
+            .send(unsafe { core::mem::transmute(&mut message) })
+            .await
     }
 }
 

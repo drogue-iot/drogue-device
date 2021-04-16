@@ -32,7 +32,7 @@ use panic_probe as _;
 pub struct MyDevice {
     button: ActorState<'static, Button<PortInput<'static, P0_14>, StatisticsCommand, Statistics>>,
     statistics: ActorState<'static, Statistics>,
-    server: ActorState<'static, EchoServer<Uarte<'static, UARTE0>>>,
+    server: ActorState<'static, EchoServer<'static, Uarte<'static, UARTE0>>>,
 }
 
 #[drogue::configure]
