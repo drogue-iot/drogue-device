@@ -14,7 +14,8 @@ branch = "nrf-port-any-edge"
 default-features = false
 
 [dependencies.heapless]
-version = "0.6"
+git = "https://github.com/japaric/heapless.git"
+branch = "const_generics"
 
 [dependencies.log]
 version = "0.4"
