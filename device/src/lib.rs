@@ -83,7 +83,7 @@
 pub use drogue_device_actors as actors;
 pub use drogue_device_kernel::{
     actor::{Actor, ActorState, Address},
-    channel::Channel,
+    channel::{consts, Channel},
     device::{Device, DeviceContext},
     package::Package,
     util::ImmediateFuture,

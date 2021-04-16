@@ -1,4 +1,4 @@
-use crate::channel::{Channel, ChannelSend};
+use crate::channel::{consts, Channel, ChannelSend};
 use crate::signal::{SignalFuture, SignalSlot};
 use core::cell::UnsafeCell;
 use core::future::Future;
@@ -100,13 +100,13 @@ impl<'a, A: Actor> Clone for Address<'a, A> {
 
 pub struct ActorState<'a, A: Actor> {
     pub actor: UnsafeCell<A>,
-    pub channel: Channel<'a, ActorMessage<'a, A>, 4>,
+    pub channel: Channel<'a, ActorMessage<'a, A>, consts::U4>,
     signals: UnsafeCell<[SignalSlot; 4]>,
 }
 
 impl<'a, A: Actor> ActorState<'a, A> {
     pub fn new(actor: A) -> Self {
-        let channel: Channel<'a, ActorMessage<A>, 4> = Channel::new();
+        let channel: Channel<'a, ActorMessage<A>, consts::U4> = Channel::new();
         Self {
             actor: UnsafeCell::new(actor),
             channel,
@@ -176,7 +176,7 @@ enum SendState {
 }
 
 pub struct SendFuture<'a, 'm, A: Actor + 'a> {
-    channel: ChannelSend<'a, ActorMessage<'a, A>, 4>,
+    channel: ChannelSend<'a, ActorMessage<'a, A>, consts::U4>,
     signal: SignalFuture<'a, 'm>,
     state: SendState,
     bomb: Option<DropBomb>,
@@ -184,7 +184,7 @@ pub struct SendFuture<'a, 'm, A: Actor + 'a> {
 
 impl<'a, 'm, A: Actor> SendFuture<'a, 'm, A> {
     pub fn new(
-        channel: ChannelSend<'a, ActorMessage<'a, A>, 4>,
+        channel: ChannelSend<'a, ActorMessage<'a, A>, consts::U4>,
         signal: SignalFuture<'a, 'm>,
     ) -> Self {
         Self {
