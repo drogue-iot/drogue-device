@@ -22,7 +22,7 @@ features = ["defmt", "defmt-trace"]
 path = "../macros"
 
 [dependencies.drogue-device-lora]
-path = "../apis/lora"
+path = "../traits/lora"
 optional = true
 
 [dependencies.drogue-device-sx127x]
