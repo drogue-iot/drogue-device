@@ -5,53 +5,50 @@
 [![docs.rs](https://docs.rs/drogue-device/badge.svg)](https://docs.rs/drogue-device)
 [![Matrix](https://img.shields.io/matrix/drogue-iot:matrix.org)](https://matrix.to/#/#drogue-iot:matrix.org)
 
-An async, no-alloc actor framework for embedded devices, based on [embassy](https://github.com/embassy-rs).
+Drogue device is an open source async, no-alloc actor framework for embedded devices, based on [embassy](https://github.com/embassy-rs/embassy). 
+
+* Makes it easy to write safe, composable and connected embedded applications.
+* Built using https://www.rust-lang.org[rust], an efficient, memory safe and thread safe programming language.
+* Offers built-in drivers for internet connectivity, such as WiFi and LoRaWAN.
+* All software is licensed under the Apache 2.0 open source license.
 
 See [the book](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and running some examples.
 
-## Actor System
+## Building
 
-An _actor system_ is a framework that allows for isolating state within narrow contexts, making it easier to reason about system.
-Within a actor system, the primary component is an _Actor_, which represents the boundary of state usage.
-Each actor has exclusive access to its own state and only communicates with other actors through message-passing.
+To build drogue-device, you must install the [nightly rust toolchain](https://rustup.rs/). Once
+installed, you can build and test the framework by running
 
-## Async
+~~~shell
+cargo build
+~~~
 
-Each actor is ostensibly single-threaded, able to process a single notification or request at a time, allowing for lock-free processing of each event.
-As embedded processors are ostensibly globally single-threaded, supporting multiple actors requires the usage of `async` and `.await` within the Rust ecosystem.
-Each actor can therefore process each message either synchronously if its logic is _non-blocking_ or using an `async` block if complex processing is required.
+To do a full build of everything including examples:
 
-Each event is fully processed, in the order in which it is received, before the next event is considered.
+~~~shell
+cargo xtask ci
+~~~
 
-While processing an event, an actor may send a message to another actor, which itself is an asynchronous action, allowing the system to continue to make progress with actors that are able to.
+This might require you do install additional toolchains for the examples to build.
 
-## Messages
+## Directory layout
 
-All messages are sent using async channels attached to each actor. The channel depth is configurable based on `generic-array` and `heapless`. Once const generics is used by heapless, we will
-make the move as well.
+* `kernel` - the actor framework
+* `macros` - macros used by the actor framework
+* `traits` - traits provided by drogue that can be used in actors or directly, such as WiFi or LoRa
+* `drivers` - drivers that implement traits for a one or more peripherals
+* `actors` - common actors that can be used in applications
+* `device` - all-in-one crate for all platforms that is used by end applications
+* `examples` - examples for different platforms and boards
 
-## Addresses
+## Contributing
 
-Each actor within the system has its own unique `Address` which is used to communicate with the actor (through it's FIFO). 
-There is an _async_ `send(msg)` method on each address to send a message asynchronously to the actor, which may only be used from another `async` context, as the sender must `.await` the response.
+See the document [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Specifically, the `Address` for a given actor may expose additional async methods to facility fluent APIs for communicating with the underlying actor.
-For instance, the `Address<SimpleLED<...>>` instance has a `turn_on()` and `turn_off()` pair of methods for manipulating the underlying LED.
+## Community
 
-## State
-
-Each actor is wrapped in a state object which is executed by the embassy runtime. When each state is `mount(...)`ed into the system, its `Address<...>` is made available.
-
-Each Actor in the system defines the configuration it expects to get handed in its `mount()` implementation.
-
-## Bootstrap & Mounting
-
-A top-level `Device` struct maintain members for each actor. The `derive(Device)` type attribute can be used to derive an implementation of `Device` for a particular application.
-
-The device instance is created in a special function marked with `#[drogue::configure]`, and should return a type that derives the `Device` trait.
-
-The application entry point is specified using a function marked with `#[drogue::main]`, and it will be passed a `DeviceContext` that can be used to mount the actors and start the device.
-
-## Packages
-
-In some cases, it may be desirable to have two or more actors involve in a single semantic component or package. Similar to the `Device` trait, the `Package` trait may be derived for any struct in order to bootstrap the actors within it.
+* [Drogue IoT Matrix Chat Room](https://matrix.to/#/#drogue-iot:matrix.org)
+* We have bi-weekly calls at 9:00 AM (GMT). [Check the calendar](https://calendar.google.com/calendar/u/0/embed?src=ofuctjec399jr6kara7n0uidqg@group.calendar.google.com&pli=1) to see which week we are having the next call, and feel free to join!
+* [Drogue IoT Forum](https://discourse.drogue.io/)
+* [Drogue IoT YouTube channel](https://www.youtube.com/channel/UC7GZUy2hKidvY6V_3QZfCcA)
+* [Follow us on Twitter!](https://twitter.com/DrogueIoT)
