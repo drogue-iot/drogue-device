@@ -2,6 +2,7 @@ use core::future::Future;
 use core::pin::Pin;
 use drogue_device_kernel::{
     actor::{Actor, Address},
+    channel::consts,
     util::ImmediateFuture,
 };
 use embassy_traits::gpio::WaitForAnyEdge;
@@ -43,6 +44,7 @@ impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Messag
 impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Message<'a>> + 'a> Actor
     for Button<'a, P, A>
 {
+    type QueueLength<'m> where 'a: 'm = consts::U0;
     type Configuration = Address<'a, A>;
     #[rustfmt::skip]
     type Message<'m> where 'a: 'm = ();

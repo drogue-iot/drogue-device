@@ -1,4 +1,4 @@
-use crate::channel::{consts, Channel, ChannelSend};
+use crate::channel::{consts, ArrayLength, Channel, ChannelSend};
 use crate::signal::{SignalFuture, SignalSlot};
 use core::cell::UnsafeCell;
 use core::future::Future;
@@ -7,7 +7,11 @@ use core::task::{Context, Poll};
 use embassy::util::DropBomb;
 
 /// Trait that each actor must implement.
-pub trait Actor {
+pub trait Actor: Sized {
+    /// Queue size;
+    #[rustfmt::skip]
+    type QueueLength<'a>: ArrayLength<ActorMessage<'a, Self>> + ArrayLength<SignalSlot> + 'a where Self: 'a = consts::U1;
+
     /// The configuration that this actor will expect when mounted.
     type Configuration;
 
@@ -100,13 +104,13 @@ impl<'a, A: Actor> Clone for Address<'a, A> {
 
 pub struct ActorState<'a, A: Actor> {
     pub actor: UnsafeCell<A>,
-    pub channel: Channel<'a, ActorMessage<'a, A>, consts::U4>,
+    pub channel: Channel<'a, ActorMessage<'a, A>, A::QueueLength<'a>>,
     signals: UnsafeCell<[SignalSlot; 4]>,
 }
 
 impl<'a, A: Actor> ActorState<'a, A> {
     pub fn new(actor: A) -> Self {
-        let channel: Channel<'a, ActorMessage<A>, consts::U4> = Channel::new();
+        let channel: Channel<'a, ActorMessage<A>, A::QueueLength<'a>> = Channel::new();
         Self {
             actor: UnsafeCell::new(actor),
             channel,
@@ -176,7 +180,7 @@ enum SendState {
 }
 
 pub struct SendFuture<'a, 'm, A: Actor + 'a> {
-    channel: ChannelSend<'a, ActorMessage<'a, A>, consts::U4>,
+    channel: ChannelSend<'a, ActorMessage<'a, A>, A::QueueLength<'a>>,
     signal: SignalFuture<'a, 'm>,
     state: SendState,
     bomb: Option<DropBomb>,
@@ -184,7 +188,7 @@ pub struct SendFuture<'a, 'm, A: Actor + 'a> {
 
 impl<'a, 'm, A: Actor> SendFuture<'a, 'm, A> {
     pub fn new(
-        channel: ChannelSend<'a, ActorMessage<'a, A>, consts::U4>,
+        channel: ChannelSend<'a, ActorMessage<'a, A>, A::QueueLength<'a>>,
         signal: SignalFuture<'a, 'm>,
     ) -> Self {
         Self {
