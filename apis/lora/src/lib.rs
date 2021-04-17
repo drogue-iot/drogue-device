@@ -12,12 +12,14 @@ pub enum ResetMode {
     Reload,
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone, Copy)]
 pub enum ConnectMode {
     OTAA,
     ABP,
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u8)]
 pub enum LoraMode {
@@ -25,6 +27,7 @@ pub enum LoraMode {
     P2P = 1,
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LoraRegion {
     EU868,
@@ -39,6 +42,7 @@ pub enum LoraRegion {
 pub type Port = u8;
 #[derive(Debug, Clone, Copy)]
 pub struct DevAddr([u8; 4]);
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone, Copy)]
 pub struct EUI([u8; 8]);
 #[derive(Debug, Clone, Copy)]
@@ -81,23 +85,29 @@ impl LoraConfig {
     }
 
     pub fn device_address(mut self, device_address: &DevAddr) -> Self {
-        self.device_address.replace(device_address.clone());
+        self.device_address.replace(*device_address);
         self
     }
 
     pub fn device_eui(mut self, device_eui: &EUI) -> Self {
-        self.device_eui.replace(device_eui.clone());
+        self.device_eui.replace(*device_eui);
         self
     }
 
     pub fn app_eui(mut self, app_eui: &EUI) -> Self {
-        self.app_eui.replace(app_eui.clone());
+        self.app_eui.replace(*app_eui);
         self
     }
 
     pub fn app_key(mut self, app_key: &AppKey) -> Self {
-        self.app_key.replace(app_key.clone());
+        self.app_key.replace(*app_key);
         self
+    }
+}
+
+impl Default for LoraConfig {
+    fn default() -> LoraConfig {
+        LoraConfig::new()
     }
 }
 
@@ -197,7 +207,7 @@ impl core::convert::From<DevAddr> for [u8; 4] {
 
 fn reverse_16(s: &[u8; 16]) -> [u8; 16] {
     let mut idx = 0;
-    let mut output: [u8; 16] = s.clone();
+    let mut output: [u8; 16] = *s;
     let end = output.len();
     while idx < end / 2 {
         output[idx] = s[end - idx - 1];

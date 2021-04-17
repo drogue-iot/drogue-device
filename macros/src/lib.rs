@@ -78,7 +78,7 @@ pub fn configure(_: TokenStream, item: TokenStream) -> TokenStream {
     let task_fn = syn::parse_macro_input!(item as syn::ItemFn);
 
     let mut fail = false;
-    if !task_fn.sig.asyncness.is_none() {
+    if task_fn.sig.asyncness.is_some() {
         task_fn
             .sig
             .span()
@@ -98,7 +98,7 @@ pub fn configure(_: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     let args = task_fn.sig.inputs.clone();
-    if args.len() != 0 {
+    if !args.is_empty() {
         task_fn
             .sig
             .span()

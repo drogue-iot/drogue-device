@@ -55,7 +55,7 @@ impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Messag
         self.handler.replace(config);
     }
 
-    fn on_start<'m>(mut self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
+    fn on_start(mut self: Pin<&mut Self>) -> Self::OnStartFuture<'_> {
         async move {
             loop {
                 self.pin.wait_for_any_edge().await;
