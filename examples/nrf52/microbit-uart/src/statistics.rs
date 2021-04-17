@@ -22,7 +22,7 @@ pub enum StatisticsCommand {
     IncrementCharacterCount,
 }
 
-impl FromButtonEvent for StatisticsCommand {
+impl FromButtonEvent<StatisticsCommand> for Statistics {
     fn from(event: ButtonEvent) -> Option<StatisticsCommand> {
         match event {
             ButtonEvent::Released => Some(StatisticsCommand::PrintStatistics),

@@ -1,5 +1,4 @@
 use core::future::Future;
-use core::marker::PhantomData;
 use core::pin::Pin;
 use drogue_device_kernel::{
     actor::{Actor, Address},
@@ -8,8 +7,8 @@ use drogue_device_kernel::{
 use embassy_traits::gpio::WaitForAnyEdge;
 use embedded_hal::digital::v2::InputPin;
 
-pub trait FromButtonEvent {
-    fn from(event: ButtonEvent) -> Option<Self>
+pub trait FromButtonEvent<M> {
+    fn from(event: ButtonEvent) -> Option<M>
     where
         Self: Sized;
 }
@@ -19,56 +18,37 @@ pub enum ButtonEvent {
     Released,
 }
 
-#[rustfmt::skip]
 pub struct Button<
     'a,
     P: WaitForAnyEdge + InputPin + 'a,
-    M: FromButtonEvent + 'a,
-    A: Actor<Message<'a> = M> + 'a,
+    A: Actor + FromButtonEvent<A::Message<'a>> + 'a,
 > {
     pin: P,
     handler: Option<Address<'a, A>>,
-    _phantom: PhantomData<M>,
 }
 
-#[rustfmt::skip]
-impl<
-        'a,
-        P: WaitForAnyEdge + InputPin + 'a,
-        M: FromButtonEvent + 'a,
-        A: Actor<Message<'a> = M> + 'a,
-    > Button<'a, P, M, A>
+impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Message<'a>> + 'a>
+    Button<'a, P, A>
 {
     pub fn new(pin: P) -> Self {
-        Self {
-            pin,
-            handler: None,
-            _phantom: PhantomData,
-        }
+        Self { pin, handler: None }
     }
 }
 
-#[rustfmt::skip]
-impl<
-        'a,
-        P: WaitForAnyEdge + InputPin + 'a,
-        M: FromButtonEvent + 'a,
-        A: Actor<Message<'a> = M> + 'a,
-    > Unpin for Button<'a, P, M, A>
+impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Message<'a>> + 'a> Unpin
+    for Button<'a, P, A>
 {
 }
 
-#[rustfmt::skip]
-impl<
-        'a,
-        P: WaitForAnyEdge + InputPin + 'a,
-        M: FromButtonEvent + 'a,
-        A: Actor<Message<'a> = M> + 'a,
-    > Actor for Button<'a, P, M, A>
+impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Message<'a>> + 'a> Actor
+    for Button<'a, P, A>
 {
     type Configuration = Address<'a, A>;
+    #[rustfmt::skip]
     type Message<'m> where 'a: 'm = ();
+    #[rustfmt::skip]
     type OnStartFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
+    #[rustfmt::skip]
     type OnMessageFuture<'m> where 'a: 'm = ImmediateFuture;
 
     fn on_mount(&mut self, config: Self::Configuration) {
@@ -86,11 +66,9 @@ impl<
                 };
 
                 if let Some(handler) = self.handler {
-                    let mut message: Option<M> = M::from(event);
+                    let mut message = A::from(event);
                     if let Some(m) = message.take() {
-                        handler
-                            .send(m)
-                            .await;
+                        handler.send(m).await;
                     }
                 }
             }

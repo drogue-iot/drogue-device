@@ -30,10 +30,7 @@ use panic_probe as _;
 
 #[derive(drogue::Device)]
 pub struct MyDevice {
-    button: ActorState<
-        'static,
-        Button<'static, PortInput<'static, P0_14>, StatisticsCommand, Statistics>,
-    >,
+    button: ActorState<'static, Button<'static, PortInput<'static, P0_14>, Statistics>>,
     statistics: ActorState<'static, Statistics>,
     server: ActorState<'static, EchoServer<'static, Uarte<'static, UARTE0>>>,
 }
