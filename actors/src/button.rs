@@ -44,7 +44,10 @@ impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Messag
 impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Message<'a>> + 'a> Actor
     for Button<'a, P, A>
 {
-    type QueueLength<'m> where 'a: 'm = consts::U0;
+    type MaxQueueSize<'m>
+    where
+        'a: 'm,
+    = consts::U0;
     type Configuration = Address<'a, A>;
     #[rustfmt::skip]
     type Message<'m> where 'a: 'm = ();

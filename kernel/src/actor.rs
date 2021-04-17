@@ -10,7 +10,7 @@ use embassy::util::DropBomb;
 pub trait Actor: Sized {
     /// Queue size;
     #[rustfmt::skip]
-    type QueueLength<'a>: ArrayLength<ActorMessage<'a, Self>> + ArrayLength<SignalSlot> + 'a where Self: 'a = consts::U1;
+    type MaxQueueSize<'a>: ArrayLength<ActorMessage<'a, Self>> + ArrayLength<SignalSlot> + 'a where Self: 'a = consts::U1;
 
     /// The configuration that this actor will expect when mounted.
     type Configuration;
@@ -104,13 +104,13 @@ impl<'a, A: Actor> Clone for Address<'a, A> {
 
 pub struct ActorState<'a, A: Actor> {
     pub actor: UnsafeCell<A>,
-    pub channel: Channel<'a, ActorMessage<'a, A>, A::QueueLength<'a>>,
+    pub channel: Channel<'a, ActorMessage<'a, A>, A::MaxQueueSize<'a>>,
     signals: UnsafeCell<[SignalSlot; 4]>,
 }
 
 impl<'a, A: Actor> ActorState<'a, A> {
     pub fn new(actor: A) -> Self {
-        let channel: Channel<'a, ActorMessage<A>, A::QueueLength<'a>> = Channel::new();
+        let channel: Channel<'a, ActorMessage<A>, A::MaxQueueSize<'a>> = Channel::new();
         Self {
             actor: UnsafeCell::new(actor),
             channel,
@@ -180,7 +180,7 @@ enum SendState {
 }
 
 pub struct SendFuture<'a, 'm, A: Actor + 'a> {
-    channel: ChannelSend<'a, ActorMessage<'a, A>, A::QueueLength<'a>>,
+    channel: ChannelSend<'a, ActorMessage<'a, A>, A::MaxQueueSize<'a>>,
     signal: SignalFuture<'a, 'm>,
     state: SendState,
     bomb: Option<DropBomb>,
@@ -188,7 +188,7 @@ pub struct SendFuture<'a, 'm, A: Actor + 'a> {
 
 impl<'a, 'm, A: Actor> SendFuture<'a, 'm, A> {
     pub fn new(
-        channel: ChannelSend<'a, ActorMessage<'a, A>, A::QueueLength<'a>>,
+        channel: ChannelSend<'a, ActorMessage<'a, A>, A::MaxQueueSize<'a>>,
         signal: SignalFuture<'a, 'm>,
     ) -> Self {
         Self {
