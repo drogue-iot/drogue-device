@@ -22,3 +22,6 @@ jobs:
 
       - name: CI
         run: cargo xtask ci
+
+      - name: Clippy
+        run: cargo clippy
