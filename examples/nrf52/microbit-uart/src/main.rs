@@ -35,8 +35,8 @@ pub struct MyDevice {
     server: ActorState<'static, EchoServer<'static, Uarte<'static, UARTE0>>>,
 }
 
-#[drogue::configure]
-fn configure() -> MyDevice {
+#[drogue::main]
+async fn main(mut context: DeviceContext<MyDevice>) {
     let p = Peripherals::take().unwrap();
 
     let mut config = uarte::Config::default();
@@ -48,17 +48,16 @@ fn configure() -> MyDevice {
 
     let irq = interrupt::take!(UARTE0_UART0);
     let uarte = unsafe { uarte::Uarte::new(p.UARTE0, irq, p.P0_13, p.P0_01, NoPin, NoPin, config) };
-    MyDevice {
+
+    context.configure(MyDevice {
         server: ActorState::new(EchoServer::new(uarte)),
         button: ActorState::new(Button::new(button_port)),
         statistics: ActorState::new(Statistics::new()),
-    }
-}
+    });
 
-#[drogue::main]
-async fn main(mut context: DeviceContext<MyDevice>) {
-    let statistics = context.device().statistics.mount(());
-    context.device().server.mount(statistics);
-    context.device().button.mount(statistics);
-    context.start();
+    context.mount(|device| {
+        let statistics = device.statistics.mount(());
+        device.server.mount(statistics);
+        device.button.mount(statistics);
+    });
 }

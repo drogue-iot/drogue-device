@@ -44,19 +44,16 @@ mod tests {
             a: ActorState<'static, MyActor>,
         }
 
-        #[drogue::configure]
-        fn configure() -> MyDevice {
-            MyDevice {
+        #[drogue::main]
+        async fn main(mut context: DeviceContext<MyDevice>) {
+            context.configure(MyDevice {
                 a: ActorState::new(MyActor {
                     value: &INITIALIZED,
                 }),
-            }
-        }
+            });
 
-        #[drogue::main]
-        async fn main(mut context: DeviceContext<MyDevice>) {
-            let a_addr = context.device().a.mount(());
-            context.start();
+            let a_addr = context.mount(|device| device.a.mount(()));
+
             a_addr.send(Add(10)).await;
         }
 

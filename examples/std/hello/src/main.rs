@@ -62,28 +62,26 @@ pub struct MyDevice {
     wrapped: Wrapped,
 }
 
-#[drogue::configure]
-fn configure() -> MyDevice {
+#[drogue::main]
+async fn main(mut context: DeviceContext<MyDevice>) {
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .format_timestamp_nanos()
         .init();
 
-    MyDevice {
+    context.configure(MyDevice {
         a: ActorState::new(MyActor::new("a")),
         wrapped: Wrapped {
             b: ActorState::new(MyActor::new("b")),
             c: ActorState::new(MyActor::new("c")),
         },
-    }
-}
+    });
 
-#[drogue::main]
-async fn main(mut context: DeviceContext<MyDevice>) {
-    let a_addr = context.device().a.mount(());
-    let (b_addr, c_addr) = context.device().wrapped.mount();
-
-    context.start();
+    let (a_addr, b_addr, c_addr) = context.mount(|device| {
+        let a_addr = device.a.mount(());
+        let (b_addr, c_addr) = device.wrapped.mount();
+        (a_addr, b_addr, c_addr)
+    });
 
     loop {
         time::Timer::after(time::Duration::from_secs(1)).await;

@@ -74,86 +74,6 @@ pub fn package_macro_derive(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn configure(_: TokenStream, item: TokenStream) -> TokenStream {
-    let task_fn = syn::parse_macro_input!(item as syn::ItemFn);
-
-    let mut fail = false;
-    if task_fn.sig.asyncness.is_some() {
-        task_fn
-            .sig
-            .span()
-            .unwrap()
-            .error("configure function must be sync")
-            .emit();
-        fail = true;
-    }
-    if !task_fn.sig.generics.params.is_empty() {
-        task_fn
-            .sig
-            .span()
-            .unwrap()
-            .error("configure function must not be generic")
-            .emit();
-        fail = true;
-    }
-
-    let args = task_fn.sig.inputs.clone();
-    if !args.is_empty() {
-        task_fn
-            .sig
-            .span()
-            .unwrap()
-            .error("configure function must not take any arguments")
-            .emit();
-        fail = true;
-    }
-
-    let device_type: Option<&syn::Ident> = match &task_fn.sig.output {
-        syn::ReturnType::Default => {
-            task_fn
-                .sig
-                .span()
-                .unwrap()
-                .error("return type must be specified")
-                .emit();
-            fail = true;
-            None
-        }
-        syn::ReturnType::Type(_, v) => match &**v {
-            syn::Type::Path(t) => t.path.get_ident(),
-            _ => {
-                task_fn
-                    .sig
-                    .span()
-                    .unwrap()
-                    .error("return type must be a path type")
-                    .emit();
-                fail = true;
-                None
-            }
-        },
-    };
-
-    if fail {
-        return TokenStream::new();
-    }
-
-    let device_type = device_type.unwrap();
-    let task_fn_body = task_fn.block;
-
-    let result = quote! {
-
-        static DEVICE: ::drogue_device::reexport::embassy::util::Forever<#device_type> = ::drogue_device::reexport::embassy::util::Forever::new();
-
-        fn __drogue_configure() -> &'static #device_type {
-            let device = #task_fn_body;
-            DEVICE.put(device)
-        }
-    };
-    result.into()
-}
-
-#[proc_macro_attribute]
 pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
     let task_fn = syn::parse_macro_input!(item as syn::ItemFn);
 
@@ -189,13 +109,42 @@ pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
         fail = true;
     }
 
+    let mut device_type = None;
+    if let syn::FnArg::Typed(t) = &args[0] {
+        if let syn::Type::Path(ref tp) = *t.ty {
+            if tp.path.segments[0].ident == "DeviceContext" {
+                if let syn::PathArguments::AngleBracketed(args) = &tp.path.segments[0].arguments {
+                    for arg in args.args.iter() {
+                        if let syn::GenericArgument::Type(syn::Type::Path(tp)) = arg {
+                            device_type = tp.path.get_ident();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    if device_type.is_none() {
+        task_fn
+            .sig
+            .span()
+            .unwrap()
+            .error("main function device context argument must take a generic type parameter implementing Device trait")
+            .emit();
+        fail = true;
+    }
+
     if fail {
         return TokenStream::new();
     }
 
+    let device_type = device_type.take().unwrap();
     let task_fn_body = task_fn.block;
 
     let result = quote! {
+
+        static DEVICE: ::drogue_device::reexport::embassy::util::Forever<#device_type> = ::drogue_device::reexport::embassy::util::Forever::new();
 
         #[::drogue_device::reexport::embassy::task(embassy_prefix= "::drogue_device::reexport::")]
         async fn __drogue_main(#args) {
@@ -204,7 +153,7 @@ pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
 
         #[::drogue_device::reexport::embassy::main(embassy_prefix = "::drogue_device::reexport::")]
         async fn main(spawner: ::drogue_device::reexport::embassy::executor::Spawner) {
-            let context = DeviceContext::new(spawner, __drogue_configure());
+            let context = DeviceContext::new(spawner, &DEVICE);
             spawner.spawn(__drogue_main(context)).unwrap();
         }
     };
