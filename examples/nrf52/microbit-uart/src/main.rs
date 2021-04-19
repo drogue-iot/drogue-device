@@ -28,7 +28,7 @@ use drogue_device::{
 };
 use panic_probe as _;
 
-#[derive(drogue::Device)]
+#[derive(Device)]
 pub struct MyDevice {
     button: ActorState<'static, Button<'static, PortInput<'static, P0_14>, Statistics>>,
     statistics: ActorState<'static, Statistics>,

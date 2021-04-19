@@ -56,7 +56,7 @@ impl Wrapped {
     }
 }
 
-#[derive(drogue::Device)]
+#[derive(Device)]
 pub struct MyDevice {
     a: ActorState<'static, MyActor>,
     wrapped: Wrapped,

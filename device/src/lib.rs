@@ -90,7 +90,7 @@ pub use drogue_device_kernel::{
 };
 
 #[doc(hidden)]
-pub use drogue_device_macros as drogue;
+pub use drogue_device_macros::{self as drogue, Device};
 pub use embassy::*;
 
 #[cfg(feature = "chip+nrf52833")]
