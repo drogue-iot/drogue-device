@@ -29,30 +29,31 @@ optional = true
 path = "../drivers/lora/sx127x"
 optional = true
 
+
 [dependencies.embassy]
-# git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/lulf/embassy.git"
-branch = "nrf-port-any-edge"
+git = "https://github.com/drogue-iot/embassy.git"
+branch = "drogue"
+#path = "../../../embassy/embassy"
 default-features = false
 
 [dependencies.embassy-nrf]
-# git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/lulf/embassy.git"
-branch = "nrf-port-any-edge"
+git = "https://github.com/drogue-iot/embassy.git"
+branch = "drogue"
+#path = "../../../embassy/embassy-nrf"
 default-features = false
 optional = true
 
 [dependencies.embassy-std]
-# git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/lulf/embassy.git"
-branch = "nrf-port-any-edge"
+git = "https://github.com/drogue-iot/embassy.git"
+branch = "drogue"
+#path = "../../../embassy/embassy-std"
 default-features = false
 optional = true
 
 [dev-dependencies.embassy-std]
-# git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/lulf/embassy.git"
-branch = "nrf-port-any-edge"
+git = "https://github.com/drogue-iot/embassy.git"
+branch = "drogue"
+#path = "../../../embassy/embassy-std"
 default-features = false
 
 [dependencies.log]
@@ -63,10 +64,15 @@ optional = true
 version = "0.2"
 optional = true
 
+[dependencies.embedded-hal]
+version = "0.2.4"
+features = ["unproven"]
+optional = true
+
 [features]
 "chip+nrf52833" = ["embassy-nrf", "embassy-nrf/52833"]
 "lora+sx127x" = ["drogue-device-lora", "drogue-device-sx127x"]
-std = ["embassy/std", "embassy-std"]
+std = ["embassy/std", "embassy-std", "embedded-hal"]
 defmt-trace = [ ]
 defmt-debug = [ ]
 defmt-info = [ ]

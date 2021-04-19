@@ -73,7 +73,10 @@ impl<'a, A: Actor> Address<'a, A> {
     /// ensure that the response to the request is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub fn send_ref<'m>(&self, message: &'m mut A::Message<'m>) -> SendFuture<'a, 'm, A> {
+    pub fn send_ref<'m>(&self, message: &'m mut A::Message<'m>) -> SendFuture<'a, 'm, A>
+    where
+        'a: 'm,
+    {
         self.state.send(message)
     }
 
@@ -86,7 +89,10 @@ impl<'a, A: Actor> Address<'a, A> {
     /// ensure that the response to the request is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub async fn send<'m>(&self, mut message: A::Message<'m>) {
+    pub async fn send<'m>(&self, mut message: A::Message<'m>)
+    where
+        'a: 'm,
+    {
         // Transmute is safe because future is awaited
         self.state
             .send(unsafe { core::mem::transmute(&mut message) })
@@ -155,7 +161,7 @@ impl<'a, A: Actor> ActorState<'a, A> {
     /// awaited, it will panic.
     fn send<'m>(&'a self, message: &'m mut A::Message<'m>) -> SendFuture<'a, 'm, A>
     where
-        A: 'm + 'a,
+        'a: 'm,
     {
         let signal = self.acquire_signal();
         let message = unsafe { core::mem::transmute::<_, &'a mut A::Message<'a>>(message) };
@@ -255,4 +261,10 @@ impl<'m, A: Actor> Drop for ActorMessage<'m, A> {
     fn drop(&mut self) {
         self.done();
     }
+}
+
+#[cfg(test)]
+pub mod testutil {
+
+    //    fn static_actor<A: Actor>(actor: A) -> ActorState<'static, A> {}
 }

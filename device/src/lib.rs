@@ -108,3 +108,6 @@ pub mod reexport {
 #[doc(hidden)]
 #[cfg(feature = "std")]
 pub use embassy_std::*;
+
+#[cfg(feature = "std")]
+pub mod testutil;

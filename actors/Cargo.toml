@@ -14,11 +14,6 @@ path = "../kernel"
 version = "0.2.4"
 features = ["unproven"]
 
-[dependencies.embassy-traits]
-# git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/lulf/embassy.git"
-branch = "nrf-port-any-edge"
-
 [dependencies.log]
 version = "0.4"
 optional = true
@@ -26,6 +21,28 @@ optional = true
 [dependencies.defmt]
 version = "0.2"
 optional = true
+
+[dependencies.embassy-traits]
+git = "https://github.com/drogue-iot/embassy.git"
+branch = "drogue"
+#path = "../../../embassy/embassy-traits"
+default-features = false
+
+[dev-dependencies.embassy]
+git = "https://github.com/drogue-iot/embassy.git"
+branch = "drogue"
+#path = "../../../embassy/embassy"
+default-features = false
+
+[dev-dependencies.drogue-device]
+path = "../device"
+features = ["std"]
+
+[dev-dependencies.embassy-std]
+git = "https://github.com/drogue-iot/embassy.git"
+branch = "drogue"
+#path = "../../../embassy/embassy-std"
+default-features = false
 
 [features]
 defmt-trace = [ ]
