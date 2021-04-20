@@ -54,7 +54,7 @@ mod tests {
 
             let a_addr = context.mount(|device| device.a.mount(()));
 
-            a_addr.send(Add(10)).await;
+            a_addr.send(&mut Add(10)).await;
         }
 
         std::thread::spawn(move || {

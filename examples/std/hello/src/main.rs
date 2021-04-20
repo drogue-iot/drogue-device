@@ -8,16 +8,17 @@
 
 use core::future::Future;
 use core::pin::Pin;
+use core::sync::atomic::{AtomicU32, Ordering};
 use drogue_device::*;
 
 pub struct MyActor {
     name: &'static str,
-    counter: u32,
+    counter: &'static AtomicU32,
 }
 
 impl MyActor {
-    pub fn new(name: &'static str) -> Self {
-        Self { name, counter: 0 }
+    pub fn new(name: &'static str, counter: &'static AtomicU32) -> Self {
+        Self { name, counter }
     }
 }
 
@@ -32,35 +33,25 @@ impl Actor for MyActor {
     }
 
     fn on_message<'m>(
-        mut self: Pin<&'m mut Self>,
+        self: Pin<&'m mut Self>,
         message: &'m mut Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         async move {
-            log::info!("[{}] hello {}: {}", self.name, message.0, self.counter);
-            self.counter += 1;
+            let count = self.counter.fetch_add(1, Ordering::SeqCst);
+            log::info!("[{}] hello {}: {}", self.name, message.0, count);
         }
     }
 }
 
 pub struct SayHello<'m>(&'m str);
 
-#[derive(drogue::Package)]
-pub struct Wrapped {
-    b: ActorState<'static, MyActor>,
-    c: ActorState<'static, MyActor>,
-}
-
-impl Wrapped {
-    fn mount(&'static self) -> (Address<'static, MyActor>, Address<'static, MyActor>) {
-        (self.b.mount(()), self.c.mount(()))
-    }
-}
-
 #[derive(Device)]
 pub struct MyDevice {
     a: ActorState<'static, MyActor>,
-    wrapped: Wrapped,
+    b: ActorState<'static, MyActor>,
 }
+
+static COUNTER: AtomicU32 = AtomicU32::new(0);
 
 #[drogue::main]
 async fn main(mut context: DeviceContext<MyDevice>) {
@@ -70,23 +61,21 @@ async fn main(mut context: DeviceContext<MyDevice>) {
         .init();
 
     context.configure(MyDevice {
-        a: ActorState::new(MyActor::new("a")),
-        wrapped: Wrapped {
-            b: ActorState::new(MyActor::new("b")),
-            c: ActorState::new(MyActor::new("c")),
-        },
+        a: ActorState::new(MyActor::new("a", &COUNTER)),
+        b: ActorState::new(MyActor::new("b", &COUNTER)),
     });
 
-    let (a_addr, b_addr, c_addr) = context.mount(|device| {
+    let (a_addr, b_addr) = context.mount(|device| {
         let a_addr = device.a.mount(());
-        let (b_addr, c_addr) = device.wrapped.mount();
-        (a_addr, b_addr, c_addr)
+        let b_addr = device.b.mount(());
+        (a_addr, b_addr)
     });
 
     loop {
         time::Timer::after(time::Duration::from_secs(1)).await;
-        a_addr.send(SayHello("World")).await;
-        b_addr.send(SayHello("You")).await;
-        c_addr.send_ref(&mut SayHello("There")).await;
+        // Notify waits until message is enqueued
+        a_addr.notify(SayHello("World")).await;
+        // Send waits until message is processed
+        b_addr.send(&mut SayHello("You")).await;
     }
 }

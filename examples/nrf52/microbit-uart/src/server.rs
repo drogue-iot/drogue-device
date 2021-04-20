@@ -46,7 +46,7 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
                 let _ = self.uart.write(&buf).await;
                 if let Some(statistics) = self.statistics {
                     statistics
-                        .send(StatisticsCommand::IncrementCharacterCount)
+                        .send(&mut StatisticsCommand::IncrementCharacterCount)
                         .await;
                 }
             }

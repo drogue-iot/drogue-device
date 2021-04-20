@@ -73,7 +73,7 @@ impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Messag
                 if let Some(handler) = self.handler {
                     let mut message = A::from(event);
                     if let Some(m) = message.take() {
-                        handler.send(m).await;
+                        handler.notify(m).await;
                     }
                 }
             }

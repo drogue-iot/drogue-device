@@ -66,37 +66,37 @@ impl<'a, A: Actor> Address<'a, A> {
 impl<'a, A: Actor> Address<'a, A> {
     /// Perform an unsafe _async_ message send to the actor behind this address.
     ///
-    /// The returned future will be driven to completion by the actor processing the message.
+    /// The returned future will be driven to completion by the actor processing the message,
+    /// and will complete when the receiving actor have processed the message.
     ///
     /// # Panics
     /// While the request message may contain non-static references, the user must
     /// ensure that the response to the request is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub fn send_ref<'m>(&self, message: &'m mut A::Message<'m>) -> SendFuture<'a, 'm, A>
+    pub fn send<'m>(&self, message: &'m mut A::Message<'m>) -> SendFuture<'a, 'm, A>
     where
         'a: 'm,
     {
         self.state.send(message)
     }
 
-    /// Perform an unsafe _async_ message send to the actor behind this address.
+    /// Perform an unsafe _async_ message notification to the actor behind this address.
     ///
-    /// The returned future will be driven to completion by the actor processing the message.
+    /// The returned future will be driven to completion by the actor processing the message,
+    /// and will complete when the message have been enqueued, _before_ the message have been
+    /// processed.
     ///
     /// # Panics
     /// While the request message may contain non-static references, the user must
     /// ensure that the response to the request is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub async fn send<'m>(&self, mut message: A::Message<'m>)
+    pub fn notify<'m>(&self, message: A::Message<'a>) -> SendFuture<'a, 'm, A>
     where
         'a: 'm,
     {
-        // Transmute is safe because future is awaited
-        self.state
-            .send(unsafe { core::mem::transmute(&mut message) })
-            .await
+        self.state.notify(message)
     }
 }
 
@@ -133,14 +133,24 @@ impl<'a, A: Actor> ActorState<'a, A> {
         let actor = unsafe { &mut *self.actor.get() };
         core::pin::Pin::new(actor).on_start().await;
         loop {
-            let mut message = channel.receive().await;
+            let message = channel.receive().await;
             let actor = unsafe { &mut *self.actor.get() };
-            let m = message.message();
-            // Note: we know that the message sender will panic if it doesn't await the completion
-            // of the message, thus doing a transmute to pretend that message matches the lifetime
-            // of the receiver should be fine...
-            let m = unsafe { core::mem::transmute(m) };
-            core::pin::Pin::new(actor).on_message(m).await;
+            match message {
+                ActorMessage::Send(message, signal) => {
+                    core::pin::Pin::new(actor)
+                        .on_message(unsafe { &mut *message })
+                        .await;
+                    unsafe { &*signal }.signal();
+                }
+                ActorMessage::Notify(mut message) => {
+                    // Note: we know that the message sender will panic if it doesn't await the completion
+                    // of the message, thus doing a transmute to pretend that message matches the lifetime
+                    // of the receiver should be fine...
+                    core::pin::Pin::new(actor)
+                        .on_message(unsafe { core::mem::transmute(&mut message) })
+                        .await;
+                }
+            }
         }
     }
 
@@ -165,10 +175,22 @@ impl<'a, A: Actor> ActorState<'a, A> {
     {
         let signal = self.acquire_signal();
         let message = unsafe { core::mem::transmute::<_, &'a mut A::Message<'a>>(message) };
-        let message = ActorMessage::new(message, signal);
+        let message = ActorMessage::new_send(message, signal);
         let chan = self.channel.send(message);
         let sig = SignalFuture::new(signal);
-        SendFuture::new(chan, sig)
+        SendFuture::new(chan, Some(sig))
+    }
+
+    /// Perform a notification on this actor. The returned future _must_ be awaited before dropped. If it is not
+    /// awaited, it will panic.
+    fn notify<'m>(&'a self, message: A::Message<'a>) -> SendFuture<'a, 'm, A>
+    where
+        'a: 'm,
+    {
+        let message = ActorMessage::new_notify(message);
+
+        let chan = self.channel.send(message);
+        SendFuture::new(chan, None)
     }
 
     /// Mount the underloying actor and initialize the channel.
@@ -187,7 +209,7 @@ enum SendState {
 
 pub struct SendFuture<'a, 'm, A: Actor + 'a> {
     channel: ChannelSend<'a, ActorMessage<'a, A>, A::MaxQueueSize<'a>>,
-    signal: SignalFuture<'a, 'm>,
+    signal: Option<SignalFuture<'a, 'm>>,
     state: SendState,
     bomb: Option<DropBomb>,
 }
@@ -195,7 +217,7 @@ pub struct SendFuture<'a, 'm, A: Actor + 'a> {
 impl<'a, 'm, A: Actor> SendFuture<'a, 'm, A> {
     pub fn new(
         channel: ChannelSend<'a, ActorMessage<'a, A>, A::MaxQueueSize<'a>>,
-        signal: SignalFuture<'a, 'm>,
+        signal: Option<SignalFuture<'a, 'm>>,
     ) -> Self {
         Self {
             channel,
@@ -215,12 +237,17 @@ impl<'a, 'm, A: Actor> Future for SendFuture<'a, 'm, A> {
                 SendState::WaitChannel => {
                     let result = Pin::new(&mut self.channel).poll(cx);
                     if result.is_ready() {
-                        self.state = SendState::WaitSignal;
+                        self.state = if self.signal.is_some() {
+                            SendState::WaitSignal
+                        } else {
+                            SendState::Done
+                        };
                     }
                     result
                 }
                 SendState::WaitSignal => {
-                    let result = Pin::new(&mut self.signal).poll(cx);
+                    let mut signal = self.signal.as_mut().unwrap();
+                    let result = Pin::new(&mut signal).poll(cx);
                     if result.is_ready() {
                         self.state = SendState::Done;
                     }
@@ -238,33 +265,17 @@ impl<'a, 'm, A: Actor> Future for SendFuture<'a, 'm, A> {
     }
 }
 
-pub struct ActorMessage<'m, A: Actor + 'm> {
-    message: *mut A::Message<'m>,
-    signal: *const SignalSlot,
+pub enum ActorMessage<'m, A: Actor + 'm> {
+    Send(*mut A::Message<'m>, *const SignalSlot),
+    Notify(A::Message<'m>),
 }
 
 impl<'m, A: Actor> ActorMessage<'m, A> {
-    fn new(message: *mut A::Message<'m>, signal: *const SignalSlot) -> Self {
-        Self { message, signal }
+    fn new_send(message: *mut A::Message<'m>, signal: *const SignalSlot) -> Self {
+        ActorMessage::Send(message, signal)
     }
 
-    pub fn message(&mut self) -> &mut A::Message<'m> {
-        unsafe { &mut *self.message }
+    fn new_notify(message: A::Message<'m>) -> Self {
+        ActorMessage::Notify(message)
     }
-
-    pub fn done(&mut self) {
-        unsafe { &*self.signal }.signal();
-    }
-}
-
-impl<'m, A: Actor> Drop for ActorMessage<'m, A> {
-    fn drop(&mut self) {
-        self.done();
-    }
-}
-
-#[cfg(test)]
-pub mod testutil {
-
-    //    fn static_actor<A: Actor>(actor: A) -> ActorState<'static, A> {}
 }
