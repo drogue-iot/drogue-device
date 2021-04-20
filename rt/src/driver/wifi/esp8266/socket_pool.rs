@@ -7,7 +7,6 @@ use heapless::{consts::*, spsc::Queue};
 
 #[derive(PartialEq)]
 enum SocketState {
-    HalfClosed,
     Closed,
     Open,
     Connected,
@@ -32,30 +31,20 @@ impl SocketPool {
         }
     }
 
-    pub(crate) async fn open(&'static self) -> u8 {
+    pub(crate) async fn open(&self) -> u8 {
         OpenFuture::new(self).await
     }
 
-    pub(crate) fn close(&'static self, socket: u8) {
+    pub(crate) fn close(&self, socket: u8) {
         let mut sockets = self.sockets.borrow_mut();
         let index = socket as usize;
-        match sockets[index] {
-            SocketState::HalfClosed => {
-                sockets[index] = SocketState::Closed;
-            }
-            SocketState::Open | SocketState::Connected => {
-                sockets[index] = SocketState::HalfClosed;
-            }
-            SocketState::Closed => {
-                // nothing
-            }
-        }
+        sockets[index] = SocketState::Closed;
     }
 
-    pub(crate) fn is_closed(&'static self, socket: u8) -> bool {
+    pub(crate) fn is_closed(&self, socket: u8) -> bool {
         let sockets = self.sockets.borrow();
         let index = socket as usize;
-        sockets[index] == SocketState::Closed || sockets[index] == SocketState::HalfClosed
+        sockets[index] == SocketState::Closed
     }
 
     fn poll_open(&self, waker: &Waker, waiting: bool) -> Poll<u8> {
@@ -78,20 +67,20 @@ impl SocketPool {
     }
 }
 
-pub(crate) struct OpenFuture {
-    pool: &'static SocketPool,
+pub(crate) struct OpenFuture<'a> {
+    pool: &'a SocketPool,
     waiting: bool,
 }
 
-impl OpenFuture {
-    fn new(pool: &'static SocketPool) -> Self {
+impl<'a> OpenFuture<'a> {
+    fn new(pool: &'a SocketPool) -> Self {
         Self {
             pool,
             waiting: false,
         }
     }
 }
-impl Future for OpenFuture {
+impl<'a> Future for OpenFuture<'a> {
     type Output = u8;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -106,12 +95,18 @@ impl Future for OpenFuture {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use futures::executor::block_on;
 
-    #[async_std::test]
-    async fn max_simultaneous_sockets() {
-	// let pool = SocketPool::new();
-	// let index = pool.open().await;
-        // assert_eq!(0, index);
-	assert_eq!(true, true)
+    #[test]
+    fn max_simultaneous_sockets() {
+        let pool = SocketPool::new();
+        for i in 0..100 {
+            let expected = i % 4;
+            if !pool.is_closed(expected) {
+                pool.close(expected);
+            }
+            let actual = block_on(pool.open());
+            assert_eq!(expected, actual);
+        }
     }
 }
