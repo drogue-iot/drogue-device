@@ -14,10 +14,7 @@ rtt-target = {version = "0.2.2", features = ["cortex-m"] }
 panic-rtt-target = { version = "0.1.1", features = ["cortex-m"] }
 rtt-logger = "0.1.0"
 log = "0.4.11"
-stm32f4xx-hal = { version = "0.8", features = ["stm32f401", "rt" ] }
-
-[patch.crates-io]
-stm32f4xx-hal = { git = "https://github.com/stm32-rs/stm32f4xx-hal" }
+stm32f4xx-hal = { version = "0.9", features = ["stm32f401", "rt" ] }
 
 [profile.release]
 debug = true
