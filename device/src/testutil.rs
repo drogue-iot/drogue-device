@@ -1,6 +1,5 @@
 extern crate embedded_hal;
 use core::cell::RefCell;
-use core::cell::UnsafeCell;
 use core::future::Future;
 use core::pin::Pin;
 use core::sync::atomic::{AtomicBool, Ordering};
@@ -8,9 +7,19 @@ use core::task::{Context, Poll};
 use drogue_device_kernel::{
     actor::Actor, device::Device, device::DeviceContext, util::ImmediateFuture,
 };
+use embassy::executor::{raw, Spawner};
+use embassy::time::TICKS_PER_SECOND;
+use embassy::time::{Alarm, Clock};
 use embassy::traits::gpio::WaitForAnyEdge;
 use embassy::util::Signal;
 use embedded_hal::digital::v2::InputPin;
+use std::cell::UnsafeCell;
+use std::marker::PhantomData;
+use std::mem::MaybeUninit;
+use std::ptr;
+use std::sync::{Condvar, Mutex};
+// use std::time::{Duration as StdDuration, Instant as StdInstant};
+use std::time::Instant as StdInstant;
 use std::vec::Vec;
 
 /// A test context that can execute test for a given device
@@ -48,47 +57,6 @@ impl<D: Device> TestContext<D> {
 impl<D: Device> Drop for TestContext<D> {
     fn drop(&mut self) {
         self.runner.done()
-    }
-}
-
-/// A test context that can execute test for a given device
-pub struct TestRunner {
-    pins: UnsafeCell<Vec<InnerPin>>,
-    signals: UnsafeCell<Vec<TestSignal>>,
-    done: AtomicBool,
-}
-
-impl TestRunner {
-    pub fn new() -> Self {
-        Self {
-            pins: UnsafeCell::new(Vec::new()),
-            signals: UnsafeCell::new(Vec::new()),
-            done: AtomicBool::new(false),
-        }
-    }
-
-    /// Create a test pin that can be used in tests
-    pub fn pin(&'static self, initial: bool) -> TestPin {
-        let pins = unsafe { &mut *self.pins.get() };
-        pins.push(InnerPin::new(initial));
-        TestPin {
-            inner: &pins[pins.len() - 1],
-        }
-    }
-
-    /// Create a signal that can be used in tests
-    pub fn signal(&'static self) -> &'static TestSignal {
-        let signals = unsafe { &mut *self.signals.get() };
-        signals.push(TestSignal::new());
-        &signals[signals.len() - 1]
-    }
-
-    pub fn done(&'static self) {
-        self.done.store(true, Ordering::SeqCst);
-    }
-
-    pub fn is_done(&'static self) -> bool {
-        self.done.load(Ordering::SeqCst)
     }
 }
 
@@ -235,5 +203,145 @@ impl TestSignal {
         SignalFuture {
             signal: &self.signal,
         }
+    }
+}
+
+/// A test context that can execute test for a given device
+pub struct TestRunner {
+    inner: UnsafeCell<raw::Executor>,
+    not_send: PhantomData<*mut ()>,
+    signaler: Signaler,
+    pins: UnsafeCell<Vec<InnerPin>>,
+    signals: UnsafeCell<Vec<TestSignal>>,
+    done: AtomicBool,
+}
+
+impl TestRunner {
+    pub fn new() -> Self {
+        unsafe {
+            CLOCK_ZERO.as_mut_ptr().write(StdInstant::now());
+            embassy::time::set_clock(&StdClock);
+        }
+
+        Self {
+            inner: UnsafeCell::new(raw::Executor::new(Signaler::signal, ptr::null_mut())),
+            not_send: PhantomData,
+            signaler: Signaler::new(),
+            pins: UnsafeCell::new(Vec::new()),
+            signals: UnsafeCell::new(Vec::new()),
+            done: AtomicBool::new(false),
+        }
+    }
+
+    pub fn initialize(&'static self, init: impl FnOnce(Spawner)) {
+        let inner = unsafe { &mut *self.inner.get() };
+        inner.set_signal_ctx(&self.signaler as *const _ as _);
+        inner.set_alarm(&StdAlarm);
+        init(unsafe { inner.spawner() });
+    }
+
+    pub fn run_until_idle(&'static self) {
+        while !unsafe { (&mut *self.inner.get()).run_queued() } {}
+    }
+
+    /// Create a test pin that can be used in tests
+    pub fn pin(&'static self, initial: bool) -> TestPin {
+        let pins = unsafe { &mut *self.pins.get() };
+        pins.push(InnerPin::new(initial));
+        TestPin {
+            inner: &pins[pins.len() - 1],
+        }
+    }
+
+    /// Create a signal that can be used in tests
+    pub fn signal(&'static self) -> &'static TestSignal {
+        let signals = unsafe { &mut *self.signals.get() };
+        signals.push(TestSignal::new());
+        &signals[signals.len() - 1]
+    }
+
+    pub fn done(&'static self) {
+        self.done.store(true, Ordering::SeqCst);
+    }
+
+    pub fn is_done(&'static self) -> bool {
+        self.done.load(Ordering::SeqCst)
+    }
+}
+
+static mut CLOCK_ZERO: MaybeUninit<StdInstant> = MaybeUninit::uninit();
+struct StdClock;
+impl Clock for StdClock {
+    fn now(&self) -> u64 {
+        let zero = unsafe { CLOCK_ZERO.as_ptr().read() };
+        let dur = StdInstant::now().duration_since(zero);
+        dur.as_secs() * (TICKS_PER_SECOND as u64)
+            + (dur.subsec_nanos() as u64) * (TICKS_PER_SECOND as u64) / 1_000_000_000
+    }
+}
+
+static mut ALARM_AT: u64 = u64::MAX;
+
+pub struct StdAlarm;
+impl Alarm for StdAlarm {
+    fn set_callback(&self, _callback: fn(*mut ()), _ctx: *mut ()) {}
+
+    fn set(&self, timestamp: u64) {
+        unsafe { ALARM_AT = timestamp }
+    }
+
+    fn clear(&self) {
+        unsafe { ALARM_AT = u64::MAX }
+    }
+}
+
+struct Signaler {
+    mutex: Mutex<bool>,
+    condvar: Condvar,
+}
+
+impl Signaler {
+    fn new() -> Self {
+        Self {
+            mutex: Mutex::new(false),
+            condvar: Condvar::new(),
+        }
+    }
+
+    /*
+    fn wait(&self) {
+        let mut signaled = self.mutex.lock().unwrap();
+        while !*signaled {
+            let alarm_at = unsafe { ALARM_AT };
+            if alarm_at == u64::MAX {
+                signaled = self.condvar.wait(signaled).unwrap();
+            } else {
+                let now = StdClock.now();
+                if now >= alarm_at {
+                    break;
+                }
+
+                let left = alarm_at - now;
+                let dur = StdDuration::new(
+                    left / (TICKS_PER_SECOND as u64),
+                    (left % (TICKS_PER_SECOND as u64) * 1_000_000_000 / (TICKS_PER_SECOND as u64))
+                        as u32,
+                );
+                let (signaled2, timeout) = self.condvar.wait_timeout(signaled, dur).unwrap();
+                signaled = signaled2;
+                if timeout.timed_out() {
+                    break;
+                }
+            }
+        }
+        *signaled = false;
+    }
+    */
+
+    fn signal(ctx: *mut ()) {
+        let this = unsafe { &*(ctx as *mut Self) };
+        let mut signaled = this.mutex.lock().unwrap();
+        *signaled = true;
+        this.condvar.notify_one();
     }
 }

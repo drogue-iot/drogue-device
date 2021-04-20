@@ -242,19 +242,17 @@ pub fn test(_: TokenStream, item: TokenStream) -> TokenStream {
         fn #test_name() {
         static DEVICE: ::drogue_device::reexport::embassy::util::Forever<#device_type> = ::drogue_device::reexport::embassy::util::Forever::new();
         static RUNNER: ::drogue_device::reexport::embassy::util::Forever<TestRunner> = ::drogue_device::reexport::embassy::util::Forever::new();
-        static EXECUTOR: ::drogue_device::reexport::embassy::util::Forever<::drogue_device::reexport::embassy_std::Executor> = ::drogue_device::reexport::embassy::util::Forever::new();
 
-            let executor = EXECUTOR.put(::drogue_device::reexport::embassy_std::Executor::new());
             let runner = RUNNER.put(TestRunner::new());
 
-            executor.initialize(|spawner| {
+            runner.initialize(|spawner| {
                 let context = DeviceContext::new(spawner, &DEVICE);
                 let runner = unsafe { RUNNER.steal() };
                 spawner.spawn(#drogue_test_name(TestContext::new(runner, context))).unwrap();
             });
 
             while !runner.is_done() {
-                executor.run_until_idle();
+                runner.run_until_idle();
             }
         }
     };
