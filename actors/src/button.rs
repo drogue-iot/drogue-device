@@ -102,19 +102,18 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_pressed() {
-        #[derive(drogue::Device)]
-        struct TestDevice {
-            handler: ActorState<'static, TestHandler>,
-            button: ActorState<'static, Button<'static, TestPin, TestHandler>>,
-        }
+    #[derive(Device)]
+    struct TestDevicePressed {
+        handler: ActorState<'static, TestHandler>,
+        button: ActorState<'static, Button<'static, TestPin, TestHandler>>,
+    }
 
-        let context = TestContext::new();
+    #[drogue::test]
+    async fn test_pressed(mut context: TestContext<TestDevicePressed>) {
         let pin = context.pin(true);
         let notified = context.signal();
 
-        context.configure(TestDevice {
+        context.configure(TestDevicePressed {
             handler: ActorState::new(TestHandler::new(notified)),
             button: ActorState::new(Button::new(pin)),
         });
@@ -124,26 +123,24 @@ mod tests {
             device.button.mount(handler_addr);
         });
 
-        assert!(!notified.signaled());
+        assert!(notified.message().is_none());
         pin.set_low();
-        context.run_until_idle();
-        assert!(notified.signaled());
+        notified.wait_signaled().await;
         assert_eq!(0, notified.message().unwrap().0);
     }
 
-    #[test]
-    fn test_released() {
-        #[derive(drogue::Device)]
-        struct TestDevice {
-            handler: ActorState<'static, TestHandler>,
-            button: ActorState<'static, Button<'static, TestPin, TestHandler>>,
-        }
+    #[derive(Device)]
+    struct TestDeviceReleased {
+        handler: ActorState<'static, TestHandler>,
+        button: ActorState<'static, Button<'static, TestPin, TestHandler>>,
+    }
 
-        let context = TestContext::new();
+    #[drogue::test]
+    async fn test_released(mut context: TestContext<TestDeviceReleased>) {
         let pin = context.pin(false);
         let notified = context.signal();
 
-        context.configure(TestDevice {
+        context.configure(TestDeviceReleased {
             handler: ActorState::new(TestHandler::new(notified)),
             button: ActorState::new(Button::new(pin)),
         });
@@ -153,10 +150,9 @@ mod tests {
             device.button.mount(handler_addr);
         });
 
-        assert!(!notified.signaled());
+        assert!(notified.message().is_none());
         pin.set_high();
-        context.run_until_idle();
-        assert!(notified.signaled());
+        notified.wait_signaled().await;
         assert_eq!(1, notified.message().unwrap().0);
     }
 }

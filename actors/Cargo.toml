@@ -22,6 +22,12 @@ optional = true
 version = "0.2"
 optional = true
 
+[dependencies.embassy]
+git = "https://github.com/drogue-iot/embassy.git"
+branch = "drogue"
+#path = "../../../embassy/embassy-traits"
+default-features = false
+
 [dependencies.embassy-traits]
 git = "https://github.com/drogue-iot/embassy.git"
 branch = "drogue"
@@ -33,6 +39,7 @@ git = "https://github.com/drogue-iot/embassy.git"
 branch = "drogue"
 #path = "../../../embassy/embassy"
 default-features = false
+features = ["std"]
 
 [dev-dependencies.drogue-device]
 path = "../device"

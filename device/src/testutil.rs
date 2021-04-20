@@ -5,7 +5,9 @@ use core::future::Future;
 use core::pin::Pin;
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll};
-use drogue_device_kernel::{actor::Actor, device::Device, util::ImmediateFuture};
+use drogue_device_kernel::{
+    actor::Actor, device::Device, device::DeviceContext, util::ImmediateFuture,
+};
 use embassy::traits::gpio::WaitForAnyEdge;
 use embassy::util::Signal;
 use embedded_hal::digital::v2::InputPin;
@@ -13,28 +15,56 @@ use std::vec::Vec;
 
 /// A test context that can execute test for a given device
 pub struct TestContext<D: Device + 'static> {
-    executor: embassy_std::Executor,
-    pins: UnsafeCell<Vec<InnerPin>>,
-    device: UnsafeCell<Option<D>>,
-    signals: UnsafeCell<Vec<TestSignal>>,
+    runner: &'static TestRunner,
+    device: DeviceContext<D>,
 }
 
 impl<D: Device> TestContext<D> {
-    // Setup test context with a given device
-    // NOTE: Leaks device and this context to the heap!
-    pub fn new() -> &'static Self {
-        let m = Self {
-            executor: embassy_std::Executor::new(),
-            device: UnsafeCell::new(None),
-            pins: UnsafeCell::new(Vec::new()),
-            signals: UnsafeCell::new(Vec::new()),
-        };
-        Box::leak(Box::new(m))
+    pub fn new(runner: &'static TestRunner, device: DeviceContext<D>) -> Self {
+        Self { runner, device }
     }
 
     /// Configure context with a device
-    pub fn configure(&'static self, device: D) {
-        unsafe { (&mut *self.device.get()).replace(device) };
+    pub fn configure(&mut self, device: D) {
+        self.device.configure(device);
+    }
+
+    /// Create a test pin that can be used in tests
+    pub fn pin(&mut self, initial: bool) -> TestPin {
+        self.runner.pin(initial)
+    }
+
+    /// Create a signal that can be used in tests
+    pub fn signal(&mut self) -> &'static TestSignal {
+        self.runner.signal()
+    }
+
+    /// Mount the device, running the provided callback function.
+    pub fn mount<F: FnOnce(&'static D) -> R, R>(&mut self, f: F) -> R {
+        self.device.mount(f)
+    }
+}
+
+impl<D: Device> Drop for TestContext<D> {
+    fn drop(&mut self) {
+        self.runner.done()
+    }
+}
+
+/// A test context that can execute test for a given device
+pub struct TestRunner {
+    pins: UnsafeCell<Vec<InnerPin>>,
+    signals: UnsafeCell<Vec<TestSignal>>,
+    done: AtomicBool,
+}
+
+impl TestRunner {
+    pub fn new() -> Self {
+        Self {
+            pins: UnsafeCell::new(Vec::new()),
+            signals: UnsafeCell::new(Vec::new()),
+            done: AtomicBool::new(false),
+        }
     }
 
     /// Create a test pin that can be used in tests
@@ -53,18 +83,12 @@ impl<D: Device> TestContext<D> {
         &signals[signals.len() - 1]
     }
 
-    /// Mount the device, running the provided callback function.
-    pub fn mount<F: FnOnce(&'static D)>(&'static self, f: F) {
-        self.executor.initialize(|spawner| {
-            let device = unsafe { &mut *self.device.get() };
-            f(&device.as_ref().unwrap());
-            device.as_ref().unwrap().start(spawner);
-        })
+    pub fn done(&'static self) {
+        self.done.store(true, Ordering::SeqCst);
     }
 
-    /// Run an interation of the device until there are no tasks pending
-    pub fn run_until_idle(&'static self) {
-        self.executor.run_until_idle()
+    pub fn is_done(&'static self) -> bool {
+        self.done.load(Ordering::SeqCst)
     }
 }
 
@@ -162,7 +186,8 @@ pub struct SignalFuture<'m> {
 impl<'m> Future for SignalFuture<'m> {
     type Output = ();
     fn poll(self: core::pin::Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.signal.poll_wait(cx)
+        let result = self.signal.poll_wait(cx);
+        result
     }
 }
 
@@ -202,11 +227,13 @@ impl TestSignal {
         self.signal.signal(())
     }
 
-    pub fn signaled(&self) -> bool {
-        self.signal.signaled()
-    }
-
     pub fn message(&self) -> Option<TestMessage> {
         *self.value.borrow()
+    }
+
+    pub fn wait_signaled<'m>(&'m self) -> SignalFuture<'m> {
+        SignalFuture {
+            signal: &self.signal,
+        }
     }
 }

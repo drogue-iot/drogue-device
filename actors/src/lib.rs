@@ -9,3 +9,4 @@
 pub(crate) mod fmt;
 
 pub mod button;
+pub mod timer;

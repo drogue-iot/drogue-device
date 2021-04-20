@@ -13,7 +13,7 @@ pub trait Actor: Sized {
     type MaxQueueSize<'a>: ArrayLength<ActorMessage<'a, Self>> + ArrayLength<SignalSlot> + 'a where Self: 'a = consts::U1;
 
     /// The configuration that this actor will expect when mounted.
-    type Configuration;
+    type Configuration = ();
 
     /// The message type that this actor will handle in `on_message`.
     type Message<'a>: Sized
@@ -201,6 +201,7 @@ impl<'a, A: Actor> ActorState<'a, A> {
     }
 }
 
+#[derive(PartialEq, Eq)]
 enum SendState {
     WaitChannel,
     WaitSignal,
