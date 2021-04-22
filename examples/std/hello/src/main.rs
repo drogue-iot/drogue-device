@@ -73,9 +73,9 @@ async fn main(mut context: DeviceContext<MyDevice>) {
 
     loop {
         time::Timer::after(time::Duration::from_secs(1)).await;
-        // Notify waits until message is enqueued
+        // Send that completes when message is enqueued
         a_addr.notify(SayHello("World")).await;
-        // Send waits until message is processed
-        b_addr.send(&mut SayHello("You")).await;
+        // Send that waits until message is processed
+        b_addr.process(&mut SayHello("You")).await;
     }
 }

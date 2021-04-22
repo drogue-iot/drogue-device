@@ -74,7 +74,7 @@ impl<'a, A: Actor> Address<'a, A> {
     /// ensure that the response to the request is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
-    pub fn send<'m>(&self, message: &'m mut A::Message<'m>) -> SendFuture<'a, 'm, A>
+    pub fn process<'m>(&self, message: &'m mut A::Message<'m>) -> SendFuture<'a, 'm, A>
     where
         'a: 'm,
     {

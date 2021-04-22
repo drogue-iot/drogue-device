@@ -121,7 +121,7 @@ mod tests {
 
         let before = time::Instant::now();
         timer
-            .send(&mut TimerMessage::Delay(time::Duration::from_secs(1)))
+            .process(&mut TimerMessage::Delay(time::Duration::from_secs(1)))
             .await;
         let after = time::Instant::now();
         assert!(after.as_secs() >= before.as_secs() + 1);
