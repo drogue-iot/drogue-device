@@ -1,0 +1,33 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+edition = "2018"
+name = "lora-discovery"
+version = "0.1.0"
+
+[workspace]
+
+[dependencies]
+log = "0.4"
+rtt-logger = "0.1"
+rtt-target = { version = "0.2.0", features = ["cortex-m"] }
+embedded-hal = { version = "0.2.4", features = ["unproven"] }
+panic-probe = { version = "0.2.0", features = ["print-rtt"] }
+
+drogue-device = { path = "../../../device", features = ["log", "chip+stm32l0x2", "lora+sx127x"] }
+cortex-m-rt = "0.6"
+cortex-m = { version = "0.7", features = ["inline-asm"] }
+
+# TODO: Get rid of these
+embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy" }
+embassy-stm32 = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false} #, path = "../../../embassy/embassy-stm32" }
+
+[profile.release]
+debug = true
+opt-level = "z"
+lto = true
+
+[patch.crates-io]
+cortex-m = {git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"]}

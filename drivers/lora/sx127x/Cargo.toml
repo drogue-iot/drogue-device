@@ -1,9 +1,36 @@
 [package]
-authors = [
-    "Ulf Lilleengen <lulf@redhat.com>",
-    "Bob McWhirter <bmcwhirt@redhat.com>"
-]
-name = "drogue-device-sx127x"
+name = "drogue-sx127x"
 version = "0.1.0"
+authors = ["Ulf Lilleengen <lulf@redhat.com>"]
 edition = "2018"
-description = "Async driver for Semtech Sx127x"
+license = "Apache-2.0"
+description = "Async driver implementing drogue-lora API for Semtech Sx127x chips"
+readme = "README.md"
+repository = "https://github.com/drogue-iot/drogue-device"
+homepage = "https://blog.drogue.io"
+categories = ["embedded", "no-std", "network-programming"]
+keywords = ["driver", "network", "lora", "no_std", "sx127x", "sx1276", "semtech"]
+
+[dependencies]
+drogue-device-kernel = { path = "../../../kernel" }
+drogue-lora = { path = "../../../traits/lora" }
+
+embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy" }
+
+lorawan-device = { git = "https://github.com/ivajloip/rust-lorawan.git", branch   = "master", default-features = false }
+lorawan-encoding = { git = "https://github.com/ivajloip/rust-lorawan.git", branch   = "master", default-features = false, features = ["default-crypto"] }
+bit_field = "0.10"
+
+heapless = "0.5"
+embedded-hal = { version = "0.2.4", features = ["unproven"] }
+log = { version = "0.4", optional = true }
+defmt = { version = "0.2", optional = true }
+
+[features]
+
+defmt-default = [ ]
+defmt-trace = [ ]
+defmt-debug = [ ]
+defmt-info = [ ]
+defmt-warn = [ ]
+defmt-error = [ ]

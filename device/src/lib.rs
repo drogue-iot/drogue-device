@@ -89,12 +89,30 @@ pub use drogue_device_kernel::{
     util::ImmediateFuture,
 };
 
+// Traits
+pub mod traits {
+    pub use drogue_lora as lora;
+
+    pub use embassy::traits::*;
+}
+
+// Drivers
+pub mod drivers {
+    pub mod lora {
+        #[cfg(feature = "lora+sx127x")]
+        pub use drogue_sx127x as sx127x;
+    }
+}
+
 #[doc(hidden)]
 pub use drogue_device_macros::{self as drogue, Device};
 pub use embassy::*;
 
 #[cfg(feature = "chip+nrf52833")]
 pub use embassy_nrf as nrf;
+
+#[cfg(feature = "chip+stm32l0x2")]
+pub use embassy_stm32 as stm32;
 
 #[doc(hidden)]
 pub mod reexport {
@@ -103,6 +121,8 @@ pub mod reexport {
     pub use ::embassy_nrf;
     #[cfg(feature = "std")]
     pub use ::embassy_std;
+    #[cfg(feature = "chip+stm32l0x2")]
+    pub use ::embassy_stm32;
 }
 
 #[doc(hidden)]

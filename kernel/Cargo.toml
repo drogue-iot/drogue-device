@@ -7,22 +7,12 @@ edition = "2018"
 name = "drogue-device-kernel"
 version = "0.1.0"
 
-[dependencies.embassy]
-git = "https://github.com/drogue-iot/embassy.git"
-branch = "drogue"
-#path = "../../../embassy/embassy"
-default-features = false
-
-[dependencies.heapless]
-version = "0.6"
-
-[dependencies.log]
-version = "0.4"
-optional = true
-
-[dependencies.defmt]
-version = "0.2"
-optional = true
+[dependencies]
+embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy" }
+atomic-polyfill = "0.1"
+heapless = "0.6"
+log = { version = "0.4", optional = true }
+defmt = { version = "0.2", optional = true }
 
 [features]
 std = ["embassy/std"]

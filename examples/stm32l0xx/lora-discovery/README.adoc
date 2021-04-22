@@ -1,0 +1,64 @@
+== lora-discovery example
+
+This example application runs out of the box on the STM32 LoRa Discovery Kit (B-L072Z-LRWAN1).
+
+You can configure
+It provides a UART echo server that will echo characters you write to
+the micro:bit serial interface, and it will display ascii characters on
+the 5x5 LED display.
+
+=== Prerequisites
+
+==== Hardware
+
+* link:https://www.st.com/en/evaluation-tools/b-l072z-lrwan1.html[STM32 LoRa Discovery Kit]
+
+==== Software
+
+To build and flash the example, you need to have
+https://rustup.rs/[Rust Nightly]. In pratice
+you can use whatever tool you want to flash the device, but this guide
+will assume that `probe-run` is used (`cargo install probe-run`).
+
+=== Configuring
+
+To use this example, you need to create the files `config/dev_eui.txt`, `config/app_eui.txt`, and
+`config/app_key.txt` to configure the device EUI, application EUI, and application key for OTAA
+configuration of your device.
+
+=== Building
+
+Make sure you have the correct target architecture supported in rust:
+
+....
+rustup +nightly target add thumbv6m-none-eabi
+....
+
+To build the firmware:
+
+....
+cargo +nightly build --release
+....
+
+=== Flashing
+
+Flashing the firmware uses `probe-run` which auto-detects the probe connected to your device. 
+The following command will build and flash the firmware and open the
+debugger console so you can see the console debug output.
+
+....
+cargo +nightly run --release
+....
+
+If you’re experiencing problems, try setting the `VID:PID` values to
+that of your probe (you can find that from lsusb once your board is
+powered).
+
+....
+cargo +nightly run --release -- --probe <VID>:<PID>
+....
+
+
+=== Usage
+
+Once the device is flashed, it will connect to the local LoRaWAN network. Once the network is joined, you can press the blue button on the development kit to send a test message "ping".

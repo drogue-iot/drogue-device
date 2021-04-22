@@ -1,7 +1,7 @@
 use core::future::Future;
 use core::marker::PhantomData;
 use core::pin::Pin;
-use core::sync::atomic::{AtomicBool, Ordering};
+use atomic_polyfill::{AtomicBool, Ordering};
 use core::task::{Context, Poll};
 use embassy::util::Signal;
 

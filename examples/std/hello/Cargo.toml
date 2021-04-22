@@ -4,20 +4,15 @@ authors = [
     "Bob McWhirter <bmcwhirt@redhat.com>"
 ]
 edition = "2018"
-name = "drogue-device-example-std-hello"
+name = "hello"
 version = "0.1.0"
 
 [workspace]
 
-[dependencies.log]
-version = "0.4"
-
-[dependencies.env_logger]
-version = "0.8"
-
-[dependencies.drogue-device]
-path = "../../../device"
-features = ["log", "std"]
+[dependencies]
+log = "0.4"
+env_logger = "0.8"
+drogue-device = { path = "../../../device", features = ["log", "std"] }
 
 [patch.crates-io]
 cortex-m = {git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"]}

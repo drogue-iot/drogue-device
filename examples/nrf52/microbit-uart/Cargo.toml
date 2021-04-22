@@ -9,39 +9,18 @@ version = "0.1.0"
 
 [workspace]
 
-[dependencies.defmt]
-version = "0.2"
+[dependencies]
+defmt = "0.2"
+defmt-rtt = "0.2"
+panic-probe = { version = "0.2.0", features = ["print-defmt"] }
 
-[dependencies.defmt-rtt]
-version = "0.2"
+drogue-device = { path = "../../../device", features = ["defmt", "defmt-info", "chip+nrf52833"] }
+cortex-m-rt = "0.6"
+cortex-m = { version = "0.7", features = ["inline-asm"] }
 
-[dependencies.drogue-device]
-path = "../../../device"
-features = ["defmt", "defmt-info", "chip+nrf52833"]
-
-# TODO: Get rid of these
-[dependencies.embassy]
-# git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/drogue-iot/embassy.git"
-branch = "drogue"
-features = ["defmt", "defmt-info" ]
-
-[dependencies.embassy-nrf]
-#git = "https://github.com/embassy-rs/embassy.git"
-git = "https://github.com/drogue-iot/embassy.git"
-branch = "drogue"
-features = ["defmt", "defmt-info", "52833" ]
-
-[dependencies.cortex-m-rt]
-version = "0.6"
-
-[dependencies.cortex-m]
-version = "0.7"
-features = ["inline-asm"]
-
-[dependencies.panic-probe]
-version = "0.2.0"
-features = ["print-defmt"]
+# TODO: Get rid of these embassy deps some day
+embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy" }
+embassy-nrf = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy-nrf" }
 
 [features]
 default = [

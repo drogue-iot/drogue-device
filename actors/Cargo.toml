@@ -7,49 +7,20 @@ edition = "2018"
 name = "drogue-device-actors"
 version = "0.1.0"
 
-[dependencies.drogue-device-kernel]
-path = "../kernel"
+[dependencies]
+drogue-device-kernel = { path = "../kernel" }
 
-[dependencies.embedded-hal]
-version = "0.2.4"
-features = ["unproven"]
+embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy" }
+embassy-traits = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy-traits" }
 
-[dependencies.log]
-version = "0.4"
-optional = true
+embedded-hal = { version = "0.2.4", features = ["unproven"] }
+log = { version = "0.4", optional = true }
+defmt = { version = "0.2", optional = true }
 
-[dependencies.defmt]
-version = "0.2"
-optional = true
-
-[dependencies.embassy]
-git = "https://github.com/drogue-iot/embassy.git"
-branch = "drogue"
-#path = "../../../embassy/embassy-traits"
-default-features = false
-
-[dependencies.embassy-traits]
-git = "https://github.com/drogue-iot/embassy.git"
-branch = "drogue"
-#path = "../../../embassy/embassy-traits"
-default-features = false
-
-[dev-dependencies.embassy]
-git = "https://github.com/drogue-iot/embassy.git"
-branch = "drogue"
-#path = "../../../embassy/embassy"
-default-features = false
-features = ["std"]
-
-[dev-dependencies.drogue-device]
-path = "../device"
-features = ["std"]
-
-[dev-dependencies.embassy-std]
-git = "https://github.com/drogue-iot/embassy.git"
-branch = "drogue"
-#path = "../../../embassy/embassy-std"
-default-features = false
+[dev-dependencies]
+embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false, features = ["std"] } #, path = "../../../embassy/embassy" }
+embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy-std" }
+drogue-device = { path = "../device", features = ["std"] }
 
 [features]
 defmt-trace = [ ]

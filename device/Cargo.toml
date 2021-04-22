@@ -10,69 +10,33 @@ version = "0.1.0"
 [lib]
 doctest = false
 
-[dependencies.drogue-device-kernel]
-path = "../kernel"
-features = ["defmt", "defmt-trace"]
+[dependencies]
+drogue-device-kernel = { path = "../kernel" }
+drogue-device-actors = { path = "../actors" }
+drogue-device-macros = { path = "../macros" }
+drogue-lora = { path = "../traits/lora" }
+drogue-sx127x = { path = "../drivers/lora/sx127x", optional = true }
 
-[dependencies.drogue-device-actors]
-path = "../actors"
-features = ["defmt", "defmt-trace"]
+embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy" }
+embassy-nrf = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false, optional = true } #, path = "../../../embassy/embassy-nrf" }
+embassy-stm32 = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false, optional = true } #, path = "../../../embassy/embassy-stm32" }
+embassy-rp = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false, optional = true } #, path = "../../../embassy/embassy-rp" }
+embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false, optional = true } #, path = "../../../embassy/embassy-std" }
 
-[dependencies.drogue-device-macros]
-path = "../macros"
+embedded-hal = { version = "0.2.4", features = ["unproven"], optional = true }
 
-[dependencies.drogue-device-lora]
-path = "../traits/lora"
-optional = true
-
-[dependencies.drogue-device-sx127x]
-path = "../drivers/lora/sx127x"
-optional = true
-
-
-[dependencies.embassy]
-git = "https://github.com/drogue-iot/embassy.git"
-branch = "drogue"
-#path = "../../../embassy/embassy"
-default-features = false
-
-[dependencies.embassy-nrf]
-git = "https://github.com/drogue-iot/embassy.git"
-branch = "drogue"
-#path = "../../../embassy/embassy-nrf"
-default-features = false
-optional = true
-
-[dependencies.embassy-std]
-git = "https://github.com/drogue-iot/embassy.git"
-branch = "drogue"
-#path = "../../../embassy/embassy-std"
-default-features = false
-optional = true
-
-[dev-dependencies.embassy-std]
-git = "https://github.com/drogue-iot/embassy.git"
-branch = "drogue"
-#path = "../../../embassy/embassy-std"
-default-features = false
-
-[dependencies.log]
-version = "0.4"
-optional = true
-
-[dependencies.defmt]
-version = "0.2"
-optional = true
-
-[dependencies.embedded-hal]
-version = "0.2.4"
-features = ["unproven"]
-optional = true
+[dev-dependencies]
+embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy-std" }
 
 [features]
-"chip+nrf52833" = ["embassy-nrf", "embassy-nrf/52833"]
-"lora+sx127x" = ["drogue-device-lora", "drogue-device-sx127x"]
 std = ["embassy/std", "embassy-std", "embedded-hal"]
+"chip+nrf52833" = ["embassy-nrf", "embassy-nrf/52833"]
+"chip+stm32l0x2" = ["embassy-stm32", "embassy-stm32/stm32l0x2" ]
+"lora+sx127x" = ["drogue-sx127x", "drogue-sx127x/log"]
+log = ["embassy/log", "drogue-device-actors/log", "drogue-device-kernel/log" ]
+lora = []
+defmt = ["embassy/defmt", "drogue-device-actors/defmt", "drogue-device-kernel/defmt" ]
+defmt-default = [ ]
 defmt-trace = [ ]
 defmt-debug = [ ]
 defmt-info = [ ]
