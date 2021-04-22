@@ -17,15 +17,11 @@ fn copy_config(out: &PathBuf, file: &str) {
         fs::copy(file, out.join(file)).expect("error copying file");
         println!("cargo:rerun-if-changed={}", file);
     } else {
-        println!(
-            "Unable to locate config file {}. Creating empty file (your application may not work)",
-            file
-        );
-        // Ok if this doesnt work, it will fail during build
-        let _ = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(out.join(file));
+        if env::var_os("CI").is_none() {
+            panic!("Unable to locate config file {}.", file);
+        } else {
+            println!("Skipping missing configuration file when running in CI");
+        }
     }
 }
 
