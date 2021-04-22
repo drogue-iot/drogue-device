@@ -354,7 +354,7 @@ where
                             app_key.clone().into(),
                             self.get_random,
                         );
-                    lorawan.set_datarate(region::DR::_5); // Use lower datarate that seems more stable
+                    lorawan.set_datarate(region::DR::_3); // Use lower datarate that seems more stable
                     self.state.replace(DriverState::Configured(lorawan));
                     Ok(())
                 }
