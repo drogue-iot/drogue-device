@@ -47,8 +47,8 @@ pub struct SayHello<'m>(&'m str);
 
 #[derive(Device)]
 pub struct MyDevice {
-    a: ActorState<'static, MyActor>,
-    b: ActorState<'static, MyActor>,
+    a: ActorContext<'static, MyActor>,
+    b: ActorContext<'static, MyActor>,
 }
 
 static COUNTER: AtomicU32 = AtomicU32::new(0);
@@ -61,8 +61,8 @@ async fn main(mut context: DeviceContext<MyDevice>) {
         .init();
 
     context.configure(MyDevice {
-        a: ActorState::new(MyActor::new("a", &COUNTER)),
-        b: ActorState::new(MyActor::new("b", &COUNTER)),
+        a: ActorContext::new(MyActor::new("a", &COUNTER)),
+        b: ActorContext::new(MyActor::new("b", &COUNTER)),
     });
 
     let (a_addr, b_addr) = context.mount(|device| {

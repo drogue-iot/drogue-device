@@ -75,16 +75,16 @@ mod tests {
 
     #[derive(Device)]
     struct ScheduleDevice {
-        handler: ActorState<'static, TestHandler>,
-        timer: ActorState<'static, Timer<'static, TestHandler>>,
+        handler: ActorContext<'static, TestHandler>,
+        timer: ActorContext<'static, Timer<'static, TestHandler>>,
     }
 
     #[drogue::test]
     async fn test_schedule(mut context: TestContext<ScheduleDevice>) {
         let notified = context.signal();
         context.configure(ScheduleDevice {
-            handler: ActorState::new(TestHandler::new(notified)),
-            timer: ActorState::new(Timer::new()),
+            handler: ActorContext::new(TestHandler::new(notified)),
+            timer: ActorContext::new(Timer::new()),
         });
 
         let (timer_addr, handler_addr) = context.mount(|device| {
@@ -108,13 +108,13 @@ mod tests {
 
     #[derive(Device)]
     struct DelayDevice {
-        timer: ActorState<'static, Timer<'static, TestHandler>>,
+        timer: ActorContext<'static, Timer<'static, TestHandler>>,
     }
 
     #[drogue::test]
     async fn test_delay(mut context: TestContext<DelayDevice>) {
         context.configure(DelayDevice {
-            timer: ActorState::new(Timer::new()),
+            timer: ActorContext::new(Timer::new()),
         });
 
         let timer = context.mount(|device| device.timer.mount(()));

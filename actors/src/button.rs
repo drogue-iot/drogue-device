@@ -104,8 +104,8 @@ mod tests {
 
     #[derive(Device)]
     struct TestDevicePressed {
-        handler: ActorState<'static, TestHandler>,
-        button: ActorState<'static, Button<'static, TestPin, TestHandler>>,
+        handler: ActorContext<'static, TestHandler>,
+        button: ActorContext<'static, Button<'static, TestPin, TestHandler>>,
     }
 
     #[drogue::test]
@@ -114,8 +114,8 @@ mod tests {
         let notified = context.signal();
 
         context.configure(TestDevicePressed {
-            handler: ActorState::new(TestHandler::new(notified)),
-            button: ActorState::new(Button::new(pin)),
+            handler: ActorContext::new(TestHandler::new(notified)),
+            button: ActorContext::new(Button::new(pin)),
         });
 
         context.mount(|device| {
@@ -131,8 +131,8 @@ mod tests {
 
     #[derive(Device)]
     struct TestDeviceReleased {
-        handler: ActorState<'static, TestHandler>,
-        button: ActorState<'static, Button<'static, TestPin, TestHandler>>,
+        handler: ActorContext<'static, TestHandler>,
+        button: ActorContext<'static, Button<'static, TestPin, TestHandler>>,
     }
 
     #[drogue::test]
@@ -141,8 +141,8 @@ mod tests {
         let notified = context.signal();
 
         context.configure(TestDeviceReleased {
-            handler: ActorState::new(TestHandler::new(notified)),
-            button: ActorState::new(Button::new(pin)),
+            handler: ActorContext::new(TestHandler::new(notified)),
+            button: ActorContext::new(Button::new(pin)),
         });
 
         context.mount(|device| {

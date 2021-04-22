@@ -62,13 +62,13 @@
 //!
 //! #[derive(drogue::Device)]
 //! pub struct MyDevice {
-//!     a: ActorState<'static, MyActor>,
+//!     a: ActorContext<'static, MyActor>,
 //! }
 //!
 //! #[drogue::configure]
 //! fn configure() -> MyDevice {
 //!     MyDevice {
-//!         a: ActorState::new(MyActor::new("a")),
+//!         a: ActorContext::new(MyActor::new("a")),
 //!     }
 //! }
 //!
@@ -82,7 +82,7 @@
 //!
 pub use drogue_device_actors as actors;
 pub use drogue_device_kernel::{
-    actor::{Actor, ActorState, Address},
+    actor::{Actor, ActorContext, Address},
     channel::{consts, Channel},
     device::{Device, DeviceContext},
     package::Package,

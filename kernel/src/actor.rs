@@ -54,11 +54,11 @@ pub trait Actor: Sized {
 /// Individual actor implementations may augment the `Address` object
 /// when appropriate bounds are met to provide method-like invocations.
 pub struct Address<'a, A: Actor> {
-    state: &'a ActorState<'a, A>,
+    state: &'a ActorContext<'a, A>,
 }
 
 impl<'a, A: Actor> Address<'a, A> {
-    pub fn new(state: &'a ActorState<'a, A>) -> Self {
+    pub fn new(state: &'a ActorContext<'a, A>) -> Self {
         Self { state }
     }
 }
@@ -108,13 +108,13 @@ impl<'a, A: Actor> Clone for Address<'a, A> {
     }
 }
 
-pub struct ActorState<'a, A: Actor> {
+pub struct ActorContext<'a, A: Actor> {
     pub actor: UnsafeCell<A>,
     pub channel: Channel<'a, ActorMessage<'a, A>, A::MaxQueueSize<'a>>,
     signals: UnsafeCell<[SignalSlot; 4]>,
 }
 
-impl<'a, A: Actor> ActorState<'a, A> {
+impl<'a, A: Actor> ActorContext<'a, A> {
     pub fn new(actor: A) -> Self {
         let channel: Channel<'a, ActorMessage<A>, A::MaxQueueSize<'a>> = Channel::new();
         Self {

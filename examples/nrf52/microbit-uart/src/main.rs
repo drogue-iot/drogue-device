@@ -30,9 +30,9 @@ use panic_probe as _;
 
 #[derive(Device)]
 pub struct MyDevice {
-    button: ActorState<'static, Button<'static, PortInput<'static, P0_14>, Statistics>>,
-    statistics: ActorState<'static, Statistics>,
-    server: ActorState<'static, EchoServer<'static, Uarte<'static, UARTE0>>>,
+    button: ActorContext<'static, Button<'static, PortInput<'static, P0_14>, Statistics>>,
+    statistics: ActorContext<'static, Statistics>,
+    server: ActorContext<'static, EchoServer<'static, Uarte<'static, UARTE0>>>,
 }
 
 #[drogue::main]
@@ -50,9 +50,9 @@ async fn main(mut context: DeviceContext<MyDevice>) {
     let uarte = unsafe { uarte::Uarte::new(p.UARTE0, irq, p.P0_13, p.P0_01, NoPin, NoPin, config) };
 
     context.configure(MyDevice {
-        server: ActorState::new(EchoServer::new(uarte)),
-        button: ActorState::new(Button::new(button_port)),
-        statistics: ActorState::new(Statistics::new()),
+        server: ActorContext::new(EchoServer::new(uarte)),
+        button: ActorContext::new(Button::new(button_port)),
+        statistics: ActorContext::new(Statistics::new()),
     });
 
     context.mount(|device| {

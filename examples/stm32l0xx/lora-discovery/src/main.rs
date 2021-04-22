@@ -77,8 +77,8 @@ pub type Sx127x<'a> = Sx127xDriver<
 
 #[derive(Device)]
 pub struct MyDevice {
-    button: ActorState<'static, Button<'static, ExtiPin<PB2<Input<PullUp>>>, App<Sx127x<'static>>>>,
-    app: ActorState<'static, App<Sx127x<'static>>>,
+    button: ActorContext<'static, Button<'static, ExtiPin<PB2<Input<PullUp>>>, App<Sx127x<'static>>>>,
+    app: ActorContext<'static, App<Sx127x<'static>>>,
 }
 
 #[drogue::main(config = "embassy_stm32::hal::rcc::Config::hsi16()")]
@@ -149,8 +149,8 @@ async fn main(mut context: DeviceContext<MyDevice>) {
     log::info!("Configuring with config {:?}", config);
 
     context.configure(MyDevice {
-        app: ActorState::new(App::new(lora, config)),
-        button: ActorState::new(Button::new(pin)),
+        app: ActorContext::new(App::new(lora, config)),
+        button: ActorContext::new(Button::new(pin)),
     });
 
     context.mount(|device| {

@@ -41,13 +41,13 @@ mod tests {
 
         #[derive(drogue::Device)]
         struct MyDevice {
-            a: ActorState<'static, MyActor>,
+            a: ActorContext<'static, MyActor>,
         }
 
         #[drogue::main]
         async fn main(mut context: DeviceContext<MyDevice>) {
             context.configure(MyDevice {
-                a: ActorState::new(MyActor {
+                a: ActorContext::new(MyActor {
                     value: &INITIALIZED,
                 }),
             });
