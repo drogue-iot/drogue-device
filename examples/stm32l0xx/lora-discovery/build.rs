@@ -21,6 +21,10 @@ fn copy_config(out: &PathBuf, file: &str) {
             panic!("Unable to locate config file {}.", file);
         } else {
             println!("Skipping missing configuration file when running in CI");
+            let _ = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(out.join(file));
         }
     }
 }
