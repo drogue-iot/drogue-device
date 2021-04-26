@@ -41,7 +41,6 @@
 //! }
 //!
 //! impl Actor for MyActor {
-//!     type Configuration = ();
 //!     type Message<'a> = SayHello<'a>;
 //!     type OnStartFuture<'a> = impl core::future::Future<Output = ()> + 'a;
 //!     type OnMessageFuture<'a> = impl core::future::Future<Output = ()> + 'a;
@@ -60,22 +59,19 @@
 //!     }
 //! }
 //!
-//! #[derive(drogue::Device)]
+//! #[derive(Device)]
 //! pub struct MyDevice {
 //!     a: ActorContext<'static, MyActor>,
 //! }
 //!
-//! #[drogue::configure]
-//! fn configure() -> MyDevice {
-//!     MyDevice {
-//!         a: ActorContext::new(MyActor::new("a")),
-//!     }
-//! }
-//!
 //! #[drogue::main]
 //! async fn main(mut context: DeviceContext<MyDevice>) {
-//!     let a_addr = context.device().a.mount(());
-//!     context.start();
+//!     context.configure(MyDevice {
+//!         a: ActorContext::new(MyActor::new("a")),
+//!     });
+//!     let a_addr = context.mount(|device| {
+//!         device.a.mount(())
+//!     });
 //!     a_addr.send(&mut SayHello("World")).await;
 //! }
 //!```
@@ -85,7 +81,7 @@ pub use drogue_device_kernel::{
     actor::{Actor, ActorContext, Address},
     channel::{consts, Channel},
     device::{Device, DeviceContext},
-    package::Package,
+    package::{Package, PackageContext},
     util::ImmediateFuture,
 };
 
@@ -105,7 +101,7 @@ pub mod drivers {
 }
 
 #[doc(hidden)]
-pub use drogue_device_macros::{self as drogue, Device};
+pub use drogue_device_macros::{self as drogue, Device, Package};
 pub use embassy::*;
 
 #[cfg(feature = "chip+nrf52833")]

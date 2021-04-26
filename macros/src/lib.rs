@@ -9,6 +9,17 @@ use quote::{format_ident, quote};
 use syn::spanned::Spanned;
 use syn::{self, Data, DataStruct, Fields};
 
+fn is_context(field: &syn::Field) -> bool {
+    if let syn::Type::Path(p) = &field.ty {
+        for s in p.path.segments.iter() {
+            if s.ident == "ActorContext" || s.ident == "PackageContext" {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 #[proc_macro_derive(Device)]
 pub fn device_macro_derive(input: TokenStream) -> TokenStream {
     let input: syn::DeriveInput = syn::parse(input).unwrap();
@@ -21,8 +32,15 @@ pub fn device_macro_derive(input: TokenStream) -> TokenStream {
         }) => &fields.named,
         _ => panic!("expected a struct with named fields"),
     };
-    let field_name = fields.iter().map(|field| &field.ident);
-    let field_type = fields.iter().map(|field| &field.ty);
+
+    let field_name = fields
+        .iter()
+        .filter(|field| is_context(field))
+        .map(|field| &field.ident);
+    let field_type = fields
+        .iter()
+        .filter(|field| is_context(field))
+        .map(|field| &field.ty);
 
     let gen = quote! {
         impl Device for #name {
@@ -53,8 +71,14 @@ pub fn package_macro_derive(input: TokenStream) -> TokenStream {
         }) => &fields.named,
         _ => panic!("expected a struct with named fields"),
     };
-    let field_name = fields.iter().map(|field| &field.ident);
-    let field_type = fields.iter().map(|field| &field.ty);
+    let field_name = fields
+        .iter()
+        .filter(|field| is_context(field))
+        .map(|field| &field.ident);
+    let field_type = fields
+        .iter()
+        .filter(|field| is_context(field))
+        .map(|field| &field.ty);
 
     let gen = quote! {
         impl Package for #name {
