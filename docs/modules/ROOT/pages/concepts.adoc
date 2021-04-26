@@ -16,7 +16,7 @@ image::drogue-device-actor-model.png[Drogue Device Actor Model]
 
 === Async
 
-Each actor is ostensibly single-threaded, able to process a single notification or request at a time, allowing for lock-free processing of each event.
+Each actor is ostensibly single-threaded, able to process a single message at a time, allowing for lock-free processing of each event.
 As embedded processors are ostensibly globally single-threaded, supporting multiple actors requires the usage of `async` and `.await` within the Rust ecosystem.
 Each actor can therefore process each message either synchronously if its logic is _non-blocking_ or using an `async` block if complex processing is required.
 
@@ -47,9 +47,7 @@ Each Actor in the system defines the configuration it expects to get handed in i
 
 A top-level `Device` struct maintain members for each actor. The `derive(Device)` type attribute can be used to derive an implementation of `Device` for a particular application.
 
-The device instance is created in a special function marked with `#[drogue::configure]`, and should return a type that derives the `Device` trait.
-
-The application entry point is specified using a function marked with `#[drogue::main]`, and it will be passed a `DeviceContext` that can be used to mount the actors and start the device.
+The application entry point is specified using a function marked with `#[drogue::main]`, and it will be passed a `DeviceContext` that can be used to configure and mount the device.
 
 === Packages
 
