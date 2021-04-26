@@ -2,12 +2,17 @@ use crate::statistics::*;
 use core::future::Future;
 use core::pin::Pin;
 use drogue_device::{
+    actors::led::matrix::*,
+    time::{Duration, Timer},
     traits::uart::{Read, Write},
     Actor, Address,
 };
 
+use crate::LedMatrix;
+
 pub struct EchoServer<'a, U: Write + Read + 'a> {
     uart: U,
+    matrix: Option<Address<'a, LedMatrix>>,
     statistics: Option<Address<'a, Statistics>>,
 }
 
@@ -17,13 +22,14 @@ impl<'a, U: Write + Read + 'a> EchoServer<'a, U> {
     pub fn new(uart: U) -> Self {
         Self {
             uart,
+            matrix: None,
             statistics: None,
         }
     }
 }
 
 impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
-    type Configuration = Address<'a, Statistics>;
+    type Configuration = (Address<'a, LedMatrix>, Address<'a, Statistics>);
     type Message<'m>
     where
         'a: 'm,
@@ -34,21 +40,35 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
     type OnMessageFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
 
     fn on_mount(&mut self, config: Self::Configuration) {
-        self.statistics.replace(config);
+        self.matrix.replace(config.0);
+        self.statistics.replace(config.1);
     }
 
     fn on_start(mut self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-        let mut buf: [u8; 1] = [0; 1];
+        let matrix = self.matrix.unwrap();
+        let statistics = self.statistics.unwrap();
         async move {
-            defmt::info!("Echo server started!");
+            for c in r"Hello, World!".chars() {
+                matrix.process(&mut MatrixCommand::ApplyFrame(&c)).await;
+                Timer::after(Duration::from_millis(200)).await;
+            }
+            matrix.notify(MatrixCommand::Clear).await;
+
+            let mut buf = [0; 128];
+            let motd = "Welcome to the Drogue Echo Service\r\n".as_bytes();
+            buf[..motd.len()].clone_from_slice(motd);
+            let _ = self.uart.write(&buf[..motd.len()]).await;
+
+            defmt::info!("Application ready. Connect to the serial port to use the service.");
             loop {
-                let _ = self.uart.read(&mut buf).await;
-                let _ = self.uart.write(&buf).await;
-                if let Some(statistics) = self.statistics {
-                    statistics
-                        .process(&mut StatisticsCommand::IncrementCharacterCount)
-                        .await;
-                }
+                let _ = self.uart.read(&mut buf[..1]).await;
+                let _ = self.uart.write(&buf[..1]).await;
+                matrix
+                    .process(&mut MatrixCommand::ApplyFrame(&(buf[0] as char)))
+                    .await;
+                statistics
+                    .process(&mut StatisticsCommand::IncrementCharacterCount)
+                    .await;
             }
         }
     }

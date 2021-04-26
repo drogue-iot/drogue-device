@@ -17,7 +17,6 @@ use std::cell::UnsafeCell;
 use std::marker::PhantomData;
 use std::mem::MaybeUninit;
 use std::ptr;
-use std::sync::{Condvar, Mutex};
 // use std::time::{Duration as StdDuration, Instant as StdInstant};
 use std::time::Instant as StdInstant;
 use std::vec::Vec;

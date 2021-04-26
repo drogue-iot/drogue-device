@@ -35,6 +35,8 @@ std = ["embassy/std", "embassy-std", "embedded-hal"]
 "lora+sx127x" = ["drogue-sx127x", "drogue-sx127x/log"]
 log = ["embassy/log", "drogue-device-actors/log", "drogue-device-kernel/log" ]
 lora = []
+fonts = ["drogue-device-actors/fonts"]
+
 defmt = ["embassy/defmt", "drogue-device-actors/defmt", "drogue-device-kernel/defmt" ]
 defmt-default = [ ]
 defmt-trace = [ ]

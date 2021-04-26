@@ -16,6 +16,7 @@ embassy-traits = {git = "https://github.com/drogue-iot/embassy.git", branch = "d
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 log = { version = "0.4", optional = true }
 defmt = { version = "0.2", optional = true }
+heapless = { version = "0.5" }
 
 [dev-dependencies]
 embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false, features = ["std"] } #, path = "../../../embassy/embassy" }
@@ -23,6 +24,7 @@ embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "drog
 drogue-device = { path = "../device", features = ["std"] }
 
 [features]
+fonts = []
 defmt-trace = [ ]
 defmt-debug = [ ]
 defmt-info = [ ]
