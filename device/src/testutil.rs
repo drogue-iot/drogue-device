@@ -241,7 +241,10 @@ impl TestRunner {
     }
 
     pub fn run_until_idle(&'static self) {
-        while !unsafe { (&mut *self.inner.get()).run_queued() } {}
+        self.signaler.prepare();
+        while self.signaler.should_run() {
+            unsafe { (&*self.inner.get()).run_queued() };
+        }
     }
 
     /// Create a test pin that can be used in tests
@@ -296,52 +299,26 @@ impl Alarm for StdAlarm {
 }
 
 struct Signaler {
-    mutex: Mutex<bool>,
-    condvar: Condvar,
+    run: AtomicBool,
 }
 
 impl Signaler {
     fn new() -> Self {
         Self {
-            mutex: Mutex::new(false),
-            condvar: Condvar::new(),
+            run: AtomicBool::new(false),
         }
     }
 
-    /*
-    fn wait(&self) {
-        let mut signaled = self.mutex.lock().unwrap();
-        while !*signaled {
-            let alarm_at = unsafe { ALARM_AT };
-            if alarm_at == u64::MAX {
-                signaled = self.condvar.wait(signaled).unwrap();
-            } else {
-                let now = StdClock.now();
-                if now >= alarm_at {
-                    break;
-                }
-
-                let left = alarm_at - now;
-                let dur = StdDuration::new(
-                    left / (TICKS_PER_SECOND as u64),
-                    (left % (TICKS_PER_SECOND as u64) * 1_000_000_000 / (TICKS_PER_SECOND as u64))
-                        as u32,
-                );
-                let (signaled2, timeout) = self.condvar.wait_timeout(signaled, dur).unwrap();
-                signaled = signaled2;
-                if timeout.timed_out() {
-                    break;
-                }
-            }
-        }
-        *signaled = false;
+    fn prepare(&self) {
+        self.run.store(true, Ordering::SeqCst);
     }
-    */
+
+    fn should_run(&self) -> bool {
+        self.run.swap(false, Ordering::SeqCst)
+    }
 
     fn signal(ctx: *mut ()) {
         let this = unsafe { &*(ctx as *mut Self) };
-        let mut signaled = this.mutex.lock().unwrap();
-        *signaled = true;
-        this.condvar.notify_one();
+        this.run.store(true, Ordering::SeqCst);
     }
 }

@@ -17,8 +17,8 @@ drogue-lora = { path = "../../../traits/lora" }
 
 embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy" }
 
-lorawan-device = { git = "https://github.com/lulf/rust-lorawan.git", branch   = "rx2-dr", default-features = false }
-lorawan-encoding = { git = "https://github.com/lulf/rust-lorawan.git", branch   = "rx2-dr", default-features = false, features = ["default-crypto"] }
+lorawan-device = { git = "https://github.com/lulf/rust-lorawan.git", branch   = "configurable-rxdelay", default-features = false }
+lorawan-encoding = { git = "https://github.com/lulf/rust-lorawan.git", branch   = "configurable-rxdelay", default-features = false, features = ["default-crypto"] }
 bit_field = "0.10"
 
 heapless = "0.5"

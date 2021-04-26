@@ -345,9 +345,11 @@ where
                     if let Err(e) = region {
                         return Err(e);
                     }
+                    let mut region = region.unwrap();
+                    region.set_receive_delay1(5000);
                     let mut lorawan: LorawanDevice<Radio<SPI, CS, RESET, E>, Crypto> =
                         LorawanDevice::new(
-                            region.unwrap(),
+                            region,
                             radio,
                             dev_eui.reverse().into(),
                             app_eui.reverse().into(),

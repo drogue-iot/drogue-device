@@ -45,7 +45,7 @@ use app::*;
 const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/dev_eui.txt"));
 const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_eui.txt"));
 const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_key.txt"));
-static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
+static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
 
 static mut RNG: Option<Rng> = None;
 fn get_random_u32() -> u32 {
@@ -88,7 +88,7 @@ async fn main(mut context: DeviceContext<MyDevice>) {
         log::set_logger_racy(&LOGGER).unwrap();
     }
 
-    log::set_max_level(log::LevelFilter::Info);
+    log::set_max_level(log::LevelFilter::Trace);
     let device = unsafe { Peripherals::steal() };
 
     // NEEDED FOR RTT
