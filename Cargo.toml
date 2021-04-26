@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "traits/lora",
+    "traits/network",
     "actors",
     "drivers/lora/sx127x",
     "device",

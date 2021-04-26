@@ -1,0 +1,12 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+name = "drogue-network"
+version = "0.1.0"
+edition = "2018"
+description = "Generic types and APIs for TCP/IP-based networking drivers"
+
+[dependencies]
+heapless = "0.5"
