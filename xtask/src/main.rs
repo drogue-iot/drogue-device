@@ -19,6 +19,7 @@ fn main() -> Result<(), anyhow::Error> {
 }
 
 fn test_ci() -> Result<(), anyhow::Error> {
+    let _e = xshell::pushenv("CI", "true");
     test_workspace()?;
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
