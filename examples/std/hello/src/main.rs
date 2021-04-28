@@ -74,7 +74,7 @@ impl PackageConfig for MyPack {
 }
 
 #[drogue::main]
-async fn main(mut context: DeviceContext<MyDevice>) {
+async fn main(context: DeviceContext<MyDevice>) {
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .format_timestamp_nanos()

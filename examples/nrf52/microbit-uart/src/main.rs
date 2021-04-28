@@ -50,7 +50,7 @@ fn output_pin(pin: AnyPin) -> Output<'static, AnyPin> {
 }
 
 #[drogue::main]
-async fn main(mut context: DeviceContext<MyDevice>) {
+async fn main(context: DeviceContext<MyDevice>) {
     let p = Peripherals::take().unwrap();
 
     let mut config = uarte::Config::default();

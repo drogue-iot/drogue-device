@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::str::FromStr;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
-    traits::network::{ip::*, tcp::*, wifi::*},
+    traits::{ip::*, tcp::*, wifi::*},
     Actor,
 };
 pub enum Command {

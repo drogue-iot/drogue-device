@@ -11,13 +11,7 @@ version = "0.1.0"
 doctest = false
 
 [dependencies]
-drogue-device-kernel = { path = "../kernel" }
-drogue-device-actors = { path = "../actors" }
 drogue-device-macros = { path = "../macros" }
-drogue-lora = { path = "../traits/lora" }
-drogue-network = { path = "../traits/network" }
-drogue-sx127x = { path = "../drivers/lora/sx127x", optional = true }
-drogue-esp8266 = { path = "../drivers/network/esp8266", optional = true }
 
 embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy" }
 embassy-nrf = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false, optional = true } #, path = "../../../embassy/embassy-nrf" }
@@ -25,23 +19,39 @@ embassy-stm32 = {git = "https://github.com/drogue-iot/embassy.git", branch = "dr
 embassy-rp = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false, optional = true } #, path = "../../../embassy/embassy-rp" }
 embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false, optional = true } #, path = "../../../embassy/embassy-std" }
 
-embedded-hal = { version = "0.2.4", features = ["unproven"], optional = true }
+# LoRa dependencies
+lorawan-device = { git = "https://github.com/lulf/rust-lorawan.git", branch   = "configurable-rxdelay", default-features = false, optional = true }
+lorawan-encoding = { git = "https://github.com/lulf/rust-lorawan.git", branch   = "configurable-rxdelay", default-features = false, features = ["default-crypto"], optional = true }
+bit_field = { version = "0.10", optional = true }
+
+# Wifi Dependencies
+nom = { version = "6.1.2", default-features = false, optional = true }
+moveslice = { version = "2.0", optional = true }
+
+# Utilities
+futures = { version = "0.3", default-features = false }
+heapless = "0.5"
+embedded-hal = { version = "0.2.4", features = ["unproven"] }
+atomic-polyfill = "0.1"
+
+# Logging alternatives
+log = { version = "0.4", optional = true }
+defmt = { version = "0.2", optional = true }
 
 [dev-dependencies]
 embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy-std" }
 
 [features]
-std = ["embassy/std", "embassy-std", "embedded-hal"]
+default = [ "log" ]
+std = ["embassy/std", "embassy-std"]
 "chip+nrf52833" = ["embassy-nrf", "embassy-nrf/52833"]
 "chip+stm32l0x2" = ["embassy-stm32", "embassy-stm32/stm32l0x2" ]
-"lora+sx127x" = ["drogue-sx127x", "drogue-sx127x/log"]
-"wifi+esp8266" = ["drogue-esp8266", "drogue-esp8266/log"]
-log = ["embassy/log", "drogue-device-actors/log", "drogue-device-kernel/log" ]
+"lora+sx127x" = ["lorawan-device", "lorawan-encoding", "bit_field", "log"]
+"wifi+esp8266" = ["log", "nom", "moveslice"]
 lora = []
 wifi = []
-fonts = ["drogue-device-actors/fonts"]
+fonts = []
 
-defmt = ["embassy/defmt", "drogue-device-actors/defmt", "drogue-device-kernel/defmt" ]
 defmt-default = [ ]
 defmt-trace = [ ]
 defmt-debug = [ ]

@@ -296,8 +296,8 @@ pub fn test(_: TokenStream, item: TokenStream) -> TokenStream {
 
         #[test]
         fn #test_name() {
-        static DEVICE: ::drogue_device::reexport::embassy::util::Forever<#device_type> = ::drogue_device::reexport::embassy::util::Forever::new();
-        static RUNNER: ::drogue_device::reexport::embassy::util::Forever<TestRunner> = ::drogue_device::reexport::embassy::util::Forever::new();
+            static DEVICE: ::drogue_device::reexport::embassy::util::Forever<#device_type> = ::drogue_device::reexport::embassy::util::Forever::new();
+            static RUNNER: ::drogue_device::reexport::embassy::util::Forever<TestRunner> = ::drogue_device::reexport::embassy::util::Forever::new();
 
             let runner = RUNNER.put(TestRunner::new());
 

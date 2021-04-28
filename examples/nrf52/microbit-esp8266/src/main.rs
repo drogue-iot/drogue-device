@@ -20,7 +20,7 @@ use rtt_target::rtt_init_print;
 use core::cell::UnsafeCell;
 use drogue_device::{
     actors::button::Button,
-    drivers::network::esp8266::*,
+    drivers::wifi::esp8266::*,
     nrf::{
         buffered_uarte::BufferedUarte,
         gpio::{Input, Level, NoPin, Output, OutputDrive, Pull},
@@ -29,7 +29,7 @@ use drogue_device::{
         peripherals::{P0_02, P0_03, P0_14, TIMER0, UARTE0},
         uarte, Peripherals,
     },
-    traits::network::ip::*,
+    traits::ip::*,
     *,
 };
 

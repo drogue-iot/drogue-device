@@ -1,9 +1,11 @@
 #![macro_use]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(incomplete_features)]
+#![allow(dead_code)]
 #![feature(min_type_alias_impl_trait)]
 #![feature(impl_trait_in_bindings)]
 #![feature(generic_associated_types)]
+#![feature(associated_type_defaults)]
 #![feature(type_alias_impl_trait)]
 //! An async, no-alloc actor framework for embedded devices.
 //!
@@ -76,8 +78,11 @@
 //! }
 //!```
 //!
-pub use drogue_device_actors as actors;
-pub use drogue_device_kernel::{
+
+pub(crate) mod fmt;
+
+pub mod kernel;
+pub use kernel::{
     actor::{Actor, ActorContext, Address},
     channel::{consts, Channel},
     device::{Device, DeviceContext},
@@ -85,26 +90,11 @@ pub use drogue_device_kernel::{
     util::ImmediateFuture,
 };
 
-// Traits
-pub mod traits {
-    pub use drogue_lora as lora;
-    pub use drogue_network as network;
+pub mod actors;
 
-    pub use embassy::traits::*;
-}
+pub mod traits;
 
-// Drivers
-pub mod drivers {
-    pub mod lora {
-        #[cfg(feature = "lora+sx127x")]
-        pub use drogue_sx127x as sx127x;
-    }
-
-    pub mod network {
-        #[cfg(feature = "wifi+esp8266")]
-        pub use drogue_esp8266 as esp8266;
-    }
-}
+pub mod drivers;
 
 #[doc(hidden)]
 pub use drogue_device_macros::{self as drogue, Device, Package};
