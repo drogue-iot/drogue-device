@@ -1,9 +1,11 @@
+use core::cell::Cell;
 use embassy::{executor::Spawner, util::Forever};
 
 pub trait Device {
     fn start(&'static self, spawner: Spawner);
 }
 
+#[derive(Clone, Copy)]
 enum State {
     New,
     Configured,
@@ -13,7 +15,7 @@ enum State {
 pub struct DeviceContext<D: Device + 'static> {
     holder: &'static Forever<D>,
     spawner: Spawner,
-    state: State,
+    state: Cell<State>,
 }
 
 impl<D: Device + 'static> DeviceContext<D> {
@@ -21,15 +23,15 @@ impl<D: Device + 'static> DeviceContext<D> {
         Self {
             spawner,
             holder,
-            state: State::New,
+            state: Cell::new(State::New),
         }
     }
 
-    pub fn configure(&mut self, device: D) {
-        match self.state {
+    pub fn configure(&self, device: D) {
+        match self.state.get() {
             State::New => {
                 self.holder.put(device);
-                self.state = State::Configured;
+                self.state.set(State::Configured);
             }
             _ => {
                 panic!("Context already configured");
@@ -37,13 +39,14 @@ impl<D: Device + 'static> DeviceContext<D> {
         }
     }
 
-    pub fn mount<F: FnOnce(&'static D) -> R, R>(&mut self, f: F) -> R {
-        match self.state {
+    pub fn mount<F: FnOnce(&'static D) -> R, R>(&self, f: F) -> R {
+        match self.state.get() {
             State::Configured => {
                 let device = unsafe { self.holder.steal() };
                 let r = f(device);
+
                 device.start(self.spawner);
-                self.state = State::Mounted;
+                self.state.set(State::Mounted);
                 r
             }
             State::New => {
@@ -58,7 +61,7 @@ impl<D: Device + 'static> DeviceContext<D> {
 
 impl<D: Device + 'static> Drop for DeviceContext<D> {
     fn drop(&mut self) {
-        match self.state {
+        match self.state.get() {
             State::Configured => {
                 panic!("Context must be mounted before it is dropped");
             }

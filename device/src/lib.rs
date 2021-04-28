@@ -88,6 +88,7 @@ pub use drogue_device_kernel::{
 // Traits
 pub mod traits {
     pub use drogue_lora as lora;
+    pub use drogue_network as network;
 
     pub use embassy::traits::*;
 }
@@ -97,6 +98,11 @@ pub mod drivers {
     pub mod lora {
         #[cfg(feature = "lora+sx127x")]
         pub use drogue_sx127x as sx127x;
+    }
+
+    pub mod network {
+        #[cfg(feature = "wifi+esp8266")]
+        pub use drogue_esp8266 as esp8266;
     }
 }
 

@@ -15,7 +15,9 @@ drogue-device-kernel = { path = "../kernel" }
 drogue-device-actors = { path = "../actors" }
 drogue-device-macros = { path = "../macros" }
 drogue-lora = { path = "../traits/lora" }
+drogue-network = { path = "../traits/network" }
 drogue-sx127x = { path = "../drivers/lora/sx127x", optional = true }
+drogue-esp8266 = { path = "../drivers/network/esp8266", optional = true }
 
 embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy" }
 embassy-nrf = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false, optional = true } #, path = "../../../embassy/embassy-nrf" }
@@ -33,8 +35,10 @@ std = ["embassy/std", "embassy-std", "embedded-hal"]
 "chip+nrf52833" = ["embassy-nrf", "embassy-nrf/52833"]
 "chip+stm32l0x2" = ["embassy-stm32", "embassy-stm32/stm32l0x2" ]
 "lora+sx127x" = ["drogue-sx127x", "drogue-sx127x/log"]
+"wifi+esp8266" = ["drogue-esp8266", "drogue-esp8266/log"]
 log = ["embassy/log", "drogue-device-actors/log", "drogue-device-kernel/log" ]
 lora = []
+wifi = []
 fonts = ["drogue-device-actors/fonts"]
 
 defmt = ["embassy/defmt", "drogue-device-actors/defmt", "drogue-device-kernel/defmt" ]

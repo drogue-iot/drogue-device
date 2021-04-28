@@ -1,4 +1,4 @@
-use crate::channel::{consts, ArrayLength, Channel, ChannelSend};
+use crate::channel::{consts, ArrayLength, Channel, ChannelReceiver, ChannelSend, ChannelSender};
 use crate::signal::{SignalFuture, SignalSlot};
 use core::cell::UnsafeCell;
 use core::future::Future;
@@ -110,16 +110,20 @@ impl<'a, A: Actor> Clone for Address<'a, A> {
 
 pub struct ActorContext<'a, A: Actor> {
     pub actor: UnsafeCell<A>,
-    pub channel: Channel<'a, ActorMessage<'a, A>, A::MaxQueueSize<'a>>,
+    channel: UnsafeCell<Channel<ActorMessage<'a, A>, A::MaxQueueSize<'a>>>,
+    channel_sender: UnsafeCell<Option<ChannelSender<'a, ActorMessage<'a, A>, A::MaxQueueSize<'a>>>>,
+    channel_receiver:
+        UnsafeCell<Option<ChannelReceiver<'a, ActorMessage<'a, A>, A::MaxQueueSize<'a>>>>,
     signals: UnsafeCell<[SignalSlot; 4]>,
 }
 
 impl<'a, A: Actor> ActorContext<'a, A> {
     pub fn new(actor: A) -> Self {
-        let channel: Channel<'a, ActorMessage<A>, A::MaxQueueSize<'a>> = Channel::new();
         Self {
             actor: UnsafeCell::new(actor),
-            channel,
+            channel: UnsafeCell::new(Channel::new()),
+            channel_sender: UnsafeCell::new(None),
+            channel_receiver: UnsafeCell::new(None),
             signals: UnsafeCell::new(Default::default()),
         }
     }
@@ -129,11 +133,11 @@ impl<'a, A: Actor> ActorContext<'a, A> {
     where
         A: Unpin,
     {
-        let channel = &self.channel;
         let actor = unsafe { &mut *self.actor.get() };
+        let receiver = unsafe { &*self.channel_receiver.get() }.as_ref().unwrap();
         core::pin::Pin::new(actor).on_start().await;
         loop {
-            let message = channel.receive().await;
+            let message = receiver.receive().await;
             let actor = unsafe { &mut *self.actor.get() };
             match message {
                 ActorMessage::Send(message, signal) => {
@@ -176,7 +180,10 @@ impl<'a, A: Actor> ActorContext<'a, A> {
         let signal = self.acquire_signal();
         let message = unsafe { core::mem::transmute::<_, &'a mut A::Message<'a>>(message) };
         let message = ActorMessage::new_send(message, signal);
-        let chan = self.channel.send(message);
+        let chan = {
+            let sender = unsafe { &mut *self.channel_sender.get() }.as_mut().unwrap();
+            sender.send(message)
+        };
         let sig = SignalFuture::new(signal);
         SendFuture::new(chan, Some(sig))
     }
@@ -189,14 +196,19 @@ impl<'a, A: Actor> ActorContext<'a, A> {
     {
         let message = ActorMessage::new_notify(message);
 
-        let chan = self.channel.send(message);
+        let chan = {
+            let sender = unsafe { &mut *self.channel_sender.get() }.as_mut().unwrap();
+            sender.send(message)
+        };
         SendFuture::new(chan, None)
     }
 
     /// Mount the underloying actor and initialize the channel.
     pub fn mount(&'a self, config: A::Configuration) -> Address<'a, A> {
         unsafe { &mut *self.actor.get() }.on_mount(config);
-        self.channel.initialize();
+        let (sender, receiver) = unsafe { &mut *self.channel.get() }.split();
+        unsafe { &mut *self.channel_sender.get() }.replace(sender);
+        unsafe { &mut *self.channel_receiver.get() }.replace(receiver);
         Address::new(self)
     }
 }
@@ -209,7 +221,7 @@ enum SendState {
 }
 
 pub struct SendFuture<'a, 'm, A: Actor + 'a> {
-    channel: ChannelSend<'a, ActorMessage<'a, A>, A::MaxQueueSize<'a>>,
+    channel: ChannelSend<'m, 'a, ActorMessage<'a, A>, A::MaxQueueSize<'a>>,
     signal: Option<SignalFuture<'a, 'm>>,
     state: SendState,
     bomb: Option<DropBomb>,
@@ -217,7 +229,7 @@ pub struct SendFuture<'a, 'm, A: Actor + 'a> {
 
 impl<'a, 'm, A: Actor> SendFuture<'a, 'm, A> {
     pub fn new(
-        channel: ChannelSend<'a, ActorMessage<'a, A>, A::MaxQueueSize<'a>>,
+        channel: ChannelSend<'m, 'a, ActorMessage<'a, A>, A::MaxQueueSize<'a>>,
         signal: Option<SignalFuture<'a, 'm>>,
     ) -> Self {
         Self {

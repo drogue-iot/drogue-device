@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(incomplete_features)]
 #![feature(min_type_alias_impl_trait)]
 #![feature(generic_associated_types)]
 
