@@ -1,7 +1,7 @@
 use super::BUFFER_LEN;
+use crate::traits::ip::{IpAddress, IpAddressV4, SocketAddress};
 use core::fmt;
 use core::fmt::{Debug, Write};
-use crate::traits::ip::{IpAddress, IpAddressV4, SocketAddress};
 use heapless::{consts::U256, String};
 
 #[derive(Debug)]
@@ -252,7 +252,7 @@ mod test {
 
     #[test]
     fn test_debug_no_value() {
-        let mut buf = ArrayString::<[u8; 20]>::new();
+        let mut buf = ArrayString::<20>::new();
 
         write!(&mut buf, "{:?}", Response::Ok).expect("Can't write");
         assert_eq!(&buf, "Ok");
@@ -260,14 +260,14 @@ mod test {
 
     #[test]
     fn test_debug_simple_value() {
-        let mut buf = ArrayString::<[u8; 20]>::new();
+        let mut buf = ArrayString::<20>::new();
 
         write!(&mut buf, "{:?}", Response::Connect(1)).expect("Can't write");
         assert_eq!(&buf, "Connect(1)");
     }
 
     fn test_debug_data() {
-        let mut buf = ArrayString::<[u8; 256]>::new();
+        let mut buf = ArrayString::<256>::new();
         let data = b"FOO\0BAR";
 
         let mut array = [0u8; super::BUFFER_LEN];

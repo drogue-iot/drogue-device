@@ -40,6 +40,8 @@ defmt = { version = "0.2", optional = true }
 
 [dev-dependencies]
 embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy-std" }
+futures = { version = "0.3", default-features = false, features = ["executor"] }
+arrayvec = { version = "0.7" }
 
 [features]
 default = [ "log" ]

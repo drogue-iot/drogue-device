@@ -63,8 +63,7 @@ impl SocketPool {
         let available = sockets
             .iter()
             .enumerate()
-            .take_while(|e| matches!(e, (_, SocketState::Closed)))
-            .take(1)
+            .filter(|e| matches!(e, (_, SocketState::Closed)))
             .next();
 
         if let Some((index, _)) = available {
@@ -101,5 +100,25 @@ impl<'a> Future for OpenFuture<'a> {
             self.waiting = true;
         }
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use futures::executor::block_on;
+
+    #[test]
+    fn max_simultaneous_sockets() {
+        let pool = SocketPool::new();
+        for i in 0..100 {
+            let expected = i % 4;
+            if !pool.is_closed(expected) {
+                pool.close(expected);
+                pool.close(expected); // account for HalfClosed state
+            }
+            let actual = block_on(pool.open());
+            assert_eq!(expected, actual);
+        }
     }
 }
