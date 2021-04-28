@@ -157,9 +157,9 @@ async fn main(context: DeviceContext<MyDevice>) {
     let config = LoraConfig::new()
         .region(LoraRegion::EU868)
         .lora_mode(LoraMode::WAN)
-        .device_eui(&DEV_EUI.into())
-        .app_eui(&APP_EUI.into())
-        .app_key(&APP_KEY.into());
+        .device_eui(&DEV_EUI.trim_end().into())
+        .app_eui(&APP_EUI.trim_end().into())
+        .app_key(&APP_KEY.trim_end().into());
 
     log::info!("Configuring with config {:?}", config);
 
