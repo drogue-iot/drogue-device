@@ -21,8 +21,8 @@ use drogue_device::{
         hal::{
             delay::Delay,
             gpio::{
-                gpioa::{PA15, PA6, PA7},
-                gpiob::{PB2, PB3, PB4},
+                gpioa::{PA15, PA6, PA7, PA5},
+                gpiob::{PB2, PB3, PB4, PB5, PB6, PB7},
                 gpioc::PC0,
                 Analog, Input, Output, PullUp, PushPull,
             },
@@ -41,6 +41,7 @@ use drogue_device::{
 
 mod app;
 use app::*;
+use drogue_device::actors::led::Led;
 
 const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/dev_eui.txt"));
 const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_eui.txt"));
@@ -75,10 +76,19 @@ pub type Sx127x<'a> = Sx127xDriver<
     spi::Error,
 >;
 
+type Led1Pin = PB5<Output<PushPull>>;
+type Led2Pin = PA5<Output<PushPull>>;
+type Led3Pin = PB6<Output<PushPull>>;
+type Led4Pin = PB7<Output<PushPull>>;
+
 #[derive(Device)]
 pub struct MyDevice {
-    button: ActorContext<'static, Button<'static, ExtiPin<PB2<Input<PullUp>>>, App<Sx127x<'static>>>>,
-    app: ActorContext<'static, App<Sx127x<'static>>>,
+    button: ActorContext<'static, Button<'static, ExtiPin<PB2<Input<PullUp>>>, App<Sx127x<'static>, Led1Pin, Led2Pin, Led3Pin,Led4Pin>>>,
+    app: ActorContext<'static, App<Sx127x<'static>, Led1Pin, Led2Pin, Led3Pin,Led4Pin>>,
+    led1: ActorContext<'static, Led<Led1Pin>>,
+    led2: ActorContext<'static, Led<Led2Pin>>,
+    led3: ActorContext<'static, Led<Led3Pin>>,
+    led4: ActorContext<'static, Led<Led4Pin>>,
 }
 
 #[drogue::main(config = "embassy_stm32::hal::rcc::Config::hsi16()")]
@@ -116,6 +126,11 @@ async fn main(mut context: DeviceContext<MyDevice>) {
 
     let button = gpiob.pb2.into_pull_up_input();
 
+    let led1 = gpiob.pb5.into_push_pull_output();
+    let led2 = gpioa.pa5.into_push_pull_output();
+    let led3 = gpiob.pb6.into_push_pull_output();
+    let led4 = gpiob.pb7.into_push_pull_output();
+
     let pin = ExtiPin::new(button, irq, &mut syscfg);
 
     // SPI for sx127x
@@ -151,10 +166,18 @@ async fn main(mut context: DeviceContext<MyDevice>) {
     context.configure(MyDevice {
         app: ActorContext::new(App::new(lora, config)),
         button: ActorContext::new(Button::new(pin)),
+        led1: ActorContext::new(Led::new(led1)),
+        led2: ActorContext::new(Led::new(led2)),
+        led3: ActorContext::new(Led::new(led3)),
+        led4: ActorContext::new(Led::new(led4)),
     });
 
     context.mount(|device| {
-        let app = device.app.mount(());
-        device.button.mount(app);
+        let led1 = device.led1.mount(());
+        let led2 = device.led2.mount(());
+        let led3 = device.led3.mount(());
+        let led4 = device.led4.mount(());
+        let app = device.app.mount(AppConfig { led1, led2, led3, led4 });
+                device.button.mount(app);
     });
 }

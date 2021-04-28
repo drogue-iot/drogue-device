@@ -1,11 +1,21 @@
 use core::future::Future;
 use core::pin::Pin;
 use drogue_device::{actors::button::*, traits::lora::*, *};
+use drogue_device::actors::led::{Led, LedMessage};
+use embassy_stm32::system::OutputPin;
+
 pub enum Command {
     Send,
 }
 
-impl<D: LoraDriver> FromButtonEvent<Command> for App<D> {
+impl<D, P1, P2, P3, P4> FromButtonEvent<Command> for App<D, P1, P2, P3, P4>
+where
+    D: LoraDriver,
+    P1: OutputPin + 'static,
+    P2: OutputPin + 'static,
+    P3: OutputPin + 'static,
+    P4: OutputPin + 'static,
+{
     fn from(event: ButtonEvent) -> Option<Command> {
         match event {
             ButtonEvent::Pressed => None,
@@ -14,24 +24,72 @@ impl<D: LoraDriver> FromButtonEvent<Command> for App<D> {
     }
 }
 
-pub struct App<D: LoraDriver> {
-    config: Option<LoraConfig>,
-    lora: D,
+pub struct AppConfig<'a, P1, P2, P3, P4>
+where
+    P1: OutputPin + 'a,
+    P2: OutputPin + 'a,
+    P3: OutputPin + 'a,
+    P4: OutputPin + 'a,
+{
+    // green led
+    pub led1: Address<'a, Led<P1>>,
+    // green led 2
+    pub led2: Address<'a, Led<P2>>,
+    // blue led
+    pub led3: Address<'a, Led<P3>>,
+    // red led
+    pub led4: Address<'a, Led<P4>>,
 }
 
-impl<D: LoraDriver> App<D> {
+pub struct App<D, P1, P2, P3, P4>
+where
+    D: LoraDriver,
+    P1: OutputPin + 'static,
+    P2: OutputPin + 'static,
+    P3: OutputPin + 'static,
+    P4: OutputPin + 'static,
+{
+    config: Option<LoraConfig>,
+    lora: D,
+    cfg: Option<AppConfig<'static, P1, P2, P3, P4>>,
+}
+
+impl<D, P1, P2, P3, P4> App<D, P1, P2, P3, P4>
+where
+    D: LoraDriver,
+    P1: OutputPin + 'static,
+    P2: OutputPin + 'static,
+    P3: OutputPin + 'static,
+    P4: OutputPin + 'static,
+{
     pub fn new(lora: D, config: LoraConfig) -> Self {
         Self {
             config: Some(config),
+            cfg: None,
             lora,
         }
     }
 }
 
-impl<D: LoraDriver> Unpin for App<D> {}
+impl<D, P1, P2, P3, P4> Unpin for App<D, P1, P2, P3, P4>
+where
+    D: LoraDriver,
+    P1: OutputPin + 'static,
+    P2: OutputPin + 'static,
+    P3: OutputPin + 'static,
+    P4: OutputPin + 'static,
+{}
 
-impl<D: LoraDriver> Actor for App<D> {
-    type Configuration = ();
+impl<D, P1, P2, P3, P4> Actor for App<D, P1, P2, P3, P4>
+where
+    D: LoraDriver,
+    P1: OutputPin + 'static,
+    P2: OutputPin + 'static,
+    P3: OutputPin + 'static,
+    P4: OutputPin + 'static,
+{
+    #[rustfmt::skip]
+    type Configuration = AppConfig<'static, P1, P2, P3, P4>;
     #[rustfmt::skip]
     type Message<'m> where D: 'm = Command;
     #[rustfmt::skip]
@@ -39,8 +97,17 @@ impl<D: LoraDriver> Actor for App<D> {
     #[rustfmt::skip]
     type OnMessageFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
 
+    fn on_mount(&mut self, config: Self::Configuration) {
+        self.cfg.replace(config);
+    }
+
     fn on_start<'m>(mut self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
         async move {
+
+            if let Some(cfg) = &self.cfg {
+                cfg.led4.notify(LedMessage::On).await;
+            }
+
             let config = self.config.take().unwrap();
             if let Err(e) = self.lora.configure(&config).await {
                 log::error!("Error configuring: {:?}", e);
@@ -56,6 +123,10 @@ impl<D: LoraDriver> Actor for App<D> {
             } else {
                 log::info!("LoRa network joined");
             }
+
+            if let Some(cfg) = &self.cfg {
+                cfg.led4.notify(LedMessage::Off).await;
+            }
         }
     }
 
@@ -66,7 +137,7 @@ impl<D: LoraDriver> Actor for App<D> {
         async move {
             match *message {
                 Command::Send => {
-                    log::info!("Sending message..");
+                    log::info!("Sending message...");
                     let mut rx = [0; 255];
                     match self
                         .lora

@@ -46,6 +46,7 @@ pub struct MyDevice {
     pub timer: Timer<HardwareTimer<TIM2>>,
     pub lora: LoraPackage,
     pub app: ActorContext<App<<LoraPackage as Package>::Primary>>,
+    pub led1: Led<Pin<PB5<Output<PushPull>>>>,
 }
 
 impl Device for MyDevice {
