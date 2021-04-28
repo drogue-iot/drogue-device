@@ -1,6 +1,11 @@
+use crate::actor::{Actor, Address};
 use crate::util::ImmediateFuture;
 use core::cell::Cell;
 use embassy::executor::Spawner;
+
+pub trait PackageConfig {
+    type Primary: Actor;
+}
 
 pub trait Package {
     fn start(&'static self, spawner: Spawner) -> ImmediateFuture;
@@ -17,7 +22,7 @@ pub struct PackageContext<P: Package + 'static> {
     state: Cell<State>,
 }
 
-impl<P: Package + 'static> PackageContext<P> {
+impl<P: Package + PackageConfig + 'static> PackageContext<P> {
     pub fn new(package: P) -> Self {
         Self {
             package,
@@ -25,7 +30,10 @@ impl<P: Package + 'static> PackageContext<P> {
         }
     }
 
-    pub fn mount<F: FnOnce(&'static P) -> R, R>(&'static self, f: F) -> R {
+    pub fn mount<F: FnOnce(&'static P) -> Address<P::Primary>>(
+        &'static self,
+        f: F,
+    ) -> Address<P::Primary> {
         match self.state.get() {
             State::New => {
                 let r = f(&self.package);

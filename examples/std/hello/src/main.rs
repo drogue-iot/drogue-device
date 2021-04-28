@@ -68,6 +68,11 @@ pub struct MyPack {
     c: ActorContext<'static, MyActor>,
 }
 
+// The PackageConfig trait must be implemented to specify the primary actor for a package.
+impl PackageConfig for MyPack {
+    type Primary = MyActor;
+}
+
 #[drogue::main]
 async fn main(mut context: DeviceContext<MyDevice>) {
     env_logger::builder()

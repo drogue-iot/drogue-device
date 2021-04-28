@@ -81,7 +81,7 @@ pub use drogue_device_kernel::{
     actor::{Actor, ActorContext, Address},
     channel::{consts, Channel},
     device::{Device, DeviceContext},
-    package::{Package, PackageContext},
+    package::{Package, PackageConfig, PackageContext},
     util::ImmediateFuture,
 };
 
