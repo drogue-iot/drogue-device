@@ -1,7 +1,7 @@
 pub mod matrix;
 
-use core::pin::Pin;
 use crate::kernel::{actor::Actor, channel::consts, util::ImmediateFuture};
+use core::pin::Pin;
 use embedded_hal::digital::v2::OutputPin;
 
 pub enum LedMessage {

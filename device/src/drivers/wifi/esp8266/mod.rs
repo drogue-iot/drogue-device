@@ -12,19 +12,19 @@ mod socket_pool;
 use crate::fmt::*;
 use socket_pool::SocketPool;
 
+use crate::{
+    kernel::{actor::Actor, channel::*},
+    traits::{
+        ip::{IpAddress, IpProtocol, SocketAddress},
+        tcp::{TcpError, TcpStack},
+        wifi::{Join, JoinError, WifiSupplicant},
+    },
+};
 use buffer::Buffer;
 use core::{
     future::Future,
     pin::Pin,
     sync::atomic::{AtomicBool, Ordering},
-};
-use crate::{
-    kernel::{actor::Actor, channel::*},
-    traits::{
-        ip::{IpAddress, IpProtocol, SocketAddress},
-    tcp::{TcpError, TcpStack},
-    wifi::{Join, JoinError, WifiSupplicant},
-    },
 };
 use embassy::{
     io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt},

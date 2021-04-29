@@ -1,9 +1,9 @@
-use core::future::Future;
-use core::pin::Pin;
 use crate::kernel::{
     actor::{Actor, Address},
     util::ImmediateFuture,
 };
+use core::future::Future;
+use core::pin::Pin;
 use embassy::time;
 
 pub struct Timer<'a, A: Actor + 'a> {

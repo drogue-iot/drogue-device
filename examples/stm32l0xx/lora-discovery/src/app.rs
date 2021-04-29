@@ -1,7 +1,8 @@
+use crate::lora::*;
 use core::future::Future;
 use core::pin::Pin;
-use drogue_device::{actors::button::*, traits::lora::*, *};
 use drogue_device::actors::led::{Led, LedMessage};
+use drogue_device::{actors::button::*, traits::lora::*, *};
 use embassy_stm32::system::OutputPin;
 
 pub enum Command {
@@ -24,13 +25,16 @@ where
     }
 }
 
-pub struct AppConfig<'a, P1, P2, P3, P4>
+pub struct AppConfig<'a, D, P1, P2, P3, P4>
 where
+    D: LoraDriver + 'a,
     P1: OutputPin + 'a,
     P2: OutputPin + 'a,
     P3: OutputPin + 'a,
     P4: OutputPin + 'a,
 {
+    // lora actor
+    pub lora: Address<'a, LoraActor<D>>,
     // green led
     pub led1: Address<'a, Led<P1>>,
     // green led 2
@@ -43,15 +47,14 @@ where
 
 pub struct App<D, P1, P2, P3, P4>
 where
-    D: LoraDriver,
+    D: LoraDriver + 'static,
     P1: OutputPin + 'static,
     P2: OutputPin + 'static,
     P3: OutputPin + 'static,
     P4: OutputPin + 'static,
 {
     config: Option<LoraConfig>,
-    lora: D,
-    cfg: Option<AppConfig<'static, P1, P2, P3, P4>>,
+    cfg: Option<AppConfig<'static, D, P1, P2, P3, P4>>,
 }
 
 impl<D, P1, P2, P3, P4> App<D, P1, P2, P3, P4>
@@ -62,11 +65,10 @@ where
     P3: OutputPin + 'static,
     P4: OutputPin + 'static,
 {
-    pub fn new(lora: D, config: LoraConfig) -> Self {
+    pub fn new(config: LoraConfig) -> Self {
         Self {
             config: Some(config),
             cfg: None,
-            lora,
         }
     }
 }
@@ -78,18 +80,19 @@ where
     P2: OutputPin + 'static,
     P3: OutputPin + 'static,
     P4: OutputPin + 'static,
-{}
+{
+}
 
 impl<D, P1, P2, P3, P4> Actor for App<D, P1, P2, P3, P4>
 where
-    D: LoraDriver,
+    D: LoraDriver + 'static,
     P1: OutputPin + 'static,
     P2: OutputPin + 'static,
     P3: OutputPin + 'static,
     P4: OutputPin + 'static,
 {
     #[rustfmt::skip]
-    type Configuration = AppConfig<'static, P1, P2, P3, P4>;
+    type Configuration = AppConfig<'static, D, P1, P2, P3, P4>;
     #[rustfmt::skip]
     type Message<'m> where D: 'm = Command;
     #[rustfmt::skip]
@@ -103,59 +106,45 @@ where
 
     fn on_start<'m>(mut self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
         async move {
-
+            log_stack!();
+            let config = self.config.take().unwrap();
             if let Some(cfg) = &self.cfg {
                 cfg.led4.notify(LedMessage::On).await;
-            }
-
-            let config = self.config.take().unwrap();
-            if let Err(e) = self.lora.configure(&config).await {
-                log::error!("Error configuring: {:?}", e);
-            } else {
-                log::info!("LoRa driver configured");
-            }
-            self.lora
-                .join(ConnectMode::OTAA)
-                .await
-                .expect("Error joining network");
-            if let Err(e) = self.lora.join(ConnectMode::OTAA).await {
-                log::error!("Error joining network : {:?}", e);
-            } else {
-                log::info!("LoRa network joined");
-            }
-
-            if let Some(cfg) = &self.cfg {
+                cfg.lora.process(&mut LoraCommand::Configure(&config)).await;
+                cfg.lora.process(&mut LoraCommand::Join).await;
                 cfg.led4.notify(LedMessage::Off).await;
             }
         }
     }
 
     fn on_message<'m>(
-        mut self: Pin<&'m mut Self>,
+        self: Pin<&'m mut Self>,
         message: &'m mut Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         async move {
+            log_stack!();
             match *message {
                 Command::Send => {
-                    log::info!("Sending message...");
-                    let mut rx = [0; 255];
-                    match self
-                        .lora
-                        .send_recv(QoS::Confirmed, 1, "ping".as_bytes(), &mut rx)
-                        .await
-                    {
-                        Err(e) => {
-                            log::error!("Error sending message: {:?}", e);
-                        }
-                        Ok(len) => {
-                            log::info!("Message sent");
-                            if len > 0 {
-                                log::info!(
-                                    "Received {} bytes from uplink: {:x?}",
-                                    len,
-                                    &rx[0..len]
-                                );
-                            }
+                    if let Some(cfg) = &self.cfg {
+                        log::info!("Sending message...");
+                        let mut rx = [0; 255];
+                        let mut rx_len = 0;
+                        cfg.lora
+                            .process(&mut LoraCommand::SendRecv(
+                                "ping".as_bytes(),
+                                &mut rx,
+                                &mut rx_len,
+                            ))
+                            .await;
+
+                        log::info!("Message sent!");
+
+                        if rx_len > 0 {
+                            log::info!(
+                                "Received {} bytes from uplink: {:x?}",
+                                rx_len,
+                                &rx[0..rx_len]
+                            );
                         }
                     }
                 }

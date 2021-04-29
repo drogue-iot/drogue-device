@@ -25,7 +25,7 @@ embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue",
 embassy-stm32 = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false} #, path = "../../../embassy/embassy-stm32" }
 
 [profile.release]
-debug = true
+debug = 1
 opt-level = "z"
 lto = true
 

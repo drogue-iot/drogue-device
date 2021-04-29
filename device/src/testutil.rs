@@ -1,13 +1,11 @@
 extern crate embedded_hal;
+use crate::actors::button::{ButtonEvent, FromButtonEvent};
+use crate::kernel::{actor::Actor, device::Device, device::DeviceContext, util::ImmediateFuture};
 use core::cell::RefCell;
 use core::future::Future;
 use core::pin::Pin;
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll};
-use crate::kernel::{
-    actor::Actor, device::Device, device::DeviceContext, util::ImmediateFuture,
-};
-use crate::actors::button::{ButtonEvent, FromButtonEvent};
 use embassy::executor::{raw, Spawner};
 use embassy::time::TICKS_PER_SECOND;
 use embassy::time::{Alarm, Clock};
@@ -64,16 +62,14 @@ impl<D: Device> Drop for TestContext<D> {
 #[derive(Copy, Clone)]
 pub struct TestMessage(pub u32);
 
-
-    impl FromButtonEvent<TestMessage> for TestHandler {
-        fn from(event: ButtonEvent) -> Option<TestMessage> {
-            match event {
-                ButtonEvent::Pressed => Some(TestMessage(0)),
-                ButtonEvent::Released => Some(TestMessage(1)),
-            }
+impl FromButtonEvent<TestMessage> for TestHandler {
+    fn from(event: ButtonEvent) -> Option<TestMessage> {
+        match event {
+            ButtonEvent::Pressed => Some(TestMessage(0)),
+            ButtonEvent::Released => Some(TestMessage(1)),
         }
     }
-
+}
 
 /// A test handler that carries a signal that is set on `on_message`
 pub struct TestHandler {

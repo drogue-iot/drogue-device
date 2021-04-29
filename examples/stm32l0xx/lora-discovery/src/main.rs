@@ -21,7 +21,7 @@ use drogue_device::{
         hal::{
             delay::Delay,
             gpio::{
-                gpioa::{PA15, PA6, PA7, PA5},
+                gpioa::{PA15, PA5, PA6, PA7},
                 gpiob::{PB2, PB3, PB4, PB5, PB6, PB7},
                 gpioc::PC0,
                 Analog, Input, Output, PullUp, PushPull,
@@ -40,13 +40,16 @@ use drogue_device::{
 };
 
 mod app;
+mod lora;
+
 use app::*;
 use drogue_device::actors::led::Led;
+use lora::*;
 
 const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/dev_eui.txt"));
 const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_eui.txt"));
 const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_key.txt"));
-static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
+static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
 
 static mut RNG: Option<Rng> = None;
 fn get_random_u32() -> u32 {
@@ -83,8 +86,16 @@ type Led4Pin = PB7<Output<PushPull>>;
 
 #[derive(Device)]
 pub struct MyDevice {
-    button: ActorContext<'static, Button<'static, ExtiPin<PB2<Input<PullUp>>>, App<Sx127x<'static>, Led1Pin, Led2Pin, Led3Pin,Led4Pin>>>,
-    app: ActorContext<'static, App<Sx127x<'static>, Led1Pin, Led2Pin, Led3Pin,Led4Pin>>,
+    lora: ActorContext<'static, LoraActor<Sx127x<'static>>>,
+    button: ActorContext<
+        'static,
+        Button<
+            'static,
+            ExtiPin<PB2<Input<PullUp>>>,
+            App<Sx127x<'static>, Led1Pin, Led2Pin, Led3Pin, Led4Pin>,
+        >,
+    >,
+    app: ActorContext<'static, App<Sx127x<'static>, Led1Pin, Led2Pin, Led3Pin, Led4Pin>>,
     led1: ActorContext<'static, Led<Led1Pin>>,
     led2: ActorContext<'static, Led<Led2Pin>>,
     led3: ActorContext<'static, Led<Led3Pin>>,
@@ -98,7 +109,7 @@ async fn main(context: DeviceContext<MyDevice>) {
         log::set_logger_racy(&LOGGER).unwrap();
     }
 
-    log::set_max_level(log::LevelFilter::Trace);
+    log::set_max_level(log::LevelFilter::Info);
     let device = unsafe { Peripherals::steal() };
 
     // NEEDED FOR RTT
@@ -164,7 +175,8 @@ async fn main(context: DeviceContext<MyDevice>) {
     log::info!("Configuring with config {:?}", config);
 
     context.configure(MyDevice {
-        app: ActorContext::new(App::new(lora, config)),
+        app: ActorContext::new(App::new(config)),
+        lora: ActorContext::new(LoraActor::new(lora)),
         button: ActorContext::new(Button::new(pin)),
         led1: ActorContext::new(Led::new(led1)),
         led2: ActorContext::new(Led::new(led2)),
@@ -173,11 +185,18 @@ async fn main(context: DeviceContext<MyDevice>) {
     });
 
     context.mount(|device| {
+        let lora = device.lora.mount(());
         let led1 = device.led1.mount(());
         let led2 = device.led2.mount(());
         let led3 = device.led3.mount(());
         let led4 = device.led4.mount(());
-        let app = device.app.mount(AppConfig { led1, led2, led3, led4 });
-                device.button.mount(app);
+        let app = device.app.mount(AppConfig {
+            lora,
+            led1,
+            led2,
+            led3,
+            led4,
+        });
+        device.button.mount(app);
     });
 }

@@ -7,7 +7,7 @@
 
 #[cfg(feature = "std")]
 mod tests {
-    use drogue_device::{testutil::*, *, actors::button::*};
+    use drogue_device::{actors::button::*, testutil::*, *};
 
     #[derive(Device)]
     struct TestDevicePressed {

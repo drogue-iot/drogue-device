@@ -1,6 +1,6 @@
+use crate::kernel::{actor::Actor, util::ImmediateFuture};
 use core::future::Future;
 use core::pin::Pin;
-use crate::kernel::{actor::Actor, util::ImmediateFuture};
 use embedded_hal::digital::v2::OutputPin;
 use heapless::{ArrayLength, Vec};
 

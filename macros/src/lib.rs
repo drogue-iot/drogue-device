@@ -314,3 +314,11 @@ pub fn test(_: TokenStream, item: TokenStream) -> TokenStream {
     };
     result.into()
 }
+
+#[proc_macro]
+pub fn log_stack(_item: TokenStream) -> TokenStream {
+    let result = quote! {
+        crate::print_stack(file!(), line!());
+    };
+    result.into()
+}

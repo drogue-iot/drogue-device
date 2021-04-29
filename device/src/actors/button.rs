@@ -1,11 +1,11 @@
-use core::future::Future;
-use core::pin::Pin;
 use crate::kernel::{
     actor::{Actor, Address},
     channel::consts,
     util::ImmediateFuture,
 };
 use crate::traits::gpio::WaitForAnyEdge;
+use core::future::Future;
+use core::pin::Pin;
 use embedded_hal::digital::v2::InputPin;
 
 pub trait FromButtonEvent<M> {

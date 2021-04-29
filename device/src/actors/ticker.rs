@@ -1,6 +1,6 @@
+use crate::kernel::actor::{Actor, Address};
 use core::future::Future;
 use core::pin::Pin;
-use crate::kernel::actor::{Actor, Address};
 use embassy::time::{Duration, Timer};
 
 pub struct Ticker<'a, A: Actor + 'a>

@@ -8,7 +8,7 @@
 #[cfg(feature = "std")]
 mod tests {
     extern crate std;
-    use drogue_device::{testutil::*, *, actors::timer::*};
+    use drogue_device::{actors::timer::*, testutil::*, *};
 
     #[derive(Device)]
     struct ScheduleDevice {

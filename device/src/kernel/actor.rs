@@ -134,24 +134,26 @@ impl<'a, A: Actor> ActorContext<'a, A> {
     where
         A: Unpin,
     {
-        let actor = unsafe { &mut *self.actor.get() };
+        crate::log_stack!();
+        let actor = unsafe { Pin::new_unchecked(&mut *self.actor.get()) };
         let receiver = unsafe { &*self.channel_receiver.get() }.as_ref().unwrap();
-        core::pin::Pin::new(actor).on_start().await;
+        actor.on_start().await;
         loop {
+            crate::log_stack!();
             let message = receiver.receive().await;
-            let actor = unsafe { &mut *self.actor.get() };
+            let actor = unsafe { Pin::new_unchecked(&mut *self.actor.get()) };
             match message {
                 ActorMessage::Send(message, signal) => {
-                    core::pin::Pin::new(actor)
-                        .on_message(unsafe { &mut *message })
-                        .await;
+                    crate::log_stack!();
+                    actor.on_message(unsafe { &mut *message }).await;
                     unsafe { &*signal }.signal();
                 }
                 ActorMessage::Notify(mut message) => {
+                    crate::log_stack!();
                     // Note: we know that the message sender will panic if it doesn't await the completion
                     // of the message, thus doing a transmute to pretend that message matches the lifetime
                     // of the receiver should be fine...
-                    core::pin::Pin::new(actor)
+                    actor
                         .on_message(unsafe { core::mem::transmute(&mut message) })
                         .await;
                 }
