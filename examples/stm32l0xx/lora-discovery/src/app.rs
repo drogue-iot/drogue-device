@@ -127,6 +127,7 @@ where
                 Command::Send => {
                     if let Some(cfg) = &self.cfg {
                         log::info!("Sending message...");
+                        cfg.led1.notify(LedMessage::On).await;
                         let mut rx = [0; 255];
                         let mut rx_len = 0;
                         cfg.lora
@@ -138,13 +139,23 @@ where
                             .await;
 
                         log::info!("Message sent!");
+                        cfg.led1.notify(LedMessage::Off).await;
 
                         if rx_len > 0 {
-                            log::info!(
-                                "Received {} bytes from uplink: {:x?}",
-                                rx_len,
-                                &rx[0..rx_len]
-                            );
+                            let response = &rx[0..rx_len];
+                            match core::str::from_utf8(response) {
+                                Ok(str) => log::info!("Received from uplink:\n{}", str),
+                                Err(_) => log::info!(
+                                    "Received {} bytes from uplink: {:x?}",
+                                    rx_len,
+                                    &rx[0..rx_len]
+                                ),
+                            }
+                            match response {
+                                b"led:on" => cfg.led3.notify(LedMessage::On).await,
+                                b"led:off" => cfg.led3.notify(LedMessage::Off).await,
+                                _ => {}
+                            }
                         }
                     }
                 }
