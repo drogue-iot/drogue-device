@@ -5,7 +5,6 @@ use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use embassy::util::DropBomb;
-use generic_array::GenericArray;
 
 /// Trait that each actor must implement.
 pub trait Actor: Sized {
@@ -115,7 +114,7 @@ pub struct ActorContext<'a, A: Actor> {
     channel_sender: UnsafeCell<Option<ChannelSender<'a, ActorMessage<'a, A>, A::MaxQueueSize<'a>>>>,
     channel_receiver:
         UnsafeCell<Option<ChannelReceiver<'a, ActorMessage<'a, A>, A::MaxQueueSize<'a>>>>,
-    signals: UnsafeCell<GenericArray<SignalSlot, A::MaxQueueSize<'a>>>,
+    signals: UnsafeCell<[SignalSlot; 4]>,
 }
 
 impl<'a, A: Actor> ActorContext<'a, A> {

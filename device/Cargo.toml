@@ -33,7 +33,6 @@ futures = { version = "0.3", default-features = false }
 heapless = "0.5"
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 atomic-polyfill = "0.1"
-generic-array = "0.13"
 
 # Logging alternatives
 log = { version = "0.4", optional = true }

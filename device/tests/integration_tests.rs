@@ -45,7 +45,7 @@ mod tests {
         }
 
         #[drogue::main]
-        async fn main(context: DeviceContext<MyDevice>) {
+        async fn main(mut context: DeviceContext<MyDevice>) {
             context.configure(MyDevice {
                 a: ActorContext::new(MyActor {
                     value: &INITIALIZED,
