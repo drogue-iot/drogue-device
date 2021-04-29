@@ -38,8 +38,6 @@ where
     D: LoraDriver,
 {
     #[rustfmt::skip]
-    type MaxNotifyQueueSize<'m> where Self: 'm = consts::U0;
-    #[rustfmt::skip]
     type Configuration = ();
     #[rustfmt::skip]
     type Message<'m> where D: 'm = LoraCommand<'m>;

@@ -10,21 +10,13 @@ use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use embassy::util::DropBomb;
-use futures::future::{select, Either};
 use generic_array::GenericArray;
 
 /// Trait that each actor must implement.
 pub trait Actor: Sized {
     /// Request queue size;
     #[rustfmt::skip]
-    type MaxRequestQueueSize<'a>: ArrayLength<RequestMessage<'a, Self>> + ArrayLength<SignalSlot<Self::Response<'a>>> + 'a where Self: 'a = consts::U1;
-
-    /// Notify queue size;
-    #[rustfmt::skip]
-    type MaxNotifyQueueSize<'a>: ArrayLength<NotifyMessage<'a, Self>> + 'a
-    where
-        Self: 'a,
-    = consts::U1;
+    type MaxMessageQueueSize<'a>: ArrayLength<ActorMessage<'a, Self>> + ArrayLength<SignalSlot<Self::Response<'a>>> + 'a where Self: 'a = consts::U1;
 
     /// The configuration that this actor will expect when mounted.
     type Configuration = ();
@@ -171,17 +163,15 @@ where
 
 pub struct ActorContext<'a, A: Actor> {
     pub actor: UnsafeCell<A>,
-    notify_channel: MessageChannel<'a, NotifyMessage<'a, A>, A::MaxNotifyQueueSize<'a>>,
-    request_channel: MessageChannel<'a, RequestMessage<'a, A>, A::MaxRequestQueueSize<'a>>,
-    signals: UnsafeCell<GenericArray<SignalSlot<A::Response<'a>>, A::MaxRequestQueueSize<'a>>>,
+    channel: MessageChannel<'a, ActorMessage<'a, A>, A::MaxMessageQueueSize<'a>>,
+    signals: UnsafeCell<GenericArray<SignalSlot<A::Response<'a>>, A::MaxMessageQueueSize<'a>>>,
 }
 
 impl<'a, A: Actor> ActorContext<'a, A> {
     pub fn new(actor: A) -> Self {
         Self {
             actor: UnsafeCell::new(actor),
-            notify_channel: MessageChannel::new(),
-            request_channel: MessageChannel::new(),
+            channel: MessageChannel::new(),
             signals: UnsafeCell::new(Default::default()),
         }
     }
@@ -199,16 +189,13 @@ impl<'a, A: Actor> ActorContext<'a, A> {
         loop {
             // crate::log_stack!();
             let actor = unsafe { Pin::new_unchecked(&mut *self.actor.get()) };
-            let request_fut = self.request_channel.receive();
-            let notify_fut = self.notify_channel.receive();
-
-            match select(request_fut, notify_fut).await {
-                Either::Left((RequestMessage { message, signal }, _)) => {
+            match self.channel.receive().await {
+                ActorMessage::Request(message, signal) => {
                     // crate::log_stack!();
                     let value = actor.on_message(message).await;
                     unsafe { &*signal }.signal(value);
                 }
-                Either::Right((NotifyMessage { message }, _)) => {
+                ActorMessage::Notify(message) => {
                     // crate::log_stack!();
                     actor.on_message(message).await;
                 }
@@ -239,8 +226,8 @@ impl<'a, A: Actor> ActorContext<'a, A> {
         let signal = self.acquire_signal();
         // Safety: This is OK because A::Message is Sized.
         let message = unsafe { core::mem::transmute_copy::<_, A::Message<'a>>(&message) };
-        let message = RequestMessage::new(message, signal);
-        let chan = self.request_channel.send(message);
+        let message = ActorMessage::Request(message, signal);
+        let chan = self.channel.send(message);
         let sig = SignalFuture::new(signal);
         RequestFuture::new(chan, sig)
     }
@@ -251,17 +238,16 @@ impl<'a, A: Actor> ActorContext<'a, A> {
     where
         'a: 'm,
     {
-        let message = NotifyMessage::new(message);
+        let message = ActorMessage::Notify(message);
 
-        let chan = self.notify_channel.send(message);
+        let chan = self.channel.send(message);
         NotifyFuture::new(chan)
     }
 
     /// Mount the underloying actor and initialize the channel.
     pub fn mount(&'a self, config: A::Configuration) -> Address<'a, A> {
         unsafe { &mut *self.actor.get() }.on_mount(config);
-        self.request_channel.initialize();
-        self.notify_channel.initialize();
+        self.channel.initialize();
         Address::new(self)
     }
 }
@@ -273,13 +259,13 @@ enum RequestState {
 }
 
 pub struct NotifyFuture<'a, 'm, A: Actor + 'a> {
-    channel: ChannelSend<'m, 'a, NotifyMessage<'a, A>, A::MaxNotifyQueueSize<'a>>,
+    channel: ChannelSend<'m, 'a, ActorMessage<'a, A>, A::MaxMessageQueueSize<'a>>,
     bomb: Option<DropBomb>,
 }
 
 impl<'a, 'm, A: Actor> NotifyFuture<'a, 'm, A> {
     pub fn new(
-        channel: ChannelSend<'m, 'a, NotifyMessage<'a, A>, A::MaxNotifyQueueSize<'a>>,
+        channel: ChannelSend<'m, 'a, ActorMessage<'a, A>, A::MaxMessageQueueSize<'a>>,
     ) -> Self {
         Self {
             channel,
@@ -301,7 +287,7 @@ impl<'a, 'm, A: Actor> Future for NotifyFuture<'a, 'm, A> {
 }
 
 pub struct RequestFuture<'a, 'm, A: Actor + 'a> {
-    channel: ChannelSend<'m, 'a, RequestMessage<'a, A>, A::MaxRequestQueueSize<'a>>,
+    channel: ChannelSend<'m, 'a, ActorMessage<'a, A>, A::MaxMessageQueueSize<'a>>,
     signal: SignalFuture<'a, 'm, A::Response<'a>>,
     state: RequestState,
     bomb: Option<DropBomb>,
@@ -309,7 +295,7 @@ pub struct RequestFuture<'a, 'm, A: Actor + 'a> {
 
 impl<'a, 'm, A: Actor> RequestFuture<'a, 'm, A> {
     pub fn new(
-        channel: ChannelSend<'m, 'a, RequestMessage<'a, A>, A::MaxRequestQueueSize<'a>>,
+        channel: ChannelSend<'m, 'a, ActorMessage<'a, A>, A::MaxMessageQueueSize<'a>>,
         signal: SignalFuture<'a, 'm, A::Response<'a>>,
     ) -> Self {
         Self {
@@ -349,23 +335,7 @@ impl<'a, 'm, A: Actor> Future for RequestFuture<'a, 'm, A> {
     }
 }
 
-pub struct RequestMessage<'m, A: Actor + 'm> {
-    pub message: A::Message<'m>,
-    pub signal: *const SignalSlot<A::Response<'m>>,
-}
-
-impl<'m, A: Actor> RequestMessage<'m, A> {
-    fn new(message: A::Message<'m>, signal: *const SignalSlot<A::Response<'m>>) -> Self {
-        Self { message, signal }
-    }
-}
-
-pub struct NotifyMessage<'m, A: Actor + 'm> {
-    pub message: A::Message<'m>,
-}
-
-impl<'m, A: Actor> NotifyMessage<'m, A> {
-    fn new(message: A::Message<'m>) -> Self {
-        Self { message }
-    }
+pub enum ActorMessage<'m, A: Actor + 'm> {
+    Request(A::Message<'m>, *const SignalSlot<A::Response<'m>>),
+    Notify(A::Message<'m>),
 }

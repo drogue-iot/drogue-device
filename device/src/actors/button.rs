@@ -45,12 +45,7 @@ impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Messag
     for Button<'a, P, A>
 {
     #[rustfmt::skip]
-    type MaxNotifyQueueSize<'m>
-    where
-        'a: 'm,
-    = consts::U0;
-    #[rustfmt::skip]
-    type MaxRequestQueueSize<'m>
+    type MaxMessageQueueSize<'m>
     where
         'a: 'm,
     = consts::U0;
