@@ -29,7 +29,7 @@ fn test_ci() -> Result<(), anyhow::Error> {
 
 fn test_workspace() -> Result<(), anyhow::Error> {
     let _p = xshell::pushd(root_dir())?;
-    cmd!("cargo test --all --features std").run()?;
+    cmd!("cargo test --all --features 'std wifi+esp8266'").run()?;
     Ok(())
 }
 
