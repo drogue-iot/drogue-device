@@ -20,8 +20,8 @@ embassy-rp = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogu
 embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false, optional = true } #, path = "../../../embassy/embassy-std" }
 
 # LoRa dependencies
-lorawan-device = { git = "https://github.com/lulf/rust-lorawan.git", branch   = "configurable-rxdelay", default-features = false, optional = true }
-lorawan-encoding = { git = "https://github.com/lulf/rust-lorawan.git", branch   = "configurable-rxdelay", default-features = false, features = ["default-crypto"], optional = true }
+lorawan-device = { git = "https://github.com/lulf/rust-lorawan.git", branch   = "drogue", default-features = false, optional = true }
+lorawan-encoding = { git = "https://github.com/lulf/rust-lorawan.git", branch   = "drogue", default-features = false, features = ["default-crypto"], optional = true }
 bit_field = { version = "0.10", optional = true }
 
 # Wifi Dependencies

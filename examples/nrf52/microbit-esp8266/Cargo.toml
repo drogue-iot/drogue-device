@@ -23,7 +23,7 @@ cortex-m = { version = "0.7", features = ["inline-asm"] }
 embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy" }
 embassy-nrf = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy-nrf" }
 
-heapless = "0.5"
+heapless = "0.6"
 
 [patch.crates-io]
 cortex-m = {git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"]}
