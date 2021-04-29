@@ -59,17 +59,31 @@ fn test_device_setup() {
 
 fn configure() -> MyDevice {
     MyDevice {
-        initialized: &INITIALIZED,
+        a: ActorContext::new(MyActor { value : &INITIALIZED }),
     }
+}
+
+struct MyActor {
+    value: &'static AtomicBool
 }
 
 struct MyDevice {
-    initialized: &'static AtomicBool,
+    a: ActorContext<MyActor>,
 }
 
 impl Device for MyDevice {
-    fn mount(&'static self, _: DeviceConfiguration<Self>, _: &mut Supervisor) {
-        log::info!("MOUNTED!");
-        self.initialized.store(true, Ordering::SeqCst);
+    fn mount(&'static self, _: DeviceConfiguration<Self>, supervisor: &mut Supervisor) {
+        print_value_size("Device", &self);
+        print_value_size("Actor", &self.a);
+        self.a.mount((), supervisor);
     }
+}
+
+#[allow(unused_variables)]
+pub fn print_value_size<T>(name: &'static str, val: &T) {
+    println!(
+        "[{}] value size: {}",
+        name,
+        core::mem::size_of_val::<T>(val)
+    );
 }
