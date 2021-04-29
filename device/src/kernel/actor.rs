@@ -85,18 +85,18 @@ impl<'a, A: Actor> Address<'a, A> {
 }
 
 impl<'a, A: Actor> Address<'a, A> {
-    /// Perform an unsafe _async_ message send to the actor behind this address.
+    /// Perform an _async_ message request to the actor behind this address.
     ///
-    /// The returned future will be driven to completion by the actor processing the message,
-    /// and will complete when the receiving actor have processed the message.
-    ///
-    /// The result from the actors on_message() handler will be provided on completion.
+    /// The returned future complete when the receiving actor have processed the
+    /// message, and the result from processing is made available when the future
+    /// is ready.
     ///
     /// # Panics
     /// While the request message may contain non-static references, the user must
     /// ensure that the response to the request is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
+    #[must_use = "The returned future must be awaited"]
     pub fn request<'m>(&self, message: A::Message<'m>) -> RequestFuture<'a, 'm, A>
     where
         'a: 'm,
@@ -104,17 +104,17 @@ impl<'a, A: Actor> Address<'a, A> {
         self.state.request(message)
     }
 
-    /// Perform an unsafe _async_ message notification to the actor behind this address.
+    /// Perform an _async_ message notification to the actor behind this address.
     ///
-    /// The returned future will be driven to completion by the actor processing the message,
-    /// and will complete when the message have been enqueued, _before_ the message have been
-    /// processed.
+    /// The returned future will complete when the message have been enqueued,
+    /// _before_ the message have been fully processed.
     ///
     /// # Panics
     /// While the request message may contain non-static references, the user must
     /// ensure that the response to the request is fully `.await`'d before returning.
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
+    #[must_use = "The returned future must be awaited"]
     pub fn notify<'m>(&self, message: A::Message<'a>) -> NotifyFuture<'a, 'm, A>
     where
         'a: 'm,
