@@ -74,7 +74,7 @@
 //!     let a_addr = context.mount(|device| {
 //!         device.a.mount(())
 //!     });
-//!     a_addr.send(&mut SayHello("World")).await;
+//!     a_addr.request(SayHello("World")).await;
 //! }
 //!```
 //!
