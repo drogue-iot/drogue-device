@@ -123,13 +123,13 @@ where
 
     fn on_message<'m>(
         mut self: Pin<&'m mut Self>,
-        message: &'m mut Self::Message<'m>,
+        message: Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         async move {
             match message {
                 MatrixCommand::ApplyFrame(f) => self.apply(f.to_frame()),
-                MatrixCommand::On(x, y) => self.on(*x, *y),
-                MatrixCommand::Off(x, y) => self.off(*x, *y),
+                MatrixCommand::On(x, y) => self.on(x, y),
+                MatrixCommand::Off(x, y) => self.off(x, y),
                 MatrixCommand::Clear => self.clear(),
                 MatrixCommand::Render => {
                     self.render();

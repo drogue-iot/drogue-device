@@ -32,7 +32,7 @@ mod tests {
 
             fn on_message<'m>(
                 self: core::pin::Pin<&'m mut Self>,
-                message: &'m mut Self::Message<'m>,
+                message: Self::Message<'m>,
             ) -> Self::OnMessageFuture<'m> {
                 self.value.fetch_add(message.0, Ordering::SeqCst);
                 ImmediateFuture::new()
@@ -54,7 +54,7 @@ mod tests {
 
             let a_addr = context.mount(|device| device.a.mount(()));
 
-            a_addr.process(&mut Add(10)).await;
+            a_addr.request(Add(10)).await;
         }
 
         std::thread::spawn(move || {

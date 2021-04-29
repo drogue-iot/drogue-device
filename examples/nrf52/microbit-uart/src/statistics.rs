@@ -43,10 +43,10 @@ impl Actor for Statistics {
 
     fn on_message<'m>(
         mut self: Pin<&'m mut Self>,
-        message: &'m mut Self::Message<'m>,
+        message: Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         async move {
-            match *message {
+            match message {
                 StatisticsCommand::PrintStatistics => {
                     defmt::info!("Character count: {}", self.character_counter)
                 }

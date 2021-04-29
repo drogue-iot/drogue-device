@@ -41,7 +41,7 @@ impl Actor for MyActor {
 
     fn on_message<'m>(
         self: Pin<&'m mut Self>,
-        message: &'m mut Self::Message<'m>,
+        message: Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         async move {
             let count = self.counter.unwrap().fetch_add(1, Ordering::SeqCst);
@@ -102,7 +102,7 @@ async fn main(context: DeviceContext<MyDevice>) {
         // Send that completes when message is enqueued
         a_addr.notify(SayHello("World")).await;
         // Send that waits until message is processed
-        b_addr.process(&mut SayHello("You")).await;
+        b_addr.request(SayHello("You")).await;
 
         // Actor uses a different counter
         c_addr.notify(SayHello("There")).await;

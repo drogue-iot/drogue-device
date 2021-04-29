@@ -31,8 +31,6 @@ where
 {
     type Configuration = Address<'a, A>;
     #[rustfmt::skip]
-    type Message<'m> where 'a: 'm = ();
-    #[rustfmt::skip]
     type OnStartFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
     #[rustfmt::skip]
     type OnMessageFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
@@ -52,10 +50,7 @@ where
         }
     }
 
-    fn on_message<'m>(
-        self: Pin<&'m mut Self>,
-        _: &'m mut Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
+    fn on_message<'m>(self: Pin<&'m mut Self>, _: Self::Message<'m>) -> Self::OnMessageFuture<'m> {
         async move {}
     }
 }

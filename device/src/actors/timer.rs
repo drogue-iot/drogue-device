@@ -51,15 +51,15 @@ impl<'a, A: Actor + 'a> Actor for Timer<'a, A> {
 
     fn on_message<'m>(
         self: Pin<&'m mut Self>,
-        message: &'m mut Self::Message<'m>,
+        message: Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         async move {
             match message {
                 TimerMessage::Delay(dur) => {
-                    time::Timer::after(*dur).await;
+                    time::Timer::after(dur).await;
                 }
-                TimerMessage::Schedule(dur, address, message) => {
-                    time::Timer::after(*dur).await;
+                TimerMessage::Schedule(dur, address, mut message) => {
+                    time::Timer::after(dur).await;
                     address.notify(message.take().unwrap()).await;
                 }
             }

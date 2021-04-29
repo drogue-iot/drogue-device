@@ -36,7 +36,7 @@ where
     P: OutputPin,
 {
     #[rustfmt::skip]
-    type MaxQueueSize<'m> where Self: 'm = consts::U16;
+    type MaxNotifyQueueSize<'m> where Self: 'm = consts::U16;
     type Configuration = ();
     #[rustfmt::skip]
     type Message<'m> where Self: 'm = LedMessage;
@@ -51,12 +51,12 @@ where
 
     fn on_message<'m>(
         mut self: Pin<&'m mut Self>,
-        msg: &'m mut Self::Message<'m>,
+        msg: Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         let new_state = match msg {
             LedMessage::On => true,
             LedMessage::Off => false,
-            LedMessage::State(state) => *state,
+            LedMessage::State(state) => state,
             LedMessage::Toggle => !self.state,
         };
         if self.state != new_state {

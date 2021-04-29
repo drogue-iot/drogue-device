@@ -96,6 +96,8 @@ where
     #[rustfmt::skip]
     type Message<'m> where D: 'm = Command;
     #[rustfmt::skip]
+    type Response<'m> where D: 'm = ();
+    #[rustfmt::skip]
     type OnStartFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
     #[rustfmt::skip]
     type OnMessageFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
@@ -110,8 +112,8 @@ where
             let config = self.config.take().unwrap();
             if let Some(cfg) = &self.cfg {
                 cfg.led4.notify(LedMessage::On).await;
-                cfg.lora.process(&mut LoraCommand::Configure(&config)).await;
-                cfg.lora.process(&mut LoraCommand::Join).await;
+                cfg.lora.request(LoraCommand::Configure(&config)).await;
+                cfg.lora.request(LoraCommand::Join).await;
                 cfg.led4.notify(LedMessage::Off).await;
             }
         }
@@ -119,43 +121,44 @@ where
 
     fn on_message<'m>(
         self: Pin<&'m mut Self>,
-        message: &'m mut Self::Message<'m>,
+        message: Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         async move {
             log_stack!();
-            match *message {
+            match message {
                 Command::Send => {
                     if let Some(cfg) = &self.cfg {
                         log::info!("Sending message...");
                         cfg.led1.notify(LedMessage::On).await;
                         let mut rx = [0; 255];
-                        let mut rx_len = 0;
-                        cfg.lora
-                            .process(&mut LoraCommand::SendRecv(
-                                "ping".as_bytes(),
-                                &mut rx,
-                                &mut rx_len,
-                            ))
+                        let result = cfg
+                            .lora
+                            .request(LoraCommand::SendRecv("ping".as_bytes(), &mut rx))
                             .await;
 
-                        log::info!("Message sent!");
                         cfg.led1.notify(LedMessage::Off).await;
-
-                        if rx_len > 0 {
-                            let response = &rx[0..rx_len];
-                            match core::str::from_utf8(response) {
-                                Ok(str) => log::info!("Received from uplink:\n{}", str),
-                                Err(_) => log::info!(
-                                    "Received {} bytes from uplink: {:x?}",
-                                    rx_len,
-                                    &rx[0..rx_len]
-                                ),
+                        match result {
+                            LoraResult::OkSent(rx_len) => {
+                                log::info!("Message sent!");
+                                let response = &rx[0..rx_len];
+                                match core::str::from_utf8(response) {
+                                    Ok(str) => log::info!("Received from uplink:\n{}", str),
+                                    Err(_) => log::info!(
+                                        "Received {} bytes from uplink: {:x?}",
+                                        rx_len,
+                                        &rx[0..rx_len]
+                                    ),
+                                }
+                                match response {
+                                    b"led:on" => cfg.led3.notify(LedMessage::On).await,
+                                    b"led:off" => cfg.led3.notify(LedMessage::Off).await,
+                                    _ => {}
+                                }
                             }
-                            match response {
-                                b"led:on" => cfg.led3.notify(LedMessage::On).await,
-                                b"led:off" => cfg.led3.notify(LedMessage::Off).await,
-                                _ => {}
+                            LoraResult::Err(e) => {
+                                log::error!("Error sending message: {:?}", e);
                             }
+                            _ => {}
                         }
                     }
                 }

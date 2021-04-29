@@ -94,10 +94,10 @@ impl<D: WifiSupplicant + TcpStack> Actor for App<D> {
 
     fn on_message<'m>(
         mut self: Pin<&'m mut Self>,
-        message: &'m mut Self::Message<'m>,
+        message: Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         async move {
-            match *message {
+            match message {
                 Command::Send => {
                     log::info!("Sending data..");
 

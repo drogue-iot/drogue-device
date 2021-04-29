@@ -41,7 +41,7 @@ pub trait LoraDriver {
     ) -> Self::SendRecvFuture<'a>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum LoraError {
     JoinError,
     AckTimeout,

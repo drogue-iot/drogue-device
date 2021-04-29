@@ -49,7 +49,7 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
         let statistics = self.statistics.unwrap();
         async move {
             for c in r"Hello, World!".chars() {
-                matrix.process(&mut MatrixCommand::ApplyFrame(&c)).await;
+                matrix.request(MatrixCommand::ApplyFrame(&c)).await;
                 Timer::after(Duration::from_millis(200)).await;
             }
             matrix.notify(MatrixCommand::Clear).await;
@@ -64,19 +64,16 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
                 let _ = self.uart.read(&mut buf[..1]).await;
                 let _ = self.uart.write(&buf[..1]).await;
                 matrix
-                    .process(&mut MatrixCommand::ApplyFrame(&(buf[0] as char)))
+                    .request(MatrixCommand::ApplyFrame(&(buf[0] as char)))
                     .await;
                 statistics
-                    .process(&mut StatisticsCommand::IncrementCharacterCount)
+                    .request(StatisticsCommand::IncrementCharacterCount)
                     .await;
             }
         }
     }
 
-    fn on_message<'m>(
-        self: Pin<&'m mut Self>,
-        _: &'m mut Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
+    fn on_message<'m>(self: Pin<&'m mut Self>, _: Self::Message<'m>) -> Self::OnMessageFuture<'m> {
         async move {}
     }
 }

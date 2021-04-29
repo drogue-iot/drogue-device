@@ -5,13 +5,13 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use embassy::util::Signal;
 
-pub struct SignalFuture<'s, 'm> {
-    signal: &'s SignalSlot,
+pub struct SignalFuture<'s, 'm, T: Send> {
+    signal: &'s SignalSlot<T>,
     _marker: PhantomData<&'m ()>,
 }
 
-impl<'s> SignalFuture<'s, '_> {
-    pub fn new(signal: &'s SignalSlot) -> Self {
+impl<'s, T: Send> SignalFuture<'s, '_, T> {
+    pub fn new(signal: &'s SignalSlot<T>) -> Self {
         Self {
             signal,
             _marker: PhantomData,
@@ -21,26 +21,26 @@ impl<'s> SignalFuture<'s, '_> {
 
 // impl Unpin for SignalFuture<'_, '_> {}
 
-impl Future for SignalFuture<'_, '_> {
-    type Output = ();
+impl<T: Send> Future for SignalFuture<'_, '_, T> {
+    type Output = T;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         self.signal.poll_wait(cx)
     }
 }
 
-impl Drop for SignalFuture<'_, '_> {
+impl<T: Send> Drop for SignalFuture<'_, '_, T> {
     fn drop(&mut self) {
         self.signal.release();
     }
 }
 
-pub struct SignalSlot {
+pub struct SignalSlot<T: Send> {
     free: AtomicBool,
-    signal: Signal<()>,
+    signal: Signal<T>,
 }
 
-impl SignalSlot {
+impl<T: Send> SignalSlot<T> {
     pub fn acquire(&self) -> bool {
         if self.free.swap(false, Ordering::AcqRel) {
             self.signal.reset();
@@ -50,12 +50,12 @@ impl SignalSlot {
         }
     }
 
-    pub fn poll_wait(&self, cx: &mut Context<'_>) -> Poll<()> {
+    pub fn poll_wait(&self, cx: &mut Context<'_>) -> Poll<T> {
         self.signal.poll_wait(cx)
     }
 
-    pub fn signal(&self) {
-        self.signal.signal(())
+    pub fn signal(&self, value: T) {
+        self.signal.signal(value)
     }
 
     pub fn release(&self) {
@@ -63,7 +63,7 @@ impl SignalSlot {
     }
 }
 
-impl Default for SignalSlot {
+impl<T: Send> Default for SignalSlot<T> {
     fn default() -> Self {
         Self {
             free: AtomicBool::new(true),

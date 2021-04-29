@@ -94,9 +94,9 @@ impl Actor for TestHandler {
 
     fn on_message<'m>(
         self: Pin<&'m mut Self>,
-        message: &'m mut Self::Message<'m>,
+        message: Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
-        self.on_message.signal(*message);
+        self.on_message.signal(message);
         ImmediateFuture::new()
     }
 }

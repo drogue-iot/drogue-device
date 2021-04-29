@@ -49,7 +49,7 @@ use lora::*;
 const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/dev_eui.txt"));
 const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_eui.txt"));
 const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_key.txt"));
-static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
+static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
 
 static mut RNG: Option<Rng> = None;
 fn get_random_u32() -> u32 {
@@ -109,7 +109,7 @@ async fn main(context: DeviceContext<MyDevice>) {
         log::set_logger_racy(&LOGGER).unwrap();
     }
 
-    log::set_max_level(log::LevelFilter::Info);
+    log::set_max_level(log::LevelFilter::Trace);
     let device = unsafe { Peripherals::steal() };
 
     // NEEDED FOR RTT
@@ -183,6 +183,14 @@ async fn main(context: DeviceContext<MyDevice>) {
         led3: ActorContext::new(Led::new(led3)),
         led4: ActorContext::new(Led::new(led4)),
     });
+
+    /*
+    print_size::<LoraActor<Sx127x<'static>>>("LoraActor");
+    print_size::<ActorContext<'static, LoraActor<Sx127x<'static>>>>("ActorContext<LoraActor>");
+    print_size::<ActorContext<'static, Led<Led1Pin>>>("ActorContext<Led1Pin>");
+    print_size::<Led<Led1Pin>>("Led<Led1Pin>");
+    print_size::<Led1Pin>("Led1Pin");
+    */
 
     context.mount(|device| {
         let lora = device.lora.mount(());

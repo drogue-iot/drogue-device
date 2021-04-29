@@ -124,8 +124,23 @@ pub use embassy_std::*;
 #[cfg(feature = "std")]
 pub mod testutil;
 
+#[allow(unused_variables)]
 pub fn print_stack(file: &'static str, line: u32) {
     let _u: u32 = 1;
     let _uptr: *const u32 = &_u;
-    //    log::trace!("[{}:{}] SP: 0x{:p}", file, line, &_uptr);
+    // log::trace!("[{}:{}] SP: 0x{:p}", file, line, &_uptr);
+}
+
+#[allow(unused_variables)]
+pub fn print_size<T>(name: &'static str) {
+    //log::info!("[{}] size: {}", name, core::mem::size_of::<T>());
+}
+
+#[allow(unused_variables)]
+pub fn print_value_size<T>(name: &'static str, val: &T) {
+    /*    log::info!(
+        "[{}] value size: {}",
+        name,
+        core::mem::size_of_val::<T>(val)
+    );*/
 }
