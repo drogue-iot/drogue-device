@@ -53,7 +53,7 @@
 //!
 //!     fn on_message<'m>(
 //!         self: core::pin::Pin<&'m mut Self>,
-//!         message: &'m mut Self::Message<'m>,
+//!         message: Self::Message<'m>,
 //!     ) -> Self::OnMessageFuture<'m> {
 //!         async move {
 //!             println!("[{}] Hello {}", self.name, message.0);
