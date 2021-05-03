@@ -19,6 +19,8 @@ panic-probe = { version = "0.2.0", features = ["print-rtt"] }
 drogue-device = { path = "../../../device", features = ["log", "chip+stm32l0x2", "lora+sx127x"] }
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
+heapless = "0.6"
+void = { version = "1", default-features = false }
 
 # TODO: Get rid of these
 embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy" }

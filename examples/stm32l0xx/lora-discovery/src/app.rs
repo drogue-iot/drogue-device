@@ -1,98 +1,164 @@
 use crate::lora::*;
+use core::fmt::Write;
 use core::future::Future;
 use core::pin::Pin;
-use drogue_device::actors::led::{Led, LedMessage};
-use drogue_device::{actors::button::*, traits::lora::*, *};
+use drogue_device::{
+    actors::button::*,
+    traits::{led::*, lora::*},
+    *,
+};
 use embassy_stm32::system::OutputPin;
+use heapless::String;
 
+#[derive(Clone, Copy)]
 pub enum Command {
+    Tick,
     Send,
+    TickAndSend,
 }
 
-impl<D, P1, P2, P3, P4> FromButtonEvent<Command> for App<D, P1, P2, P3, P4>
+impl<D, L1, L2, L3, L4> FromButtonEvent<Command> for App<D, L1, L2, L3, L4>
 where
     D: LoraDriver,
-    P1: OutputPin + 'static,
-    P2: OutputPin + 'static,
-    P3: OutputPin + 'static,
-    P4: OutputPin + 'static,
+    L1: Led,
+    L2: Led,
+    L3: Led,
+    L4: Led,
 {
     fn from(event: ButtonEvent) -> Option<Command> {
         match event {
             ButtonEvent::Pressed => None,
-            ButtonEvent::Released => Some(Command::Send),
+            ButtonEvent::Released => Some(Command::TickAndSend),
         }
     }
 }
 
-pub struct AppConfig<'a, D, P1, P2, P3, P4>
+pub struct AppConfig<'a, D>
 where
     D: LoraDriver + 'a,
-    P1: OutputPin + 'a,
-    P2: OutputPin + 'a,
-    P3: OutputPin + 'a,
-    P4: OutputPin + 'a,
 {
     // lora actor
     pub lora: Address<'a, LoraActor<D>>,
-    // green led
-    pub led1: Address<'a, Led<P1>>,
-    // green led 2
-    pub led2: Address<'a, Led<P2>>,
-    // blue led
-    pub led3: Address<'a, Led<P3>>,
-    // red led
-    pub led4: Address<'a, Led<P4>>,
 }
 
-pub struct App<D, P1, P2, P3, P4>
+pub struct AppInitConfig<L1, L2, L3, L4>
+where
+    L1: Led,
+    L2: Led,
+    L3: Led,
+    L4: Led,
+{
+    pub lora: Option<LoraConfig>,
+    pub init_led: L1,
+    pub tx_led: L2,
+    pub user_led: L3,
+    pub green_led: L4,
+}
+
+pub struct App<D, L1, L2, L3, L4>
 where
     D: LoraDriver + 'static,
-    P1: OutputPin + 'static,
-    P2: OutputPin + 'static,
-    P3: OutputPin + 'static,
-    P4: OutputPin + 'static,
+    L1: Led,
+    L2: Led,
+    L3: Led,
+    L4: Led,
 {
-    config: Option<LoraConfig>,
-    cfg: Option<AppConfig<'static, D, P1, P2, P3, P4>>,
+    config: AppInitConfig<L1, L2, L3, L4>,
+    cfg: Option<AppConfig<'static, D>>,
+    counter: usize,
 }
 
-impl<D, P1, P2, P3, P4> App<D, P1, P2, P3, P4>
+impl<D, L1, L2, L3, L4> App<D, L1, L2, L3, L4>
 where
     D: LoraDriver,
-    P1: OutputPin + 'static,
-    P2: OutputPin + 'static,
-    P3: OutputPin + 'static,
-    P4: OutputPin + 'static,
+    L1: Led,
+    L2: Led,
+    L3: Led,
+    L4: Led,
 {
-    pub fn new(config: LoraConfig) -> Self {
+    pub fn new(config: AppInitConfig<L1, L2, L3, L4>) -> Self {
         Self {
-            config: Some(config),
+            config,
             cfg: None,
+            counter: 0,
         }
+    }
+
+    fn tick(&mut self) {
+        self.counter += 1;
+        log::info!("Ticked: {}", self.counter);
+    }
+
+    async fn send(&mut self) {
+        log::info!("Sending message...");
+        self.config.tx_led.on().ok();
+
+        if let Some(cfg) = &self.cfg {
+            let mut tx = String::<heapless::consts::U32>::new();
+            write!(&mut tx, "ping:{}", self.counter).ok();
+            log::info!("Message: {}", &tx);
+            let tx = tx.into_bytes();
+
+            let mut rx = [0; 64];
+            let result = cfg.lora.request(LoraCommand::SendRecv(&tx, &mut rx)).await;
+
+            match result {
+                LoraResult::OkSent(rx_len) => {
+                    log::info!("Message sent!");
+                    if rx_len > 0 {
+                        let response = &rx[0..rx_len];
+                        match core::str::from_utf8(response) {
+                            Ok(str) => {
+                                log::info!("Received {} bytes from uplink:\n{}", rx_len, str)
+                            }
+                            Err(_) => log::info!(
+                                "Received {} bytes from uplink: {:x?}",
+                                rx_len,
+                                &rx[0..rx_len]
+                            ),
+                        }
+                        match response {
+                            b"led:on" => {
+                                self.config.user_led.on().ok();
+                            }
+                            b"led:off" => {
+                                self.config.user_led.off().ok();
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                LoraResult::Err(e) => {
+                    log::error!("Error sending message: {:?}", e);
+                }
+                _ => {}
+            }
+        }
+
+        self.config.tx_led.off().ok();
     }
 }
 
-impl<D, P1, P2, P3, P4> Unpin for App<D, P1, P2, P3, P4>
+impl<D, L1, L2, L3, L4> Unpin for App<D, L1, L2, L3, L4>
 where
     D: LoraDriver,
-    P1: OutputPin + 'static,
-    P2: OutputPin + 'static,
-    P3: OutputPin + 'static,
-    P4: OutputPin + 'static,
+    L1: Led,
+    L2: Led,
+    L3: Led,
+    L4: Led,
 {
 }
 
-impl<D, P1, P2, P3, P4> Actor for App<D, P1, P2, P3, P4>
+impl<D, L1, L2, L3, L4> Actor for App<D, L1, L2, L3, L4>
 where
     D: LoraDriver + 'static,
-    P1: OutputPin + 'static,
-    P2: OutputPin + 'static,
-    P3: OutputPin + 'static,
-    P4: OutputPin + 'static,
+    L1: Led + 'static,
+    L2: Led + 'static,
+    L3: Led + 'static,
+    L4: Led + 'static,
 {
     #[rustfmt::skip]
-    type Configuration = AppConfig<'static, D, P1, P2, P3, P4>;
+    type Configuration = AppConfig<'static, D>;
     #[rustfmt::skip]
     type Message<'m> where D: 'm = Command;
     #[rustfmt::skip]
@@ -109,58 +175,32 @@ where
     fn on_start<'m>(mut self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
         async move {
             log_stack!();
-            let config = self.config.take().unwrap();
-            if let Some(cfg) = &self.cfg {
-                cfg.led4.notify(LedMessage::On).await;
-                cfg.lora.request(LoraCommand::Configure(&config)).await;
+            let lora_config = self.config.lora.take().unwrap();
+            self.config.init_led.on().ok();
+            if let Some(ref cfg) = self.cfg {
+                cfg.lora.request(LoraCommand::Configure(&lora_config)).await;
                 cfg.lora.request(LoraCommand::Join).await;
-                cfg.led4.notify(LedMessage::Off).await;
             }
+            self.config.init_led.off().ok();
         }
     }
 
     fn on_message<'m>(
-        self: Pin<&'m mut Self>,
+        mut self: Pin<&'m mut Self>,
         message: Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         async move {
             log_stack!();
             match message {
+                Command::Tick => {
+                    self.tick();
+                }
                 Command::Send => {
-                    if let Some(cfg) = &self.cfg {
-                        log::info!("Sending message...");
-                        cfg.led1.notify(LedMessage::On).await;
-                        let mut rx = [0; 255];
-                        let result = cfg
-                            .lora
-                            .request(LoraCommand::SendRecv("ping".as_bytes(), &mut rx))
-                            .await;
-
-                        cfg.led1.notify(LedMessage::Off).await;
-                        match result {
-                            LoraResult::OkSent(rx_len) => {
-                                log::info!("Message sent!");
-                                let response = &rx[0..rx_len];
-                                match core::str::from_utf8(response) {
-                                    Ok(str) => log::info!("Received from uplink:\n{}", str),
-                                    Err(_) => log::info!(
-                                        "Received {} bytes from uplink: {:x?}",
-                                        rx_len,
-                                        &rx[0..rx_len]
-                                    ),
-                                }
-                                match response {
-                                    b"led:on" => cfg.led3.notify(LedMessage::On).await,
-                                    b"led:off" => cfg.led3.notify(LedMessage::Off).await,
-                                    _ => {}
-                                }
-                            }
-                            LoraResult::Err(e) => {
-                                log::error!("Error sending message: {:?}", e);
-                            }
-                            _ => {}
-                        }
-                    }
+                    self.send().await;
+                }
+                Command::TickAndSend => {
+                    self.tick();
+                    self.send().await;
                 }
             }
         }

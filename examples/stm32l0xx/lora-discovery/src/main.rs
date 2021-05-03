@@ -15,6 +15,8 @@ use rtt_target::rtt_init_print;
 
 use drogue_device::{
     actors::button::*,
+    actors::ticker::*,
+    drivers::led::gpio::*,
     drivers::lora::sx127x::*,
     stm32::{
         exti::ExtiPin,
@@ -43,7 +45,7 @@ mod app;
 mod lora;
 
 use app::*;
-use drogue_device::actors::led::Led;
+use embassy::time::Duration;
 use lora::*;
 
 const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/dev_eui.txt"));
@@ -84,22 +86,14 @@ type Led2Pin = PA5<Output<PushPull>>;
 type Led3Pin = PB6<Output<PushPull>>;
 type Led4Pin = PB7<Output<PushPull>>;
 
+type MyApp =
+    App<Sx127x<'static>, GpioLed<Led4Pin>, GpioLed<Led2Pin>, GpioLed<Led3Pin>, GpioLed<Led1Pin>>;
+
 #[derive(Device)]
 pub struct MyDevice {
     lora: ActorContext<'static, LoraActor<Sx127x<'static>>>,
-    button: ActorContext<
-        'static,
-        Button<
-            'static,
-            ExtiPin<PB2<Input<PullUp>>>,
-            App<Sx127x<'static>, Led1Pin, Led2Pin, Led3Pin, Led4Pin>,
-        >,
-    >,
-    app: ActorContext<'static, App<Sx127x<'static>, Led1Pin, Led2Pin, Led3Pin, Led4Pin>>,
-    led1: ActorContext<'static, Led<Led1Pin>>,
-    led2: ActorContext<'static, Led<Led2Pin>>,
-    led3: ActorContext<'static, Led<Led3Pin>>,
-    led4: ActorContext<'static, Led<Led4Pin>>,
+    button: ActorContext<'static, Button<'static, ExtiPin<PB2<Input<PullUp>>>, MyApp>>,
+    app: ActorContext<'static, MyApp>,
 }
 
 #[drogue::main(config = "embassy_stm32::hal::rcc::Config::hsi16()")]
@@ -137,10 +131,10 @@ async fn main(context: DeviceContext<MyDevice>) {
 
     let button = gpiob.pb2.into_pull_up_input();
 
-    let led1 = gpiob.pb5.into_push_pull_output();
-    let led2 = gpioa.pa5.into_push_pull_output();
-    let led3 = gpiob.pb6.into_push_pull_output();
-    let led4 = gpiob.pb7.into_push_pull_output();
+    let led1 = GpioLed::new(gpiob.pb5.into_push_pull_output());
+    let led2 = GpioLed::new(gpioa.pa5.into_push_pull_output());
+    let led3 = GpioLed::new(gpiob.pb6.into_push_pull_output());
+    let led4 = GpioLed::new(gpiob.pb7.into_push_pull_output());
 
     let pin = ExtiPin::new(button, irq, &mut syscfg);
 
@@ -175,13 +169,15 @@ async fn main(context: DeviceContext<MyDevice>) {
     log::info!("Configuring with config {:?}", config);
 
     context.configure(MyDevice {
-        app: ActorContext::new(App::new(config)),
+        app: ActorContext::new(App::new(AppInitConfig {
+            tx_led: led2,
+            green_led: led1,
+            init_led: led4,
+            user_led: led3,
+            lora: Some(config),
+        })),
         lora: ActorContext::new(LoraActor::new(lora)),
         button: ActorContext::new(Button::new(pin)),
-        led1: ActorContext::new(Led::new(led1)),
-        led2: ActorContext::new(Led::new(led2)),
-        led3: ActorContext::new(Led::new(led3)),
-        led4: ActorContext::new(Led::new(led4)),
     });
 
     /*
@@ -194,17 +190,7 @@ async fn main(context: DeviceContext<MyDevice>) {
 
     context.mount(|device| {
         let lora = device.lora.mount(());
-        let led1 = device.led1.mount(());
-        let led2 = device.led2.mount(());
-        let led3 = device.led3.mount(());
-        let led4 = device.led4.mount(());
-        let app = device.app.mount(AppConfig {
-            lora,
-            led1,
-            led2,
-            led3,
-            led4,
-        });
+        let app = device.app.mount(AppConfig { lora });
         device.button.mount(app);
     });
 }

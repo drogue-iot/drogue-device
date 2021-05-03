@@ -11,7 +11,7 @@ This example application runs out of the box on the STM32 LoRa Discovery Kit (B-
 ==== Software
 
 To build and flash the example, you need to have
-https://rustup.rs/[Rust Nightly]. In pratice
+https://rustup.rs/[Rust Nightly]. In practice
 you can use whatever tool you want to flash the device, but this guide
 will assume that `probe-run` is used (`cargo install probe-run`).
 
@@ -56,4 +56,14 @@ cargo +nightly run --release -- --probe <VID>:<PID>
 
 === Usage
 
-Once the device is flashed, it will connect to the local LoRaWAN network. Once the network is joined, you can press the blue button on the development kit to send a test message "ping".
+Once the device is flashed, it will connect to the local LoRaWAN network. Once the network is joined, you can press
+the blue button on the development kit to send a test message `ping:<num-clicks>`, where `num-clicks` is the number
+of times you pressed the button since resetting the board.
+
+==== LEDs
+
+The board features 4 user controllable LEDs. The program will use 3 of them to show the internal status:
+
+Red:: Will light up when starting and turn off once it joined the LoRa network.
+Green:: Turns on while sending the uplink message.
+Blue:: Can be controlled through the downlink message: `led:on` or `led:off`.
