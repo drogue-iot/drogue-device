@@ -8,7 +8,7 @@
 Drogue device is an open source async, no-alloc actor framework for embedded devices, based on [embassy](https://github.com/embassy-rs/embassy). 
 
 * Makes it easy to write safe, composable and connected embedded applications.
-* Built using https://www.rust-lang.org[rust], an efficient, memory safe and thread safe programming language.
+* Built using [rust]https://www.rust-lang.org, an efficient, memory safe and thread safe programming language.
 * Offers built-in drivers for internet connectivity, such as WiFi and LoRaWAN.
 * All software is licensed under the Apache 2.0 open source license.
 
