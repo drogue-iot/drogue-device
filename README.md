@@ -33,13 +33,14 @@ This might require you do install additional toolchains for the examples to buil
 
 ## Directory layout
 
-* `kernel` - the actor framework
-* `macros` - macros used by the actor framework
-* `traits` - traits provided by drogue that can be used in actors or directly, such as WiFi or LoRa
-* `drivers` - drivers that implement traits for a one or more peripherals
-* `actors` - common actors that can be used in applications
-* `device` - all-in-one crate for all platforms that is used by end applications
+* `macros` - macros used by drogue-device and application code
+* `device` - the source of the drogue-device framework
+** `device/src/kernel` - the actor framework
+** `device/src/traits` - traits provided by drogue that can be used in actors or directly, such as WiFi or LoRa
+** `device/src/drivers` - drivers that implement traits for a one or more peripherals
+** `device/src/actors` - common actors that can be used in applications
 * `examples` - examples for different platforms and boards
+
 
 ## Contributing
 
