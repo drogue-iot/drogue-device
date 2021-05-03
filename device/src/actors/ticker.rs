@@ -44,7 +44,9 @@ where
             loop {
                 Timer::after(self.interval).await;
                 if let Some(actor) = self.actor {
-                    actor.notify(self.message).await;
+                    // We continue even if we get an error, trying again
+                    // next tick.
+                    let _ = actor.notify(self.message);
                 }
             }
         }

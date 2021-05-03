@@ -49,10 +49,10 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
         let statistics = self.statistics.unwrap();
         async move {
             for c in r"Hello, World!".chars() {
-                matrix.request(MatrixCommand::ApplyFrame(&c)).await;
+                matrix.request(MatrixCommand::ApplyFrame(&c)).unwrap().await;
                 Timer::after(Duration::from_millis(200)).await;
             }
-            matrix.notify(MatrixCommand::Clear).await;
+            matrix.notify(MatrixCommand::Clear).unwrap();
 
             let mut buf = [0; 128];
             let motd = "Welcome to the Drogue Echo Service\r\n".as_bytes();
@@ -65,9 +65,11 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
                 let _ = self.uart.write(&buf[..1]).await;
                 matrix
                     .request(MatrixCommand::ApplyFrame(&(buf[0] as char)))
+                    .unwrap()
                     .await;
                 statistics
                     .request(StatisticsCommand::IncrementCharacterCount)
+                    .unwrap()
                     .await;
             }
         }

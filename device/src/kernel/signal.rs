@@ -1,27 +1,26 @@
 use atomic_polyfill::{AtomicBool, Ordering};
 use core::future::Future;
-use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use embassy::util::Signal;
 
-pub struct SignalFuture<'s, 'm, T: Send> {
+pub struct SignalFuture<'s, T: Send> {
     signal: &'s SignalSlot<T>,
-    _marker: PhantomData<&'m ()>,
 }
 
-impl<'s, T: Send> SignalFuture<'s, '_, T> {
+impl<'s, T: Send> SignalFuture<'s, T> {
     pub fn new(signal: &'s SignalSlot<T>) -> Self {
-        Self {
-            signal,
-            _marker: PhantomData,
-        }
+        Self { signal }
+    }
+
+    pub fn release(&self) {
+        self.signal.release();
     }
 }
 
 // impl Unpin for SignalFuture<'_, '_> {}
 
-impl<T: Send> Future for SignalFuture<'_, '_, T> {
+impl<T: Send> Future for SignalFuture<'_, T> {
     type Output = T;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -29,7 +28,7 @@ impl<T: Send> Future for SignalFuture<'_, '_, T> {
     }
 }
 
-impl<T: Send> Drop for SignalFuture<'_, '_, T> {
+impl<T: Send> Drop for SignalFuture<'_, T> {
     fn drop(&mut self) {
         self.signal.release();
     }

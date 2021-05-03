@@ -99,12 +99,12 @@ async fn main(context: DeviceContext<MyDevice>) {
 
     loop {
         time::Timer::after(time::Duration::from_secs(1)).await;
-        // Send that completes when message is enqueued
-        a_addr.notify(SayHello("World")).await;
+        // Send that completes immediately when message is enqueued
+        a_addr.notify(SayHello("World")).unwrap();
         // Send that waits until message is processed
-        b_addr.request(SayHello("You")).await;
+        b_addr.request(SayHello("You")).unwrap().await;
 
         // Actor uses a different counter
-        c_addr.notify(SayHello("There")).await;
+        c_addr.notify(SayHello("There")).unwrap();
     }
 }

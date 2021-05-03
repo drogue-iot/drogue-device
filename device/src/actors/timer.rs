@@ -60,7 +60,7 @@ impl<'a, A: Actor + 'a> Actor for Timer<'a, A> {
                 }
                 TimerMessage::Schedule(dur, address, mut message) => {
                     time::Timer::after(dur).await;
-                    address.notify(message.take().unwrap()).await;
+                    let _ = address.notify(message.take().unwrap());
                 }
             }
         }

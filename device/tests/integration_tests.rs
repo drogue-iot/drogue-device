@@ -39,7 +39,7 @@ mod tests {
             }
         }
 
-        #[derive(drogue::Device)]
+        #[derive(Device)]
         struct MyDevice {
             a: ActorContext<'static, MyActor>,
         }
@@ -54,7 +54,7 @@ mod tests {
 
             let a_addr = context.mount(|device| device.a.mount(()));
 
-            a_addr.request(Add(10)).await;
+            a_addr.request(Add(10)).unwrap().await;
         }
 
         std::thread::spawn(move || {

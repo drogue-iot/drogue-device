@@ -1,6 +1,11 @@
 extern crate embedded_hal;
 use crate::actors::button::{ButtonEvent, FromButtonEvent};
-use crate::kernel::{actor::Actor, device::Device, device::DeviceContext, util::ImmediateFuture};
+use crate::kernel::{
+    actor::{Actor, ActorContext},
+    device::Device,
+    device::DeviceContext,
+    util::ImmediateFuture,
+};
 use core::cell::RefCell;
 use core::future::Future;
 use core::pin::Pin;
@@ -68,6 +73,30 @@ impl FromButtonEvent<TestMessage> for TestHandler {
             ButtonEvent::Pressed => Some(TestMessage(0)),
             ButtonEvent::Released => Some(TestMessage(1)),
         }
+    }
+}
+
+/// A dummy actor that does nothing
+#[derive(Default)]
+pub struct DummyActor {}
+
+impl DummyActor {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Actor for DummyActor {
+    type Message<'m> = TestMessage;
+    type OnStartFuture<'m> = ImmediateFuture;
+    type OnMessageFuture<'m> = ImmediateFuture;
+
+    fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
+        ImmediateFuture::new()
+    }
+
+    fn on_message<'m>(self: Pin<&'m mut Self>, _: Self::Message<'m>) -> Self::OnMessageFuture<'m> {
+        ImmediateFuture::new()
     }
 }
 
@@ -328,4 +357,16 @@ impl Signaler {
         let this = unsafe { &*(ctx as *mut Self) };
         this.run.store(true, Ordering::SeqCst);
     }
+}
+
+// Perform a process step for an Actor, processing a single message
+pub fn step_actor<A: Actor + Unpin>(actor: &'static ActorContext<'static, A>) {
+    let waker = futures::task::noop_waker_ref();
+    let mut cx = std::task::Context::from_waker(waker);
+    let mut actor_fut = actor.process();
+    while unsafe {
+        Pin::new_unchecked(&mut actor_fut)
+            .poll(&mut cx)
+            .is_pending()
+    } {}
 }

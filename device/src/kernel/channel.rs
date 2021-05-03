@@ -4,7 +4,7 @@ use core::{
     pin::Pin,
     task::{Context, Poll, Waker},
 };
-use embassy::util::AtomicWaker;
+use embassy::util::{critical_section, AtomicWaker};
 use heapless::spsc::{Consumer, Producer, Queue};
 pub use heapless::{consts, ArrayLength};
 
@@ -80,6 +80,12 @@ pub struct ChannelSender<'a, T, N: ArrayLength<T>> {
     producer: RefCell<Producer<'a, T, N>>,
 }
 
+#[derive(Debug)]
+pub enum ChannelError {
+    ChannelFull,
+    ChannelEmpty,
+}
+
 impl<'a, T, N: 'a + ArrayLength<T>> ChannelSender<'a, T, N> {
     fn new(producer: Producer<'a, T, N>, inner: &'a ChannelInner<T, N>) -> Self {
         Self {
@@ -99,6 +105,16 @@ impl<'a, T, N: 'a + ArrayLength<T>> ChannelSender<'a, T, N> {
             self.inner.register_sender(cx.waker());
             Poll::Pending
         }
+    }
+
+    pub fn try_send(&self, value: T) -> Result<(), ChannelError> {
+        critical_section(|_| {
+            let mut producer = self.producer.borrow_mut();
+            producer
+                .enqueue(value)
+                .map_err(|_| ChannelError::ChannelFull)
+                .map(|_| self.inner.wake_receiver())
+        })
     }
 
     pub fn send<'m>(&'m self, value: T) -> ChannelSend<'m, 'a, T, N> {

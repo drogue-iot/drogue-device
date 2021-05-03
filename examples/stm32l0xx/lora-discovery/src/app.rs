@@ -96,7 +96,11 @@ where
             let tx = tx.into_bytes();
 
             let mut rx = [0; 64];
-            let result = cfg.lora.request(LoraCommand::SendRecv(&tx, &mut rx)).await;
+            let result = cfg
+                .lora
+                .request(LoraCommand::SendRecv(&tx, &mut rx))
+                .unwrap()
+                .await;
 
             match result {
                 LoraResult::OkSent(rx_len) => {
@@ -174,8 +178,11 @@ where
             let lora_config = self.config.lora.take().unwrap();
             self.config.init_led.on().ok();
             if let Some(ref cfg) = self.cfg {
-                cfg.lora.request(LoraCommand::Configure(&lora_config)).await;
-                cfg.lora.request(LoraCommand::Join).await;
+                cfg.lora
+                    .request(LoraCommand::Configure(&lora_config))
+                    .unwrap()
+                    .await;
+                cfg.lora.request(LoraCommand::Join).unwrap().await;
             }
             self.config.init_led.off().ok();
         }

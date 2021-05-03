@@ -5,7 +5,7 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-#[cfg(feature = "std")]
+#[cfg(test)]
 mod tests {
     extern crate std;
     use drogue_device::{actors::timer::*, testutil::*, *};
@@ -36,7 +36,7 @@ mod tests {
                 handler_addr,
                 TestMessage(1),
             ))
-            .await;
+            .unwrap();
         notified.wait_signaled().await;
         let after = time::Instant::now();
         assert!(after.as_secs() >= before.as_secs() + 1);
@@ -59,6 +59,7 @@ mod tests {
         let before = time::Instant::now();
         timer
             .request(TimerMessage::Delay(time::Duration::from_secs(1)))
+            .unwrap()
             .await;
         let after = time::Instant::now();
         assert!(after.as_secs() >= before.as_secs() + 1);

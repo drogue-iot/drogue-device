@@ -16,7 +16,7 @@ rtt-target = { version = "0.2.0", features = ["cortex-m"] }
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 panic-probe = { version = "0.2.0", features = ["print-rtt"] }
 
-drogue-device = { path = "../../../device", features = ["log", "chip+stm32l0x2", "lora+sx127x"] }
+drogue-device = { path = "../../../device", features = ["log", "chip+stm32l0x2", "lora+sx127x"], default-features = false }
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 heapless = "0.6"
