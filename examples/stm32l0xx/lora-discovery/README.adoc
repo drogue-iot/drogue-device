@@ -2,11 +2,6 @@
 
 This example application runs out of the box on the STM32 LoRa Discovery Kit (B-L072Z-LRWAN1).
 
-You can configure
-It provides a UART echo server that will echo characters you write to
-the micro:bit serial interface, and it will display ascii characters on
-the 5x5 LED display.
-
 === Prerequisites
 
 ==== Hardware
