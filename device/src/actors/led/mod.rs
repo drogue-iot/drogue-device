@@ -1,6 +1,6 @@
 pub mod matrix;
 
-use crate::kernel::{actor::Actor, channel::consts, util::ImmediateFuture};
+use crate::kernel::{actor::Actor, util::ImmediateFuture};
 use core::pin::Pin;
 use embedded_hal::digital::v2::OutputPin;
 
@@ -35,9 +35,6 @@ impl<P> Actor for Led<P>
 where
     P: OutputPin,
 {
-    #[rustfmt::skip]
-    type MaxMessageQueueSize<'m> where Self: 'm = consts::U1;
-    type Configuration = ();
     #[rustfmt::skip]
     type Message<'m> where Self: 'm = LedMessage;
     #[rustfmt::skip]

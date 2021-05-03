@@ -1,7 +1,5 @@
 use super::{
-    channel::{
-        consts, ArrayLength, Channel, ChannelError, ChannelReceive, ChannelReceiver, ChannelSender,
-    },
+    channel::{Channel, ChannelError, ChannelReceive, ChannelReceiver, ChannelSender},
     signal::{SignalFuture, SignalSlot},
     util::ImmediateFuture,
 };
@@ -10,14 +8,9 @@ use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use embassy::util::DropBomb;
-use generic_array::GenericArray;
 
 /// Trait that each actor must implement.
 pub trait Actor: Sized {
-    /// Request queue size;
-    #[rustfmt::skip]
-    type MaxMessageQueueSize<'a>: ArrayLength<ActorMessage<'a, Self>> + ArrayLength<SignalSlot<Self::Response<'a>>> + 'a where Self: 'a = consts::U1;
-
     /// The configuration that this actor will expect when mounted.
     type Configuration = ();
 
@@ -117,19 +110,13 @@ impl<'a, A: Actor> Clone for Address<'a, A> {
     }
 }
 
-pub struct MessageChannel<'a, T, N>
-where
-    N: ArrayLength<T>,
-{
+pub struct MessageChannel<'a, T, const N: usize> {
     channel: UnsafeCell<Channel<T, N>>,
     channel_sender: UnsafeCell<Option<ChannelSender<'a, T, N>>>,
     channel_receiver: UnsafeCell<Option<ChannelReceiver<'a, T, N>>>,
 }
 
-impl<'a, T, N> MessageChannel<'a, T, N>
-where
-    N: ArrayLength<T>,
-{
+impl<'a, T, const N: usize> MessageChannel<'a, T, N> {
     pub fn new() -> Self {
         Self {
             channel: UnsafeCell::new(Channel::new()),
@@ -166,10 +153,16 @@ pub enum SignalError {
     NoAvailableSignal,
 }
 
-pub struct ActorContext<'a, A: Actor> {
+/// A context for an actor, providing signal and message queue. The QLEN parameter
+/// is a const generic parameter, and needs to be at least 2 in order for the underlying
+/// heapless queue to work. (Due to missing const generic expressions)
+#[rustfmt::skip]
+pub struct ActorContext<'a, A: Actor, const QLEN: usize= 2>
+{
     pub actor: UnsafeCell<A>,
-    channel: MessageChannel<'a, ActorMessage<'a, A>, A::MaxMessageQueueSize<'a>>,
-    signals: UnsafeCell<GenericArray<SignalSlot<A::Response<'a>>, A::MaxMessageQueueSize<'a>>>,
+    channel: MessageChannel<'a, ActorMessage<'a, A>, QLEN>,
+    // NOTE: This wastes an extra signal because
+    signals: UnsafeCell<[SignalSlot<A::Response<'a>>; QLEN]>,
 }
 
 impl<'a, A: Actor> ActorContext<'a, A> {
@@ -342,7 +335,6 @@ mod tests {
 
         let result_fut_1 = address.request(TestMessage(0));
         let result_fut_2 = address.request(TestMessage(1));
-
         assert!(result_fut_1.is_ok());
         assert!(result_fut_2.is_err());
 

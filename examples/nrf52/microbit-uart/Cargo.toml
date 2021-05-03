@@ -22,7 +22,7 @@ cortex-m = { version = "0.7", features = ["inline-asm"] }
 embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy" }
 embassy-nrf = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy-nrf" }
 
-heapless = "0.6"
+heapless = "0.7"
 
 [features]
 default = [

@@ -3,7 +3,7 @@ use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 
-use heapless::{consts::*, spsc::Queue};
+use heapless::spsc::Queue;
 
 #[derive(PartialEq)]
 enum SocketState {
@@ -21,7 +21,7 @@ impl Default for SocketState {
 
 pub(crate) struct SocketPool {
     sockets: RefCell<[SocketState; 4]>,
-    waiters: RefCell<Queue<Waker, U8>>,
+    waiters: RefCell<Queue<Waker, 8>>,
 }
 
 impl SocketPool {

@@ -1,13 +1,13 @@
 use super::ip::IpAddress;
 use core::future::Future;
-use heapless::{consts::U32, String};
+use heapless::String;
 
 #[derive(Debug)]
 pub enum Join {
     Open,
     Wpa {
-        ssid: String<U32>,
-        password: String<U32>,
+        ssid: String<32>,
+        password: String<32>,
     },
 }
 

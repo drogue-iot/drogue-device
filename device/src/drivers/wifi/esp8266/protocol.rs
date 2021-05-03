@@ -2,7 +2,7 @@ use super::BUFFER_LEN;
 use crate::traits::ip::{IpAddress, IpAddressV4, SocketAddress};
 use core::fmt;
 use core::fmt::{Debug, Write};
-use heapless::{consts::U256, String};
+use heapless::String;
 
 #[derive(Debug)]
 pub struct ResolverAddresses {
@@ -45,7 +45,7 @@ pub enum Command<'a> {
 }
 
 impl<'a> Command<'a> {
-    pub fn as_bytes(&self) -> String<U256> {
+    pub fn as_bytes(&self) -> String<256> {
         match self {
             Command::QueryFirmwareInfo => String::from("AT+GMR"),
             Command::QueryIpAddress => String::from("AT+CIPSTA_CUR?"),
@@ -79,7 +79,7 @@ impl<'a> Command<'a> {
                         write!(s, "\"{}\",{}", ip, socket_addr.port()).unwrap();
                     } //IpAddress::V6(_) => panic!("IPv6 not supported"),
                 }
-                s as String<U256>
+                s as String<256>
             }
             Command::CloseConnection(link_id) => {
                 let mut s = String::from("AT+CIPCLOSE=");

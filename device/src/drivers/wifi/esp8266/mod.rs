@@ -33,7 +33,6 @@ use embassy::{
 use embedded_hal::digital::v2::OutputPin;
 use futures::future::{select, Either};
 use futures::pin_mut;
-use heapless::{String, Vec};
 use protocol::{Command, ConnectionType, Response as AtResponse};
 
 pub const BUFFER_LEN: usize = 512;
@@ -51,7 +50,7 @@ pub enum DriverError {
     OperationNotSupported,
 }
 
-type CommandBuffer = String<consts::U256>;
+type CommandBuffer = [u8; 256];
 
 pub struct Initialized {
     signal: Signal<Result<(), DriverError>>,
@@ -81,9 +80,9 @@ impl Initialized {
 pub struct Esp8266Controller<'a> {
     initialized: &'a Initialized,
     socket_pool: SocketPool,
-    command_producer: ChannelSender<'a, CommandBuffer, consts::U1>,
-    response_consumer: ChannelReceiver<'a, AtResponse, consts::U2>,
-    notification_consumer: ChannelReceiver<'a, AtResponse, consts::U2>,
+    command_producer: ChannelSender<'a, CommandBuffer, 2>,
+    response_consumer: ChannelReceiver<'a, AtResponse, 2>,
+    notification_consumer: ChannelReceiver<'a, AtResponse, 2>,
 }
 
 pub struct Esp8266Modem<'a, UART, ENABLE, RESET>
@@ -97,16 +96,16 @@ where
     enable: ENABLE,
     reset: RESET,
     parse_buffer: Buffer,
-    command_consumer: ChannelReceiver<'a, CommandBuffer, consts::U1>,
-    response_producer: ChannelSender<'a, AtResponse, consts::U2>,
-    notification_producer: ChannelSender<'a, AtResponse, consts::U2>,
+    command_consumer: ChannelReceiver<'a, CommandBuffer, 2>,
+    response_producer: ChannelSender<'a, AtResponse, 2>,
+    notification_producer: ChannelSender<'a, AtResponse, 2>,
 }
 
 pub struct Esp8266Driver {
     initialized: Initialized,
-    command_channel: Channel<CommandBuffer, consts::U1>,
-    response_channel: Channel<AtResponse, consts::U2>,
-    notification_channel: Channel<AtResponse, consts::U2>,
+    command_channel: Channel<CommandBuffer, 2>,
+    response_channel: Channel<AtResponse, 2>,
+    notification_channel: Channel<AtResponse, 2>,
 }
 
 impl Esp8266Driver {
@@ -152,9 +151,9 @@ where
         uart: UART,
         enable: ENABLE,
         reset: RESET,
-        command_consumer: ChannelReceiver<'a, CommandBuffer, consts::U1>,
-        response_producer: ChannelSender<'a, AtResponse, consts::U2>,
-        notification_producer: ChannelSender<'a, AtResponse, consts::U2>,
+        command_consumer: ChannelReceiver<'a, CommandBuffer, 2>,
+        response_producer: ChannelSender<'a, AtResponse, 2>,
+        notification_producer: ChannelSender<'a, AtResponse, 2>,
     ) -> Self {
         Self {
             initialized,
@@ -284,7 +283,7 @@ where
             };
             // We got command to write, write it
             if let Some(s) = cmd {
-                if let Err(e) = uart_write(&mut self.uart, s.as_bytes()).await {
+                if let Err(e) = uart_write(&mut self.uart, &s).await {
                     error!("Error writing command to uart: {:?}", e);
                 }
             }
@@ -355,9 +354,9 @@ where
 impl<'a> Esp8266Controller<'a> {
     pub fn new(
         initialized: &'a Initialized,
-        command_producer: ChannelSender<'a, CommandBuffer, consts::U1>,
-        response_consumer: ChannelReceiver<'a, AtResponse, consts::U2>,
-        notification_consumer: ChannelReceiver<'a, AtResponse, consts::U2>,
+        command_producer: ChannelSender<'a, CommandBuffer, 2>,
+        response_consumer: ChannelReceiver<'a, AtResponse, 2>,
+        notification_consumer: ChannelReceiver<'a, AtResponse, 2>,
     ) -> Self {
         Self {
             initialized,
@@ -379,7 +378,10 @@ impl<'a> Esp8266Controller<'a> {
         );
 
         bytes.push_str("\r\n").unwrap();
-        self.command_producer.send(bytes).await;
+        let bs = bytes.as_bytes();
+        let mut data = [0; 256];
+        data[0..bs.len()].copy_from_slice(&bs[0..bs.len()]);
+        self.command_producer.send(data).await;
         Ok(self.response_consumer.receive().await)
     }
 
@@ -490,9 +492,9 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
                 Ok(AtResponse::Ok) => {
                     match self.response_consumer.receive().await {
                         AtResponse::ReadyForData => {
-                            self.command_producer
-                                .send(String::from_utf8(Vec::from_slice(buf).unwrap()).unwrap())
-                                .await;
+                            let mut data = [0; 256];
+                            data[0..buf.len()].copy_from_slice(&buf[0..buf.len()]);
+                            self.command_producer.send(data).await;
                             let mut data_sent: Option<usize> = None;
                             loop {
                                 match self.response_consumer.receive().await {

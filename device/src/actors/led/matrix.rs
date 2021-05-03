@@ -2,14 +2,12 @@ use crate::kernel::{actor::Actor, util::ImmediateFuture};
 use core::future::Future;
 use core::pin::Pin;
 use embedded_hal::digital::v2::OutputPin;
-use heapless::{ArrayLength, Vec};
+use heapless::Vec;
 
 // Led matrix driver supporting up to 32x32 led matrices.
-pub struct LEDMatrix<P, ROWS, COLS>
+pub struct LEDMatrix<P, const ROWS: usize, const COLS: usize>
 where
     P: OutputPin + 'static,
-    ROWS: ArrayLength<P> + 'static,
-    COLS: ArrayLength<P> + 'static,
 {
     pin_rows: Vec<P, ROWS>,
     pin_cols: Vec<P, COLS>,
@@ -48,19 +46,11 @@ impl Frame {
     }
 }
 
-impl<P, ROWS, COLS> Unpin for LEDMatrix<P, ROWS, COLS>
-where
-    P: OutputPin,
-    ROWS: ArrayLength<P>,
-    COLS: ArrayLength<P>,
-{
-}
+impl<P, const ROWS: usize, const COLS: usize> Unpin for LEDMatrix<P, ROWS, COLS> where P: OutputPin {}
 
-impl<P, ROWS, COLS> LEDMatrix<P, ROWS, COLS>
+impl<P, const ROWS: usize, const COLS: usize> LEDMatrix<P, ROWS, COLS>
 where
     P: OutputPin,
-    ROWS: ArrayLength<P>,
-    COLS: ArrayLength<P>,
 {
     pub fn new(pin_rows: Vec<P, ROWS>, pin_cols: Vec<P, COLS>) -> Self {
         LEDMatrix {
@@ -104,18 +94,16 @@ where
     }
 }
 
-impl<P, ROWS, COLS> Actor for LEDMatrix<P, ROWS, COLS>
+impl<P, const ROWS: usize, const COLS: usize> Actor for LEDMatrix<P, ROWS, COLS>
 where
     P: OutputPin,
-    ROWS: ArrayLength<P>,
-    COLS: ArrayLength<P>,
 {
     #[rustfmt::skip]
     type Message<'m> = MatrixCommand<'m>;
     #[rustfmt::skip]
     type OnStartFuture<'m> = ImmediateFuture;
     #[rustfmt::skip]
-    type OnMessageFuture<'m> where COLS: 'm, ROWS: 'm, P: 'm = impl Future<Output = ()> + 'm;
+    type OnMessageFuture<'m> where P: 'm = impl Future<Output = ()> + 'm;
 
     fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
         ImmediateFuture::new()

@@ -1,6 +1,5 @@
 use crate::kernel::{
     actor::{Actor, Address},
-    channel::consts,
     util::ImmediateFuture,
 };
 use crate::traits::gpio::WaitForAnyEdge;
@@ -44,11 +43,6 @@ impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Messag
 impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Message<'a>> + 'a> Actor
     for Button<'a, P, A>
 {
-    #[rustfmt::skip]
-    type MaxMessageQueueSize<'m>
-    where
-        'a: 'm,
-    = consts::U0;
     type Configuration = Address<'a, A>;
     #[rustfmt::skip]
     type OnStartFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;

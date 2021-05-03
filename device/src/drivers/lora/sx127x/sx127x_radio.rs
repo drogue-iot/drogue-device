@@ -2,12 +2,11 @@ use crate::traits::lora::LoraError as DriverError;
 use embedded_hal::blocking::delay::DelayMs;
 use embedded_hal::blocking::spi::{Transfer, Write};
 use embedded_hal::digital::v2::OutputPin;
-use heapless::consts::*;
 use heapless::Vec;
 use lorawan_device::{
     radio::{
-        Bandwidth, Error as LoraError, Event as LoraEvent, PhyRxTx, Response as LoraResponse,
-        RxQuality, SpreadingFactor,
+        Bandwidth, Error as LoraError, Event as LoraEvent, PhyRxTx, PhyRxTxBuf,
+        Response as LoraResponse, RxQuality, SpreadingFactor,
     },
     Timings,
 };
@@ -22,7 +21,7 @@ where
 {
     radio: LoRa<SPI, CS, RESET>,
     radio_state: State,
-    packet: Vec<u8, U256>,
+    buffer: RadioBuffer,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -67,7 +66,7 @@ where
             radio_state: State::Idle,
             radio: LoRa::new(spi, cs, reset, 867_100_000, delay)
                 .map_err(|_| DriverError::OtherError)?,
-            packet: Vec::new(),
+            buffer: RadioBuffer { packet: Vec::new() },
         })
     }
 
@@ -94,10 +93,10 @@ where
                     self.radio.set_invert_iq(false)?;
                     self.radio.set_crc(true)?;
 
-                    let len = buf.len();
+                    let len = buf.packet.len();
                     assert!(len < 255);
                     let mut payload = [0; 255];
-                    payload[..len].copy_from_slice(&buf[..len]);
+                    payload[..len].copy_from_slice(&buf.packet[..len]);
                     self.radio.set_dio0_tx_done()?;
                     self.radio.transmit_payload(payload, len)
                 })();
@@ -183,8 +182,12 @@ where
                         let snr = self.radio.get_packet_snr().unwrap_or(0.0) as i8;
                         if let Ok(size) = self.radio.read_packet_size() {
                             if let Ok(packet) = self.radio.read_packet() {
-                                self.packet.clear();
-                                self.packet.extend_from_slice(&packet[..size]).ok().unwrap();
+                                self.buffer.packet.clear();
+                                self.buffer
+                                    .packet
+                                    .extend_from_slice(&packet[..size])
+                                    .ok()
+                                    .unwrap();
                             }
                         }
                         self.radio.set_mode(RadioMode::Sleep).ok().unwrap();
@@ -226,12 +229,45 @@ pub enum RadioPhyEvent {
     Irq,
 }
 
+pub struct RadioBuffer {
+    pub packet: Vec<u8, 256>,
+}
+
+impl PhyRxTxBuf for RadioBuffer {
+    fn clear_buf(&mut self) {
+        self.packet.clear();
+    }
+
+    fn extend_buf(&mut self, buf: &[u8]) {
+        self.packet.extend_from_slice(buf).unwrap();
+    }
+}
+
+impl Default for RadioBuffer {
+    fn default() -> Self {
+        Self { packet: Vec::new() }
+    }
+}
+
+impl AsMut<[u8]> for RadioBuffer {
+    fn as_mut(&mut self) -> &mut [u8] {
+        self.packet.as_mut()
+    }
+}
+
+impl AsRef<[u8]> for RadioBuffer {
+    fn as_ref(&self) -> &[u8] {
+        self.packet.as_ref()
+    }
+}
+
 impl<SPI, CS, RESET, E> PhyRxTx for Sx127xRadio<SPI, CS, RESET, E>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
 {
+    type PhyBuf = RadioBuffer;
     type PhyEvent = RadioPhyEvent;
     type PhyError = ();
     type PhyResponse = ();
@@ -240,8 +276,8 @@ where
         self
     }
 
-    fn get_received_packet(&mut self) -> &mut Vec<u8, U256> {
-        &mut self.packet
+    fn get_received_packet(&mut self) -> &mut Self::PhyBuf {
+        &mut self.buffer
     }
 
     fn handle_event(

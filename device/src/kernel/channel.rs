@@ -6,21 +6,20 @@ use core::{
 };
 use embassy::util::{critical_section, AtomicWaker};
 use heapless::spsc::{Consumer, Producer, Queue};
-pub use heapless::{consts, ArrayLength};
 
-struct ChannelInner<T, N: ArrayLength<T>> {
+struct ChannelInner<T, const N: usize> {
     queue: UnsafeCell<Queue<T, N>>,
     sender_waker: AtomicWaker,
     receiver_waker: AtomicWaker,
 }
 
-impl<T, N: ArrayLength<T>> Default for ChannelInner<T, N> {
+impl<T, const N: usize> Default for ChannelInner<T, N> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T, N: ArrayLength<T>> ChannelInner<T, N> {
+impl<T, const N: usize> ChannelInner<T, N> {
     pub fn new() -> Self {
         Self {
             queue: UnsafeCell::new(Queue::new()),
@@ -54,17 +53,17 @@ impl<T, N: ArrayLength<T>> ChannelInner<T, N> {
     }
 }
 
-pub struct Channel<T, N: ArrayLength<T>> {
+pub struct Channel<T, const N: usize> {
     inner: ChannelInner<T, N>,
 }
 
-impl<T, N: ArrayLength<T>> Default for Channel<T, N> {
+impl<T, const N: usize> Default for Channel<T, N> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T, N: ArrayLength<T>> Channel<T, N> {
+impl<T, const N: usize> Channel<T, N> {
     pub fn new() -> Self {
         let inner = ChannelInner::new();
         Self { inner }
@@ -75,7 +74,7 @@ impl<T, N: ArrayLength<T>> Channel<T, N> {
     }
 }
 
-pub struct ChannelSender<'a, T, N: ArrayLength<T>> {
+pub struct ChannelSender<'a, T, const N: usize> {
     inner: &'a ChannelInner<T, N>,
     producer: RefCell<Producer<'a, T, N>>,
 }
@@ -86,7 +85,7 @@ pub enum ChannelError {
     ChannelEmpty,
 }
 
-impl<'a, T, N: 'a + ArrayLength<T>> ChannelSender<'a, T, N> {
+impl<'a, T, const N: usize> ChannelSender<'a, T, N> {
     fn new(producer: Producer<'a, T, N>, inner: &'a ChannelInner<T, N>) -> Self {
         Self {
             producer: RefCell::new(producer),
@@ -125,14 +124,14 @@ impl<'a, T, N: 'a + ArrayLength<T>> ChannelSender<'a, T, N> {
     }
 }
 
-pub struct ChannelSend<'m, 'a, T, N: 'a + ArrayLength<T>> {
+pub struct ChannelSend<'m, 'a, T, const N: usize> {
     sender: &'m ChannelSender<'a, T, N>,
     element: Option<T>,
 }
 
-impl<'m, 'a, T, N: ArrayLength<T>> Unpin for ChannelSend<'m, 'a, T, N> {}
+impl<'m, 'a, T, const N: usize> Unpin for ChannelSend<'m, 'a, T, N> {}
 
-impl<'m, 'a, T, N: ArrayLength<T>> Future for ChannelSend<'m, 'a, T, N> {
+impl<'m, 'a, T, const N: usize> Future for ChannelSend<'m, 'a, T, N> {
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -140,12 +139,12 @@ impl<'m, 'a, T, N: ArrayLength<T>> Future for ChannelSend<'m, 'a, T, N> {
     }
 }
 
-pub struct ChannelReceiver<'a, T, N: ArrayLength<T>> {
+pub struct ChannelReceiver<'a, T, const N: usize> {
     inner: &'a ChannelInner<T, N>,
     consumer: RefCell<Consumer<'a, T, N>>,
 }
 
-impl<'a, T, N: 'a + ArrayLength<T>> ChannelReceiver<'a, T, N> {
+impl<'a, T, const N: usize> ChannelReceiver<'a, T, N> {
     fn new(consumer: Consumer<'a, T, N>, inner: &'a ChannelInner<T, N>) -> Self {
         Self {
             consumer: RefCell::new(consumer),
@@ -180,11 +179,11 @@ impl<'a, T, N: 'a + ArrayLength<T>> ChannelReceiver<'a, T, N> {
     }
 }
 
-pub struct ChannelReceive<'m, 'a, T, N: ArrayLength<T>> {
+pub struct ChannelReceive<'m, 'a, T, const N: usize> {
     receiver: &'m ChannelReceiver<'a, T, N>,
 }
 
-impl<'m, 'a, T, N: ArrayLength<T>> Future for ChannelReceive<'m, 'a, T, N> {
+impl<'m, 'a, T, const N: usize> Future for ChannelReceive<'m, 'a, T, N> {
     type Output = T;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -192,11 +191,11 @@ impl<'m, 'a, T, N: ArrayLength<T>> Future for ChannelReceive<'m, 'a, T, N> {
     }
 }
 
-pub struct ChannelTryReceive<'m, 'a, T, N: ArrayLength<T>> {
+pub struct ChannelTryReceive<'m, 'a, T, const N: usize> {
     receiver: &'m ChannelReceiver<'a, T, N>,
 }
 
-impl<'m, 'a, T, N: ArrayLength<T>> Future for ChannelTryReceive<'m, 'a, T, N> {
+impl<'m, 'a, T, const N: usize> Future for ChannelTryReceive<'m, 'a, T, N> {
     type Output = Option<T>;
 
     fn poll(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Self::Output> {

@@ -2,6 +2,7 @@
 #![no_main]
 #![macro_use]
 #![allow(incomplete_features)]
+#![allow(dead_code)]
 #![feature(generic_associated_types)]
 #![feature(min_type_alias_impl_trait)]
 #![feature(impl_trait_in_bindings)]
@@ -15,7 +16,6 @@ use rtt_target::rtt_init_print;
 
 use drogue_device::{
     actors::button::*,
-    actors::ticker::*,
     drivers::led::*,
     drivers::lora::sx127x::*,
     stm32::{
@@ -45,7 +45,6 @@ mod app;
 mod lora;
 
 use app::*;
-use embassy::time::Duration;
 use lora::*;
 
 const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/dev_eui.txt"));
