@@ -16,7 +16,7 @@ use rtt_target::rtt_init_print;
 use drogue_device::{
     actors::button::*,
     actors::ticker::*,
-    drivers::led::gpio::*,
+    drivers::led::*,
     drivers::lora::sx127x::*,
     stm32::{
         exti::ExtiPin,
@@ -86,8 +86,7 @@ type Led2Pin = PA5<Output<PushPull>>;
 type Led3Pin = PB6<Output<PushPull>>;
 type Led4Pin = PB7<Output<PushPull>>;
 
-type MyApp =
-    App<Sx127x<'static>, GpioLed<Led4Pin>, GpioLed<Led2Pin>, GpioLed<Led3Pin>, GpioLed<Led1Pin>>;
+type MyApp = App<Sx127x<'static>, Led4Pin, Led2Pin, Led3Pin, Led1Pin>;
 
 #[derive(Device)]
 pub struct MyDevice {
@@ -131,10 +130,10 @@ async fn main(context: DeviceContext<MyDevice>) {
 
     let button = gpiob.pb2.into_pull_up_input();
 
-    let led1 = GpioLed::new(gpiob.pb5.into_push_pull_output());
-    let led2 = GpioLed::new(gpioa.pa5.into_push_pull_output());
-    let led3 = GpioLed::new(gpiob.pb6.into_push_pull_output());
-    let led4 = GpioLed::new(gpiob.pb7.into_push_pull_output());
+    let led1 = Led::new(gpiob.pb5.into_push_pull_output());
+    let led2 = Led::new(gpioa.pa5.into_push_pull_output());
+    let led3 = Led::new(gpiob.pb6.into_push_pull_output());
+    let led4 = Led::new(gpiob.pb7.into_push_pull_output());
 
     let pin = ExtiPin::new(button, irq, &mut syscfg);
 

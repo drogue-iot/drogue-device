@@ -2,12 +2,8 @@ use crate::lora::*;
 use core::fmt::Write;
 use core::future::Future;
 use core::pin::Pin;
-use drogue_device::{
-    actors::button::*,
-    traits::{led::*, lora::*},
-    *,
-};
-use embassy_stm32::system::OutputPin;
+use drogue_device::{actors::button::*, drivers::led::*, traits::lora::*, *};
+use embedded_hal::digital::v2::{OutputPin, ToggleableOutputPin};
 use heapless::String;
 
 #[derive(Clone, Copy)]
@@ -20,10 +16,10 @@ pub enum Command {
 impl<D, L1, L2, L3, L4> FromButtonEvent<Command> for App<D, L1, L2, L3, L4>
 where
     D: LoraDriver,
-    L1: Led,
-    L2: Led,
-    L3: Led,
-    L4: Led,
+    L1: OutputPin + ToggleableOutputPin + 'static,
+    L2: OutputPin + ToggleableOutputPin + 'static,
+    L3: OutputPin + ToggleableOutputPin + 'static,
+    L4: OutputPin + ToggleableOutputPin + 'static,
 {
     fn from(event: ButtonEvent) -> Option<Command> {
         match event {
@@ -43,25 +39,25 @@ where
 
 pub struct AppInitConfig<L1, L2, L3, L4>
 where
-    L1: Led,
-    L2: Led,
-    L3: Led,
-    L4: Led,
+    L1: OutputPin + ToggleableOutputPin + 'static,
+    L2: OutputPin + ToggleableOutputPin + 'static,
+    L3: OutputPin + ToggleableOutputPin + 'static,
+    L4: OutputPin + ToggleableOutputPin + 'static,
 {
     pub lora: Option<LoraConfig>,
-    pub init_led: L1,
-    pub tx_led: L2,
-    pub user_led: L3,
-    pub green_led: L4,
+    pub init_led: Led<L1>,
+    pub tx_led: Led<L2>,
+    pub user_led: Led<L3>,
+    pub green_led: Led<L4>,
 }
 
 pub struct App<D, L1, L2, L3, L4>
 where
     D: LoraDriver + 'static,
-    L1: Led,
-    L2: Led,
-    L3: Led,
-    L4: Led,
+    L1: OutputPin + ToggleableOutputPin + 'static,
+    L2: OutputPin + ToggleableOutputPin + 'static,
+    L3: OutputPin + ToggleableOutputPin + 'static,
+    L4: OutputPin + ToggleableOutputPin + 'static,
 {
     config: AppInitConfig<L1, L2, L3, L4>,
     cfg: Option<AppConfig<'static, D>>,
@@ -71,10 +67,10 @@ where
 impl<D, L1, L2, L3, L4> App<D, L1, L2, L3, L4>
 where
     D: LoraDriver,
-    L1: Led,
-    L2: Led,
-    L3: Led,
-    L4: Led,
+    L1: OutputPin + ToggleableOutputPin + 'static,
+    L2: OutputPin + ToggleableOutputPin + 'static,
+    L3: OutputPin + ToggleableOutputPin + 'static,
+    L4: OutputPin + ToggleableOutputPin + 'static,
 {
     pub fn new(config: AppInitConfig<L1, L2, L3, L4>) -> Self {
         Self {
@@ -142,20 +138,20 @@ where
 impl<D, L1, L2, L3, L4> Unpin for App<D, L1, L2, L3, L4>
 where
     D: LoraDriver,
-    L1: Led,
-    L2: Led,
-    L3: Led,
-    L4: Led,
+    L1: OutputPin + ToggleableOutputPin,
+    L2: OutputPin + ToggleableOutputPin,
+    L3: OutputPin + ToggleableOutputPin,
+    L4: OutputPin + ToggleableOutputPin,
 {
 }
 
 impl<D, L1, L2, L3, L4> Actor for App<D, L1, L2, L3, L4>
 where
     D: LoraDriver + 'static,
-    L1: Led + 'static,
-    L2: Led + 'static,
-    L3: Led + 'static,
-    L4: Led + 'static,
+    L1: OutputPin + ToggleableOutputPin + 'static,
+    L2: OutputPin + ToggleableOutputPin + 'static,
+    L3: OutputPin + ToggleableOutputPin + 'static,
+    L4: OutputPin + ToggleableOutputPin + 'static,
 {
     #[rustfmt::skip]
     type Configuration = AppConfig<'static, D>;
