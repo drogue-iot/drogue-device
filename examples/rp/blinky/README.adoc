@@ -1,0 +1,46 @@
+== RaspBerry Pi Pico blinky example 
+
+This example application runs out of the box on the Raspberry Pi Pico.
+
+=== Prerequisites
+
+==== Hardware
+
+* link:https://www.raspberrypi.org/products/raspberry-pi-pico/[RaspBerry Pi Pico]
+
+==== Software
+
+* link:https://rustup.rs/[Rust Nightly] to build the code
+* link:https://github.com/raspberrypi/pico-sdk[Pico SDK] to convert binary from ELF to UF2 format. Follow the instructions there to build the SDK.
+
+=== Building
+
+Make sure you have the correct target architecture supported in rust:
+
+....
+rustup +nightly target add thumbv6m-none-eabi
+....
+
+To build the firmware:
+
+....
+cargo +nightly build --release
+....
+
+=== Flashing
+
+Flashing the firmware uses the built-in bootloader on the pico (At present, probe-run does not support the pico).
+
+First, power up the pico while holding the `BOOTSEL` button. This should put turn the pico into a USB mass storage device that will be attached to your computer.
+
+To convert the firmware to the format expected by the SDK, run the elf2uf2 tool:
+
+....
+$PICO_SDK_PATH/build/elf2uf2/elf2uf2 target/thumbv6m-none-eabi/release/blinky blinky.uf2
+....
+
+To flash the device, copy the `blinky.uf2` to the attached mass storage device (path may vary depending on your OS):
+
+....
+cp blinky.uf2 /run/media/myuser/RPI-RP2
+....

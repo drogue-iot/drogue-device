@@ -1,6 +1,9 @@
 pub mod matrix;
 
-use crate::kernel::{actor::Actor, util::ImmediateFuture};
+use crate::{
+    actors::button::{ButtonEvent, FromButtonEvent},
+    kernel::{actor::Actor, util::ImmediateFuture},
+};
 use core::pin::Pin;
 use embedded_hal::digital::v2::OutputPin;
 
@@ -9,6 +12,18 @@ pub enum LedMessage {
     Off,
     Toggle,
     State(bool),
+}
+
+impl<P> FromButtonEvent<LedMessage> for Led<P>
+where
+    P: OutputPin,
+{
+    fn from(event: ButtonEvent) -> Option<LedMessage> {
+        Some(match event {
+            ButtonEvent::Pressed => LedMessage::On,
+            ButtonEvent::Released => LedMessage::Off,
+        })
+    }
 }
 
 pub struct Led<P>

@@ -1,0 +1,40 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+
+]
+edition = "2018"
+name = "blinky"
+version = "0.1.0"
+
+[workspace]
+
+[dependencies]
+defmt = "0.2"
+defmt-rtt = "0.2"
+panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+drogue-device = { path = "../../../device", features = ["defmt", "defmt-info", "chip+rp"], default-features = false }
+atomic-polyfill = { version = "0.1.1" }
+embedded-hal = { version = "0.2.4", features = ["unproven"] }
+
+
+embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy" }
+embassy-rp = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy-nrf" }
+rp2040-pac2 = { git = "https://github.com/Dirbaio/rp2040-pac", rev="254f4677937801155ca3cb17c7bb9d38eb62683e" }
+cortex-m-rt = "0.6"
+cortex-m = { version = "0.7", features = ["inline-asm"] }
+
+[features]
+default = [
+    "defmt-default",
+]
+defmt-default = []
+defmt-trace = [ ]
+defmt-debug = [ ]
+defmt-info = [ ]
+defmt-warn = [ ]
+defmt-error = [ ]
+
+[patch.crates-io]
+cortex-m = {git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"]}
