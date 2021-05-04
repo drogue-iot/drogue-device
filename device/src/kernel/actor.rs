@@ -9,7 +9,11 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use embassy::util::DropBomb;
 
-/// Trait that each actor must implement.
+/// Trait that each actor must implement. An Actor must specify a message type
+/// it acts on, and an implementation of a message handler in `on_message`.
+///
+/// At run time, an Actor is held within an ActorContext, which contains the
+/// embassy task and the message queues.
 pub trait Actor: Sized {
     /// The configuration that this actor will expect when mounted.
     type Configuration = ();
@@ -20,6 +24,7 @@ pub trait Actor: Sized {
         Self: 'a,
     = ();
 
+    /// The response type that this actor will return in `on_message`.
     type Response<'a>: Sized + Send
     where
         Self: 'a,
@@ -33,22 +38,26 @@ pub trait Actor: Sized {
     fn on_mount(&mut self, _: Self::Configuration) {}
 
     /// The future type returned in `on_start`, usually derived from an `async move` block
-    /// in the implementation
+    /// in the implementation.
+    ///
+    /// The default type returns the ImmediateFuture that is ready immediately.
     type OnStartFuture<'a>: Future<Output = ()>
     where
         Self: 'a,
     = ImmediateFuture;
 
-    /// Lifecycle event of *start*.
+    /// Called when an actor is started, before it can process messages
     fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_>;
 
     /// The future type returned in `on_message`, usually derived from an `async move` block
-    /// in the implementation
+    /// in the implementation. The return value of the future must be of the Response associated
+    /// type.
     type OnMessageFuture<'a>: Future<Output = Self::Response<'a>>
     where
         Self: 'a;
 
-    /// Handle an incoming message for this actor.
+    /// Handle an incoming message for this actor. The return value of the future must be of the
+    /// Response associated type.
     fn on_message<'m>(
         self: Pin<&'m mut Self>,
         message: Self::Message<'m>,
