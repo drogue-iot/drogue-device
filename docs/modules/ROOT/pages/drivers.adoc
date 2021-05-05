@@ -1,69 +1,125 @@
 == Writing drogue device drivers
 
-Drogue-device contains device drivers for different boards and sensors.
-Drivers follow a common set of patterns that makes it easier to write
-new drivers. Device drivers can be written in different ways, but the
-common approach is to implement one or more of the following:
+Drogue-device contains device drivers for different boards and sensors.  Drivers follow a common set
+of patterns that makes it easier to write new drivers. Device drivers can be written in different
+ways, but the common approach is to implement one or more of the following:
 
-* A trait that defines the API that a class of drivers implement. This may already exist, either in drogue-device or elsewhere. We encourage re-using existing traits where it makes sense. The traits are placed in `device/src/traits`.
-* A driver that implements an API, either using a HAL or hardware directly. Drivers are located in `device/src/drivers/`.
-* An actor implementation for the driver. This is useful for peripherals that require shared access by multiple parts of the system, as the actor will ensure its only serving one user at a time.  Actors are locate in `device/src/actors`.
+* A trait that defines the API that drivers implement. This may already exist, either in
+  drogue-device or elsewhere. We encourage re-using existing traits where it makes sense. The traits
+  are located in `device/src/traits`.
+* A driver that implements an API, either using a HAL or hardware directly. Drivers are located in
+  `device/src/drivers/`.
+* An actor implementation for the driver. This is useful for peripherals that require shared access
+  by multiple parts of the system, as the actor will ensure its only serving one user at a time.
+  Actors are located in `device/src/actors`.
 
-Which of the above you decide to implement depends on the driver. A Led may not need an actor, because it is usually operated only by a single component, whereas it makes sense for a network stack/driver that is used by multiple components.
+Which of the above you decide to implement depends on the driver. A Led may not need an Actor,
+because it is usually operated only by a single component, whereas it makes sense for a network
+stack/driver that is used by multiple components. The nice properties of actors is that they compose
+easily.
 
-Note that Actors do carry with them an overhead of extra code to spawn its task, holding message references etc. Therefore, it may make sense using a layered approach: A driver that can be used for the cases where you don't need the shared access, and an Actor for the cases where you need shared access.
+Actors does carry with them some overhead of extra code to spawn the actor and holding incoming
+messages in a queue. Therefore, it sometimes makes sense using a layered approach for drivers: A
+driver that can be used for the cases where you don't need the shared access, and an Actor using
+that driver where you need shared access.
 
 == Writing an async trait
 
-Drogue-device prefers async APIs, as it provides the most benefit in an async environment like drogue-device.
+Drogue-device supports both sync and async APIs, and both have their uses. Sync traits are covered
+by the Rust documentation.  Unfortunately, the support in Rust for writing async traits is limited,
+but it is possible using features from Rust nightly.
 
-Unfortunately, the support in Rust for writing async traits is limited, but it is possible using features from Rust nightly.
+An async trait can be specified by enabling a feature named generic associcated types (GAT):
 
 [source, rust]
 ----
 #![feature(generic_associated_types)]
 
-// A few dummy types
-pub struct ApiRequest;
-pub struct ApiError;
+pub trait Counter {
+    type IncrementFuture<'m>: Future<Output = u32> where Self: 'm;
+    fn increment<'m>(&'m mut self) -> Self::IncrementFuture<'m>;
 
-pub trait MyTrait {
-    type SomethingFuture<'m>: Future<Output = Result<(), ApiError>> where Self: 'm;
-
-    fn do_something<'m>(&'m mut self, request: ApiRequest) -> Self::SomethingFuture<'m>;
+    type AddFuture<'m>: Future<Output = u32> where Self: 'm;
+    fn add<'m>(&'m mut self, value: u32) -> Self::AddFuture<'m>;
 }
 ----
 
-With the above, an implementor of the API will be able to write async code with some boilerplate, and application code can rely on the trait.
+An implementor of the above trait will be able to write async code with some boilerplate, and application code can rely on the trait.
 
 == Writing an async driver
 
-A driver is an implementation of the API that embedded applications use. With the API defined in the previous section, lets take a look at what a driver would look like:
+A driver is an implementation of the trait that applications use. With the trait defined in the previous section, lets take a look at what a driver would look like:
 
 [source, rust]
 ----
 #![feature(type_alias_impl_trait)]
 #![feature(generic_associated_types)]
 
-use api::{ApiError, ApiRequest, MyTrait};
-    
-pub struct MyImpl {}
+pub struct MyCounter {
+    value: u32,
+}
 
-impl MyTrait for MyImpl {
-    type SomethingFuture<'m> = impl Future<Output = Result<(), ApiError>> + 'm;
+impl Counter for MyCounter {
+    type IncrementFuture<'m> = impl Future<Output = u32> + 'm;
+    fn increment<'m>(&'m mut self) -> Self::IncrementFuture<'m> {
+        async move {
+            self.counter += 1;
+        }
+    }
 
-    fn do_something<'m>(&'m mut self, request: ApiRequest) -> Self::SomethingFuture<'m> {
-       async move {
-             // Driver code
-             Err(ApiError)
-       }
+    type AddFuture<'m> = impl Future<Output = u32> + 'm;
+    fn add<'m>(&'m mut self, value: u32) -> Self::AddFuture<'m> {
+        async move {
+            self.counter += value;
+        }
     }
 }
 ----
 
-At the expense of needing to define the associated type and a somewhat awkward return value, the driver
-can write blocks of async code to implement the trait.
+You'll notice that we've used yet another nightly feature that allows specifying the
+`IncrementFuture` associated type using the `impl Future<...>` syntax. 
+
+At the expense of needing to define the associated type and a somewhat awkward return value, the
+driver can write blocks of async code to implement the trait.
 
 ==  Writing an Actor
 
-// TODO!
+An actor must implement the `Actor` trait, which will allow it to be mounted into the drogue device
+runtime. An actor providing an atomic counter using the above driver is shown below:
+
+[source, rust]
+----
+#![feature(type_alias_impl_trait)]
+#![feature(generic_associated_types)]
+pub struct AtomicCounter {
+    counter: MyCounter
+}
+
+pub enum CounterMessage {
+    Increment,
+    Add(u32),
+}
+
+impl Actor for AtomicCounter {
+    type Message<'m> = CounterMessage;
+    type Response<'m> = u32;
+
+    type OnStartFuture<'m> = impl Future<Output = ()> + 'm;
+    fn on_start(mut self: Pin<&mut Self>) -> Self::OnStartFuture<'_> {
+       async move {
+       }
+    }
+
+    type OnMessageFuture<'m> = impl Future<Output = u32> + 'm;
+    fn on_message<'m>(self: Pin<&'m mut Self>, message: Self::Message<'m>) -> Self::OnMessageFuture<'m> {
+        async move {
+            match message {
+                CounterMessage::Increment => self.counter.increment().await,
+                CounterMessage::Add(value) => self.counter.add(value).await,
+            }
+        }
+    }
+}
+----
+
+Although a very complex way to implement an atomic counter, it gives you an idea of how actors provide exclusive access to a resource.

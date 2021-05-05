@@ -7,8 +7,8 @@
 
 Drogue device is an open source async, no-alloc actor framework for embedded devices, based on [embassy](https://github.com/embassy-rs/embassy). 
 
-* Makes it easy to write safe, composable and connected embedded applications.
-* Built using [rust]https://www.rust-lang.org, an efficient, memory safe and thread safe programming language.
+* Built using [rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.
+* Simplifies writing safe, composable and connected embedded applications.
 * Offers built-in drivers for internet connectivity, such as WiFi and LoRaWAN.
 * All software is licensed under the Apache 2.0 open source license.
 
@@ -29,7 +29,8 @@ To do a full build of everything including examples:
 cargo xtask ci
 ~~~
 
-This might require you do install additional toolchains for the examples to build.
+This might require you do install additional toolchains for the examples to build. Recent versions
+of cargo should automatically install the toolchain from looking at the `rust-toolchain` file.
 
 ## Directory layout
 
