@@ -1,0 +1,20 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+edition = "2018"
+name = "esp8266"
+version = "0.1.0"
+
+[workspace]
+
+[dependencies]
+log = "0.4"
+env_logger = "0.8"
+drogue-device = { path = "../../../device", features = ["log", "std", "wifi+esp8266"] }
+embedded-hal = {version = "0.2.4", features = ["unproven"] }
+wifi-app = { path = "../../common/wifi" }
+nix = "0.19.1"
+async-io = "1.3.1"
+futures = { version = "0.3.8", default-features = false, features = ["async-await"] }

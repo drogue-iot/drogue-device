@@ -13,10 +13,10 @@ ESP8266 using UART.
 
 ==== Software
 
-To build and flash the example, you need to have
-link:https://rustup.rs/[Rust Nightly]. In practice
-you can use whatever tool you want to flash the device, but this guide
-will assume that `probe-run` is used (`cargo install probe-run`).
+* To build the example, you need to have link:https://rustup.rs/[Rust Nightly].
+* To flash the example on the device, you need `probe-run` installed (`cargo install probe-run`).
+* A TCP server that accepts connections and echoes input back to the client. A simple way to run it is to use link:ncat[https://nmap.org/ncat/guide/ncat-simple-services.html]: `ncat -l 12345 --keep-open --exec "/bin/cat"`
+
 
 === Configuring
 
@@ -38,19 +38,21 @@ To build the firmware:
 cargo build --release
 ....
 
-=== Flashing
+=== Running
 
-Flashing the firmware uses `probe-run` which auto-detects the probe connected to your device. 
-The following command will build and flash the firmware and open the
-debugger console so you can see the console debug output.
+First, start the TCP server in a terminal:
+
+....
+ncat -l 12345 --keep-open --exec "/bin/cat"
+....
+
+Next, we need to flash the firmware on the device. Flashing the firmware uses `probe-run` which auto-detects the probe connected to your device. The following command will build and flash the firmware and open the debugger console so you can see the console debug output:
 
 ....
 cargo +nightly run --release
 ....
 
-If you’re experiencing problems, try setting the `VID:PID` values to
-that of your probe (you can find that from lsusb once your board is
-powered).
+If you’re experiencing problems, try setting the `VID:PID` values to that of your probe (you can find that from lsusb once your board is powered).
 
 ....
 cargo +nightly run --release -- --probe <VID>:<PID>

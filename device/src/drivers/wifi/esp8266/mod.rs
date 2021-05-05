@@ -50,7 +50,7 @@ pub enum DriverError {
     OperationNotSupported,
 }
 
-type CommandBuffer = [u8; 256];
+type CommandBuffer = (usize, [u8; 256]);
 
 pub struct Initialized {
     signal: Signal<Result<(), DriverError>>,
@@ -173,7 +173,7 @@ where
 
         const READY: [u8; 7] = *b"ready\r\n";
 
-        trace!("Waiting for adapter to become ready");
+        info!("Initializing ESP8266");
 
         self.enable.set_high().ok().unwrap();
         self.reset.set_high().ok().unwrap();
@@ -194,7 +194,7 @@ where
                             self.set_recv_mode().await?;
                             trace!("Recv mode configured");
                             self.set_mode().await?;
-                            trace!("adapter configured");
+                            info!("ESP8266 initialized");
                             return Ok(());
                         }
                     }
@@ -282,8 +282,8 @@ where
                 }
             };
             // We got command to write, write it
-            if let Some(s) = cmd {
-                if let Err(e) = uart_write(&mut self.uart, &s).await {
+            if let Some((len, buf)) = cmd {
+                if let Err(e) = uart_write(&mut self.uart, &buf[0..len]).await {
                     error!("Error writing command to uart: {:?}", e);
                 }
             }
@@ -381,7 +381,7 @@ impl<'a> Esp8266Controller<'a> {
         let bs = bytes.as_bytes();
         let mut data = [0; 256];
         data[0..bs.len()].copy_from_slice(&bs[0..bs.len()]);
-        self.command_producer.send(data).await;
+        self.command_producer.send((bs.len(), data)).await;
         Ok(self.response_consumer.receive().await)
     }
 
@@ -494,7 +494,7 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
                         AtResponse::ReadyForData => {
                             let mut data = [0; 256];
                             data[0..buf.len()].copy_from_slice(&buf[0..buf.len()]);
-                            self.command_producer.send(data).await;
+                            self.command_producer.send((buf.len(), data)).await;
                             let mut data_sent: Option<usize> = None;
                             loop {
                                 match self.response_consumer.receive().await {

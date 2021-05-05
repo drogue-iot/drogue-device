@@ -16,6 +16,7 @@ rtt-logger = "0.1"
 rtt-target = { version = "0.2.0", features = ["cortex-m"] }
 
 drogue-device = { path = "../../../device", features = ["chip+nrf52833", "wifi+esp8266"], default-features = false }
+wifi-app = { path = "../../common/wifi" }
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 

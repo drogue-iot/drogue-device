@@ -1,0 +1,47 @@
+== std-esp8266 drogue-device example
+
+This example application runs out of the box on a PC with a ESP8266 breakout module flashed with AT firmware attached using a USB-to-Serial cable.
+
+=== Prerequisites
+
+==== Hardware
+
+* USB to Serial cable
+* ESP8266 module with AT-command firmware version 1.7.x or newer.
+
+==== Software
+
+* To build the example, you need to have link:https://rustup.rs/[Rust Nightly].
+* A TCP server that accepts connections and echoes input back to the client. A simple way to run it is to use link:ncat[https://nmap.org/ncat/guide/ncat-simple-services.html]: `ncat -l 12345 --keep-open --exec "/bin/cat"`
+
+=== Configuring
+
+To use this example, you need to edit the HOST and PORT constants in `src/main.rs`. You
+also need to store your WiFi access point ssid in `config/wifi.ssid.txt` and pre-shared key in
+`config/wifi.password.txt`.
+
+=== Building
+
+....
+cargo build --release
+....
+
+=== Running
+
+First, start the TCP server in a terminal:
+
+....
+ncat -l 12345 --keep-open --exec "/bin/cat"
+....
+
+Next, make sure the USB-to-Serial cable is attached, and run the application in a separate terminal:
+
+....
+cargo run
+....
+
+
+The application will wait until the ESP8266 is reset, some breakout modules provide a reset button, others require you to power the ESP8266 separately from the serial cable in order to proberly reset.
+
+Once reset, the application will connect to the WiFi access point and the echo server and send a PING message every 10 seconds.
+I

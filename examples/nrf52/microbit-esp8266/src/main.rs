@@ -8,9 +8,7 @@
 #![feature(type_alias_impl_trait)]
 #![feature(concat_idents)]
 
-mod app;
-
-use app::*;
+use wifi_app::*;
 
 use log::LevelFilter;
 use panic_probe as _;

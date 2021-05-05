@@ -1,3 +1,12 @@
+#![no_std]
+#![macro_use]
+#![allow(incomplete_features)]
+#![feature(generic_associated_types)]
+#![feature(min_type_alias_impl_trait)]
+#![feature(impl_trait_in_bindings)]
+#![feature(type_alias_impl_trait)]
+#![feature(concat_idents)]
+
 use core::future::Future;
 use core::pin::Pin;
 use core::str::FromStr;
@@ -99,27 +108,30 @@ impl<D: WifiSupplicant + TcpStack> Actor for App<D> {
         async move {
             match message {
                 Command::Send => {
-                    log::info!("Sending data..");
+                    log::info!("Pinging server..");
 
                     let mut driver = self.driver.take().expect("driver not bound!");
                     let socket = self.socket.take().expect("socket not bound!");
-                    let result = driver.write(socket, b"{\"temp\": 24.3}\r\n").await;
+                    let result = driver.write(socket, b"PING").await;
                     match result {
                         Ok(_) => {
-                            log::info!("Data sent");
+                            log::debug!("Data sent");
                             let mut rx_buf = [0; 8];
                             loop {
                                 let result = driver.read(socket, &mut rx_buf[..]).await;
                                 match result {
-                                    Ok(len) if &rx_buf[0..len] == b"OK\r\n" => {
-                                        log::info!("Measurement confirmed");
+                                    Ok(len) if &rx_buf[0..len] == b"PING" => {
+                                        log::info!("Ping response received");
                                         break;
                                     }
-                                    Ok(len) if &rx_buf[0..len] == b"ERROR\r\n" => {
-                                        log::info!("Error reporting measurement");
+                                    Ok(len) => {
+                                        log::warn!(
+                                            "Unexpected response of {} bytes: {:?}",
+                                            len,
+                                            &rx_buf[0..len]
+                                        );
                                         break;
                                     }
-                                    Ok(_) => {}
                                     Err(e) => {
                                         log::warn!("Error reading response: {:?}", e);
                                         break;
@@ -128,7 +140,7 @@ impl<D: WifiSupplicant + TcpStack> Actor for App<D> {
                             }
                         }
                         Err(e) => {
-                            log::warn!("Error sending measurement: {:?}", e);
+                            log::warn!("Error pinging server: {:?}", e);
                         }
                     }
                     self.driver.replace(driver);
