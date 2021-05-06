@@ -1,8 +1,0 @@
-target
-Cargo.lock
-.idea
-/.cargo
-logs
-.DS_Store
-log
-examples/**/config/
