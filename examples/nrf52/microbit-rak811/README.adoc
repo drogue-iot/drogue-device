@@ -1,0 +1,61 @@
+== microbit-rak811 drogue-device example
+
+This example application runs out of the box on the BBC micro:bit v2.0.
+It relies on a RAK811 breakout module flashed with AT firmware. The micro:bit communicates with the
+RAK811 using UART.
+
+=== Prerequisites
+
+==== Hardware
+
+* BBC micro:bit v2.0
+* RAK811 module with AT-command firmware version 2.x (3.x not yet supported by driver)
+
+==== Software
+
+To build and flash the example, you need to have
+link:https://rustup.rs/[Rust Nightly]. In practice
+you can use whatever tool you want to flash the device, but this guide
+will assume that `probe-run` is used (`cargo install probe-run`).
+
+=== Configuring
+
+To use this example, you need to create the files `config/dev_eui.txt`, `config/app_eui.txt`, and
+`config/app_key.txt` to configure the device EUI, application EUI, and application key for OTAA
+configuration of your device.
+
+=== Building
+
+Make sure you have the correct target architecture supported in rust:
+
+....
+rustup target add thumbv7em-none-eabihf
+....
+
+To build the firmware:
+
+....
+cargo build --release
+....
+
+=== Flashing
+
+Flashing the firmware uses `probe-run` which auto-detects the probe connected to your device. 
+The following command will build and flash the firmware and open the
+debugger console so you can see the console debug output.
+
+....
+cargo +nightly run --release
+....
+
+If you’re experiencing problems, try setting the `VID:PID` values to
+that of your probe (you can find that from lsusb once your board is
+powered).
+
+....
+cargo +nightly run --release -- --probe <VID>:<PID>
+....
+
+=== Usage
+
+Once the device is flashed, it will connect to the local LoRaWAN network. Once the network is joined, you can press the 'A' button on the micro:bit to send a test message `ping`.

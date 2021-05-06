@@ -417,8 +417,8 @@ impl<'a> Esp8266Controller<'a> {
         Err(())
     }
 
-    async fn process_notifications(&mut self) {
-        while let Some(response) = self.notification_consumer.try_receive().await {
+    fn process_notifications(&mut self) {
+        while let Ok(response) = self.notification_consumer.try_receive() {
             match response {
                 AtResponse::DataAvailable { .. } => {
                     //  shared.socket_pool // [link_id].available += len;
@@ -479,7 +479,7 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
     type WriteFuture<'m> where 'a: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
     fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
         async move {
-            self.process_notifications().await;
+            self.process_notifications();
             if self.socket_pool.is_closed(handle) {
                 return Err(TcpError::SocketClosed);
             }
@@ -536,7 +536,7 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
             let mut rp = 0;
             loop {
                 let result = async {
-                    self.process_notifications().await;
+                    self.process_notifications();
                     if self.socket_pool.is_closed(handle) {
                         return Err(TcpError::SocketClosed);
                     }

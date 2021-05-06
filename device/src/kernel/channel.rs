@@ -152,15 +152,6 @@ impl<'a, T, const N: usize> ChannelReceiver<'a, T, N> {
         }
     }
 
-    fn poll_try_dequeue(&self) -> Poll<Option<T>> {
-        if let Some(value) = self.consumer.borrow_mut().dequeue() {
-            self.inner.wake_sender();
-            Poll::Ready(Some(value))
-        } else {
-            Poll::Ready(None)
-        }
-    }
-
     fn poll_dequeue(&self, cx: &mut Context<'_>) -> Poll<T> {
         if let Some(value) = self.consumer.borrow_mut().dequeue() {
             self.inner.wake_sender();
@@ -174,8 +165,15 @@ impl<'a, T, const N: usize> ChannelReceiver<'a, T, N> {
     pub fn receive<'m>(&'m self) -> ChannelReceive<'m, 'a, T, N> {
         ChannelReceive { receiver: &self }
     }
-    pub fn try_receive<'m>(&'m self) -> ChannelTryReceive<'m, 'a, T, N> {
-        ChannelTryReceive { receiver: &self }
+    pub fn try_receive(&self) -> Result<T, ChannelError> {
+        critical_section(|_| {
+            let mut consumer = self.consumer.borrow_mut();
+            if let Some(value) = consumer.dequeue() {
+                Ok(value)
+            } else {
+                Err(ChannelError::ChannelEmpty)
+            }
+        })
     }
 }
 
@@ -188,17 +186,5 @@ impl<'m, 'a, T, const N: usize> Future for ChannelReceive<'m, 'a, T, N> {
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         self.receiver.poll_dequeue(cx)
-    }
-}
-
-pub struct ChannelTryReceive<'m, 'a, T, const N: usize> {
-    receiver: &'m ChannelReceiver<'a, T, N>,
-}
-
-impl<'m, 'a, T, const N: usize> Future for ChannelTryReceive<'m, 'a, T, N> {
-    type Output = Option<T>;
-
-    fn poll(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Self::Output> {
-        self.receiver.poll_try_dequeue()
     }
 }
