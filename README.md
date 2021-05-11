@@ -30,7 +30,13 @@ cargo xtask ci
 ~~~
 
 This might require you do install additional toolchains for the examples to build. Recent versions
-of cargo should automatically install the toolchain from looking at the `rust-toolchain` file.
+of cargo should automatically install the toolchain from looking at the `rust-toolchain.toml` file.
+
+To update dependencies, run:
+
+~~~shell
+cargo xtask update
+~~~
 
 ## Directory layout
 

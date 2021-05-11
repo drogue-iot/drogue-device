@@ -11,6 +11,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     match &args[..] {
         ["ci"] => test_ci(),
+        ["update"] => update(),
         _ => {
             println!("USAGE cargo xtask [ci]");
             Ok(())
@@ -18,12 +19,22 @@ fn main() -> Result<(), anyhow::Error> {
     }
 }
 
+fn update() -> Result<(), anyhow::Error> {
+    let _p = xshell::pushd(root_dir())?;
+    cmd!("cargo update").run()?;
+    let mut examples_dir = root_dir();
+    examples_dir.push("examples");
+    do_examples(examples_dir, &update_example)?;
+    Ok(())
+}
+
+
 fn test_ci() -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("CI", "true");
     test_workspace()?;
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
-    test_examples(examples_dir)?;
+    do_examples(examples_dir, &test_example)?;
     Ok(())
 }
 
@@ -33,18 +44,18 @@ fn test_workspace() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn test_examples(current_dir: PathBuf) -> Result<(), anyhow::Error> {
+fn do_examples<F: Fn(PathBuf) -> Result<(), anyhow::Error>>(current_dir: PathBuf, f: &F) -> Result<(), anyhow::Error> {
     for entry in fs::read_dir(current_dir)? {
         let entry = entry?;
         let path = entry.path();
 
         if path.ends_with("Cargo.toml") {
-            test_example(path.clone())?;
+            f(path.clone())?;
         }
 
         let file_type = entry.file_type()?;
         if file_type.is_dir() {
-            test_examples(path)?;
+            do_examples(path, f)?;
         }
     }
 
@@ -55,6 +66,13 @@ fn test_example(project_file: PathBuf) -> Result<(), anyhow::Error> {
     println!("Building example {}", project_file.to_str().unwrap_or(""));
     let _p = xshell::pushd(project_file.parent().unwrap())?;
     cmd!("cargo build --release").run()?;
+    Ok(())
+}
+
+fn update_example(project_file: PathBuf) -> Result<(), anyhow::Error> {
+    println!("Updating example {}", project_file.to_str().unwrap_or(""));
+    let _p = xshell::pushd(project_file.parent().unwrap())?;
+    cmd!("cargo update").run()?;
     Ok(())
 }
 
