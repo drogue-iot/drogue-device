@@ -4,7 +4,7 @@ use core::{
     pin::Pin,
     task::{Context, Poll, Waker},
 };
-use embassy::util::{critical_section, AtomicWaker};
+use embassy::util::AtomicWaker;
 use heapless::spsc::{Consumer, Producer, Queue};
 
 struct ChannelInner<T, const N: usize> {
@@ -107,7 +107,7 @@ impl<'a, T, const N: usize> ChannelSender<'a, T, N> {
     }
 
     pub fn try_send(&self, value: T) -> Result<(), ChannelError> {
-        critical_section(|_| {
+        critical_section::with(|_| {
             let mut producer = self.producer.borrow_mut();
             producer
                 .enqueue(value)
@@ -166,7 +166,7 @@ impl<'a, T, const N: usize> ChannelReceiver<'a, T, N> {
         ChannelReceive { receiver: &self }
     }
     pub fn try_receive(&self) -> Result<T, ChannelError> {
-        critical_section(|_| {
+        critical_section::with(|_| {
             let mut consumer = self.consumer.borrow_mut();
             if let Some(value) = consumer.dequeue() {
                 Ok(value)

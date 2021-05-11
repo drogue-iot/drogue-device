@@ -34,6 +34,7 @@ heapless = "0.7"
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 atomic-polyfill = "0.1"
 generic-array = "0.14"
+critical-section = { git = "https://github.com/lulf/critical-section", branch = "main" }
 
 # Logging alternatives
 log = { version = "0.4", optional = true }
@@ -47,7 +48,7 @@ env_logger = "0.8"
 
 [features]
 default = [ "log", "std" ]
-std = ["embassy/std", "embassy-std"]
+std = ["embassy/std", "embassy-std", "critical-section/std" ]
 "chip+rp" = [ "embassy-rp", "embassy-rp/defmt" ]
 "chip+nrf52833" = ["embassy-nrf", "embassy-nrf/52833"]
 "chip+stm32l0x2" = ["embassy-stm32", "embassy-stm32/stm32l0x2" ]
