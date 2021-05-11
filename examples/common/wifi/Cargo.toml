@@ -13,3 +13,6 @@ version = "0.1.0"
 drogue-device = { path = "../../../device", features = ["wifi"], default-features = false }
 log = "0.4"
 heapless = "0.7"
+
+[patch.crates-io]
+cortex-m = {git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"]}
