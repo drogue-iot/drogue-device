@@ -151,9 +151,7 @@ where
             match self.rx.grant_max_remaining(BUFFER_SIZE) {
                 Ok(mut grant) => {
                     let buf = grant.buf();
-                    log::info!("AWaiting read (sz {})", buf.len());
                     if let Ok(n) = self.uart.read_until_idle(buf).await {
-                        log::info!("Read {} bytes", n);
                         grant.commit(n);
                         self.rx_waker.wake();
                     } else {
