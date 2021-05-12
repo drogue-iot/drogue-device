@@ -1,17 +1,15 @@
-use crate::kernel::channel::*;
+use crate::fmt::*;
 use bbqueue::*;
 use core::{
     pin::Pin,
     task::{Context, Poll},
 };
-use embassy::interrupt::{Interrupt, InterruptExt};
 use embassy::io::{AsyncBufRead, AsyncWrite, Result};
+use embassy::traits::uart::{ReadUntilIdle, Write};
 use embassy::util::{AtomicWaker, Unborrow};
-use embassy_extras::peripheral::*;
-use embedded_hal::serial::*;
-use nb;
 
-const BUFFER_SIZE: usize = 2048;
+// TODO: Use typenum
+const BUFFER_SIZE: usize = 255;
 type BufSize = consts::U2048;
 
 pub struct Serial {
@@ -32,16 +30,9 @@ impl Serial {
         }
     }
 
-    pub fn initialize<'a, W, R, IRQ>(
-        &'a mut self,
-        w: W,
-        r: R,
-        irq: IRQ,
-    ) -> Result<(SerialApi<'a>, PeripheralMutex<SerialDriver<'a, W, R, IRQ>>)>
+    pub fn initialize<'a, U>(&'a mut self, uart: U) -> Result<(SerialApi<'a>, SerialDriver<'a, U>)>
     where
-        R: Read<u8>,
-        W: Write<u8>,
-        IRQ: Interrupt,
+        U: Write + ReadUntilIdle,
     {
         let (tx_prod, tx_cons) = self.tx.try_split().map_err(|_| embassy::io::Error::Other)?;
         let (rx_prod, rx_cons) = self.rx.try_split().map_err(|_| embassy::io::Error::Other)?;
@@ -56,9 +47,7 @@ impl Serial {
         };
 
         let driver = SerialDriver {
-            w,
-            r,
-            _irq: core::marker::PhantomData,
+            uart,
 
             tx: tx_cons,
             tx_waker: &self.tx_waker,
@@ -67,7 +56,7 @@ impl Serial {
             rx_waker: &self.rx_waker,
         };
 
-        Ok((api, PeripheralMutex::new(driver, irq)))
+        Ok((api, driver))
     }
 }
 
@@ -126,16 +115,11 @@ impl<'a> AsyncWrite for SerialApi<'a> {
     }
 }
 
-pub struct SerialDriver<'a, W, R, IRQ>
+pub struct SerialDriver<'a, U>
 where
-    W: Write<u8>,
-    R: Read<u8>,
-    IRQ: Interrupt,
+    U: Write + ReadUntilIdle,
 {
-    w: W,
-    r: R,
-
-    _irq: core::marker::PhantomData<IRQ>,
+    uart: U,
 
     tx: Consumer<'a, BufSize>,
     tx_waker: &'a AtomicWaker,
@@ -144,57 +128,41 @@ where
     rx_waker: &'a AtomicWaker,
 }
 
-impl<'a, W, R, IRQ> PeripheralState for SerialDriver<'a, W, R, IRQ>
+impl<'a, U> SerialDriver<'a, U>
 where
-    W: Write<u8>,
-    R: Read<u8>,
-    IRQ: Interrupt,
+    U: Write + ReadUntilIdle,
 {
-    type Interrupt = IRQ;
+    pub async fn run(&mut self) {
+        info!("Running driver");
+        loop {
+            // Write all buffered data
+            match self.tx.read() {
+                Ok(grant) => {
+                    let buf = grant.buf();
+                    self.uart.write(buf).await;
+                    self.tx_waker.wake();
+                }
+                _ => {
+                    // Nothing to write
+                }
+            }
 
-    fn on_interrupt(&mut self) {
-        // Read as much data as we can
-        match self.rx.grant_max_remaining(BUFFER_SIZE) {
-            Ok(mut grant) => {
-                let buf = grant.buf();
-                let mut i = 0;
-                while i < buf.len() {
-                    match self.r.read() {
-                        Ok(b) => {
-                            buf[i] = b;
-                            i += 1;
-                        }
-                        Err(_) => {
-                            break;
-                        }
+            // Read as much data as we can
+            match self.rx.grant_max_remaining(BUFFER_SIZE) {
+                Ok(mut grant) => {
+                    let buf = grant.buf();
+                    log::info!("AWaiting read (sz {})", buf.len());
+                    if let Ok(n) = self.uart.read_until_idle(buf).await {
+                        log::info!("Read {} bytes", n);
+                        grant.commit(n);
+                        self.rx_waker.wake();
+                    } else {
+                        grant.commit(0);
                     }
                 }
-                grant.commit(i);
-            }
-            _ => {
-                // Skipping
-            }
-        }
-
-        // Write all buffered data
-        match self.tx.read() {
-            Ok(grant) => {
-                let buf = grant.buf();
-                for b in buf.iter() {
-                    loop {
-                        match self.w.write(*b) {
-                            Err(nb::Error::WouldBlock) => {
-                                let _ = nb::block!(self.w.flush());
-                            }
-                            Err(_) => return,
-                            _ => break,
-                        }
-                    }
+                _ => {
+                    // Skipping
                 }
-                let _ = nb::block!(self.w.flush());
-            }
-            _ => {
-                // Nothing to write
             }
         }
     }

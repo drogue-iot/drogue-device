@@ -20,14 +20,12 @@ use crate::{
         wifi::{Join, JoinError, WifiSupplicant},
     },
 };
+use atomic_polyfill::{AtomicBool, Ordering};
 use buffer::Buffer;
-use core::{
-    future::Future,
-    pin::Pin,
-    sync::atomic::{AtomicBool, Ordering},
-};
+use core::{future::Future, pin::Pin};
 use embassy::{
     io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt},
+    time::{Duration, Timer},
     util::Signal,
 };
 use embedded_hal::digital::v2::OutputPin;
@@ -187,6 +185,7 @@ where
                         buffer[pos] = rx_buf[0];
                         pos += 1;
                         if pos >= READY.len() && buffer[pos - READY.len()..pos] == READY {
+                            trace!("Ready! Setting parameters");
                             self.disable_echo().await?;
                             trace!("Echo disabled");
                             self.enable_mux().await?;
@@ -267,6 +266,7 @@ where
     /// Run the processing loop until an error is encountered
     pub async fn run(&mut self) -> ! {
         // Result<(), DriverError> where Self: 'a {
+        Timer::after(Duration::from_secs(2)).await;
         let result = self.initialize().await;
         self.initialized.signal(result);
         loop {

@@ -44,7 +44,7 @@ embedded-hal = { version = "0.2.4", features = ["unproven"] }
 atomic-polyfill = "0.1"
 generic-array = "0.14"
 critical-section = { git = "https://github.com/lulf/critical-section", branch = "main" }
-bbqueue = "0.4"
+bbqueue = { version = "0.4", features = ["thumbv6"] }
 nb = "1.0.0"
 
 # Logging alternatives
@@ -52,7 +52,7 @@ log = { version = "0.4", optional = true }
 defmt = { version = "0.2", optional = true }
 
 [dev-dependencies]
-# embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false }
+#embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false }
 embassy-std = {default-features = false, path = "../../../embassy/embassy-std" }
 futures = { version = "0.3", default-features = false, features = ["executor"] }
 arrayvec = { version = "0.7" }
