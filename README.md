@@ -14,6 +14,17 @@ Drogue device is an open source async, no-alloc actor framework for embedded dev
 
 See [the book](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and running some examples.
 
+## Examples
+
+An overview of the examples can be found in [the book](https://book.drogue.io/drogue-device/dev/examples.html) or going to the [examples folder](https://github.com/drogue-iot/drogue-device/tree/main/examples) in this repository.
+
+Drogue device runs on any platform supported by embassy, which at the time of writing includes:
+
+* nRF52
+* STM32
+* Raspberry Pi Pico
+* Unix or Windows
+
 ## Building
 
 To build drogue-device, you must install the [nightly rust toolchain](https://rustup.rs/). Once
