@@ -44,6 +44,8 @@ embedded-hal = { version = "0.2.4", features = ["unproven"] }
 atomic-polyfill = "0.1"
 generic-array = "0.14"
 critical-section = { git = "https://github.com/lulf/critical-section", branch = "main" }
+bbqueue = "0.4"
+nb = "1.0.0"
 
 # Logging alternatives
 log = { version = "0.4", optional = true }
