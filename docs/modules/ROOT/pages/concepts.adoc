@@ -45,10 +45,12 @@ Each Actor in the system defines the configuration it expects to get handed in i
 
 === Bootstrap & Mounting
 
-A top-level `Device` struct maintain members for each actor. The `derive(Device)` type attribute can be used to derive an implementation of `Device` for a particular application.
+A top-level `Device` struct maintain members for each actor.
 
 The application entry point is specified using a function marked with `#[drogue::main]`, and it will be passed a `DeviceContext` that can be used to configure and mount the device.
 
+When mounting a device, an `ActorSpawner` is passed in the closure, which can be used to mount all actors and packages.
+
 === Packages
 
-In some cases, it may be desirable to have two or more actors involve in a single semantic component or package. Similar to the `Device` trait, the `Package` trait may be derived for any struct in order to bootstrap the actors within it.
+In some cases, it may be desirable to have two or more actors involve in a single semantic component or package. The `Package` trait may be implemented for any type.

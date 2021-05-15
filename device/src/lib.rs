@@ -64,7 +64,6 @@
 //!     }
 //! }
 //!
-//! #[derive(Device)]
 //! pub struct MyDevice {
 //!     a: ActorContext<'static, MyActor>,
 //! }
@@ -74,8 +73,8 @@
 //!     context.configure(MyDevice {
 //!         a: ActorContext::new(MyActor::new("a")),
 //!     });
-//!     let a_addr = context.mount(|device, supervisor| {
-//!         device.a.mount((), supervisor)
+//!     let a_addr = context.mount(|device, spawner| {
+//!         device.a.mount((), spawner)
 //!     });
 //!     a_addr.request(SayHello("World")).await;
 //! }
