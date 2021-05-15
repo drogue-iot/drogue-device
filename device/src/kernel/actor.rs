@@ -69,7 +69,7 @@ pub trait Actor: Sized {
 ///
 /// Individual actor implementations may augment the `Address` object
 /// when appropriate bounds are met to provide method-like invocations.
-pub struct Address<'a, A: Actor + 'a> {
+pub struct Address<'a, A: Actor + 'static> {
     state: &'a ActorContext<'a, A>,
 }
 
@@ -184,7 +184,7 @@ impl ActorSpawner {
     }
 }
 
-enum ActorState<'a, A: Actor + 'a, const N: usize> {
+enum ActorState<'a, A: Actor + 'static, const N: usize> {
     Idle,
     Start(A::OnStartFuture<'a>),
     Process,
@@ -193,11 +193,11 @@ enum ActorState<'a, A: Actor + 'a, const N: usize> {
     Notify(A::OnMessageFuture<'a>),
 }
 
-pub struct ActorFuture<'a, A: Actor + 'a> {
+pub struct ActorFuture<'a, A: Actor + 'static> {
     context: &'a ActorContext<'a, A>,
 }
 
-impl<'a, A: Actor + 'a> Future for ActorFuture<'a, A> {
+impl<'a, A: Actor + 'static> Future for ActorFuture<'a, A> {
     type Output = ();
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         self.context.poll(cx)
@@ -208,9 +208,9 @@ impl<'a, A: Actor + 'a> Future for ActorFuture<'a, A> {
 /// is a const generic parameter, and needs to be at least 2 in order for the underlying
 /// heapless queue to work. (Due to missing const generic expressions)
 #[rustfmt::skip]
-pub struct ActorContext<'a, A: Actor + 'a, const QLEN: usize= 2>
+pub struct ActorContext<'a, A: Actor + 'static, const QLEN: usize= 2>
 {
-    task: Task<ActorFuture<'a, A>>,
+    task: Task<ActorFuture<'static, A>>,
     state: Cell<ActorState<'a, A, QLEN>>,
     actor: UnsafeCell<A>,
     channel: MessageChannel<'a, ActorMessage<'a, A>, QLEN>,
@@ -395,7 +395,7 @@ impl<'a, A: Actor> ActorContext<'a, A> {
         }
     }
 }
-pub struct RequestFuture<'a, A: Actor + 'a> {
+pub struct RequestFuture<'a, A: Actor + 'static> {
     signal: SignalFuture<'a, A::Response<'a>>,
     bomb: Option<DropBomb>,
 }

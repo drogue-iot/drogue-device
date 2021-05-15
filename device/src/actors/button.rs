@@ -21,7 +21,7 @@ pub enum ButtonEvent {
 pub struct Button<
     'a,
     P: WaitForAnyEdge + InputPin + 'a,
-    A: Actor + FromButtonEvent<A::Message<'a>> + 'a,
+    A: Actor + FromButtonEvent<A::Message<'a>> + 'static,
 > {
     pin: P,
     handler: Option<Address<'a, A>>,

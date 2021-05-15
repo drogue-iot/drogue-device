@@ -6,11 +6,11 @@ use core::future::Future;
 use core::pin::Pin;
 use embassy::time;
 
-pub struct Timer<'a, A: Actor + 'a> {
+pub struct Timer<'a, A: Actor + 'static> {
     _marker: core::marker::PhantomData<&'a A>,
 }
 
-pub enum TimerMessage<'m, A: Actor + 'm> {
+pub enum TimerMessage<'m, A: Actor + 'static> {
     Delay(time::Duration),
     Schedule(time::Duration, Address<'m, A>, Option<A::Message<'m>>),
 }

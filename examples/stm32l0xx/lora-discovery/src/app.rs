@@ -31,7 +31,7 @@ where
 
 pub struct AppConfig<'a, D>
 where
-    D: LoraDriver + 'a,
+    D: LoraDriver + 'static,
 {
     // lora actor
     pub lora: Address<'a, LoraActor<D>>,
