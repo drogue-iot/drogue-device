@@ -7,57 +7,7 @@ use darling::FromMeta;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::spanned::Spanned;
-use syn::{self, Data, DataStruct, Fields};
-
-fn is_context(field: &syn::Field) -> bool {
-    if let syn::Type::Path(p) = &field.ty {
-        for s in p.path.segments.iter() {
-            if s.ident == "ActorContext" || s.ident == "PackageContext" {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-#[proc_macro_derive(Package)]
-pub fn package_macro_derive(input: TokenStream) -> TokenStream {
-    let input: syn::DeriveInput = syn::parse(input).unwrap();
-    let name = &input.ident;
-
-    let fields = match &input.data {
-        Data::Struct(DataStruct {
-            fields: Fields::Named(fields),
-            ..
-        }) => &fields.named,
-        _ => panic!("expected a struct with named fields"),
-    };
-    let field_name = fields
-        .iter()
-        .filter(|field| is_context(field))
-        .map(|field| &field.ident);
-    let field_type = fields
-        .iter()
-        .filter(|field| is_context(field))
-        .map(|field| &field.ty);
-
-    let gen = quote! {
-        impl Package for #name {
-            fn start(&'static self, spawner: ::drogue_device::reexport::embassy::executor::Spawner) -> ImmediateFuture {
-                #(
-                    #[::drogue_device::reexport::embassy::task(embassy_prefix = "::drogue_device::reexport::")]
-                    async fn #field_name(spawner: ::drogue_device::reexport::embassy::executor::Spawner, runner: &'static #field_type) {
-                        runner.start(spawner).await
-                    }
-
-                    spawner.spawn(#field_name(spawner, &self.#field_name)).unwrap();
-                )*
-                ImmediateFuture{}
-            }
-        }
-    };
-    gen.into()
-}
+use syn::{self};
 
 #[derive(Debug, FromMeta)]
 struct MainArgs {
