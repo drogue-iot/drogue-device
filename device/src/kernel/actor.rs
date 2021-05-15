@@ -3,10 +3,11 @@ use super::{
     signal::{SignalFuture, SignalSlot},
     util::ImmediateFuture,
 };
-use core::cell::UnsafeCell;
+use core::cell::{Cell, UnsafeCell};
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
+use embassy::executor::{raw::Task, SpawnToken, Spawner};
 use embassy::util::DropBomb;
 
 /// Trait that each actor must implement. An Actor must specify a message type
@@ -68,7 +69,7 @@ pub trait Actor: Sized {
 ///
 /// Individual actor implementations may augment the `Address` object
 /// when appropriate bounds are met to provide method-like invocations.
-pub struct Address<'a, A: Actor> {
+pub struct Address<'a, A: Actor + 'a> {
     state: &'a ActorContext<'a, A>,
 }
 
@@ -162,13 +163,46 @@ pub enum SignalError {
     NoAvailableSignal,
 }
 
+pub trait Supervisor {
+    fn spawn<F>(&self, token: SpawnToken<F>);
+}
+
+impl Supervisor for Spawner {
+    fn spawn<F>(&self, token: SpawnToken<F>) {
+        // TODO: Handle error
+        self.spawn(token).unwrap();
+    }
+}
+
+enum ActorState<'a, A: Actor + 'a, const N: usize> {
+    Idle,
+    Start(A::OnStartFuture<'a>),
+    Process,
+    Receive(ChannelReceive<'a, 'a, ActorMessage<'a, A>, N>),
+    Request(A::OnMessageFuture<'a>, *const SignalSlot<A::Response<'a>>),
+    Notify(A::OnMessageFuture<'a>),
+}
+
+struct ActorFuture<'a, A: Actor + 'a> {
+    context: &'a ActorContext<'a, A>,
+}
+
+impl<'a, A: Actor + 'a> Future for ActorFuture<'a, A> {
+    type Output = ();
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.context.poll(cx)
+    }
+}
+
 /// A context for an actor, providing signal and message queue. The QLEN parameter
 /// is a const generic parameter, and needs to be at least 2 in order for the underlying
 /// heapless queue to work. (Due to missing const generic expressions)
 #[rustfmt::skip]
-pub struct ActorContext<'a, A: Actor, const QLEN: usize= 2>
+pub struct ActorContext<'a, A: Actor + 'a, const QLEN: usize= 2>
 {
-    pub actor: UnsafeCell<A>,
+    task: Task<ActorFuture<'a, A>>,
+    state: Cell<ActorState<'a, A, QLEN>>,
+    actor: UnsafeCell<A>,
     channel: MessageChannel<'a, ActorMessage<'a, A>, QLEN>,
     // NOTE: This wastes an extra signal because
     signals: UnsafeCell<[SignalSlot<A::Response<'a>>; QLEN]>,
@@ -177,6 +211,8 @@ pub struct ActorContext<'a, A: Actor, const QLEN: usize= 2>
 impl<'a, A: Actor> ActorContext<'a, A> {
     pub fn new(actor: A) -> Self {
         Self {
+            task: Task::new(),
+            state: Cell::new(ActorState::Idle),
             actor: UnsafeCell::new(actor),
             channel: MessageChannel::new(),
             signals: UnsafeCell::new(Default::default()),
@@ -262,10 +298,87 @@ impl<'a, A: Actor> ActorContext<'a, A> {
     }
 
     /// Mount the underloying actor and initialize the channel.
-    pub fn mount(&'a self, config: A::Configuration) -> Address<'a, A> {
+    pub fn mount<S: Supervisor>(
+        &'a self,
+        config: A::Configuration,
+        supervisor: &S,
+    ) -> Address<'a, A> {
         unsafe { &mut *self.actor.get() }.on_mount(config);
         self.channel.initialize();
+
+        let task = &self.task;
+        let future = ActorFuture { context: self };
+        let token = Task::spawn(task, move || future);
+        supervisor.spawn(token);
         Address::new(self)
+    }
+
+    // Poll this actor to make progress
+    pub(crate) fn poll(&'a self, cx: &mut Context<'_>) -> Poll<()> {
+        loop {
+            match self.state.replace(ActorState::Idle) {
+                ActorState::Idle => {
+                    let fut = unsafe { Pin::new_unchecked(&mut *self.actor.get()) }.on_start();
+                    self.state.set(ActorState::Start(fut));
+                }
+                ActorState::Start(mut fut) => {
+                    let r = unsafe { Pin::new_unchecked(&mut fut) }.poll(cx);
+                    if r.is_pending() {
+                        self.state.set(ActorState::Start(fut));
+                        return Poll::Pending;
+                    } else {
+                        self.state.set(ActorState::Process);
+                    }
+                }
+                ActorState::Process => {
+                    let fut = self.channel.receive();
+                    self.state.set(ActorState::Receive(fut));
+                }
+                ActorState::Receive(mut fut) => {
+                    let r = unsafe { Pin::new_unchecked(&mut fut) }.poll(cx);
+                    match r {
+                        Poll::Pending => {
+                            self.state.set(ActorState::Receive(fut));
+                            return Poll::Pending;
+                        }
+                        Poll::Ready(message) => match message {
+                            ActorMessage::Request(message, signal) => {
+                                let fut = unsafe { Pin::new_unchecked(&mut *self.actor.get()) }
+                                    .on_message(message);
+                                self.state.set(ActorState::Request(fut, signal));
+                            }
+                            ActorMessage::Notify(message) => {
+                                let fut = unsafe { Pin::new_unchecked(&mut *self.actor.get()) }
+                                    .on_message(message);
+                                self.state.set(ActorState::Notify(fut));
+                            }
+                        },
+                    }
+                }
+                ActorState::Request(mut fut, signal) => {
+                    let r = unsafe { Pin::new_unchecked(&mut fut) }.poll(cx);
+                    match r {
+                        Poll::Pending => {
+                            self.state.set(ActorState::Request(fut, signal));
+                            return Poll::Pending;
+                        }
+                        Poll::Ready(value) => {
+                            unsafe { &*signal }.signal(value);
+                            self.state.set(ActorState::Process);
+                        }
+                    }
+                }
+                ActorState::Notify(mut fut) => {
+                    let r = unsafe { Pin::new_unchecked(&mut fut) }.poll(cx);
+                    if r.is_pending() {
+                        self.state.set(ActorState::Notify(fut));
+                        return Poll::Pending;
+                    } else {
+                        self.state.set(ActorState::Process);
+                    }
+                }
+            }
+        }
     }
 }
 pub struct RequestFuture<'a, A: Actor + 'a> {
@@ -319,11 +432,18 @@ mod tests {
     use super::*;
     use crate::testutil::*;
 
+    struct TestSupervisor {}
+
+    impl Supervisor for TestSupervisor {
+        fn spawn<F>(&self, token: SpawnToken<F>) {}
+    }
+
     #[test]
     fn test_multiple_notifications() {
+        let supervisor = TestSupervisor {};
         let actor = Box::leak(Box::new(ActorContext::new(DummyActor::new())));
 
-        let address = actor.mount(());
+        let address = actor.mount((), &supervisor);
 
         let result_1 = address.notify(TestMessage(0));
         let result_2 = address.notify(TestMessage(1));
@@ -338,9 +458,10 @@ mod tests {
 
     #[test]
     fn test_multiple_requests() {
+        let supervisor = TestSupervisor {};
         let actor = Box::leak(Box::new(ActorContext::new(DummyActor::new())));
 
-        let address = actor.mount(());
+        let address = actor.mount((), &supervisor);
 
         let result_fut_1 = address.request(TestMessage(0));
         let result_fut_2 = address.request(TestMessage(1));
