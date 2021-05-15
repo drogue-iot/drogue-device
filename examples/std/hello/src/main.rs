@@ -6,77 +6,20 @@
 #![feature(type_alias_impl_trait)]
 #![feature(concat_idents)]
 
-use core::future::Future;
-use core::pin::Pin;
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::sync::atomic::AtomicU32;
 use drogue_device::*;
 
-pub struct MyActor {
-    name: &'static str,
-    counter: Option<&'static AtomicU32>,
-}
+mod myactor;
+mod mypack;
 
-impl MyActor {
-    pub fn new(name: &'static str) -> Self {
-        Self {
-            name,
-            counter: None,
-        }
-    }
-}
-
-impl Actor for MyActor {
-    type Configuration = &'static AtomicU32;
-    type Message<'a> = SayHello<'a>;
-    type OnStartFuture<'a> = impl Future<Output = ()> + 'a;
-    type OnMessageFuture<'a> = impl Future<Output = ()> + 'a;
-
-    fn on_mount(&mut self, config: Self::Configuration) {
-        self.counter.replace(config);
-    }
-
-    fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-        async move { log::info!("[{}] started!", self.name) }
-    }
-
-    fn on_message<'m>(
-        self: Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
-        async move {
-            let count = self.counter.unwrap().fetch_add(1, Ordering::SeqCst);
-            log::info!("[{}] hello {}: {}", self.name, message.0, count);
-        }
-    }
-}
-
-pub struct SayHello<'m>(&'m str);
+use myactor::*;
+use mypack::*;
 
 pub struct MyDevice {
     counter: AtomicU32,
     a: ActorContext<'static, MyActor>,
     b: ActorContext<'static, MyActor>,
     p: MyPack,
-}
-
-// A package is a way to wrap a package of actors and shared state together
-// the actor in this package will use a different state than the others.
-pub struct MyPack {
-    counter: AtomicU32,
-    c: ActorContext<'static, MyActor>,
-}
-
-// The Package trait by e implemented to initialize a package
-impl Package for MyPack {
-    type Primary = MyActor;
-    type Configuration = ();
-    fn mount(
-        &'static self,
-        _: Self::Configuration,
-        spawner: &ActorSpawner,
-    ) -> Address<Self::Primary> {
-        self.c.mount(&self.counter, spawner)
-    }
 }
 
 #[drogue::main]
@@ -90,10 +33,7 @@ async fn main(context: DeviceContext<MyDevice>) {
         counter: AtomicU32::new(0),
         a: ActorContext::new(MyActor::new("a")),
         b: ActorContext::new(MyActor::new("b")),
-        p: MyPack {
-            counter: AtomicU32::new(0),
-            c: ActorContext::new(MyActor::new("c")),
-        },
+        p: MyPack::new(),
     });
 
     let (a_addr, b_addr, c_addr) = context.mount(|device, spawner| {
