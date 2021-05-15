@@ -20,45 +20,6 @@ fn is_context(field: &syn::Field) -> bool {
     return false;
 }
 
-#[proc_macro_derive(Device)]
-pub fn device_macro_derive(input: TokenStream) -> TokenStream {
-    let input: syn::DeriveInput = syn::parse(input).unwrap();
-    let name = &input.ident;
-
-    let fields = match &input.data {
-        Data::Struct(DataStruct {
-            fields: Fields::Named(fields),
-            ..
-        }) => &fields.named,
-        _ => panic!("expected a struct with named fields"),
-    };
-
-    let field_name = fields
-        .iter()
-        .filter(|field| is_context(field))
-        .map(|field| &field.ident);
-    let field_type = fields
-        .iter()
-        .filter(|field| is_context(field))
-        .map(|field| &field.ty);
-
-    let gen = quote! {
-        impl Device for #name {
-            fn start(&'static self, spawner: ::drogue_device::reexport::embassy::executor::Spawner) {
-                #(
-                    #[::drogue_device::reexport::embassy::task(embassy_prefix = "::drogue_device::reexport::")]
-                    async fn #field_name(spawner: ::drogue_device::reexport::embassy::executor::Spawner, runner: &'static #field_type) {
-                        runner.start(spawner).await
-                    }
-
-                    spawner.spawn(#field_name(spawner, &self.#field_name)).unwrap();
-                )*
-            }
-        }
-    };
-    gen.into()
-}
-
 #[proc_macro_derive(Package)]
 pub fn package_macro_derive(input: TokenStream) -> TokenStream {
     let input: syn::DeriveInput = syn::parse(input).unwrap();

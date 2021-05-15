@@ -36,7 +36,6 @@ use panic_probe as _;
 
 type LedMatrix = LEDMatrix<Output<'static, AnyPin>, 5, 5>;
 
-#[derive(Device)]
 pub struct MyDevice {
     button: ActorContext<'static, Button<'static, PortInput<'static, P0_14>, Statistics>>,
     statistics: ActorContext<'static, Statistics>,
@@ -91,11 +90,11 @@ async fn main(context: DeviceContext<MyDevice>) {
         matrix: ActorContext::new(led),
     });
 
-    context.mount(|device| {
-        let matrix = device.matrix.mount(());
-        let statistics = device.statistics.mount(());
-        device.server.mount((matrix, statistics));
-        device.button.mount(statistics);
-        device.ticker.mount(matrix);
+    context.mount(|device, spawner| {
+        let matrix = device.matrix.mount((), spawner);
+        let statistics = device.statistics.mount((), spawner);
+        device.server.mount((matrix, statistics), spawner);
+        device.button.mount(statistics, spawner);
+        device.ticker.mount(matrix, spawner);
     });
 }

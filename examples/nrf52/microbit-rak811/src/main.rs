@@ -42,7 +42,6 @@ static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
 type UART = BufferedUarte<'static, UARTE0, TIMER0>;
 type RESET = Output<'static, P1_02>;
 
-#[derive(Device)]
 pub struct MyDevice {
     driver: UnsafeCell<Rak811Driver>,
     modem: ActorContext<'static, Rak811ModemActor<'static, UART, RESET>>,
@@ -105,10 +104,10 @@ async fn main(context: DeviceContext<MyDevice>) {
         button: ActorContext::new(Button::new(button_port)),
     });
 
-    context.mount(|device| {
+    context.mount(|device, spawner| {
         let (controller, modem) = unsafe { &mut *device.driver.get() }.initialize(u, reset_pin);
-        device.modem.mount(modem);
-        let app = device.app.mount(controller);
-        device.button.mount(app);
+        device.modem.mount(modem, spawner);
+        let app = device.app.mount(controller, spawner);
+        device.button.mount(app, spawner);
     });
 }

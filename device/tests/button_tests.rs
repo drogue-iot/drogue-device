@@ -9,7 +9,6 @@
 mod tests {
     use drogue_device::{actors::button::*, testutil::*, *};
 
-    #[derive(Device)]
     struct TestDevicePressed {
         handler: ActorContext<'static, TestHandler>,
         button: ActorContext<'static, Button<'static, TestPin, TestHandler>>,
@@ -25,9 +24,9 @@ mod tests {
             button: ActorContext::new(Button::new(pin)),
         });
 
-        context.mount(|device| {
-            let handler_addr = device.handler.mount(());
-            device.button.mount(handler_addr);
+        context.mount(|device, spawner| {
+            let handler_addr = device.handler.mount((), spawner);
+            device.button.mount(handler_addr, spawner);
         });
 
         assert!(notified.message().is_none());
@@ -36,7 +35,6 @@ mod tests {
         assert_eq!(0, notified.message().unwrap().0);
     }
 
-    #[derive(Device)]
     struct TestDeviceReleased {
         handler: ActorContext<'static, TestHandler>,
         button: ActorContext<'static, Button<'static, TestPin, TestHandler>>,
@@ -52,9 +50,9 @@ mod tests {
             button: ActorContext::new(Button::new(pin)),
         });
 
-        context.mount(|device| {
-            let handler_addr = device.handler.mount(());
-            device.button.mount(handler_addr);
+        context.mount(|device, spawner| {
+            let handler_addr = device.handler.mount((), spawner);
+            device.button.mount(handler_addr, spawner);
         });
 
         assert!(notified.message().is_none());
