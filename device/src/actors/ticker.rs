@@ -3,7 +3,7 @@ use core::future::Future;
 use core::pin::Pin;
 use embassy::time::{Duration, Timer};
 
-pub struct Ticker<'a, A: Actor + 'a>
+pub struct Ticker<'a, A: Actor + 'static>
 where
     A::Message<'a>: Copy,
 {
