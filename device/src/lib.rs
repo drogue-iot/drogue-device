@@ -89,7 +89,7 @@ pub use kernel::{
     actor::{Actor, ActorContext, ActorSpawner, Address},
     channel::Channel,
     device::DeviceContext,
-    package::{Package, PackageConfig, PackageContext},
+    package::Package,
     util::ImmediateFuture,
 };
 
@@ -100,7 +100,7 @@ pub mod traits;
 pub mod drivers;
 
 #[doc(hidden)]
-pub use drogue_device_macros::{self as drogue, log_stack, Package};
+pub use drogue_device_macros::{self as drogue, log_stack};
 pub use embassy::*;
 
 #[cfg(feature = "chip+nrf52833")]

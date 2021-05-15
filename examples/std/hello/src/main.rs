@@ -56,20 +56,27 @@ pub struct MyDevice {
     counter: AtomicU32,
     a: ActorContext<'static, MyActor>,
     b: ActorContext<'static, MyActor>,
-    p: PackageContext<MyPack>,
+    p: MyPack,
 }
 
 // A package is a way to wrap a package of actors and shared state together
 // the actor in this package will use a different state than the others.
-#[derive(Package)]
 pub struct MyPack {
     counter: AtomicU32,
     c: ActorContext<'static, MyActor>,
 }
 
-// The PackageConfig trait must be implemented to specify the primary actor for a package.
-impl PackageConfig for MyPack {
+// The Package trait by e implemented to initialize a package
+impl Package for MyPack {
     type Primary = MyActor;
+    type Configuration = ();
+    fn mount(
+        &'static self,
+        _: Self::Configuration,
+        spawner: &ActorSpawner,
+    ) -> Address<Self::Primary> {
+        self.c.mount(&self.counter, spawner)
+    }
 }
 
 #[drogue::main]
@@ -83,16 +90,16 @@ async fn main(context: DeviceContext<MyDevice>) {
         counter: AtomicU32::new(0),
         a: ActorContext::new(MyActor::new("a")),
         b: ActorContext::new(MyActor::new("b")),
-        p: PackageContext::new(MyPack {
+        p: MyPack {
             counter: AtomicU32::new(0),
             c: ActorContext::new(MyActor::new("c")),
-        }),
+        },
     });
 
     let (a_addr, b_addr, c_addr) = context.mount(|device, spawner| {
         let a_addr = device.a.mount(&device.counter, spawner);
         let b_addr = device.b.mount(&device.counter, spawner);
-        let c_addr = device.p.mount(|p| p.c.mount(&p.counter, spawner));
+        let c_addr = device.p.mount((), spawner);
         (a_addr, b_addr, c_addr)
     });
 
