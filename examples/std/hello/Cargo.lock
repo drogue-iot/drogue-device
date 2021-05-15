@@ -92,8 +92,9 @@ dependencies = [
 
 [[package]]
 name = "critical-section"
-version = "0.2.0"
-source = "git+https://github.com/lulf/critical-section?branch=main#b962b51246713f870d5bab5f8ad6f70f8179baf6"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84c1ce814a497d4fbc869a34a0da005fbd712d7034e4a48ee91e7f3c795a8b17"
 dependencies = [
  "bare-metal 1.0.0",
  "cfg-if",
@@ -164,7 +165,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue#27908cd1d5d3a09991aabb836af70a46d226da91"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue#cd4111736c0384b1ef957df7f6aa51e3727c29b2"
 dependencies = [
  "atomic-polyfill",
  "cast",
@@ -179,7 +180,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue#27908cd1d5d3a09991aabb836af70a46d226da91"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue#cd4111736c0384b1ef957df7f6aa51e3727c29b2"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -190,7 +191,7 @@ dependencies = [
 [[package]]
 name = "embassy-std"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue#27908cd1d5d3a09991aabb836af70a46d226da91"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue#cd4111736c0384b1ef957df7f6aa51e3727c29b2"
 dependencies = [
  "embassy",
  "embassy-macros",
@@ -200,7 +201,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue#27908cd1d5d3a09991aabb836af70a46d226da91"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue#cd4111736c0384b1ef957df7f6aa51e3727c29b2"
 dependencies = [
  "embedded-hal",
 ]
