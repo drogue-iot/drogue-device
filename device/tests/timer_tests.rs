@@ -10,7 +10,6 @@ mod tests {
     extern crate std;
     use drogue_device::{actors::timer::*, testutil::*, *};
 
-    #[derive(Device)]
     struct ScheduleDevice {
         handler: ActorContext<'static, TestHandler>,
         timer: ActorContext<'static, Timer<'static, TestHandler>>,
@@ -24,9 +23,9 @@ mod tests {
             timer: ActorContext::new(Timer::new()),
         });
 
-        let (timer_addr, handler_addr) = context.mount(|device| {
-            let handler_addr = device.handler.mount(());
-            (device.timer.mount(()), handler_addr)
+        let (timer_addr, handler_addr) = context.mount(|device, spawner| {
+            let handler_addr = device.handler.mount((), spawner);
+            (device.timer.mount((), spawner), handler_addr)
         });
 
         let before = time::Instant::now();
@@ -43,7 +42,6 @@ mod tests {
         assert_eq!(1, notified.message().unwrap().0);
     }
 
-    #[derive(Device)]
     struct DelayDevice {
         timer: ActorContext<'static, Timer<'static, TestHandler>>,
     }
@@ -54,7 +52,7 @@ mod tests {
             timer: ActorContext::new(Timer::new()),
         });
 
-        let timer = context.mount(|device| device.timer.mount(()));
+        let timer = context.mount(|device, spawner| device.timer.mount((), spawner));
 
         let before = time::Instant::now();
         timer

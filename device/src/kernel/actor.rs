@@ -163,14 +163,24 @@ pub enum SignalError {
     NoAvailableSignal,
 }
 
-pub trait Supervisor {
-    fn spawn<F>(&self, token: SpawnToken<F>);
+pub struct ActorSpawner {
+    spawner: Option<Spawner>,
 }
 
-impl Supervisor for Spawner {
-    fn spawn<F>(&self, token: SpawnToken<F>) {
-        // TODO: Handle error
-        self.spawn(token).unwrap();
+impl ActorSpawner {
+    pub fn idle() -> Self {
+        Self { spawner: None }
+    }
+    pub fn new(spawner: Spawner) -> Self {
+        Self {
+            spawner: Some(spawner),
+        }
+    }
+
+    pub fn spawn<A: Actor + 'static>(&self, actor: &'static ActorContext<'static, A>) {
+        if let Some(spawner) = &self.spawner {
+            spawner.spawn(actor.spawn()).unwrap();
+        }
     }
 }
 
@@ -183,7 +193,7 @@ enum ActorState<'a, A: Actor + 'a, const N: usize> {
     Notify(A::OnMessageFuture<'a>),
 }
 
-struct ActorFuture<'a, A: Actor + 'a> {
+pub struct ActorFuture<'a, A: Actor + 'a> {
     context: &'a ActorContext<'a, A>,
 }
 
@@ -298,19 +308,23 @@ impl<'a, A: Actor> ActorContext<'a, A> {
     }
 
     /// Mount the underloying actor and initialize the channel.
-    pub fn mount<S: Supervisor>(
-        &'a self,
+    pub fn mount(
+        &'static self,
         config: A::Configuration,
-        supervisor: &S,
+        spawner: &ActorSpawner,
     ) -> Address<'a, A> {
         unsafe { &mut *self.actor.get() }.on_mount(config);
         self.channel.initialize();
 
+        spawner.spawn(self);
+        Address::new(self)
+    }
+
+    pub(crate) fn spawn(&'static self) -> SpawnToken<ActorFuture<'static, A>> {
         let task = &self.task;
         let future = ActorFuture { context: self };
         let token = Task::spawn(task, move || future);
-        supervisor.spawn(token);
-        Address::new(self)
+        token
     }
 
     // Poll this actor to make progress
@@ -432,18 +446,12 @@ mod tests {
     use super::*;
     use crate::testutil::*;
 
-    struct TestSupervisor {}
-
-    impl Supervisor for TestSupervisor {
-        fn spawn<F>(&self, token: SpawnToken<F>) {}
-    }
-
     #[test]
     fn test_multiple_notifications() {
-        let supervisor = TestSupervisor {};
+        let spawner = ActorSpawner::idle();
         let actor = Box::leak(Box::new(ActorContext::new(DummyActor::new())));
 
-        let address = actor.mount((), &supervisor);
+        let address = actor.mount((), &spawner);
 
         let result_1 = address.notify(TestMessage(0));
         let result_2 = address.notify(TestMessage(1));
@@ -458,10 +466,10 @@ mod tests {
 
     #[test]
     fn test_multiple_requests() {
-        let supervisor = TestSupervisor {};
+        let spawner = ActorSpawner::idle();
         let actor = Box::leak(Box::new(ActorContext::new(DummyActor::new())));
 
-        let address = actor.mount((), &supervisor);
+        let address = actor.mount((), &spawner);
 
         let result_fut_1 = address.request(TestMessage(0));
         let result_fut_2 = address.request(TestMessage(1));

@@ -1,8 +1,6 @@
-extern crate embedded_hal;
 use crate::actors::button::{ButtonEvent, FromButtonEvent};
 use crate::kernel::{
-    actor::{Actor, ActorContext},
-    device::Device,
+    actor::{Actor, ActorContext, ActorSpawner},
     device::DeviceContext,
     util::ImmediateFuture,
 };
@@ -26,12 +24,12 @@ use std::time::Instant as StdInstant;
 use std::vec::Vec;
 
 /// A test context that can execute test for a given device
-pub struct TestContext<D: Device + 'static> {
+pub struct TestContext<D: 'static> {
     runner: &'static TestRunner,
     device: DeviceContext<D>,
 }
 
-impl<D: Device> TestContext<D> {
+impl<D> TestContext<D> {
     pub fn new(runner: &'static TestRunner, device: DeviceContext<D>) -> Self {
         Self { runner, device }
     }
@@ -52,12 +50,12 @@ impl<D: Device> TestContext<D> {
     }
 
     /// Mount the device, running the provided callback function.
-    pub fn mount<F: FnOnce(&'static D) -> R, R>(&mut self, f: F) -> R {
+    pub fn mount<F: FnOnce(&'static D, &ActorSpawner) -> R, R>(&mut self, f: F) -> R {
         self.device.mount(f)
     }
 }
 
-impl<D: Device> Drop for TestContext<D> {
+impl<D> Drop for TestContext<D> {
     fn drop(&mut self) {
         self.runner.done()
     }

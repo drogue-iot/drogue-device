@@ -10,7 +10,6 @@ mod tests {
     extern crate std;
     use drogue_device::{actors::ticker::*, testutil::*, time::Duration, *};
 
-    #[derive(Device)]
     struct TickerDevice {
         handler: ActorContext<'static, TestHandler>,
         ticker: ActorContext<'static, Ticker<'static, TestHandler>>,
@@ -24,9 +23,9 @@ mod tests {
             ticker: ActorContext::new(Ticker::new(Duration::from_secs(1), TestMessage(1))),
         });
 
-        context.mount(|device| {
-            let handler_addr = device.handler.mount(());
-            (device.ticker.mount(handler_addr), handler_addr)
+        context.mount(|device, spawner| {
+            let handler_addr = device.handler.mount((), spawner);
+            (device.ticker.mount(handler_addr, spawner), handler_addr)
         });
 
         notified.wait_signaled().await;

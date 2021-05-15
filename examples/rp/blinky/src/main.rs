@@ -21,7 +21,6 @@ use drogue_device::{
 
 use panic_probe as _;
 
-#[derive(Device)]
 pub struct MyDevice {
     led: ActorContext<'static, Led<Output<'static, PIN_25>>>,
 }
@@ -34,7 +33,7 @@ async fn main(context: DeviceContext<MyDevice>) {
         led: ActorContext::new(Led::new(Output::new(p.PIN_25, Level::Low))),
     });
 
-    let led = context.mount(|device| device.led.mount(()));
+    let led = context.mount(|device, spawner| device.led.mount((), spawner));
 
     loop {
         cortex_m::asm::delay(1_000_000);

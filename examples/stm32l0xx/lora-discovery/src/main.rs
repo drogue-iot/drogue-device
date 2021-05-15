@@ -87,7 +87,6 @@ type Led4Pin = PB7<Output<PushPull>>;
 
 type MyApp = App<Sx127x<'static>, Led4Pin, Led2Pin, Led3Pin, Led1Pin>;
 
-#[derive(Device)]
 pub struct MyDevice {
     lora: ActorContext<'static, LoraActor<Sx127x<'static>>>,
     button: ActorContext<'static, Button<'static, ExtiPin<PB2<Input<PullUp>>>, MyApp>>,
@@ -186,9 +185,9 @@ async fn main(context: DeviceContext<MyDevice>) {
     print_size::<Led1Pin>("Led1Pin");
     */
 
-    context.mount(|device| {
-        let lora = device.lora.mount(());
-        let app = device.app.mount(AppConfig { lora });
-        device.button.mount(app);
+    context.mount(|device, spawner| {
+        let lora = device.lora.mount((), spawner);
+        let app = device.app.mount(AppConfig { lora }, spawner);
+        device.button.mount(app, spawner);
     });
 }

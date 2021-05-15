@@ -1,9 +1,6 @@
+use super::actor::ActorSpawner;
 use core::cell::Cell;
 use embassy::{executor::Spawner, util::Forever};
-
-pub trait Device {
-    fn start(&'static self, spawner: Spawner);
-}
 
 #[derive(Clone, Copy)]
 enum State {
@@ -12,16 +9,16 @@ enum State {
     Mounted,
 }
 
-pub struct DeviceContext<D: Device + 'static> {
+pub struct DeviceContext<D: 'static> {
     holder: &'static Forever<D>,
-    spawner: Spawner,
+    supervisor: ActorSpawner,
     state: Cell<State>,
 }
 
-impl<D: Device + 'static> DeviceContext<D> {
+impl<D: 'static> DeviceContext<D> {
     pub fn new(spawner: Spawner, holder: &'static Forever<D>) -> Self {
         Self {
-            spawner,
+            supervisor: ActorSpawner::new(spawner),
             holder,
             state: Cell::new(State::New),
         }
@@ -39,13 +36,12 @@ impl<D: Device + 'static> DeviceContext<D> {
         }
     }
 
-    pub fn mount<F: FnOnce(&'static D) -> R, R>(&self, f: F) -> R {
+    pub fn mount<F: FnOnce(&'static D, &ActorSpawner) -> R, R>(&self, f: F) -> R {
         match self.state.get() {
             State::Configured => {
                 let device = unsafe { self.holder.steal() };
-                let r = f(device);
+                let r = f(device, &self.supervisor);
 
-                device.start(self.spawner);
                 self.state.set(State::Mounted);
                 r
             }
@@ -59,7 +55,7 @@ impl<D: Device + 'static> DeviceContext<D> {
     }
 }
 
-impl<D: Device + 'static> Drop for DeviceContext<D> {
+impl<D: 'static> Drop for DeviceContext<D> {
     fn drop(&mut self) {
         match self.state.get() {
             State::Configured => {

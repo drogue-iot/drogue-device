@@ -26,7 +26,6 @@ type UART = FromStdIo<BufReader<Async<SerialPort>>>;
 type ENABLE = DummyPin;
 type RESET = DummyPin;
 
-#[derive(Device)]
 pub struct MyDevice {
     driver: UnsafeCell<Esp8266Driver>,
     modem: ActorContext<'static, Esp8266ModemActor<'static, UART, ENABLE, RESET>>,
@@ -57,11 +56,11 @@ async fn main(context: DeviceContext<MyDevice>) {
         )),
     });
 
-    let app = context.mount(|device| {
+    let app = context.mount(|device, spawner| {
         let (controller, modem) =
             unsafe { &mut *device.driver.get() }.initialize(port, DummyPin {}, DummyPin {});
-        device.modem.mount(modem);
-        device.app.mount(controller)
+        device.modem.mount(modem, spawner);
+        device.app.mount(controller, spawner)
     });
 
     loop {

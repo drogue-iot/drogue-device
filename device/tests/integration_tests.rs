@@ -39,7 +39,6 @@ mod tests {
             }
         }
 
-        #[derive(Device)]
         struct MyDevice {
             a: ActorContext<'static, MyActor>,
         }
@@ -52,7 +51,7 @@ mod tests {
                 }),
             });
 
-            let a_addr = context.mount(|device| device.a.mount(()));
+            let a_addr = context.mount(|device, spawner| device.a.mount((), spawner));
 
             a_addr.request(Add(10)).unwrap().await;
         }

@@ -42,7 +42,6 @@ type UART = BufferedUarte<'static, UARTE0, TIMER0>;
 type ENABLE = Output<'static, P0_03>;
 type RESET = Output<'static, P0_02>;
 
-#[derive(Device)]
 pub struct MyDevice {
     driver: UnsafeCell<Esp8266Driver>,
     modem: ActorContext<'static, Esp8266ModemActor<'static, UART, ENABLE, RESET>>,
@@ -106,11 +105,11 @@ async fn main(context: DeviceContext<MyDevice>) {
         button: ActorContext::new(Button::new(button_port)),
     });
 
-    context.mount(|device| {
+    context.mount(|device, spawner| {
         let (controller, modem) =
             unsafe { &mut *device.driver.get() }.initialize(u, enable_pin, reset_pin);
-        device.modem.mount(modem);
-        let app = device.app.mount(controller);
-        device.button.mount(app);
+        device.modem.mount(modem, spawner);
+        let app = device.app.mount(controller, spawner);
+        device.button.mount(app, spawner);
     });
 }

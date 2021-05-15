@@ -74,8 +74,8 @@
 //!     context.configure(MyDevice {
 //!         a: ActorContext::new(MyActor::new("a")),
 //!     });
-//!     let a_addr = context.mount(|device| {
-//!         device.a.mount(())
+//!     let a_addr = context.mount(|device, supervisor| {
+//!         device.a.mount((), supervisor)
 //!     });
 //!     a_addr.request(SayHello("World")).await;
 //! }
@@ -86,9 +86,9 @@ pub(crate) mod fmt;
 
 pub mod kernel;
 pub use kernel::{
-    actor::{Actor, ActorContext, Address},
+    actor::{Actor, ActorContext, ActorSpawner, Address},
     channel::Channel,
-    device::{Device, DeviceContext},
+    device::DeviceContext,
     package::{Package, PackageConfig, PackageContext},
     util::ImmediateFuture,
 };
@@ -100,7 +100,7 @@ pub mod traits;
 pub mod drivers;
 
 #[doc(hidden)]
-pub use drogue_device_macros::{self as drogue, log_stack, Device, Package};
+pub use drogue_device_macros::{self as drogue, log_stack, Package};
 pub use embassy::*;
 
 #[cfg(feature = "chip+nrf52833")]

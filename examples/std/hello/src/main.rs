@@ -52,7 +52,6 @@ impl Actor for MyActor {
 
 pub struct SayHello<'m>(&'m str);
 
-#[derive(Device)]
 pub struct MyDevice {
     counter: AtomicU32,
     a: ActorContext<'static, MyActor>,
@@ -90,10 +89,10 @@ async fn main(context: DeviceContext<MyDevice>) {
         }),
     });
 
-    let (a_addr, b_addr, c_addr) = context.mount(|device| {
-        let a_addr = device.a.mount(&device.counter);
-        let b_addr = device.b.mount(&device.counter);
-        let c_addr = device.p.mount(|p| p.c.mount(&p.counter));
+    let (a_addr, b_addr, c_addr) = context.mount(|device, spawner| {
+        let a_addr = device.a.mount(&device.counter, spawner);
+        let b_addr = device.b.mount(&device.counter, spawner);
+        let c_addr = device.p.mount(|p| p.c.mount(&p.counter, spawner));
         (a_addr, b_addr, c_addr)
     });
 
