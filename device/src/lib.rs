@@ -105,11 +105,20 @@ pub use embassy::*;
 #[cfg(feature = "chip+nrf52833")]
 pub use embassy_nrf as nrf;
 
+#[cfg(feature = "chip+nrf")]
+pub use embassy_nrf::Peripherals;
+
 #[cfg(feature = "chip+rp")]
 pub use embassy_rp as rp;
 
-#[cfg(feature = "chip+stm32l0x2")]
+#[cfg(feature = "chip+rp")]
+pub use embassy_rip::Peripherals;
+
+#[cfg(feature = "chip+stm32")]
 pub use embassy_stm32 as stm32;
+
+#[cfg(feature = "chip+stm32")]
+pub use embassy_stm32::Peripherals;
 
 #[doc(hidden)]
 pub mod reexport {

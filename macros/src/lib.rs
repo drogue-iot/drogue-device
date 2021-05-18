@@ -49,12 +49,12 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
 
     let args = task_fn.sig.inputs.clone();
 
-    if args.len() != 1 {
+    if args.len() != 2 {
         task_fn
             .sig
             .span()
             .unwrap()
-            .error("main function must have one argument")
+            .error("main function must take two arguments")
             .emit();
         fail = true;
     }
@@ -108,9 +108,9 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
             #result
 
             #[::drogue_device::reexport::embassy::main(embassy_prefix = "::drogue_device::reexport::", config = #config)]
-            async fn main(spawner: ::drogue_device::reexport::embassy::executor::Spawner) {
+            async fn main(spawner: ::drogue_device::reexport::embassy::executor::Spawner, peripherals: ::drogue_device::Peripherals) {
                 let context = DeviceContext::new(spawner, &DEVICE);
-                spawner.spawn(__drogue_main(context)).unwrap();
+                spawner.spawn(__drogue_main(context, peripherals)).unwrap();
             }
         };
     } else {
@@ -118,9 +118,9 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
             #result
 
             #[::drogue_device::reexport::embassy::main(embassy_prefix = "::drogue_device::reexport::")]
-            async fn main(spawner: ::drogue_device::reexport::embassy::executor::Spawner) {
+            async fn main(spawner: ::drogue_device::reexport::embassy::executor::Spawner, peripherals: ::drogue_device::Peripherals) {
                 let context = DeviceContext::new(spawner, &DEVICE);
-                spawner.spawn(__drogue_main(context)).unwrap();
+                spawner.spawn(__drogue_main(context, peripherals)).unwrap();
             }
         };
     }
