@@ -55,8 +55,8 @@ env_logger = "0.8"
 
 [features]
 default = [ "log", "std" ]
-std = ["embassy/std", "embassy-std" ]
-"chip+rp" = [ "embassy-rp", "embassy-rp/defmt", "chip+nrf" ]
+std = ["embassy/std", "embassy-std", "drogue-device-macros/std" ]
+"chip+rp" = [ "embassy-rp", "embassy-rp/defmt" ]
 "chip+nrf52833" = ["embassy-nrf", "embassy-nrf/nrf52833", "chip+nrf"]
 "chip+stm32l0x2" = ["embassy-stm32", "embassy-stm32/stm32l072cz", "chip+stm32" ]
 "lora+sx127x" = ["lorawan-device", "lorawan-encoding", "bit_field", "log"]
