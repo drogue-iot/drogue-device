@@ -21,7 +21,7 @@ Actors make it convenient to write stateful concurrent systems using message pas
 Actors in drogue-device are *async*, which means that they process messages using async-await support in Rust. This does not mean you have to write async code, but you will have the option to do so. The [async book](https://rust-lang.github.io/async-book/) is a great way to learn more about async Rust.
 
 
-## Examples
+## Example application
 
 An overview of the examples can be found in [the book](https://book.drogue.io/drogue-device/dev/examples.html) or going to the [examples folder](https://github.com/drogue-iot/drogue-device/tree/main/examples) in this repository.
 
@@ -32,7 +32,7 @@ Drogue device runs on any platform supported by embassy, which at the time of wr
 * Raspberry Pi Pico
 * Unix or Windows
 
-### Example application
+### Example Actor
 
 Following is a simple drogue-device application with a single Actor implementing concurrent access to a counter.
 
