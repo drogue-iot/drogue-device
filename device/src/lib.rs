@@ -112,7 +112,7 @@ pub use embassy_nrf::Peripherals;
 pub use embassy_rp as rp;
 
 #[cfg(feature = "chip+rp")]
-pub use embassy_rip::Peripherals;
+pub use embassy_rp::Peripherals;
 
 #[cfg(feature = "chip+stm32")]
 pub use embassy_stm32 as stm32;

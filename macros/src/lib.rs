@@ -49,14 +49,28 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
 
     let args = task_fn.sig.inputs.clone();
 
-    if args.len() != 2 {
-        task_fn
-            .sig
-            .span()
-            .unwrap()
-            .error("main function must take two arguments")
-            .emit();
-        fail = true;
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "std")] {
+            if args.len() != 1 {
+                task_fn
+                    .sig
+                    .span()
+                    .unwrap()
+                    .error("main function must take one argument")
+                    .emit();
+                fail = true;
+            }
+        } else {
+            if args.len() != 2 {
+                task_fn
+                    .sig
+                    .span()
+                    .unwrap()
+                    .error("main function must take two arguments")
+                    .emit();
+                fail = true;
+            }
+        }
     }
 
     let mut device_type = None;
@@ -103,28 +117,55 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
-    if let Some(config) = config {
-        result = quote! {
-            #result
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "std")] {
+            if let Some(config) = config {
+                result = quote! {
+                    #result
 
-            #[::drogue_device::reexport::embassy::main(embassy_prefix = "::drogue_device::reexport::", config = #config)]
-            async fn main(spawner: ::drogue_device::reexport::embassy::executor::Spawner, peripherals: ::drogue_device::Peripherals) {
-                let context = DeviceContext::new(spawner, &DEVICE);
-                spawner.spawn(__drogue_main(context, peripherals)).unwrap();
-            }
-        };
-    } else {
-        result = quote! {
-            #result
+                    #[::drogue_device::reexport::embassy::main(embassy_prefix = "::drogue_device::reexport::", config = #config)]
+                    async fn main(spawner: ::drogue_device::reexport::embassy::executor::Spawner) {
+                        let context = DeviceContext::new(spawner, &DEVICE);
+                        spawner.spawn(__drogue_main(context)).unwrap();
+                    }
+                };
+            } else {
+                result = quote! {
+                    #result
 
-            #[::drogue_device::reexport::embassy::main(embassy_prefix = "::drogue_device::reexport::")]
-            async fn main(spawner: ::drogue_device::reexport::embassy::executor::Spawner, peripherals: ::drogue_device::Peripherals) {
-                let context = DeviceContext::new(spawner, &DEVICE);
-                spawner.spawn(__drogue_main(context, peripherals)).unwrap();
+                    #[::drogue_device::reexport::embassy::main(embassy_prefix = "::drogue_device::reexport::")]
+                    async fn main(spawner: ::drogue_device::reexport::embassy::executor::Spawner) {
+                        let context = DeviceContext::new(spawner, &DEVICE);
+                        spawner.spawn(__drogue_main(context)).unwrap();
+                    }
+                };
             }
-        };
+            result.into()
+        } else {
+            if let Some(config) = config {
+                result = quote! {
+                    #result
+
+                    #[::drogue_device::reexport::embassy::main(embassy_prefix = "::drogue_device::reexport::", config = #config)]
+                    async fn main(spawner: ::drogue_device::reexport::embassy::executor::Spawner, peripherals: ::drogue_device::Peripherals) {
+                        let context = DeviceContext::new(spawner, &DEVICE);
+                        spawner.spawn(__drogue_main(context, peripherals)).unwrap();
+                    }
+                };
+            } else {
+                result = quote! {
+                    #result
+
+                    #[::drogue_device::reexport::embassy::main(embassy_prefix = "::drogue_device::reexport::")]
+                    async fn main(spawner: ::drogue_device::reexport::embassy::executor::Spawner, peripherals: ::drogue_device::Peripherals) {
+                        let context = DeviceContext::new(spawner, &DEVICE);
+                        spawner.spawn(__drogue_main(context, peripherals)).unwrap();
+                    }
+                };
+            }
+            result.into()
+        }
     }
-    result.into()
 }
 
 #[proc_macro_attribute]
