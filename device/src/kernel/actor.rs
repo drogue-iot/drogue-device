@@ -353,6 +353,23 @@ impl<'a, A: Actor> ActorContext<'a, A> {
             }
         }
     }
+
+    // Used by test framework
+    pub(crate) async fn process(&'a self) {
+        // crate::log_stack!();
+        let actor = unsafe { Pin::new_unchecked(&mut *self.actor.get()) };
+        match self.channel.receive().await {
+            ActorMessage::Request(message, signal) => {
+                // crate::log_stack!();
+                let value = actor.on_message(message).await;
+                unsafe { &*signal }.signal(value);
+            }
+            ActorMessage::Notify(message) => {
+                // crate::log_stack!();
+                actor.on_message(message).await;
+            }
+        }
+    }
 }
 pub struct RequestFuture<'a, A: Actor + 'static> {
     signal: SignalFuture<'a, A::Response<'a>>,
