@@ -230,44 +230,6 @@ impl<'a, A: Actor> ActorContext<'a, A> {
         }
     }
 
-    pub(crate) async fn run(&'a self)
-    where
-        A: Unpin,
-    {
-        let actor = unsafe { Pin::new_unchecked(&mut *self.actor.get()) };
-
-        actor.on_start().await;
-
-        // crate::log_stack!();
-        loop {
-            self.process().await;
-        }
-    }
-
-    pub(crate) async fn process(&'a self) {
-        // crate::log_stack!();
-        let actor = unsafe { Pin::new_unchecked(&mut *self.actor.get()) };
-        match self.channel.receive().await {
-            ActorMessage::Request(message, signal) => {
-                // crate::log_stack!();
-                let value = actor.on_message(message).await;
-                unsafe { &*signal }.signal(value);
-            }
-            ActorMessage::Notify(message) => {
-                // crate::log_stack!();
-                actor.on_message(message).await;
-            }
-        }
-    }
-
-    /// Launch the actor main processing loop that never returns.
-    pub async fn start(&'a self, _: embassy::executor::Spawner)
-    where
-        A: Unpin,
-    {
-        self.run().await;
-    }
-
     /// Acquire a signal slot if there are any free available
     fn acquire_signal(&self) -> Result<&SignalSlot<A::Response<'a>>, SignalError> {
         let signals = unsafe { &mut *self.signals.get() };
