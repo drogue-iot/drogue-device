@@ -8,7 +8,7 @@
 Drogue device is an open source async, no-alloc framework for embedded devices, based on [embassy](https://github.com/embassy-rs/embassy). 
 
 * Built using [rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.
-* Actor-based programming for writing safe and composable applications.
+* Actor-based programming model for writing safe and composable applications.
 * Offers built-in drivers for internet connectivity, such as WiFi and LoRaWAN.
 * All software is licensed under the Apache 2.0 open source license.
 
@@ -16,11 +16,9 @@ See [the book](https://book.drogue.io/drogue-device/dev/index.html) for more abo
 
 ## What are Actors?
 
-Actors make it convenient to write stateful concurrent systems using message passing. Actors only process one message at a time, and communicate with other actors by sending messages to their addresses. Actors compose easily due to their decoupled nature, and makes it easier
-to maintain an expanding code base.
+Actors make it convenient to write stateful concurrent systems using message passing. Actors only process one message at a time, and communicate with other actors by sending messages to their addresses. Actors compose easily due to their decoupled nature, making it easier to maintain an expanding code base.
 
-Actors in drogue-device are *async*, which means that they maybe process messages using async-await support in Rust.
-
+Actors in drogue-device are *async*, which means that they process messages using async-await support in Rust. This does not mean you have to write async code, but you will have the option to do so. The [async book](https://rust-lang.github.io/async-book/) is a great way to learn more about async Rust.
 
 
 ## Examples
