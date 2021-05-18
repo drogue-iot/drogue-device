@@ -26,9 +26,7 @@ pub struct MyDevice {
 }
 
 #[drogue::main]
-async fn main(context: DeviceContext<MyDevice>) {
-    let p = Peripherals::take().unwrap();
-
+async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     context.configure(MyDevice {
         led: ActorContext::new(Led::new(Output::new(p.PIN_25, Level::Low))),
     });
