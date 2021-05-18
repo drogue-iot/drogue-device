@@ -3,7 +3,7 @@ use super::{
     signal::{SignalFuture, SignalSlot},
     util::ImmediateFuture,
 };
-use core::cell::{Cell, UnsafeCell};
+use core::cell::{RefCell, UnsafeCell};
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
@@ -211,10 +211,11 @@ impl<'a, A: Actor + 'static> Future for ActorFuture<'a, A> {
 pub struct ActorContext<'a, A: Actor + 'static, const QLEN: usize= 2>
 {
     task: Task<ActorFuture<'static, A>>,
-    state: Cell<ActorState<'a, A, QLEN>>,
+    state: RefCell<Option<ActorState<'a, A, QLEN>>>,
     actor: UnsafeCell<A>,
     channel: MessageChannel<'a, ActorMessage<'a, A>, QLEN>,
-    // NOTE: This wastes an extra signal because
+    // NOTE: This wastes an extra signal because heapless requires at least 2 slots and
+    // const generic expressions doesn't work in this case.
     signals: UnsafeCell<[SignalSlot<A::Response<'a>>; QLEN]>,
 }
 
@@ -222,7 +223,7 @@ impl<'a, A: Actor> ActorContext<'a, A> {
     pub fn new(actor: A) -> Self {
         Self {
             task: Task::new(),
-            state: Cell::new(ActorState::Idle),
+            state: RefCell::new(Some(ActorState::Idle)),
             actor: UnsafeCell::new(actor),
             channel: MessageChannel::new(),
             signals: UnsafeCell::new(Default::default()),
@@ -330,65 +331,61 @@ impl<'a, A: Actor> ActorContext<'a, A> {
     // Poll this actor to make progress
     pub(crate) fn poll(&'a self, cx: &mut Context<'_>) -> Poll<()> {
         loop {
-            match self.state.replace(ActorState::Idle) {
+            let mut state = self.state.borrow_mut();
+            match state.as_mut().unwrap() {
                 ActorState::Idle => {
                     let fut = unsafe { Pin::new_unchecked(&mut *self.actor.get()) }.on_start();
-                    self.state.set(ActorState::Start(fut));
+                    state.replace(ActorState::Start(fut));
                 }
-                ActorState::Start(mut fut) => {
-                    let r = unsafe { Pin::new_unchecked(&mut fut) }.poll(cx);
+                ActorState::Start(fut) => {
+                    let r = unsafe { Pin::new_unchecked(fut) }.poll(cx);
                     if r.is_pending() {
-                        self.state.set(ActorState::Start(fut));
                         return Poll::Pending;
                     } else {
-                        self.state.set(ActorState::Process);
+                        state.replace(ActorState::Process);
                     }
                 }
                 ActorState::Process => {
-                    let fut = self.channel.receive();
-                    self.state.set(ActorState::Receive(fut));
+                    state.replace(ActorState::Receive(self.channel.receive()));
                 }
-                ActorState::Receive(mut fut) => {
-                    let r = unsafe { Pin::new_unchecked(&mut fut) }.poll(cx);
+                ActorState::Receive(fut) => {
+                    let r = unsafe { Pin::new_unchecked(fut) }.poll(cx);
                     match r {
                         Poll::Pending => {
-                            self.state.set(ActorState::Receive(fut));
                             return Poll::Pending;
                         }
                         Poll::Ready(message) => match message {
                             ActorMessage::Request(message, signal) => {
                                 let fut = unsafe { Pin::new_unchecked(&mut *self.actor.get()) }
                                     .on_message(message);
-                                self.state.set(ActorState::Request(fut, signal));
+                                state.replace(ActorState::Request(fut, signal));
                             }
                             ActorMessage::Notify(message) => {
                                 let fut = unsafe { Pin::new_unchecked(&mut *self.actor.get()) }
                                     .on_message(message);
-                                self.state.set(ActorState::Notify(fut));
+                                state.replace(ActorState::Notify(fut));
                             }
                         },
                     }
                 }
-                ActorState::Request(mut fut, signal) => {
-                    let r = unsafe { Pin::new_unchecked(&mut fut) }.poll(cx);
+                ActorState::Request(fut, signal) => {
+                    let r = unsafe { Pin::new_unchecked(fut) }.poll(cx);
                     match r {
                         Poll::Pending => {
-                            self.state.set(ActorState::Request(fut, signal));
                             return Poll::Pending;
                         }
                         Poll::Ready(value) => {
-                            unsafe { &*signal }.signal(value);
-                            self.state.set(ActorState::Process);
+                            unsafe { &**signal }.signal(value);
+                            state.replace(ActorState::Process);
                         }
                     }
                 }
-                ActorState::Notify(mut fut) => {
-                    let r = unsafe { Pin::new_unchecked(&mut fut) }.poll(cx);
+                ActorState::Notify(fut) => {
+                    let r = unsafe { Pin::new_unchecked(fut) }.poll(cx);
                     if r.is_pending() {
-                        self.state.set(ActorState::Notify(fut));
                         return Poll::Pending;
                     } else {
-                        self.state.set(ActorState::Process);
+                        state.replace(ActorState::Process);
                     }
                 }
             }
