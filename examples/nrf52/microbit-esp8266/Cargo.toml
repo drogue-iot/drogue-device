@@ -21,8 +21,11 @@ cortex-m-rt = "0.6"
 cortex-m = { version = "0.6", features = ["inline-asm"] }
 
 # TODO: Get rid of these embassy deps some day
-embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy" }
-embassy-nrf = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy-nrf" }
+# embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false}
+# embassy-nrf = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false}
+
+embassy = {path = "../../../../../embassy/embassy", default-features = false}
+embassy-nrf = {path = "../../../../../embassy/embassy-nrf", default-features = false}
 
 heapless = "0.6"
 

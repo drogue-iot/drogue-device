@@ -1,6 +1,5 @@
 use core::future::Future;
 use core::pin::Pin;
-use core::str::FromStr;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
     traits::lora::*,
@@ -48,10 +47,10 @@ impl<D: LoraDriver> Actor for App<D> {
         self.driver.replace(config);
     }
 
-    fn on_start<'m>(mut self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
+    fn on_start<'m>(self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
         let me = unsafe { self.get_unchecked_mut() };
         async move {
-            let mut driver = me.driver.as_mut().unwrap();
+            let driver = me.driver.as_mut().unwrap();
             log::info!("Configuring modem");
             driver.configure(&me.config).await.unwrap();
             log::info!("Joining LoRaWAN network");
@@ -61,12 +60,12 @@ impl<D: LoraDriver> Actor for App<D> {
     }
 
     fn on_message<'m>(
-        mut self: Pin<&'m mut Self>,
+        self: Pin<&'m mut Self>,
         message: Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         let me = unsafe { self.get_unchecked_mut() };
         async move {
-            let mut driver = me.driver.as_mut().unwrap();
+            let driver = me.driver.as_mut().unwrap();
             match message {
                 Command::Send => {
                     log::info!("Sending data..");

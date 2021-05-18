@@ -22,7 +22,7 @@ use drogue_device::{
     nrf::{
         buffered_uarte::BufferedUarte,
         gpio::{Input, Level, NoPin, Output, OutputDrive, Pull},
-        gpiote::{self, PortInput},
+        gpiote::PortInput,
         interrupt,
         peripherals::{P0_02, P0_03, P0_14, TIMER0, UARTE0},
         uarte, Peripherals,
@@ -53,17 +53,15 @@ pub struct MyDevice {
 }
 
 #[drogue::main]
-async fn main(context: DeviceContext<MyDevice>) {
+async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     rtt_init_print!();
     unsafe {
         log::set_logger_racy(&LOGGER).unwrap();
     }
 
     log::set_max_level(log::LevelFilter::Info);
-    let p = Peripherals::take().unwrap();
 
-    let g = gpiote::initialize(p.GPIOTE, interrupt::take!(GPIOTE));
-    let button_port = PortInput::new(g, Input::new(p.P0_14, Pull::Up));
+    let button_port = PortInput::new(Input::new(p.P0_14, Pull::Up));
 
     let mut config = uarte::Config::default();
     config.parity = uarte::Parity::EXCLUDED;
