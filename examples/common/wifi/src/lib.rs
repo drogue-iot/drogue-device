@@ -9,7 +9,6 @@
 
 use core::future::Future;
 use core::pin::Pin;
-use core::str::FromStr;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
     traits::{ip::*, tcp::*, wifi::*},
@@ -71,8 +70,8 @@ impl<D: WifiSupplicant + TcpStack> Actor for App<D> {
             log::info!("Joining access point");
             driver
                 .join(Join::Wpa {
-                    ssid: heapless::String::from_str(self.ssid).unwrap(),
-                    password: heapless::String::from_str(self.psk).unwrap(),
+                    ssid: self.ssid,
+                    password: self.psk,
                 })
                 .await
                 .expect("Error joining wifi");

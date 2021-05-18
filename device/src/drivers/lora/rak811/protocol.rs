@@ -1,6 +1,6 @@
 use crate::traits::lora::*;
 use core::fmt::Write;
-use heapless::String;
+use heapless::{consts::U128, String};
 
 #[derive(Debug)]
 pub enum ConfigKey {
@@ -99,7 +99,7 @@ pub struct FirmwareInfo {
     pub build: u8,
 }
 
-pub type CommandBuffer = String<128>;
+pub type CommandBuffer = String<U128>;
 
 impl<'a> Command<'a> {
     pub fn buffer() -> CommandBuffer {

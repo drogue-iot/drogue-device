@@ -5,21 +5,33 @@ use core::{
     task::{Context, Poll, Waker},
 };
 use embassy::util::AtomicWaker;
-use heapless::spsc::{Consumer, Producer, Queue};
+use heapless::{
+    spsc::{Consumer, Producer, Queue},
+    ArrayLength,
+};
 
-struct ChannelInner<T, const N: usize> {
+struct ChannelInner<T, N>
+where
+    N: ArrayLength<T>,
+{
     queue: UnsafeCell<Queue<T, N>>,
     sender_waker: AtomicWaker,
     receiver_waker: AtomicWaker,
 }
 
-impl<T, const N: usize> Default for ChannelInner<T, N> {
+impl<T, N> Default for ChannelInner<T, N>
+where
+    N: ArrayLength<T>,
+{
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T, const N: usize> ChannelInner<T, N> {
+impl<T, N> ChannelInner<T, N>
+where
+    N: ArrayLength<T>,
+{
     pub fn new() -> Self {
         Self {
             queue: UnsafeCell::new(Queue::new()),
@@ -53,17 +65,26 @@ impl<T, const N: usize> ChannelInner<T, N> {
     }
 }
 
-pub struct Channel<T, const N: usize> {
+pub struct Channel<T, N>
+where
+    N: ArrayLength<T>,
+{
     inner: ChannelInner<T, N>,
 }
 
-impl<T, const N: usize> Default for Channel<T, N> {
+impl<T, N> Default for Channel<T, N>
+where
+    N: ArrayLength<T>,
+{
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T, const N: usize> Channel<T, N> {
+impl<T, N> Channel<T, N>
+where
+    N: ArrayLength<T>,
+{
     pub fn new() -> Self {
         let inner = ChannelInner::new();
         Self { inner }
@@ -74,7 +95,10 @@ impl<T, const N: usize> Channel<T, N> {
     }
 }
 
-pub struct ChannelSender<'a, T, const N: usize> {
+pub struct ChannelSender<'a, T, N>
+where
+    N: ArrayLength<T>,
+{
     inner: &'a ChannelInner<T, N>,
     producer: RefCell<Producer<'a, T, N>>,
 }
@@ -85,7 +109,10 @@ pub enum ChannelError {
     ChannelEmpty,
 }
 
-impl<'a, T, const N: usize> ChannelSender<'a, T, N> {
+impl<'a, T, N> ChannelSender<'a, T, N>
+where
+    N: ArrayLength<T>,
+{
     fn new(producer: Producer<'a, T, N>, inner: &'a ChannelInner<T, N>) -> Self {
         Self {
             producer: RefCell::new(producer),
@@ -124,14 +151,20 @@ impl<'a, T, const N: usize> ChannelSender<'a, T, N> {
     }
 }
 
-pub struct ChannelSend<'m, 'a, T, const N: usize> {
+pub struct ChannelSend<'m, 'a, T, N>
+where
+    N: ArrayLength<T>,
+{
     sender: &'m ChannelSender<'a, T, N>,
     element: Option<T>,
 }
 
-impl<'m, 'a, T, const N: usize> Unpin for ChannelSend<'m, 'a, T, N> {}
+impl<'m, 'a, T, N> Unpin for ChannelSend<'m, 'a, T, N> where N: ArrayLength<T> {}
 
-impl<'m, 'a, T, const N: usize> Future for ChannelSend<'m, 'a, T, N> {
+impl<'m, 'a, T, N> Future for ChannelSend<'m, 'a, T, N>
+where
+    N: ArrayLength<T>,
+{
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -139,12 +172,18 @@ impl<'m, 'a, T, const N: usize> Future for ChannelSend<'m, 'a, T, N> {
     }
 }
 
-pub struct ChannelReceiver<'a, T, const N: usize> {
+pub struct ChannelReceiver<'a, T, N>
+where
+    N: ArrayLength<T>,
+{
     inner: &'a ChannelInner<T, N>,
     consumer: RefCell<Consumer<'a, T, N>>,
 }
 
-impl<'a, T, const N: usize> ChannelReceiver<'a, T, N> {
+impl<'a, T, N> ChannelReceiver<'a, T, N>
+where
+    N: ArrayLength<T>,
+{
     fn new(consumer: Consumer<'a, T, N>, inner: &'a ChannelInner<T, N>) -> Self {
         Self {
             consumer: RefCell::new(consumer),
@@ -177,11 +216,17 @@ impl<'a, T, const N: usize> ChannelReceiver<'a, T, N> {
     }
 }
 
-pub struct ChannelReceive<'m, 'a, T, const N: usize> {
+pub struct ChannelReceive<'m, 'a, T, N>
+where
+    N: ArrayLength<T>,
+{
     receiver: &'m ChannelReceiver<'a, T, N>,
 }
 
-impl<'m, 'a, T, const N: usize> Future for ChannelReceive<'m, 'a, T, N> {
+impl<'m, 'a, T, N> Future for ChannelReceive<'m, 'a, T, N>
+where
+    N: ArrayLength<T>,
+{
     type Output = T;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {

@@ -33,6 +33,7 @@ use embassy::{
 use embedded_hal::digital::v2::OutputPin;
 use futures::future::{select, Either};
 use futures::pin_mut;
+use heapless::consts::U2;
 use protocol::{Command, ConnectionType, Response as AtResponse};
 
 pub const BUFFER_LEN: usize = 512;
@@ -80,9 +81,9 @@ impl Initialized {
 pub struct Esp8266Controller<'a> {
     initialized: &'a Initialized,
     socket_pool: SocketPool,
-    command_producer: ChannelSender<'a, CommandBuffer, 2>,
-    response_consumer: ChannelReceiver<'a, AtResponse, 2>,
-    notification_consumer: ChannelReceiver<'a, AtResponse, 2>,
+    command_producer: ChannelSender<'a, CommandBuffer, U2>,
+    response_consumer: ChannelReceiver<'a, AtResponse, U2>,
+    notification_consumer: ChannelReceiver<'a, AtResponse, U2>,
 }
 
 pub struct Esp8266Modem<'a, UART, ENABLE, RESET>
@@ -96,16 +97,16 @@ where
     enable: ENABLE,
     reset: RESET,
     parse_buffer: Buffer,
-    command_consumer: ChannelReceiver<'a, CommandBuffer, 2>,
-    response_producer: ChannelSender<'a, AtResponse, 2>,
-    notification_producer: ChannelSender<'a, AtResponse, 2>,
+    command_consumer: ChannelReceiver<'a, CommandBuffer, U2>,
+    response_producer: ChannelSender<'a, AtResponse, U2>,
+    notification_producer: ChannelSender<'a, AtResponse, U2>,
 }
 
 pub struct Esp8266Driver {
     initialized: Initialized,
-    command_channel: Channel<CommandBuffer, 2>,
-    response_channel: Channel<AtResponse, 2>,
-    notification_channel: Channel<AtResponse, 2>,
+    command_channel: Channel<CommandBuffer, U2>,
+    response_channel: Channel<AtResponse, U2>,
+    notification_channel: Channel<AtResponse, U2>,
 }
 
 impl Esp8266Driver {
@@ -151,9 +152,9 @@ where
         uart: UART,
         enable: ENABLE,
         reset: RESET,
-        command_consumer: ChannelReceiver<'a, CommandBuffer, 2>,
-        response_producer: ChannelSender<'a, AtResponse, 2>,
-        notification_producer: ChannelSender<'a, AtResponse, 2>,
+        command_consumer: ChannelReceiver<'a, CommandBuffer, U2>,
+        response_producer: ChannelSender<'a, AtResponse, U2>,
+        notification_producer: ChannelSender<'a, AtResponse, U2>,
     ) -> Self {
         Self {
             initialized,
@@ -354,9 +355,9 @@ where
 impl<'a> Esp8266Controller<'a> {
     pub fn new(
         initialized: &'a Initialized,
-        command_producer: ChannelSender<'a, CommandBuffer, 2>,
-        response_consumer: ChannelReceiver<'a, AtResponse, 2>,
-        notification_consumer: ChannelReceiver<'a, AtResponse, 2>,
+        command_producer: ChannelSender<'a, CommandBuffer, U2>,
+        response_consumer: ChannelReceiver<'a, AtResponse, U2>,
+        notification_consumer: ChannelReceiver<'a, AtResponse, U2>,
     ) -> Self {
         Self {
             initialized,
@@ -436,13 +437,11 @@ impl<'a> Esp8266Controller<'a> {
 impl<'a> WifiSupplicant for Esp8266Controller<'a> {
     #[rustfmt::skip]
     type JoinFuture<'m> where 'a: 'm = impl Future<Output = Result<IpAddress, JoinError>> + 'm;
-    fn join<'m>(&'m mut self, join_info: Join) -> Self::JoinFuture<'m> {
+    fn join<'m>(&'m mut self, join_info: Join<'m>) -> Self::JoinFuture<'m> {
         async move {
             match join_info {
                 Join::Open => Err(JoinError::Unknown),
-                Join::Wpa { ssid, password } => {
-                    self.join_wep(ssid.as_ref(), password.as_ref()).await
-                }
+                Join::Wpa { ssid, password } => self.join_wep(ssid, password).await,
             }
         }
     }

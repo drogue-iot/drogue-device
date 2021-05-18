@@ -23,7 +23,7 @@ use embassy::{
 use embedded_hal::digital::v2::OutputPin;
 use futures::future::{select, Either};
 use futures::pin_mut;
-use heapless::spsc::Queue;
+use heapless::{consts::U2, spsc::Queue};
 pub use protocol::*;
 
 const RECV_BUFFER_LEN: usize = 256;
@@ -56,15 +56,15 @@ impl Initialized {
 
 pub struct Rak811Driver {
     initialized: Initialized,
-    command_channel: Channel<CommandBuffer, 2>,
-    response_channel: Channel<Response, 2>,
+    command_channel: Channel<CommandBuffer, U2>,
+    response_channel: Channel<Response, U2>,
 }
 
 pub struct Rak811Controller<'a> {
     config: LoraConfig,
     initialized: &'a Initialized,
-    command_producer: ChannelSender<'a, CommandBuffer, 2>,
-    response_consumer: ChannelReceiver<'a, Response, 2>,
+    command_producer: ChannelSender<'a, CommandBuffer, U2>,
+    response_consumer: ChannelReceiver<'a, Response, U2>,
 }
 
 pub struct Rak811Modem<'a, UART, RESET>
@@ -76,8 +76,8 @@ where
     uart: UART,
     reset: RESET,
     parse_buffer: Buffer,
-    command_consumer: ChannelReceiver<'a, CommandBuffer, 2>,
-    response_producer: ChannelSender<'a, Response, 2>,
+    command_consumer: ChannelReceiver<'a, CommandBuffer, U2>,
+    response_producer: ChannelSender<'a, Response, U2>,
 }
 
 impl Rak811Driver {
@@ -117,8 +117,8 @@ where
         initialized: &'a Initialized,
         uart: UART,
         reset: RESET,
-        command_consumer: ChannelReceiver<'a, CommandBuffer, 2>,
-        response_producer: ChannelSender<'a, Response, 2>,
+        command_consumer: ChannelReceiver<'a, CommandBuffer, U2>,
+        response_producer: ChannelSender<'a, Response, U2>,
     ) -> Self {
         Self {
             initialized,
@@ -314,8 +314,8 @@ impl<'a> LoraDriver for Rak811Controller<'a> {
 impl<'a> Rak811Controller<'a> {
     pub fn new(
         initialized: &'a Initialized,
-        command_producer: ChannelSender<'a, CommandBuffer, 2>,
-        response_consumer: ChannelReceiver<'a, Response, 2>,
+        command_producer: ChannelSender<'a, CommandBuffer, U2>,
+        response_consumer: ChannelReceiver<'a, Response, U2>,
     ) -> Self {
         Self {
             config: LoraConfig::new(),

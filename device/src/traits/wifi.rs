@@ -1,14 +1,10 @@
 use super::ip::IpAddress;
 use core::future::Future;
-use heapless::String;
 
 #[derive(Debug)]
-pub enum Join {
+pub enum Join<'a> {
     Open,
-    Wpa {
-        ssid: String<32>,
-        password: String<32>,
-    },
+    Wpa { ssid: &'a str, password: &'a str },
 }
 
 #[derive(Debug)]
@@ -23,5 +19,5 @@ pub trait WifiSupplicant {
     type JoinFuture<'m>: Future<Output = Result<IpAddress, JoinError>>
     where
         Self: 'm;
-    fn join<'m>(&'m mut self, join: Join) -> Self::JoinFuture<'m>;
+    fn join<'m>(&'m mut self, join: Join<'m>) -> Self::JoinFuture<'m>;
 }

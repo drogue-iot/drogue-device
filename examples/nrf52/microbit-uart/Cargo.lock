@@ -413,20 +413,21 @@ dependencies = [
 
 [[package]]
 name = "hash32"
-version = "0.2.1"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0c35f58762feb77d74ebe43bdbc3210f09be9fe6742234d573bacc26ed92b67"
+checksum = "d4041af86e63ac4298ce40e5cca669066e75b6f1aa3390fe2561ffa5e1d9f4cc"
 dependencies = [
  "byteorder",
 ]
 
 [[package]]
 name = "heapless"
-version = "0.7.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e94c13b78b595d2adbd708bce276664f1047f98fc32ddbf463b4c191158334a6"
+checksum = "634bd4d29cbf24424d0a4bfcbf80c6960129dc24424752a7d1d1390607023422"
 dependencies = [
- "atomic-polyfill",
+ "as-slice",
+ "generic-array 0.14.4",
  "hash32",
  "stable_deref_trait",
 ]
@@ -441,14 +442,13 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 name = "microbit-uart"
 version = "0.1.0"
 dependencies = [
- "cortex-m 0.7.2",
+ "cortex-m 0.6.7",
  "cortex-m-rt",
  "defmt",
  "defmt-rtt",
  "drogue-device",
  "embassy",
  "embassy-nrf",
- "heapless",
  "panic-probe",
 ]
 

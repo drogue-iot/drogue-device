@@ -2,15 +2,15 @@ use crate::kernel::{actor::Actor, util::ImmediateFuture};
 use core::future::Future;
 use core::pin::Pin;
 use embedded_hal::digital::v2::OutputPin;
-use heapless::Vec;
+use heapless::consts::U2;
 
 // Led matrix driver supporting up to 32x32 led matrices.
 pub struct LEDMatrix<P, const ROWS: usize, const COLS: usize>
 where
     P: OutputPin + 'static,
 {
-    pin_rows: Vec<P, ROWS>,
-    pin_cols: Vec<P, COLS>,
+    pin_rows: [P; ROWS],
+    pin_cols: [P; COLS],
     frame_buffer: Frame,
     row_p: usize,
 }
@@ -52,7 +52,7 @@ impl<P, const ROWS: usize, const COLS: usize> LEDMatrix<P, ROWS, COLS>
 where
     P: OutputPin,
 {
-    pub fn new(pin_rows: Vec<P, ROWS>, pin_cols: Vec<P, COLS>) -> Self {
+    pub fn new(pin_rows: [P; ROWS], pin_cols: [P; COLS]) -> Self {
         LEDMatrix {
             pin_rows,
             pin_cols,
@@ -98,6 +98,9 @@ impl<P, const ROWS: usize, const COLS: usize> Actor for LEDMatrix<P, ROWS, COLS>
 where
     P: OutputPin,
 {
+    // Needed in order to handle concurrent apply and notify
+    type MessageQueueSize<'m> = U2;
+
     #[rustfmt::skip]
     type Message<'m> = MatrixCommand<'m>;
     #[rustfmt::skip]

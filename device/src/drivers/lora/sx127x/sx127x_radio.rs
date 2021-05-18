@@ -2,7 +2,7 @@ use crate::traits::lora::LoraError as DriverError;
 use embedded_hal::blocking::delay::DelayMs;
 use embedded_hal::blocking::spi::{Transfer, Write};
 use embedded_hal::digital::v2::OutputPin;
-use heapless::Vec;
+use heapless::{consts::U256, Vec};
 use lorawan_device::{
     radio::{
         Bandwidth, Error as LoraError, Event as LoraEvent, PhyRxTx, PhyRxTxBuf,
@@ -230,7 +230,7 @@ pub enum RadioPhyEvent {
 }
 
 pub struct RadioBuffer {
-    pub packet: Vec<u8, 256>,
+    pub packet: Vec<u8, U256>,
 }
 
 impl PhyRxTxBuf for RadioBuffer {

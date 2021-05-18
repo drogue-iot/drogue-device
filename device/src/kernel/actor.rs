@@ -9,6 +9,8 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use embassy::executor::{raw::Task, SpawnToken, Spawner};
 use embassy::util::DropBomb;
+use generic_array::GenericArray;
+use heapless::{consts, ArrayLength};
 
 /// Trait that each actor must implement. An Actor must specify a message type
 /// it acts on, and an implementation of a message handler in `on_message`.
@@ -16,6 +18,14 @@ use embassy::util::DropBomb;
 /// At run time, an Actor is held within an ActorContext, which contains the
 /// embassy task and the message queues.
 pub trait Actor: Sized {
+    /// Max length of the message queue for this actor. Defaults to 1 for
+    /// low footprint by default.
+    type MessageQueueSize<'a>: ArrayLength<ActorMessage<'a, Self>>
+        + ArrayLength<SignalSlot<Self::Response<'a>>>
+    where
+        Self: 'a,
+    = consts::U1;
+
     /// The configuration that this actor will expect when mounted.
     type Configuration = ();
 
@@ -69,7 +79,10 @@ pub trait Actor: Sized {
 ///
 /// Individual actor implementations may augment the `Address` object
 /// when appropriate bounds are met to provide method-like invocations.
-pub struct Address<'a, A: Actor + 'static> {
+pub struct Address<'a, A>
+where
+    A: Actor + 'static,
+{
     state: &'a ActorContext<'a, A>,
 }
 
@@ -120,13 +133,19 @@ impl<'a, A: Actor> Clone for Address<'a, A> {
     }
 }
 
-pub struct MessageChannel<'a, T, const N: usize> {
+pub struct MessageChannel<'a, T, N>
+where
+    N: ArrayLength<T>,
+{
     channel: UnsafeCell<Channel<T, N>>,
     channel_sender: UnsafeCell<Option<ChannelSender<'a, T, N>>>,
     channel_receiver: UnsafeCell<Option<ChannelReceiver<'a, T, N>>>,
 }
 
-impl<'a, T, const N: usize> MessageChannel<'a, T, N> {
+impl<'a, T, N> MessageChannel<'a, T, N>
+where
+    N: ArrayLength<T>,
+{
     pub fn new() -> Self {
         Self {
             channel: UnsafeCell::new(Channel::new()),
@@ -184,7 +203,11 @@ impl ActorSpawner {
     }
 }
 
-enum ActorState<'a, A: Actor + 'static, const N: usize> {
+enum ActorState<'a, A: Actor + 'static, N>
+where
+    A: Actor + 'static,
+    N: ArrayLength<ActorMessage<'a, A>>,
+{
     Idle,
     Start(A::OnStartFuture<'a>),
     Process,
@@ -193,11 +216,17 @@ enum ActorState<'a, A: Actor + 'static, const N: usize> {
     Notify(A::OnMessageFuture<'a>),
 }
 
-pub struct ActorFuture<'a, A: Actor + 'static> {
+pub struct ActorFuture<'a, A>
+where
+    A: Actor + 'static,
+{
     context: &'a ActorContext<'a, A>,
 }
 
-impl<'a, A: Actor + 'static> Future for ActorFuture<'a, A> {
+impl<'a, A> Future for ActorFuture<'a, A>
+where
+    A: Actor + 'static,
+{
     type Output = ();
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         self.context.poll(cx)
@@ -208,18 +237,23 @@ impl<'a, A: Actor + 'static> Future for ActorFuture<'a, A> {
 /// is a const generic parameter, and needs to be at least 2 in order for the underlying
 /// heapless queue to work. (Due to missing const generic expressions)
 #[rustfmt::skip]
-pub struct ActorContext<'a, A: Actor + 'static, const QLEN: usize= 2>
+pub struct ActorContext<'a, A>
+where
+    A: Actor + 'static,
 {
     task: Task<ActorFuture<'static, A>>,
-    state: RefCell<Option<ActorState<'a, A, QLEN>>>,
+    state: RefCell<Option<ActorState<'a, A, A::MessageQueueSize<'a>>>>,
     actor: UnsafeCell<A>,
-    channel: MessageChannel<'a, ActorMessage<'a, A>, QLEN>,
+    channel: MessageChannel<'a, ActorMessage<'a, A>, A::MessageQueueSize<'a>>,
     // NOTE: This wastes an extra signal because heapless requires at least 2 slots and
     // const generic expressions doesn't work in this case.
-    signals: UnsafeCell<[SignalSlot<A::Response<'a>>; QLEN]>,
+    signals: UnsafeCell<GenericArray<SignalSlot<A::Response<'a>>, A::MessageQueueSize<'a>>>,
 }
 
-impl<'a, A: Actor> ActorContext<'a, A> {
+impl<'a, A> ActorContext<'a, A>
+where
+    A: Actor,
+{
     pub fn new(actor: A) -> Self {
         Self {
             task: Task::new(),

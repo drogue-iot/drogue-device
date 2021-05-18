@@ -31,7 +31,6 @@ use drogue_device::{
     time::Duration,
     *,
 };
-use heapless::Vec;
 use panic_probe as _;
 
 type LedMatrix = LEDMatrix<Output<'static, AnyPin>, 5, 5>;
@@ -63,19 +62,21 @@ async fn main(context: DeviceContext<MyDevice>) {
     let uarte = unsafe { uarte::Uarte::new(p.UARTE0, irq, p.P0_13, p.P0_01, NoPin, NoPin, config) };
 
     // LED Matrix
-    let mut rows = Vec::<_, 5>::new();
-    rows.push(output_pin(p.P0_21.degrade())).ok().unwrap();
-    rows.push(output_pin(p.P0_22.degrade())).ok().unwrap();
-    rows.push(output_pin(p.P0_15.degrade())).ok().unwrap();
-    rows.push(output_pin(p.P0_24.degrade())).ok().unwrap();
-    rows.push(output_pin(p.P0_19.degrade())).ok().unwrap();
+    let rows = [
+        output_pin(p.P0_21.degrade()),
+        output_pin(p.P0_22.degrade()),
+        output_pin(p.P0_15.degrade()),
+        output_pin(p.P0_24.degrade()),
+        output_pin(p.P0_19.degrade()),
+    ];
 
-    let mut cols = Vec::<_, 5>::new();
-    cols.push(output_pin(p.P0_28.degrade())).ok().unwrap();
-    cols.push(output_pin(p.P0_11.degrade())).ok().unwrap();
-    cols.push(output_pin(p.P0_31.degrade())).ok().unwrap();
-    cols.push(output_pin(p.P1_05.degrade())).ok().unwrap();
-    cols.push(output_pin(p.P0_30.degrade())).ok().unwrap();
+    let cols = [
+        output_pin(p.P0_28.degrade()),
+        output_pin(p.P0_11.degrade()),
+        output_pin(p.P0_31.degrade()),
+        output_pin(p.P1_05.degrade()),
+        output_pin(p.P0_30.degrade()),
+    ];
 
     let led = LedMatrix::new(rows, cols);
 
