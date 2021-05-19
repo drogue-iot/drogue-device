@@ -162,8 +162,6 @@ where
     #[rustfmt::skip]
     type Message<'m> where D: 'm = Command;
     #[rustfmt::skip]
-    type Response<'m> where D: 'm = ();
-    #[rustfmt::skip]
     type OnStartFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
     #[rustfmt::skip]
     type OnMessageFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;

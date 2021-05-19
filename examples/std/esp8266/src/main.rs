@@ -9,8 +9,12 @@
 mod serial;
 
 use async_io::Async;
-use core::cell::UnsafeCell;
-use drogue_device::{drivers::wifi::esp8266::*, traits::ip::*, *};
+use drogue_device::{
+    actors::wifi::{esp8266::*, *},
+    drivers::wifi::esp8266::*,
+    traits::ip::*,
+    *,
+};
 use embassy::{io::FromStdIo, time};
 use embedded_hal::digital::v2::OutputPin;
 use futures::io::BufReader;
@@ -28,8 +32,7 @@ type ENABLE = DummyPin;
 type RESET = DummyPin;
 
 pub struct MyDevice {
-    driver: UnsafeCell<Esp8266Driver>,
-    modem: ActorContext<'static, Esp8266ModemActor<'static, UART, ENABLE, RESET>>,
+    wifi: Esp8266Wifi<UART, ENABLE, RESET>,
     app: ActorContext<'static, App<Esp8266Controller<'static>>>,
 }
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -48,8 +51,7 @@ async fn main(spawner: embassy::executor::Spawner) {
     let port = FromStdIo::new(port);
 
     DEVICE.configure(MyDevice {
-        driver: UnsafeCell::new(Esp8266Driver::new()),
-        modem: ActorContext::new(Esp8266ModemActor::new()),
+        wifi: Esp8266Wifi::new(port, DummyPin {}, DummyPin {}),
         app: ActorContext::new(App::new(
             WIFI_SSID.trim_end(),
             WIFI_PSK.trim_end(),
@@ -59,10 +61,8 @@ async fn main(spawner: embassy::executor::Spawner) {
     });
 
     let app = DEVICE.mount(|device| {
-        let (controller, modem) =
-            unsafe { &mut *device.driver.get() }.initialize(port, DummyPin {}, DummyPin {});
-        device.modem.mount(modem, spawner);
-        device.app.mount(controller, spawner)
+        let wifi = device.wifi.mount((), spawner);
+        device.app.mount(WifiAdapter::new(wifi), spawner)
     });
 
     loop {

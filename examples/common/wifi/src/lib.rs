@@ -10,15 +10,18 @@
 use core::future::Future;
 use core::pin::Pin;
 use drogue_device::{
-    actors::button::{ButtonEvent, FromButtonEvent},
-    traits::{ip::*, tcp::*, wifi::*},
+    actors::{
+        button::{ButtonEvent, FromButtonEvent},
+        wifi::{Adapter, Socket, WifiAdapter},
+    },
+    traits::{ip::*, wifi::*},
     Actor,
 };
 pub enum Command {
     Send,
 }
 
-impl<D: WifiSupplicant + TcpStack> FromButtonEvent<Command> for App<D> {
+impl<A: Adapter> FromButtonEvent<Command> for App<A> {
     fn from(event: ButtonEvent) -> Option<Command> {
         match event {
             ButtonEvent::Pressed => None,
@@ -27,48 +30,46 @@ impl<D: WifiSupplicant + TcpStack> FromButtonEvent<Command> for App<D> {
     }
 }
 
-pub struct App<D: WifiSupplicant + TcpStack> {
+pub struct App<A: Adapter + 'static> {
     ssid: &'static str,
     psk: &'static str,
     ip: IpAddress,
     port: u16,
-    driver: Option<D>,
-    socket: Option<D::SocketHandle>,
+    adapter: Option<WifiAdapter<'static, A>>,
+    socket: Option<Socket<'static, A>>,
 }
 
-impl<D: WifiSupplicant + TcpStack> App<D> {
+impl<A: Adapter> App<A> {
     pub fn new(ssid: &'static str, psk: &'static str, ip: IpAddress, port: u16) -> Self {
         Self {
             ssid,
             psk,
             ip,
             port,
+            adapter: None,
             socket: None,
-            driver: None,
         }
     }
 }
 
-impl<D: WifiSupplicant + TcpStack> Unpin for App<D> {}
-
-impl<D: WifiSupplicant + TcpStack> Actor for App<D> {
-    type Configuration = D;
+impl<A: Adapter> Actor for App<A> {
+    type Configuration = WifiAdapter<'static, A>;
     #[rustfmt::skip]
-    type Message<'m> where D: 'm = Command;
+    type Message<'m> where A: 'm = Command;
     #[rustfmt::skip]
-    type OnStartFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
+    type OnStartFuture<'m> where A: 'm = impl Future<Output = ()> + 'm;
     #[rustfmt::skip]
-    type OnMessageFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
+    type OnMessageFuture<'m> where A: 'm = impl Future<Output = ()> + 'm;
 
     fn on_mount(&mut self, config: Self::Configuration) {
-        self.driver.replace(config);
+        self.adapter.replace(config);
     }
 
     fn on_start<'m>(mut self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
         async move {
-            let mut driver = self.driver.take().unwrap();
+            let adapter = self.adapter.take().unwrap();
             log::info!("Joining access point");
-            driver
+            adapter
                 .join(Join::Wpa {
                     ssid: self.ssid,
                     password: self.psk,
@@ -77,19 +78,15 @@ impl<D: WifiSupplicant + TcpStack> Actor for App<D> {
                 .expect("Error joining wifi");
             log::info!("Joined access point");
 
-            let socket = driver.open().await;
+            let socket = adapter.socket().await;
 
             log::info!("Connecting to {}:{}", self.ip, self.port);
-            let result = driver
-                .connect(
-                    socket,
-                    IpProtocol::Tcp,
-                    SocketAddress::new(self.ip, self.port),
-                )
+            let result = socket
+                .connect(IpProtocol::Tcp, SocketAddress::new(self.ip, self.port))
                 .await;
             match result {
                 Ok(_) => {
-                    self.driver.replace(driver);
+                    self.adapter.replace(adapter);
                     self.socket.replace(socket);
                     log::info!("Connected to {:?}!", self.ip);
                 }
@@ -109,15 +106,14 @@ impl<D: WifiSupplicant + TcpStack> Actor for App<D> {
                 Command::Send => {
                     log::info!("Pinging server..");
 
-                    let mut driver = self.driver.take().expect("driver not bound!");
                     let socket = self.socket.take().expect("socket not bound!");
-                    let result = driver.write(socket, b"PING").await;
+                    let result = socket.send(b"PING").await;
                     match result {
                         Ok(_) => {
                             log::debug!("Data sent");
                             let mut rx_buf = [0; 8];
                             loop {
-                                let result = driver.read(socket, &mut rx_buf[..]).await;
+                                let result = socket.recv(&mut rx_buf[..]).await;
                                 match result {
                                     Ok(len) if &rx_buf[0..len] == b"PING" => {
                                         log::info!("Ping response received");
@@ -142,7 +138,6 @@ impl<D: WifiSupplicant + TcpStack> Actor for App<D> {
                             log::warn!("Error pinging server: {:?}", e);
                         }
                     }
-                    self.driver.replace(driver);
                     self.socket.replace(socket);
                 }
             }
