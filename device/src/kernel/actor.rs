@@ -21,7 +21,7 @@ pub trait Actor: Sized {
     /// Max length of the message queue for this actor. Defaults to 1 for
     /// low footprint by default.
     type MessageQueueSize<'a>: ArrayLength<ActorMessage<'a, Self>>
-        + ArrayLength<SignalSlot<Self::Response<'a>>>
+        + ArrayLength<SignalSlot<Self::Response>>
     where
         Self: 'a,
     = consts::U1;
@@ -36,10 +36,7 @@ pub trait Actor: Sized {
     = ();
 
     /// The response type that this actor will return in `on_message`.
-    type Response<'a>: Sized + Send
-    where
-        Self: 'a,
-    = ();
+    type Response: Sized + Send = ();
 
     /// Called to mount an actor into the system.
     ///
@@ -63,7 +60,7 @@ pub trait Actor: Sized {
     /// The future type returned in `on_message`, usually derived from an `async move` block
     /// in the implementation. The return value of the future must be of the Response associated
     /// type.
-    type OnMessageFuture<'a>: Future<Output = Self::Response<'a>>
+    type OnMessageFuture<'a>: Future<Output = Self::Response>
     where
         Self: 'a;
 
@@ -201,7 +198,7 @@ where
     Start(A::OnStartFuture<'a>),
     Process,
     Receive(ChannelReceive<'a, 'a, ActorMessage<'a, A>, N>),
-    Request(A::OnMessageFuture<'a>, *const SignalSlot<A::Response<'a>>),
+    Request(A::OnMessageFuture<'a>, *const SignalSlot<A::Response>),
     Notify(A::OnMessageFuture<'a>),
 }
 
@@ -236,7 +233,7 @@ where
     channel: MessageChannel<'a, ActorMessage<'a, A>, A::MessageQueueSize<'a>>,
     // NOTE: This wastes an extra signal because heapless requires at least 2 slots and
     // const generic expressions doesn't work in this case.
-    signals: UnsafeCell<GenericArray<SignalSlot<A::Response<'a>>, A::MessageQueueSize<'a>>>,
+    signals: UnsafeCell<GenericArray<SignalSlot<A::Response>, A::MessageQueueSize<'a>>>,
 }
 
 impl<'a, A> ActorContext<'a, A>
@@ -254,7 +251,7 @@ where
     }
 
     /// Acquire a signal slot if there are any free available
-    fn acquire_signal(&self) -> Result<&SignalSlot<A::Response<'a>>, SignalError> {
+    fn acquire_signal(&self) -> Result<&SignalSlot<A::Response>, SignalError> {
         let signals = unsafe { &mut *self.signals.get() };
         let mut i = 0;
         while i < signals.len() {
@@ -403,13 +400,13 @@ where
         }
     }
 }
-pub struct RequestFuture<'a, A: Actor + 'static> {
-    signal: SignalFuture<'a, A::Response<'a>>,
+pub struct RequestFuture<'a, A: Actor + 'a> {
+    signal: SignalFuture<'a, A::Response>,
     bomb: Option<DropBomb>,
 }
 
-impl<'a, A: Actor> RequestFuture<'a, A> {
-    pub fn new(signal: SignalFuture<'a, A::Response<'a>>) -> Self {
+impl<'a, A: Actor + 'a> RequestFuture<'a, A> {
+    pub fn new(signal: SignalFuture<'a, A::Response>) -> Self {
         Self {
             signal,
             bomb: Some(DropBomb::new()),
@@ -417,8 +414,8 @@ impl<'a, A: Actor> RequestFuture<'a, A> {
     }
 }
 
-impl<'a, A: Actor> Future for RequestFuture<'a, A> {
-    type Output = A::Response<'a>;
+impl<'a, A: Actor + 'a> Future for RequestFuture<'a, A> {
+    type Output = A::Response;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let result = Pin::new(&mut self.signal).poll(cx);
@@ -445,7 +442,7 @@ impl From<ChannelError> for ActorError {
 }
 
 pub enum ActorMessage<'m, A: Actor + 'm> {
-    Request(A::Message<'m>, *const SignalSlot<A::Response<'m>>),
+    Request(A::Message<'m>, *const SignalSlot<A::Response>),
     Notify(A::Message<'m>),
 }
 

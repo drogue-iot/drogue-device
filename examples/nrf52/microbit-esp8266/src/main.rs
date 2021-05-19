@@ -15,9 +15,14 @@ use panic_probe as _;
 use rtt_logger::RTTLogger;
 use rtt_target::rtt_init_print;
 
-use core::cell::UnsafeCell;
 use drogue_device::{
-    actors::button::Button, drivers::wifi::esp8266::*, traits::ip::*, ActorContext, DeviceContext,
+    actors::{
+        button::Button,
+        wifi::{esp8266::*, *},
+    },
+    drivers::wifi::esp8266::Esp8266Controller,
+    traits::ip::*,
+    ActorContext, DeviceContext, Package,
 };
 use embassy_nrf::{
     buffered_uarte::BufferedUarte,
@@ -33,15 +38,14 @@ const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.passw
 const HOST: IpAddress = IpAddress::new_v4(192, 168, 1, 2);
 const PORT: u16 = 12345;
 
-static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
+static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
 
 type UART = BufferedUarte<'static, UARTE0, TIMER0>;
 type ENABLE = Output<'static, P0_03>;
 type RESET = Output<'static, P0_02>;
 
 pub struct MyDevice {
-    driver: UnsafeCell<Esp8266Driver>,
-    modem: ActorContext<'static, Esp8266ModemActor<'static, UART, ENABLE, RESET>>,
+    wifi: Esp8266Wifi<UART, ENABLE, RESET>,
     app: ActorContext<'static, App<Esp8266Controller<'static>>>,
     button: ActorContext<
         'static,
@@ -54,11 +58,9 @@ static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     rtt_init_print!();
-    unsafe {
-        log::set_logger_racy(&LOGGER).unwrap();
-    }
+    log::set_logger(&LOGGER).unwrap();
 
-    log::set_max_level(log::LevelFilter::Info);
+    log::set_max_level(log::LevelFilter::Trace);
 
     let button_port = PortInput::new(Input::new(p.P0_14, Pull::Up));
 
@@ -91,8 +93,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let reset_pin = Output::new(p.P0_02, Level::Low, OutputDrive::Standard);
 
     DEVICE.configure(MyDevice {
-        driver: UnsafeCell::new(Esp8266Driver::new()),
-        modem: ActorContext::new(Esp8266ModemActor::new()),
+        wifi: Esp8266Wifi::new(u, enable_pin, reset_pin),
         app: ActorContext::new(App::new(
             WIFI_SSID.trim_end(),
             WIFI_PSK.trim_end(),
@@ -103,10 +104,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     });
 
     DEVICE.mount(|device| {
-        let (controller, modem) =
-            unsafe { &mut *device.driver.get() }.initialize(u, enable_pin, reset_pin);
-        device.modem.mount(modem, spawner);
-        let app = device.app.mount(controller, spawner);
+        let wifi = device.wifi.mount((), spawner);
+        let app = device.app.mount(WifiAdapter::new(wifi), spawner);
         device.button.mount(app, spawner);
     });
 }

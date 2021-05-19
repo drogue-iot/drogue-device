@@ -42,11 +42,11 @@ where
     #[rustfmt::skip]
     type Message<'m> where D: 'm = LoraCommand<'m>;
     #[rustfmt::skip]
-    type Response<'m> where D: 'm = LoraResult;
+    type Response = LoraResult;
     #[rustfmt::skip]
     type OnStartFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
     #[rustfmt::skip]
-    type OnMessageFuture<'m> where D: 'm = impl Future<Output = Self::Response<'m>> + 'm;
+    type OnMessageFuture<'m> where D: 'm = impl Future<Output = Self::Response> + 'm;
 
     fn on_start<'m>(self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
         async move {}
