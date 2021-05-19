@@ -94,7 +94,7 @@ pub struct MyDevice {
 }
 
 #[drogue::main(config = "embassy_stm32::hal::rcc::Config::hsi16()")]
-async fn main(context: DeviceContext<MyDevice>) {
+async fn main(context: DeviceContext<MyDevice>, device: Peripherals) {
     rtt_init_print!();
     unsafe {
         log::set_logger_racy(&LOGGER).unwrap();
