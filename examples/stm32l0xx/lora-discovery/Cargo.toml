@@ -22,9 +22,12 @@ cortex-m = { version = "0.7", features = ["inline-asm"] }
 heapless = "0.6"
 void = { version = "1", default-features = false }
 
-# TODO: Get rid of these
-embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false } #, path = "../../../embassy/embassy" }
-embassy-stm32 = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false} #, path = "../../../embassy/embassy-stm32" }
+# TODO: Get rid of these embassy deps some day
+# embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false}
+# embassy-stm32 = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false}
+
+embassy = {path = "../../../../../embassy/embassy", default-features = false}
+embassy-stm32 = {path = "../../../../../embassy/embassy-stm32", default-features = false, features = ["stm32l072cz", "_spi", "_spi_v2"]}
 
 [profile.release]
 debug = 1
