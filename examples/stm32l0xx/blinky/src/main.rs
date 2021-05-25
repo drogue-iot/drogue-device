@@ -24,6 +24,7 @@ use stm32l0::stm32l0x2 as pac;
 
 #[embassy::main(config = "embassy_stm32::Config::new(embassy_stm32::rcc::Config::hsi16())")]
 async fn main(spawner: Spawner, p: Peripherals) {
+    /*
     rtt_init_print!();
     unsafe {
         log::set_logger_racy(&LOGGER).unwrap();
@@ -31,6 +32,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
 
     log::set_max_level(log::LevelFilter::Trace);
     log::info!("Hello World!");
+    */
 
     let pp = pac::Peripherals::take().unwrap();
 
