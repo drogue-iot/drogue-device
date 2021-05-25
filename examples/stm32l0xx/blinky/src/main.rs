@@ -48,14 +48,14 @@ async fn main(spawner: Spawner, p: Peripherals) {
 
         led.set_high().unwrap();
 
-        Timer::after(Duration::from_micros(50)).await;
+        Timer::after(Duration::from_secs(1)).await;
         //cortex_m::asm::delay(1_000_000);
 
         log::info!("low!");
 
         led.set_low().unwrap();
 
-        Timer::after(Duration::from_micros(50)).await;
+        Timer::after(Duration::from_secs(1)).await;
         //Timer::after(Duration::from_secs(1)).await;
     }
 }
