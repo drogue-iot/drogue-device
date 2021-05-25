@@ -18,27 +18,27 @@ use drogue_device::{
     actors::button::*,
     drivers::led::*,
     drivers::lora::sx127x::*,
-    stm32::{
-        exti::ExtiPin,
-        hal::{
-            delay::Delay,
-            gpio::{
-                gpioa::{PA15, PA5, PA6, PA7},
-                gpiob::{PB2, PB3, PB4, PB5, PB6, PB7},
-                gpioc::PC0,
-                Analog, Input, Output, PullUp, PushPull,
-            },
-            pac::Peripherals,
-            pac::SPI1,
-            prelude::*,
-            rcc,
-            rng::Rng,
-            spi, syscfg,
-        },
-        interrupt,
-    },
+    stm32::{exti::ExtiPin, interrupt},
     traits::lora::*,
     *,
+};
+
+use stm32l0xx::stm32l0x2 as hal;
+
+use hal::{
+    delay::Delay,
+    gpio::{
+        gpioa::{PA15, PA5, PA6, PA7},
+        gpiob::{PB2, PB3, PB4, PB5, PB6, PB7},
+        gpioc::PC0,
+        Analog, Input, Output, PullUp, PushPull,
+    },
+    pac::Peripherals,
+    pac::SPI1,
+    prelude::*,
+    rcc,
+    rng::Rng,
+    spi, syscfg,
 };
 
 mod app;
