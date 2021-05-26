@@ -193,6 +193,7 @@ dependencies = [
 name = "drogue-device-macros"
 version = "0.1.0"
 dependencies = [
+ "cfg-if",
  "darling",
  "proc-macro2",
  "quote",
