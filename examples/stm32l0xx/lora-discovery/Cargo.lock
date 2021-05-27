@@ -353,6 +353,7 @@ dependencies = [
  "embassy-traits",
  "embedded-hal",
  "futures",
+ "log",
  "rand_core",
  "regex",
 ]
