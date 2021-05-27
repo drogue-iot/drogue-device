@@ -23,11 +23,11 @@ heapless = "0.6"
 void = { version = "1", default-features = false }
 
 # TODO: Get rid of these embassy deps some day
-embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", default-features = false}
-embassy-stm32 = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", default-features = false, features = ["stm32l072cz", "_gpio", "_timer", "log", "pac"] }
+#embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", default-features = false}
+#embassy-stm32 = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", default-features = false, features = ["stm32l072cz", "_gpio", "_timer", "log", "pac"] }
 
-# embassy = {path = "../../../../../embassy/embassy", default-features = false}
-# embassy-stm32 = {path = "../../../../../embassy/embassy-stm32", default-features = false, features = ["stm32l072cz", "_gpio_v2", "_timer", "log", "pac"] }
+embassy = {path = "../../../../../embassy/embassy", default-features = false}
+embassy-stm32 = {path = "../../../../../embassy/embassy-stm32", default-features = false, features = ["stm32l072cz", "_gpio", "_timer", "log", "pac"] }
 stm32l0xx-hal = { version = "0.7.0", features = ["stm32l0x2"] }
 
 [profile.release]

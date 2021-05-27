@@ -20,10 +20,10 @@ use drogue_device::{
     drivers::lora::sx127x::*,
     stm32::{
         exti::ExtiInput,
-        gpio::{AnyPin, Input, Pin, Pull},
+        gpio::{AnyPin, Input, Level, Output, Pin, Pull},
         interrupt,
         pac::*,
-        peripherals::{PB2, PB4},
+        peripherals::{PA15, PA5, PB2, PB4, PB5, PB6, PB7, PC0},
     },
     traits::{gpio::WaitForRisingEdge, lora::*},
     *,
@@ -34,10 +34,9 @@ use stm32l0xx_hal as hal;
 use hal::{
     delay::Delay,
     gpio::{
-        gpioa::{PA15, PA5, PA6, PA7},
-        gpiob::{PB3, PB5, PB6, PB7},
-        gpioc::PC0,
-        Analog, Output, PullUp, PushPull,
+        gpioa::{PA6, PA7},
+        gpiob::PB3,
+        Analog,
     },
     pac::Peripherals as HalPeripherals,
     pac::SPI1,
@@ -83,15 +82,15 @@ pub type Sx127x<'a> = Sx127xDriver<
     'a,
     ExtiInput<'a, PB4>,
     spi::Spi<SPI1, (PB3<Analog>, PA6<Analog>, PA7<Analog>)>,
-    PA15<Output<PushPull>>,
-    PC0<Output<PushPull>>,
+    Output<'a, PA15>,
+    Output<'a, PC0>,
     spi::Error,
 >;
 
-type Led1Pin = PB5<Output<PushPull>>;
-type Led2Pin = PA5<Output<PushPull>>;
-type Led3Pin = PB6<Output<PushPull>>;
-type Led4Pin = PB7<Output<PushPull>>;
+type Led1Pin = Output<'static, PB5>;
+type Led2Pin = Output<'static, PA5>;
+type Led3Pin = Output<'static, PB6>;
+type Led4Pin = Output<'static, PB7>;
 
 type MyApp = App<Sx127x<'static>, Led4Pin, Led2Pin, Led3Pin, Led1Pin>;
 
@@ -135,10 +134,10 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     let gpiob = device.GPIOB.split(&mut rcc);
     let gpioc = device.GPIOC.split(&mut rcc);
 
-    let led1 = Led::new(gpiob.pb5.into_push_pull_output());
-    let led2 = Led::new(gpioa.pa5.into_push_pull_output());
-    let led3 = Led::new(gpiob.pb6.into_push_pull_output());
-    let led4 = Led::new(gpiob.pb7.into_push_pull_output());
+    let led1 = Led::new(Output::new(p.PB5, Level::Low));
+    let led2 = Led::new(Output::new(p.PA5, Level::Low));
+    let led3 = Led::new(Output::new(p.PB6, Level::Low));
+    let led4 = Led::new(Output::new(p.PB7, Level::Low));
 
     let button = Input::new(p.PB2, Pull::Up);
     let mut pin = ExtiInput::new(button, p.EXTI2);
@@ -150,8 +149,8 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
         200_000.hz(),
         &mut rcc,
     );
-    let cs = gpioa.pa15.into_push_pull_output();
-    let reset = gpioc.pc0.into_push_pull_output();
+    let cs = Output::new(p.PA15, Level::Low);
+    let reset = Output::new(p.PC0, Level::Low);
     let _ = gpiob.pb1.into_floating_input();
 
     let ready = Input::new(p.PB4, Pull::Up);
