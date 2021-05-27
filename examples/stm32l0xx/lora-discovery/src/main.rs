@@ -18,28 +18,36 @@ use drogue_device::{
     actors::button::*,
     drivers::led::*,
     drivers::lora::sx127x::*,
-    stm32::{exti::ExtiPin, interrupt},
-    traits::lora::*,
+    stm32::{
+        exti::ExtiInput,
+        gpio::{AnyPin, Input, Pin, Pull},
+        interrupt,
+        pac::*,
+        peripherals::{PB2, PB4},
+    },
+    traits::{gpio::WaitForRisingEdge, lora::*},
     *,
 };
 
-use stm32l0xx::stm32l0x2 as hal;
+use stm32l0xx_hal as hal;
 
 use hal::{
     delay::Delay,
     gpio::{
         gpioa::{PA15, PA5, PA6, PA7},
-        gpiob::{PB2, PB3, PB4, PB5, PB6, PB7},
+        gpiob::{PB3, PB5, PB6, PB7},
         gpioc::PC0,
-        Analog, Input, Output, PullUp, PushPull,
+        Analog, Output, PullUp, PushPull,
     },
-    pac::Peripherals,
+    pac::Peripherals as HalPeripherals,
     pac::SPI1,
     prelude::*,
     rcc,
     rng::Rng,
     spi, syscfg,
 };
+
+use embedded_hal::digital::v2::InputPin;
 
 mod app;
 mod lora;
@@ -73,7 +81,7 @@ fn get_random_u32() -> u32 {
 
 pub type Sx127x<'a> = Sx127xDriver<
     'a,
-    ExtiPin<PB4<Input<PullUp>>>,
+    ExtiInput<'a, PB4>,
     spi::Spi<SPI1, (PB3<Analog>, PA6<Analog>, PA7<Analog>)>,
     PA15<Output<PushPull>>,
     PC0<Output<PushPull>>,
@@ -89,19 +97,22 @@ type MyApp = App<Sx127x<'static>, Led4Pin, Led2Pin, Led3Pin, Led1Pin>;
 
 pub struct MyDevice {
     lora: ActorContext<'static, LoraActor<Sx127x<'static>>>,
-    button: ActorContext<'static, Button<'static, ExtiPin<PB2<Input<PullUp>>>, MyApp>>,
+
+    button: ActorContext<'static, Button<'static, ExtiInput<'static, PB2>, MyApp>>,
     app: ActorContext<'static, MyApp>,
 }
 
-#[drogue::main(config = "embassy_stm32::hal::rcc::Config::hsi16()")]
-async fn main(context: DeviceContext<MyDevice>, device: Peripherals) {
+#[drogue::main(
+    config = "drogue_device::stm32::Config::default().rcc(drogue_device::stm32::rcc::Config::default().clock_src(drogue_device::stm32::rcc::ClockSrc::HSI16))"
+)]
+async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     rtt_init_print!();
     unsafe {
         log::set_logger_racy(&LOGGER).unwrap();
     }
 
     log::set_max_level(log::LevelFilter::Trace);
-    let device = unsafe { Peripherals::steal() };
+    let device = unsafe { HalPeripherals::steal() };
 
     // NEEDED FOR RTT
     device.DBG.cr.modify(|_, w| {
@@ -120,20 +131,17 @@ async fn main(context: DeviceContext<MyDevice>, device: Peripherals) {
     let hsi48 = rcc.enable_hsi48(&mut syscfg, device.CRS);
     unsafe { RNG.replace(Rng::new(device.RNG, &mut rcc, hsi48)) };
 
-    let irq = interrupt::take!(EXTI2_3);
-
     let gpioa = device.GPIOA.split(&mut rcc);
     let gpiob = device.GPIOB.split(&mut rcc);
     let gpioc = device.GPIOC.split(&mut rcc);
-
-    let button = gpiob.pb2.into_pull_up_input();
 
     let led1 = Led::new(gpiob.pb5.into_push_pull_output());
     let led2 = Led::new(gpioa.pa5.into_push_pull_output());
     let led3 = Led::new(gpiob.pb6.into_push_pull_output());
     let led4 = Led::new(gpiob.pb7.into_push_pull_output());
 
-    let pin = ExtiPin::new(button, irq, &mut syscfg);
+    let button = Input::new(p.PB2, Pull::Up);
+    let mut pin = ExtiInput::new(button, p.EXTI2);
 
     // SPI for sx127x
     let spi = device.SPI1.spi(
@@ -144,11 +152,10 @@ async fn main(context: DeviceContext<MyDevice>, device: Peripherals) {
     );
     let cs = gpioa.pa15.into_push_pull_output();
     let reset = gpioc.pc0.into_push_pull_output();
-    let ready = gpiob.pb4.into_pull_up_input();
     let _ = gpiob.pb1.into_floating_input();
 
-    let ready_irq = interrupt::take!(EXTI4_15);
-    let ready_pin = ExtiPin::new(ready, ready_irq, &mut syscfg);
+    let ready = Input::new(p.PB4, Pull::Up);
+    let ready_pin = ExtiInput::new(ready, p.EXTI4);
 
     let cdevice = cortex_m::Peripherals::take().unwrap();
     let mut delay = Delay::new(cdevice.SYST, rcc.clocks);
