@@ -80,8 +80,11 @@ where
         delay.delay_ms(10);
         let version = sx127x.read_register(Register::RegVersion.addr())?;
         if version == VERSION_CHECK {
+            log::info!("Version: {:?}", version);
             sx127x.set_mode(RadioMode::Sleep)?;
+            log::info!("Sleep mode set");
             sx127x.set_frequency(frequency)?;
+            log::info!("Freq set");
             sx127x.write_register(Register::RegFifoTxBaseAddr.addr(), 0)?;
             sx127x.write_register(Register::RegFifoRxBaseAddr.addr(), 0)?;
             let lna = sx127x.read_register(Register::RegLna.addr())?;
@@ -91,6 +94,7 @@ where
             sx127x.cs.set_high().map_err(CS)?;
             Ok(sx127x)
         } else {
+            log::info!("Version mismatch!");
             Err(Error::VersionMismatch(version))
         }
     }
@@ -548,7 +552,9 @@ where
         self.cs.set_low().map_err(CS)?;
 
         let mut buffer = [reg & 0x7f, 0];
+        log::info!("Reading register...");
         let transfer = self.spi.transfer(&mut buffer).map_err(SPI)?;
+        log::info!("Register read: {:?}!", transfer);
         self.cs.set_high().map_err(CS)?;
         Ok(transfer[1])
     }
@@ -562,7 +568,9 @@ where
 
         let buffer = [reg | 0x80, byte];
         self.spi.write(&buffer).map_err(SPI)?;
+        log::info!("Wrote register!");
         self.cs.set_high().map_err(CS)?;
+        log::info!("Set pulled high!");
         Ok(())
     }
 

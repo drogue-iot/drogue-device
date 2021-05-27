@@ -21,11 +21,12 @@ use drogue_device::{
     stm32::{
         exti::ExtiInput,
         gpio::{AnyPin, Input, Level, Output, Pin, Pull},
-        interrupt,
-        pac::*,
-        peripherals::{PA15, PA5, PB2, PB4, PB5, PB6, PB7, PC0},
+        interrupt, pac,
+        peripherals::{PA15, PA5, PA6, PA7, PB2, PB3, PB4, PB5, PB6, PB7, PC0, SPI1},
+        rcc as stm32rcc, spi,
+        time::U32Ext,
     },
-    traits::{gpio::WaitForRisingEdge, lora::*},
+    traits::lora::*,
     *,
 };
 
@@ -33,20 +34,11 @@ use stm32l0xx_hal as hal;
 
 use hal::{
     delay::Delay,
-    gpio::{
-        gpioa::{PA6, PA7},
-        gpiob::PB3,
-        Analog,
-    },
     pac::Peripherals as HalPeripherals,
-    pac::SPI1,
-    prelude::*,
-    rcc,
+    rcc::{self, RccExt},
     rng::Rng,
-    spi, syscfg,
+    syscfg,
 };
-
-use embedded_hal::digital::v2::InputPin;
 
 mod app;
 mod lora;
@@ -81,7 +73,7 @@ fn get_random_u32() -> u32 {
 pub type Sx127x<'a> = Sx127xDriver<
     'a,
     ExtiInput<'a, PB4>,
-    spi::Spi<SPI1, (PB3<Analog>, PA6<Analog>, PA7<Analog>)>,
+    spi::Spi<'a, SPI1>,
     Output<'a, PA15>,
     Output<'a, PC0>,
     spi::Error,
@@ -113,6 +105,7 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     log::set_max_level(log::LevelFilter::Trace);
     let device = unsafe { HalPeripherals::steal() };
 
+    log::info!("Enabling clocks");
     // NEEDED FOR RTT
     device.DBG.cr.modify(|_, w| {
         w.dbg_sleep().set_bit();
@@ -120,6 +113,7 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
         w.dbg_stop().set_bit()
     });
     device.RCC.ahbenr.modify(|_, w| w.dmaen().enabled());
+    device.RCC.apb2enr.modify(|_, w| w.spi1en().enabled());
     // NEEDED FOR RTT
 
     // TODO: This must be in sync with above, but is there a
@@ -130,10 +124,6 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     let hsi48 = rcc.enable_hsi48(&mut syscfg, device.CRS);
     unsafe { RNG.replace(Rng::new(device.RNG, &mut rcc, hsi48)) };
 
-    let gpioa = device.GPIOA.split(&mut rcc);
-    let gpiob = device.GPIOB.split(&mut rcc);
-    let gpioc = device.GPIOC.split(&mut rcc);
-
     let led1 = Led::new(Output::new(p.PB5, Level::Low));
     let led2 = Led::new(Output::new(p.PA5, Level::Low));
     let led3 = Led::new(Output::new(p.PB6, Level::Low));
@@ -142,16 +132,26 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     let button = Input::new(p.PB2, Pull::Up);
     let mut pin = ExtiInput::new(button, p.EXTI2);
 
+    let mut r = stm32rcc::Rcc::new(p.RCC);
+
+    log::info!("Creating SPI peripheral");
     // SPI for sx127x
-    let spi = device.SPI1.spi(
-        (gpiob.pb3, gpioa.pa6, gpioa.pa7),
-        spi::MODE_0,
+    let mut spiconfig = spi::Config::default();
+    let apb2_freq = rcc.clocks.apb2_clk().0;
+    log::info!("APB2 freq: {:?}", apb2_freq);
+    let spi = spi::Spi::new(
+        apb2_freq.hz(),
+        p.SPI1,
+        p.PB3,
+        p.PA7,
+        p.PA6,
         200_000.hz(),
-        &mut rcc,
+        spiconfig,
     );
-    let cs = Output::new(p.PA15, Level::Low);
-    let reset = Output::new(p.PC0, Level::Low);
-    let _ = gpiob.pb1.into_floating_input();
+    log::info!("Done creating SPI");
+    let cs = Output::new(p.PA15, Level::High);
+    let reset = Output::new(p.PC0, Level::High);
+    let _ = Input::new(p.PB1, Pull::None);
 
     let ready = Input::new(p.PB4, Pull::Up);
     let ready_pin = ExtiInput::new(ready, p.EXTI4);
@@ -159,6 +159,7 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     let cdevice = cortex_m::Peripherals::take().unwrap();
     let mut delay = Delay::new(cdevice.SYST, rcc.clocks);
 
+    log::info!("Creating driver");
     let lora = Sx127xDriver::new(ready_pin, spi, cs, reset, &mut delay, get_random_u32)
         .expect("error creating sx127x driver");
 
