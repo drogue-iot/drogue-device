@@ -23,11 +23,11 @@ cortex-m-rt = "0.6"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 
 # TODO: Get rid of these embassy deps some day
-# embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false}
-# embassy-rp = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue", default-features = false}
+embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "clock-init", default-features = false}
+embassy-rp = {git = "https://github.com/drogue-iot/embassy.git", branch = "clock-init", default-features = false}
 
-embassy = {path = "../../../../../embassy/embassy", default-features = false}
-embassy-rp = {path = "../../../../../embassy/embassy-rp", default-features = false}
+# embassy = {path = "../../../../../embassy/embassy", default-features = false}
+# embassy-rp = {path = "../../../../../embassy/embassy-rp", default-features = false}
 
 [features]
 default = [
