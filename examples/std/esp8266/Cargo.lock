@@ -119,9 +119,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.67"
+version = "1.0.68"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3c69b077ad434294d3ce9f1f6143a2a4b89a8a2d54ef813d85003a4fd1137fd"
+checksum = "4a72c244c1ff497a746a7e1fb3d14bd08420ecda70c8f25c7112f2781652d787"
 
 [[package]]
 name = "cfg-if"
@@ -227,6 +227,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#5826b4e82dbf3623712d4aecd24723003780a245"
 dependencies = [
  "atomic-polyfill",
  "cast",
@@ -241,6 +242,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#5826b4e82dbf3623712d4aecd24723003780a245"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -251,6 +253,7 @@ dependencies = [
 [[package]]
 name = "embassy-std"
 version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#5826b4e82dbf3623712d4aecd24723003780a245"
 dependencies = [
  "embassy",
  "embassy-macros",
@@ -260,6 +263,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#5826b4e82dbf3623712d4aecd24723003780a245"
 dependencies = [
  "embedded-hal",
 ]
@@ -500,9 +504,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.94"
+version = "0.2.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18794a8ad5b29321f790b55d93dfba91e125cb1a9edbd4f8e3150acc771c1a5e"
+checksum = "789da6d93f1b866ffe175afc5322a4d76c038605a1c3319bb57b06967ca98a36"
 
 [[package]]
 name = "log"
@@ -633,9 +637,9 @@ checksum = "bc881b2c22681370c6a780e47af9840ef841837bc98118431d4e1868bd0c1086"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.26"
+version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a152013215dca273577e18d2bf00fa862b89b24169fb78c4c95aeb07992c9cec"
+checksum = "f0d8caf72986c1a598726adc988bb5984792ef84f5ee5aa50209145ee8077038"
 dependencies = [
  "unicode-xid",
 ]

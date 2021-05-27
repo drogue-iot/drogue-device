@@ -180,9 +180,9 @@ dependencies = [
 
 [[package]]
 name = "cortex-m-rt"
-version = "0.6.13"
+version = "0.6.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "980c9d0233a909f355ed297ef122f257942de5e0a2cb1c39f60684b65bcb90fb"
+checksum = "b6d8353767db816419630a76d5f1ad5b09610d22b67ceb59647df6a8abc667f8"
 dependencies = [
  "cortex-m-rt-macros",
  "r0",
@@ -307,6 +307,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#5826b4e82dbf3623712d4aecd24723003780a245"
 dependencies = [
  "atomic-polyfill",
  "cast",
@@ -321,6 +322,7 @@ dependencies = [
 [[package]]
 name = "embassy-extras"
 version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#5826b4e82dbf3623712d4aecd24723003780a245"
 dependencies = [
  "cortex-m 0.7.2",
  "embassy",
@@ -330,6 +332,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#5826b4e82dbf3623712d4aecd24723003780a245"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -340,6 +343,7 @@ dependencies = [
 [[package]]
 name = "embassy-stm32"
 version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#5826b4e82dbf3623712d4aecd24723003780a245"
 dependencies = [
  "atomic-polyfill",
  "bare-metal 1.0.0",
@@ -361,6 +365,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#5826b4e82dbf3623712d4aecd24723003780a245"
 dependencies = [
  "embedded-hal",
 ]
@@ -647,9 +652,9 @@ checksum = "bc881b2c22681370c6a780e47af9840ef841837bc98118431d4e1868bd0c1086"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.26"
+version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a152013215dca273577e18d2bf00fa862b89b24169fb78c4c95aeb07992c9cec"
+checksum = "f0d8caf72986c1a598726adc988bb5984792ef84f5ee5aa50209145ee8077038"
 dependencies = [
  "unicode-xid",
 ]
