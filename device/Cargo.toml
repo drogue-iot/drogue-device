@@ -13,11 +13,11 @@ doctest = false
 [dependencies]
 drogue-device-macros = { path = "../macros" }
 
- embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "clock-init", default-features = false }
- embassy-nrf = {git = "https://github.com/drogue-iot/embassy.git", branch = "clock-init", default-features = false, optional = true }
- embassy-stm32 = {git = "https://github.com/drogue-iot/embassy.git", branch = "clock-init", default-features = false, optional = true }
- embassy-rp = {git = "https://github.com/drogue-iot/embassy.git", branch = "clock-init", default-features = false, optional = true }
- embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "clock-init", default-features = false, optional = true }
+ embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", default-features = false }
+ embassy-nrf = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", default-features = false, optional = true }
+ embassy-stm32 = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", default-features = false, optional = true }
+ embassy-rp = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", default-features = false, optional = true }
+ embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", default-features = false, optional = true }
 
 # embassy = {default-features = false, path = "../../../embassy/embassy" }
 # embassy-nrf = {default-features = false, optional = true, path = "../../../embassy/embassy-nrf" }
@@ -47,7 +47,7 @@ log = { version = "0.4", optional = true }
 defmt = { version = "0.2", optional = true }
 
 [dev-dependencies]
-embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "clock-init", default-features = false }
+embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", default-features = false }
 # embassy-std = {default-features = false, path = "../../../embassy/embassy-std" }
 futures = { version = "0.3", default-features = false, features = ["executor"] }
 arrayvec = { version = "0.6" }
@@ -58,7 +58,7 @@ default = [ "log", "std" ]
 std = ["embassy/std", "embassy-std", "drogue-device-macros/std" ]
 "chip+rp" = [ "embassy-rp", "embassy-rp/defmt" ]
 "chip+nrf52833" = ["embassy-nrf", "embassy-nrf/nrf52833", "chip+nrf"]
-"chip+stm32l0x2" = ["embassy-stm32", "embassy-stm32/stm32l072cz", "embassy-stm32/_gpio_v2", "embassy-stm32/_timer", "chip+stm32" ]
+"chip+stm32l0x2" = ["embassy-stm32", "chip+stm32" ]
 "lora+sx127x" = ["lorawan-device", "lorawan-encoding", "bit_field", "log"]
 "lora+rak811" = ["log", "nom", "moveslice"]
 "wifi+esp8266" = ["log", "nom", "moveslice"]
