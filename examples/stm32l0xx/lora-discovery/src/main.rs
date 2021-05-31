@@ -22,7 +22,9 @@ use drogue_device::{
         exti::ExtiInput,
         gpio::{AnyPin, Input, Level, Output, Pin, Pull},
         interrupt,
-        peripherals::{PA15, PA5, PB2, PB4, PB5, PB6, PB7, PC0},
+        peripherals::{PA15, PA5, PA6, PA7, PB2, PB4, PB5, PB6, PB7, PC0, SPI1},
+        spi,
+        time::U32Ext,
     },
     traits::{gpio::WaitForRisingEdge, lora::*},
     *,
@@ -32,17 +34,10 @@ use stm32l0xx_hal as hal;
 
 use hal::{
     delay::Delay,
-    gpio::{
-        gpioa::{PA6, PA7},
-        gpiob::PB3,
-        Analog,
-    },
     pac::Peripherals as HalPeripherals,
-    pac::SPI1,
-    prelude::*,
-    rcc,
+    rcc::{self, RccExt},
     rng::Rng,
-    spi, syscfg,
+    syscfg,
 };
 
 use embedded_hal::digital::v2::InputPin;
@@ -80,7 +75,7 @@ fn get_random_u32() -> u32 {
 pub type Sx127x<'a> = Sx127xDriver<
     'a,
     ExtiInput<'a, PB4>,
-    spi::Spi<SPI1, (PB3<Analog>, PA6<Analog>, PA7<Analog>)>,
+    spi::Spi<'a, SPI1>,
     Output<'a, PA15>,
     Output<'a, PC0>,
     spi::Error,
@@ -129,10 +124,6 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     let hsi48 = rcc.enable_hsi48(&mut syscfg, device.CRS);
     unsafe { RNG.replace(Rng::new(device.RNG, &mut rcc, hsi48)) };
 
-    let gpioa = device.GPIOA.split(&mut rcc);
-    let gpiob = device.GPIOB.split(&mut rcc);
-    let gpioc = device.GPIOC.split(&mut rcc);
-
     let led1 = Led::new(Output::new(p.PB5, Level::Low));
     let led2 = Led::new(Output::new(p.PA5, Level::Low));
     let led3 = Led::new(Output::new(p.PB6, Level::Low));
@@ -142,11 +133,14 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     let mut pin = ExtiInput::new(button, p.EXTI2);
 
     // SPI for sx127x
-    let spi = device.SPI1.spi(
-        (gpiob.pb3, gpioa.pa6, gpioa.pa7),
-        spi::MODE_0,
+    let spi = spi::Spi::new(
+        rcc.clocks.apb2_clk().0.hz(),
+        p.SPI1,
+        p.PB3,
+        p.PA7,
+        p.PA6,
         200_000.hz(),
-        &mut rcc,
+        spi::Config::default(),
     );
     let cs = Output::new(p.PA15, Level::High);
     let reset = Output::new(p.PC0, Level::High);
