@@ -20,16 +20,17 @@ use drogue_device::{
         led::matrix::{LEDMatrix, MatrixCommand},
         ticker::Ticker,
     },
-    nrf::{
-        gpio::{AnyPin, Input, Level, NoPin, Output, OutputDrive, Pin, Pull},
-        gpiote::PortInput,
-        interrupt,
-        peripherals::{P0_14, UARTE0},
-        uarte::{self, Uarte},
-        Peripherals,
-    },
-    time::Duration,
-    *,
+    ActorContext, DeviceContext,
+};
+
+use embassy::time::Duration;
+use embassy_nrf::{
+    gpio::{AnyPin, Input, Level, NoPin, Output, OutputDrive, Pin, Pull},
+    gpiote::PortInput,
+    interrupt,
+    peripherals::{P0_14, UARTE0},
+    uarte::{self, Uarte},
+    Peripherals,
 };
 use panic_probe as _;
 
@@ -43,12 +44,14 @@ pub struct MyDevice {
     matrix: ActorContext<'static, LedMatrix>,
 }
 
+static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+
 fn output_pin(pin: AnyPin) -> Output<'static, AnyPin> {
     Output::new(pin, Level::Low, OutputDrive::Standard)
 }
 
-#[drogue::main]
-async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
+#[embassy::main]
+async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let mut config = uarte::Config::default();
     config.parity = uarte::Parity::EXCLUDED;
     config.baudrate = uarte::Baudrate::BAUD115200;
@@ -77,7 +80,7 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
 
     let led = LedMatrix::new(rows, cols);
 
-    context.configure(MyDevice {
+    DEVICE.configure(MyDevice {
         server: ActorContext::new(EchoServer::new(uarte)),
         button: ActorContext::new(Button::new(button_port)),
         statistics: ActorContext::new(Statistics::new()),
@@ -88,11 +91,11 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
         matrix: ActorContext::new(led),
     });
 
-    context.mount(|device, spawner| {
-        let matrix = device.matrix.mount((), spawner);
-        let statistics = device.statistics.mount((), spawner);
-        device.server.mount((matrix, statistics), spawner);
-        device.button.mount(statistics, spawner);
-        device.ticker.mount(matrix, spawner);
+    DEVICE.mount(|device| {
+        let matrix = device.matrix.mount((), spawner.into());
+        let statistics = device.statistics.mount((), spawner.into());
+        device.server.mount((matrix, statistics), spawner.into());
+        device.button.mount(statistics, spawner.into());
+        device.ticker.mount(matrix, spawner.into());
     });
 }

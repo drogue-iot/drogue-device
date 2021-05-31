@@ -5,7 +5,7 @@
 [![docs.rs](https://docs.rs/drogue-device/badge.svg)](https://docs.rs/drogue-device)
 [![Matrix](https://img.shields.io/matrix/drogue-iot:matrix.org)](https://matrix.to/#/#drogue-iot:matrix.org)
 
-Drogue device is an open source async, no-alloc framework for embedded devices, based on [embassy](https://github.com/embassy-rs/embassy). 
+Drogue device is an open source async, no-alloc framework for embedded devices. It integrates with [embassy](https://github.com/embassy-rs/embassy), the embedded async project. 
 
 * Built using [rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.
 * Actor-based programming model for writing safe and composable applications.
@@ -68,19 +68,28 @@ impl Actor for Counter {
 }
 
 /// A struct holding the Actors for the application.
-pub struct Device {
+pub struct MyDevice {
     counter: ActorContext<'static, Counter>,
 }
 
-/// The entry point of the application is annotated using the drogue::main macro.
-#[drogue::main]
-async fn main(context: DeviceContext<Device>) {
-    context.configure(Device {
+/// A static reference to this device holding the device state.
+static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+
+/// The entry point of the application is using the embassy runtime.
+#[embassy::main]
+async fn main(spawner: embassy::executor::Spawner) {
+
+    /// Configuring the device will initialize the global state.
+    DEVICE.configure(MyDevice {
         counter: ActorContext::new(Counter{count: 0}),
     });
-    let addr = context.mount(|device, spawner| {
-        device.a.mount((), spawner)
+
+    /// Mounting the device will spawn embassy tasks for every actor.
+    let addr = DEVICE.mount(|device| {
+        device.a.mount((), spawner.into())
     });
+
+    /// The actor address may be used in any embassy task to communicate with the actor.
     addr.request(Increment).await;
 }
 ```

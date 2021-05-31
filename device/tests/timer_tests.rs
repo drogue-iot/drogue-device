@@ -9,23 +9,26 @@
 mod tests {
     extern crate std;
     use drogue_device::{actors::timer::*, testutil::*, *};
+    use drogue_device_macros::test as drogue_test;
+    use embassy::executor::Spawner;
+    use embassy::time;
 
     struct ScheduleDevice {
         handler: ActorContext<'static, TestHandler>,
         timer: ActorContext<'static, Timer<'static, TestHandler>>,
     }
 
-    #[drogue::test]
-    async fn test_schedule(mut context: TestContext<ScheduleDevice>) {
+    #[drogue_test]
+    async fn test_schedule(spawner: Spawner, mut context: TestContext<ScheduleDevice>) {
         let notified = context.signal();
         context.configure(ScheduleDevice {
             handler: ActorContext::new(TestHandler::new(notified)),
             timer: ActorContext::new(Timer::new()),
         });
 
-        let (timer_addr, handler_addr) = context.mount(|device, spawner| {
-            let handler_addr = device.handler.mount((), spawner);
-            (device.timer.mount((), spawner), handler_addr)
+        let (timer_addr, handler_addr) = context.mount(|device| {
+            let handler_addr = device.handler.mount((), spawner.into());
+            (device.timer.mount((), spawner.into()), handler_addr)
         });
 
         let before = time::Instant::now();
@@ -46,13 +49,13 @@ mod tests {
         timer: ActorContext<'static, Timer<'static, TestHandler>>,
     }
 
-    #[drogue::test]
-    async fn test_delay(mut context: TestContext<DelayDevice>) {
+    #[drogue_test]
+    async fn test_delay(spawner: Spawner, mut context: TestContext<DelayDevice>) {
         context.configure(DelayDevice {
             timer: ActorContext::new(Timer::new()),
         });
 
-        let timer = context.mount(|device, spawner| device.timer.mount((), spawner));
+        let timer = context.mount(|device| device.timer.mount((), spawner.into()));
 
         let before = time::Instant::now();
         timer

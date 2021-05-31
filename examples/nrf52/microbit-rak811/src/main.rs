@@ -19,18 +19,15 @@ use rtt_target::rtt_init_print;
 
 use core::cell::UnsafeCell;
 use drogue_device::{
-    actors::button::Button,
-    drivers::lora::rak811::*,
-    nrf::{
-        buffered_uarte::BufferedUarte,
-        gpio::{Input, Level, NoPin, Output, OutputDrive, Pull},
-        gpiote::PortInput,
-        interrupt,
-        peripherals::{P0_14, P1_02, TIMER0, UARTE0},
-        uarte, Peripherals,
-    },
-    traits::lora::*,
-    *,
+    actors::button::Button, drivers::lora::rak811::*, traits::lora::*, ActorContext, DeviceContext,
+};
+use embassy_nrf::{
+    buffered_uarte::BufferedUarte,
+    gpio::{Input, Level, NoPin, Output, OutputDrive, Pull},
+    gpiote::PortInput,
+    interrupt,
+    peripherals::{P0_14, P1_02, TIMER0, UARTE0},
+    uarte, Peripherals,
 };
 
 const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/dev_eui.txt"));
@@ -52,8 +49,10 @@ pub struct MyDevice {
     >,
 }
 
-#[drogue::main]
-async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
+static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+
+#[embassy::main]
+async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     rtt_init_print!();
     log::set_logger(&LOGGER).unwrap();
     log::set_max_level(log::LevelFilter::Info);
@@ -94,17 +93,17 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
         .app_eui(&APP_EUI.trim_end().into())
         .app_key(&APP_KEY.trim_end().into());
 
-    context.configure(MyDevice {
+    DEVICE.configure(MyDevice {
         driver: UnsafeCell::new(Rak811Driver::new()),
         modem: ActorContext::new(Rak811ModemActor::new()),
         app: ActorContext::new(App::new(config)),
         button: ActorContext::new(Button::new(button_port)),
     });
 
-    context.mount(|device, spawner| {
+    DEVICE.mount(|device| {
         let (controller, modem) = unsafe { &mut *device.driver.get() }.initialize(u, reset_pin);
-        device.modem.mount(modem, spawner);
-        let app = device.app.mount(controller, spawner);
-        device.button.mount(app, spawner);
+        device.modem.mount(modem, spawner.into());
+        let app = device.app.mount(controller, spawner.into());
+        device.button.mount(app, spawner.into());
     });
 }

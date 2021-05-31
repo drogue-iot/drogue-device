@@ -17,18 +17,15 @@ use rtt_target::rtt_init_print;
 
 use core::cell::UnsafeCell;
 use drogue_device::{
-    actors::button::Button,
-    drivers::wifi::esp8266::*,
-    nrf::{
-        buffered_uarte::BufferedUarte,
-        gpio::{Input, Level, NoPin, Output, OutputDrive, Pull},
-        gpiote::PortInput,
-        interrupt,
-        peripherals::{P0_02, P0_03, P0_14, TIMER0, UARTE0},
-        uarte, Peripherals,
-    },
-    traits::ip::*,
-    *,
+    actors::button::Button, drivers::wifi::esp8266::*, traits::ip::*, ActorContext, DeviceContext,
+};
+use embassy_nrf::{
+    buffered_uarte::BufferedUarte,
+    gpio::{Input, Level, NoPin, Output, OutputDrive, Pull},
+    gpiote::PortInput,
+    interrupt,
+    peripherals::{P0_02, P0_03, P0_14, TIMER0, UARTE0},
+    uarte, Peripherals,
 };
 
 const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.ssid.txt"));
@@ -52,8 +49,10 @@ pub struct MyDevice {
     >,
 }
 
-#[drogue::main]
-async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
+static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+
+#[embassy::main]
+async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     rtt_init_print!();
     unsafe {
         log::set_logger_racy(&LOGGER).unwrap();
@@ -91,7 +90,7 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     let enable_pin = Output::new(p.P0_03, Level::Low, OutputDrive::Standard);
     let reset_pin = Output::new(p.P0_02, Level::Low, OutputDrive::Standard);
 
-    context.configure(MyDevice {
+    DEVICE.configure(MyDevice {
         driver: UnsafeCell::new(Esp8266Driver::new()),
         modem: ActorContext::new(Esp8266ModemActor::new()),
         app: ActorContext::new(App::new(
@@ -103,11 +102,11 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
         button: ActorContext::new(Button::new(button_port)),
     });
 
-    context.mount(|device, spawner| {
+    DEVICE.mount(|device| {
         let (controller, modem) =
             unsafe { &mut *device.driver.get() }.initialize(u, enable_pin, reset_pin);
-        device.modem.mount(modem, spawner);
-        let app = device.app.mount(controller, spawner);
-        device.button.mount(app, spawner);
+        device.modem.mount(modem, spawner.into());
+        let app = device.app.mount(controller, spawner.into());
+        device.button.mount(app, spawner.into());
     });
 }

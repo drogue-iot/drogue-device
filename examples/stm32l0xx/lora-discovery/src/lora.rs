@@ -57,7 +57,6 @@ where
         message: Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         async move {
-            log_stack!();
             match message {
                 LoraCommand::Configure(config) => {
                     if let Err(e) = self.lora.configure(&config).await {

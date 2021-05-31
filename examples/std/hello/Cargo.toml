@@ -13,6 +13,8 @@ version = "0.1.0"
 log = "0.4"
 env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["log", "std"] }
+embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", features = ["std"] }
+embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", default-features = false }
 
 [patch.crates-io]
 cortex-m = {git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"]}

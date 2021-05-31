@@ -17,6 +17,6 @@ pub trait Package {
     fn mount(
         &'static self,
         config: Self::Configuration,
-        spawner: &ActorSpawner,
+        spawner: ActorSpawner,
     ) -> Address<Self::Primary>;
 }

@@ -1,6 +1,6 @@
 use crate::actors::button::{ButtonEvent, FromButtonEvent};
 use crate::kernel::{
-    actor::{Actor, ActorContext, ActorSpawner},
+    actor::{Actor, ActorContext},
     device::DeviceContext,
     util::ImmediateFuture,
 };
@@ -26,11 +26,11 @@ use std::vec::Vec;
 /// A test context that can execute test for a given device
 pub struct TestContext<D: 'static> {
     runner: &'static TestRunner,
-    device: DeviceContext<D>,
+    device: &'static DeviceContext<D>,
 }
 
 impl<D> TestContext<D> {
-    pub fn new(runner: &'static TestRunner, device: DeviceContext<D>) -> Self {
+    pub fn new(runner: &'static TestRunner, device: &'static DeviceContext<D>) -> Self {
         Self { runner, device }
     }
 
@@ -50,7 +50,7 @@ impl<D> TestContext<D> {
     }
 
     /// Mount the device, running the provided callback function.
-    pub fn mount<F: FnOnce(&'static D, &ActorSpawner) -> R, R>(&mut self, f: F) -> R {
+    pub fn mount<F: FnOnce(&'static D) -> R, R>(&mut self, f: F) -> R {
         self.device.mount(f)
     }
 }

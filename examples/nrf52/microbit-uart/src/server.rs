@@ -1,11 +1,10 @@
 use crate::statistics::*;
 use core::future::Future;
 use core::pin::Pin;
-use drogue_device::{
-    actors::led::matrix::*,
+use drogue_device::{actors::led::matrix::*, Actor, Address};
+use embassy::{
     time::{Duration, Timer},
     traits::uart::{Read, Write},
-    Actor, Address,
 };
 
 use crate::LedMatrix;

@@ -15,23 +15,20 @@ use rtt_logger::RTTLogger;
 use rtt_target::rtt_init_print;
 
 use drogue_device::{
-    actors::button::*,
-    drivers::led::*,
-    drivers::lora::sx127x::*,
-    stm32::{
-        exti::ExtiInput,
-        gpio::{Input, Level, Output, Pull},
-        interrupt,
-        peripherals::{PA15, PA5, PB2, PB4, PB5, PB6, PB7, PC0, RNG, SPI1},
-        rng::Random,
-        spi,
-        time::U32Ext,
-    },
-    traits::lora::*,
-    *,
+    actors::button::*, drivers::led::*, drivers::lora::sx127x::*, traits::lora::*, *,
+};
+use embassy_stm32::{
+    exti::ExtiInput,
+    gpio::{Input, Level, Output, Pull},
+    interrupt,
+    peripherals::{PA15, PA5, PB2, PB4, PB5, PB6, PB7, PC0, RNG, SPI1},
+    rng::Random,
+    spi,
+    time::U32Ext,
+    Peripherals,
 };
 
-use rand_core::{CryptoRng, RngCore};
+use rand_core::RngCore;
 use stm32l0xx_hal as hal;
 
 use hal::{
@@ -87,10 +84,12 @@ pub struct MyDevice {
     app: ActorContext<'static, MyApp>,
 }
 
-#[drogue::main(
-    config = "drogue_device::stm32::Config::default().rcc(drogue_device::stm32::rcc::Config::default().clock_src(drogue_device::stm32::rcc::ClockSrc::HSI16))"
+static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+
+#[embassy::main(
+    config = "embassy_stm32::Config::default().rcc(embassy_stm32::rcc::Config::default().clock_src(embassy_stm32::rcc::ClockSrc::HSI16))"
 )]
-async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
+async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     rtt_init_print!();
     unsafe {
         log::set_logger_racy(&LOGGER).unwrap();
@@ -134,7 +133,7 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     let led4 = Led::new(Output::new(p.PB7, Level::Low));
 
     let button = Input::new(p.PB2, Pull::Up);
-    let mut pin = ExtiInput::new(button, p.EXTI2);
+    let pin = ExtiInput::new(button, p.EXTI2);
 
     // SPI for sx127x
     let spi = spi::Spi::new(
@@ -169,7 +168,7 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
 
     log::info!("Configuring with config {:?}", config);
 
-    context.configure(MyDevice {
+    DEVICE.configure(MyDevice {
         app: ActorContext::new(App::new(AppInitConfig {
             tx_led: led2,
             green_led: led1,
@@ -181,17 +180,9 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
         button: ActorContext::new(Button::new(pin)),
     });
 
-    /*
-    print_size::<LoraActor<Sx127x<'static>>>("LoraActor");
-    print_size::<ActorContext<'static, LoraActor<Sx127x<'static>>>>("ActorContext<LoraActor>");
-    print_size::<ActorContext<'static, Led<Led1Pin>>>("ActorContext<Led1Pin>");
-    print_size::<Led<Led1Pin>>("Led<Led1Pin>");
-    print_size::<Led1Pin>("Led1Pin");
-    */
-
-    context.mount(|device, spawner| {
-        let lora = device.lora.mount((), spawner);
-        let app = device.app.mount(AppConfig { lora }, spawner);
-        device.button.mount(app, spawner);
+    DEVICE.mount(|device| {
+        let lora = device.lora.mount((), spawner.into());
+        let app = device.app.mount(AppConfig { lora }, spawner.into());
+        device.button.mount(app, spawner.into());
     });
 }

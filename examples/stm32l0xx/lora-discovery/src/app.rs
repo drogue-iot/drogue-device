@@ -174,7 +174,6 @@ where
 
     fn on_start<'m>(mut self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
         async move {
-            log_stack!();
             let lora_config = self.config.lora.take().unwrap();
             self.config.init_led.on().ok();
             if let Some(ref cfg) = self.cfg {
@@ -193,7 +192,6 @@ where
         message: Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         async move {
-            log_stack!();
             match message {
                 Command::Tick => {
                     self.tick();

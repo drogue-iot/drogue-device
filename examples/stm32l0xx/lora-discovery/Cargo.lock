@@ -357,9 +357,7 @@ dependencies = [
  "atomic-polyfill",
  "bit_field",
  "critical-section",
- "drogue-device-macros",
  "embassy",
- "embassy-stm32",
  "embedded-hal",
  "futures",
  "generic-array 0.14.4",
@@ -367,17 +365,6 @@ dependencies = [
  "log",
  "lorawan-device",
  "lorawan-encoding",
-]
-
-[[package]]
-name = "drogue-device-macros"
-version = "0.1.0"
-dependencies = [
- "cfg-if",
- "darling",
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

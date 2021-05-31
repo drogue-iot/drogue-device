@@ -8,24 +8,30 @@
 #[cfg(feature = "std")]
 mod tests {
     extern crate std;
-    use drogue_device::{actors::ticker::*, testutil::*, time::Duration, *};
+    use drogue_device::{actors::ticker::*, testutil::*, *};
+    use drogue_device_macros::test as drogue_test;
+    use embassy::executor::Spawner;
+    use embassy::time::Duration;
 
     struct TickerDevice {
         handler: ActorContext<'static, TestHandler>,
         ticker: ActorContext<'static, Ticker<'static, TestHandler>>,
     }
 
-    #[drogue::test]
-    async fn test_ticker(mut context: TestContext<TickerDevice>) {
+    #[drogue_test]
+    async fn test_ticker(spawner: Spawner, mut context: TestContext<TickerDevice>) {
         let notified = context.signal();
         context.configure(TickerDevice {
             handler: ActorContext::new(TestHandler::new(notified)),
             ticker: ActorContext::new(Ticker::new(Duration::from_secs(1), TestMessage(1))),
         });
 
-        context.mount(|device, spawner| {
-            let handler_addr = device.handler.mount((), spawner);
-            (device.ticker.mount(handler_addr, spawner), handler_addr)
+        context.mount(|device| {
+            let handler_addr = device.handler.mount((), spawner.into());
+            (
+                device.ticker.mount(handler_addr, spawner.into()),
+                handler_addr,
+            )
         });
 
         notified.wait_signaled().await;

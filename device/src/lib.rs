@@ -98,45 +98,6 @@ pub mod traits;
 
 pub mod drivers;
 
-#[doc(hidden)]
-pub use drogue_device_macros::{self as drogue, log_stack};
-pub use embassy::*;
-
-#[cfg(feature = "chip+nrf52833")]
-pub use embassy_nrf as nrf;
-
-#[cfg(feature = "chip+nrf")]
-pub use embassy_nrf::Peripherals;
-
-#[cfg(feature = "chip+rp")]
-pub use embassy_rp as rp;
-
-#[cfg(feature = "chip+rp")]
-pub use embassy_rp::Peripherals;
-
-#[cfg(feature = "chip+stm32")]
-pub use embassy_stm32 as stm32;
-
-#[cfg(feature = "chip+stm32")]
-pub use embassy_stm32::Peripherals;
-
-#[doc(hidden)]
-pub mod reexport {
-    pub use ::embassy;
-    #[cfg(feature = "chip+nrf52833")]
-    pub use ::embassy_nrf;
-    #[cfg(feature = "chip+rp")]
-    pub use ::embassy_rp;
-    #[cfg(feature = "std")]
-    pub use ::embassy_std;
-    #[cfg(feature = "chip+stm32l0x2")]
-    pub use ::embassy_stm32;
-}
-
-#[doc(hidden)]
-#[cfg(feature = "std")]
-pub use embassy_std::*;
-
 #[cfg(feature = "std")]
 pub mod testutil;
 

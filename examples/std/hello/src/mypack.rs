@@ -25,7 +25,7 @@ impl Package for MyPack {
     fn mount(
         &'static self,
         _: Self::Configuration,
-        spawner: &ActorSpawner,
+        spawner: ActorSpawner,
     ) -> Address<Self::Primary> {
         self.c.mount(&self.counter, spawner)
     }

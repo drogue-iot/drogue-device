@@ -8,6 +8,7 @@
 #[cfg(feature = "std")]
 mod tests {
     use drogue_device::*;
+    use embassy::executor::Spawner;
     use std::sync::atomic::{AtomicU32, Ordering};
     use std::{sync::mpsc, thread, time::Duration};
 
@@ -43,15 +44,17 @@ mod tests {
             a: ActorContext<'static, MyActor>,
         }
 
-        #[drogue::main]
-        async fn main(context: DeviceContext<MyDevice>) {
-            context.configure(MyDevice {
+        #[embassy::main]
+        async fn main(spawner: Spawner) {
+            static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+
+            DEVICE.configure(MyDevice {
                 a: ActorContext::new(MyActor {
                     value: &INITIALIZED,
                 }),
             });
 
-            let a_addr = context.mount(|device, spawner| device.a.mount((), spawner));
+            let a_addr = DEVICE.mount(|device| device.a.mount((), spawner.into()));
 
             a_addr.request(Add(10)).unwrap().await;
         }

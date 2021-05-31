@@ -182,6 +182,7 @@ pub enum SignalError {
     NoAvailableSignal,
 }
 
+#[derive(Clone, Copy)]
 pub struct ActorSpawner {
     spawner: Option<Spawner>,
 }
@@ -200,6 +201,12 @@ impl ActorSpawner {
         if let Some(spawner) = &self.spawner {
             spawner.spawn(actor.spawn()).unwrap();
         }
+    }
+}
+
+impl From<Spawner> for ActorSpawner {
+    fn from(spawner: Spawner) -> Self {
+        ActorSpawner::new(spawner)
     }
 }
 
@@ -305,11 +312,7 @@ where
     }
 
     /// Mount the underloying actor and initialize the channel.
-    pub fn mount(
-        &'static self,
-        config: A::Configuration,
-        spawner: &ActorSpawner,
-    ) -> Address<'a, A> {
+    pub fn mount(&'static self, config: A::Configuration, spawner: ActorSpawner) -> Address<'a, A> {
         unsafe { &mut *self.actor.get() }.on_mount(config);
         self.channel.initialize();
 
@@ -461,7 +464,7 @@ mod tests {
         let spawner = ActorSpawner::idle();
         let actor = Box::leak(Box::new(ActorContext::new(DummyActor::new())));
 
-        let address = actor.mount((), &spawner);
+        let address = actor.mount((), spawner);
 
         let result_1 = address.notify(TestMessage(0));
         let result_2 = address.notify(TestMessage(1));
@@ -479,7 +482,7 @@ mod tests {
         let spawner = ActorSpawner::idle();
         let actor = Box::leak(Box::new(ActorContext::new(DummyActor::new())));
 
-        let address = actor.mount((), &spawner);
+        let address = actor.mount((), spawner);
 
         let result_fut_1 = address.request(TestMessage(0));
         let result_fut_2 = address.request(TestMessage(1));

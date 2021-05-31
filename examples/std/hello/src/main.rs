@@ -8,6 +8,7 @@
 
 use core::sync::atomic::AtomicU32;
 use drogue_device::*;
+use embassy::time;
 
 mod myactor;
 mod mypack;
@@ -22,24 +23,26 @@ pub struct MyDevice {
     p: MyPack,
 }
 
-#[drogue::main]
-async fn main(context: DeviceContext<MyDevice>) {
+static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+
+#[embassy::main]
+async fn main(spawner: embassy::executor::Spawner) {
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .format_timestamp_nanos()
         .init();
 
-    context.configure(MyDevice {
+    DEVICE.configure(MyDevice {
         counter: AtomicU32::new(0),
         a: ActorContext::new(MyActor::new("a")),
         b: ActorContext::new(MyActor::new("b")),
         p: MyPack::new(),
     });
 
-    let (a_addr, b_addr, c_addr) = context.mount(|device, spawner| {
-        let a_addr = device.a.mount(&device.counter, spawner);
-        let b_addr = device.b.mount(&device.counter, spawner);
-        let c_addr = device.p.mount((), spawner);
+    let (a_addr, b_addr, c_addr) = DEVICE.mount(|device| {
+        let a_addr = device.a.mount(&device.counter, spawner.into());
+        let b_addr = device.b.mount(&device.counter, spawner.into());
+        let c_addr = device.p.mount((), spawner.into());
         (a_addr, b_addr, c_addr)
     });
 

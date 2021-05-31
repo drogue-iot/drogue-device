@@ -154,9 +154,7 @@ version = "0.1.0"
 dependencies = [
  "atomic-polyfill",
  "critical-section",
- "drogue-device-macros",
  "embassy",
- "embassy-std",
  "embedded-hal",
  "futures",
  "generic-array 0.14.4",
@@ -165,19 +163,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "drogue-device-macros"
-version = "0.1.0"
-dependencies = [
- "cfg-if",
- "darling",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "embassy"
 version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#9a6fc2455fe700a2635a72a4ecc2ef25c869b2f5"
 dependencies = [
  "atomic-polyfill",
  "cast",
@@ -192,6 +180,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#9a6fc2455fe700a2635a72a4ecc2ef25c869b2f5"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -202,6 +191,7 @@ dependencies = [
 [[package]]
 name = "embassy-std"
 version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#9a6fc2455fe700a2635a72a4ecc2ef25c869b2f5"
 dependencies = [
  "embassy",
  "embassy-macros",
@@ -211,6 +201,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#9a6fc2455fe700a2635a72a4ecc2ef25c869b2f5"
 dependencies = [
  "embedded-hal",
 ]
@@ -364,6 +355,8 @@ name = "hello"
 version = "0.1.0"
 dependencies = [
  "drogue-device",
+ "embassy",
+ "embassy-std",
  "env_logger",
  "log",
 ]

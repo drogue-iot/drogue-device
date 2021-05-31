@@ -1,8 +1,8 @@
 use crate::fmt::*;
-use crate::time::*;
-use crate::traits::gpio::WaitForRisingEdge;
 use crate::traits::lora::*;
 use core::future::Future;
+use embassy::time::*;
+use embassy::traits::gpio::WaitForRisingEdge;
 use embedded_hal::{
     blocking::{
         delay::DelayMs,

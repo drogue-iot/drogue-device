@@ -8,14 +8,16 @@
 #[cfg(feature = "std")]
 mod tests {
     use drogue_device::{actors::button::*, testutil::*, *};
+    use drogue_device_macros::test as drogue_test;
+    use embassy::executor::Spawner;
 
     struct TestDevicePressed {
         handler: ActorContext<'static, TestHandler>,
         button: ActorContext<'static, Button<'static, TestPin, TestHandler>>,
     }
 
-    #[drogue::test]
-    async fn test_pressed(mut context: TestContext<TestDevicePressed>) {
+    #[drogue_test]
+    async fn test_pressed(spawner: Spawner, mut context: TestContext<TestDevicePressed>) {
         let pin = context.pin(true);
         let notified = context.signal();
 
@@ -24,9 +26,9 @@ mod tests {
             button: ActorContext::new(Button::new(pin)),
         });
 
-        context.mount(|device, spawner| {
-            let handler_addr = device.handler.mount((), spawner);
-            device.button.mount(handler_addr, spawner);
+        context.mount(|device| {
+            let handler_addr = device.handler.mount((), spawner.into());
+            device.button.mount(handler_addr, spawner.into());
         });
 
         assert!(notified.message().is_none());
@@ -40,8 +42,8 @@ mod tests {
         button: ActorContext<'static, Button<'static, TestPin, TestHandler>>,
     }
 
-    #[drogue::test]
-    async fn test_released(mut context: TestContext<TestDeviceReleased>) {
+    #[drogue_test]
+    async fn test_released(spawner: Spawner, mut context: TestContext<TestDeviceReleased>) {
         let pin = context.pin(false);
         let notified = context.signal();
 
@@ -50,9 +52,9 @@ mod tests {
             button: ActorContext::new(Button::new(pin)),
         });
 
-        context.mount(|device, spawner| {
-            let handler_addr = device.handler.mount((), spawner);
-            device.button.mount(handler_addr, spawner);
+        context.mount(|device| {
+            let handler_addr = device.handler.mount((), spawner.into());
+            device.button.mount(handler_addr, spawner.into());
         });
 
         assert!(notified.message().is_none());

@@ -1,34 +1,27 @@
-use super::actor::ActorSpawner;
-use core::cell::Cell;
-use embassy::{executor::Spawner, util::Forever};
+use atomic_polyfill::{AtomicU8, Ordering};
+use embassy::util::Forever;
 
-#[derive(Clone, Copy)]
-enum State {
-    New,
-    Configured,
-    Mounted,
-}
+const NEW: u8 = 0;
+const CONFIGURED: u8 = 1;
+const MOUNTED: u8 = 2;
 
 pub struct DeviceContext<D: 'static> {
-    holder: &'static Forever<D>,
-    supervisor: ActorSpawner,
-    state: Cell<State>,
+    device: Forever<D>,
+    state: AtomicU8,
 }
 
 impl<D: 'static> DeviceContext<D> {
-    pub fn new(spawner: Spawner, holder: &'static Forever<D>) -> Self {
+    pub const fn new() -> Self {
         Self {
-            supervisor: ActorSpawner::new(spawner),
-            holder,
-            state: Cell::new(State::New),
+            device: Forever::new(),
+            state: AtomicU8::new(NEW),
         }
     }
 
-    pub fn configure(&self, device: D) {
-        match self.state.get() {
-            State::New => {
-                self.holder.put(device);
-                self.state.set(State::Configured);
+    pub fn configure(&'static self, device: D) {
+        match self.state.fetch_add(1, Ordering::Relaxed) {
+            NEW => {
+                self.device.put(device);
             }
             _ => {
                 panic!("Context already configured");
@@ -36,20 +29,22 @@ impl<D: 'static> DeviceContext<D> {
         }
     }
 
-    pub fn mount<F: FnOnce(&'static D, &ActorSpawner) -> R, R>(&self, f: F) -> R {
-        match self.state.get() {
-            State::Configured => {
-                let device = unsafe { self.holder.steal() };
-                let r = f(device, &self.supervisor);
+    pub fn mount<F: FnOnce(&'static D) -> R, R>(&'static self, f: F) -> R {
+        match self.state.fetch_add(1, Ordering::Relaxed) {
+            CONFIGURED => {
+                let device = unsafe { self.device.steal() };
+                let r = f(device);
 
-                self.state.set(State::Mounted);
                 r
             }
-            State::New => {
+            NEW => {
                 panic!("Context must be configured before mounted");
             }
-            State::Mounted => {
+            MOUNTED => {
                 panic!("Context already mounted");
+            }
+            val => {
+                panic!("Unexpected state: {}", val);
             }
         }
     }
@@ -57,11 +52,11 @@ impl<D: 'static> DeviceContext<D> {
 
 impl<D: 'static> Drop for DeviceContext<D> {
     fn drop(&mut self) {
-        match self.state.get() {
-            State::Configured => {
+        match self.state.load(Ordering::Acquire) {
+            CONFIGURED => {
                 panic!("Context must be mounted before it is dropped");
             }
-            State::New => {
+            MOUNTED => {
                 panic!("Context must be configured and mounted before it is dropped");
             }
             _ => {}
