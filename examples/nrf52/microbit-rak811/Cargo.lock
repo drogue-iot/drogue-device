@@ -178,8 +178,8 @@ dependencies = [
  "atomic-polyfill",
  "critical-section",
  "drogue-device-macros",
- "embassy",
- "embassy-nrf",
+ "embassy 0.1.0",
+ "embassy-nrf 0.1.0",
  "embedded-hal",
  "futures",
  "generic-array 0.14.4",
@@ -203,14 +203,28 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#1a9a619033199f9221225b01060e07c246deacb6"
 dependencies = [
  "atomic-polyfill",
  "cast",
  "cortex-m 0.7.2",
  "critical-section",
- "embassy-macros",
- "embassy-traits",
+ "embassy-macros 0.1.0",
+ "embassy-traits 0.1.0",
+ "futures",
+ "pin-project",
+]
+
+[[package]]
+name = "embassy"
+version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#34e8a4c26622ad4c4045e0dd5cb45f569d678740"
+dependencies = [
+ "atomic-polyfill",
+ "cast",
+ "cortex-m 0.7.2",
+ "critical-section",
+ "embassy-macros 0.1.0 (git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack)",
+ "embassy-traits 0.1.0 (git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack)",
  "futures",
  "pin-project",
 ]
@@ -218,17 +232,36 @@ dependencies = [
 [[package]]
 name = "embassy-extras"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#1a9a619033199f9221225b01060e07c246deacb6"
 dependencies = [
  "cortex-m 0.7.2",
- "embassy",
+ "embassy 0.1.0",
+ "usb-device",
+]
+
+[[package]]
+name = "embassy-extras"
+version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#34e8a4c26622ad4c4045e0dd5cb45f569d678740"
+dependencies = [
+ "cortex-m 0.7.2",
+ "embassy 0.1.0 (git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack)",
  "usb-device",
 ]
 
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#1a9a619033199f9221225b01060e07c246deacb6"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "embassy-macros"
+version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#34e8a4c26622ad4c4045e0dd5cb45f569d678740"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -239,14 +272,13 @@ dependencies = [
 [[package]]
 name = "embassy-nrf"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#1a9a619033199f9221225b01060e07c246deacb6"
 dependencies = [
  "cortex-m 0.7.2",
  "cortex-m-rt",
  "critical-section",
- "embassy",
- "embassy-extras",
- "embassy-macros",
+ "embassy 0.1.0",
+ "embassy-extras 0.1.0",
+ "embassy-macros 0.1.0",
  "embedded-dma",
  "embedded-hal",
  "futures",
@@ -254,9 +286,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "embassy-nrf"
+version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#34e8a4c26622ad4c4045e0dd5cb45f569d678740"
+dependencies = [
+ "cortex-m 0.7.2",
+ "cortex-m-rt",
+ "critical-section",
+ "embassy 0.1.0 (git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack)",
+ "embassy-extras 0.1.0 (git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack)",
+ "embassy-macros 0.1.0 (git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack)",
+ "embedded-dma",
+ "embedded-hal",
+ "futures",
+]
+
+[[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#1a9a619033199f9221225b01060e07c246deacb6"
+dependencies = [
+ "embedded-hal",
+]
+
+[[package]]
+name = "embassy-traits"
+version = "0.1.0"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#34e8a4c26622ad4c4045e0dd5cb45f569d678740"
 dependencies = [
  "embedded-hal",
 ]
@@ -425,8 +480,8 @@ dependencies = [
  "cortex-m 0.6.7",
  "cortex-m-rt",
  "drogue-device",
- "embassy",
- "embassy-nrf",
+ "embassy 0.1.0 (git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack)",
+ "embassy-nrf 0.1.0 (git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack)",
  "log",
  "panic-probe",
  "rtt-logger",

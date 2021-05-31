@@ -116,6 +116,11 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     device.RCC.ahbenr.modify(|_, w| w.dmaen().enabled());
     // NEEDED FOR RTT
 
+    // Needed for SPI
+    device.RCC.apb2enr.modify(|_, w| w.spi1en().set_bit());
+    device.RCC.apb2rstr.modify(|_, w| w.spi1rst().set_bit());
+    device.RCC.apb2rstr.modify(|_, w| w.spi1rst().clear_bit());
+
     // TODO: This must be in sync with above, but is there a
     // way we can get hold of rcc without freezing twice?
     let mut rcc = device.RCC.freeze(rcc::Config::hsi16());
@@ -142,6 +147,7 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
         200_000.hz(),
         spi::Config::default(),
     );
+
     let cs = Output::new(p.PA15, Level::High);
     let reset = Output::new(p.PC0, Level::High);
     let _ = Input::new(p.PB1, Pull::None);
