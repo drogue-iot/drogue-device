@@ -78,8 +78,10 @@ where
         delay.delay_ms(10);
         sx127x.reset.set_high().map_err(Reset)?;
         delay.delay_ms(10);
+        log::info!("RESET");
         let version = sx127x.read_register(Register::RegVersion.addr())?;
         if version == VERSION_CHECK {
+            log::info!("Version: {}", version);
             sx127x.set_mode(RadioMode::Sleep)?;
             sx127x.set_frequency(frequency)?;
             sx127x.write_register(Register::RegFifoTxBaseAddr.addr(), 0)?;
