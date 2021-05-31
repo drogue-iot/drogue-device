@@ -22,6 +22,7 @@ cortex-m-rt = "0.6"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 heapless = "0.6"
 void = { version = "1", default-features = false }
+rand_core = { version = "0.6", default-features = false }
 
 # TODO: Get rid of these embassy deps some day
 embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", default-features = false}

@@ -20,27 +20,26 @@ use drogue_device::{
     drivers::lora::sx127x::*,
     stm32::{
         exti::ExtiInput,
-        gpio::{AnyPin, Input, Level, Output, Pin, Pull},
+        gpio::{Input, Level, Output, Pull},
         interrupt,
-        peripherals::{PA15, PA5, PA6, PA7, PB2, PB4, PB5, PB6, PB7, PC0, SPI1},
+        peripherals::{PA15, PA5, PB2, PB4, PB5, PB6, PB7, PC0, RNG, SPI1},
+        rng::Random,
         spi,
         time::U32Ext,
     },
-    traits::{gpio::WaitForRisingEdge, lora::*},
+    traits::lora::*,
     *,
 };
 
+use rand_core::{CryptoRng, RngCore};
 use stm32l0xx_hal as hal;
 
 use hal::{
     delay::Delay,
     pac::Peripherals as HalPeripherals,
     rcc::{self, RccExt},
-    rng::Rng,
     syscfg,
 };
-
-use embedded_hal::digital::v2::InputPin;
 
 mod app;
 mod lora;
@@ -53,19 +52,12 @@ const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_eui.txt
 const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_key.txt"));
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
 
-static mut RNG: Option<Rng> = None;
+static mut RNG: Option<Random<RNG>> = None;
 fn get_random_u32() -> u32 {
     unsafe {
         if let Some(rng) = &mut RNG {
-            // enable starts the ADC conversions that generate the random number
-            rng.enable();
-            // wait until the flag flips; interrupt driven is possible but no implemented
-            rng.wait();
-            // reading the result clears the ready flag
-            let val = rng.take_result();
-            // can save some power by disabling until next random number needed
-            rng.disable();
-            val
+            rng.reset();
+            rng.next_u32()
         } else {
             panic!("No Rng exists!");
         }
@@ -116,18 +108,25 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     device.RCC.ahbenr.modify(|_, w| w.dmaen().enabled());
     // NEEDED FOR RTT
 
-    // Needed for SPI
+    // NEEDED FOR SPI
     device.RCC.apb2enr.modify(|_, w| w.spi1en().set_bit());
     device.RCC.apb2rstr.modify(|_, w| w.spi1rst().set_bit());
     device.RCC.apb2rstr.modify(|_, w| w.spi1rst().clear_bit());
+    // NEEDED FOR SPI
+
+    // NEEDED FOR RNG
+    device.RCC.ahbrstr.modify(|_, w| w.rngrst().set_bit());
+    device.RCC.ahbrstr.modify(|_, w| w.rngrst().clear_bit());
+    device.RCC.ahbenr.modify(|_, w| w.rngen().set_bit());
+    // NEEDED FOR RNG
 
     // TODO: This must be in sync with above, but is there a
     // way we can get hold of rcc without freezing twice?
     let mut rcc = device.RCC.freeze(rcc::Config::hsi16());
 
     let mut syscfg = syscfg::SYSCFG::new(device.SYSCFG, &mut rcc);
-    let hsi48 = rcc.enable_hsi48(&mut syscfg, device.CRS);
-    unsafe { RNG.replace(Rng::new(device.RNG, &mut rcc, hsi48)) };
+    let _ = rcc.enable_hsi48(&mut syscfg, device.CRS);
+    unsafe { RNG.replace(Random::new(p.RNG)) };
 
     let led1 = Led::new(Output::new(p.PB5, Level::Low));
     let led2 = Led::new(Output::new(p.PA5, Level::Low));

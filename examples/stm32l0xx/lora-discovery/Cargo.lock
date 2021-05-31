@@ -711,6 +711,7 @@ dependencies = [
  "heapless",
  "log",
  "panic-probe",
+ "rand_core",
  "rtt-logger",
  "rtt-target",
  "stm32l0xx-hal",

@@ -64,8 +64,7 @@ where
     ) -> Result<Self, DriverError> {
         Ok(Self {
             radio_state: State::Idle,
-            radio: LoRa::new(spi, cs, reset, 867_100_000, delay)
-                .map_err(|_| DriverError::OtherError)?,
+            radio: LoRa::new(spi, cs, reset, delay).map_err(|_| DriverError::OtherError)?,
             buffer: RadioBuffer { packet: Vec::new() },
         })
     }

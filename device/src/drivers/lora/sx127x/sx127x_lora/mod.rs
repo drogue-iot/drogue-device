@@ -27,7 +27,6 @@ pub struct LoRa<SPI, CS, RESET> {
     spi: SPI,
     cs: CS,
     reset: RESET,
-    frequency: u32,
     pub explicit_header: bool,
     pub mode: RadioMode,
 }
@@ -63,14 +62,12 @@ where
         spi: SPI,
         cs: CS,
         reset: RESET,
-        frequency: u32,
         delay: &mut dyn DelayMs<u8>,
     ) -> Result<Self, Error<E, CS::Error, RESET::Error>> {
         let mut sx127x = LoRa {
             spi,
             cs,
             reset,
-            frequency,
             explicit_header: true,
             mode: RadioMode::Sleep,
         };
@@ -83,7 +80,6 @@ where
         if version == VERSION_CHECK {
             log::info!("Version: {}", version);
             sx127x.set_mode(RadioMode::Sleep)?;
-            sx127x.set_frequency(frequency)?;
             sx127x.write_register(Register::RegFifoTxBaseAddr.addr(), 0)?;
             sx127x.write_register(Register::RegFifoRxBaseAddr.addr(), 0)?;
             let lna = sx127x.read_register(Register::RegLna.addr())?;
@@ -163,43 +159,6 @@ where
             self.write_register(Register::RegPayloadLength.addr(), payload_size as u8)?;
             self.set_mode(RadioMode::Tx)?;
             Ok(())
-        }
-    }
-
-    /// Blocks the current thread, returning the size of a packet if one is received or an error is the
-    /// task timed out. The timeout can be supplied with None to make it poll indefinitely or
-    /// with `Some(timeout_in_mill_seconds)`
-    pub fn poll_irq(
-        &mut self,
-        timeout_ms: Option<i32>,
-        delay: &mut dyn DelayMs<u8>,
-    ) -> Result<usize, Error<E, CS::Error, RESET::Error>> {
-        self.set_mode(RadioMode::RxContinuous)?;
-        match timeout_ms {
-            Some(value) => {
-                let mut count = 0;
-                let packet_ready = loop {
-                    let packet_ready = self.read_register(Register::RegIrqFlags.addr())?.get_bit(6);
-                    if count >= value || packet_ready {
-                        break packet_ready;
-                    }
-                    count += 1;
-                    delay.delay_ms(1);
-                };
-                if packet_ready {
-                    self.clear_irq()?;
-                    Ok(self.read_register(Register::RegRxNbBytes.addr())? as usize)
-                } else {
-                    Err(Uninformative)
-                }
-            }
-            None => {
-                while !self.read_register(Register::RegIrqFlags.addr())?.get_bit(6) {
-                    delay.delay_ms(100);
-                }
-                self.clear_irq()?;
-                Ok(self.read_register(Register::RegRxNbBytes.addr())? as usize)
-            }
         }
     }
 
@@ -342,9 +301,8 @@ where
     /// I.E. 915 MHz must be used for North America. Check regulation for your area.
     pub fn set_frequency(&mut self, freq: u32) -> Result<(), Error<E, CS::Error, RESET::Error>> {
         const FREQ_STEP: f64 = 61.03515625;
-        self.frequency = freq;
         // calculate register values
-        let frf = (self.frequency as f64 / FREQ_STEP) as u32;
+        let frf = (freq as f64 / FREQ_STEP) as u32;
         // write registers
         self.write_register(
             Register::RegFrfMsb.addr(),
