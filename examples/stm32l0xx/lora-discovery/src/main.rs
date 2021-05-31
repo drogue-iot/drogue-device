@@ -22,9 +22,7 @@ use drogue_device::{
         exti::ExtiInput,
         gpio::{AnyPin, Input, Level, Output, Pin, Pull},
         interrupt,
-        peripherals::{PA15, PA5, PA6, PA7, PB2, PB3, PB4, PB5, PB6, PB7, PC0, SPI1},
-        spi,
-        time::U32Ext,
+        peripherals::{PA15, PA5, PB2, PB4, PB5, PB6, PB7, PC0},
     },
     traits::{gpio::WaitForRisingEdge, lora::*},
     *,
@@ -34,10 +32,17 @@ use stm32l0xx_hal as hal;
 
 use hal::{
     delay::Delay,
+    gpio::{
+        gpioa::{PA6, PA7},
+        gpiob::PB3,
+        Analog,
+    },
     pac::Peripherals as HalPeripherals,
-    rcc::{self, RccExt},
+    pac::SPI1,
+    prelude::*,
+    rcc,
     rng::Rng,
-    syscfg,
+    spi, syscfg,
 };
 
 use embedded_hal::digital::v2::InputPin;
@@ -75,7 +80,7 @@ fn get_random_u32() -> u32 {
 pub type Sx127x<'a> = Sx127xDriver<
     'a,
     ExtiInput<'a, PB4>,
-    spi::Spi<'a, SPI1>,
+    spi::Spi<SPI1, (PB3<Analog>, PA6<Analog>, PA7<Analog>)>,
     Output<'a, PA15>,
     Output<'a, PC0>,
     spi::Error,
@@ -124,6 +129,10 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     let hsi48 = rcc.enable_hsi48(&mut syscfg, device.CRS);
     unsafe { RNG.replace(Rng::new(device.RNG, &mut rcc, hsi48)) };
 
+    let gpioa = device.GPIOA.split(&mut rcc);
+    let gpiob = device.GPIOB.split(&mut rcc);
+    let gpioc = device.GPIOC.split(&mut rcc);
+
     let led1 = Led::new(Output::new(p.PB5, Level::Low));
     let led2 = Led::new(Output::new(p.PA5, Level::Low));
     let led3 = Led::new(Output::new(p.PB6, Level::Low));
@@ -132,20 +141,15 @@ async fn main(context: DeviceContext<MyDevice>, p: Peripherals) {
     let button = Input::new(p.PB2, Pull::Up);
     let mut pin = ExtiInput::new(button, p.EXTI2);
 
-    let clk = rcc.clocks.apb2_clk().0;
-
     // SPI for sx127x
-    let spi = spi::Spi::new(
-        clk.hz(),
-        p.SPI1,
-        p.PB3,
-        p.PA7,
-        p.PA6,
+    let spi = device.SPI1.spi(
+        (gpiob.pb3, gpioa.pa6, gpioa.pa7),
+        spi::MODE_0,
         200_000.hz(),
-        spi::Config::default(),
+        &mut rcc,
     );
-    let cs = Output::new(p.PA15, Level::Low);
-    let reset = Output::new(p.PC0, Level::Low);
+    let cs = Output::new(p.PA15, Level::High);
+    let reset = Output::new(p.PC0, Level::High);
     let _ = Input::new(p.PB1, Pull::None);
 
     let ready = Input::new(p.PB4, Pull::Up);
