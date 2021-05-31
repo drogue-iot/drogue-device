@@ -68,13 +68,15 @@
 //!     a: ActorContext<'static, MyActor>,
 //! }
 //!
-//! #[drogue::main]
-//! async fn main(mut context: DeviceContext<MyDevice>) {
-//!     context.configure(MyDevice {
+//! static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+//!
+//! #[embassy::main]
+//! async fn main(spawner: embassy::executor::Spawner) {
+//!     DEVICE.configure(MyDevice {
 //!         a: ActorContext::new(MyActor::new("a")),
 //!     });
-//!     let a_addr = context.mount(|device, spawner| {
-//!         device.a.mount((), spawner)
+//!     let a_addr = DEVICE.mount(|device| {
+//!         device.a.mount((), spawner.into())
 //!     });
 //!     a_addr.request(SayHello("World")).await;
 //! }

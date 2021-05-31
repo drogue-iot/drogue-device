@@ -45,11 +45,10 @@ Each Actor in the system defines the configuration it expects to get handed in i
 
 === Bootstrap & Mounting
 
-A top-level `Device` struct maintain members for each actor.
+A top-level `Device` struct created by the application writer, maintain members for each actor. A static instance of `DeviceContext` is created to hold a static reference
+to the `Device` struct.
 
-The application entry point is specified using a function marked with `#[drogue::main]`, and it will be passed a `DeviceContext` that can be used to configure and mount the device.
-
-When mounting a device, an `ActorSpawner` is passed in the closure, which can be used to mount all actors and packages.
+The application entry point is specified using a function marked with `#[embassy::main]`, and it will be passed a `Spawner` that is used when mounting actors and packages.
 
 === Packages
 
