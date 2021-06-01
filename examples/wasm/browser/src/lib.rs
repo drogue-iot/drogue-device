@@ -32,12 +32,15 @@ pub fn main() -> Result<(), JsValue> {
     // Configure HTML elements
     unsafe {
         INPUT1.configure("button");
-        OUTPUT1.configure("led");
+        OUTPUT1.configure("led", |value| if value { "ON" } else { "OFF" });
     }
 
+    let button = WebButton::new(unsafe { &INPUT1 });
+    let led = WebLed::new(unsafe { &OUTPUT1 });
+
     DEVICE.configure(MyDevice {
-        led: ActorContext::new(Led::new(WebLed::new(unsafe { &OUTPUT1 }))),
-        button: ActorContext::new(Button::new(WebButton::new(unsafe { &INPUT1 }))),
+        led: ActorContext::new(Led::new(led)),
+        button: ActorContext::new(Button::new(button)),
     });
 
     DEVICE.mount(|device| {
