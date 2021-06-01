@@ -1,4 +1,5 @@
 #![allow(incomplete_features)]
+#![feature(const_fn_fn_ptr_basics)]
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 #![feature(impl_trait_in_bindings)]
