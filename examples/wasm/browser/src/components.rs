@@ -107,6 +107,7 @@ impl InputPin {
 pub struct OutputPin {
     high: AtomicBool,
     element: MaybeUninit<&'static str>,
+    transform: MaybeUninit<fn(bool) -> &'static str>,
 }
 
 impl OutputPin {
@@ -114,27 +115,31 @@ impl OutputPin {
         Self {
             high: AtomicBool::new(false),
             element: MaybeUninit::uninit(),
+            transform: MaybeUninit::uninit(),
         }
     }
 
-    pub fn configure(&'static mut self, element: &'static str) {
+    pub fn configure(
+        &'static mut self,
+        element: &'static str,
+        transform: fn(bool) -> &'static str,
+    ) {
         unsafe {
             let p = self.element.as_mut_ptr();
             p.write(element);
+            let f = self.transform.as_mut_ptr();
+            f.write(transform);
         };
     }
 
     pub fn set_value(&self, high: bool) {
-        let element = unsafe { &*self.element.as_ptr() };
+        let (element, transform) = unsafe { (&*self.element.as_ptr(), &*self.transform.as_ptr()) };
         self.high.store(high, Ordering::Release);
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
         let txt = document.get_element_by_id(element).unwrap();
-        if high {
-            txt.set_inner_html("ON");
-        } else {
-            txt.set_inner_html("OFF");
-        }
+        let output = transform(high);
+        txt.set_inner_html(output);
     }
 }
 
