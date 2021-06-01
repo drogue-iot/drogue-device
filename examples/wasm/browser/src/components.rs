@@ -131,9 +131,9 @@ impl OutputPin {
         let document = window.document().expect("should have a document on window");
         let txt = document.get_element_by_id(element).unwrap();
         if high {
-            txt.set_inner_html("HIGH");
+            txt.set_inner_html("ON");
         } else {
-            txt.set_inner_html("LOW");
+            txt.set_inner_html("OFF");
         }
     }
 }
