@@ -22,10 +22,10 @@ impl MyPack {
 impl Package for MyPack {
     type Primary = MyActor;
     type Configuration = ();
-    fn mount(
+    fn mount<S: ActorSpawner>(
         &'static self,
         _: Self::Configuration,
-        spawner: ActorSpawner,
+        spawner: S,
     ) -> Address<Self::Primary> {
         self.c.mount(&self.counter, spawner)
     }

@@ -27,11 +27,8 @@ mod tests {
         });
 
         context.mount(|device| {
-            let handler_addr = device.handler.mount((), spawner.into());
-            (
-                device.ticker.mount(handler_addr, spawner.into()),
-                handler_addr,
-            )
+            let handler_addr = device.handler.mount((), spawner);
+            (device.ticker.mount(handler_addr, spawner), handler_addr)
         });
 
         notified.wait_signaled().await;

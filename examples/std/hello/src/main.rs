@@ -40,9 +40,9 @@ async fn main(spawner: embassy::executor::Spawner) {
     });
 
     let (a_addr, b_addr, c_addr) = DEVICE.mount(|device| {
-        let a_addr = device.a.mount(&device.counter, spawner.into());
-        let b_addr = device.b.mount(&device.counter, spawner.into());
-        let c_addr = device.p.mount((), spawner.into());
+        let a_addr = device.a.mount(&device.counter, spawner);
+        let b_addr = device.b.mount(&device.counter, spawner);
+        let c_addr = device.p.mount((), spawner);
         (a_addr, b_addr, c_addr)
     });
 

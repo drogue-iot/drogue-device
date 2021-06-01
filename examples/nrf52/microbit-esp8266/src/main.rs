@@ -105,8 +105,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     DEVICE.mount(|device| {
         let (controller, modem) =
             unsafe { &mut *device.driver.get() }.initialize(u, enable_pin, reset_pin);
-        device.modem.mount(modem, spawner.into());
-        let app = device.app.mount(controller, spawner.into());
-        device.button.mount(app, spawner.into());
+        device.modem.mount(modem, spawner);
+        let app = device.app.mount(controller, spawner);
+        device.button.mount(app, spawner);
     });
 }

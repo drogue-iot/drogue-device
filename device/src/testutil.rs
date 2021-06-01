@@ -1,6 +1,6 @@
 use crate::actors::button::{ButtonEvent, FromButtonEvent};
 use crate::kernel::{
-    actor::{Actor, ActorContext},
+    actor::{Actor, ActorContext, ActorSpawner},
     device::DeviceContext,
     util::ImmediateFuture,
 };
@@ -9,7 +9,7 @@ use core::future::Future;
 use core::pin::Pin;
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll};
-use embassy::executor::{raw, Spawner};
+use embassy::executor::{raw, SpawnError, Spawner};
 use embassy::time::TICKS_PER_SECOND;
 use embassy::time::{Alarm, Clock};
 use embassy::traits::gpio::WaitForAnyEdge;
@@ -22,6 +22,21 @@ use std::ptr;
 // use std::time::{Duration as StdDuration, Instant as StdInstant};
 use std::time::Instant as StdInstant;
 use std::vec::Vec;
+
+#[derive(Clone, Copy)]
+pub struct TestSpawner;
+
+impl TestSpawner {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl ActorSpawner for TestSpawner {
+    fn start<A: Actor>(&self, actor: &'static ActorContext<'static, A>) -> Result<(), SpawnError> {
+        Ok(())
+    }
+}
 
 /// A test context that can execute test for a given device
 pub struct TestContext<D: 'static> {
