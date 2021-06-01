@@ -243,7 +243,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#34e8a4c26622ad4c4045e0dd5cb45f569d678740"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#17348b0c9a8e5c8effdd412bd25516323237ccca"
 dependencies = [
  "atomic-polyfill",
  "cast",
@@ -258,7 +258,7 @@ dependencies = [
 [[package]]
 name = "embassy-extras"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#34e8a4c26622ad4c4045e0dd5cb45f569d678740"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#17348b0c9a8e5c8effdd412bd25516323237ccca"
 dependencies = [
  "cortex-m 0.7.2",
  "embassy",
@@ -268,7 +268,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#34e8a4c26622ad4c4045e0dd5cb45f569d678740"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#17348b0c9a8e5c8effdd412bd25516323237ccca"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -279,7 +279,7 @@ dependencies = [
 [[package]]
 name = "embassy-rp"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#34e8a4c26622ad4c4045e0dd5cb45f569d678740"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#17348b0c9a8e5c8effdd412bd25516323237ccca"
 dependencies = [
  "cortex-m 0.7.2",
  "cortex-m-rt",
@@ -294,7 +294,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#34e8a4c26622ad4c4045e0dd5cb45f569d678740"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=drogue-metapack#17348b0c9a8e5c8effdd412bd25516323237ccca"
 dependencies = [
  "embedded-hal",
 ]

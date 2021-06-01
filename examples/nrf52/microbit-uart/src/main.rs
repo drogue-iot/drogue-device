@@ -92,10 +92,10 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     });
 
     DEVICE.mount(|device| {
-        let matrix = device.matrix.mount((), spawner.into());
-        let statistics = device.statistics.mount((), spawner.into());
-        device.server.mount((matrix, statistics), spawner.into());
-        device.button.mount(statistics, spawner.into());
-        device.ticker.mount(matrix, spawner.into());
+        let matrix = device.matrix.mount((), spawner);
+        let statistics = device.statistics.mount((), spawner);
+        device.server.mount((matrix, statistics), spawner);
+        device.button.mount(statistics, spawner);
+        device.ticker.mount(matrix, spawner);
     });
 }

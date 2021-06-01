@@ -181,8 +181,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     });
 
     DEVICE.mount(|device| {
-        let lora = device.lora.mount((), spawner.into());
-        let app = device.app.mount(AppConfig { lora }, spawner.into());
-        device.button.mount(app, spawner.into());
+        let lora = device.lora.mount((), spawner);
+        let app = device.app.mount(AppConfig { lora }, spawner);
+        device.button.mount(app, spawner);
     });
 }

@@ -14,9 +14,9 @@ pub trait Package {
 
     /// Mount this package, providing the configuration and a reference
     /// to a spawner used when mounting internal actors of the Package.
-    fn mount(
+    fn mount<S: ActorSpawner>(
         &'static self,
         config: Self::Configuration,
-        spawner: ActorSpawner,
+        spawner: S,
     ) -> Address<Self::Primary>;
 }

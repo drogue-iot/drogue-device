@@ -54,7 +54,7 @@ mod tests {
                 }),
             });
 
-            let a_addr = DEVICE.mount(|device| device.a.mount((), spawner.into()));
+            let a_addr = DEVICE.mount(|device| device.a.mount((), spawner));
 
             a_addr.request(Add(10)).unwrap().await;
         }

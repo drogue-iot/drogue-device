@@ -7,7 +7,7 @@ use core::cell::{RefCell, UnsafeCell};
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use embassy::executor::{raw::Task, SpawnToken, Spawner};
+use embassy::executor::{raw::Task, SpawnError, SpawnToken, Spawner};
 use embassy::util::DropBomb;
 use generic_array::GenericArray;
 use heapless::{consts, ArrayLength};
@@ -182,31 +182,13 @@ pub enum SignalError {
     NoAvailableSignal,
 }
 
-#[derive(Clone, Copy)]
-pub struct ActorSpawner {
-    spawner: Option<Spawner>,
+pub trait ActorSpawner: Clone + Copy {
+    fn start<A: Actor>(&self, actor: &'static ActorContext<'static, A>) -> Result<(), SpawnError>;
 }
 
-impl ActorSpawner {
-    pub fn idle() -> Self {
-        Self { spawner: None }
-    }
-    pub fn new(spawner: Spawner) -> Self {
-        Self {
-            spawner: Some(spawner),
-        }
-    }
-
-    pub fn spawn<A: Actor + 'static>(&self, actor: &'static ActorContext<'static, A>) {
-        if let Some(spawner) = &self.spawner {
-            spawner.spawn(actor.spawn()).unwrap();
-        }
-    }
-}
-
-impl From<Spawner> for ActorSpawner {
-    fn from(spawner: Spawner) -> Self {
-        ActorSpawner::new(spawner)
+impl ActorSpawner for Spawner {
+    fn start<A: Actor>(&self, actor: &'static ActorContext<'static, A>) -> Result<(), SpawnError> {
+        self.spawn(actor.spawn())
     }
 }
 
@@ -308,15 +290,20 @@ where
     {
         let message = ActorMessage::Notify(message);
 
-        Ok(self.channel.send(message)?)
+        let sent = self.channel.send(message)?;
+        Ok(sent)
     }
 
     /// Mount the underloying actor and initialize the channel.
-    pub fn mount(&'static self, config: A::Configuration, spawner: ActorSpawner) -> Address<'a, A> {
+    pub fn mount<S: ActorSpawner>(
+        &'static self,
+        config: A::Configuration,
+        spawner: S,
+    ) -> Address<'a, A> {
         unsafe { &mut *self.actor.get() }.on_mount(config);
         self.channel.initialize();
 
-        spawner.spawn(self);
+        spawner.start(self).unwrap();
         Address::new(self)
     }
 
@@ -407,6 +394,14 @@ where
             }
         }
     }
+
+    pub async fn run(&'a self) {
+        let actor = unsafe { Pin::new_unchecked(&mut *self.actor.get()) };
+        actor.on_start().await;
+        loop {
+            self.process().await;
+        }
+    }
 }
 pub struct RequestFuture<'a, A: Actor + 'static> {
     signal: SignalFuture<'a, A::Response<'a>>,
@@ -461,7 +456,7 @@ mod tests {
 
     #[test]
     fn test_multiple_notifications() {
-        let spawner = ActorSpawner::idle();
+        let spawner = TestSpawner::new();
         let actor = Box::leak(Box::new(ActorContext::new(DummyActor::new())));
 
         let address = actor.mount((), spawner);
@@ -479,7 +474,7 @@ mod tests {
 
     #[test]
     fn test_multiple_requests() {
-        let spawner = ActorSpawner::idle();
+        let spawner = TestSpawner::new();
         let actor = Box::leak(Box::new(ActorContext::new(DummyActor::new())));
 
         let address = actor.mount((), spawner);

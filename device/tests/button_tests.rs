@@ -27,8 +27,8 @@ mod tests {
         });
 
         context.mount(|device| {
-            let handler_addr = device.handler.mount((), spawner.into());
-            device.button.mount(handler_addr, spawner.into());
+            let handler_addr = device.handler.mount((), spawner);
+            device.button.mount(handler_addr, spawner);
         });
 
         assert!(notified.message().is_none());
@@ -53,8 +53,8 @@ mod tests {
         });
 
         context.mount(|device| {
-            let handler_addr = device.handler.mount((), spawner.into());
-            device.button.mount(handler_addr, spawner.into());
+            let handler_addr = device.handler.mount((), spawner);
+            device.button.mount(handler_addr, spawner);
         });
 
         assert!(notified.message().is_none());
