@@ -1,0 +1,21 @@
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+  </head>
+  <body>
+    <!-- Components that are controlled by drogue-device -->
+    <button id="button">Toggle Led</button>
+    <p id="led">LOW</p>
+
+    <script type="module">
+      import init from './pkg/button.js';
+
+      async function run() {
+        await init();
+      }
+
+      // This calls the module init which spawns the drogue device
+      run();
+    </script>
+  </body>
+</html>
