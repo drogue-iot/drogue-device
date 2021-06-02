@@ -33,7 +33,15 @@ pub fn main() -> Result<(), JsValue> {
     // Configure HTML elements
     unsafe {
         INPUT1.configure("button");
-        OUTPUT1.configure("led", |value| if value { "ON" } else { "OFF" });
+        OUTPUT1.configure("led", |value| {
+            if value {
+                log::info!("ON");
+                "ON"
+            } else {
+                log::info!("OFF");
+                "OFF"
+            }
+        });
     }
 
     let button = WebButton::new(unsafe { &INPUT1 });
