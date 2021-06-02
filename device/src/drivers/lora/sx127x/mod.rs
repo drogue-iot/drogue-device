@@ -29,7 +29,6 @@ where
     E: 'static,
 {
     New(Radio<SPI, CS, RESET, E>),
-    Initialized(Radio<SPI, CS, RESET, E>),
     Configured(LorawanDevice<Radio<SPI, CS, RESET, E>, Crypto>),
 }
 
@@ -191,25 +190,6 @@ where
         DriverEvent::None
     }
 
-    async fn reset(&mut self) -> Result<(), LoraError> {
-        match self.state.take().unwrap() {
-            DriverState::New(mut radio) => {
-                radio.reset().await?;
-                self.state.replace(DriverState::Initialized(radio));
-            }
-            DriverState::Initialized(mut radio) => {
-                radio.reset().await?;
-                self.state.replace(DriverState::Initialized(radio));
-            }
-            DriverState::Configured(lora) => {
-                let mut radio = lora.free();
-                radio.reset().await?;
-                self.state.replace(DriverState::Initialized(radio));
-            }
-        }
-        Ok(())
-    }
-
     async fn join(&mut self) -> Result<(), LoraError> {
         let mut event: DriverEvent = self.process_event(LorawanEvent::NewSessionRequest);
         loop {
@@ -342,7 +322,9 @@ where
     fn configure<'m>(&'m mut self, config: &'m LoraConfig) -> Self::ConfigureFuture<'m> {
         async move {
             match self.state.take().unwrap() {
-                DriverState::Initialized(radio) => {
+                DriverState::New(mut radio) => {
+                    crate::log_stack("lora driver configure");
+                    radio.reset().await?;
                     //info!("Configuring radio");
                     let dev_eui = config.device_eui.as_ref().expect("device EUI must be set");
                     let app_eui = config.app_eui.as_ref().expect("app EUI must be set");
@@ -380,14 +362,6 @@ where
     type JoinFuture<'m> where 'a: 'm = impl Future<Output = Result<(), LoraError>> + 'm;
     fn join<'m>(&'m mut self, _: ConnectMode) -> Self::JoinFuture<'m> {
         async move { self.join().await }
-    }
-
-    #[rustfmt::skip]
-    type ResetFuture<'m>: where 'a: 'm = impl Future<Output = Result<(), LoraError>> + 'm;
-    /// Reset the LoRa module.
-    fn reset<'m>(&'m mut self, _: ResetMode) -> Self::ResetFuture<'m> {
-        // Mode not used
-        async move { self.reset().await }
     }
 
     #[rustfmt::skip]

@@ -15,10 +15,10 @@ doctest = false
 embassy = {default-features = false, path = "../../../embassy/embassy"}
 
 # LoRa dependencies
-#lorawan-device = { git = "https://github.com/lulf/rust-lorawan.git", rev = "2279fe55e9aeda5d3b9d2593763e3b2c031fa695", default-features = false, optional = true }
-#lorawan-encoding = { git = "https://github.com/lulf/rust-lorawan.git", rev = "2279fe55e9aeda5d3b9d2593763e3b2c031fa695", default-features = false, features = ["default-crypto"], optional = true }
-lorawan-device = { path = "../../../rust-lorawan/device", default-features = false, optional = true }
-lorawan-encoding = { path = "../../../rust-lorawan/encoding", default-features = false, features = ["default-crypto"], optional = true }
+lorawan-device = { git = "https://github.com/lulf/rust-lorawan.git", rev = "2279fe55e9aeda5d3b9d2593763e3b2c031fa695", default-features = false, optional = true }
+lorawan-encoding = { git = "https://github.com/lulf/rust-lorawan.git", rev = "2279fe55e9aeda5d3b9d2593763e3b2c031fa695", default-features = false, features = ["default-crypto"], optional = true }
+#lorawan-device = { path = "../../../rust-lorawan/device", default-features = false, optional = true }
+#lorawan-encoding = { path = "../../../rust-lorawan/encoding", default-features = false, features = ["default-crypto"], optional = true }
 bit_field = { version = "0.10", optional = true }
 
 # Wifi Dependencies
