@@ -116,8 +116,6 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     device.RCC.ahbenr.modify(|_, w| w.rngen().set_bit());
     // NEEDED FOR RNG
 
-    // TODO: This must be in sync with above, but is there a
-    // way we can get hold of rcc without freezing twice?
     let mut rcc = rcc::Rcc::new(p.RCC);
     let _ = rcc.enable_hsi48(&mut p.SYSCFG, p.CRS);
     let clocks = rcc.clocks();

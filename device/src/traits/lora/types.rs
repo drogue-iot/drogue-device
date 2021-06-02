@@ -48,7 +48,18 @@ pub struct NwksKey([u8; 16]);
 pub struct AppsKey([u8; 16]);
 
 #[derive(Debug, Clone, Copy)]
+pub enum SpreadingFactor {
+    SF7,
+    SF8,
+    SF9,
+    SF10,
+    SF11,
+    SF12,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct LoraConfig {
+    pub spreading_factor: Option<SpreadingFactor>,
     pub region: Option<LoraRegion>,
     pub lora_mode: Option<LoraMode>,
     pub device_address: Option<DevAddr>,
@@ -60,6 +71,7 @@ pub struct LoraConfig {
 impl LoraConfig {
     pub fn new() -> Self {
         Self {
+            spreading_factor: None,
             region: None,
             lora_mode: None,
             device_address: None,
@@ -67,6 +79,11 @@ impl LoraConfig {
             app_eui: None,
             app_key: None,
         }
+    }
+
+    pub fn spreading_factor(mut self, spreading_factor: SpreadingFactor) -> Self {
+        self.spreading_factor.replace(spreading_factor);
+        self
     }
 
     pub fn region(mut self, region: LoraRegion) -> Self {
