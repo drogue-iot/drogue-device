@@ -154,7 +154,7 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
         .region(LoraRegion::EU868)
         .lora_mode(LoraMode::WAN)
         .device_eui(&DEV_EUI.trim_end().into())
-        .spreading_factor(SpreadingFactor::SF9)
+        .spreading_factor(SpreadingFactor::SF12)
         .app_eui(&APP_EUI.trim_end().into())
         .app_key(&APP_KEY.trim_end().into());
 
