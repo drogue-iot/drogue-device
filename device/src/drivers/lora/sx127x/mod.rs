@@ -323,13 +323,15 @@ where
         async move {
             match self.state.take().unwrap() {
                 DriverState::New(mut radio) => {
-                    crate::log_stack("lora driver configure");
+                    // crate::log_stack("lora driver configure");
                     radio.reset().await?;
                     //info!("Configuring radio");
                     let dev_eui = config.device_eui.as_ref().expect("device EUI must be set");
                     let app_eui = config.app_eui.as_ref().expect("app EUI must be set");
                     let app_key = config.app_key.as_ref().expect("app KEY must be set");
                     //info!("Creating device");
+                    let data_rate =
+                        to_datarate(config.spreading_factor.unwrap_or(SpreadingFactor::SF9));
                     let region = to_region(config.region.unwrap_or(LoraRegion::EU868));
                     if let Err(e) = region {
                         return Err(e);
@@ -345,7 +347,7 @@ where
                             app_key.clone().into(),
                             self.get_random,
                         );
-                    lorawan.set_datarate(region::DR::_3); // Use lower datarate that seems more stable
+                    lorawan.set_datarate(data_rate);
                     self.state.replace(DriverState::Configured(lorawan));
                     Ok(())
                 }
@@ -389,5 +391,16 @@ fn to_region(region: LoraRegion) -> Result<region::Configuration, LoraError> {
         LoraRegion::US915 => Ok(region::US915::default().into()),
         LoraRegion::CN470 => Ok(region::CN470::default().into()),
         _ => Err(LoraError::UnsupportedRegion),
+    }
+}
+
+fn to_datarate(spreading_factor: SpreadingFactor) -> region::DR {
+    match spreading_factor {
+        SpreadingFactor::SF7 => region::DR::_5,
+        SpreadingFactor::SF8 => region::DR::_4,
+        SpreadingFactor::SF9 => region::DR::_3,
+        SpreadingFactor::SF10 => region::DR::_2,
+        SpreadingFactor::SF11 => region::DR::_1,
+        SpreadingFactor::SF12 => region::DR::_0,
     }
 }

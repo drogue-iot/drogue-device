@@ -1,5 +1,4 @@
 use crate::traits::lora::LoraError as DriverError;
-use embedded_hal::blocking::delay::DelayMs;
 use embedded_hal::blocking::spi::{Transfer, Write};
 use embedded_hal::digital::v2::OutputPin;
 use heapless::{consts::U256, Vec};
