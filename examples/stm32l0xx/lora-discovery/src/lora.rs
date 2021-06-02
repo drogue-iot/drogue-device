@@ -48,7 +48,7 @@ where
     #[rustfmt::skip]
     type OnMessageFuture<'m> where D: 'm = impl Future<Output = Self::Response> + 'm;
 
-    fn on_start<'m>(mut self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
+    fn on_start<'m>(self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
         async move {}
     }
 

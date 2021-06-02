@@ -32,7 +32,7 @@ use embassy_stm32::{
 use rand_core::RngCore;
 use stm32l0xx_hal as hal;
 
-use hal::{pac::Peripherals as HalPeripherals, rcc::RccExt};
+use hal::pac::Peripherals as HalPeripherals;
 
 mod app;
 mod lora;

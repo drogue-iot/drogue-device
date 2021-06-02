@@ -3,10 +3,7 @@ use core::future::Future;
 use embassy::time::*;
 use embassy::traits::gpio::WaitForRisingEdge;
 use embedded_hal::{
-    blocking::{
-        delay::DelayMs,
-        spi::{Transfer, Write},
-    },
+    blocking::spi::{Transfer, Write},
     digital::v2::OutputPin,
 };
 
