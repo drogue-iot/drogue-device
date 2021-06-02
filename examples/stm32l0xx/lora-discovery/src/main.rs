@@ -22,6 +22,7 @@ use embassy_stm32::{
     gpio::{Input, Level, Output, Pull},
     interrupt,
     peripherals::{PA15, PA5, PB2, PB4, PB5, PB6, PB7, PC0, RNG, SPI1},
+    rcc,
     rng::Random,
     spi,
     time::U32Ext,
@@ -31,12 +32,7 @@ use embassy_stm32::{
 use rand_core::RngCore;
 use stm32l0xx_hal as hal;
 
-use hal::{
-    delay::Delay,
-    pac::Peripherals as HalPeripherals,
-    rcc::{self, RccExt},
-    syscfg,
-};
+use hal::{pac::Peripherals as HalPeripherals, rcc::RccExt};
 
 mod app;
 mod lora;
@@ -53,8 +49,12 @@ static mut RNG: Option<Random<RNG>> = None;
 fn get_random_u32() -> u32 {
     unsafe {
         if let Some(rng) = &mut RNG {
+            log::info!("Reset random");
             rng.reset();
-            rng.next_u32()
+            log::info!("Wait next u32");
+            let result = rng.next_u32();
+            log::info!("Got random!");
+            result
         } else {
             panic!("No Rng exists!");
         }
@@ -89,7 +89,7 @@ static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 #[embassy::main(
     config = "embassy_stm32::Config::default().rcc(embassy_stm32::rcc::Config::default().clock_src(embassy_stm32::rcc::ClockSrc::HSI16))"
 )]
-async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
+async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     rtt_init_print!();
     unsafe {
         log::set_logger_racy(&LOGGER).unwrap();
@@ -119,12 +119,16 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     device.RCC.ahbenr.modify(|_, w| w.rngen().set_bit());
     // NEEDED FOR RNG
 
+    //let mut rccold = device.RCC.freeze(hal::rcc::Config::hsi16());
+    //let mut syscfg = hal::syscfg::SYSCFG::new(device.SYSCFG, &mut rccold);
+    //let _ = rccold.enable_hsi48(&mut syscfg, device.CRS);
+
     // TODO: This must be in sync with above, but is there a
     // way we can get hold of rcc without freezing twice?
-    let mut rcc = device.RCC.freeze(rcc::Config::hsi16());
+    let mut rcc = rcc::Rcc::new(p.RCC);
+    let _ = rcc.enable_hsi48(&mut p.SYSCFG, p.CRS);
+    let clocks = rcc.clocks();
 
-    let mut syscfg = syscfg::SYSCFG::new(device.SYSCFG, &mut rcc);
-    let _ = rcc.enable_hsi48(&mut syscfg, device.CRS);
     unsafe { RNG.replace(Random::new(p.RNG)) };
 
     let led1 = Led::new(Output::new(p.PB5, Level::Low));
@@ -137,7 +141,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     // SPI for sx127x
     let spi = spi::Spi::new(
-        rcc.clocks.apb2_clk().0.hz(),
+        clocks.apb2_clk,
         p.SPI1,
         p.PB3,
         p.PA7,
@@ -153,11 +157,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let ready = Input::new(p.PB4, Pull::Up);
     let ready_pin = ExtiInput::new(ready, p.EXTI4);
 
-    let cdevice = cortex_m::Peripherals::take().unwrap();
-    let mut delay = Delay::new(cdevice.SYST, rcc.clocks);
-
-    let lora = Sx127xDriver::new(ready_pin, spi, cs, reset, &mut delay, get_random_u32)
-        .expect("error creating sx127x driver");
+    let lora = Sx127xDriver::new(ready_pin, spi, cs, reset, get_random_u32);
 
     let config = LoraConfig::new()
         .region(LoraRegion::EU868)

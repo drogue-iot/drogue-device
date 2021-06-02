@@ -23,20 +23,18 @@ pub const MODE: Mode = Mode {
 };
 
 /// Provides high-level access to Semtech SX1276/77/78/79 based boards connected to a Raspberry Pi
-pub struct LoRa<SPI, CS, RESET> {
+pub struct LoRa<SPI, CS> {
     spi: SPI,
     cs: CS,
-    reset: RESET,
     pub explicit_header: bool,
     pub mode: RadioMode,
 }
 
 #[derive(Debug)]
-pub enum Error<SPI, CS, RESET> {
+pub enum Error<SPI, CS> {
     Uninformative,
     VersionMismatch(u8),
     CS(CS),
-    Reset(RESET),
     SPI(SPI),
     Transmitting,
 }
@@ -50,44 +48,34 @@ const VERSION_CHECK: u8 = 0x12;
 #[cfg(feature = "version_0x09")]
 const VERSION_CHECK: u8 = 0x09;
 
-impl<SPI, CS, RESET, E> LoRa<SPI, CS, RESET>
+impl<SPI, CS, E> LoRa<SPI, CS>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
-    RESET: OutputPin,
 {
     /// Builds and returns a new instance of the radio. Only one instance of the radio should exist at a time.
     /// This also preforms a hardware reset of the module and then puts it in standby.
-    pub fn new(
-        spi: SPI,
-        cs: CS,
-        reset: RESET,
-        delay: &mut dyn DelayMs<u8>,
-    ) -> Result<Self, Error<E, CS::Error, RESET::Error>> {
-        let mut sx127x = LoRa {
+    pub fn new(spi: SPI, cs: CS) -> Self {
+        Self {
             spi,
             cs,
-            reset,
             explicit_header: true,
             mode: RadioMode::Sleep,
-        };
-        sx127x.reset.set_low().map_err(Reset)?;
-        delay.delay_ms(10);
-        sx127x.reset.set_high().map_err(Reset)?;
-        delay.delay_ms(10);
-        log::info!("RESET");
-        let version = sx127x.read_register(Register::RegVersion.addr())?;
+        }
+    }
+
+    pub fn initialize(&mut self) -> Result<(), Error<E, CS::Error>> {
+        let version = self.read_register(Register::RegVersion.addr())?;
         if version == VERSION_CHECK {
-            log::info!("Version: {}", version);
-            sx127x.set_mode(RadioMode::Sleep)?;
-            sx127x.write_register(Register::RegFifoTxBaseAddr.addr(), 0)?;
-            sx127x.write_register(Register::RegFifoRxBaseAddr.addr(), 0)?;
-            let lna = sx127x.read_register(Register::RegLna.addr())?;
-            sx127x.write_register(Register::RegLna.addr(), lna | 0x03)?;
-            sx127x.write_register(Register::RegModemConfig3.addr(), 0x04)?;
-            sx127x.set_mode(RadioMode::Stdby)?;
-            sx127x.cs.set_high().map_err(CS)?;
-            Ok(sx127x)
+            self.set_mode(RadioMode::Sleep)?;
+            self.write_register(Register::RegFifoTxBaseAddr.addr(), 0)?;
+            self.write_register(Register::RegFifoRxBaseAddr.addr(), 0)?;
+            let lna = self.read_register(Register::RegLna.addr())?;
+            self.write_register(Register::RegLna.addr(), lna | 0x03)?;
+            self.write_register(Register::RegModemConfig3.addr(), 0x04)?;
+            self.set_mode(RadioMode::Stdby)?;
+            self.cs.set_high().map_err(CS)?;
+            Ok(())
         } else {
             Err(Error::VersionMismatch(version))
         }
@@ -99,7 +87,7 @@ where
         &mut self,
         buffer: [u8; 255],
         payload_size: usize,
-    ) -> Result<usize, Error<E, CS::Error, RESET::Error>> {
+    ) -> Result<usize, Error<E, CS::Error>> {
         if self.transmitting()? {
             Err(Transmitting)
         } else {
@@ -123,13 +111,13 @@ where
         }
     }
 
-    pub fn set_dio0_tx_done(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn set_dio0_tx_done(&mut self) -> Result<(), Error<E, CS::Error>> {
         self.write_register(Register::RegIrqFlagsMask.addr(), 0b1111_0111)?;
         let mapping = self.read_register(Register::RegDioMapping1.addr())?;
         self.write_register(Register::RegDioMapping1.addr(), (mapping & 0x3F) | 0x40)
     }
 
-    pub fn set_dio0_rx_done(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn set_dio0_rx_done(&mut self) -> Result<(), Error<E, CS::Error>> {
         self.write_register(Register::RegIrqFlagsMask.addr(), 0b0001_1111)?;
         let mapping = self.read_register(Register::RegDioMapping1.addr())?;
         self.write_register(Register::RegDioMapping1.addr(), (mapping & 0x3F) | 0x00)
@@ -139,7 +127,7 @@ where
         &mut self,
         buffer: [u8; 255],
         payload_size: usize,
-    ) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    ) -> Result<(), Error<E, CS::Error>> {
         if self.transmitting()? {
             Err(Transmitting)
         } else {
@@ -162,26 +150,26 @@ where
         }
     }
 
-    pub fn packet_ready(&mut self) -> Result<bool, Error<E, CS::Error, RESET::Error>> {
+    pub fn packet_ready(&mut self) -> Result<bool, Error<E, CS::Error>> {
         Ok(self.read_register(Register::RegIrqFlags.addr())?.get_bit(6))
     }
 
-    pub fn irq_flags_mask(&mut self) -> Result<u8, Error<E, CS::Error, RESET::Error>> {
+    pub fn irq_flags_mask(&mut self) -> Result<u8, Error<E, CS::Error>> {
         Ok(self.read_register(Register::RegIrqFlagsMask.addr())? as u8)
     }
 
-    pub fn irq_flags(&mut self) -> Result<u8, Error<E, CS::Error, RESET::Error>> {
+    pub fn irq_flags(&mut self) -> Result<u8, Error<E, CS::Error>> {
         Ok(self.read_register(Register::RegIrqFlags.addr())? as u8)
     }
 
-    pub fn read_packet_size(&mut self) -> Result<usize, Error<E, CS::Error, RESET::Error>> {
+    pub fn read_packet_size(&mut self) -> Result<usize, Error<E, CS::Error>> {
         let size = self.read_register(Register::RegRxNbBytes.addr())?;
         Ok(size as usize)
     }
 
     /// Returns the contents of the fifo as a fixed 255 u8 array. This should only be called is there is a
     /// new packet ready to be read.
-    pub fn read_packet(&mut self) -> Result<[u8; 255], Error<E, CS::Error, RESET::Error>> {
+    pub fn read_packet(&mut self) -> Result<[u8; 255], Error<E, CS::Error>> {
         let mut buffer = [0 as u8; 255];
         self.clear_irq()?;
         let size = self.read_register(Register::RegRxNbBytes.addr())?;
@@ -196,7 +184,7 @@ where
     }
 
     /// Returns true if the radio is currently transmitting a packet.
-    pub fn transmitting(&mut self) -> Result<bool, Error<E, CS::Error, RESET::Error>> {
+    pub fn transmitting(&mut self) -> Result<bool, Error<E, CS::Error>> {
         if (self.read_register(Register::RegOpMode.addr())? & RadioMode::Tx.addr())
             == RadioMode::Tx.addr()
         {
@@ -211,7 +199,7 @@ where
     }
 
     /// Clears the radio's IRQ registers.
-    pub fn clear_irq(&mut self) -> Result<u8, Error<E, CS::Error, RESET::Error>> {
+    pub fn clear_irq(&mut self) -> Result<u8, Error<E, CS::Error>> {
         let irq_flags = self.read_register(Register::RegIrqFlags.addr())?;
         self.write_register(Register::RegIrqFlags.addr(), 0xFF)?;
         Ok(irq_flags)
@@ -224,7 +212,7 @@ where
         &mut self,
         mut level: i32,
         output_pin: u8,
-    ) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    ) -> Result<(), Error<E, CS::Error>> {
         if PaConfig::PaOutputRfoPin.addr() == output_pin {
             // RFO
             if level < 0 {
@@ -261,12 +249,12 @@ where
         }
     }
 
-    pub fn get_modem_stat(&mut self) -> Result<u8, Error<E, CS::Error, RESET::Error>> {
+    pub fn get_modem_stat(&mut self) -> Result<u8, Error<E, CS::Error>> {
         Ok(self.read_register(Register::RegModemStat.addr())? as u8)
     }
 
     /// Sets the over current protection on the radio(mA).
-    pub fn set_ocp(&mut self, ma: u8) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn set_ocp(&mut self, ma: u8) -> Result<(), Error<E, CS::Error>> {
         let mut ocp_trim: u8 = 27;
 
         if ma <= 120 {
@@ -278,7 +266,7 @@ where
     }
 
     /// Sets the state of the radio. Default mode after initiation is `Standby`.
-    pub fn set_mode(&mut self, mode: RadioMode) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn set_mode(&mut self, mode: RadioMode) -> Result<(), Error<E, CS::Error>> {
         if self.explicit_header {
             self.set_explicit_header_mode()?;
         } else {
@@ -293,13 +281,13 @@ where
         Ok(())
     }
 
-    pub fn reset_payload_length(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn reset_payload_length(&mut self) -> Result<(), Error<E, CS::Error>> {
         self.write_register(Register::RegPayloadLength.addr(), 0xFF)
     }
 
     /// Sets the frequency of the radio. Values are in megahertz.
     /// I.E. 915 MHz must be used for North America. Check regulation for your area.
-    pub fn set_frequency(&mut self, freq: u32) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn set_frequency(&mut self, freq: u32) -> Result<(), Error<E, CS::Error>> {
         const FREQ_STEP: f64 = 61.03515625;
         // calculate register values
         let frf = (freq as f64 / FREQ_STEP) as u32;
@@ -313,7 +301,7 @@ where
     }
 
     /// Sets the radio to use an explicit header. Default state is `ON`.
-    fn set_explicit_header_mode(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    fn set_explicit_header_mode(&mut self) -> Result<(), Error<E, CS::Error>> {
         let reg_modem_config_1 = self.read_register(Register::RegModemConfig1.addr())?;
         self.write_register(Register::RegModemConfig1.addr(), reg_modem_config_1 & 0xfe)?;
         self.explicit_header = true;
@@ -321,7 +309,7 @@ where
     }
 
     /// Sets the radio to use an implicit header. Default state is `OFF`.
-    fn set_implicit_header_mode(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    fn set_implicit_header_mode(&mut self) -> Result<(), Error<E, CS::Error>> {
         let reg_modem_config_1 = self.read_register(Register::RegModemConfig1.addr())?;
         self.write_register(Register::RegModemConfig1.addr(), reg_modem_config_1 & 0x01)?;
         self.explicit_header = false;
@@ -331,10 +319,7 @@ where
     /// Sets the spreading factor of the radio. Supported values are between 6 and 12.
     /// If a spreading factor of 6 is set, implicit header mode must be used to transmit
     /// and receive packets. Default value is `7`.
-    pub fn set_spreading_factor(
-        &mut self,
-        mut sf: u8,
-    ) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn set_spreading_factor(&mut self, mut sf: u8) -> Result<(), Error<E, CS::Error>> {
         if sf < 6 {
             sf = 6;
         } else if sf > 12 {
@@ -363,10 +348,7 @@ where
     /// Sets the signal bandwidth of the radio. Supported values are: `7800 Hz`, `10400 Hz`,
     /// `15600 Hz`, `20800 Hz`, `31250 Hz`,`41700 Hz` ,`62500 Hz`,`125000 Hz` and `250000 Hz`
     /// Default value is `125000 Hz`
-    pub fn set_signal_bandwidth(
-        &mut self,
-        sbw: i64,
-    ) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn set_signal_bandwidth(&mut self, sbw: i64) -> Result<(), Error<E, CS::Error>> {
         let bw: i64 = match sbw {
             7_800 => 0,
             10_400 => 1,
@@ -391,10 +373,7 @@ where
     /// Sets the coding rate of the radio with the numerator fixed at 4. Supported values
     /// are between `5` and `8`, these correspond to coding rates of `4/5` and `4/8`.
     /// Default value is `5`.
-    pub fn set_coding_rate_4(
-        &mut self,
-        mut denominator: u8,
-    ) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn set_coding_rate_4(&mut self, mut denominator: u8) -> Result<(), Error<E, CS::Error>> {
         if denominator < 5 {
             denominator = 5;
         } else if denominator > 8 {
@@ -410,16 +389,13 @@ where
 
     /// Sets the preamble length of the radio. Values are between 6 and 65535.
     /// Default value is `8`.
-    pub fn set_preamble_length(
-        &mut self,
-        length: i64,
-    ) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn set_preamble_length(&mut self, length: i64) -> Result<(), Error<E, CS::Error>> {
         self.write_register(Register::RegPreambleMsb.addr(), (length >> 8) as u8)?;
         self.write_register(Register::RegPreambleLsb.addr(), length as u8)
     }
 
     /// Enables are disables the radio's CRC check. Default value is `false`.
-    pub fn set_crc(&mut self, value: bool) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn set_crc(&mut self, value: bool) -> Result<(), Error<E, CS::Error>> {
         let modem_config_2 = self.read_register(Register::RegModemConfig2.addr())?;
         if value {
             self.write_register(Register::RegModemConfig2.addr(), modem_config_2 | 0x04)
@@ -429,7 +405,7 @@ where
     }
 
     /// Inverts the radio's IQ signals. Default value is `false`.
-    pub fn set_invert_iq(&mut self, value: bool) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn set_invert_iq(&mut self, value: bool) -> Result<(), Error<E, CS::Error>> {
         if value {
             self.write_register(Register::RegInvertiq.addr(), 0x66)?;
             self.write_register(Register::RegInvertiq2.addr(), 0x19)
@@ -440,12 +416,12 @@ where
     }
 
     /// Returns the spreading factor of the radio.
-    pub fn get_spreading_factor(&mut self) -> Result<u8, Error<E, CS::Error, RESET::Error>> {
+    pub fn get_spreading_factor(&mut self) -> Result<u8, Error<E, CS::Error>> {
         Ok(self.read_register(Register::RegModemConfig2.addr())? >> 4)
     }
 
     /// Returns the signal bandwidth of the radio.
-    pub fn get_signal_bandwidth(&mut self) -> Result<i64, Error<E, CS::Error, RESET::Error>> {
+    pub fn get_signal_bandwidth(&mut self) -> Result<i64, Error<E, CS::Error>> {
         let bw = self.read_register(Register::RegModemConfig1.addr())? >> 4;
         let bw = match bw {
             0 => 7_800,
@@ -464,19 +440,19 @@ where
     }
 
     /// Returns the RSSI of the last received packet.
-    pub fn get_packet_rssi(&mut self) -> Result<i32, Error<E, CS::Error, RESET::Error>> {
+    pub fn get_packet_rssi(&mut self) -> Result<i32, Error<E, CS::Error>> {
         Ok(i32::from(self.read_register(Register::RegPktRssiValue.addr())?) - 157)
     }
 
     /// Returns the signal to noise radio of the the last received packet.
-    pub fn get_packet_snr(&mut self) -> Result<f64, Error<E, CS::Error, RESET::Error>> {
+    pub fn get_packet_snr(&mut self) -> Result<f64, Error<E, CS::Error>> {
         Ok(f64::from(
             self.read_register(Register::RegPktSnrValue.addr())?,
         ))
     }
 
     /// Returns the frequency error of the last received packet in Hz.
-    pub fn get_packet_frequency_error(&mut self) -> Result<i64, Error<E, CS::Error, RESET::Error>> {
+    pub fn get_packet_frequency_error(&mut self) -> Result<i64, Error<E, CS::Error>> {
         let mut freq_error: i32;
         freq_error = i32::from(self.read_register(Register::RegFreqErrorMsb.addr())? & 0x7);
         freq_error <<= 8i64;
@@ -490,7 +466,7 @@ where
         Ok(f_error as i64)
     }
 
-    fn set_ldo_flag(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    fn set_ldo_flag(&mut self) -> Result<(), Error<E, CS::Error>> {
         let sw = self.get_signal_bandwidth()?;
         // Section 4.1.1.5
         let symbol_duration = 1000 / (sw / ((1 as i64) << self.get_spreading_factor()?));
@@ -504,7 +480,7 @@ where
         self.write_register(Register::RegModemConfig3.addr(), config_3)
     }
 
-    fn read_register(&mut self, reg: u8) -> Result<u8, Error<E, CS::Error, RESET::Error>> {
+    fn read_register(&mut self, reg: u8) -> Result<u8, Error<E, CS::Error>> {
         self.cs.set_low().map_err(CS)?;
 
         let mut buffer = [reg & 0x7f, 0];
@@ -513,11 +489,7 @@ where
         Ok(transfer[1])
     }
 
-    fn write_register(
-        &mut self,
-        reg: u8,
-        byte: u8,
-    ) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    fn write_register(&mut self, reg: u8, byte: u8) -> Result<(), Error<E, CS::Error>> {
         self.cs.set_low().map_err(CS)?;
 
         let buffer = [reg | 0x80, byte];
@@ -526,7 +498,7 @@ where
         Ok(())
     }
 
-    pub fn put_in_fsk_mode(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn put_in_fsk_mode(&mut self) -> Result<(), Error<E, CS::Error>> {
         // Put in FSK mode
         let mut op_mode = 0;
         op_mode
@@ -542,7 +514,7 @@ where
         &mut self,
         modulation_shaping: FskDataModulationShaping,
         ramp: FskRampUpRamDown,
-    ) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    ) -> Result<(), Error<E, CS::Error>> {
         let mut pa_ramp = 0;
         pa_ramp
             .set_bits(5..6, modulation_shaping as u8)
@@ -551,11 +523,11 @@ where
         self.write_register(Register::RegPaRamp as u8, pa_ramp)
     }
 
-    pub fn set_lora_pa_ramp(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn set_lora_pa_ramp(&mut self) -> Result<(), Error<E, CS::Error>> {
         self.write_register(Register::RegPaRamp as u8, 0b1000)
     }
 
-    pub fn set_lora_sync_word(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn set_lora_sync_word(&mut self) -> Result<(), Error<E, CS::Error>> {
         self.write_register(Register::RegSyncWord as u8, 0x34)
     }
 }
