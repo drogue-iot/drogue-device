@@ -1,8 +1,7 @@
 use crate::traits::lora::LoraError as DriverError;
-use embassy::time::{Duration, Timer};
+use embedded_hal::blocking::delay::DelayMs;
 use embedded_hal::blocking::spi::{Transfer, Write};
 use embedded_hal::digital::v2::OutputPin;
-
 use heapless::{consts::U256, Vec};
 use lorawan_device::{
     radio::{
@@ -20,8 +19,7 @@ where
     CS: OutputPin,
     RESET: OutputPin,
 {
-    radio: LoRa<SPI, CS>,
-    reset: RESET,
+    radio: LoRa<SPI, CS, RESET>,
     radio_state: State,
     buffer: RadioBuffer,
 }
@@ -61,18 +59,16 @@ where
     pub fn new(spi: SPI, cs: CS, reset: RESET) -> Self {
         Self {
             radio_state: State::Idle,
-            radio: LoRa::new(spi, cs),
-            reset,
+            radio: LoRa::new(spi, cs, reset),
             buffer: RadioBuffer { packet: Vec::new() },
         }
     }
 
     pub async fn reset(&mut self) -> Result<(), DriverError> {
-        self.reset.set_low().map_err(|_| DriverError::OtherError)?;
-        Timer::after(Duration::from_millis(10)).await;
-        self.reset.set_high().map_err(|_| DriverError::OtherError)?;
-        Timer::after(Duration::from_millis(10)).await;
-        self.radio.initialize().map_err(|_| DriverError::OtherError)
+        self.radio
+            .reset()
+            .await
+            .map_err(|_| DriverError::OtherError)
     }
 
     pub fn handle_event_idle(

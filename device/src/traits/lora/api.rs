@@ -9,12 +9,6 @@ pub trait LoraDriver {
     /// Configure the LoRa module with the provided config.
     fn configure<'a>(&'a mut self, config: &'a LoraConfig) -> Self::ConfigureFuture<'a>;
 
-    type ResetFuture<'a>: Future<Output = Result<(), LoraError>>
-    where
-        Self: 'a;
-    /// Reset the LoRa module.
-    fn reset<'a>(&'a mut self, mode: ResetMode) -> Self::ResetFuture<'a>;
-
     type JoinFuture<'a>: Future<Output = Result<(), LoraError>>
     where
         Self: 'a;

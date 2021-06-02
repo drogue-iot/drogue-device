@@ -49,11 +49,8 @@ static mut RNG: Option<Random<RNG>> = None;
 fn get_random_u32() -> u32 {
     unsafe {
         if let Some(rng) = &mut RNG {
-            log::info!("Reset random");
             rng.reset();
-            log::info!("Wait next u32");
             let result = rng.next_u32();
-            log::info!("Got random!");
             result
         } else {
             panic!("No Rng exists!");
@@ -118,10 +115,6 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     device.RCC.ahbrstr.modify(|_, w| w.rngrst().clear_bit());
     device.RCC.ahbenr.modify(|_, w| w.rngen().set_bit());
     // NEEDED FOR RNG
-
-    //let mut rccold = device.RCC.freeze(hal::rcc::Config::hsi16());
-    //let mut syscfg = hal::syscfg::SYSCFG::new(device.SYSCFG, &mut rccold);
-    //let _ = rccold.enable_hsi48(&mut syscfg, device.CRS);
 
     // TODO: This must be in sync with above, but is there a
     // way we can get hold of rcc without freezing twice?
