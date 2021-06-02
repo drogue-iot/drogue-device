@@ -48,8 +48,13 @@ where
     #[rustfmt::skip]
     type OnMessageFuture<'m> where D: 'm = impl Future<Output = Self::Response> + 'm;
 
-    fn on_start<'m>(self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
-        async move {}
+    fn on_start<'m>(mut self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
+        async move {
+            log::info!("Resetting module");
+            if let Err(e) = self.lora.reset(ResetMode::Restart).await {
+                log::error!("Error resetting LoRa module: {:?}", e);
+            }
+        }
     }
 
     fn on_message<'m>(
