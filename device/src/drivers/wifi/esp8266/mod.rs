@@ -9,7 +9,6 @@ mod parser;
 mod protocol;
 mod socket_pool;
 
-use crate::fmt::*;
 use socket_pool::SocketPool;
 
 use crate::{

@@ -1,4 +1,3 @@
-use crate::fmt::*;
 use crate::traits::lora::*;
 use core::future::Future;
 use embassy::time::*;
