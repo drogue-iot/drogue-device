@@ -29,7 +29,7 @@ rand_core = { version = "0.6", default-features = false }
 
 embassy = {path = "../../../../../embassy/embassy", default-features = false}
 embassy-stm32 = {path = "../../../../../embassy/embassy-stm32", default-features = false, features = ["stm32l072cz"] }
-stm32l0xx-hal = { version = "0.7.0", features = ["stm32l0x2"] }
+# stm32l0xx-hal = { version = "0.7.0", features = ["stm32l0x2"] }
 
 [profile.release]
 debug = 1

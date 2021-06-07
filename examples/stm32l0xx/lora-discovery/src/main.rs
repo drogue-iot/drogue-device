@@ -30,9 +30,6 @@ use embassy_stm32::{
 };
 
 use rand_core::RngCore;
-use stm32l0xx_hal as hal;
-
-use hal::pac::Peripherals as HalPeripherals;
 
 mod app;
 mod lora;
@@ -93,30 +90,9 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     }
 
     log::set_max_level(log::LevelFilter::Trace);
-    let device = unsafe { HalPeripherals::steal() };
-
-    // NEEDED FOR RTT
-    device.DBG.cr.modify(|_, w| {
-        w.dbg_sleep().set_bit();
-        w.dbg_standby().set_bit();
-        w.dbg_stop().set_bit()
-    });
-    device.RCC.ahbenr.modify(|_, w| w.dmaen().enabled());
-    // NEEDED FOR RTT
-
-    // NEEDED FOR SPI
-    device.RCC.apb2enr.modify(|_, w| w.spi1en().set_bit());
-    device.RCC.apb2rstr.modify(|_, w| w.spi1rst().set_bit());
-    device.RCC.apb2rstr.modify(|_, w| w.spi1rst().clear_bit());
-    // NEEDED FOR SPI
-
-    // NEEDED FOR RNG
-    device.RCC.ahbrstr.modify(|_, w| w.rngrst().set_bit());
-    device.RCC.ahbrstr.modify(|_, w| w.rngrst().clear_bit());
-    device.RCC.ahbenr.modify(|_, w| w.rngen().set_bit());
-    // NEEDED FOR RNG
 
     let mut rcc = rcc::Rcc::new(p.RCC);
+    rcc.enable_debug_wfe(&mut p.DBGMCU, true);
     let _ = rcc.enable_hsi48(&mut p.SYSCFG, p.CRS);
     let clocks = rcc.clocks();
 
