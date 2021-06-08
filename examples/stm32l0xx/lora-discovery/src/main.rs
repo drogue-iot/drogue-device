@@ -91,6 +91,12 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
 
     log::set_max_level(log::LevelFilter::Trace);
 
+    // NEEDED FOR RNG
+    device.RCC.ahbrstr.modify(|_, w| w.rngrst().set_bit());
+    device.RCC.ahbrstr.modify(|_, w| w.rngrst().clear_bit());
+    device.RCC.ahbenr.modify(|_, w| w.rngen().set_bit());
+    // NEEDED FOR RNG
+
     let mut rcc = rcc::Rcc::new(p.RCC);
     rcc.enable_debug_wfe(&mut p.DBGMCU, true);
     let _ = rcc.enable_hsi48(&mut p.SYSCFG, p.CRS);
