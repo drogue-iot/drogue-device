@@ -113,7 +113,7 @@ pub fn print_stack(file: &'static str, line: u32) {
 pub fn log_stack(file: &'static str) {
     let _u: u32 = 1;
     let _uptr: *const u32 = &_u;
-    log::trace!("[{}] SP: 0x{:p}", file, &_uptr);
+    trace!("[{}] SP: 0x{:p}", file, &_uptr);
 }
 
 #[allow(unused_variables)]
