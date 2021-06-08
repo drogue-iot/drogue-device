@@ -29,7 +29,7 @@ use embassy_nrf::{
     gpio::{Input, Level, NoPin, Output, OutputDrive, Pull},
     gpiote::PortInput,
     interrupt,
-    peripherals::{P0_02, P0_03, P0_14, TIMER0, UARTE0},
+    peripherals::{P0_09, P0_10, P0_14, TIMER0, UARTE0},
     uarte, Peripherals,
 };
 
@@ -41,8 +41,8 @@ const PORT: u16 = 12345;
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
 
 type UART = BufferedUarte<'static, UARTE0, TIMER0>;
-type ENABLE = Output<'static, P0_03>;
-type RESET = Output<'static, P0_02>;
+type ENABLE = Output<'static, P0_09>;
+type RESET = Output<'static, P0_10>;
 
 pub struct MyDevice {
     wifi: Esp8266Wifi<UART, ENABLE, RESET>,
@@ -89,8 +89,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         )
     };
 
-    let enable_pin = Output::new(p.P0_03, Level::Low, OutputDrive::Standard);
-    let reset_pin = Output::new(p.P0_02, Level::Low, OutputDrive::Standard);
+    let enable_pin = Output::new(p.P0_09, Level::Low, OutputDrive::Standard);
+    let reset_pin = Output::new(p.P0_10, Level::Low, OutputDrive::Standard);
 
     DEVICE.configure(MyDevice {
         wifi: Esp8266Wifi::new(u, enable_pin, reset_pin),
