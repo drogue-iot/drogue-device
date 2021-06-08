@@ -1,4 +1,3 @@
-use crate::lora::*;
 use core::fmt::Write;
 use core::future::Future;
 use core::pin::Pin;
@@ -29,12 +28,11 @@ where
     }
 }
 
-pub struct AppConfig<'a, D>
+pub struct AppConfig<D>
 where
     D: LoraDriver + 'static,
 {
-    // lora actor
-    pub lora: Address<'a, LoraActor<D>>,
+    pub lora: D,
 }
 
 pub struct AppInitConfig<L1, L2, L3, L4>
@@ -60,7 +58,7 @@ where
     L4: StatefulOutputPin + ToggleableOutputPin + 'static,
 {
     config: AppInitConfig<L1, L2, L3, L4>,
-    cfg: Option<AppConfig<'static, D>>,
+    cfg: Option<AppConfig<D>>,
     counter: usize,
 }
 
@@ -89,21 +87,17 @@ where
         log::info!("Sending message...");
         self.config.tx_led.on().ok();
 
-        if let Some(cfg) = &self.cfg {
+        if let Some(ref mut cfg) = &mut self.cfg {
             let mut tx = String::<heapless::consts::U32>::new();
             write!(&mut tx, "ping:{}", self.counter).ok();
             log::info!("Message: {}", &tx);
             let tx = tx.into_bytes();
 
             let mut rx = [0; 64];
-            let result = cfg
-                .lora
-                .request(LoraCommand::SendRecv(&tx, &mut rx))
-                .unwrap()
-                .await;
+            let result = cfg.lora.send_recv(QoS::Confirmed, 1, &tx, &mut rx).await;
 
             match result {
-                LoraResult::OkSent(rx_len) => {
+                Ok(rx_len) => {
                     log::info!("Message sent!");
                     if rx_len > 0 {
                         let response = &rx[0..rx_len];
@@ -128,10 +122,9 @@ where
                         }
                     }
                 }
-                LoraResult::Err(e) => {
+                Err(e) => {
                     log::error!("Error sending message: {:?}", e);
                 }
-                _ => {}
             }
         }
 
@@ -158,7 +151,7 @@ where
     L4: StatefulOutputPin + ToggleableOutputPin + 'static,
 {
     #[rustfmt::skip]
-    type Configuration = AppConfig<'static, D>;
+    type Configuration = AppConfig<D>;
     #[rustfmt::skip]
     type Message<'m> where D: 'm = Command;
     #[rustfmt::skip]
@@ -174,12 +167,15 @@ where
         async move {
             let lora_config = self.config.lora.take().unwrap();
             self.config.init_led.on().ok();
-            if let Some(ref cfg) = self.cfg {
+            if let Some(ref mut cfg) = self.cfg {
                 cfg.lora
-                    .request(LoraCommand::Configure(&lora_config))
-                    .unwrap()
-                    .await;
-                cfg.lora.request(LoraCommand::Join).unwrap().await;
+                    .configure(&lora_config)
+                    .await
+                    .expect("error configuring lora");
+                cfg.lora
+                    .join(ConnectMode::OTAA)
+                    .await
+                    .expect("error joining lora network");
             }
             self.config.init_led.off().ok();
         }
