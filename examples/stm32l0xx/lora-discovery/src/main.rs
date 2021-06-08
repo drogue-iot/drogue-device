@@ -15,7 +15,11 @@ use rtt_logger::RTTLogger;
 use rtt_target::rtt_init_print;
 
 use drogue_device::{
-    actors::button::*, drivers::led::*, drivers::lora::sx127x::*, traits::lora::*, *,
+    actors::{button::*, lora::*},
+    drivers::led::*,
+    drivers::lora::sx127x::*,
+    traits::lora::*,
+    *,
 };
 use embassy_stm32::{
     exti::ExtiInput,
@@ -31,17 +35,13 @@ use embassy_stm32::{
 
 use stm32l0xx_hal as hal;
 
-use hal::{
-    pac::Peripherals as HalPeripherals,
-};
+use hal::pac::Peripherals as HalPeripherals;
 
 use rand_core::RngCore;
 
 mod app;
-mod lora;
 
 use app::*;
-use lora::*;
 
 const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/dev_eui.txt"));
 const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_eui.txt"));
@@ -75,7 +75,7 @@ type Led2Pin = Output<'static, PA5>;
 type Led3Pin = Output<'static, PB6>;
 type Led4Pin = Output<'static, PB7>;
 
-type MyApp = App<Sx127x<'static>, Led4Pin, Led2Pin, Led3Pin, Led1Pin>;
+type MyApp = App<Address<'static, LoraActor<Sx127x<'static>>>, Led4Pin, Led2Pin, Led3Pin, Led1Pin>;
 
 pub struct MyDevice {
     lora: ActorContext<'static, LoraActor<Sx127x<'static>>>,
