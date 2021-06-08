@@ -29,6 +29,12 @@ use embassy_stm32::{
     Peripherals,
 };
 
+use stm32l0xx_hal as hal;
+
+use hal::{
+    pac::Peripherals as HalPeripherals,
+};
+
 use rand_core::RngCore;
 
 mod app;
@@ -92,6 +98,7 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     log::set_max_level(log::LevelFilter::Trace);
 
     // NEEDED FOR RNG
+    let device = unsafe { HalPeripherals::steal() };
     device.RCC.ahbrstr.modify(|_, w| w.rngrst().set_bit());
     device.RCC.ahbrstr.modify(|_, w| w.rngrst().clear_bit());
     device.RCC.ahbenr.modify(|_, w| w.rngen().set_bit());
