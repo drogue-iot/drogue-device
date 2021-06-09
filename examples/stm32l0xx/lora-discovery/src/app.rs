@@ -42,7 +42,7 @@ where
     L3: StatefulOutputPin + ToggleableOutputPin + 'static,
     L4: StatefulOutputPin + ToggleableOutputPin + 'static,
 {
-    pub lora: Option<LoraConfig>,
+    pub lora: LoraConfig,
     pub init_led: Led<L1>,
     pub tx_led: Led<L2>,
     pub user_led: Led<L3>,
@@ -165,17 +165,19 @@ where
 
     fn on_start<'m>(mut self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
         async move {
-            let lora_config = self.config.lora.take().unwrap();
             self.config.init_led.on().ok();
-            if let Some(ref mut cfg) = self.cfg {
+            if let Some(mut cfg) = self.cfg.take() {
                 cfg.lora
-                    .configure(&lora_config)
+                    .configure(&self.config.lora)
                     .await
                     .expect("error configuring lora");
+                log::info!("Lora driver configured");
                 cfg.lora
                     .join(ConnectMode::OTAA)
                     .await
                     .expect("error joining lora network");
+                log::info!("Lora network joined");
+                self.cfg.replace(cfg);
             }
             self.config.init_led.off().ok();
         }

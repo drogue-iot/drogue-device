@@ -155,7 +155,7 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
             green_led: led1,
             init_led: led4,
             user_led: led3,
-            lora: Some(config),
+            lora: config,
         })),
         lora: ActorContext::new(LoraActor::new(lora)),
         button: ActorContext::new(Button::new(pin)),

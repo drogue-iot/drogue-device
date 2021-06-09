@@ -72,7 +72,7 @@ where
     }
 
     fn process_event(&mut self, event: LorawanEvent<'a, Radio<SPI, CS, RESET, E>>) -> DriverEvent {
-        // crate::log_stack!();
+        //crate::log_stack("Process event");
         match self.state.take().unwrap() {
             DriverState::Configured(lorawan) => {
                 match &event {
@@ -111,7 +111,7 @@ where
         lorawan: &mut LorawanDevice<Radio<SPI, CS, RESET, E>, Crypto>,
         response: Result<LorawanResponse, LorawanError<Radio<SPI, CS, RESET, E>>>,
     ) -> DriverEvent {
-        // crate::log_stack!();
+        //crate::log_stack("Process response");
         match response {
             Ok(response) => match response {
                 LorawanResponse::TimeoutRequest(ms) => {
@@ -188,6 +188,7 @@ where
     }
 
     async fn join(&mut self) -> Result<(), LoraError> {
+        //crate::log_stack("Driver join");
         let mut event: DriverEvent = self.process_event(LorawanEvent::NewSessionRequest);
         loop {
             match event {
@@ -205,6 +206,7 @@ where
                     }
                 }
                 DriverEvent::JoinSuccess => {
+                    trace!("Joined successfully");
                     return Ok(());
                 }
                 DriverEvent::JoinFailed => {
@@ -320,7 +322,7 @@ where
         async move {
             match self.state.take().unwrap() {
                 DriverState::New(mut radio) => {
-                    // crate::log_stack("lora driver configure");
+                    //crate::log_stack("lora driver configure");
                     radio.reset().await?;
                     //info!("Configuring radio");
                     let dev_eui = config.device_eui.as_ref().expect("device EUI must be set");
