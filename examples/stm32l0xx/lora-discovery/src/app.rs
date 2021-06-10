@@ -176,7 +176,6 @@ where
                     .join(ConnectMode::OTAA)
                     .await
                     .expect("error joining lora network");
-                log::info!("Lora network joined");
                 self.cfg.replace(cfg);
             }
             self.config.init_led.off().ok();

@@ -11,7 +11,7 @@ version = "0.1.0"
 doctest = false
 
 [dependencies]
-embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", default-features = false }
+embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false }
 #embassy = {default-features = false, path = "../../../embassy/embassy"}
 
 # LoRa dependencies
@@ -38,7 +38,7 @@ log = { version = "0.4", optional = true }
 defmt = { version = "0.2", optional = true }
 
 [dev-dependencies]
-embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", default-features = false }
+embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false }
 #embassy-std = {default-features = false, path = "../../../embassy/embassy-std" }
 
 drogue-device-macros = { path = "../macros" }

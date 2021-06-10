@@ -13,8 +13,8 @@ version = "0.1.0"
 log = "0.4"
 env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["log", "std", "wifi+esp8266"] }
-embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", features = ["std"] }
-embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "drogue-metapack", default-features = false }
+embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "master", features = ["std"] }
+embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false }
 
 embedded-hal = {version = "0.2.4", features = ["unproven"] }
 wifi-app = { path = "../../common/wifi" }
