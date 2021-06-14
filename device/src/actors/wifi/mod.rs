@@ -36,6 +36,7 @@ pub enum AdapterResponse {
 pub trait Adapter: WifiSupplicant + TcpStack<SocketHandle = u8> {}
 
 /// Wrapper for a Wifi adapter.
+#[derive(Clone, Copy)]
 pub struct WifiAdapter<'a, A>
 where
     A: Adapter + 'static,
@@ -71,6 +72,7 @@ where
 }
 
 /// A Socket type for connecting to a network endpoint + sending and receiving data.
+#[derive(Clone, Copy)]
 pub struct Socket<'a, A>
 where
     A: Adapter + 'static,
