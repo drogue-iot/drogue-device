@@ -6,6 +6,7 @@ use crate::{
         wifi::{Join, JoinError, WifiSupplicant},
     },
 };
+use heapless::consts;
 
 use core::future::Future;
 use core::pin::Pin;
@@ -181,6 +182,10 @@ impl<N: Adapter> AdapterActor<N> {
 
 impl<N: Adapter> Actor for AdapterActor<N> {
     type Configuration = N;
+    type MessageQueueSize<'m>
+    where
+        N: 'm,
+    = consts::U4;
 
     #[rustfmt::skip]
     type Message<'m> where N: 'm = AdapterRequest<'m>;
