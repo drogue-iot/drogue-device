@@ -30,7 +30,7 @@ Drogue device runs on any platform supported by embassy, which at the time of wr
 * nRF52
 * STM32
 * Raspberry Pi Pico
-* Unix or Windows
+* Linux, Mac OS X or Windows
 
 ### Example Actor
 
@@ -86,11 +86,11 @@ async fn main(spawner: embassy::executor::Spawner) {
 
     /// Mounting the device will spawn embassy tasks for every actor.
     let addr = DEVICE.mount(|device| {
-        device.a.mount((), spawner.into())
+        device.a.mount((), spawner)
     });
 
     /// The actor address may be used in any embassy task to communicate with the actor.
-    addr.request(Increment).await;
+    addr.request(Increment).unwrap().await;
 }
 ```
 
