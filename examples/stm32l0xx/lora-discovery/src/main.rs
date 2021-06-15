@@ -96,7 +96,6 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     let mut rcc = rcc::Rcc::new(p.RCC);
     rcc.enable_debug_wfe(&mut p.DBGMCU, true);
     let _ = rcc.enable_hsi48(&mut p.SYSCFG, p.CRS);
-    let clocks = rcc.clocks();
 
     unsafe { RNG.replace(Random::new(p.RNG)) };
 
@@ -110,7 +109,6 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
 
     // SPI for sx127x
     let spi = spi::Spi::new(
-        clocks.apb2_clk,
         p.SPI1,
         p.PB3,
         p.PA7,

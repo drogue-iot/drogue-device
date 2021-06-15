@@ -214,7 +214,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#37fbc5fcc453a7a544703ff4dd69e7ebc38ed993"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#c9bf039cae73fb21fa1d2e14d4ce7137df76c8f8"
 dependencies = [
  "atomic-polyfill",
  "cast",
@@ -229,7 +229,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#37fbc5fcc453a7a544703ff4dd69e7ebc38ed993"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#c9bf039cae73fb21fa1d2e14d4ce7137df76c8f8"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -240,7 +240,7 @@ dependencies = [
 [[package]]
 name = "embassy-std"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#37fbc5fcc453a7a544703ff4dd69e7ebc38ed993"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#c9bf039cae73fb21fa1d2e14d4ce7137df76c8f8"
 dependencies = [
  "embassy",
  "embassy-macros",
@@ -250,7 +250,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#37fbc5fcc453a7a544703ff4dd69e7ebc38ed993"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#c9bf039cae73fb21fa1d2e14d4ce7137df76c8f8"
 dependencies = [
  "embedded-hal",
 ]
@@ -267,9 +267,9 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.8.3"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17392a012ea30ef05a610aa97dfb49496e71c9f676b27879922ea5bdf60d9d3f"
+checksum = "a19187fea3ac7e84da7dacf48de0c45d63c6a76f9490dae389aead16c243fce3"
 dependencies = [
  "atty",
  "humantime",
@@ -493,9 +493,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.96"
+version = "0.2.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5600b4e6efc5421841a2138a6b082e07fe12f9aaa12783d50e5d13325b26b4fc"
+checksum = "12b8adadd720df158f4d70dfe7ccc6adb0472d7c55ca83445f6a5ab3e36f8fb6"
 
 [[package]]
 name = "log"
@@ -557,9 +557,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.7.2"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af8b08b04175473088b46763e51ee54da5f9a164bc162f615b91bc179dbf15a3"
+checksum = "692fcb63b64b1758029e0a96ee63e049ce8c5948587f2f7208df04625e5f6b56"
 
 [[package]]
 name = "parking"
@@ -601,14 +601,14 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "polling"
-version = "2.0.3"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fc12d774e799ee9ebae13f4076ca003b40d18a11ac0f3641e6f899618580b7b"
+checksum = "92341d779fa34ea8437ef4d82d440d5e1ce3f3ff7f824aa64424cd481f9a1f25"
 dependencies = [
  "cfg-if",
  "libc",
  "log",
- "wepoll-sys",
+ "wepoll-ffi",
  "winapi",
 ]
 
@@ -777,10 +777,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d5b2c62b4012a3e1eca5a7e077d13b3bf498c4073e33ccd58626607748ceeca"
 
 [[package]]
-name = "wepoll-sys"
-version = "3.0.1"
+name = "wepoll-ffi"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fcb14dea929042224824779fbc82d9fab8d2e6d3cbc0ac404de8edf489e77ff"
+checksum = "d743fdedc5c64377b5fc2bc036b01c7fd642205a0d96356034ae3404d49eb7fb"
 dependencies = [
  "cc",
 ]
