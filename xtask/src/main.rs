@@ -54,7 +54,7 @@ fn do_examples<F: Fn(PathBuf) -> Result<(), anyhow::Error>>(current_dir: PathBuf
         }
 
         let file_type = entry.file_type()?;
-        if file_type.is_dir() {
+        if file_type.is_dir() && !path.ends_with("target") {
             do_examples(path, f)?;
         }
     }

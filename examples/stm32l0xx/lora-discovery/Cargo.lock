@@ -373,7 +373,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#c9bf039cae73fb21fa1d2e14d4ce7137df76c8f8"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
 dependencies = [
  "atomic-polyfill",
  "cast",
@@ -388,7 +388,7 @@ dependencies = [
 [[package]]
 name = "embassy-extras"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#c9bf039cae73fb21fa1d2e14d4ce7137df76c8f8"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
 dependencies = [
  "cortex-m 0.7.2",
  "embassy",
@@ -398,7 +398,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#c9bf039cae73fb21fa1d2e14d4ce7137df76c8f8"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -409,7 +409,7 @@ dependencies = [
 [[package]]
 name = "embassy-stm32"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#c9bf039cae73fb21fa1d2e14d4ce7137df76c8f8"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
 dependencies = [
  "atomic-polyfill",
  "bare-metal 1.0.0",
@@ -433,7 +433,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#c9bf039cae73fb21fa1d2e14d4ce7137df76c8f8"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
 dependencies = [
  "embedded-hal",
 ]
@@ -972,7 +972,7 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 [[package]]
 name = "stm32-metapac"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#c9bf039cae73fb21fa1d2e14d4ce7137df76c8f8"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
 dependencies = [
  "cortex-m 0.7.2",
  "cortex-m-rt",
@@ -982,7 +982,7 @@ dependencies = [
 [[package]]
 name = "stm32-metapac-gen"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#c9bf039cae73fb21fa1d2e14d4ce7137df76c8f8"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
 dependencies = [
  "chiptool",
  "regex",
