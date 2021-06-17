@@ -16,12 +16,9 @@ use rtt_logger::RTTLogger;
 use rtt_target::rtt_init_print;
 
 use drogue_device::{
-    actors::{
-        button::Button,
-        wifi::{esp8266::*, *},
-    },
+    actors::{button::Button, socket::Socket, wifi::esp8266::*},
     drivers::wifi::esp8266::Esp8266Controller,
-    traits::ip::*,
+    traits::{ip::*, tcp::TcpStack, wifi::*},
     ActorContext, DeviceContext, Package,
 };
 use embassy_nrf::{
@@ -35,22 +32,22 @@ use embassy_nrf::{
 
 const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.ssid.txt"));
 const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.password.txt"));
-const HOST: IpAddress = IpAddress::new_v4(192, 168, 1, 2);
+const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2);
 const PORT: u16 = 12345;
+const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/config/drogue.username.txt"));
+const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/drogue.password.txt"));
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
 
 type UART = BufferedUarte<'static, UARTE0, TIMER0>;
 type ENABLE = Output<'static, P0_09>;
 type RESET = Output<'static, P0_10>;
+type AppSocket = Socket<'static, Esp8266Controller<'static>>;
 
 pub struct MyDevice {
     wifi: Esp8266Wifi<UART, ENABLE, RESET>,
-    app: ActorContext<'static, App<Esp8266Controller<'static>>>,
-    button: ActorContext<
-        'static,
-        Button<'static, PortInput<'static, P0_14>, App<Esp8266Controller<'static>>>,
-    >,
+    app: ActorContext<'static, App<AppSocket>>,
+    button: ActorContext<'static, Button<'static, PortInput<'static, P0_14>, App<AppSocket>>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -94,18 +91,24 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     DEVICE.configure(MyDevice {
         wifi: Esp8266Wifi::new(u, enable_pin, reset_pin),
-        app: ActorContext::new(App::new(
-            WIFI_SSID.trim_end(),
-            WIFI_PSK.trim_end(),
-            HOST,
-            PORT,
-        )),
+        app: ActorContext::new(App::new(IP, PORT, USERNAME.trim_end(), PASSWORD.trim_end())),
         button: ActorContext::new(Button::new(button_port)),
     });
 
-    DEVICE.mount(|device| {
-        let wifi = device.wifi.mount((), spawner);
-        let app = device.app.mount(WifiAdapter::new(wifi), spawner);
-        device.button.mount(app, spawner);
-    });
+    DEVICE
+        .mount(|device| async move {
+            let mut wifi = device.wifi.mount((), spawner);
+            wifi.join(Join::Wpa {
+                ssid: WIFI_SSID.trim_end(),
+                password: WIFI_PSK.trim_end(),
+            })
+            .await
+            .expect("Error joining wifi");
+
+            let app = device
+                .app
+                .mount(Socket::new(wifi, wifi.open().await), spawner);
+            device.button.mount(app, spawner);
+        })
+        .await;
 }

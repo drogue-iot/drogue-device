@@ -39,12 +39,14 @@ async fn main(spawner: embassy::executor::Spawner) {
         p: MyPack::new(),
     });
 
-    let (a_addr, b_addr, c_addr) = DEVICE.mount(|device| {
-        let a_addr = device.a.mount(&device.counter, spawner);
-        let b_addr = device.b.mount(&device.counter, spawner);
-        let c_addr = device.p.mount((), spawner);
-        (a_addr, b_addr, c_addr)
-    });
+    let (a_addr, b_addr, c_addr) = DEVICE
+        .mount(|device| async move {
+            let a_addr = device.a.mount(&device.counter, spawner);
+            let b_addr = device.b.mount(&device.counter, spawner);
+            let c_addr = device.p.mount((), spawner);
+            (a_addr, b_addr, c_addr)
+        })
+        .await;
 
     loop {
         time::Timer::after(time::Duration::from_secs(1)).await;

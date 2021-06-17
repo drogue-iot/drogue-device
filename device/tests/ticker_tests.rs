@@ -26,10 +26,12 @@ mod tests {
             ticker: ActorContext::new(Ticker::new(Duration::from_secs(1), TestMessage(1))),
         });
 
-        context.mount(|device| {
-            let handler_addr = device.handler.mount((), spawner);
-            (device.ticker.mount(handler_addr, spawner), handler_addr)
-        });
+        context
+            .mount(|device| async move {
+                let handler_addr = device.handler.mount((), spawner);
+                (device.ticker.mount(handler_addr, spawner), handler_addr)
+            })
+            .await;
 
         notified.wait_signaled().await;
         assert_eq!(1, notified.message().unwrap().0);

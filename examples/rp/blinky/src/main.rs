@@ -30,7 +30,9 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         led: ActorContext::new(Led::new(Output::new(p.PIN_25, Level::Low))),
     });
 
-    let led = DEVICE.mount(|device| device.led.mount((), spawner));
+    let led = DEVICE
+        .mount(|device| async move { device.led.mount((), spawner) })
+        .await;
 
     loop {
         cortex_m::asm::delay(1_000_000);

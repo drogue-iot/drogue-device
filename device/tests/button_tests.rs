@@ -26,10 +26,12 @@ mod tests {
             button: ActorContext::new(Button::new(pin)),
         });
 
-        context.mount(|device| {
-            let handler_addr = device.handler.mount((), spawner);
-            device.button.mount(handler_addr, spawner);
-        });
+        context
+            .mount(|device| async move {
+                let handler_addr = device.handler.mount((), spawner);
+                device.button.mount(handler_addr, spawner);
+            })
+            .await;
 
         assert!(notified.message().is_none());
         pin.set_low();
@@ -52,10 +54,12 @@ mod tests {
             button: ActorContext::new(Button::new(pin)),
         });
 
-        context.mount(|device| {
-            let handler_addr = device.handler.mount((), spawner);
-            device.button.mount(handler_addr, spawner);
-        });
+        context
+            .mount(|device| async move {
+                let handler_addr = device.handler.mount((), spawner);
+                device.button.mount(handler_addr, spawner);
+            })
+            .await;
 
         assert!(notified.message().is_none());
         pin.set_high();

@@ -26,10 +26,12 @@ mod tests {
             timer: ActorContext::new(Timer::new()),
         });
 
-        let (timer_addr, handler_addr) = context.mount(|device| {
-            let handler_addr = device.handler.mount((), spawner);
-            (device.timer.mount((), spawner), handler_addr)
-        });
+        let (timer_addr, handler_addr) = context
+            .mount(|device| async move {
+                let handler_addr = device.handler.mount((), spawner);
+                (device.timer.mount((), spawner), handler_addr)
+            })
+            .await;
 
         let before = time::Instant::now();
         timer_addr
@@ -55,7 +57,9 @@ mod tests {
             timer: ActorContext::new(Timer::new()),
         });
 
-        let timer = context.mount(|device| device.timer.mount((), spawner));
+        let timer = context
+            .mount(|device| async move { device.timer.mount((), spawner) })
+            .await;
 
         let before = time::Instant::now();
         timer

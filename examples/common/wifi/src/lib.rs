@@ -7,21 +7,24 @@
 #![feature(type_alias_impl_trait)]
 #![feature(concat_idents)]
 
+mod http;
+
+use crate::http::*;
 use core::future::Future;
 use core::pin::Pin;
 use drogue_device::{
-    actors::{
-        button::{ButtonEvent, FromButtonEvent},
-        wifi::{Adapter, Socket, WifiAdapter},
-    },
-    traits::{ip::*, wifi::*},
-    Actor, Address,
+    actors::button::{ButtonEvent, FromButtonEvent},
+    traits::{ip::*, tcp::*},
+    Actor,
 };
 pub enum Command {
     Send,
 }
 
-impl<A: Adapter> FromButtonEvent<Command> for App<A> {
+impl<S> FromButtonEvent<Command> for App<S>
+where
+    S: TcpSocket + 'static,
+{
     fn from(event: ButtonEvent) -> Option<Command> {
         match event {
             ButtonEvent::Pressed => None,
@@ -30,115 +33,79 @@ impl<A: Adapter> FromButtonEvent<Command> for App<A> {
     }
 }
 
-pub struct App<A: Adapter + 'static> {
-    ssid: &'static str,
-    psk: &'static str,
+pub struct App<S>
+where
+    S: TcpSocket + 'static,
+{
     ip: IpAddress,
     port: u16,
-    adapter: Option<WifiAdapter<'static, A>>,
-    socket: Option<Socket<'static, A>>,
+    username: &'static str,
+    password: &'static str,
+    socket: Option<S>,
 }
 
-impl<A: Adapter> App<A> {
-    pub fn new(ssid: &'static str, psk: &'static str, ip: IpAddress, port: u16) -> Self {
+impl<S> App<S>
+where
+    S: TcpSocket + 'static,
+{
+    pub fn new(ip: IpAddress, port: u16, username: &'static str, password: &'static str) -> Self {
         Self {
-            ssid,
-            psk,
             ip,
             port,
-            adapter: None,
+            username,
+            password,
             socket: None,
         }
     }
 }
 
-impl<A: Adapter> Actor for App<A> {
-    type Configuration = WifiAdapter<'static, A>;
+impl<S> Actor for App<S>
+where
+    S: TcpSocket + 'static,
+{
+    type Configuration = S;
     #[rustfmt::skip]
-    type Message<'m> where A: 'm = Command;
+    type Message<'m> where S: 'm = Command;
     #[rustfmt::skip]
-    type OnStartFuture<'m> where A: 'm = impl Future<Output = ()> + 'm;
+    type OnStartFuture<'m> where S: 'm = impl Future<Output = ()> + 'm;
     #[rustfmt::skip]
-    type OnMessageFuture<'m> where A: 'm = impl Future<Output = ()> + 'm;
+    type OnMessageFuture<'m> where S: 'm = impl Future<Output = ()> + 'm;
 
     fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
-        self.adapter.replace(config);
+        self.socket.replace(config);
     }
 
-    fn on_start<'m>(mut self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
-        async move {
-            let adapter = self.adapter.take().unwrap();
-            log::info!("Joining access point");
-            adapter
-                .join(Join::Wpa {
-                    ssid: self.ssid,
-                    password: self.psk,
-                })
-                .await
-                .expect("Error joining wifi");
-            log::info!("Joined access point");
-
-            let socket = adapter.socket().await;
-
-            log::info!("Connecting to {}:{}", self.ip, self.port);
-            let result = socket
-                .connect(IpProtocol::Tcp, SocketAddress::new(self.ip, self.port))
-                .await;
-            match result {
-                Ok(_) => {
-                    self.adapter.replace(adapter);
-                    self.socket.replace(socket);
-                    log::info!("Connected to {:?}!", self.ip);
-                }
-                Err(e) => {
-                    log::warn!("Error connecting: {:?}", e);
-                }
-            }
-        }
+    fn on_start<'m>(self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
+        async move {}
     }
 
     fn on_message<'m>(
-        mut self: Pin<&'m mut Self>,
+        self: Pin<&'m mut Self>,
         message: Self::Message<'m>,
     ) -> Self::OnMessageFuture<'m> {
         async move {
             match message {
                 Command::Send => {
-                    log::info!("Pinging server..");
+                    let this = unsafe { self.get_unchecked_mut() };
+                    let socket = this.socket.as_mut().unwrap();
+                    let mut client =
+                        HttpClient::new(socket, this.ip, this.port, this.username, this.password);
 
-                    let socket = self.socket.take().expect("socket not bound!");
-                    let result = socket.send(b"PING").await;
-                    match result {
-                        Ok(_) => {
-                            log::debug!("Data sent");
-                            let mut rx_buf = [0; 8];
-                            loop {
-                                let result = socket.recv(&mut rx_buf[..]).await;
-                                match result {
-                                    Ok(len) if &rx_buf[0..len] == b"PING" => {
-                                        log::info!("Ping response received");
-                                        break;
-                                    }
-                                    Ok(len) => {
-                                        log::warn!(
-                                            "Unexpected response of {} bytes: {:?}",
-                                            len,
-                                            &rx_buf[0..len]
-                                        );
-                                        break;
-                                    }
-                                    Err(e) => {
-                                        log::warn!("Error reading response: {:?}", e);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            log::warn!("Error pinging server: {:?}", e);
-                        }
+                    let mut rx_buf = [0; 1024];
+                    let response_len = client
+                        .post(
+                            "/v1/foo",
+                            b"Hello from Drogue",
+                            "application/plain",
+                            &mut rx_buf[..],
+                        )
+                        .await;
+                    if let Ok(response_len) = response_len {
+                        log::info!(
+                            "Response: {}",
+                            core::str::from_utf8(&rx_buf[..response_len]).unwrap()
+                        );
                     }
-                    self.socket.replace(socket);
                 }
             }
         }

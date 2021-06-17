@@ -11,6 +11,7 @@ use components::*;
 use system::*;
 
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 
 use drogue_device::{
     actors::{button::*, led::*},
@@ -52,9 +53,13 @@ pub fn main() -> Result<(), JsValue> {
         button: ActorContext::new(Button::new(button)),
     });
 
-    DEVICE.mount(|device| {
-        let led = device.led.mount((), spawner);
-        device.button.mount(led, spawner);
+    spawn_local(async move {
+        DEVICE
+            .mount(|device| async move {
+                let led = device.led.mount((), spawner);
+                device.button.mount(led, spawner);
+            })
+            .await
     });
 
     Ok(())
