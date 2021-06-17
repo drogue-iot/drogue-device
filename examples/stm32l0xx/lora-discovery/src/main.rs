@@ -148,9 +148,11 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
         button: ActorContext::new(Button::new(pin)),
     });
 
-    DEVICE.mount(|device| {
-        let lora = device.lora.mount((), spawner);
-        let app = device.app.mount(AppConfig { lora }, spawner);
-        device.button.mount(app, spawner);
-    });
+    DEVICE
+        .mount(|device| async move {
+            let lora = device.lora.mount((), spawner);
+            let app = device.app.mount(AppConfig { lora }, spawner);
+            device.button.mount(app, spawner);
+        })
+        .await;
 }

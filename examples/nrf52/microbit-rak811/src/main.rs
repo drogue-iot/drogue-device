@@ -100,10 +100,12 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         button: ActorContext::new(Button::new(button_port)),
     });
 
-    DEVICE.mount(|device| {
-        let (controller, modem) = unsafe { &mut *device.driver.get() }.initialize(u, reset_pin);
-        device.modem.mount(modem, spawner);
-        let app = device.app.mount(controller, spawner);
-        device.button.mount(app, spawner);
-    });
+    DEVICE
+        .mount(|device| async move {
+            let (controller, modem) = unsafe { &mut *device.driver.get() }.initialize(u, reset_pin);
+            device.modem.mount(modem, spawner);
+            let app = device.app.mount(controller, spawner);
+            device.button.mount(app, spawner);
+        })
+        .await;
 }

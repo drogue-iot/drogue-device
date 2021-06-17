@@ -1,4 +1,5 @@
 use atomic_polyfill::{AtomicU8, Ordering};
+use core::future::Future;
 use embassy::util::Forever;
 
 const NEW: u8 = 0;
@@ -29,11 +30,14 @@ impl<D: 'static> DeviceContext<D> {
         }
     }
 
-    pub fn mount<F: FnOnce(&'static D) -> R, R>(&'static self, f: F) -> R {
+    pub async fn mount<FUT: Future<Output = R>, F: FnOnce(&'static D) -> FUT, R>(
+        &'static self,
+        f: F,
+    ) -> R {
         match self.state.fetch_add(1, Ordering::Relaxed) {
             CONFIGURED => {
                 let device = unsafe { self.device.steal() };
-                let r = f(device);
+                let r = f(device).await;
 
                 r
             }

@@ -35,7 +35,7 @@ use futures::pin_mut;
 use heapless::consts::U2;
 use protocol::{Command, ConnectionType, Response as AtResponse};
 
-pub const BUFFER_LEN: usize = 512;
+pub const BUFFER_LEN: usize = 16384;
 
 #[derive(Debug, Clone, Copy)]
 pub enum DriverError {
@@ -403,7 +403,14 @@ impl<'a> Esp8266Controller<'a> {
                 warn!("Error connecting to wifi: {:?}", reason);
                 Err(JoinError::Unknown)
             }
-            _ => Err(JoinError::UnableToAssociate),
+            Ok(r) => {
+                error!("Unexpected response: {:?}", r);
+                Err(JoinError::UnableToAssociate)
+            }
+            Err(e) => {
+                error!("Error: {:?}", e);
+                Err(JoinError::UnableToAssociate)
+            }
         }
     }
 
@@ -531,8 +538,10 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
         buf: &'m mut [u8],
     ) -> Self::ReadFuture<'m> {
         async move {
+            const BLOCK_SIZE: usize = 512;
             let mut rp = 0;
-            loop {
+            let mut remaining = buf.len();
+            while remaining > 0 {
                 let result = async {
                     self.process_notifications();
                     if self.socket_pool.is_closed(handle) {
@@ -541,7 +550,7 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
 
                     let command = Command::Receive {
                         link_id: handle as usize,
-                        len: core::cmp::min(buf.len() - rp, BUFFER_LEN),
+                        len: core::cmp::min(remaining, BLOCK_SIZE),
                     };
 
                     match self.send(command).await {
@@ -552,7 +561,14 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
                             Ok(len)
                         }
                         Ok(AtResponse::Ok) => Ok(0),
-                        _ => Err(TcpError::ReadError),
+                        Ok(r) => {
+                            info!("Unexpected response: {:?}", r);
+                            Err(TcpError::ReadError)
+                        }
+                        Err(e) => {
+                            info!("Unexpected error: {:?}", e);
+                            Err(TcpError::ReadError)
+                        }
                     }
                 }
                 .await;
@@ -560,7 +576,8 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
                 match result {
                     Ok(len) => {
                         rp += len;
-                        if len == 0 || rp == buf.len() {
+                        remaining -= len;
+                        if len == 0 {
                             return Ok(rp);
                         }
                     }
@@ -573,6 +590,7 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
                     }
                 }
             }
+            Ok(rp)
         }
     }
 

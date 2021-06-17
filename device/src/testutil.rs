@@ -65,8 +65,11 @@ impl<D> TestContext<D> {
     }
 
     /// Mount the device, running the provided callback function.
-    pub fn mount<F: FnOnce(&'static D) -> R, R>(&mut self, f: F) -> R {
-        self.device.mount(f)
+    pub async fn mount<FUT: Future<Output = R>, F: FnOnce(&'static D) -> FUT, R>(
+        &mut self,
+        f: F,
+    ) -> R {
+        self.device.mount(f).await
     }
 }
 

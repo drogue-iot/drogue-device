@@ -91,12 +91,14 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         matrix: ActorContext::new(led),
     });
 
-    DEVICE.mount(|device| {
-        let matrix = device.matrix.mount((), spawner);
-        let statistics = device.statistics.mount((), spawner);
-        device.server.mount((matrix, statistics), spawner);
-        device.button.mount(statistics, spawner);
-        let ticker = device.ticker.mount(matrix, spawner);
-        ticker.notify(TickerCommand::Start).unwrap();
-    });
+    DEVICE
+        .mount(|device| async move {
+            let matrix = device.matrix.mount((), spawner);
+            let statistics = device.statistics.mount((), spawner);
+            device.server.mount((matrix, statistics), spawner);
+            device.button.mount(statistics, spawner);
+            let ticker = device.ticker.mount(matrix, spawner);
+            ticker.notify(TickerCommand::Start).unwrap();
+        })
+        .await;
 }
