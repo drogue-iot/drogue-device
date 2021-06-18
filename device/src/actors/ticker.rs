@@ -41,7 +41,7 @@ impl<'a, A: Actor + 'a> Actor for Ticker<'a, A>
 where
     A::Message<'a>: Copy,
 {
-    type MessageQueueSize<'m> = consts::U2;
+    type MessageQueueSize<'m> = consts::U4;
     type Configuration = Address<'a, A>;
     #[rustfmt::skip]
     type Message<'m> where 'a: 'm = TickerCommand;
