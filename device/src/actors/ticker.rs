@@ -70,13 +70,13 @@ where
             match message {
                 TickerCommand::Tick => {
                     if this.running {
+                        // Wait the configured interval before sending the message
+                        Timer::after(this.interval).await;
                         if let Some(actor) = this.actor {
                             // We continue even if we get an error, trying again
                             // next tick.
                             let _ = actor.notify(this.message);
                         }
-                        // Wait at least interval before trying again
-                        Timer::after(this.interval).await;
                         this.me.unwrap().notify(TickerCommand::Tick).unwrap();
                     }
                 }
