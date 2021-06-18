@@ -49,7 +49,7 @@ impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Messag
     #[rustfmt::skip]
     type OnMessageFuture<'m> where 'a: 'm = ImmediateFuture;
 
-    fn on_mount(&mut self, config: Self::Configuration) {
+    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
         self.handler.replace(config);
     }
 

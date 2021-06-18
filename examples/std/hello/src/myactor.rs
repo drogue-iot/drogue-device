@@ -23,7 +23,7 @@ impl Actor for MyActor {
     type OnStartFuture<'a> = impl Future<Output = ()> + 'a;
     type OnMessageFuture<'a> = impl Future<Output = ()> + 'a;
 
-    fn on_mount(&mut self, config: Self::Configuration) {
+    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
         self.counter.replace(config);
     }
 

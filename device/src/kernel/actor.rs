@@ -43,7 +43,7 @@ pub trait Actor: Sized {
     /// The actor will be presented with both its own `Address<...>`.
     ///
     /// The default implementation does nothing.
-    fn on_mount(&mut self, _: Self::Configuration) {}
+    fn on_mount(&mut self, _: Address<'static, Self>, _: Self::Configuration) {}
 
     /// The future type returned in `on_start`, usually derived from an `async move` block
     /// in the implementation.
@@ -297,11 +297,12 @@ where
         config: A::Configuration,
         spawner: S,
     ) -> Address<'a, A> {
-        unsafe { &mut *self.actor.get() }.on_mount(config);
+        let address = Address::new(self);
+        unsafe { &mut *self.actor.get() }.on_mount(address, config);
         self.channel.initialize();
 
         spawner.start(self).unwrap();
-        Address::new(self)
+        address
     }
 
     pub(crate) fn spawn(&'static self) -> SpawnToken<ActorFuture<'static, A>> {

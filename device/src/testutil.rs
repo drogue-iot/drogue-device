@@ -33,7 +33,7 @@ impl TestSpawner {
 }
 
 impl ActorSpawner for TestSpawner {
-    fn start<A: Actor>(&self, actor: &'static ActorContext<'static, A>) -> Result<(), SpawnError> {
+    fn start<A: Actor>(&self, _actor: &'static ActorContext<'static, A>) -> Result<(), SpawnError> {
         Ok(())
     }
 }

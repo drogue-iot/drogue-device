@@ -159,7 +159,7 @@ where
     #[rustfmt::skip]
     type OnMessageFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_mount(&mut self, config: Self::Configuration) {
+    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
         self.cfg.replace(config);
     }
 

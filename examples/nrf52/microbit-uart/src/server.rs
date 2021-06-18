@@ -38,7 +38,7 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
     #[rustfmt::skip]
     type OnMessageFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_mount(&mut self, config: Self::Configuration) {
+    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
         self.matrix.replace(config.0);
         self.statistics.replace(config.1);
     }

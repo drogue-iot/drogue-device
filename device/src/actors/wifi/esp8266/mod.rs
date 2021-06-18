@@ -113,7 +113,7 @@ where
     #[rustfmt::skip]
     type Message<'m> where 'a: 'm = ();
 
-    fn on_mount(&mut self, config: Self::Configuration) {
+    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
         self.modem.replace(config);
     }
 

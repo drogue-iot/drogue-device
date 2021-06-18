@@ -6,7 +6,10 @@ mod buffer;
 mod parser;
 mod protocol;
 use crate::{
-    kernel::{actor::Actor, channel::*},
+    kernel::{
+        actor::{Actor, Address},
+        channel::*,
+    },
     traits::lora::*,
 };
 
@@ -536,7 +539,7 @@ where
     #[rustfmt::skip]
     type Message<'m> where 'a: 'm = ();
 
-    fn on_mount(&mut self, config: Self::Configuration) {
+    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
         self.modem.replace(config);
     }
 

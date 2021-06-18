@@ -3,7 +3,7 @@ use core::pin::Pin;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
     traits::lora::*,
-    Actor,
+    Actor, Address,
 };
 pub enum Command {
     Send,
@@ -43,7 +43,7 @@ impl<D: LoraDriver> Actor for App<D> {
     #[rustfmt::skip]
     type OnMessageFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_mount(&mut self, config: Self::Configuration) {
+    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
         self.driver.replace(config);
     }
 

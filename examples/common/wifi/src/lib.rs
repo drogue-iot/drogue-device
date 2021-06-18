@@ -15,7 +15,7 @@ use drogue_device::{
         wifi::{Adapter, Socket, WifiAdapter},
     },
     traits::{ip::*, wifi::*},
-    Actor,
+    Actor, Address,
 };
 pub enum Command {
     Send,
@@ -61,7 +61,7 @@ impl<A: Adapter> Actor for App<A> {
     #[rustfmt::skip]
     type OnMessageFuture<'m> where A: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_mount(&mut self, config: Self::Configuration) {
+    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
         self.adapter.replace(config);
     }
 

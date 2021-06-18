@@ -18,7 +18,7 @@ use drogue_device::{
     actors::{
         button::Button,
         led::matrix::{LEDMatrix, MatrixCommand},
-        ticker::Ticker,
+        ticker::{Ticker, TickerCommand},
     },
     ActorContext, DeviceContext,
 };
@@ -96,6 +96,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         let statistics = device.statistics.mount((), spawner);
         device.server.mount((matrix, statistics), spawner);
         device.button.mount(statistics, spawner);
-        device.ticker.mount(matrix, spawner);
+        let ticker = device.ticker.mount(matrix, spawner);
+        ticker.notify(TickerCommand::Start).unwrap();
     });
 }

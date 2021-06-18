@@ -191,7 +191,7 @@ impl<N: Adapter> Actor for AdapterActor<N> {
     type Message<'m> where N: 'm = AdapterRequest<'m>;
     type Response = AdapterResponse;
 
-    fn on_mount(&mut self, config: Self::Configuration) {
+    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
         self.driver.replace(config);
     }
 
