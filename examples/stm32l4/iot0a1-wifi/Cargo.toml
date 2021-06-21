@@ -1,0 +1,58 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>",
+    "Jens Reimann <jreimann@redhat.com>",
+    "Dejan Bosanac <dbosanac@redhat.com>"
+]
+edition = "2018"
+name = "iot0a1-wifi"
+version = "0.1.0"
+resolver = "2"
+
+[workspace]
+
+[dependencies]
+
+defmt = "0.2"
+defmt-rtt = "0.2"
+panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+
+drogue-device = { path = "../../../device", default-features = false, features = ["defmt", "defmt-info", "time", "wifi+eswifi"] }
+cortex-m-rt = "0.7.0"
+# cortex-m = { version = "0.7", features = ["inline-asm"] }
+cortex-m = "0.7.1"
+
+
+# embassy = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features=["defmt"] }
+# embassy-stm32 = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features = ["defmt", "stm32l432kc"] }
+
+atomic-polyfill = "0.1.3"
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "9082e5f6c5982e7d220f54c8e64e0dd27c6c579d", default-features = false, features=["defmt", "time"] }
+embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "9082e5f6c5982e7d220f54c8e64e0dd27c6c579d", default-features = false, features = ["defmt", "stm32l475vg", "time-driver-tim2", "memory-x"] }
+
+
+embedded-hal = { version = "0.2.4", features = ["unproven"] }
+
+[features]
+default = [
+    "defmt-default",
+]
+defmt-default = []
+defmt-trace = []
+defmt-debug = []
+defmt-info = []
+defmt-warn = []
+defmt-error = []
+
+[patch.crates-io]
+cortex-m = { git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"] }
+
+[profile.release]
+codegen-units = 1
+debug = 2
+debug-assertions = false
+incremental = false
+lto = "fat"
+opt-level = 's'
+overflow-checks = false
