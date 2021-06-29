@@ -27,20 +27,6 @@ impl Rng {
         self.0.tasks_stop.write(|w| unsafe { w.bits(1) });
     }
 
-    /// Return a random `u8`.
-    pub fn random_u8(&mut self) -> u8 {
-        let mut buf = [0; 1];
-        self.random(&mut buf);
-        buf[0]
-    }
-
-    /// Return a random `u16`.
-    pub fn random_u16(&mut self) -> u16 {
-        let mut buf = [0; 2];
-        self.random(&mut buf);
-        buf[0] as u16 | (buf[1] as u16) << 8
-    }
-
     /// Return a random `u32`.
     pub fn random_u32(&mut self) -> u32 {
         let mut buf = [0; 4];
