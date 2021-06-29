@@ -35,7 +35,7 @@ use futures::pin_mut;
 use heapless::consts::U2;
 use protocol::{Command, ConnectionType, Response as AtResponse};
 
-pub const BUFFER_LEN: usize = 512;
+pub const BUFFER_LEN: usize = 1024;
 
 #[derive(Debug, Clone, Copy)]
 pub enum DriverError {
