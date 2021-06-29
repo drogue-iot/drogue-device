@@ -16,7 +16,7 @@ use drogue_device::{
     *,
 };
 use drogue_tls::{Aes128GcmSha256, TlsConfig};
-use embassy::{io::FromStdIo, time, util::Forever};
+use embassy::io::FromStdIo;
 use embedded_hal::digital::v2::OutputPin;
 use futures::io::BufReader;
 use nix::sys::termios;
@@ -26,12 +26,13 @@ use wifi_app::*;
 
 const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.ssid.txt"));
 const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.password.txt"));
-const HOST: &str = "http.sandbox.drogue.cloud";
-const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/config/drogue.username.txt"));
-const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/drogue.password.txt"));
 
+const HOST: &str = "http.sandbox.drogue.cloud";
 const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
 const PORT: u16 = 443;
+
+const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/config/drogue.username.txt"));
+const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/drogue.password.txt"));
 
 type UART = FromStdIo<BufReader<Async<SerialPort>>>;
 type ENABLE = DummyPin;
@@ -44,8 +45,6 @@ pub struct MyDevice {
     app: ActorContext<'static, App<AppSocket>>,
 }
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
-
-static TLS_CONFIG: Forever<TlsConfig<'static, OsRng, Aes128GcmSha256>> = Forever::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner) {
@@ -60,7 +59,7 @@ async fn main(spawner: embassy::executor::Spawner) {
     let port = BufReader::new(port);
     let port = FromStdIo::new(port);
 
-    let tls_config = TLS_CONFIG.put(TlsConfig::new(OsRng).with_server_name(HOST.trim_end()));
+    let tls_config = TlsConfig::new().with_server_name(HOST.trim_end());
 
     DEVICE.configure(MyDevice {
         wifi: Esp8266Wifi::new(port, DummyPin {}, DummyPin {}),
@@ -76,18 +75,15 @@ async fn main(spawner: embassy::executor::Spawner) {
             })
             .await
             .expect("Error joining wifi");
+            log::info!("WiFi network joined");
 
             let socket = Socket::new(wifi, wifi.open().await);
-            let tls_socket = TlsSocket::wrap(socket, tls_config);
+            let tls_socket = TlsSocket::wrap(socket, tls_config, OsRng);
             device.app.mount(tls_socket, spawner)
         })
         .await;
 
-    loop {
-        time::Timer::after(time::Duration::from_secs(20)).await;
-        app.request(Command::Send).unwrap().await;
-        break;
-    }
+    app.request(Command::Send).unwrap().await;
 }
 
 pub struct DummyPin {}
