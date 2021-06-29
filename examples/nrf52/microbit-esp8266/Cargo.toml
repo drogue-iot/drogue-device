@@ -14,14 +14,17 @@ panic-probe = { version = "0.2.0", features = ["print-rtt"] }
 log = "0.4"
 rtt-logger = "0.1"
 rtt-target = { version = "0.2.0", features = ["cortex-m"] }
+rand_core = { version = "0.6.2", default-features = false }
 
-drogue-device = { path = "../../../device", features = ["wifi+esp8266"], default-features = false }
+drogue-device = { path = "../../../device", features = ["wifi+esp8266", "tls"], default-features = false }
+drogue-tls = {git = "https://github.com/drogue-iot/drogue-tls.git", branch = "main", default-features = false}
 wifi-app = { path = "../../common/wifi" }
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.6", features = ["inline-asm"] }
 
 embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false}
 embassy-nrf = {git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features = ["nrf52833"]}
+nrf52833-pac = { version = "0.9", features = ["rt"] }
 #embassy = {path = "../../../../../embassy/embassy", default-features = false}
 #embassy-nrf = {path = "../../../../../embassy/embassy-nrf", default-features = false, features = ["nrf52833"]}
 
