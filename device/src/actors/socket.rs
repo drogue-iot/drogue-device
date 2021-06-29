@@ -65,7 +65,7 @@ mod tls {
         tcp::{TcpError, TcpSocket},
     };
     use core::future::Future;
-    use drogue_tls::{AsyncRead, AsyncWrite, Config, TlsCipherSuite, TlsConnection, TlsError};
+    use drogue_tls::{AsyncRead, AsyncWrite, TlsCipherSuite, TlsConfig, TlsConnection, TlsError};
     use rand_core::{CryptoRng, RngCore};
 
     impl<'a, T> AsyncRead for Socket<'a, T>
@@ -114,7 +114,7 @@ mod tls {
         RNG: CryptoRng + RngCore + Copy + 'static,
         CipherSuite: TlsCipherSuite + 'static,
     {
-        config: &'a Config<'a, RNG, CipherSuite>,
+        config: &'a TlsConfig<'a, RNG, CipherSuite>,
         state: Option<State<'a, S, RNG, CipherSuite, FRAME_BUF_LEN>>,
     }
 
@@ -125,7 +125,7 @@ mod tls {
         RNG: CryptoRng + RngCore + Copy + 'static,
         CipherSuite: TlsCipherSuite + 'static,
     {
-        pub fn wrap(socket: S, config: &'a Config<'a, RNG, CipherSuite>) -> Self {
+        pub fn wrap(socket: S, config: &'a TlsConfig<'a, RNG, CipherSuite>) -> Self {
             Self {
                 config,
                 state: Some(State::New(socket)),

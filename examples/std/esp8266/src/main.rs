@@ -15,7 +15,7 @@ use drogue_device::{
     traits::{ip::*, tcp::*, wifi::*},
     *,
 };
-use drogue_tls::{Aes128GcmSha256, Config as TlsConfig};
+use drogue_tls::{Aes128GcmSha256, TlsConfig};
 use embassy::{io::FromStdIo, time, util::Forever};
 use embedded_hal::digital::v2::OutputPin;
 use futures::io::BufReader;
