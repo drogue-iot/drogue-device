@@ -100,6 +100,8 @@ pub mod traits;
 
 pub mod drivers;
 
+pub mod clients;
+
 #[cfg(feature = "std")]
 pub mod testutil;
 

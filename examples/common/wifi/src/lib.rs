@@ -7,12 +7,10 @@
 #![feature(type_alias_impl_trait)]
 #![feature(concat_idents)]
 
-mod http;
-
-use crate::http::*;
 use core::future::Future;
 use core::pin::Pin;
 use drogue_device::{
+    clients::http::*,
     actors::button::{ButtonEvent, FromButtonEvent},
     traits::{ip::*, tcp::*},
     Actor, Address,

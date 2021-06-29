@@ -333,6 +333,7 @@ name = "drogue-device"
 version = "0.1.0"
 dependencies = [
  "atomic-polyfill",
+ "base64",
  "critical-section",
  "drogue-tls",
  "embassy",
@@ -1147,7 +1148,6 @@ dependencies = [
 name = "wifi-app"
 version = "0.1.0"
 dependencies = [
- "base64",
  "drogue-device",
  "heapless",
  "log",

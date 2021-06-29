@@ -41,6 +41,9 @@ critical-section = "0.2.1"
 log = { version = "0.4", optional = true }
 defmt = { version = "0.2", optional = true }
 
+# HTTP dependencies
+base64 = { version = "0.13.0", default-features = false }
+
 [dev-dependencies]
 embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false }
 #embassy-std = {default-features = false, path = "../../../embassy/embassy-std" }
