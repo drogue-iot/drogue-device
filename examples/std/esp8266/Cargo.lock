@@ -349,7 +349,7 @@ dependencies = [
 [[package]]
 name = "drogue-tls"
 version = "0.2.0"
-source = "git+https://github.com/drogue-iot/drogue-tls.git?branch=main#170b99fa5590c04e9b32a79b9fd6461cdcd4e87f"
+source = "git+https://github.com/drogue-iot/drogue-tls.git?branch=main#f418585bf5d2cf8dad9b2d39745e1d9c45dd4dde"
 dependencies = [
  "aes-gcm",
  "digest",
