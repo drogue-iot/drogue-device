@@ -15,7 +15,7 @@ use core::pin::Pin;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
     traits::{ip::*, tcp::*},
-    Actor,
+    Actor, Address,
 };
 pub enum Command {
     Send,
