@@ -1,8 +1,8 @@
-use core::fmt::Write;
-use drogue_device::traits::{
+use crate::traits::{
     ip::{IpAddress, IpProtocol, SocketAddress},
     tcp::TcpSocket,
 };
+use core::fmt::Write;
 use heapless::{consts, String};
 
 pub struct HttpClient<'a, S>
@@ -49,7 +49,7 @@ where
             .await
         {
             Ok(_) => {
-                log::info!("Connected to {}:{}", self.ip, self.port);
+                // info!("Connected to {}:{}", self.ip, self.port);
                 let mut combined: String<consts::U128> = String::new();
                 write!(combined, "{}:{}", self.username, self.password).unwrap();
                 let mut authz = [0; 256];
@@ -72,27 +72,27 @@ where
                         let result = self.socket.write(payload).await;
                         match result {
                             Ok(_) => {
-                                log::info!("Request sent");
+                                //info!("Request sent");
                                 let response = self
                                     .socket
                                     .read(&mut rx_buf[..])
                                     .await
                                     .expect("error reading response");
-                                log::info!("Got {} bytes in response", response);
+                                //info!("Got {} bytes in response", response);
                                 return Ok(response);
                             }
                             Err(e) => {
-                                log::warn!("Error sending data: {:?}", e);
+                                //warn!("Error sending data: {:?}", e);
                             }
                         }
                     }
                     Err(e) => {
-                        log::warn!("Error sending headers: {:?}", e);
+                        //warn!("Error sending headers: {:?}", e);
                     }
                 }
             }
             Err(e) => {
-                log::info!("Error connecting to {}:{}: {:?}", self.ip, self.port, e);
+                //info!("Error connecting to {}:{}: {:?}", self.ip, self.port, e);
             }
         }
         Err(())
