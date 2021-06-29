@@ -101,20 +101,19 @@ mod tls {
     enum State<'a, S, RNG, CipherSuite, const FRAME_BUF_LEN: usize>
     where
         S: TcpSocket + AsyncWrite + AsyncRead + 'static,
-        RNG: CryptoRng + RngCore + Copy + 'static,
+        RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'static,
     {
-        New(S),
+        New(TlsConfig<'a, CipherSuite>, RNG, S),
         Connected(TlsConnection<'a, RNG, S, CipherSuite, FRAME_BUF_LEN>),
     }
 
     pub struct TlsSocket<'a, S, RNG, CipherSuite, const FRAME_BUF_LEN: usize>
     where
         S: TcpSocket + AsyncWrite + AsyncRead + 'static,
-        RNG: CryptoRng + RngCore + Copy + 'static,
+        RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'static,
     {
-        config: &'a TlsConfig<'a, RNG, CipherSuite>,
         state: Option<State<'a, S, RNG, CipherSuite, FRAME_BUF_LEN>>,
     }
 
@@ -122,13 +121,12 @@ mod tls {
         TlsSocket<'a, S, RNG, CipherSuite, FRAME_BUF_LEN>
     where
         S: TcpSocket + AsyncWrite + AsyncRead + 'static,
-        RNG: CryptoRng + RngCore + Copy + 'static,
+        RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'static,
     {
-        pub fn wrap(socket: S, config: &'a TlsConfig<'a, RNG, CipherSuite>) -> Self {
+        pub fn wrap(socket: S, config: TlsConfig<'a, CipherSuite>, rng: RNG) -> Self {
             Self {
-                config,
-                state: Some(State::New(socket)),
+                state: Some(State::New(config, rng, socket)),
             }
         }
     }
@@ -137,7 +135,7 @@ mod tls {
         for TlsSocket<'a, S, RNG, CipherSuite, FRAME_BUF_LEN>
     where
         S: TcpSocket + AsyncWrite + AsyncRead + 'static,
-        RNG: CryptoRng + RngCore + Copy + 'static,
+        RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'static,
     {
         #[rustfmt::skip]
@@ -149,30 +147,33 @@ mod tls {
         ) -> Self::ConnectFuture<'m> {
             async move {
                 match self.state.take() {
-                    Some(State::New(mut socket)) => match socket.connect(proto, dst).await {
-                        Ok(_) => {
-                            trace!("TCP connection opened");
-                            let mut tls: TlsConnection<'a, RNG, S, CipherSuite, FRAME_BUF_LEN> =
-                                TlsConnection::new(self.config, socket);
-                            match tls.open().await {
-                                Ok(_) => {
-                                    trace!("TLS connection opened");
-                                    self.state.replace(State::Connected(tls));
-                                    Ok(())
-                                }
-                                Err(e) => {
-                                    trace!("TLS connection failed: {:?}", e);
-                                    self.state.replace(State::New(tls.free()));
-                                    Err(TcpError::ConnectError)
+                    Some(State::New(config, rng, mut socket)) => {
+                        match socket.connect(proto, dst).await {
+                            Ok(_) => {
+                                trace!("TCP connection opened");
+                                let mut tls: TlsConnection<'a, RNG, S, CipherSuite, FRAME_BUF_LEN> =
+                                    TlsConnection::new(config, rng, socket);
+                                match tls.open().await {
+                                    Ok(_) => {
+                                        trace!("TLS connection opened");
+                                        self.state.replace(State::Connected(tls));
+                                        Ok(())
+                                    }
+                                    Err(e) => {
+                                        trace!("TLS connection failed: {:?}", e);
+                                        let (config, rng, socket) = tls.free();
+                                        self.state.replace(State::New(config, rng, socket));
+                                        Err(TcpError::ConnectError)
+                                    }
                                 }
                             }
+                            Err(e) => {
+                                trace!("TCP connection failed: {:?}", e);
+                                self.state.replace(State::New(config, rng, socket));
+                                Err(e)
+                            }
                         }
-                        Err(e) => {
-                            trace!("TCP connection failed: {:?}", e);
-                            self.state.replace(State::New(socket));
-                            Err(e)
-                        }
-                    },
+                    }
                     Some(other) => {
                         self.state.replace(other);
                         Err(TcpError::ConnectError)
@@ -227,10 +228,10 @@ mod tls {
                 match self.state.take() {
                     Some(State::Connected(session)) => {
                         // TODO: Send TLS alert
-                        let mut socket = session.free();
+                        let (_, _, mut socket) = session.free();
                         socket.close().await;
                     }
-                    Some(State::New(mut socket)) => {
+                    Some(State::New(_, _, mut socket)) => {
                         socket.close().await;
                     }
                     None => {}
