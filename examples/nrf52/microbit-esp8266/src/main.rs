@@ -28,7 +28,6 @@ use drogue_device::{
     ActorContext, DeviceContext, Package,
 };
 use drogue_tls::{Aes128GcmSha256, TlsConfig};
-use embassy::util::Forever;
 use embassy_nrf::{
     buffered_uarte::BufferedUarte,
     gpio::{Input, Level, NoPin, Output, OutputDrive, Pull},
@@ -55,7 +54,7 @@ type UART = BufferedUarte<'static, UARTE0, TIMER0>;
 type ENABLE = Output<'static, P0_09>;
 type RESET = Output<'static, P0_10>;
 type AppSocket =
-    TlsSocket<'static, Socket<'static, Esp8266Controller<'static>>, Rng, Aes128GcmSha256, 16384>;
+    TlsSocket<'static, Socket<'static, Esp8266Controller<'static>>, Rng, Aes128GcmSha256, 8192>;
 
 pub struct MyDevice {
     wifi: Esp8266Wifi<UART, ENABLE, RESET>,
@@ -64,7 +63,6 @@ pub struct MyDevice {
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
-static TLS_CONFIG: Forever<TlsConfig<'static, Rng, Aes128GcmSha256>> = Forever::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
@@ -103,10 +101,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let enable_pin = Output::new(p.P0_09, Level::Low, OutputDrive::Standard);
     let reset_pin = Output::new(p.P0_10, Level::Low, OutputDrive::Standard);
 
-    let tls_config = TLS_CONFIG.put(
-        TlsConfig::new(Rng::new(pac::Peripherals::take().unwrap()))
-            .with_server_name(HOST.trim_end()),
-    );
+    let rng = Rng::new(pac::Peripherals::take().unwrap().RNG);
+    let tls_config = TlsConfig::new().with_server_name(HOST.trim_end());
 
     DEVICE.configure(MyDevice {
         wifi: Esp8266Wifi::new(u, enable_pin, reset_pin),
@@ -124,9 +120,9 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             .await
             .expect("Error joining wifi");
 
-            let app = device
-                .app
-                .mount(Socket::new(wifi, wifi.open().await), spawner);
+            let socket = Socket::new(wifi, wifi.open().await);
+            let tls_socket = TlsSocket::wrap(socket, tls_config, rng);
+            let app = device.app.mount(tls_socket, spawner);
             device.button.mount(app, spawner);
         })
         .await;
