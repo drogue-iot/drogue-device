@@ -169,12 +169,14 @@ where
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ActorError {
     Channel(ChannelError),
     Signal(SignalError),
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum SignalError {
     NoAvailableSignal,
 }

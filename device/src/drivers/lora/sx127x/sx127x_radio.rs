@@ -24,6 +24,7 @@ where
 }
 
 #[derive(Debug, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum State {
     Idle,
     Txing,
@@ -225,6 +226,7 @@ where
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum RadioPhyEvent {
     Irq,
 }

@@ -33,6 +33,7 @@ pub struct LoRa<SPI, CS, RESET> {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Error<SPI, CS, RESET> {
     Uninformative,
     VersionMismatch(u8),

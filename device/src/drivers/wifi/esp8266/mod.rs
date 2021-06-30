@@ -38,6 +38,7 @@ use protocol::{Command, ConnectionType, Response as AtResponse};
 pub const BUFFER_LEN: usize = 512;
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DriverError {
     UnableToInitialize,
     NoAvailableSockets,
