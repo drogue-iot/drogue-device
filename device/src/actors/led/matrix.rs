@@ -140,6 +140,12 @@ pub enum MatrixCommand<'m> {
     ApplyFrame(&'m dyn ToFrame),
 }
 
+#[cfg(feature = "defmt")]
+pub trait ToFrame: core::fmt::Debug + defmt::Format {
+    fn to_frame(&self) -> Frame;
+}
+
+#[cfg(not(feature = "defmt"))]
 pub trait ToFrame: core::fmt::Debug {
     fn to_frame(&self) -> Frame;
 }
