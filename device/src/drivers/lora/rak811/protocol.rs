@@ -3,6 +3,7 @@ use core::fmt::Write;
 use heapless::{consts::U128, String};
 
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ConfigKey {
     DevAddr,
     DevEui,
@@ -15,6 +16,7 @@ pub enum ConfigKey {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Command<'a> {
     QueryFirmwareInfo,
     SetBand(LoraRegion),
@@ -29,6 +31,7 @@ pub enum Command<'a> {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ConfigOption<'a> {
     DevAddr(&'a DevAddr),
     DevEui(&'a EUI),
@@ -55,6 +58,7 @@ pub enum ConfigOption<'a> {
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Response {
     None,
     Ok,
@@ -75,6 +79,7 @@ pub enum Response {
 }
 
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[repr(u8)]
 pub enum EventCode {
     RecvData,
@@ -92,6 +97,7 @@ pub enum EventCode {
 
 /// Version information for the RAK811 board
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct FirmwareInfo {
     pub major: u8,
     pub minor: u8,

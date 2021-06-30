@@ -5,6 +5,7 @@ use core::fmt::{Debug, Write};
 use heapless::{consts::U256, String};
 
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ResolverAddresses {
     pub resolver1: IpAddressV4,
     pub resolver2: Option<IpAddressV4>,
@@ -12,6 +13,7 @@ pub struct ResolverAddresses {
 
 /// Type of socket connection.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ConnectionType {
     TCP,
     UDP,
@@ -19,6 +21,7 @@ pub enum ConnectionType {
 
 /// Mode of the Wi-Fi stack
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum WiFiMode {
     /// Station mode, aka client
     Station,
@@ -30,6 +33,7 @@ pub enum WiFiMode {
 
 /// Commands to be sent to the ESP board.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Command<'a> {
     QueryFirmwareInfo,
     SetMode(WiFiMode),
@@ -179,6 +183,7 @@ impl Debug for Response {
 
 /// IP addresses for the board, including its own address, netmask and gateway.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct IpAddresses {
     pub ip: IpAddressV4,
     pub gateway: IpAddressV4,
@@ -187,6 +192,7 @@ pub struct IpAddresses {
 
 /// Version information for the ESP board.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct FirmwareInfo {
     pub major: u8,
     pub minor: u8,
@@ -196,6 +202,7 @@ pub struct FirmwareInfo {
 
 /// Reasons for Wifi access-point join failures.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum WifiConnectionFailure {
     Timeout,
     WrongPassword,

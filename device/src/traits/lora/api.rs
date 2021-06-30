@@ -36,6 +36,7 @@ pub trait LoraDriver {
 }
 
 #[derive(Debug, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum LoraError {
     JoinError,
     AckTimeout,

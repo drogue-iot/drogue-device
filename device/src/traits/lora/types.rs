@@ -1,22 +1,26 @@
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum QoS {
     Unconfirmed,
     Confirmed,
 }
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ResetMode {
     Restart,
     Reload,
 }
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ConnectMode {
     OTAA,
     ABP,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[repr(u8)]
 pub enum LoraMode {
     WAN = 0,
@@ -24,6 +28,7 @@ pub enum LoraMode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum LoraRegion {
     EU868,
     US915,
@@ -37,17 +42,23 @@ pub enum LoraRegion {
 
 pub type Port = u8;
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct DevAddr([u8; 4]);
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct EUI([u8; 8]);
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct AppKey([u8; 16]);
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct NwksKey([u8; 16]);
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct AppsKey([u8; 16]);
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum SpreadingFactor {
     SF7,
     SF8,
@@ -58,6 +69,7 @@ pub enum SpreadingFactor {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct LoraConfig {
     pub spreading_factor: Option<SpreadingFactor>,
     pub region: Option<LoraRegion>,
