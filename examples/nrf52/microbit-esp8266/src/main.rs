@@ -41,13 +41,13 @@ use nrf52833_pac as pac;
 const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.ssid.txt"));
 const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.password.txt"));
 
-//const HOST: &str = "http.sandbox.drogue.cloud";
-//const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
-//const PORT: u16 = 443;
+const HOST: &str = "http.sandbox.drogue.cloud";
+const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
+const PORT: u16 = 443;
 
-const HOST: &str = "example.com";
-const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP resolved for "http.sandbox.drogue.cloud"
-const PORT: u16 = 12345;
+// const HOST: &str = "example.com";
+// const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP resolved for "http.sandbox.drogue.cloud"
+// const PORT: u16 = 12345;
 
 const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/config/drogue.username.txt"));
 const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/drogue.password.txt"));
