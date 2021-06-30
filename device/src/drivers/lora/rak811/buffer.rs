@@ -70,21 +70,21 @@ impl Buffer {
             dump_len = 10;
         }
 
-        log::info!("-------->>");
-        log::info!("remainder: {} bytes", self.pos);
+        info!("-------->>");
+        info!("remainder: {} bytes", self.pos);
         for (i, b) in self.buffer[0..dump_len].iter().enumerate() {
-            log::info!( "{}: {} {:#x?}", i, *b as char, *b );
+            info!( "{}: {} {:#x?}", i, *b as char, *b );
         }
 
         let remainder = from_utf8(&self.buffer[0..self.pos]);
 
         match remainder {
             Ok(s) => {
-                log::info!("{}", s);
+                info!("{}", s);
             },
             Err(e) => {
                 let s = from_utf8( &self.buffer[0..e.valid_up_to()]).unwrap();
-                log::info!("{}<truncated>", s)
+                info!("{}<truncated>", s)
             },
         }
 
@@ -93,11 +93,11 @@ impl Buffer {
             dump_len = 30;
         }
 
-        log::info!("-------->>");
+        info!("-------->>");
         for (i, b ) in self.buffer[self.pos - dump_len..self.pos].iter().enumerate() {
-            log::info!( "{}: {} {:#x?}", i + (self.pos - dump_len), *b as char, *b );
+            info!( "{}: {} {:#x?}", i + (self.pos - dump_len), *b as char, *b );
         }
-        log::info!("<<--------");
+        info!("<<--------");
 
 
          */
