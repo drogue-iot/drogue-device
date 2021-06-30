@@ -150,17 +150,17 @@ mod tls {
                     Some(State::New(config, rng, mut socket)) => {
                         match socket.connect(proto, dst).await {
                             Ok(_) => {
-                                trace!("TCP connection opened");
+                                info!("TCP connection opened");
                                 let mut tls: TlsConnection<'a, RNG, S, CipherSuite, FRAME_BUF_LEN> =
                                     TlsConnection::new(config, rng, socket);
                                 match tls.open().await {
                                     Ok(_) => {
-                                        trace!("TLS connection opened");
+                                        info!("TLS connection opened");
                                         self.state.replace(State::Connected(tls));
                                         Ok(())
                                     }
                                     Err(e) => {
-                                        trace!("TLS connection failed: {:?}", e);
+                                        info!("TLS connection failed: {:?}", e);
                                         let (config, rng, socket) = tls.free();
                                         self.state.replace(State::New(config, rng, socket));
                                         Err(TcpError::ConnectError)
@@ -168,7 +168,7 @@ mod tls {
                                 }
                             }
                             Err(e) => {
-                                trace!("TCP connection failed: {:?}", e);
+                                info!("TCP connection failed: {:?}", e);
                                 self.state.replace(State::New(config, rng, socket));
                                 Err(e)
                             }

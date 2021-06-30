@@ -49,7 +49,7 @@ where
             .await
         {
             Ok(_) => {
-                // info!("Connected to {}:{}", self.ip, self.port);
+                info!("Connected to {}:{}", self.ip, self.port);
                 let mut combined: String<consts::U128> = String::new();
                 write!(combined, "{}:{}", self.username, self.password).unwrap();
                 let mut authz = [0; 256];
@@ -72,27 +72,27 @@ where
                         let result = self.socket.write(payload).await;
                         match result {
                             Ok(_) => {
-                                //info!("Request sent");
+                                info!("Request sent");
                                 let response = self
                                     .socket
                                     .read(&mut rx_buf[..])
                                     .await
                                     .expect("error reading response");
-                                //info!("Got {} bytes in response", response);
+                                info!("Got {} bytes in response", response);
                                 return Ok(response);
                             }
                             Err(e) => {
-                                //warn!("Error sending data: {:?}", e);
+                                warn!("Error sending data: {:?}", e);
                             }
                         }
                     }
                     Err(e) => {
-                        //warn!("Error sending headers: {:?}", e);
+                        warn!("Error sending headers: {:?}", e);
                     }
                 }
             }
             Err(e) => {
-                //info!("Error connecting to {}:{}: {:?}", self.ip, self.port, e);
+                warn!("Error connecting to {}:{}: {:?}", self.ip, self.port, e);
             }
         }
         Err(())
