@@ -548,25 +548,28 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
                         return Err(TcpError::SocketClosed);
                     }
 
+                    let recv_len = core::cmp::min(remaining, BLOCK_SIZE);
                     let command = Command::Receive {
                         link_id: handle as usize,
-                        len: core::cmp::min(remaining, BLOCK_SIZE),
+                        len: recv_len,
                     };
+                    //                   info!("Awaiting {} bytes from adapter", recv_len);
 
                     match self.send(command).await {
                         Ok(AtResponse::DataReceived(inbound, len)) => {
                             for (i, b) in inbound[0..len].iter().enumerate() {
                                 buf[rp + i] = *b;
                             }
+                            //                            info!("Received {} bytes from adapter", len);
                             Ok(len)
                         }
                         Ok(AtResponse::Ok) => Ok(0),
                         Ok(r) => {
-                            info!("Unexpected response: {:?}", r);
+                            warn!("Unexpected response: {:?}", r);
                             Err(TcpError::ReadError)
                         }
                         Err(e) => {
-                            info!("Unexpected error: {:?}", e);
+                            warn!("Unexpected error: {:?}", e);
                             Err(TcpError::ReadError)
                         }
                     }

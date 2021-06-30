@@ -10,8 +10,8 @@
 use core::future::Future;
 use core::pin::Pin;
 use drogue_device::{
-    clients::http::*,
     actors::button::{ButtonEvent, FromButtonEvent},
+    clients::http::*,
     traits::{ip::*, tcp::*},
     Actor, Address,
 };
@@ -84,6 +84,7 @@ where
         async move {
             match message {
                 Command::Send => {
+                    log::info!("Sending data");
                     let this = unsafe { self.get_unchecked_mut() };
                     let socket = this.socket.as_mut().unwrap();
                     let mut client =

@@ -41,20 +41,25 @@ use nrf52833_pac as pac;
 const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.ssid.txt"));
 const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.password.txt"));
 
-const HOST: &str = "http.sandbox.drogue.cloud";
-const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
-const PORT: u16 = 443;
+//const HOST: &str = "http.sandbox.drogue.cloud";
+//const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
+//const PORT: u16 = 443;
+
+const HOST: &str = "example.com";
+const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP resolved for "http.sandbox.drogue.cloud"
+const PORT: u16 = 12345;
 
 const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/config/drogue.username.txt"));
 const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/drogue.password.txt"));
 
-static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
+static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
 
 type UART = BufferedUarte<'static, UARTE0, TIMER0>;
 type ENABLE = Output<'static, P0_09>;
 type RESET = Output<'static, P0_10>;
 type AppSocket =
     TlsSocket<'static, Socket<'static, Esp8266Controller<'static>>, Rng, Aes128GcmSha256, 8192>;
+//type AppSocket = Socket<'static, Esp8266Controller<'static>>;
 
 pub struct MyDevice {
     wifi: Esp8266Wifi<UART, ENABLE, RESET>,
@@ -69,7 +74,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     rtt_init_print!();
     log::set_logger(&LOGGER).unwrap();
 
-    log::set_max_level(log::LevelFilter::Trace);
+    log::set_max_level(log::LevelFilter::Info);
 
     let button_port = PortInput::new(Input::new(p.P0_14, Pull::Up));
 
@@ -77,8 +82,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     config.parity = uarte::Parity::EXCLUDED;
     config.baudrate = uarte::Baudrate::BAUD115200;
 
-    static mut TX_BUFFER: [u8; 256] = [0u8; 256];
-    static mut RX_BUFFER: [u8; 256] = [0u8; 256];
+    static mut TX_BUFFER: [u8; 8192] = [0u8; 8192];
+    static mut RX_BUFFER: [u8; 8192] = [0u8; 8192];
 
     let irq = interrupt::take!(UARTE0_UART0);
     let u = unsafe {
@@ -102,7 +107,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let reset_pin = Output::new(p.P0_10, Level::Low, OutputDrive::Standard);
 
     let rng = Rng::new(pac::Peripherals::take().unwrap().RNG);
-    let tls_config = TlsConfig::new().with_server_name(HOST.trim_end());
 
     DEVICE.configure(MyDevice {
         wifi: Esp8266Wifi::new(u, enable_pin, reset_pin),
@@ -119,11 +123,17 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             })
             .await
             .expect("Error joining wifi");
+            log::info!("WiFi network joined");
 
             let socket = Socket::new(wifi, wifi.open().await);
-            let tls_socket = TlsSocket::wrap(socket, tls_config, rng);
-            let app = device.app.mount(tls_socket, spawner);
+            let socket = TlsSocket::wrap(
+                socket,
+                TlsConfig::new().with_server_name(HOST.trim_end()),
+                rng,
+            );
+            let app = device.app.mount(socket, spawner);
             device.button.mount(app, spawner);
         })
         .await;
+    log::info!("Application initialized. Press 'A' button to send data");
 }
