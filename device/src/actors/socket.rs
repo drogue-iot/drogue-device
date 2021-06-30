@@ -233,14 +233,12 @@ mod tls {
         fn close<'m>(&'m mut self) -> Self::CloseFuture<'m> {
             async move {
                 match self.state.take() {
-                    Some(State::Connected(session)) => {
-                        match session.close().await {
-                            Ok((_, _, mut socket)) => {
-                                socket.close().await;
-                            }
-                            _ => {}
+                    Some(State::Connected(session)) => match session.close().await {
+                        Ok((_, _, mut socket)) => {
+                            socket.close().await;
                         }
-                    }
+                        _ => {}
+                    },
                     Some(State::New(_, _, mut socket)) => {
                         socket.close().await;
                     }
