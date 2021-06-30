@@ -26,7 +26,7 @@ use embassy::{
 use embedded_hal::digital::v2::OutputPin;
 use futures::future::{select, Either};
 use futures::pin_mut;
-use heapless::{consts::U2, spsc::Queue};
+use heapless::consts::U2;
 pub use protocol::*;
 
 const RECV_BUFFER_LEN: usize = 256;
@@ -142,11 +142,11 @@ where
             if let Some(response) = self.parse() {
                 match response {
                     Response::Initialized(region) => {
-                        log::info!("Got initialize response with region {:?}", region);
+                        info!("Got initialize response with region {:?}", region);
                         return Ok(region);
                     }
                     e => {
-                        log::error!("Got unexpected repsonse: {:?}", e);
+                        error!("Got unexpected repsonse: {:?}", e);
                         return Err(LoraError::NotInitialized);
                     }
                 }
@@ -173,7 +173,7 @@ where
         let result = self.parse_buffer.parse();
         if let Ok(response) = result {
             if !matches!(response, Response::None) {
-                log::debug!("Got response: {:?}", response);
+                debug!("Got response: {:?}", response);
                 return Some(response);
             }
         }
@@ -206,7 +206,7 @@ where
             if let Some(s) = cmd {
                 let mut uart = unsafe { Pin::new_unchecked(&mut self.uart) };
                 if let Err(e) = uart.write_all(s.as_bytes()).await {
-                    log::error!("Error writing command to uart: {:?}", e);
+                    error!("Error writing command to uart: {:?}", e);
                 }
             }
 
@@ -220,7 +220,7 @@ where
                         self.digest().await;
                     }
                     Err(e) => {
-                        log::error!("Error reading from uart: {:?}", e);
+                        error!("Error reading from uart: {:?}", e);
                     }
                 }
             }
@@ -250,7 +250,7 @@ where
 */
 
 fn log_unexpected(r: Response) -> Result<(), LoraError> {
-    log::error!("Unexpected response: {:?}", r);
+    error!("Unexpected response: {:?}", r);
     Err(LoraError::OtherError)
 }
 
@@ -334,7 +334,7 @@ impl<'a> Rak811Controller<'a> {
         }
         let mut s = Command::buffer();
         command.encode(&mut s);
-        log::debug!("Sending command {}", s.as_str());
+        debug!("Sending command {}", s.as_str());
         s.push_str("\r\n").unwrap();
         self.command_producer.send(s).await;
 
@@ -353,7 +353,7 @@ impl<'a> Rak811Controller<'a> {
         if let Some(region) = self.initialized.wait().await? {
             self.config.region.replace(region);
         }
-        log::info!("Applying config: {:?}", config);
+        info!("Applying config: {:?}", config);
         if let Some(region) = config.region {
             if self.config.region != config.region {
                 self.send_command_ok(Command::SetBand(region)).await?;
@@ -391,7 +391,7 @@ impl<'a> Rak811Controller<'a> {
             self.config.app_key.replace(*app_key);
         }
 
-        log::debug!("Config applied");
+        debug!("Config applied");
         Ok(())
     }
 }
@@ -454,7 +454,7 @@ pub fn digest(&mut self) -> Result<(), DriverError> {
     let result = self.parse_buffer.parse();
     if let Ok(response) = result {
         if !matches!(response, Response::None) {
-            log::debug!("Got response: {:?}", response);
+            debug!("Got response: {:?}", response);
             self.rxq
                 .enqueue(response)
                 .map_err(|_| DriverError::ReadError)?;
@@ -495,7 +495,7 @@ fn do_write(&mut self, buf: &[u8]) -> Result<(), DriverError> {
 pub fn send_command(&mut self, command: Command) -> Result<Response, DriverError> {
     let mut s = Command::buffer();
     command.encode(&mut s);
-    log::debug!("Sending command {}", s.as_str());
+    debug!("Sending command {}", s.as_str());
     self.do_write(s.as_bytes())?;
     self.do_write(b"\r\n")?;
 

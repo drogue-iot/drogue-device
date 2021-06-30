@@ -317,7 +317,6 @@ dependencies = [
  "futures",
  "generic-array 0.14.4",
  "heapless",
- "log",
  "moveslice",
  "nom",
  "rand_core",

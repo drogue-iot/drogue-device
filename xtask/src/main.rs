@@ -28,7 +28,6 @@ fn update() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-
 fn test_ci() -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("CI", "true");
     test_workspace()?;
@@ -44,7 +43,10 @@ fn test_workspace() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn do_examples<F: Fn(PathBuf) -> Result<(), anyhow::Error>>(current_dir: PathBuf, f: &F) -> Result<(), anyhow::Error> {
+fn do_examples<F: Fn(PathBuf) -> Result<(), anyhow::Error>>(
+    current_dir: PathBuf,
+    f: &F,
+) -> Result<(), anyhow::Error> {
     for entry in fs::read_dir(current_dir)? {
         let entry = entry?;
         let path = entry.path();
