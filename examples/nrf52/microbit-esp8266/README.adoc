@@ -15,14 +15,16 @@ ESP8266 using UART.
 
 * To build the example, you need to have link:https://rustup.rs/[Rust Nightly].
 * To flash the example on the device, you need `probe-run` installed (`cargo install probe-run`).
-* A TCP server that accepts connections and echoes input back to the client. A simple way to run it is to use link:ncat[https://nmap.org/ncat/guide/ncat-simple-services.html]: `ncat -l 12345 --keep-open --exec "/bin/cat"`
-
+* A Drogue IoT service. See [drogue-cloud](https://github.com/drogue-iot/drogue-cloud) for how to run that, or use the [sandbox](https://sandbox.drogue.cloud).
 
 === Configuring
 
-To use this example, you need to edit the HOST and PORT constants in `src/main.rs`. You
-also need to store your WiFi access point ssid in `config/wifi.ssid.txt` and pre-shared key in
-`config/wifi.password.txt`.
+To use this example with your own Drogue IoT service, you need to edit the HOST and PORT constants in `src/main.rs`. 
+
+To access your local WiFi network, the store the ssid in `config/wifi.ssid.txt` and pre-shared key in `config/wifi.password.txt`.
+
+To access Drogue IoT Cloud, you must store the username and password in `config/drogue.username.txt`
+and `config/drogue.password.txt`. The username is stored in this form: `device_id@application`.
 
 === Building
 
@@ -40,13 +42,7 @@ cargo build --release
 
 === Running
 
-First, start the TCP server in a terminal:
-
-....
-ncat -l 12345 --keep-open --exec "/bin/cat"
-....
-
-Next, we need to flash the firmware on the device. Flashing the firmware uses `probe-run` which auto-detects the probe connected to your device. The following command will build and flash the firmware and open the debugger console so you can see the console debug output:
+To run the example, flash the firmware on the device. Flashing the firmware uses `probe-run` which auto-detects the probe connected to your device. The following command will build and flash the firmware and open the debugger console so you can see the console debug output:
 
 ....
 cargo +nightly run --release
@@ -57,3 +53,6 @@ If you’re experiencing problems, try setting the `VID:PID` values to that of y
 ....
 cargo +nightly run --release -- --probe <VID>:<PID>
 ....
+
+Once flashed, the device will reset and attempt to join the WiFi network. If successful, it will print a message to the RTT log. You can then press the 'A' button on the micro:bit board to send a
+test message to Drogue IoT Cloud.
