@@ -161,9 +161,16 @@ mod tls {
                                     }
                                     Err(e) => {
                                         info!("TLS connection failed: {:?}", e);
-                                        let (config, rng, socket) = tls.free();
-                                        self.state.replace(State::New(config, rng, socket));
-                                        Err(TcpError::ConnectError)
+                                        match tls.close().await {
+                                            Ok((config, rng, socket)) => {
+                                                self.state.replace(State::New(config, rng, socket));
+                                                Err(TcpError::ConnectError)
+                                            }
+                                            Err(e) => {
+                                                info!("Error closing TLS connection: {:?}", e);
+                                                Err(TcpError::ConnectError)
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -227,9 +234,12 @@ mod tls {
             async move {
                 match self.state.take() {
                     Some(State::Connected(session)) => {
-                        // TODO: Send TLS alert
-                        let (_, _, mut socket) = session.free();
-                        socket.close().await;
+                        match session.close().await {
+                            Ok((_, _, mut socket)) => {
+                                socket.close().await;
+                            }
+                            _ => {}
+                        }
                     }
                     Some(State::New(_, _, mut socket)) => {
                         socket.close().await;
