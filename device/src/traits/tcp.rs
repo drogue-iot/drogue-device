@@ -2,6 +2,7 @@ use super::ip::{IpProtocol, SocketAddress};
 use core::future::Future;
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum TcpError {
     ConnectError,
     ReadError,
