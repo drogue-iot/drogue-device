@@ -45,6 +45,7 @@ impl Display for IpAddressV4 {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct SocketAddress {
     ip: IpAddress,
     port: u16,

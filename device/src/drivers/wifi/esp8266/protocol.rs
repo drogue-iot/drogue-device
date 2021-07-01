@@ -144,6 +144,40 @@ pub enum Response {
     UnlinkFail,
 }
 
+#[cfg(feature = "defmt")]
+impl defmt::Format for Response {
+    fn format(&self, f: defmt::Formatter<'_>) {
+        match self {
+            Response::None => defmt::write!(f, "None"),
+            Response::Ok => defmt::write!(f, "Ok"),
+            Response::Error => defmt::write!(f, "Error"),
+            Response::FirmwareInfo(v) => defmt::write!(f, "FirmwareInfo: {}", v),
+            Response::ReadyForData => defmt::write!(f, "ReadyForData"),
+            Response::ReceivedDataToSend(len) => {
+                defmt::write!(f, "ReceivedDataToSend {}", len)
+            }
+            Response::SendOk => defmt::write!(f, "SendOk"),
+            Response::SendFail => defmt::write!(f, "SendFail"),
+            Response::DataAvailable { link_id, len } => {
+                defmt::write!(f, "DataAvailable link_id({}), len({})", link_id, len)
+            }
+            //Response::DataReceived(d, l) => dump_data("DataReceived", d, *l, f),
+            Response::DataReceived(_, _) => defmt::write!(f, "DataReceived"),
+            Response::WifiConnected => defmt::write!(f, "WifiConnected"),
+            Response::WifiConnectionFailure(v) => defmt::write!(f, "WifiConnectionFailure {}", v),
+            Response::WifiDisconnect => defmt::write!(f, "WifiDisconnect"),
+            Response::GotIp => defmt::write!(f, "GotIp"),
+            Response::IpAddresses(v) => defmt::write!(f, "IpAddresses: {}", v),
+            Response::Connect(v) => defmt::write!(f, "Connect {}", v),
+            Response::Closed(v) => defmt::write!(f, "Closed {}", v),
+            Response::IpAddress(v) => defmt::write!(f, "IpAddress {}", v),
+            Response::Resolvers(v) => defmt::write!(f, "Resolvers {}", v),
+            Response::DnsFail => defmt::write!(f, "DNS Fail"),
+            Response::UnlinkFail => defmt::write!(f, "UnlinkFail"),
+        }
+    }
+}
+
 impl Debug for Response {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
