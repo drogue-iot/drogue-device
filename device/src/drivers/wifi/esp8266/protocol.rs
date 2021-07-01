@@ -120,6 +120,7 @@ impl<'a> Command<'a> {
 
 /// Responses (including unsolicited) which may be parsed from the board.
 #[allow(clippy::large_enum_variant)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Response {
     None,
     Ok,
