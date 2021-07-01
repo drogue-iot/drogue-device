@@ -4,6 +4,8 @@ This example application runs out of the box on the BBC micro:bit v2.0.
 It relies on a ESP8266 breakout module flashed with AT firmware. The micro:bit communicates with the
 ESP8266 using UART.
 
+The example can operate using plain TCP, or using TLS by enabling the `tls` feature flag.
+
 === Prerequisites
 
 ==== Hardware
@@ -15,18 +17,13 @@ ESP8266 using UART.
 
 * To build the example, you need to have link:https://rustup.rs/[Rust Nightly].
 * To flash the example on the device, you need `probe-run` installed (`cargo install probe-run`).
-* A Drogue IoT service. See [drogue-cloud](https://github.com/drogue-iot/drogue-cloud) for how to run that, or use the [sandbox](https://sandbox.drogue.cloud).
+* A TCP server (ncat) or a service like Drogue IoT Cloud. See [drogue-cloud](https://github.com/drogue-iot/drogue-cloud) for how to run that, or use the [sandbox](https://sandbox.drogue.cloud) (requires TLS).
 
 === Configuring
 
-To use this example with your own Drogue IoT service, you need to edit the HOST and PORT constants in `src/main.rs`. 
-
 To access your local WiFi network, the store the ssid in `config/wifi.ssid.txt` and pre-shared key in `config/wifi.password.txt`.
 
-To access Drogue IoT Cloud, you must store the username and password in `config/drogue.username.txt`
-and `config/drogue.password.txt`. The username is stored in this form: `device_id@application`.
-
-=== Building
+To authenticate the device to an HTTP service, you must store the username and password in `config/http.username.txt` and `config/http.password.txt`. For Drogue IoT Cloud, the username/password is stored in this form: `device_id@application`.
 
 Make sure you have the correct target architecture supported in rust:
 
@@ -34,19 +31,31 @@ Make sure you have the correct target architecture supported in rust:
 rustup target add thumbv7em-none-eabihf
 ....
 
-To build the firmware:
+=== Running with plain TCP
+
+You can configure the IP constant to point to any TCP/HTTP server to receive events, or you can use [drogue cloud](https://github.com/drogue-iot/drogue-cloud) locally. For simplicity, start a local TCP server:
 
 ....
-cargo build --release
+ncat -l 12345 --keep-open --exec "/bin/cat"
 ....
 
-=== Running
-
-To run the example, flash the firmware on the device. Flashing the firmware uses `probe-run` which auto-detects the probe connected to your device. The following command will build and flash the firmware and open the debugger console so you can see the console debug output:
+To run the firmware:
 
 ....
 cargo +nightly run --release
 ....
+
+== Running with TLS
+
+When the `tls` flag is enabled, the example is configured to use the Drogue IoT Cloud sandbox. To use this example with your own Drogue IoT Cloud instance, you need to edit the HOST and PORT constants in `src/main.rs`. 
+
+To run the firmware:
+
+....
+cargo +nightly run --release --features tls
+....
+
+== Troubleshooting
 
 If you’re experiencing problems, try setting the `VID:PID` values to that of your probe (you can find that from lsusb once your board is powered).
 
@@ -54,5 +63,4 @@ If you’re experiencing problems, try setting the `VID:PID` values to that of y
 cargo +nightly run --release -- --probe <VID>:<PID>
 ....
 
-Once flashed, the device will reset and attempt to join the WiFi network. If successful, it will print a message to the RTT log. You can then press the 'A' button on the micro:bit board to send a
-test message to Drogue IoT Cloud.
+Once flashed, the device will reset and attempt to join the WiFi network. If successful, it will print a message to the RTT log. You can then press the 'A' button on the micro:bit board to send a test message from the device.

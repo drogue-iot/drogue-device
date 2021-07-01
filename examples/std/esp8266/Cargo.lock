@@ -357,6 +357,7 @@ dependencies = [
  "heapless",
  "hkdf",
  "hmac",
+ "log",
  "nom",
  "p256",
  "rand_core",
@@ -451,6 +452,7 @@ name = "esp8266"
 version = "0.1.0"
 dependencies = [
  "async-io",
+ "cfg-if",
  "drogue-device",
  "drogue-tls",
  "embassy",

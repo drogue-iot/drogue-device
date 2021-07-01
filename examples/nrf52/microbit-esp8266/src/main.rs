@@ -8,8 +8,6 @@
 #![feature(type_alias_impl_trait)]
 #![feature(concat_idents)]
 
-mod rng;
-use rng::*;
 use wifi_app::*;
 
 use log::LevelFilter;
@@ -18,16 +16,11 @@ use rtt_logger::RTTLogger;
 use rtt_target::rtt_init_print;
 
 use drogue_device::{
-    actors::{
-        button::Button,
-        socket::{Socket, TlsSocket},
-        wifi::esp8266::*,
-    },
+    actors::{button::Button, socket::Socket, wifi::esp8266::*},
     drivers::wifi::esp8266::Esp8266Controller,
     traits::{ip::*, tcp::TcpStack, wifi::*},
     ActorContext, DeviceContext, Package,
 };
-use drogue_tls::{Aes128GcmSha256, TlsContext};
 use embassy_nrf::{
     buffered_uarte::BufferedUarte,
     gpio::{Input, Level, NoPin, Output, OutputDrive, Pull},
@@ -36,30 +29,43 @@ use embassy_nrf::{
     peripherals::{P0_09, P0_10, P0_14, TIMER0, UARTE0},
     uarte, Peripherals,
 };
-use nrf52833_pac as pac;
 
 const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.ssid.txt"));
 const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.password.txt"));
 
-const HOST: &str = "http.sandbox.drogue.cloud";
-const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
-const PORT: u16 = 443;
+cfg_if::cfg_if! {
+    if #[cfg(feature = "tls")] {
+        mod rng;
+        use rng::*;
+        use drogue_tls::{Aes128GcmSha256, TlsContext};
+        use drogue_device::actors::socket::TlsSocket;
+        use nrf52833_pac as pac;
 
-// const HOST: &str = "example.com";
-// const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP resolved for "http.sandbox.drogue.cloud"
-// const PORT: u16 = 12345;
+        const HOST: &str = "http.sandbox.drogue.cloud";
+        const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
+        const PORT: u16 = 443;
+        static mut TLS_BUFFER: [u8; 16384] = [0u8; 16384];
+    } else {
+        const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP for local network server
+        const PORT: u16 = 12345;
+    }
+}
 
-const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/config/drogue.username.txt"));
-const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/drogue.password.txt"));
+const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.username.txt"));
+const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.password.txt"));
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
 
 type UART = BufferedUarte<'static, UARTE0, TIMER0>;
 type ENABLE = Output<'static, P0_09>;
 type RESET = Output<'static, P0_10>;
+
+#[cfg(feature = "tls")]
 type AppSocket =
     TlsSocket<'static, Socket<'static, Esp8266Controller<'static>>, Rng, Aes128GcmSha256>;
-//type AppSocket = Socket<'static, Esp8266Controller<'static>>;
+
+#[cfg(not(feature = "tls"))]
+type AppSocket = Socket<'static, Esp8266Controller<'static>>;
 
 pub struct MyDevice {
     wifi: Esp8266Wifi<UART, ENABLE, RESET>,
@@ -106,15 +112,11 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let enable_pin = Output::new(p.P0_09, Level::Low, OutputDrive::Standard);
     let reset_pin = Output::new(p.P0_10, Level::Low, OutputDrive::Standard);
 
-    let rng = Rng::new(pac::Peripherals::take().unwrap().RNG);
-
     DEVICE.configure(MyDevice {
         wifi: Esp8266Wifi::new(u, enable_pin, reset_pin),
         app: ActorContext::new(App::new(IP, PORT, USERNAME.trim_end(), PASSWORD.trim_end())),
         button: ActorContext::new(Button::new(button_port)),
     });
-
-    static mut TLS_BUFFER: [u8; 16384] = [0u8; 16384];
 
     DEVICE
         .mount(|device| async move {
@@ -128,9 +130,13 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             log::info!("WiFi network joined");
 
             let socket = Socket::new(wifi, wifi.open().await);
+            #[cfg(feature = "tls")]
             let socket = TlsSocket::wrap(
                 socket,
-                TlsContext::new(rng, unsafe { &mut TLS_BUFFER }).with_server_name(HOST.trim_end()),
+                TlsContext::new(Rng::new(pac::Peripherals::take().unwrap().RNG), unsafe {
+                    &mut TLS_BUFFER
+                })
+                .with_server_name(HOST.trim_end()),
             );
             let app = device.app.mount(socket, spawner);
             device.button.mount(app, spawner);

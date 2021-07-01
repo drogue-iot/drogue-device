@@ -317,6 +317,7 @@ dependencies = [
  "futures",
  "generic-array 0.14.4",
  "heapless",
+ "log",
  "moveslice",
  "nom",
  "rand_core",
@@ -333,6 +334,7 @@ dependencies = [
  "heapless",
  "hkdf",
  "hmac",
+ "log",
  "nom",
  "p256",
  "rand_core",
@@ -641,6 +643,7 @@ checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
 name = "microbit-esp8266"
 version = "0.1.0"
 dependencies = [
+ "cfg-if",
  "cortex-m 0.6.7",
  "cortex-m-rt",
  "drogue-device",
