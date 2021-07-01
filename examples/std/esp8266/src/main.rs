@@ -38,7 +38,7 @@ type UART = FromStdIo<BufReader<Async<SerialPort>>>;
 type ENABLE = DummyPin;
 type RESET = DummyPin;
 type AppSocket =
-    TlsSocket<'static, Socket<'static, Esp8266Controller<'static>>, OsRng, Aes128GcmSha256, 16384>;
+    TlsSocket<'static, Socket<'static, Esp8266Controller<'static>>, OsRng, Aes128GcmSha256>;
 
 pub struct MyDevice {
     wifi: Esp8266Wifi<UART, ENABLE, RESET>,
@@ -64,6 +64,7 @@ async fn main(spawner: embassy::executor::Spawner) {
         app: ActorContext::new(App::new(IP, PORT, USERNAME.trim_end(), PASSWORD.trim_end())),
     });
 
+    static mut TLS_BUFFER: [u8; 16384] = [0u8; 16384];
     let app = DEVICE
         .mount(|device| async move {
             let mut wifi = device.wifi.mount((), spawner);
@@ -78,7 +79,8 @@ async fn main(spawner: embassy::executor::Spawner) {
             let socket = Socket::new(wifi, wifi.open().await);
             let socket = TlsSocket::wrap(
                 socket,
-                TlsContext::new(OsRng).with_server_name(HOST.trim_end()),
+                TlsContext::new(OsRng, unsafe { &mut TLS_BUFFER })
+                    .with_server_name(HOST.trim_end()),
             );
             device.app.mount(socket, spawner)
         })

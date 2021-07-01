@@ -18,7 +18,7 @@ rand_core = { version = "0.6.2", default-features = false }
 
 drogue-device = { path = "../../../device", features = ["wifi+esp8266", "tls"], default-features = false }
 drogue-tls = {git = "https://github.com/drogue-iot/drogue-tls.git", branch = "main", default-features = false}
-# drogue-tls = {path = "../../../../drogue-tls", default-features = false, features = ["log"]}
+#drogue-tls = {path = "../../../../drogue-tls", default-features = false, features = ["log"]}
 wifi-app = { path = "../../common/wifi" }
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.6", features = ["inline-asm"] }

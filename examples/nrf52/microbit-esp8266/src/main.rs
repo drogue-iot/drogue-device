@@ -58,7 +58,7 @@ type UART = BufferedUarte<'static, UARTE0, TIMER0>;
 type ENABLE = Output<'static, P0_09>;
 type RESET = Output<'static, P0_10>;
 type AppSocket =
-    TlsSocket<'static, Socket<'static, Esp8266Controller<'static>>, Rng, Aes128GcmSha256, 8192>;
+    TlsSocket<'static, Socket<'static, Esp8266Controller<'static>>, Rng, Aes128GcmSha256>;
 //type AppSocket = Socket<'static, Esp8266Controller<'static>>;
 
 pub struct MyDevice {
@@ -114,6 +114,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         button: ActorContext::new(Button::new(button_port)),
     });
 
+    static mut TLS_BUFFER: [u8; 16384] = [0u8; 16384];
+
     DEVICE
         .mount(|device| async move {
             let mut wifi = device.wifi.mount((), spawner);
@@ -128,7 +130,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             let socket = Socket::new(wifi, wifi.open().await);
             let socket = TlsSocket::wrap(
                 socket,
-                TlsContext::new(rng).with_server_name(HOST.trim_end()),
+                TlsContext::new(rng, unsafe { &mut TLS_BUFFER }).with_server_name(HOST.trim_end()),
             );
             let app = device.app.mount(socket, spawner);
             device.button.mount(app, spawner);

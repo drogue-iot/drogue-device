@@ -101,27 +101,26 @@ mod tls {
         }
     }
 
-    enum State<'a, S, RNG, CipherSuite, const FRAME_BUF_LEN: usize>
+    enum State<'a, S, RNG, CipherSuite>
     where
         S: TcpSocket + AsyncWrite + AsyncRead + 'static,
         RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'static,
     {
         New(TlsContext<'a, CipherSuite, RNG>, S),
-        Connected(TlsConnection<'a, RNG, S, CipherSuite, FRAME_BUF_LEN>),
+        Connected(TlsConnection<'a, RNG, S, CipherSuite>),
     }
 
-    pub struct TlsSocket<'a, S, RNG, CipherSuite, const FRAME_BUF_LEN: usize>
+    pub struct TlsSocket<'a, S, RNG, CipherSuite>
     where
         S: TcpSocket + AsyncWrite + AsyncRead + 'static,
         RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'static,
     {
-        state: Option<State<'a, S, RNG, CipherSuite, FRAME_BUF_LEN>>,
+        state: Option<State<'a, S, RNG, CipherSuite>>,
     }
 
-    impl<'a, S, RNG, CipherSuite, const FRAME_BUF_LEN: usize>
-        TlsSocket<'a, S, RNG, CipherSuite, FRAME_BUF_LEN>
+    impl<'a, S, RNG, CipherSuite> TlsSocket<'a, S, RNG, CipherSuite>
     where
         S: TcpSocket + AsyncWrite + AsyncRead + 'static,
         RNG: CryptoRng + RngCore + 'static,
@@ -134,8 +133,7 @@ mod tls {
         }
     }
 
-    impl<'a, S, RNG, CipherSuite, const FRAME_BUF_LEN: usize> TcpSocket
-        for TlsSocket<'a, S, RNG, CipherSuite, FRAME_BUF_LEN>
+    impl<'a, S, RNG, CipherSuite> TcpSocket for TlsSocket<'a, S, RNG, CipherSuite>
     where
         S: TcpSocket + AsyncWrite + AsyncRead + 'static,
         RNG: CryptoRng + RngCore + 'static,
@@ -154,7 +152,7 @@ mod tls {
                         match socket.connect(proto, dst).await {
                             Ok(_) => {
                                 info!("TCP connection opened");
-                                let mut tls: TlsConnection<'a, RNG, S, CipherSuite, FRAME_BUF_LEN> =
+                                let mut tls: TlsConnection<'a, RNG, S, CipherSuite> =
                                     TlsConnection::new(context, socket);
                                 match tls.open().await {
                                     Ok(_) => {
