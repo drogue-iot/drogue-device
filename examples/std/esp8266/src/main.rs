@@ -15,7 +15,7 @@ use drogue_device::{
     traits::{ip::*, tcp::*, wifi::*},
     *,
 };
-use drogue_tls::{Aes128GcmSha256, TlsConfig};
+use drogue_tls::{Aes128GcmSha256, TlsContext};
 use embassy::io::FromStdIo;
 use embedded_hal::digital::v2::OutputPin;
 use futures::io::BufReader;
@@ -59,8 +59,6 @@ async fn main(spawner: embassy::executor::Spawner) {
     let port = BufReader::new(port);
     let port = FromStdIo::new(port);
 
-    let tls_config = TlsConfig::new().with_server_name(HOST.trim_end());
-
     DEVICE.configure(MyDevice {
         wifi: Esp8266Wifi::new(port, DummyPin {}, DummyPin {}),
         app: ActorContext::new(App::new(IP, PORT, USERNAME.trim_end(), PASSWORD.trim_end())),
@@ -78,8 +76,11 @@ async fn main(spawner: embassy::executor::Spawner) {
             log::info!("WiFi network joined");
 
             let socket = Socket::new(wifi, wifi.open().await);
-            let tls_socket = TlsSocket::wrap(socket, tls_config, OsRng);
-            device.app.mount(tls_socket, spawner)
+            let socket = TlsSocket::wrap(
+                socket,
+                TlsContext::new(OsRng).with_server_name(HOST.trim_end()),
+            );
+            device.app.mount(socket, spawner)
         })
         .await;
 

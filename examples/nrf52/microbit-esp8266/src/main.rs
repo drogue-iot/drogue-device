@@ -27,7 +27,7 @@ use drogue_device::{
     traits::{ip::*, tcp::TcpStack, wifi::*},
     ActorContext, DeviceContext, Package,
 };
-use drogue_tls::{Aes128GcmSha256, TlsConfig};
+use drogue_tls::{Aes128GcmSha256, TlsContext};
 use embassy_nrf::{
     buffered_uarte::BufferedUarte,
     gpio::{Input, Level, NoPin, Output, OutputDrive, Pull},
@@ -128,8 +128,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             let socket = Socket::new(wifi, wifi.open().await);
             let socket = TlsSocket::wrap(
                 socket,
-                TlsConfig::new().with_server_name(HOST.trim_end()),
-                rng,
+                TlsContext::new(rng).with_server_name(HOST.trim_end()),
             );
             let app = device.app.mount(socket, spawner);
             device.button.mount(app, spawner);

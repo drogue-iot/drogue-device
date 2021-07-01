@@ -65,7 +65,10 @@ mod tls {
         tcp::{TcpError, TcpSocket},
     };
     use core::future::Future;
-    use drogue_tls::{AsyncRead, AsyncWrite, TlsCipherSuite, TlsConfig, TlsConnection, TlsError};
+    use drogue_tls::{
+        traits::{AsyncRead, AsyncWrite},
+        TlsCipherSuite, TlsConnection, TlsContext, TlsError,
+    };
     use rand_core::{CryptoRng, RngCore};
 
     impl<'a, T> AsyncRead for Socket<'a, T>
@@ -104,7 +107,7 @@ mod tls {
         RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'static,
     {
-        New(TlsConfig<'a, CipherSuite>, RNG, S),
+        New(TlsContext<'a, CipherSuite, RNG>, S),
         Connected(TlsConnection<'a, RNG, S, CipherSuite, FRAME_BUF_LEN>),
     }
 
@@ -124,9 +127,9 @@ mod tls {
         RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'static,
     {
-        pub fn wrap(socket: S, config: TlsConfig<'a, CipherSuite>, rng: RNG) -> Self {
+        pub fn wrap(socket: S, context: TlsContext<'a, CipherSuite, RNG>) -> Self {
             Self {
-                state: Some(State::New(config, rng, socket)),
+                state: Some(State::New(context, socket)),
             }
         }
     }
@@ -147,12 +150,12 @@ mod tls {
         ) -> Self::ConnectFuture<'m> {
             async move {
                 match self.state.take() {
-                    Some(State::New(config, rng, mut socket)) => {
+                    Some(State::New(context, mut socket)) => {
                         match socket.connect(proto, dst).await {
                             Ok(_) => {
                                 info!("TCP connection opened");
                                 let mut tls: TlsConnection<'a, RNG, S, CipherSuite, FRAME_BUF_LEN> =
-                                    TlsConnection::new(config, rng, socket);
+                                    TlsConnection::new(context, socket);
                                 match tls.open().await {
                                     Ok(_) => {
                                         info!("TLS connection opened");
@@ -162,8 +165,8 @@ mod tls {
                                     Err(e) => {
                                         info!("TLS connection failed: {:?}", e);
                                         match tls.close().await {
-                                            Ok((config, rng, socket)) => {
-                                                self.state.replace(State::New(config, rng, socket));
+                                            Ok((context, socket)) => {
+                                                self.state.replace(State::New(context, socket));
                                                 Err(TcpError::ConnectError)
                                             }
                                             Err(e) => {
@@ -176,7 +179,7 @@ mod tls {
                             }
                             Err(e) => {
                                 info!("TCP connection failed: {:?}", e);
-                                self.state.replace(State::New(config, rng, socket));
+                                self.state.replace(State::New(context, socket));
                                 Err(e)
                             }
                         }
@@ -234,12 +237,12 @@ mod tls {
             async move {
                 match self.state.take() {
                     Some(State::Connected(session)) => match session.close().await {
-                        Ok((_, _, mut socket)) => {
+                        Ok((_, mut socket)) => {
                             socket.close().await;
                         }
                         _ => {}
                     },
-                    Some(State::New(_, _, mut socket)) => {
+                    Some(State::New(_, mut socket)) => {
                         socket.close().await;
                     }
                     None => {}
