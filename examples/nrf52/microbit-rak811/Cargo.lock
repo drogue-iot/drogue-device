@@ -29,7 +29,7 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30302dda7a66f8c55932ebf208f7def840743ff64d495e9ceffcd97c18f11d39"
 dependencies = [
- "cortex-m 0.7.2",
+ "cortex-m 0.7.3",
 ]
 
 [[package]]
@@ -95,14 +95,14 @@ dependencies = [
  "aligned",
  "bare-metal 0.2.5",
  "bitfield",
- "cortex-m 0.7.2",
+ "cortex-m 0.7.3",
  "volatile-register",
 ]
 
 [[package]]
 name = "cortex-m"
-version = "0.7.2"
-source = "git+https://github.com/rust-embedded/cortex-m.git?branch=master#47246ecc06f7a6665885fd19cd14f35fa390ab95"
+version = "0.7.3"
+source = "git+https://github.com/rust-embedded/cortex-m.git?branch=master#45e7ab72661a8823e98e8fba821f2addcea95d3f"
 dependencies = [
  "bare-metal 0.2.5",
  "bitfield",
@@ -139,7 +139,7 @@ checksum = "84c1ce814a497d4fbc869a34a0da005fbd712d7034e4a48ee91e7f3c795a8b17"
 dependencies = [
  "bare-metal 1.0.0",
  "cfg-if",
- "cortex-m 0.7.2",
+ "cortex-m 0.7.3",
 ]
 
 [[package]]
@@ -200,7 +200,7 @@ source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e
 dependencies = [
  "atomic-polyfill",
  "cast",
- "cortex-m 0.7.2",
+ "cortex-m 0.7.3",
  "critical-section",
  "embassy-macros",
  "embassy-traits",
@@ -213,7 +213,7 @@ name = "embassy-extras"
 version = "0.1.0"
 source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
 dependencies = [
- "cortex-m 0.7.2",
+ "cortex-m 0.7.3",
  "embassy",
  "usb-device",
 ]
@@ -234,7 +234,7 @@ name = "embassy-nrf"
 version = "0.1.0"
 source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
 dependencies = [
- "cortex-m 0.7.2",
+ "cortex-m 0.7.3",
  "cortex-m-rt",
  "critical-section",
  "embassy",

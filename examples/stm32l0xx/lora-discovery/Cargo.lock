@@ -84,7 +84,7 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30302dda7a66f8c55932ebf208f7def840743ff64d495e9ceffcd97c18f11d39"
 dependencies = [
- "cortex-m 0.7.2",
+ "cortex-m 0.7.3",
 ]
 
 [[package]]
@@ -245,14 +245,14 @@ dependencies = [
  "aligned",
  "bare-metal 0.2.5",
  "bitfield",
- "cortex-m 0.7.2",
+ "cortex-m 0.7.3",
  "volatile-register",
 ]
 
 [[package]]
 name = "cortex-m"
-version = "0.7.2"
-source = "git+https://github.com/rust-embedded/cortex-m.git?branch=master#47246ecc06f7a6665885fd19cd14f35fa390ab95"
+version = "0.7.3"
+source = "git+https://github.com/rust-embedded/cortex-m.git?branch=master#45e7ab72661a8823e98e8fba821f2addcea95d3f"
 dependencies = [
  "bare-metal 0.2.5",
  "bitfield",
@@ -289,7 +289,7 @@ checksum = "84c1ce814a497d4fbc869a34a0da005fbd712d7034e4a48ee91e7f3c795a8b17"
 dependencies = [
  "bare-metal 1.0.0",
  "cfg-if",
- "cortex-m 0.7.2",
+ "cortex-m 0.7.3",
 ]
 
 [[package]]
@@ -384,7 +384,7 @@ source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e
 dependencies = [
  "atomic-polyfill",
  "cast",
- "cortex-m 0.7.2",
+ "cortex-m 0.7.3",
  "critical-section",
  "embassy-macros",
  "embassy-traits",
@@ -397,7 +397,7 @@ name = "embassy-extras"
 version = "0.1.0"
 source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
 dependencies = [
- "cortex-m 0.7.2",
+ "cortex-m 0.7.3",
  "embassy",
  "usb-device",
 ]
@@ -421,7 +421,7 @@ dependencies = [
  "atomic-polyfill",
  "bare-metal 1.0.0",
  "cfg-if",
- "cortex-m 0.7.2",
+ "cortex-m 0.7.3",
  "cortex-m-rt",
  "critical-section",
  "embassy",
@@ -664,9 +664,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.97"
+version = "0.2.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12b8adadd720df158f4d70dfe7ccc6adb0472d7c55ca83445f6a5ab3e36f8fb6"
+checksum = "320cfe77175da3a483efed4bc0adc1968ca050b098ce4f2f1c13a56626128790"
 
 [[package]]
 name = "linked-hash-map"
@@ -687,7 +687,7 @@ dependencies = [
 name = "lora-discovery"
 version = "0.1.0"
 dependencies = [
- "cortex-m 0.7.2",
+ "cortex-m 0.7.3",
  "cortex-m-rt",
  "drogue-device",
  "embassy",
@@ -981,7 +981,7 @@ name = "stm32-metapac"
 version = "0.1.0"
 source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
 dependencies = [
- "cortex-m 0.7.2",
+ "cortex-m 0.7.3",
  "cortex-m-rt",
  "stm32-metapac-gen",
 ]
@@ -1059,18 +1059,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.25"
+version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa6f76457f59514c7eeb4e59d891395fab0b2fd1d40723ae737d64153392e9c6"
+checksum = "93119e4feac1cbe6c798c34d3a53ea0026b0b1de6a120deef895137c0529bfe2"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.25"
+version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a36768c0fbf1bb15eca10defa29526bda730a2376c2ab4393ccfa16fb1a318d"
+checksum = "060d69a0afe7796bf42e9e2ff91f5ee691fb15c53d38b4b62a9a53eb23164745"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1091,9 +1091,9 @@ checksum = "e87a2ed6b42ec5e28cc3b94c09982969e9227600b2e3dcbc1db927a84c06bd69"
 
 [[package]]
 name = "unicode-segmentation"
-version = "1.7.1"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb0d2e7be6ae3a5fa87eed5fb451aff96f2573d2694942e40543ae0bbe19c796"
+checksum = "8895849a949e7845e06bd6dc1aa51731a103c42707010a5b591c0038fb73385b"
 
 [[package]]
 name = "unicode-width"
