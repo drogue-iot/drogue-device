@@ -384,7 +384,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "atomic-polyfill",
  "cast",
@@ -392,6 +392,7 @@ dependencies = [
  "critical-section",
  "embassy-macros",
  "embassy-traits",
+ "embedded-hal",
  "futures",
  "pin-project",
 ]
@@ -399,7 +400,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -410,7 +411,7 @@ dependencies = [
 [[package]]
 name = "embassy-std"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "embassy",
  "embassy-macros",
@@ -420,7 +421,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "embedded-hal",
 ]

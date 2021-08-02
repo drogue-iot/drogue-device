@@ -14,8 +14,8 @@ log = "0.4"
 env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["log", "std", "wifi+esp8266", "tls"] }
 drogue-tls = { version = "0.2.0", default-features = false, features = ["async"], optional = true}
-embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "master", features = ["std"] }
-embassy-std = {git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "0a1da180d0fd93deaf9cc453566c3d66511c03a8", features = ["std"] }
+embassy-std = {git = "https://github.com/embassy-rs/embassy.git", rev = "0a1da180d0fd93deaf9cc453566c3d66511c03a8", default-features = false }
 rand = "0.8"
 cfg-if = "1.0.0"
 

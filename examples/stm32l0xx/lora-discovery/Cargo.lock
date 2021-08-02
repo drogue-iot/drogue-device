@@ -167,7 +167,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "chiptool"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/chiptool?rev=b905099423280cdc39a96bc51f0b669ddb443797#b905099423280cdc39a96bc51f0b669ddb443797"
+source = "git+https://github.com/embassy-rs/chiptool?rev=31c3c09197d63d29eddbf4c70d6158edac0ac5d3#31c3c09197d63d29eddbf4c70d6158edac0ac5d3"
 dependencies = [
  "anyhow",
  "cast",
@@ -181,7 +181,6 @@ dependencies = [
  "serde",
  "serde_yaml",
  "svd-parser",
- "syn",
  "thiserror",
 ]
 
@@ -293,6 +292,50 @@ dependencies = [
 ]
 
 [[package]]
+name = "crossbeam-channel"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06ed27e177f16d65f0f0c22a213e17c696ace5dd64b14258b52f9417ccb52db4"
+dependencies = [
+ "cfg-if",
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-deque"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6455c0ca19f0d2fbf751b908d5c55c1f5cbc65e03c4225427254b46890bdde1e"
+dependencies = [
+ "cfg-if",
+ "crossbeam-epoch",
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-epoch"
+version = "0.9.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ec02e091aa634e2c3ada4a392989e7c3116673ef0ac5b72232439094d73b7fd"
+dependencies = [
+ "cfg-if",
+ "crossbeam-utils",
+ "lazy_static",
+ "memoffset",
+ "scopeguard",
+]
+
+[[package]]
+name = "crossbeam-utils"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d82cfc11ce7f2c3faef78d8a684447b40d503d9681acebed6cb728d45940c4db"
+dependencies = [
+ "cfg-if",
+ "lazy_static",
+]
+
+[[package]]
 name = "crypto-mac"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -380,7 +423,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "atomic-polyfill",
  "cast",
@@ -388,14 +431,15 @@ dependencies = [
  "critical-section",
  "embassy-macros",
  "embassy-traits",
+ "embedded-hal",
  "futures",
  "pin-project",
 ]
 
 [[package]]
-name = "embassy-extras"
+name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "cortex-m 0.7.3",
  "embassy",
@@ -405,7 +449,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -416,7 +460,7 @@ dependencies = [
 [[package]]
 name = "embassy-stm32"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "atomic-polyfill",
  "bare-metal 1.0.0",
@@ -425,7 +469,7 @@ dependencies = [
  "cortex-m-rt",
  "critical-section",
  "embassy",
- "embassy-extras",
+ "embassy-hal-common",
  "embassy-macros",
  "embassy-traits",
  "embedded-hal",
@@ -440,7 +484,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "embedded-hal",
 ]
@@ -457,9 +501,9 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.7.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44533bbbb3bb3c1fa17d9f2e4e38bbbaf8396ba82193c4cb1b6445d711445d36"
+checksum = "0b2cf0344971ee6c64c31be0d530793fba457d322dfec2810c453d0ef228f9c3"
 dependencies = [
  "atty",
  "humantime",
@@ -627,12 +671,9 @@ dependencies = [
 
 [[package]]
 name = "humantime"
-version = "1.3.0"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df004cfca50ef23c36850aaaa59ad52cc70d0e90243c3c7737a4dd32dc7a3c4f"
-dependencies = [
- "quick-error",
-]
+checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "ident_case"
@@ -730,6 +771,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b16bd47d9e329435e309c58469fe0791c2d0d1ba96ec0954152a5ae2b04387dc"
 
 [[package]]
+name = "memoffset"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59accc507f1338036a0477ef61afdae33cde60840f4dfe481319ce3ad116ddf9"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
 name = "nb"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -743,6 +793,22 @@ name = "nb"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "546c37ac5d9e56f55e73b677106873d9d9f5190605e41a856503623648488cae"
+
+[[package]]
+name = "num_cpus"
+version = "1.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05499f3756671c15885fee9034446956fff3f243d6077b91e5767df161f766b3"
+dependencies = [
+ "hermit-abi",
+ "libc",
+]
+
+[[package]]
+name = "once_cell"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "692fcb63b64b1758029e0a96ee63e049ce8c5948587f2f7208df04625e5f6b56"
 
 [[package]]
 name = "opaque-debug"
@@ -845,12 +911,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "quick-error"
-version = "1.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1d01941d82fa2ab50be1e79e6714289dd7cde78eba4c074bc5a4374f650dfe0"
-
-[[package]]
 name = "quote"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -870,6 +930,31 @@ name = "rand_core"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
+
+[[package]]
+name = "rayon"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c06aca804d41dbc8ba42dfd964f0d01334eceb64314b9ecf7c5fad5188a06d90"
+dependencies = [
+ "autocfg",
+ "crossbeam-deque",
+ "either",
+ "rayon-core",
+]
+
+[[package]]
+name = "rayon-core"
+version = "1.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d78120e2c850279833f1dd3582f730c4ab53ed95aeaaaa862a2a5c71b1656d8e"
+dependencies = [
+ "crossbeam-channel",
+ "crossbeam-deque",
+ "crossbeam-utils",
+ "lazy_static",
+ "num_cpus",
+]
 
 [[package]]
 name = "regex"
@@ -916,6 +1001,12 @@ checksum = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 dependencies = [
  "semver",
 ]
+
+[[package]]
+name = "scopeguard"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "sdio-host"
@@ -979,23 +1070,24 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 [[package]]
 name = "stm32-metapac"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "cortex-m 0.7.3",
  "cortex-m-rt",
+ "regex",
  "stm32-metapac-gen",
 ]
 
 [[package]]
 name = "stm32-metapac-gen"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "chiptool",
+ "proc-macro2",
  "regex",
  "serde",
  "serde_yaml",
- "syn",
 ]
 
 [[package]]
@@ -1018,12 +1110,14 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "svd-parser"
-version = "0.9.0"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4166295f1efb24fd50c42adc9728f58a30521410c7976bdd3239a33c76f1be2"
+checksum = "697e7645ad9f5311fe3d872d094b135627b1616aea9e1573dddd28ca522579b9"
 dependencies = [
  "anyhow",
- "either",
+ "once_cell",
+ "rayon",
+ "regex",
  "thiserror",
  "xmltree",
 ]
