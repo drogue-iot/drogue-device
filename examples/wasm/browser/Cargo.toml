@@ -18,7 +18,7 @@ wasm-logger = "0.2.0"
 log = "0.4"
 
 drogue-device = { path = "../../../device", features = ["log"], default-features = false }
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "0a1da180d0fd93deaf9cc453566c3d66511c03a8", default-features = false, features = ["executor-agnostic"] }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "c458ad52e698ae0e9810e90d094394bd3ab35c77", default-features = false, features = ["executor-agnostic"] }
 #embassy = {default-features = false, path = "../../../../../embassy/embassy", features = ["executor-agnostic"] }
 
 critical-section = { version = "0.2.1", features = ["custom-impl"] }

@@ -3,7 +3,6 @@
 #![allow(incomplete_features)]
 #![allow(dead_code)]
 #![feature(min_type_alias_impl_trait)]
-#![feature(const_generics_defaults)]
 #![feature(const_generics)]
 #![feature(const_evaluatable_checked)]
 #![feature(impl_trait_in_bindings)]
@@ -88,7 +87,6 @@ pub(crate) mod fmt;
 pub mod kernel;
 pub use kernel::{
     actor::{Actor, ActorContext, ActorSpawner, Address},
-    channel::Channel,
     device::DeviceContext,
     package::Package,
     util::ImmediateFuture,

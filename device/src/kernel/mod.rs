@@ -1,5 +1,5 @@
 pub mod actor;
-pub mod channel;
+mod channel;
 pub mod device;
 pub mod package;
 pub mod signal;

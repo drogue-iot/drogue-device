@@ -6,10 +6,7 @@ mod buffer;
 mod parser;
 mod protocol;
 use crate::{
-    kernel::{
-        actor::{Actor, Address},
-        channel::*,
-    },
+    kernel::actor::{Actor, Address},
     traits::lora::*,
 };
 
@@ -21,15 +18,18 @@ use core::{
 };
 use embassy::{
     io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt},
-    util::Signal,
+    util::{
+        mpsc::{self, Channel, Receiver, Sender, WithThreadModeOnly},
+        Signal,
+    },
 };
 use embedded_hal::digital::v2::OutputPin;
 use futures::future::{select, Either};
 use futures::pin_mut;
-use heapless::consts::U2;
 pub use protocol::*;
 
 const RECV_BUFFER_LEN: usize = 256;
+type DriverMutex = WithThreadModeOnly;
 
 pub struct Initialized {
     signal: Signal<Result<LoraRegion, LoraError>>,
@@ -59,15 +59,15 @@ impl Initialized {
 
 pub struct Rak811Driver {
     initialized: Initialized,
-    command_channel: Channel<CommandBuffer, U2>,
-    response_channel: Channel<Response, U2>,
+    command_channel: Channel<DriverMutex, CommandBuffer, 2>,
+    response_channel: Channel<DriverMutex, Response, 2>,
 }
 
 pub struct Rak811Controller<'a> {
     config: LoraConfig,
     initialized: &'a Initialized,
-    command_producer: ChannelSender<'a, CommandBuffer, U2>,
-    response_consumer: ChannelReceiver<'a, Response, U2>,
+    command_producer: Sender<'a, DriverMutex, CommandBuffer, 2>,
+    response_consumer: Receiver<'a, DriverMutex, Response, 2>,
 }
 
 pub struct Rak811Modem<'a, UART, RESET>
@@ -79,8 +79,8 @@ where
     uart: UART,
     reset: RESET,
     parse_buffer: Buffer,
-    command_consumer: ChannelReceiver<'a, CommandBuffer, U2>,
-    response_producer: ChannelSender<'a, Response, U2>,
+    command_consumer: Receiver<'a, DriverMutex, CommandBuffer, 2>,
+    response_producer: Sender<'a, DriverMutex, Response, 2>,
 }
 
 impl Rak811Driver {
@@ -101,8 +101,8 @@ impl Rak811Driver {
         UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
         RESET: OutputPin + 'static,
     {
-        let (cp, cc) = self.command_channel.split();
-        let (rp, rc) = self.response_channel.split();
+        let (cp, cc) = mpsc::split(&mut self.command_channel);
+        let (rp, rc) = mpsc::split(&mut self.response_channel);
 
         let modem = Rak811Modem::new(&self.initialized, uart, reset, cc, rp);
         let controller = Rak811Controller::new(&self.initialized, cp, rc);
@@ -120,8 +120,8 @@ where
         initialized: &'a Initialized,
         uart: UART,
         reset: RESET,
-        command_consumer: ChannelReceiver<'a, CommandBuffer, U2>,
-        response_producer: ChannelSender<'a, Response, U2>,
+        command_consumer: Receiver<'a, DriverMutex, CommandBuffer, 2>,
+        response_producer: Sender<'a, DriverMutex, Response, 2>,
     ) -> Self {
         Self {
             initialized,
@@ -182,7 +182,7 @@ where
 
     async fn digest(&mut self) {
         if let Some(response) = self.parse() {
-            self.response_producer.send(response).await;
+            let _ = self.response_producer.send(response).await;
         }
     }
 
@@ -192,7 +192,7 @@ where
         loop {
             let mut buf = [0; 1];
             let (cmd, input) = {
-                let command_fut = self.command_consumer.receive();
+                let command_fut = self.command_consumer.recv();
                 let mut uart = unsafe { Pin::new_unchecked(&mut self.uart) };
                 let uart_fut = uart.read(&mut buf[..]);
                 pin_mut!(uart_fut);
@@ -203,7 +203,7 @@ where
                 }
             };
             // We got command to write, write it
-            if let Some(s) = cmd {
+            if let Some(Some(s)) = cmd {
                 let mut uart = unsafe { Pin::new_unchecked(&mut self.uart) };
                 if let Err(e) = uart.write_all(s.as_bytes()).await {
                     error!("Error writing command to uart: {:?}", e);
@@ -268,7 +268,7 @@ impl<'a> LoraDriver for Rak811Controller<'a> {
             let response = self.send_command(Command::Join(mode)).await?;
             match response {
                 Response::Ok => {
-                    let response = self.response_consumer.receive().await;
+                    let response = self.response_consumer.recv().await.unwrap();
                     match response {
                         Response::Recv(EventCode::JoinedSuccess, _, _, _) => Ok(()),
                         r => log_unexpected(r),
@@ -286,7 +286,7 @@ impl<'a> LoraDriver for Rak811Controller<'a> {
             let response = self.send_command(Command::Send(qos, port, data)).await?;
             match response {
                 Response::Ok => {
-                    let response = self.response_consumer.receive().await;
+                    let response = self.response_consumer.recv().await.unwrap();
                     let expected_code = match qos {
                         QoS::Unconfirmed => EventCode::TxUnconfirmed,
                         QoS::Confirmed => EventCode::TxConfirmed,
@@ -317,8 +317,8 @@ impl<'a> LoraDriver for Rak811Controller<'a> {
 impl<'a> Rak811Controller<'a> {
     pub fn new(
         initialized: &'a Initialized,
-        command_producer: ChannelSender<'a, CommandBuffer, U2>,
-        response_consumer: ChannelReceiver<'a, Response, U2>,
+        command_producer: Sender<'a, DriverMutex, CommandBuffer, 2>,
+        response_consumer: Receiver<'a, DriverMutex, Response, 2>,
     ) -> Self {
         Self {
             config: LoraConfig::new(),
@@ -336,10 +336,10 @@ impl<'a> Rak811Controller<'a> {
         command.encode(&mut s);
         debug!("Sending command {}", s.as_str());
         s.push_str("\r\n").unwrap();
-        self.command_producer.send(s).await;
+        let _ = self.command_producer.send(s).await;
 
-        let response = self.response_consumer.receive().await;
-        Ok(response)
+        let response = self.response_consumer.recv().await;
+        Ok(response.unwrap())
     }
 
     async fn send_command_ok<'m>(&mut self, command: Command<'m>) -> Result<(), LoraError> {
