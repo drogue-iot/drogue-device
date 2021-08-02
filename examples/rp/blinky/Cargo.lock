@@ -79,7 +79,7 @@ dependencies = [
  "embassy-rp",
  "embedded-hal",
  "panic-probe",
- "rp2040-pac2",
+ "rp2040-pac2 0.1.0 (git+https://github.com/Dirbaio/rp2040-pac?rev=254f4677937801155ca3cb17c7bb9d38eb62683e)",
 ]
 
 [[package]]
@@ -250,7 +250,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#a948501a6353592a19537545eb9b01602f5b5f11"
 dependencies = [
  "atomic-polyfill",
  "cast",
@@ -265,7 +265,7 @@ dependencies = [
 [[package]]
 name = "embassy-extras"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#a948501a6353592a19537545eb9b01602f5b5f11"
 dependencies = [
  "cortex-m 0.7.3",
  "embassy",
@@ -275,7 +275,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#a948501a6353592a19537545eb9b01602f5b5f11"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -286,7 +286,7 @@ dependencies = [
 [[package]]
 name = "embassy-rp"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#a948501a6353592a19537545eb9b01602f5b5f11"
 dependencies = [
  "cortex-m 0.7.3",
  "cortex-m-rt",
@@ -295,13 +295,13 @@ dependencies = [
  "embassy-extras",
  "embassy-macros",
  "embedded-hal",
- "rp2040-pac2",
+ "rp2040-pac2 0.1.0 (git+https://github.com/embassy-rs/rp2040-pac2?rev=fbb1004086225c74ff3c02db9309767cebef5dce)",
 ]
 
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#0d1ae0a01e18e19cc8f33fd184785c19f18e1277"
+source = "git+https://github.com/drogue-iot/embassy.git?branch=master#a948501a6353592a19537545eb9b01602f5b5f11"
 dependencies = [
  "embedded-hal",
 ]
@@ -525,6 +525,14 @@ checksum = "e2a38df5b15c8d5c7e8654189744d8e396bddc18ad48041a500ce52d6948941f"
 name = "rp2040-pac2"
 version = "0.1.0"
 source = "git+https://github.com/Dirbaio/rp2040-pac?rev=254f4677937801155ca3cb17c7bb9d38eb62683e#254f4677937801155ca3cb17c7bb9d38eb62683e"
+dependencies = [
+ "cortex-m 0.7.3",
+]
+
+[[package]]
+name = "rp2040-pac2"
+version = "0.1.0"
+source = "git+https://github.com/embassy-rs/rp2040-pac2?rev=fbb1004086225c74ff3c02db9309767cebef5dce#fbb1004086225c74ff3c02db9309767cebef5dce"
 dependencies = [
  "cortex-m 0.7.3",
  "cortex-m-rt",

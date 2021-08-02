@@ -23,7 +23,7 @@ use drogue_device::{
 };
 use embassy_stm32::{
     exti::ExtiInput,
-    gpio::{Input, Level, Output, Pull},
+    gpio::{Input, Level, Output, Pull, Speed},
     interrupt,
     peripherals::{PA15, PA5, PB2, PB4, PB5, PB6, PB7, PC0, RNG, SPI1},
     rcc,
@@ -99,10 +99,10 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
 
     unsafe { RNG.replace(Random::new(p.RNG)) };
 
-    let led1 = Led::new(Output::new(p.PB5, Level::Low));
-    let led2 = Led::new(Output::new(p.PA5, Level::Low));
-    let led3 = Led::new(Output::new(p.PB6, Level::Low));
-    let led4 = Led::new(Output::new(p.PB7, Level::Low));
+    let led1 = Led::new(Output::new(p.PB5, Level::Low, Speed::Low));
+    let led2 = Led::new(Output::new(p.PA5, Level::Low, Speed::Low));
+    let led3 = Led::new(Output::new(p.PB6, Level::Low, Speed::Low));
+    let led4 = Led::new(Output::new(p.PB7, Level::Low, Speed::Low));
 
     let button = Input::new(p.PB2, Pull::Up);
     let pin = ExtiInput::new(button, p.EXTI2);
@@ -117,8 +117,8 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
         spi::Config::default(),
     );
 
-    let cs = Output::new(p.PA15, Level::High);
-    let reset = Output::new(p.PC0, Level::High);
+    let cs = Output::new(p.PA15, Level::High, Speed::Low);
+    let reset = Output::new(p.PC0, Level::High, Speed::Low);
     let _ = Input::new(p.PB1, Pull::None);
 
     let ready = Input::new(p.PB4, Pull::Up);
