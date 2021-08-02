@@ -30,15 +30,19 @@ fn update() -> Result<(), anyhow::Error> {
 
 fn test_ci() -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("CI", "true");
-    test_workspace()?;
+    test_device()?;
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
     do_examples(examples_dir, &test_example)?;
     Ok(())
 }
 
-fn test_workspace() -> Result<(), anyhow::Error> {
-    let _p = xshell::pushd(root_dir())?;
+fn test_device() -> Result<(), anyhow::Error> {
+    let mut device = root_dir();
+    device.push("device");
+
+    let _p = xshell::pushd(&device)?;
+
     cmd!("cargo test --all --features 'std wifi+esp8266'").run()?;
     Ok(())
 }

@@ -14,12 +14,12 @@ defmt = "0.2"
 defmt-rtt = "0.2"
 panic-probe = { version = "0.2.0", features = ["print-defmt"] }
 
-drogue-device = { path = "../../../device", default-features = false, features = ["defmt", "defmt-info", "fonts"] }
+drogue-device = { path = "../../../device", default-features = false, features = ["defmt", "defmt-info", "fonts", "time"] }
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.6", features = ["inline-asm"] }
 
-embassy = {git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false}
-embassy-nrf = {git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features = ["nrf52833"]}
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "0a1da180d0fd93deaf9cc453566c3d66511c03a8", default-features = false}
+embassy-nrf = {git = "https://github.com/embassy-rs/embassy.git", rev = "0a1da180d0fd93deaf9cc453566c3d66511c03a8", default-features = false, features = ["nrf52833"]}
 #embassy = {path = "../../../../../embassy/embassy", default-features = false}
 #embassy-nrf = {path = "../../../../../embassy/embassy-nrf", default-features = false, features = ["nrf52833"]}
 

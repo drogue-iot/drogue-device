@@ -233,7 +233,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#a948501a6353592a19537545eb9b01602f5b5f11"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "atomic-polyfill",
  "cast",
@@ -241,14 +241,15 @@ dependencies = [
  "critical-section",
  "embassy-macros",
  "embassy-traits",
+ "embedded-hal",
  "futures",
  "pin-project",
 ]
 
 [[package]]
-name = "embassy-extras"
+name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#a948501a6353592a19537545eb9b01602f5b5f11"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "cortex-m 0.7.3",
  "embassy",
@@ -258,7 +259,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#a948501a6353592a19537545eb9b01602f5b5f11"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -269,24 +270,25 @@ dependencies = [
 [[package]]
 name = "embassy-nrf"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#a948501a6353592a19537545eb9b01602f5b5f11"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "cortex-m 0.7.3",
  "cortex-m-rt",
  "critical-section",
  "embassy",
- "embassy-extras",
+ "embassy-hal-common",
  "embassy-macros",
  "embedded-dma",
  "embedded-hal",
  "futures",
  "nrf52833-pac",
+ "rand_core",
 ]
 
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/embassy.git?branch=master#a948501a6353592a19537545eb9b01602f5b5f11"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0a1da180d0fd93deaf9cc453566c3d66511c03a8#0a1da180d0fd93deaf9cc453566c3d66511c03a8"
 dependencies = [
  "embedded-hal",
 ]
@@ -540,6 +542,12 @@ name = "r0"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2a38df5b15c8d5c7e8654189744d8e396bddc18ad48041a500ce52d6948941f"
+
+[[package]]
+name = "rand_core"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
 
 [[package]]
 name = "rustc_version"

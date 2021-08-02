@@ -22,6 +22,7 @@ use drogue_device::{
     *,
 };
 use embassy_stm32::{
+    dma::NoDma,
     exti::ExtiInput,
     gpio::{Input, Level, Output, Pull, Speed},
     interrupt,
@@ -60,7 +61,7 @@ fn get_random_u32() -> u32 {
 pub type Sx127x<'a> = Sx127xDriver<
     'a,
     ExtiInput<'a, PB4>,
-    spi::Spi<'a, SPI1>,
+    spi::Spi<'a, SPI1, NoDma, NoDma>,
     Output<'a, PA15>,
     Output<'a, PC0>,
     spi::Error,
@@ -113,6 +114,8 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
         p.PB3,
         p.PA7,
         p.PA6,
+        NoDma,
+        NoDma,
         200_000.hz(),
         spi::Config::default(),
     );
