@@ -11,13 +11,10 @@ mod socket_pool;
 
 use socket_pool::SocketPool;
 
-use crate::{
-    kernel::channel::*,
-    traits::{
-        ip::{IpAddress, IpProtocol, SocketAddress},
-        tcp::{TcpError, TcpStack},
-        wifi::{Join, JoinError, WifiSupplicant},
-    },
+use crate::traits::{
+    ip::{IpAddress, IpProtocol, SocketAddress},
+    tcp::{TcpError, TcpStack},
+    wifi::{Join, JoinError, WifiSupplicant},
 };
 use buffer::Buffer;
 use core::{
@@ -27,15 +24,18 @@ use core::{
 };
 use embassy::{
     io::{AsyncBufReadExt, AsyncWriteExt},
-    util::Signal,
+    util::{
+        mpsc::{self, Channel, Receiver, Sender, WithThreadModeOnly},
+        Signal,
+    },
 };
 use embedded_hal::digital::v2::OutputPin;
 use futures::future::{select, Either};
 use futures::pin_mut;
-use heapless::consts::U2;
 use protocol::{Command, ConnectionType, Response as AtResponse};
 
 pub const BUFFER_LEN: usize = 512;
+type DriverMutex = WithThreadModeOnly;
 
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -81,9 +81,9 @@ impl Initialized {
 pub struct Esp8266Controller<'a> {
     initialized: &'a Initialized,
     socket_pool: SocketPool,
-    command_producer: ChannelSender<'a, CommandBuffer, U2>,
-    response_consumer: ChannelReceiver<'a, AtResponse, U2>,
-    notification_consumer: ChannelReceiver<'a, AtResponse, U2>,
+    command_producer: Sender<'a, DriverMutex, CommandBuffer, 2>,
+    response_consumer: Receiver<'a, DriverMutex, AtResponse, 2>,
+    notification_consumer: Receiver<'a, DriverMutex, AtResponse, 2>,
 }
 
 pub struct Esp8266Modem<'a, UART, ENABLE, RESET>
@@ -97,16 +97,16 @@ where
     enable: ENABLE,
     reset: RESET,
     parse_buffer: Buffer,
-    command_consumer: ChannelReceiver<'a, CommandBuffer, U2>,
-    response_producer: ChannelSender<'a, AtResponse, U2>,
-    notification_producer: ChannelSender<'a, AtResponse, U2>,
+    command_consumer: Receiver<'a, DriverMutex, CommandBuffer, 2>,
+    response_producer: Sender<'a, DriverMutex, AtResponse, 2>,
+    notification_producer: Sender<'a, DriverMutex, AtResponse, 2>,
 }
 
 pub struct Esp8266Driver {
     initialized: Initialized,
-    command_channel: Channel<CommandBuffer, U2>,
-    response_channel: Channel<AtResponse, U2>,
-    notification_channel: Channel<AtResponse, U2>,
+    command_channel: Channel<DriverMutex, CommandBuffer, 2>,
+    response_channel: Channel<DriverMutex, AtResponse, 2>,
+    notification_channel: Channel<DriverMutex, AtResponse, 2>,
 }
 
 impl Esp8266Driver {
@@ -130,9 +130,9 @@ impl Esp8266Driver {
         ENABLE: OutputPin + 'static,
         RESET: OutputPin + 'static,
     {
-        let (cp, cc) = self.command_channel.split();
-        let (rp, rc) = self.response_channel.split();
-        let (np, nc) = self.notification_channel.split();
+        let (cp, cc) = mpsc::split(&mut self.command_channel);
+        let (rp, rc) = mpsc::split(&mut self.response_channel);
+        let (np, nc) = mpsc::split(&mut self.notification_channel);
 
         let modem = Esp8266Modem::new(&self.initialized, uart, enable, reset, cc, rp, np);
         let controller = Esp8266Controller::new(&self.initialized, cp, rc, nc);
@@ -152,9 +152,9 @@ where
         uart: UART,
         enable: ENABLE,
         reset: RESET,
-        command_consumer: ChannelReceiver<'a, CommandBuffer, U2>,
-        response_producer: ChannelSender<'a, AtResponse, U2>,
-        notification_producer: ChannelSender<'a, AtResponse, U2>,
+        command_consumer: Receiver<'a, DriverMutex, CommandBuffer, 2>,
+        response_producer: Sender<'a, DriverMutex, AtResponse, 2>,
+        notification_producer: Sender<'a, DriverMutex, AtResponse, 2>,
     ) -> Self {
         Self {
             initialized,
@@ -273,7 +273,7 @@ where
         loop {
             let mut buf = [0; 1];
             let (cmd, input) = {
-                let command_fut = self.command_consumer.receive();
+                let command_fut = self.command_consumer.recv();
                 let uart_fut = uart_read(&mut self.uart, &mut buf[..]);
                 pin_mut!(uart_fut);
 
@@ -283,7 +283,7 @@ where
                 }
             };
             // We got command to write, write it
-            if let Some((len, buf)) = cmd {
+            if let Some((len, buf)) = cmd.unwrap() {
                 if let Err(e) = uart_write(&mut self.uart, &buf[0..len]).await {
                     error!("Error writing command to uart: {:?}", e);
                 }
@@ -332,10 +332,16 @@ where
                 | AtResponse::DnsFail
                 | AtResponse::UnlinkFail
                 | AtResponse::IpAddresses(..) => {
-                    self.response_producer.send(response).await;
+                    self.response_producer
+                        .send(response)
+                        .await
+                        .map_err(|_| DriverError::WriteError)?;
                 }
                 AtResponse::Closed(..) | AtResponse::DataAvailable { .. } => {
-                    self.notification_producer.send(response).await;
+                    self.notification_producer
+                        .send(response)
+                        .await
+                        .map_err(|_| DriverError::WriteError)?;
                 }
                 AtResponse::WifiConnected => {
                     debug!("wifi connected");
@@ -355,9 +361,9 @@ where
 impl<'a> Esp8266Controller<'a> {
     pub fn new(
         initialized: &'a Initialized,
-        command_producer: ChannelSender<'a, CommandBuffer, U2>,
-        response_consumer: ChannelReceiver<'a, AtResponse, U2>,
-        notification_consumer: ChannelReceiver<'a, AtResponse, U2>,
+        command_producer: Sender<'a, DriverMutex, CommandBuffer, 2>,
+        response_consumer: Receiver<'a, DriverMutex, AtResponse, 2>,
+        notification_consumer: Receiver<'a, DriverMutex, AtResponse, 2>,
     ) -> Self {
         Self {
             initialized,
@@ -368,7 +374,7 @@ impl<'a> Esp8266Controller<'a> {
         }
     }
 
-    async fn send<'c>(&self, command: Command<'c>) -> Result<AtResponse, DriverError> {
+    async fn send<'c>(&mut self, command: Command<'c>) -> Result<AtResponse, DriverError> {
         trace!("Sending command");
         self.initialized.wait().await?;
         trace!("Confirmed initialized");
@@ -382,8 +388,11 @@ impl<'a> Esp8266Controller<'a> {
         let bs = bytes.as_bytes();
         let mut data = [0; 256];
         data[0..bs.len()].copy_from_slice(&bs[0..bs.len()]);
-        self.command_producer.send((bs.len(), data)).await;
-        Ok(self.response_consumer.receive().await)
+        self.command_producer
+            .send((bs.len(), data))
+            .await
+            .map_err(|_| DriverError::WriteError)?;
+        Ok(self.response_consumer.recv().await.unwrap())
     }
 
     /*
@@ -396,7 +405,7 @@ impl<'a> Esp8266Controller<'a> {
     }
     */
 
-    async fn join_wep(&self, ssid: &str, password: &str) -> Result<IpAddress, JoinError> {
+    async fn join_wep(&mut self, ssid: &str, password: &str) -> Result<IpAddress, JoinError> {
         let command = Command::JoinAp { ssid, password };
         match self.send(command).await {
             Ok(AtResponse::Ok) => self.get_ip_address().await.map_err(|_| JoinError::Unknown),
@@ -415,7 +424,7 @@ impl<'a> Esp8266Controller<'a> {
         }
     }
 
-    async fn get_ip_address(&self) -> Result<IpAddress, ()> {
+    async fn get_ip_address(&mut self) -> Result<IpAddress, ()> {
         let command = Command::QueryIpAddress;
 
         if let Ok(AtResponse::IpAddresses(addresses)) = self.send(command).await {
@@ -426,7 +435,7 @@ impl<'a> Esp8266Controller<'a> {
     }
 
     fn process_notifications(&mut self) {
-        while let Ok(response) = self.notification_consumer.try_receive() {
+        while let Ok(response) = self.notification_consumer.try_recv() {
             match response {
                 AtResponse::DataAvailable { .. } => {
                     //  shared.socket_pool // [link_id].available += len;
@@ -496,14 +505,17 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
 
             let result = match self.send(command).await {
                 Ok(AtResponse::Ok) => {
-                    match self.response_consumer.receive().await {
+                    match self.response_consumer.recv().await.unwrap() {
                         AtResponse::ReadyForData => {
                             let mut data = [0; 256];
                             data[0..buf.len()].copy_from_slice(&buf[0..buf.len()]);
-                            self.command_producer.send((buf.len(), data)).await;
+                            self.command_producer
+                                .send((buf.len(), data))
+                                .await
+                                .map_err(|_| TcpError::WriteError)?;
                             let mut data_sent: Option<usize> = None;
                             loop {
-                                match self.response_consumer.receive().await {
+                                match self.response_consumer.recv().await.unwrap() {
                                     AtResponse::ReceivedDataToSend(len) => {
                                         data_sent.replace(len);
                                     }
