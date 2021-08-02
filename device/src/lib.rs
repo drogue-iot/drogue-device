@@ -88,7 +88,6 @@ pub(crate) mod fmt;
 pub mod kernel;
 pub use kernel::{
     actor::{Actor, ActorContext, ActorSpawner, Address},
-    channel::Channel,
     device::DeviceContext,
     package::Package,
     util::ImmediateFuture,
