@@ -23,8 +23,8 @@ wifi-app = { path = "../../common/wifi" }
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.6", features = ["inline-asm"] }
 
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "0a1da180d0fd93deaf9cc453566c3d66511c03a8", default-features = false}
-embassy-nrf = {git = "https://github.com/embassy-rs/embassy.git", rev = "0a1da180d0fd93deaf9cc453566c3d66511c03a8", default-features = false, features = ["nrf52833"]}
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "c458ad52e698ae0e9810e90d094394bd3ab35c77", default-features = false}
+embassy-nrf = {git = "https://github.com/embassy-rs/embassy.git", rev = "c458ad52e698ae0e9810e90d094394bd3ab35c77", default-features = false, features = ["nrf52833"]}
 nrf52833-pac = { version = "0.9", features = ["rt"] }
 #embassy = {path = "../../../../../embassy/embassy", default-features = false}
 #embassy-nrf = {path = "../../../../../embassy/embassy-nrf", default-features = false, features = ["nrf52833"]}
