@@ -16,12 +16,9 @@ use crate::traits::{
     tcp::{TcpError, TcpStack},
     wifi::{Join, JoinError, WifiSupplicant},
 };
+use atomic_polyfill::{AtomicBool, Ordering};
 use buffer::Buffer;
-use core::{
-    future::Future,
-    pin::Pin,
-    sync::atomic::{AtomicBool, Ordering},
-};
+use core::{future::Future, pin::Pin};
 use embassy::{
     io::{AsyncBufReadExt, AsyncWriteExt},
     util::{
