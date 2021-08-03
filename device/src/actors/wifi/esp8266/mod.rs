@@ -30,7 +30,7 @@ where
 {
     driver: UnsafeCell<Esp8266Driver>,
     state: RefCell<Option<State<UART, ENABLE, RESET>>>,
-    wifi: ActorContext<'static, AdapterActor<Esp8266Controller<'static>>>,
+    wifi: ActorContext<'static, AdapterActor<Esp8266Controller<'static>>, 4>,
     modem: ActorContext<'static, ModemActor<'static, UART, ENABLE, RESET>>,
 }
 

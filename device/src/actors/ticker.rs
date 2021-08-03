@@ -2,7 +2,6 @@ use crate::kernel::actor::{Actor, Address};
 use core::future::Future;
 use core::pin::Pin;
 use embassy::time::{Duration, Timer};
-use heapless::consts;
 
 pub struct Ticker<'a, A: Actor + 'static>
 where
@@ -41,7 +40,6 @@ impl<'a, A: Actor + 'a> Actor for Ticker<'a, A>
 where
     A::Message<'a>: Copy,
 {
-    type MessageQueueSize<'m> = consts::U4;
     type Configuration = Address<'a, A>;
     #[rustfmt::skip]
     type Message<'m> where 'a: 'm = TickerCommand;

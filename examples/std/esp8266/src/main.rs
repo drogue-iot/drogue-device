@@ -63,7 +63,7 @@ static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner) {
     env_logger::builder()
-        .filter_level(log::LevelFilter::Info)
+        .filter_level(log::LevelFilter::Trace)
         .format_timestamp_nanos()
         .init();
 
