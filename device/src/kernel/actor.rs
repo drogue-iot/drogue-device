@@ -10,12 +10,12 @@ use core::task::{Context, Poll};
 use embassy::{
     executor::{raw::Task, SpawnError, SpawnToken, Spawner},
     util::{
-        mpsc::{self, Channel, Receiver, RecvFuture, Sender, WithCriticalSections},
+        mpsc::{self, Channel, Receiver, RecvFuture, Sender, WithNoThreads},
         DropBomb,
     },
 };
 
-type ActorMutex = WithCriticalSections;
+type ActorMutex = WithNoThreads;
 
 /// Trait that each actor must implement. An Actor must specify a message type
 /// it acts on, and an implementation of a message handler in `on_message`.
