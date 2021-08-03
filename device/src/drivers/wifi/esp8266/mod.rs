@@ -283,7 +283,7 @@ where
                 }
             };
             // We got command to write, write it
-            if let Some((len, buf)) = cmd.unwrap() {
+            if let Some(Some((len, buf))) = cmd {
                 if let Err(e) = uart_write(&mut self.uart, &buf[0..len]).await {
                     error!("Error writing command to uart: {:?}", e);
                 }

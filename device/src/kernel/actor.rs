@@ -1,5 +1,4 @@
 use super::{
-    channel::{Channel, ChannelError, ChannelReceive, ChannelReceiver, ChannelSender},
     signal::{SignalFuture, SignalSlot},
     util::ImmediateFuture,
 };
@@ -7,10 +6,16 @@ use core::cell::{RefCell, UnsafeCell};
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use embassy::executor::{raw::Task, SpawnError, SpawnToken, Spawner};
-use embassy::util::DropBomb;
-use generic_array::GenericArray;
-use heapless::{consts, ArrayLength};
+
+use embassy::{
+    executor::{raw::Task, SpawnError, SpawnToken, Spawner},
+    util::{
+        mpsc::{self, Channel, Receiver, RecvFuture, Sender, WithCriticalSections},
+        DropBomb,
+    },
+};
+
+type ActorMutex = WithCriticalSections;
 
 /// Trait that each actor must implement. An Actor must specify a message type
 /// it acts on, and an implementation of a message handler in `on_message`.
@@ -18,14 +23,6 @@ use heapless::{consts, ArrayLength};
 /// At run time, an Actor is held within an ActorContext, which contains the
 /// embassy task and the message queues.
 pub trait Actor: Sized {
-    /// Max length of the message queue for this actor. Defaults to 1 for
-    /// low footprint by default.
-    type MessageQueueSize<'a>: ArrayLength<ActorMessage<'a, Self>>
-        + ArrayLength<SignalSlot<Self::Response>>
-    where
-        Self: 'a,
-    = consts::U1;
-
     /// The configuration that this actor will expect when mounted.
     type Configuration = ();
 
@@ -80,11 +77,23 @@ pub struct Address<'a, A>
 where
     A: Actor + 'static,
 {
-    state: &'a ActorContext<'a, A>,
+    state: &'a dyn ActorHandle<'a, A>,
+}
+
+pub trait ActorHandle<'a, A>
+where
+    A: Actor + 'static,
+{
+    fn request<'m>(&'a self, message: A::Message<'m>) -> Result<RequestFuture<'a, A>, ActorError>
+    where
+        'a: 'm;
+    fn notify<'m>(&'a self, message: A::Message<'a>) -> Result<(), ActorError>
+    where
+        'a: 'm;
 }
 
 impl<'a, A: Actor> Address<'a, A> {
-    pub fn new(state: &'a ActorContext<'a, A>) -> Self {
+    pub fn new(state: &'a dyn ActorHandle<'a, A>) -> Self {
         Self { state }
     }
 }
@@ -130,19 +139,13 @@ impl<'a, A: Actor> Clone for Address<'a, A> {
     }
 }
 
-pub struct MessageChannel<'a, T, N>
-where
-    N: ArrayLength<T>,
-{
-    channel: UnsafeCell<Channel<T, N>>,
-    channel_sender: UnsafeCell<Option<ChannelSender<'a, T, N>>>,
-    channel_receiver: UnsafeCell<Option<ChannelReceiver<'a, T, N>>>,
+pub struct MessageChannel<'a, T, const QUEUE_SIZE: usize> {
+    channel: UnsafeCell<Channel<ActorMutex, T, QUEUE_SIZE>>,
+    channel_sender: UnsafeCell<Option<Sender<'a, ActorMutex, T, QUEUE_SIZE>>>,
+    channel_receiver: UnsafeCell<Option<Receiver<'a, ActorMutex, T, QUEUE_SIZE>>>,
 }
 
-impl<'a, T, N> MessageChannel<'a, T, N>
-where
-    N: ArrayLength<T>,
-{
+impl<'a, T, const QUEUE_SIZE: usize> MessageChannel<'a, T, QUEUE_SIZE> {
     pub fn new() -> Self {
         Self {
             channel: UnsafeCell::new(Channel::new()),
@@ -152,20 +155,29 @@ where
     }
 
     pub fn initialize(&'a self) {
-        let (sender, receiver) = unsafe { &mut *self.channel.get() }.split();
+        let (sender, receiver) = mpsc::split(unsafe { &mut *self.channel.get() });
         unsafe { &mut *self.channel_sender.get() }.replace(sender);
         unsafe { &mut *self.channel_receiver.get() }.replace(receiver);
     }
 
-    pub fn send<'m>(&self, message: T) -> Result<(), ChannelError> {
+    pub fn send<'m>(&self, message: T) -> Result<(), mpsc::TrySendError<T>> {
         let sender = unsafe { &mut *self.channel_sender.get() }.as_mut().unwrap();
         sender.try_send(message)
     }
 
-    pub fn receive<'m>(&self) -> ChannelReceive<'m, 'a, T, N> {
-        let receiver = unsafe { &*self.channel_receiver.get() }.as_ref().unwrap();
-        receiver.receive()
+    pub fn receive(&self) -> RecvFuture<'a, ActorMutex, T, QUEUE_SIZE> {
+        let receiver = unsafe { &mut *self.channel_receiver.get() }
+            .as_mut()
+            .unwrap();
+        receiver.recv()
     }
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum ChannelError {
+    Full,
+    Closed,
 }
 
 #[derive(Debug)]
@@ -182,38 +194,50 @@ pub enum SignalError {
 }
 
 pub trait ActorSpawner: Clone + Copy {
-    fn start<A: Actor>(&self, actor: &'static ActorContext<'static, A>) -> Result<(), SpawnError>;
+    fn start<A: Actor, const QUEUE_SIZE: usize>(
+        &self,
+        actor: &'static ActorContext<'static, A, QUEUE_SIZE>,
+    ) -> Result<(), SpawnError>
+    where
+        [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default;
 }
 
 impl ActorSpawner for Spawner {
-    fn start<A: Actor>(&self, actor: &'static ActorContext<'static, A>) -> Result<(), SpawnError> {
+    fn start<A: Actor, const QUEUE_SIZE: usize>(
+        &self,
+        actor: &'static ActorContext<'static, A, QUEUE_SIZE>,
+    ) -> Result<(), SpawnError>
+    where
+        [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
+    {
         self.spawn(actor.spawn())
     }
 }
 
-enum ActorState<'a, A: Actor + 'static, N>
+enum ActorState<'a, A: Actor + 'static, const QUEUE_SIZE: usize>
 where
     A: Actor + 'static,
-    N: ArrayLength<ActorMessage<'a, A>>,
 {
     Idle,
     Start(A::OnStartFuture<'a>),
     Process,
-    Receive(ChannelReceive<'a, 'a, ActorMessage<'a, A>, N>),
+    Receive(RecvFuture<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>),
     Request(A::OnMessageFuture<'a>, *const SignalSlot<A::Response>),
     Notify(A::OnMessageFuture<'a>),
 }
 
-pub struct ActorFuture<'a, A>
+pub struct ActorFuture<'a, A, const QUEUE_SIZE: usize>
 where
     A: Actor + 'static,
+    [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
 {
-    context: &'a ActorContext<'a, A>,
+    context: &'a ActorContext<'a, A, QUEUE_SIZE>,
 }
 
-impl<'a, A> Future for ActorFuture<'a, A>
+impl<'a, A, const QUEUE_SIZE: usize> Future for ActorFuture<'a, A, QUEUE_SIZE>
 where
     A: Actor + 'static,
+    [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
 {
     type Output = ();
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -221,50 +245,28 @@ where
     }
 }
 
-/// A context for an actor, providing signal and message queue. The QLEN parameter
-/// is a const generic parameter, and needs to be at least 2 in order for the underlying
-/// heapless queue to work. (Due to missing const generic expressions)
+/// A context for an actor, providing signal and message queue. The QUEUE_SIZE parameter
+/// is a const generic parameter, and controls how many messages an Actor can handle.
 #[rustfmt::skip]
-pub struct ActorContext<'a, A>
+pub struct ActorContext<'a, A, const QUEUE_SIZE: usize = 1>
 where
     A: Actor + 'static,
+    [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
 {
-    task: Task<ActorFuture<'static, A>>,
-    state: RefCell<Option<ActorState<'a, A, A::MessageQueueSize<'a>>>>,
+    task: Task<ActorFuture<'static, A, QUEUE_SIZE>>,
+    state: RefCell<Option<ActorState<'a, A, QUEUE_SIZE>>>,
     actor: UnsafeCell<A>,
-    channel: MessageChannel<'a, ActorMessage<'a, A>, A::MessageQueueSize<'a>>,
+    channel: MessageChannel<'a, ActorMessage<'a, A>, QUEUE_SIZE>,
     // NOTE: This wastes an extra signal because heapless requires at least 2 slots and
     // const generic expressions doesn't work in this case.
-    signals: UnsafeCell<GenericArray<SignalSlot<A::Response>, A::MessageQueueSize<'a>>>,
+    signals: UnsafeCell<[SignalSlot<A::Response>; QUEUE_SIZE]>,
 }
 
-impl<'a, A> ActorContext<'a, A>
+impl<'a, A, const QUEUE_SIZE: usize> ActorHandle<'a, A> for ActorContext<'a, A, QUEUE_SIZE>
 where
     A: Actor,
+    [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
 {
-    pub fn new(actor: A) -> Self {
-        Self {
-            task: Task::new(),
-            state: RefCell::new(Some(ActorState::Idle)),
-            actor: UnsafeCell::new(actor),
-            channel: MessageChannel::new(),
-            signals: UnsafeCell::new(Default::default()),
-        }
-    }
-
-    /// Acquire a signal slot if there are any free available
-    fn acquire_signal(&self) -> Result<&SignalSlot<A::Response>, SignalError> {
-        let signals = unsafe { &mut *self.signals.get() };
-        let mut i = 0;
-        while i < signals.len() {
-            if signals[i].acquire() {
-                return Ok(&signals[i]);
-            }
-            i += 1;
-        }
-        Err(SignalError::NoAvailableSignal)
-    }
-
     /// Perform a request to this actor. The result from processing the request will be provided when the future completes.
     /// The returned future _must_ be awaited before dropped. If it is not
     /// awaited, it will panic.
@@ -292,6 +294,35 @@ where
         let sent = self.channel.send(message)?;
         Ok(sent)
     }
+}
+
+impl<'a, A, const QUEUE_SIZE: usize> ActorContext<'a, A, QUEUE_SIZE>
+where
+    A: Actor,
+    [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
+{
+    pub fn new(actor: A) -> Self {
+        Self {
+            task: Task::new(),
+            state: RefCell::new(Some(ActorState::Idle)),
+            actor: UnsafeCell::new(actor),
+            channel: MessageChannel::new(),
+            signals: UnsafeCell::new(Default::default()),
+        }
+    }
+
+    /// Acquire a signal slot if there are any free available
+    fn acquire_signal(&self) -> Result<&SignalSlot<A::Response>, SignalError> {
+        let signals = unsafe { &mut *self.signals.get() };
+        let mut i = 0;
+        while i < signals.len() {
+            if signals[i].acquire() {
+                return Ok(&signals[i]);
+            }
+            i += 1;
+        }
+        Err(SignalError::NoAvailableSignal)
+    }
 
     /// Mount the underloying actor and initialize the channel.
     pub fn mount<S: ActorSpawner>(
@@ -307,7 +338,7 @@ where
         address
     }
 
-    pub(crate) fn spawn(&'static self) -> SpawnToken<ActorFuture<'static, A>> {
+    pub(crate) fn spawn(&'static self) -> SpawnToken<ActorFuture<'static, A, QUEUE_SIZE>> {
         let task = &self.task;
         let future = ActorFuture { context: self };
         let token = Task::spawn(task, move || future);
@@ -340,7 +371,7 @@ where
                         Poll::Pending => {
                             return Poll::Pending;
                         }
-                        Poll::Ready(message) => match message {
+                        Poll::Ready(message) => match message.unwrap() {
                             ActorMessage::Request(message, signal) => {
                                 let fut = unsafe { Pin::new_unchecked(&mut *self.actor.get()) }
                                     .on_message(message);
@@ -382,7 +413,7 @@ where
     pub(crate) async fn process(&'a self) {
         // crate::log_stack!();
         let actor = unsafe { Pin::new_unchecked(&mut *self.actor.get()) };
-        match self.channel.receive().await {
+        match self.channel.receive().await.unwrap() {
             ActorMessage::Request(message, signal) => {
                 // crate::log_stack!();
                 let value = actor.on_message(message).await;
@@ -438,9 +469,12 @@ impl From<SignalError> for ActorError {
     }
 }
 
-impl From<ChannelError> for ActorError {
-    fn from(error: ChannelError) -> ActorError {
-        ActorError::Channel(error)
+impl<T> From<mpsc::TrySendError<T>> for ActorError {
+    fn from(error: mpsc::TrySendError<T>) -> ActorError {
+        ActorError::Channel(match error {
+            mpsc::TrySendError::Full(_) => ChannelError::Full,
+            mpsc::TrySendError::Closed(_) => ChannelError::Closed,
+        })
     }
 }
 
@@ -457,7 +491,8 @@ mod tests {
     #[test]
     fn test_multiple_notifications() {
         let spawner = TestSpawner::new();
-        let actor = Box::leak(Box::new(ActorContext::new(DummyActor::new())));
+        let actor: &'static mut ActorContext<'static, DummyActor, 1> =
+            Box::leak(Box::new(ActorContext::new(DummyActor::new())));
 
         let address = actor.mount((), spawner);
 
@@ -475,7 +510,8 @@ mod tests {
     #[test]
     fn test_multiple_requests() {
         let spawner = TestSpawner::new();
-        let actor = Box::leak(Box::new(ActorContext::new(DummyActor::new())));
+        let actor: &'static mut ActorContext<'static, DummyActor, 1> =
+            Box::leak(Box::new(ActorContext::new(DummyActor::new())));
 
         let address = actor.mount((), spawner);
 

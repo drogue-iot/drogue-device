@@ -40,8 +40,8 @@ pub struct MyDevice {
     button: ActorContext<'static, Button<'static, PortInput<'static, P0_14>, Statistics>>,
     statistics: ActorContext<'static, Statistics>,
     server: ActorContext<'static, EchoServer<'static, Uarte<'static, UARTE0>>>,
-    ticker: ActorContext<'static, Ticker<'static, LedMatrix>>,
-    matrix: ActorContext<'static, LedMatrix>,
+    ticker: ActorContext<'static, Ticker<'static, LedMatrix>, 4>,
+    matrix: ActorContext<'static, LedMatrix, 2>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();

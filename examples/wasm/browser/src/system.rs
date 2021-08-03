@@ -1,4 +1,4 @@
-use drogue_device::*;
+use drogue_device::{kernel::signal::SignalSlot, *};
 use embassy::executor::SpawnError;
 use wasm_bindgen_futures::spawn_local;
 
@@ -12,7 +12,13 @@ impl WasmSpawner {
 }
 
 impl ActorSpawner for WasmSpawner {
-    fn start<A: Actor>(&self, actor: &'static ActorContext<'static, A>) -> Result<(), SpawnError> {
+    fn start<A: Actor, const QUEUE_SIZE: usize>(
+        &self,
+        actor: &'static ActorContext<'static, A, QUEUE_SIZE>,
+    ) -> Result<(), SpawnError>
+    where
+        [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
+    {
         spawn_local(actor.run());
         Ok(())
     }

@@ -4,6 +4,7 @@
 #![allow(dead_code)]
 #![feature(min_type_alias_impl_trait)]
 #![feature(const_generics)]
+#![feature(const_generics_defaults)]
 #![feature(const_evaluatable_checked)]
 #![feature(impl_trait_in_bindings)]
 #![feature(generic_associated_types)]

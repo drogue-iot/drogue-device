@@ -2,6 +2,7 @@ use crate::actors::button::{ButtonEvent, FromButtonEvent};
 use crate::kernel::{
     actor::{Actor, ActorContext, ActorSpawner},
     device::DeviceContext,
+    signal::SignalSlot,
     util::ImmediateFuture,
 };
 use core::cell::RefCell;
@@ -33,7 +34,13 @@ impl TestSpawner {
 }
 
 impl ActorSpawner for TestSpawner {
-    fn start<A: Actor>(&self, _actor: &'static ActorContext<'static, A>) -> Result<(), SpawnError> {
+    fn start<A: Actor, const QUEUE_SIZE: usize>(
+        &self,
+        _actor: &'static ActorContext<'static, A, QUEUE_SIZE>,
+    ) -> Result<(), SpawnError>
+    where
+        [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
+    {
         Ok(())
     }
 }
@@ -376,7 +383,11 @@ impl Signaler {
 }
 
 // Perform a process step for an Actor, processing a single message
-pub fn step_actor<A: Actor + Unpin>(actor: &'static ActorContext<'static, A>) {
+pub fn step_actor<A: Actor + Unpin, const QUEUE_SIZE: usize>(
+    actor: &'static ActorContext<'static, A, QUEUE_SIZE>,
+) where
+    [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
+{
     let waker = futures::task::noop_waker_ref();
     let mut cx = std::task::Context::from_waker(waker);
     let mut actor_fut = actor.process();
