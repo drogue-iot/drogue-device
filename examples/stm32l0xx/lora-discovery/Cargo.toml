@@ -31,9 +31,13 @@ embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "c458a
 #embassy-stm32 = {path = "../../../../../embassy/embassy-stm32", default-features = false, features = ["stm32l072cz"] }
 
 [profile.release]
-debug = 1
-opt-level = "z"
-lto = true
+codegen-units = 1
+debug = 2
+opt-level = "s"
+lto = "fat"
+debug-assertions = false
+incremental = false
+overflow-checks = false
 
 [patch.crates-io]
 cortex-m = {git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"]}
