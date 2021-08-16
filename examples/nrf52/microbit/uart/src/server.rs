@@ -6,7 +6,7 @@ use embassy::{
     traits::uart::{Read, Write},
 };
 
-use crate::LedMatrix;
+use crate::AppMatrix;
 
 pub struct EchoServer<'a, U: Write + Read + 'a> {
     uart: U,

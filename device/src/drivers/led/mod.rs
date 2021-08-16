@@ -1,5 +1,7 @@
 use embedded_hal::digital::v2::{OutputPin, StatefulOutputPin, ToggleableOutputPin};
 
+pub mod matrix;
+
 pub struct Led<P>
 where
     P: StatefulOutputPin + ToggleableOutputPin,
