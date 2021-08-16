@@ -4,8 +4,6 @@
 #![allow(incomplete_features)]
 #![allow(dead_code)]
 #![feature(generic_associated_types)]
-#![feature(min_type_alias_impl_trait)]
-#![feature(impl_trait_in_bindings)]
 #![feature(type_alias_impl_trait)]
 #![feature(concat_idents)]
 
@@ -83,9 +81,13 @@ pub struct MyDevice {
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 
-#[embassy::main(
-    config = "embassy_stm32::Config::default().rcc(embassy_stm32::rcc::Config::default().clock_src(embassy_stm32::rcc::ClockSrc::HSI16))"
-)]
+fn config() -> embassy_stm32::Config {
+    let mut config = embassy_stm32::Config::default();
+    config.rcc = config.rcc.clock_src(embassy_stm32::rcc::ClockSrc::HSI16);
+    config
+}
+
+#[embassy::main(config = "config()")]
 async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     rtt_init_print!();
     unsafe {

@@ -11,8 +11,8 @@ use core::pin::Pin;
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll};
 use embassy::executor::{raw, SpawnError, Spawner};
+use embassy::time::driver::{AlarmHandle, Driver};
 use embassy::time::TICKS_PER_SECOND;
-use embassy::time::{Alarm, Clock};
 use embassy::traits::gpio::WaitForAnyEdge;
 use embassy::util::Signal;
 use embedded_hal::digital::v2::InputPin;
@@ -20,7 +20,6 @@ use std::cell::UnsafeCell;
 use std::marker::PhantomData;
 use std::mem::MaybeUninit;
 use std::ptr;
-// use std::time::{Duration as StdDuration, Instant as StdInstant};
 use std::time::Instant as StdInstant;
 use std::vec::Vec;
 
@@ -279,7 +278,6 @@ impl TestRunner {
     pub fn new() -> Self {
         unsafe {
             CLOCK_ZERO.as_mut_ptr().write(StdInstant::now());
-            embassy::time::set_clock(&StdClock);
         }
 
         Self {
@@ -293,10 +291,8 @@ impl TestRunner {
     }
 
     pub fn initialize(&'static self, init: impl FnOnce(Spawner)) {
-        let inner = unsafe { &mut *self.inner.get() };
-        inner.set_signal_ctx(&self.signaler as *const _ as _);
-        inner.set_alarm(&StdAlarm);
-        init(unsafe { inner.spawner() });
+        unsafe { (&mut *self.inner.get()).set_signal_ctx(&self.signaler as *const _ as _) };
+        init(unsafe { (&*self.inner.get()).spawner() });
     }
 
     pub fn run_until_idle(&'static self) {
@@ -332,30 +328,6 @@ impl TestRunner {
 }
 
 static mut CLOCK_ZERO: MaybeUninit<StdInstant> = MaybeUninit::uninit();
-struct StdClock;
-impl Clock for StdClock {
-    fn now(&self) -> u64 {
-        let zero = unsafe { CLOCK_ZERO.as_ptr().read() };
-        let dur = StdInstant::now().duration_since(zero);
-        dur.as_secs() * (TICKS_PER_SECOND as u64)
-            + (dur.subsec_nanos() as u64) * (TICKS_PER_SECOND as u64) / 1_000_000_000
-    }
-}
-
-static mut ALARM_AT: u64 = u64::MAX;
-
-pub struct StdAlarm;
-impl Alarm for StdAlarm {
-    fn set_callback(&self, _callback: fn(*mut ()), _ctx: *mut ()) {}
-
-    fn set(&self, timestamp: u64) {
-        unsafe { ALARM_AT = timestamp }
-    }
-
-    fn clear(&self) {
-        unsafe { ALARM_AT = u64::MAX }
-    }
-}
 
 struct Signaler {
     run: AtomicBool,
@@ -379,6 +351,33 @@ impl Signaler {
     fn signal(ctx: *mut ()) {
         let this = unsafe { &*(ctx as *mut Self) };
         this.run.store(true, Ordering::SeqCst);
+    }
+}
+
+static mut ALARM_AT: u64 = u64::MAX;
+static mut NEXT_ALARM_ID: u8 = 0;
+
+struct TimeDriver;
+embassy::time_driver_impl!(TimeDriver);
+
+impl Driver for TimeDriver {
+    fn now() -> u64 {
+        let zero = unsafe { CLOCK_ZERO.as_ptr().read() };
+        let dur = StdInstant::now().duration_since(zero);
+        dur.as_secs() * (TICKS_PER_SECOND as u64)
+            + (dur.subsec_nanos() as u64) * (TICKS_PER_SECOND as u64) / 1_000_000_000
+    }
+
+    unsafe fn allocate_alarm() -> Option<AlarmHandle> {
+        let r = NEXT_ALARM_ID;
+        NEXT_ALARM_ID += 1;
+        Some(AlarmHandle::new(r))
+    }
+
+    fn set_alarm_callback(_alarm: AlarmHandle, _callback: fn(*mut ()), _ctx: *mut ()) {}
+
+    fn set_alarm(_alarm: AlarmHandle, timestamp: u64) {
+        unsafe { ALARM_AT = ALARM_AT.min(timestamp) }
     }
 }
 

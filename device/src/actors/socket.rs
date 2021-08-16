@@ -33,25 +33,25 @@ where
     A: Adapter + 'static,
 {
     #[rustfmt::skip]
-    type ConnectFuture<'m> where 'a: 'm, A: 'm =  impl Future<Output = Result<(), TcpError>>;
+    type ConnectFuture<'m> where 'a: 'm, A: 'm =  impl Future<Output = Result<(), TcpError>> + 'm;
     fn connect<'m>(&'m mut self, proto: IpProtocol, dst: SocketAddress) -> Self::ConnectFuture<'m> {
         async move { self.address.connect(self.handle, proto, dst).await }
     }
 
     #[rustfmt::skip]
-    type WriteFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Result<usize, TcpError>>;
+    type WriteFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
     fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
         async move { self.address.write(self.handle, buf).await }
     }
 
     #[rustfmt::skip]
-    type ReadFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Result<usize, TcpError>>;
+    type ReadFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
     fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m> {
         async move { self.address.read(self.handle, buf).await }
     }
 
     #[rustfmt::skip]
-    type CloseFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = ()>;
+    type CloseFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = ()> + 'm;
     fn close<'m>(&'m mut self) -> Self::CloseFuture<'m> {
         async move { self.address.close(self.handle).await }
     }
@@ -140,7 +140,7 @@ mod tls {
         CipherSuite: TlsCipherSuite + 'static,
     {
         #[rustfmt::skip]
-        type ConnectFuture<'m> where 'a: 'm, S: 'm, RNG: 'm, CipherSuite: 'm =  impl Future<Output = Result<(), TcpError>>;
+        type ConnectFuture<'m> where 'a: 'm, S: 'm, RNG: 'm, CipherSuite: 'm =  impl Future<Output = Result<(), TcpError>> + 'm;
         fn connect<'m>(
             &'m mut self,
             proto: IpProtocol,
@@ -192,7 +192,7 @@ mod tls {
         }
 
         #[rustfmt::skip]
-        type WriteFuture<'m> where 'a: 'm, RNG: 'm, CipherSuite: 'm = impl Future<Output = Result<usize, TcpError>>;
+        type WriteFuture<'m> where 'a: 'm, RNG: 'm, CipherSuite: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
         fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
             async move {
                 match self.state.take() {
@@ -211,7 +211,7 @@ mod tls {
         }
 
         #[rustfmt::skip]
-        type ReadFuture<'m> where 'a: 'm, RNG: 'm, CipherSuite: 'm = impl Future<Output = Result<usize, TcpError>>;
+        type ReadFuture<'m> where 'a: 'm, RNG: 'm, CipherSuite: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
         fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m> {
             async move {
                 match self.state.take() {
@@ -230,7 +230,7 @@ mod tls {
         }
 
         #[rustfmt::skip]
-        type CloseFuture<'m> where 'a: 'm, RNG: 'm, CipherSuite: 'm = impl Future<Output = ()>;
+        type CloseFuture<'m> where 'a: 'm, RNG: 'm, CipherSuite: 'm = impl Future<Output = ()> + 'm;
         fn close<'m>(&'m mut self) -> Self::CloseFuture<'m> {
             async move {
                 match self.state.take() {

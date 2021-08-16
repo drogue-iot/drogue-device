@@ -40,7 +40,7 @@ where
     A: Adapter + 'static,
 {
     #[rustfmt::skip]
-    type JoinFuture<'m> where 'a: 'm = impl Future<Output = Result<IpAddress, JoinError>>;
+    type JoinFuture<'m> where 'a: 'm = impl Future<Output = Result<IpAddress, JoinError>> + 'm;
     fn join<'m>(&'m mut self, join: Join<'m>) -> Self::JoinFuture<'m> {
         async move {
             self.request(AdapterRequest::Join(join))
@@ -58,13 +58,13 @@ where
     type SocketHandle = A::SocketHandle;
 
     #[rustfmt::skip]
-    type OpenFuture<'m> where 'a: 'm = impl Future<Output = Self::SocketHandle>;
+    type OpenFuture<'m> where 'a: 'm = impl Future<Output = Self::SocketHandle> + 'm;
     fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
         async move { self.request(AdapterRequest::Open).unwrap().await.open() }
     }
 
     #[rustfmt::skip]
-    type ConnectFuture<'m> where 'a: 'm, A: 'm =  impl Future<Output = Result<(), TcpError>>;
+    type ConnectFuture<'m> where 'a: 'm, A: 'm =  impl Future<Output = Result<(), TcpError>> + 'm;
     fn connect<'m>(
         &'m mut self,
         handle: Self::SocketHandle,
@@ -80,7 +80,7 @@ where
     }
 
     #[rustfmt::skip]
-    type WriteFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Result<usize, TcpError>>;
+    type WriteFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
     fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
         async move {
             self.request(AdapterRequest::Write(handle, buf))
@@ -91,7 +91,7 @@ where
     }
 
     #[rustfmt::skip]
-    type ReadFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Result<usize, TcpError>>;
+    type ReadFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
     fn read<'m>(
         &'m mut self,
         handle: Self::SocketHandle,
@@ -106,7 +106,7 @@ where
     }
 
     #[rustfmt::skip]
-    type CloseFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = ()>;
+    type CloseFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = ()> + 'm;
     fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
         async move {
             self.request(AdapterRequest::Close(handle)).unwrap().await;

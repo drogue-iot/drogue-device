@@ -1,0 +1,43 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+edition = "2018"
+name = "nucleo-h743zi_esp8266"
+version = "0.1.0"
+resolver = "2"
+
+[workspace]
+
+[dependencies]
+defmt = "0.2"
+defmt-rtt = "0.2"
+panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+
+embedded-hal = { version = "0.2.4", features = ["unproven"] }
+drogue-device = { path = "../../../device", features = ["wifi+esp8266", "defmt", "defmt-trace"], default-features = false }
+drogue-tls = { git = "https://github.com/drogue-iot/drogue-tls.git", rev = "59cb23017f546da8e0f186042758226165400548", default-features = false, features = ["async", "defmt"], optional = true}
+#drogue-tls = {path = "../../../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
+wifi-app = { path = "../../common/wifi" }
+cortex-m-rt = "0.6"
+cortex-m = { version = "0.7", features = ["inline-asm"] }
+heapless = "0.6"
+void = { version = "1", default-features = false }
+rand_core = { version = "0.6", default-features = false }
+cfg-if = "1.0.0"
+
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false, features = ["defmt", "defmt-info", "time", "time-tick-32768hz"]}
+embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
+
+#embassy = {path = "../../../../../embassy/embassy", default-features = false}
+#embassy-stm32 = {path = "../../../../../embassy/embassy-stm32", default-features = false, features = ["stm32h743zi", "memory-x"] }
+
+[features]
+default = []
+tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls"]
+
+[profile.release]
+debug = 2
+opt-level = "s"
+lto = "fat"

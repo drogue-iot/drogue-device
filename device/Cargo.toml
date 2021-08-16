@@ -11,8 +11,8 @@ version = "0.1.0"
 doctest = false
 
 [dependencies]
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "c458ad52e698ae0e9810e90d094394bd3ab35c77", default-features = false }
-#embassy = {default-features = false, path = "../../../embassy/embassy"}
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false }
+#embassy = {default-features = false, path = "../../../embassy/embassy", features = ["defmt"]}
 
 # LoRa dependencies
 lorawan-device = { git = "https://github.com/lulf/rust-lorawan.git", rev = "2279fe55e9aeda5d3b9d2593763e3b2c031fa695", default-features = false, optional = true }
@@ -26,8 +26,9 @@ nom = { version = "6.1.2", default-features = false, optional = true }
 moveslice = { version = "2.0", optional = true }
 
 # TLS dependency
-drogue-tls = { version = "0.2.0", default-features = false, features = ["async"], optional = true}
-#drogue-tls = {path = "../../drogue-tls", default-features = false, optional = true}
+drogue-tls = { git = "https://github.com/drogue-iot/drogue-tls.git", rev = "59cb23017f546da8e0f186042758226165400548", default-features = false, features = ["async"], optional = true}
+#drogue-tls = { version = "0.2.0", default-features = false, features = ["async"], optional = true}
+#drogue-tls = {path = "../../drogue-tls", default-features = false, features = ["async"], optional = true}
 rand_core = { version = "0.6.2", default-features = false, optional = true }
 
 # Utilities
@@ -46,7 +47,7 @@ defmt = { version = "0.2", optional = true }
 base64 = { version = "0.13.0", default-features = false }
 
 [dev-dependencies]
-embassy-std = {git = "https://github.com/embassy-rs/embassy.git", rev = "c458ad52e698ae0e9810e90d094394bd3ab35c77", default-features = false }
+embassy-std = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false }
 #embassy-std = {default-features = false, path = "../../../embassy/embassy-std" }
 
 drogue-device-macros = { path = "../macros" }

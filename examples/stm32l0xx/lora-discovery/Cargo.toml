@@ -24,8 +24,8 @@ heapless = "0.6"
 void = { version = "1", default-features = false }
 rand_core = { version = "0.6", default-features = false }
 
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "c458ad52e698ae0e9810e90d094394bd3ab35c77", default-features = false}
-embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "c458ad52e698ae0e9810e90d094394bd3ab35c77", default-features = false, features = ["stm32l072cz"] }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false, features = ["time-tick-32768hz"] }
+embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false, features = ["stm32l072cz", "time-driver-tim2"] }
 
 #embassy = {path = "../../../../../embassy/embassy", default-features = false}
 #embassy-stm32 = {path = "../../../../../embassy/embassy-stm32", default-features = false, features = ["stm32l072cz"] }
@@ -38,6 +38,3 @@ lto = "fat"
 debug-assertions = false
 incremental = false
 overflow-checks = false
-
-[patch.crates-io]
-cortex-m = {git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"]}
