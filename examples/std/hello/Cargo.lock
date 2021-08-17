@@ -25,9 +25,9 @@ dependencies = [
 
 [[package]]
 name = "atomic-polyfill"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30302dda7a66f8c55932ebf208f7def840743ff64d495e9ceffcd97c18f11d39"
+checksum = "4a93ba5d6053837dbb76fd0ae26fd4f0c1859a008a783b0ce072b797c07f0f27"
 dependencies = [
  "cortex-m",
 ]
@@ -83,15 +83,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
-name = "cast"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b9434b9a5aa1450faa3f9cb14ea0e8c53bb5d2b3c1bfd1ab4fc03e9f33fbfb0"
-dependencies = [
- "rustc_version",
-]
-
-[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -100,7 +91,8 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "cortex-m"
 version = "0.7.3"
-source = "git+https://github.com/rust-embedded/cortex-m.git?branch=master#ea91f18004a408f763a7d11532cdc7e14c62d80c"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ac919ef424449ec8c08d515590ce15d9262c0ca5f0da5b0c901e971a3b783b3"
 dependencies = [
  "bare-metal 0.2.5",
  "bitfield",
@@ -172,10 +164,9 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=c458ad52e698ae0e9810e90d094394bd3ab35c77#c458ad52e698ae0e9810e90d094394bd3ab35c77"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=4b74e8fc50b3b1839f118d9b310f793a46adc416#4b74e8fc50b3b1839f118d9b310f793a46adc416"
 dependencies = [
  "atomic-polyfill",
- "cast",
  "cortex-m",
  "critical-section",
  "embassy-macros",
@@ -188,7 +179,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=c458ad52e698ae0e9810e90d094394bd3ab35c77#c458ad52e698ae0e9810e90d094394bd3ab35c77"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=4b74e8fc50b3b1839f118d9b310f793a46adc416#4b74e8fc50b3b1839f118d9b310f793a46adc416"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -199,7 +190,7 @@ dependencies = [
 [[package]]
 name = "embassy-std"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=c458ad52e698ae0e9810e90d094394bd3ab35c77#c458ad52e698ae0e9810e90d094394bd3ab35c77"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=4b74e8fc50b3b1839f118d9b310f793a46adc416#4b74e8fc50b3b1839f118d9b310f793a46adc416"
 dependencies = [
  "embassy",
  "embassy-macros",
@@ -209,16 +200,16 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=c458ad52e698ae0e9810e90d094394bd3ab35c77#c458ad52e698ae0e9810e90d094394bd3ab35c77"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=4b74e8fc50b3b1839f118d9b310f793a46adc416#4b74e8fc50b3b1839f118d9b310f793a46adc416"
 dependencies = [
  "embedded-hal",
 ]
 
 [[package]]
 name = "embedded-hal"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db184d3fa27bc7a2344250394c0264144dfe0bc81a4401801dcb964b8dd172ad"
+checksum = "e36cfb62ff156596c892272f3015ef952fe1525e85261fa3a7f327bd6b384ab9"
 dependencies = [
  "nb 0.1.3",
  "void",
@@ -398,9 +389,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.98"
+version = "0.2.99"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "320cfe77175da3a483efed4bc0adc1968ca050b098ce4f2f1c13a56626128790"
+checksum = "a7f823d141fe0a24df1e23b4af4e3c7ba9e5966ec514ea068c93024aa7deb765"
 
 [[package]]
 name = "log"
@@ -525,9 +516,9 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "slab"
-version = "0.4.3"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f173ac3d1a7e3b28003f40de0b5ce7fe2710f9b9dc3fc38664cebee46b3b6527"
+checksum = "c307a32c1c5c437f38c7fd45d753050587732ba8628319fbdf12a7e289ccc590"
 
 [[package]]
 name = "stable_deref_trait"
@@ -593,9 +584,9 @@ checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 
 [[package]]
 name = "volatile-register"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d67cb4616d99b940db1d6bd28844ff97108b498a6ca850e5b6191a532063286"
+checksum = "9ee8f19f9d74293faf70901bc20ad067dc1ad390d2cbf1e3f75f721ffee908b6"
 dependencies = [
  "vcell",
 ]

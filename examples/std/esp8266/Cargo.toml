@@ -13,9 +13,11 @@ version = "0.1.0"
 log = "0.4"
 env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["log", "std", "wifi+esp8266", "tls"] }
-drogue-tls = { version = "0.2.0", default-features = false, features = ["async"], optional = true}
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "c458ad52e698ae0e9810e90d094394bd3ab35c77", features = ["std"] }
-embassy-std = {git = "https://github.com/embassy-rs/embassy.git", rev = "c458ad52e698ae0e9810e90d094394bd3ab35c77", default-features = false }
+drogue-tls = { git = "https://github.com/drogue-iot/drogue-tls.git", rev = "59cb23017f546da8e0f186042758226165400548", default-features = false, features = ["async"], optional = true}
+#drogue-tls = { version = "0.2.0", default-features = false, features = ["async"], optional = true}
+#drogue-tls = {path = "../../drogue-tls", default-features = false, optional = true}
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", features = ["std"] }
+embassy-std = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false }
 rand = "0.8"
 cfg-if = "1.0.0"
 
@@ -27,6 +29,3 @@ futures = { version = "0.3.8", default-features = false, features = ["async-awai
 
 [features]
 tls = ["drogue-tls", "drogue-tls/log"]
-
-[patch.crates-io]
-cortex-m = {git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"]}

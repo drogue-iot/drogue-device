@@ -1,17 +1,13 @@
 #![no_std]
 #![no_main]
-#![macro_use]
-#![allow(incomplete_features)]
-#![feature(generic_associated_types)]
+#![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
-#![feature(concat_idents)]
+#![allow(incomplete_features)]
+
+use defmt_rtt as _;
+use panic_probe as _;
 
 use wifi_app::*;
-
-use log::LevelFilter;
-use panic_probe as _;
-use rtt_logger::RTTLogger;
-use rtt_target::rtt_init_print;
 
 use drogue_device::{
     actors::{button::Button, socket::Socket, wifi::esp8266::*},
@@ -20,22 +16,22 @@ use drogue_device::{
     ActorContext, DeviceContext, Package,
 };
 use embassy::util::Forever;
-use embassy_nrf::{
-    buffered_uarte::{BufferedUarte, State},
-    gpio::{Input, Level, NoPin, Output, OutputDrive, Pull},
-    gpiote::PortInput,
-    interrupt,
-    peripherals::{P0_09, P0_10, P0_14, TIMER0, UARTE0},
-    uarte, Peripherals,
+use embassy_stm32::dbgmcu::Dbgmcu;
+use embassy_stm32::interrupt;
+use embassy_stm32::usart::{BufferedUart, Config, State, Uart};
+use embassy_stm32::{dma::NoDma, peripherals::UART7};
+use embassy_stm32::{
+    exti::ExtiInput,
+    gpio::{Input, Level, Output, Pull, Speed},
+    peripherals::{PC13, PD12, PD13, RNG},
+    rng::Random,
+    Peripherals,
 };
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "tls")] {
-        mod rng;
-        use rng::*;
         use drogue_tls::{Aes128GcmSha256, TlsContext};
         use drogue_device::actors::socket::TlsSocket;
-        use nrf52833_pac as pac;
 
         const HOST: &str = "http.sandbox.drogue.cloud";
         const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
@@ -52,15 +48,13 @@ const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.passw
 const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.username.txt"));
 const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.password.txt"));
 
-static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
-
-type UART = BufferedUarte<'static, UARTE0, TIMER0>;
-type ENABLE = Output<'static, P0_09>;
-type RESET = Output<'static, P0_10>;
+type UART = BufferedUart<'static, UART7>;
+type ENABLE = Output<'static, PD13>;
+type RESET = Output<'static, PD12>;
 
 #[cfg(feature = "tls")]
 type AppSocket =
-    TlsSocket<'static, Socket<'static, Esp8266Controller<'static>>, Rng, Aes128GcmSha256>;
+    TlsSocket<'static, Socket<'static, Esp8266Controller<'static>>, Random<RNG>, Aes128GcmSha256>;
 
 #[cfg(not(feature = "tls"))]
 type AppSocket = Socket<'static, Esp8266Controller<'static>>;
@@ -68,55 +62,44 @@ type AppSocket = Socket<'static, Esp8266Controller<'static>>;
 pub struct MyDevice {
     wifi: Esp8266Wifi<UART, ENABLE, RESET>,
     app: ActorContext<'static, App<AppSocket>>,
-    button: ActorContext<'static, Button<'static, PortInput<'static, P0_14>, App<AppSocket>>>,
+    button: ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App<AppSocket>>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
-    rtt_init_print!();
-    log::set_logger(&LOGGER).unwrap();
+    unsafe {
+        Dbgmcu::enable_all();
+    }
 
-    log::set_max_level(log::LevelFilter::Info);
+    let button = Input::new(p.PC13, Pull::Down);
+    let button = ExtiInput::new(button, p.EXTI13);
 
-    let button_port = PortInput::new(Input::new(p.P0_14, Pull::Up));
+    let enable_pin = Output::new(p.PD13, Level::Low, Speed::Low);
+    let reset_pin = Output::new(p.PD12, Level::Low, Speed::Low);
 
-    let mut config = uarte::Config::default();
-    config.parity = uarte::Parity::EXCLUDED;
-    config.baudrate = uarte::Baudrate::BAUD115200;
+    static mut TX_BUFFER: [u8; 1] = [0; 1];
+    static mut RX_BUFFER: [u8; 1024] = [0; 1024];
+    static STATE: Forever<State<'static, UART7>> = Forever::new();
 
-    static mut TX_BUFFER: [u8; 8192] = [0u8; 8192];
-    static mut RX_BUFFER: [u8; 8192] = [0u8; 8192];
-    static mut STATE: Forever<State<'static, UARTE0, TIMER0>> = Forever::new();
-
-    let irq = interrupt::take!(UARTE0_UART0);
-    let u = unsafe {
+    let usart = Uart::new(p.UART7, p.PF6, p.PF7, NoDma, NoDma, Config::default());
+    let usart = unsafe {
         let state = STATE.put(State::new());
-        BufferedUarte::new(
+        BufferedUart::new(
             state,
-            p.UARTE0,
-            p.TIMER0,
-            p.PPI_CH0,
-            p.PPI_CH1,
-            irq,
-            p.P0_13,
-            p.P0_01,
-            NoPin,
-            NoPin,
-            config,
-            &mut RX_BUFFER,
+            usart,
+            interrupt::take!(UART7),
             &mut TX_BUFFER,
+            &mut RX_BUFFER,
         )
     };
-
-    let enable_pin = Output::new(p.P0_09, Level::Low, OutputDrive::Standard);
-    let reset_pin = Output::new(p.P0_10, Level::Low, OutputDrive::Standard);
+    let rng = Random::new(p.RNG);
 
     DEVICE.configure(MyDevice {
-        wifi: Esp8266Wifi::new(u, enable_pin, reset_pin),
+        wifi: Esp8266Wifi::new(usart, enable_pin, reset_pin),
         app: ActorContext::new(App::new(IP, PORT, USERNAME.trim_end(), PASSWORD.trim_end())),
-        button: ActorContext::new(Button::new(button_port)),
+        button: ActorContext::new(Button::new(button)),
     });
 
     DEVICE
@@ -128,20 +111,18 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             })
             .await
             .expect("Error joining wifi");
-            log::info!("WiFi network joined");
+            defmt::info!("WiFi network joined");
 
             let socket = Socket::new(wifi, wifi.open().await);
             #[cfg(feature = "tls")]
             let socket = TlsSocket::wrap(
                 socket,
-                TlsContext::new(Rng::new(pac::Peripherals::take().unwrap().RNG), unsafe {
-                    &mut TLS_BUFFER
-                })
-                .with_server_name(HOST.trim_end()),
+                TlsContext::new(rng, unsafe { &mut TLS_BUFFER }).with_server_name(HOST.trim_end()),
             );
             let app = device.app.mount(socket, spawner);
             device.button.mount(app, spawner);
+            app
         })
         .await;
-    log::info!("Application initialized. Press 'A' button to send data");
+    defmt::info!("Application initialized. Press 'A' button to send data");
 }

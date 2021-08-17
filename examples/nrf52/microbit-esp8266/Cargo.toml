@@ -16,15 +16,16 @@ rtt-logger = "0.1"
 rtt-target = { version = "0.2.0", features = ["cortex-m"] }
 rand_core = { version = "0.6.2", default-features = false }
 
-drogue-device = { path = "../../../device", features = ["wifi+esp8266", "tls", "log"], default-features = false }
-drogue-tls = { version = "0.2.0", default-features = false, features = ["async"], optional = true}
-#drogue-tls = {path = "../../../../drogue-tls", default-features = false, features = ["log"]}
+drogue-device = { path = "../../../device", features = ["wifi+esp8266", "log"], default-features = false }
+drogue-tls = { git = "https://github.com/drogue-iot/drogue-tls.git", rev = "59cb23017f546da8e0f186042758226165400548", default-features = false, features = ["async"], optional = true}
+#drogue-tls = { version = "0.2.0", default-features = false, features = ["async"], optional = true}
+#drogue-tls = {path = "../../drogue-tls", default-features = false, optional = true}
 wifi-app = { path = "../../common/wifi" }
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.6", features = ["inline-asm"] }
 
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "c458ad52e698ae0e9810e90d094394bd3ab35c77", default-features = false}
-embassy-nrf = {git = "https://github.com/embassy-rs/embassy.git", rev = "c458ad52e698ae0e9810e90d094394bd3ab35c77", default-features = false, features = ["nrf52833"]}
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false}
+embassy-nrf = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false, features = ["nrf52833"]}
 nrf52833-pac = { version = "0.9", features = ["rt"] }
 #embassy = {path = "../../../../../embassy/embassy", default-features = false}
 #embassy-nrf = {path = "../../../../../embassy/embassy-nrf", default-features = false, features = ["nrf52833"]}
@@ -34,10 +35,7 @@ heapless = "0.6"
 
 [features]
 default = []
-tls = ["drogue-tls", "drogue-tls/log"]
-
-[patch.crates-io]
-cortex-m = {git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"]}
+tls = ["drogue-tls", "drogue-tls/log", "drogue-device/tls"]
 
 [profile.dev]
 codegen-units = 1

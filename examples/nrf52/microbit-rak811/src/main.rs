@@ -3,8 +3,6 @@
 #![macro_use]
 #![allow(incomplete_features)]
 #![feature(generic_associated_types)]
-#![feature(min_type_alias_impl_trait)]
-#![feature(impl_trait_in_bindings)]
 #![feature(type_alias_impl_trait)]
 #![feature(concat_idents)]
 
@@ -21,8 +19,9 @@ use core::cell::UnsafeCell;
 use drogue_device::{
     actors::button::Button, drivers::lora::rak811::*, traits::lora::*, ActorContext, DeviceContext,
 };
+use embassy::util::Forever;
 use embassy_nrf::{
-    buffered_uarte::BufferedUarte,
+    buffered_uarte::{BufferedUarte, State},
     gpio::{Input, Level, NoPin, Output, OutputDrive, Pull},
     gpiote::PortInput,
     interrupt,
@@ -65,10 +64,13 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     static mut TX_BUFFER: [u8; 256] = [0u8; 256];
     static mut RX_BUFFER: [u8; 256] = [0u8; 256];
+    static mut STATE: Forever<State<'static, UARTE0, TIMER0>> = Forever::new();
 
     let irq = interrupt::take!(UARTE0_UART0);
     let u = unsafe {
+        let state = STATE.put(State::new());
         BufferedUarte::new(
+            state,
             p.UARTE0,
             p.TIMER0,
             p.PPI_CH0,
