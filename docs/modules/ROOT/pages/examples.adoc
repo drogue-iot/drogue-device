@@ -3,10 +3,11 @@
 There are several examples for different chips to show how drogue device can be used.
 
 * link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/hello[Hello World in std]
-* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit-uart[BBC micro:bit v2.0 UART]
-* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit-esp8266[BBC micro:bit v2.0 + ESP8266 WiFi Breakout]
-* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/esp8266[USB Serial + ESP8266 WiFi Breakout]
-* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32l0xx/lora-discovery[STM32 LoRaWAN Discovery]
-* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit-rak811[BBC micro:bit v2.0 + RAK811 LoRa Breakout]
-* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/rp/blinky[Raspberry Pi Pico]
+* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/uart[BBC micro:bit v2.0 UART]
+* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/esp8266[BBC micro:bit v2.0 + ESP8266 WiFi]
+* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/esp8266[USB Serial + ESP8266 WiFi]
+* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/rak811[BBC micro:bit v2.0 + RAK811 LoRa]
+* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32l0/lora-discovery[STM32 LoRaWAN Discovery]
+* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32h7/nucleo-h743zi/esp8266[STM32 Nucleo H743ZI + ESP8266 WiFi]
+* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/rp/pico/blinky[Raspberry Pi Pico]
 * link:https://github.com/drogue-iot/drogue-device/tree/main/examples/wasm/browser[WebAssembly]
