@@ -14,7 +14,7 @@ version = "0.1.0"
 defmt = "0.2"
 defmt-rtt = "0.2"
 panic-probe = { version = "0.2.0", features = ["print-defmt"] }
-drogue-device = { path = "../../../device", features = ["defmt", "defmt-info"], default-features = false }
+drogue-device = { path = "../../../../device", features = ["defmt", "defmt-info"], default-features = false }
 atomic-polyfill = { version = "0.1.1" }
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 
@@ -26,8 +26,8 @@ cortex-m = { version = "0.7", features = ["inline-asm"] }
 embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false}
 embassy-rp = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false}
 
-# embassy = {path = "../../../../../embassy/embassy", default-features = false}
-# embassy-rp = {path = "../../../../../embassy/embassy-rp", default-features = false}
+# embassy = {path = "../../../../../../embassy/embassy", default-features = false}
+# embassy-rp = {path = "../../../../../../embassy/embassy-rp", default-features = false}
 
 [features]
 default = [

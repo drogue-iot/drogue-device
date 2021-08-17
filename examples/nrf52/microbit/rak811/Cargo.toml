@@ -15,11 +15,11 @@ log = "0.4"
 rtt-logger = "0.1"
 rtt-target = { version = "0.2.0", features = ["cortex-m"] }
 
-drogue-device = { path = "../../../device", features = ["lora+rak811"], default-features = false }
+drogue-device = { path = "../../../../device", features = ["lora+rak811"], default-features = false }
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.6", features = ["inline-asm"] }
 
 embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false}
 embassy-nrf = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false, features = ["nrf52833"]}
-#embassy = {path = "../../../../../embassy/embassy", default-features = false}
-#embassy-nrf = {path = "../../../../../embassy/embassy-nrf", default-features = false, features = ["nrf52833"]}
+#embassy = {path = "../../../../../../embassy/embassy", default-features = false}
+#embassy-nrf = {path = "../../../../../../embassy/embassy-nrf", default-features = false, features = ["nrf52833"]}
