@@ -1,0 +1,66 @@
+== nucleo-h743zi-esp8266 drogue-device example
+
+This example application runs out of the box on the STM32 Nucleo H743ZI development kit.
+It relies on a ESP8266 breakout module flashed with AT firmware. The micro:bit communicates with the
+ESP8266 using UART.
+
+The example can operate using plain TCP, or using TLS by enabling the `tls` feature flag.
+
+=== Prerequisites
+
+==== Hardware
+
+* STM32 Nucleo H743ZI development kit.
+* ESP8266 module with AT-command firmware version 1.7.x or newer.
+
+==== Software
+
+* To build the example, you need to have link:https://rustup.rs/[Rust Nightly].
+* To flash the example on the device, you need `probe-run` installed (`cargo install probe-run`).
+* A TCP server (ncat) or a service like Drogue IoT Cloud. See [drogue-cloud](https://github.com/drogue-iot/drogue-cloud) for how to run that, or use the [sandbox](https://sandbox.drogue.cloud) (requires TLS).
+
+=== Configuring
+
+To access your local WiFi network, the store the ssid in `config/wifi.ssid.txt` and pre-shared key in `config/wifi.password.txt`.
+
+To authenticate the device to an HTTP service, you must store the username and password in `config/http.username.txt` and `config/http.password.txt`. For Drogue IoT Cloud, the username/password is stored in this form: `device_id@application`.
+
+Make sure you have the correct target architecture supported in rust:
+
+....
+rustup target add thumbv7em-none-eabihf
+....
+
+=== Running with plain TCP
+
+You can configure the IP constant to point to any TCP/HTTP server to receive events, or you can use [drogue cloud](https://github.com/drogue-iot/drogue-cloud) locally. For simplicity, start a local TCP server:
+
+....
+ncat -l 12345 --keep-open --exec "/bin/cat"
+....
+
+To run the firmware:
+
+....
+cargo +nightly run --release
+....
+
+== Running with TLS
+
+When the `tls` flag is enabled, the example is configured to use the Drogue IoT Cloud sandbox. To use this example with your own Drogue IoT Cloud instance, you need to edit the HOST and PORT constants in `src/main.rs`. 
+
+To run the firmware:
+
+....
+cargo +nightly run --release --features tls
+....
+
+== Troubleshooting
+
+If you’re experiencing problems, try setting the `VID:PID` values to that of your probe (you can find that from lsusb once your board is powered).
+
+....
+cargo +nightly run --release -- --probe <VID>:<PID>
+....
+
+Once flashed, the device will reset and attempt to join the WiFi network. If successful, it will print a message to the RTT log. You can then press the 'A' button on the micro:bit board to send a test message from the device.
