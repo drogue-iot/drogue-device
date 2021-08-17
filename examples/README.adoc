@@ -1,0 +1,9 @@
+= drogue-device examples
+
+The examples are grouped by chip family, then board, then variant. I.e.
+
+For instance, the example in `nrf52/microbit/esp8266` is for the `nRF52` chip family, using the `microbit` board,
+with a variant that uses a `esp8266` WiFi module.
+
+All example can be run using `cargo run`, which in some cases require the `probe-run` tool (`cargo
+install probe-run`) to flash the program.
