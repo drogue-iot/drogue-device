@@ -1,10 +1,8 @@
 #![no_std]
 #![no_main]
 #![macro_use]
-#![allow(incomplete_features)]
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
-#![feature(concat_idents)]
 
 mod server;
 mod statistics;

@@ -1,13 +1,10 @@
 #![macro_use]
 #![cfg_attr(not(feature = "std"), no_std)]
-#![allow(incomplete_features)]
 #![allow(dead_code)]
 #![feature(type_alias_impl_trait)]
-#![feature(const_generics)]
-#![feature(const_generics_defaults)]
-#![feature(const_evaluatable_checked)]
 #![feature(generic_associated_types)]
 #![feature(associated_type_defaults)]
+#![feature(const_generics_defaults)]
 //! An async, no-alloc actor framework for embedded devices.
 //!
 //! See [the book](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and running some examples.
