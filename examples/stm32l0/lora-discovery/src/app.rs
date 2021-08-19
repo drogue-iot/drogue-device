@@ -155,15 +155,16 @@ where
     #[rustfmt::skip]
     type Message<'m> where D: 'm = Command;
     #[rustfmt::skip]
-    type OnStartFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
+    type OnStartFuture<'m, M> where D: 'm, M: 'm = impl Future<Output = ()> + 'm;
 
     fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
         self.cfg.replace(config);
     }
 
-    fn on_start<'m>(mut self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
+    fn on_start<'m, M>(mut self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         async move {
             self.config.init_led.on().ok();
             if let Some(mut cfg) = self.cfg.take() {
@@ -179,24 +180,21 @@ where
                 self.cfg.replace(cfg);
             }
             self.config.init_led.off().ok();
-        }
-    }
-
-    fn on_message<'m>(
-        mut self: Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
-        async move {
-            match message {
-                Command::Tick => {
-                    self.tick();
-                }
-                Command::Send => {
-                    self.send().await;
-                }
-                Command::TickAndSend => {
-                    self.tick();
-                    self.send().await;
+            loop {
+                match inbox.next().await {
+                    Some((message, responder)) => responder.respond(match message {
+                        Command::Tick => {
+                            self.tick();
+                        }
+                        Command::Send => {
+                            self.send().await;
+                        }
+                        Command::TickAndSend => {
+                            self.tick();
+                            self.send().await;
+                        }
+                    }),
+                    _ => {}
                 }
             }
         }

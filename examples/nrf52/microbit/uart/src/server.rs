@@ -1,7 +1,7 @@
 use crate::statistics::*;
 use core::future::Future;
 use core::pin::Pin;
-use drogue_device::{actors::led::matrix::*, Actor, Address};
+use drogue_device::{actors::led::matrix::*, Actor, Address, Inbox};
 use embassy::{
     time::{Duration, Timer},
     traits::uart::{Read, Write},
@@ -34,16 +34,17 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
         'a: 'm,
     = ();
     #[rustfmt::skip]
-    type OnStartFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
+    type OnStartFuture<'m, M> where M: 'm, 'a: 'm  = impl Future<Output = ()> + 'm;
 
     fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
         self.matrix.replace(config.0);
         self.statistics.replace(config.1);
     }
 
-    fn on_start(mut self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
+    fn on_start<'m, M>(mut self: Pin<&'m mut Self>, _: &'m mut M) -> Self::OnStartFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         let matrix = self.matrix.unwrap();
         let statistics = self.statistics.unwrap();
         async move {
@@ -72,9 +73,5 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
                     .await;
             }
         }
-    }
-
-    fn on_message<'m>(self: Pin<&'m mut Self>, _: Self::Message<'m>) -> Self::OnMessageFuture<'m> {
-        async move {}
     }
 }

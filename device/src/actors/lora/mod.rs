@@ -1,5 +1,5 @@
 use crate::{
-    kernel::actor::{Actor, Address},
+    kernel::actor::{Actor, Address, Inbox},
     traits::lora::*,
 };
 use core::{future::Future, pin::Pin};
@@ -93,26 +93,26 @@ where
     type Response = Result<usize, LoraError>;
 
     #[rustfmt::skip]
-    type OnStartFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
-    fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-        async move {}
-    }
-
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where D: 'm = impl Future<Output = Self::Response> + 'm;
-    fn on_message<'m>(
-        self: Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
+    type OnStartFuture<'m, M> where D: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         async move {
             let this = unsafe { self.get_unchecked_mut() };
             let driver = &mut this.driver;
-            match message {
-                LoraRequest::Configure(config) => driver.configure(config).await.map(|_| 0),
-                LoraRequest::Join(mode) => driver.join(mode).await.map(|_| 0),
-                LoraRequest::Send(qos, port, buf) => driver.send(qos, port, buf).await.map(|_| 0),
-                LoraRequest::SendRecv(qos, port, buf, rx) => {
-                    driver.send_recv(qos, port, buf, rx).await
+            loop {
+                if let Some((message, responder)) = inbox.next().await {
+                    responder.respond(match message {
+                        LoraRequest::Configure(config) => driver.configure(config).await.map(|_| 0),
+                        LoraRequest::Join(mode) => driver.join(mode).await.map(|_| 0),
+                        LoraRequest::Send(qos, port, buf) => {
+                            driver.send(qos, port, buf).await.map(|_| 0)
+                        }
+                        LoraRequest::SendRecv(qos, port, buf, rx) => {
+                            driver.send_recv(qos, port, buf, rx).await
+                        }
+                    });
                 }
             }
         }

@@ -20,24 +20,28 @@ impl MyActor {
 impl Actor for MyActor {
     type Configuration = &'static AtomicU32;
     type Message<'a> = SayHello<'a>;
-    type OnStartFuture<'a> = impl Future<Output = ()> + 'a;
-    type OnMessageFuture<'a> = impl Future<Output = ()> + 'a;
 
     fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
         self.counter.replace(config);
     }
 
-    fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-        async move { log::info!("[{}] started!", self.name) }
-    }
-
-    fn on_message<'m>(
-        self: Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
+    #[rustfmt::skip]
+    type OnStartFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
+    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         async move {
-            let count = self.counter.unwrap().fetch_add(1, Ordering::SeqCst);
-            log::info!("[{}] hello {}: {}", self.name, message.0, count);
+            log::info!("[{}] started!", self.name);
+            loop {
+                match inbox.next().await {
+                    Some((m, r)) => r.respond({
+                        let count = self.counter.unwrap().fetch_add(1, Ordering::SeqCst);
+                        log::info!("[{}] hello {}: {}", self.name, m.0, count);
+                    }),
+                    _ => {}
+                }
+            }
         }
     }
 }

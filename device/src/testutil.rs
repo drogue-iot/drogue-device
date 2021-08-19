@@ -1,9 +1,8 @@
 use crate::actors::button::{ButtonEvent, FromButtonEvent};
 use crate::kernel::{
-    actor::{Actor, ActorContext, ActorSpawner},
+    actor::{Actor, ActorContext, ActorSpawner, Inbox},
     device::DeviceContext,
     signal::SignalSlot,
-    util::ImmediateFuture,
 };
 use core::cell::RefCell;
 use core::future::Future;
@@ -110,15 +109,18 @@ impl DummyActor {
 
 impl Actor for DummyActor {
     type Message<'m> = TestMessage;
-    type OnStartFuture<'m> = ImmediateFuture;
-    type OnMessageFuture<'m> = ImmediateFuture;
-
-    fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-        ImmediateFuture::new()
-    }
-
-    fn on_message<'m>(self: Pin<&'m mut Self>, _: Self::Message<'m>) -> Self::OnMessageFuture<'m> {
-        ImmediateFuture::new()
+    #[rustfmt::skip]
+    type OnStartFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
+    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
+        async move {
+            loop {
+                let (_, r) = inbox.next().await.unwrap();
+                r.respond(());
+            }
+        }
     }
 }
 
@@ -136,19 +138,19 @@ impl TestHandler {
 impl Actor for TestHandler {
     type Configuration = ();
     type Message<'m> = TestMessage;
-    type OnStartFuture<'m> = ImmediateFuture;
-    type OnMessageFuture<'m> = ImmediateFuture;
-
-    fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-        ImmediateFuture::new()
-    }
-
-    fn on_message<'m>(
-        self: Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
-        self.on_message.signal(message);
-        ImmediateFuture::new()
+    #[rustfmt::skip]
+    type OnStartFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
+    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
+        async move {
+            loop {
+                let (message, responder) = inbox.next().await.unwrap();
+                self.on_message.signal(message);
+                responder.respond(());
+            }
+        }
     }
 }
 
@@ -382,17 +384,8 @@ impl Driver for TimeDriver {
 }
 
 // Perform a process step for an Actor, processing a single message
-pub fn step_actor<A: Actor + Unpin, const QUEUE_SIZE: usize>(
-    actor: &'static ActorContext<'static, A, QUEUE_SIZE>,
-) where
-    [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
-{
+pub fn step_actor(actor_fut: &mut impl Future<Output = ()>) {
     let waker = futures::task::noop_waker_ref();
     let mut cx = std::task::Context::from_waker(waker);
-    let mut actor_fut = actor.process();
-    while unsafe {
-        Pin::new_unchecked(&mut actor_fut)
-            .poll(&mut cx)
-            .is_pending()
-    } {}
+    let _ = unsafe { Pin::new_unchecked(&mut *actor_fut) }.poll(&mut cx);
 }

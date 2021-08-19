@@ -1,7 +1,4 @@
-use crate::kernel::{
-    actor::{Actor, Address},
-    util::ImmediateFuture,
-};
+use crate::kernel::actor::{Actor, Address, Inbox};
 use core::future::Future;
 use core::pin::Pin;
 use embassy::traits::gpio::WaitForAnyEdge;
@@ -45,15 +42,16 @@ impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Messag
 {
     type Configuration = Address<'a, A>;
     #[rustfmt::skip]
-    type OnStartFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where 'a: 'm = ImmediateFuture;
+    type OnStartFuture<'m, M> where 'a: 'm, M: 'm = impl Future<Output = ()> + 'm;
 
     fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
         self.handler.replace(config);
     }
 
-    fn on_start(mut self: Pin<&mut Self>) -> Self::OnStartFuture<'_> {
+    fn on_start<'m, M>(mut self: Pin<&'m mut Self>, _: &'m mut M) -> Self::OnStartFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         async move {
             loop {
                 trace!("Button wait for edge");
@@ -74,9 +72,5 @@ impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Messag
                 }
             }
         }
-    }
-
-    fn on_message<'m>(self: Pin<&'m mut Self>, _: Self::Message<'m>) -> Self::OnMessageFuture<'m> {
-        ImmediateFuture::new()
     }
 }

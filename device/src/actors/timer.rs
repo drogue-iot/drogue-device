@@ -1,7 +1,4 @@
-use crate::kernel::{
-    actor::{Actor, Address},
-    util::ImmediateFuture,
-};
+use crate::kernel::actor::{Actor, Address, Inbox};
 use core::future::Future;
 use core::pin::Pin;
 use embassy::time;
@@ -41,26 +38,24 @@ impl<'a, A: Actor + 'a> Actor for Timer<'a, A> {
     #[rustfmt::skip]
     type Message<'m> where 'a: 'm = TimerMessage<'m, A>;
     #[rustfmt::skip]
-    type OnStartFuture<'m> where 'a: 'm = ImmediateFuture;
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
+    type OnStartFuture<'m, M> where 'a: 'm, M: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_start(self: Pin<&mut Self>) -> Self::OnStartFuture<'_> {
-        ImmediateFuture::new()
-    }
-
-    fn on_message<'m>(
-        self: Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
+    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         async move {
-            match message {
-                TimerMessage::Delay(dur) => {
-                    time::Timer::after(dur).await;
-                }
-                TimerMessage::Schedule(dur, address, mut message) => {
-                    time::Timer::after(dur).await;
-                    let _ = address.notify(message.take().unwrap());
+            loop {
+                if let Some((message, responder)) = inbox.next().await {
+                    responder.respond(match message {
+                        TimerMessage::Delay(dur) => {
+                            time::Timer::after(dur).await;
+                        }
+                        TimerMessage::Schedule(dur, address, mut message) => {
+                            time::Timer::after(dur).await;
+                            let _ = address.notify(message.take().unwrap());
+                        }
+                    });
                 }
             }
         }

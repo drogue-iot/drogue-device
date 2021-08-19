@@ -2,7 +2,7 @@ use super::{
     signal::{SignalFuture, SignalSlot},
     util::ImmediateFuture,
 };
-use core::cell::{RefCell, UnsafeCell};
+use core::cell::UnsafeCell;
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
@@ -46,27 +46,49 @@ pub trait Actor: Sized {
     /// in the implementation.
     ///
     /// The default type returns the ImmediateFuture that is ready immediately.
-    type OnStartFuture<'a>: Future<Output = ()>
+    type OnStartFuture<'m, M>: Future<Output = ()>
     where
-        Self: 'a,
+        Self: 'm,
+        M: 'm,
     = ImmediateFuture;
 
-    /// Called when an actor is started, before it can process messages
-    fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_>;
-
-    /// The future type returned in `on_message`, usually derived from an `async move` block
-    /// in the implementation. The return value of the future must be of the Response associated
-    /// type.
-    type OnMessageFuture<'a>: Future<Output = Self::Response>
+    /// Called when an actor is started. An inbox is provided that the actor can use to await
+    /// messages.
+    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
-        Self: 'a;
+        M: Inbox<'m, Self>;
+}
 
-    /// Handle an incoming message for this actor. The return value of the future must be of the
-    /// Response associated type.
-    fn on_message<'m>(
-        self: Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m>;
+pub trait Inbox<'a, A>
+where
+    A: Actor + 'a,
+{
+    #[rustfmt::skip]
+    type NextFuture<'m>: Future<Output = Option<(A::Message<'m>, Responder<A>)>> where Self: 'm, 'a: 'm;
+    fn next<'m>(&'m mut self) -> Self::NextFuture<'m>;
+}
+
+impl<'a, A: Actor + 'static, const QUEUE_SIZE: usize> Inbox<'a, A>
+    for Receiver<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>
+{
+    #[rustfmt::skip]
+    type NextFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Option<(A::Message<'m>, Responder<A>)>> + 'm;
+    fn next<'m>(&'m mut self) -> Self::NextFuture<'m> {
+        async move {
+            let message = self.recv().await;
+            message.map(|m| match m {
+                // Safety: This is OK because 'a > 'm
+                ActorMessage::Request(message, signal) => (
+                    unsafe { core::mem::transmute_copy(&message) },
+                    Responder::new(signal),
+                ),
+                ActorMessage::Notify(message) => (
+                    unsafe { core::mem::transmute_copy(&message) },
+                    Responder::empty(),
+                ),
+            })
+        }
+    }
 }
 
 /// A handle to another actor for dispatching messages.
@@ -171,6 +193,12 @@ impl<'a, T, const QUEUE_SIZE: usize> MessageChannel<'a, T, QUEUE_SIZE> {
             .unwrap();
         receiver.recv()
     }
+
+    pub fn inbox(&self) -> &mut Receiver<'a, ActorMutex, T, QUEUE_SIZE> {
+        unsafe { &mut *self.channel_receiver.get() }
+            .as_mut()
+            .unwrap()
+    }
 }
 
 #[derive(Debug)]
@@ -214,37 +242,6 @@ impl ActorSpawner for Spawner {
     }
 }
 
-enum ActorState<'a, A: Actor + 'static, const QUEUE_SIZE: usize>
-where
-    A: Actor + 'static,
-{
-    Idle,
-    Start(A::OnStartFuture<'a>),
-    Process,
-    Receive(RecvFuture<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>),
-    Request(A::OnMessageFuture<'a>, *const SignalSlot<A::Response>),
-    Notify(A::OnMessageFuture<'a>),
-}
-
-pub struct ActorFuture<'a, A, const QUEUE_SIZE: usize>
-where
-    A: Actor + 'static,
-    [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
-{
-    context: &'a ActorContext<'a, A, QUEUE_SIZE>,
-}
-
-impl<'a, A, const QUEUE_SIZE: usize> Future for ActorFuture<'a, A, QUEUE_SIZE>
-where
-    A: Actor + 'static,
-    [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
-{
-    type Output = ();
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.context.poll(cx)
-    }
-}
-
 /// A context for an actor, providing signal and message queue. The QUEUE_SIZE parameter
 /// is a const generic parameter, and controls how many messages an Actor can handle.
 #[rustfmt::skip]
@@ -253,8 +250,8 @@ where
     A: Actor + 'static,
     [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
 {
-    task: Task<ActorFuture<'static, A, QUEUE_SIZE>>,
-    state: RefCell<Option<ActorState<'a, A, QUEUE_SIZE>>>,
+
+    task: Task<A::OnStartFuture<'static, Receiver<'static, ActorMutex, ActorMessage<'static, A>, QUEUE_SIZE>>>,
     actor: UnsafeCell<A>,
     channel: MessageChannel<'a, ActorMessage<'a, A>, QUEUE_SIZE>,
     // NOTE: This wastes an extra signal because heapless requires at least 2 slots and
@@ -304,7 +301,6 @@ where
     pub fn new(actor: A) -> Self {
         Self {
             task: Task::new(),
-            state: RefCell::new(Some(ActorState::Idle)),
             actor: UnsafeCell::new(actor),
             channel: MessageChannel::new(),
             signals: UnsafeCell::new(Default::default()),
@@ -338,102 +334,31 @@ where
         address
     }
 
-    pub(crate) fn spawn(&'static self) -> SpawnToken<ActorFuture<'static, A, QUEUE_SIZE>> {
+    pub(crate) fn spawn(
+        &'static self,
+    ) -> SpawnToken<
+        A::OnStartFuture<'static, Receiver<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>>,
+    > {
         let task = &self.task;
-        let future = ActorFuture { context: self };
-        let token = Task::spawn(task, move || future);
-        token
+        let inbox = self.channel.inbox();
+        let me = unsafe { Pin::new_unchecked(&mut *self.actor.get()) };
+        let future = me.on_start(inbox);
+        Task::spawn(task, move || future)
     }
 
-    // Poll this actor to make progress
-    pub(crate) fn poll(&'a self, cx: &mut Context<'_>) -> Poll<()> {
-        loop {
-            let mut state = self.state.borrow_mut();
-            match state.as_mut().unwrap() {
-                ActorState::Idle => {
-                    let fut = unsafe { Pin::new_unchecked(&mut *self.actor.get()) }.on_start();
-                    state.replace(ActorState::Start(fut));
-                }
-                ActorState::Start(fut) => {
-                    let r = unsafe { Pin::new_unchecked(fut) }.poll(cx);
-                    if r.is_pending() {
-                        return Poll::Pending;
-                    } else {
-                        state.replace(ActorState::Process);
-                    }
-                }
-                ActorState::Process => {
-                    state.replace(ActorState::Receive(self.channel.receive()));
-                }
-                ActorState::Receive(fut) => {
-                    let r = unsafe { Pin::new_unchecked(fut) }.poll(cx);
-                    match r {
-                        Poll::Pending => {
-                            return Poll::Pending;
-                        }
-                        Poll::Ready(message) => match message.unwrap() {
-                            ActorMessage::Request(message, signal) => {
-                                let fut = unsafe { Pin::new_unchecked(&mut *self.actor.get()) }
-                                    .on_message(message);
-                                state.replace(ActorState::Request(fut, signal));
-                            }
-                            ActorMessage::Notify(message) => {
-                                let fut = unsafe { Pin::new_unchecked(&mut *self.actor.get()) }
-                                    .on_message(message);
-                                state.replace(ActorState::Notify(fut));
-                            }
-                        },
-                    }
-                }
-                ActorState::Request(fut, signal) => {
-                    let r = unsafe { Pin::new_unchecked(fut) }.poll(cx);
-                    match r {
-                        Poll::Pending => {
-                            return Poll::Pending;
-                        }
-                        Poll::Ready(value) => {
-                            unsafe { &**signal }.signal(value);
-                            state.replace(ActorState::Process);
-                        }
-                    }
-                }
-                ActorState::Notify(fut) => {
-                    let r = unsafe { Pin::new_unchecked(fut) }.poll(cx);
-                    if r.is_pending() {
-                        return Poll::Pending;
-                    } else {
-                        state.replace(ActorState::Process);
-                    }
-                }
-            }
-        }
-    }
-
-    // Used by test framework
-    pub(crate) async fn process(&'a self) {
-        // crate::log_stack!();
+    pub(crate) fn start(
+        &'a self,
+    ) -> A::OnStartFuture<'static, Receiver<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>> {
         let actor = unsafe { Pin::new_unchecked(&mut *self.actor.get()) };
-        match self.channel.receive().await.unwrap() {
-            ActorMessage::Request(message, signal) => {
-                // crate::log_stack!();
-                let value = actor.on_message(message).await;
-                unsafe { &*signal }.signal(value);
-            }
-            ActorMessage::Notify(message) => {
-                // crate::log_stack!();
-                actor.on_message(message).await;
-            }
-        }
+        let inbox = self.channel.inbox();
+        actor.on_start(inbox)
     }
 
-    pub async fn run(&'a self) {
-        let actor = unsafe { Pin::new_unchecked(&mut *self.actor.get()) };
-        actor.on_start().await;
-        loop {
-            self.process().await;
-        }
+    pub async fn run(&'static self) {
+        self.start().await;
     }
 }
+
 pub struct RequestFuture<'a, A: Actor + 'a> {
     signal: SignalFuture<'a, A::Response>,
     bomb: Option<DropBomb>,
@@ -478,9 +403,46 @@ impl<T> From<mpsc::TrySendError<T>> for ActorError {
     }
 }
 
-pub enum ActorMessage<'m, A: Actor + 'm> {
+pub(crate) enum ActorMessage<'m, A: Actor + 'm> {
     Request(A::Message<'m>, *const SignalSlot<A::Response>),
     Notify(A::Message<'m>),
+}
+
+#[must_use]
+pub struct Responder<A>
+where
+    A: Actor,
+{
+    bomb: Option<DropBomb>,
+    signal: Option<*const SignalSlot<A::Response>>,
+}
+
+impl<A> Responder<A>
+where
+    A: Actor,
+{
+    pub fn new(signal: *const SignalSlot<A::Response>) -> Self {
+        Self {
+            bomb: Some(DropBomb::new()),
+            signal: Some(signal),
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            bomb: None,
+            signal: None,
+        }
+    }
+
+    pub fn respond(self, response: A::Response) {
+        if let Some(bomb) = self.bomb {
+            bomb.defuse();
+        }
+        if let Some(signal) = self.signal {
+            unsafe { &*signal }.signal(response);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -502,7 +464,8 @@ mod tests {
         assert!(result_1.is_ok());
         assert!(result_2.is_err());
 
-        step_actor(actor);
+        let mut actor_fut = actor.start();
+        step_actor(&mut actor_fut);
         let result_2 = address.notify(TestMessage(1));
         assert!(result_2.is_ok());
     }
@@ -525,8 +488,10 @@ mod tests {
 
         let mut fut_1 = result_fut_1.unwrap();
 
+        let mut actor_fut = actor.start();
+
         while Pin::new(&mut fut_1).poll(&mut cx).is_pending() {
-            step_actor(actor);
+            step_actor(&mut actor_fut);
         }
 
         let result_fut_2 = address.request(TestMessage(1));
@@ -534,7 +499,7 @@ mod tests {
 
         let mut fut_2 = result_fut_2.unwrap();
         while Pin::new(&mut fut_2).poll(&mut cx).is_pending() {
-            step_actor(actor);
+            step_actor(&mut actor_fut);
         }
     }
 }

@@ -6,7 +6,7 @@ mod buffer;
 mod parser;
 mod protocol;
 use crate::{
-    kernel::actor::{Actor, Address},
+    kernel::actor::{Actor, Address, Inbox},
     traits::lora::*,
 };
 
@@ -395,114 +395,6 @@ impl<'a> Rak811Controller<'a> {
         Ok(())
     }
 }
-/*
-/// Transmit data using the specified confirmation mode and given port.
-pub fn send(&mut self, qos: QoS, port: Port, data: &[u8]) -> Result<(), DriverError> {
-
-}
-
-/// Poll for any received data and copy it to the provided buffer. If data have been received,
-/// the length of the data is returned.
-pub fn try_recv(&mut self, port: Port, rx_buf: &mut [u8]) -> Result<usize, DriverError> {
-    self.digest()?;
-    let mut tries = self.rxq.len();
-    while tries > 0 {
-        match self.rxq.dequeue() {
-            None => return Ok(0),
-            Some(Response::Recv(EventCode::RecvData, p, len, Some(data))) if p == port => {
-                if len > rx_buf.len() {
-                    self.rxq
-                        .enqueue(Response::Recv(EventCode::RecvData, p, len, Some(data)))
-                        .map_err(|_| DriverError::ReadError)?;
-                }
-
-                rx_buf[0..len].clone_from_slice(&data);
-                return Ok(len);
-            }
-            Some(event) => {
-                self.rxq
-                    .enqueue(event)
-                    .map_err(|_| DriverError::ReadError)?;
-            }
-        }
-        tries -= 1;
-    }
-    Ok(0)
-}
-
-/// Attempt to read data from UART and store it in the parse buffer. This should
-/// be invoked whenever data should be read.
-pub fn process(&mut self) -> Result<(), DriverError> {
-    loop {
-        match self.rx.read() {
-            Err(nb::Error::WouldBlock) => {
-                break;
-            }
-            Err(nb::Error::Other(_)) => return Err(DriverError::ReadError),
-            Ok(b) => {
-                self.parse_buffer
-                    .write(b)
-                    .map_err(|_| DriverError::ReadError)?;
-            }
-        }
-    }
-    Ok(())
-}
-
-/// Attempt to parse the internal buffer and enqueue any response data found.
-pub fn digest(&mut self) -> Result<(), DriverError> {
-    let result = self.parse_buffer.parse();
-    if let Ok(response) = result {
-        if !matches!(response, Response::None) {
-            debug!("Got response: {:?}", response);
-            self.rxq
-                .enqueue(response)
-                .map_err(|_| DriverError::ReadError)?;
-        }
-    }
-    Ok(())
-}
-
-// Block until a response is received.
-fn recv_response(&mut self) -> Result<Response, DriverError> {
-    loop {
-        // Run processing to increase likelyhood we have something to parse.
-        for _ in 0..1000 {
-            self.process()?;
-        }
-        self.digest()?;
-        if let Some(response) = self.rxq.dequeue() {
-            return Ok(response);
-        }
-    }
-}
-
-fn do_write(&mut self, buf: &[u8]) -> Result<(), DriverError> {
-    for b in buf.iter() {
-        match self.tx.write(*b) {
-            Err(nb::Error::WouldBlock) => {
-                nb::block!(self.tx.flush()).map_err(|_| DriverError::WriteError)?;
-            }
-            Err(_) => return Err(DriverError::WriteError),
-            _ => {}
-        }
-    }
-    nb::block!(self.tx.flush()).map_err(|_| DriverError::WriteError)?;
-    Ok(())
-}
-
-/// Send an AT command to the lora module and await a response.
-pub fn send_command(&mut self, command: Command) -> Result<Response, DriverError> {
-    let mut s = Command::buffer();
-    command.encode(&mut s);
-    debug!("Sending command {}", s.as_str());
-    self.do_write(s.as_bytes())?;
-    self.do_write(b"\r\n")?;
-
-    let response = self.recv_response()?;
-    Ok(response)
-}
-*/
 
 /// Convenience actor implementation of modem
 pub struct Rak811ModemActor<'a, UART, RESET>
@@ -544,16 +436,15 @@ where
     }
 
     #[rustfmt::skip]
-    type OnStartFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
-    fn on_start(mut self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
+    type OnStartFuture<'m, M> where 'a: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    fn on_start<'m, M>(mut self: Pin<&'m mut Self>, _: &'m mut M) -> Self::OnStartFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         async move {
-            self.modem.as_mut().unwrap().run().await;
+            loop {
+                self.modem.as_mut().unwrap().run().await;
+            }
         }
-    }
-
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
-    fn on_message<'m>(self: Pin<&'m mut Self>, _: Self::Message<'m>) -> Self::OnMessageFuture<'m> {
-        async move {}
     }
 }

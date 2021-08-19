@@ -1,7 +1,7 @@
 use super::AdapterActor;
 use crate::drivers::wifi::esp8266::*;
 use crate::kernel::{
-    actor::{Actor, ActorContext, ActorSpawner, Address},
+    actor::{Actor, ActorContext, ActorSpawner, Address, Inbox},
     package::*,
 };
 use core::{
@@ -118,17 +118,15 @@ where
     }
 
     #[rustfmt::skip]
-    type OnStartFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
-    fn on_start(mut self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
+    type OnStartFuture<'m, M> where 'a: 'm, M: 'm = impl Future<Output = ()> + 'm;
+
+    fn on_start<'m, M>(mut self: Pin<&'m mut Self>, _: &'m mut M) -> Self::OnStartFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         async move {
             self.modem.as_mut().unwrap().run().await;
         }
-    }
-
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
-    fn on_message<'m>(self: Pin<&'m mut Self>, _: Self::Message<'m>) -> Self::OnMessageFuture<'m> {
-        async move {}
     }
 }
 

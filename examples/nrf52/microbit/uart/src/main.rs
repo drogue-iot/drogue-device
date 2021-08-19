@@ -11,11 +11,7 @@ use statistics::*;
 
 use defmt_rtt as _;
 use drogue_device::{
-    actors::{
-        button::Button,
-        led::matrix::{LEDMatrix, MatrixCommand},
-        ticker::{Ticker, TickerCommand},
-    },
+    actors::{button::Button, led::matrix::LEDMatrix},
     ActorContext, DeviceContext,
 };
 
@@ -36,8 +32,7 @@ pub struct MyDevice {
     button: ActorContext<'static, Button<'static, PortInput<'static, P0_14>, Statistics>>,
     statistics: ActorContext<'static, Statistics>,
     server: ActorContext<'static, EchoServer<'static, Uarte<'static, UARTE0>>>,
-    ticker: ActorContext<'static, Ticker<'static, LedMatrix>, 4>,
-    matrix: ActorContext<'static, LedMatrix, 2>,
+    matrix: ActorContext<'static, LedMatrix, 1>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -74,16 +69,12 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         output_pin(p.P0_30.degrade()),
     ];
 
-    let led = LedMatrix::new(rows, cols);
+    let led = LedMatrix::new(rows, cols, Duration::from_millis(1000 / 200));
 
     DEVICE.configure(MyDevice {
         server: ActorContext::new(EchoServer::new(uarte)),
         button: ActorContext::new(Button::new(button_port)),
         statistics: ActorContext::new(Statistics::new()),
-        ticker: ActorContext::new(Ticker::new(
-            Duration::from_millis(1000 / 200),
-            MatrixCommand::Render,
-        )),
         matrix: ActorContext::new(led),
     });
 
@@ -93,8 +84,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             let statistics = device.statistics.mount((), spawner);
             device.server.mount((matrix, statistics), spawner);
             device.button.mount(statistics, spawner);
-            let ticker = device.ticker.mount(matrix, spawner);
-            ticker.notify(TickerCommand::Start).unwrap();
         })
         .await;
 }

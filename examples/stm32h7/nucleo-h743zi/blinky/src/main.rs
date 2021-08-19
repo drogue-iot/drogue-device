@@ -12,12 +12,9 @@ use core::future::Future;
 use core::pin::Pin;
 use drogue_device::actors::button::{ButtonEvent, FromButtonEvent};
 use drogue_device::actors::led::{Led, LedMessage};
-use drogue_device::{
-    actors::button::Button,
-    Actor, ActorContext, Address, DeviceContext,
-};
+use drogue_device::{actors::button::Button, Actor, ActorContext, Address, DeviceContext, Inbox};
 use embassy_stm32::dbgmcu::Dbgmcu;
-use embassy_stm32::peripherals::{PB0, PB14, PE1, PC13};
+use embassy_stm32::peripherals::{PB0, PB14, PC13, PE1};
 use embassy_stm32::{
     exti::ExtiInput,
     gpio::{Input, Level, Output, Pull, Speed},
@@ -96,33 +93,30 @@ impl Actor for App {
     }
 
     #[rustfmt::skip]
-    type OnStartFuture<'m> = impl Future<Output=()> + 'm;
-
-    fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-        async move {}
-    }
-
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> = impl Future<Output=()> + 'm;
-
-    fn on_message<'m>(
-        mut self: Pin<&'m mut Self>,
-        _message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
+    type OnStartFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
+    fn on_start<'m, M>(mut self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         async move {
-            match self.color {
-                None | Some(Color::Red) => {
-                    self.color = Some(Color::Green);
+            loop {
+                match inbox.next().await {
+                    Some((_, r)) => r.respond(match self.color {
+                        None | Some(Color::Red) => {
+                            self.color = Some(Color::Green);
+                        }
+                        Some(Color::Green) => {
+                            self.color = Some(Color::Yellow);
+                        }
+                        Some(Color::Yellow) => {
+                            self.color = Some(Color::Red);
+                        }
+                    }),
+                    _ => {}
                 }
-                Some(Color::Green) => {
-                    self.color = Some(Color::Yellow);
-                }
-                Some(Color::Yellow) => {
-                    self.color = Some(Color::Red);
-                }
-            }
 
-            self.draw();
+                self.draw();
+            }
         }
     }
 }

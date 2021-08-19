@@ -9,7 +9,7 @@ use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
     clients::http::*,
     traits::{ip::*, tcp::*},
-    Actor, Address,
+    Actor, Address, Inbox,
 };
 pub enum Command {
     Send,
@@ -60,47 +60,51 @@ where
     type Configuration = S;
     #[rustfmt::skip]
     type Message<'m> where S: 'm = Command;
-    #[rustfmt::skip]
-    type OnStartFuture<'m> where S: 'm = impl Future<Output = ()> + 'm;
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where S: 'm = impl Future<Output = ()> + 'm;
 
     fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
         self.socket.replace(config);
     }
 
-    fn on_start<'m>(self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
-        async move {}
-    }
-
-    fn on_message<'m>(
-        self: Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
+    #[rustfmt::skip]
+    type OnStartFuture<'m, M> where S: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         async move {
-            match message {
-                Command::Send => {
-                    log::info!("Sending data");
-                    let this = unsafe { self.get_unchecked_mut() };
-                    let socket = this.socket.as_mut().unwrap();
-                    let mut client =
-                        HttpClient::new(socket, this.ip, this.port, this.username, this.password);
+            let this = unsafe { self.get_unchecked_mut() };
+            loop {
+                match inbox.next().await {
+                    Some((message, r)) => r.respond(match message {
+                        Command::Send => {
+                            log::info!("Sending data");
+                            let socket = this.socket.as_mut().unwrap();
+                            let mut client = HttpClient::new(
+                                socket,
+                                this.ip,
+                                this.port,
+                                this.username,
+                                this.password,
+                            );
 
-                    let mut rx_buf = [0; 1024];
-                    let response_len = client
-                        .post(
-                            "/v1/foo",
-                            b"Hello from Drogue",
-                            "application/plain",
-                            &mut rx_buf[..],
-                        )
-                        .await;
-                    if let Ok(response_len) = response_len {
-                        log::info!(
-                            "Response: {}",
-                            core::str::from_utf8(&rx_buf[..response_len]).unwrap()
-                        );
-                    }
+                            let mut rx_buf = [0; 1024];
+                            let response_len = client
+                                .post(
+                                    "/v1/foo",
+                                    b"Hello from Drogue",
+                                    "application/plain",
+                                    &mut rx_buf[..],
+                                )
+                                .await;
+                            if let Ok(response_len) = response_len {
+                                log::info!(
+                                    "Response: {}",
+                                    core::str::from_utf8(&rx_buf[..response_len]).unwrap()
+                                );
+                            }
+                        }
+                    }),
+                    _ => {}
                 }
             }
         }

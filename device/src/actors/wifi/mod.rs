@@ -1,5 +1,5 @@
 use crate::{
-    kernel::actor::{Actor, Address},
+    kernel::actor::{Actor, Address, Inbox},
     traits::{
         ip::{IpAddress, IpProtocol, SocketAddress},
         tcp::{TcpError, TcpStack},
@@ -180,35 +180,35 @@ impl<N: Adapter> Actor for AdapterActor<N> {
     }
 
     #[rustfmt::skip]
-    type OnStartFuture<'m> where N: 'm = impl Future<Output = ()> + 'm;
-    fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-        async move {}
-    }
-
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where N: 'm = impl Future<Output = Self::Response> + 'm;
-    fn on_message<'m>(
-        self: Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
+    type OnStartFuture<'m, M> where N: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         async move {
             let this = unsafe { self.get_unchecked_mut() };
             let driver = this.driver.as_mut().unwrap();
-            match message {
-                AdapterRequest::Join(join) => AdapterResponse::Join(driver.join(join).await),
-                AdapterRequest::Open => AdapterResponse::Open(driver.open().await),
-                AdapterRequest::Connect(handle, proto, addr) => {
-                    AdapterResponse::Connect(driver.connect(handle, proto, addr).await)
-                }
-                AdapterRequest::Write(handle, buf) => {
-                    AdapterResponse::Write(driver.write(handle, buf).await)
-                }
-                AdapterRequest::Read(handle, buf) => {
-                    AdapterResponse::Read(driver.read(handle, buf).await)
-                }
-                AdapterRequest::Close(handle) => {
-                    driver.close(handle).await;
-                    AdapterResponse::Close
+            loop {
+                if let Some((message, responder)) = inbox.next().await {
+                    responder.respond(match message {
+                        AdapterRequest::Join(join) => {
+                            AdapterResponse::Join(driver.join(join).await)
+                        }
+                        AdapterRequest::Open => AdapterResponse::Open(driver.open().await),
+                        AdapterRequest::Connect(handle, proto, addr) => {
+                            AdapterResponse::Connect(driver.connect(handle, proto, addr).await)
+                        }
+                        AdapterRequest::Write(handle, buf) => {
+                            AdapterResponse::Write(driver.write(handle, buf).await)
+                        }
+                        AdapterRequest::Read(handle, buf) => {
+                            AdapterResponse::Read(driver.read(handle, buf).await)
+                        }
+                        AdapterRequest::Close(handle) => {
+                            driver.close(handle).await;
+                            AdapterResponse::Close
+                        }
+                    });
                 }
             }
         }

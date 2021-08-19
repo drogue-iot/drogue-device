@@ -1,9 +1,11 @@
+#[cfg(feature = "time")]
 pub mod matrix;
 
 use crate::{
     actors::button::{ButtonEvent, FromButtonEvent},
-    kernel::{actor::Actor, util::ImmediateFuture},
+    kernel::{actor::Actor, actor::Inbox},
 };
+use core::future::Future;
 use core::pin::Pin;
 use embedded_hal::digital::v2::OutputPin;
 
@@ -53,32 +55,31 @@ where
     #[rustfmt::skip]
     type Message<'m> where Self: 'm = LedMessage;
     #[rustfmt::skip]
-    type OnStartFuture<'m> where Self: 'm= ImmediateFuture;
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where Self: 'm = ImmediateFuture;
+    type OnStartFuture<'m, M> where Self: 'm, M: 'm= impl Future<Output = ()> + 'm;
 
-    fn on_start(self: Pin<&mut Self>) -> Self::OnStartFuture<'_> {
-        ImmediateFuture::new()
-    }
-
-    fn on_message<'m>(
-        mut self: Pin<&'m mut Self>,
-        msg: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
-        let new_state = match msg {
-            LedMessage::On => true,
-            LedMessage::Off => false,
-            LedMessage::State(state) => state,
-            LedMessage::Toggle => !self.state,
-        };
-        if self.state != new_state {
-            self.state = new_state;
-            match self.state {
-                true => self.pin.set_high().ok(),
-                false => self.pin.set_low().ok(),
-            };
+    fn on_start<'m, M>(mut self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
+        async move {
+            loop {
+                if let Some((m, r)) = inbox.next().await {
+                    let new_state = match m {
+                        LedMessage::On => true,
+                        LedMessage::Off => false,
+                        LedMessage::State(state) => state,
+                        LedMessage::Toggle => !self.state,
+                    };
+                    if self.state != new_state {
+                        self.state = new_state;
+                        match self.state {
+                            true => self.pin.set_high().ok(),
+                            false => self.pin.set_low().ok(),
+                        };
+                    }
+                    r.respond(());
+                }
+            }
         }
-
-        ImmediateFuture::new()
     }
 }
