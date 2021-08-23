@@ -1,10 +1,11 @@
+#[cfg(feature = "time")]
 pub mod matrix;
 
 use crate::{
     actors::button::{ButtonEvent, FromButtonEvent},
-    kernel::{actor::Actor, util::ImmediateFuture},
+    kernel::{actor::Actor, actor::Address, actor::Inbox},
 };
-use core::pin::Pin;
+use core::future::Future;
 use embedded_hal::digital::v2::OutputPin;
 
 pub enum LedMessage {
@@ -53,32 +54,37 @@ where
     #[rustfmt::skip]
     type Message<'m> where Self: 'm = LedMessage;
     #[rustfmt::skip]
-    type OnStartFuture<'m> where Self: 'm= ImmediateFuture;
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where Self: 'm = ImmediateFuture;
+    type OnMountFuture<'m, M> where Self: 'm, M: 'm= impl Future<Output = ()> + 'm;
 
-    fn on_start(self: Pin<&mut Self>) -> Self::OnStartFuture<'_> {
-        ImmediateFuture::new()
-    }
-
-    fn on_message<'m>(
-        mut self: Pin<&'m mut Self>,
-        msg: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
-        let new_state = match msg {
-            LedMessage::On => true,
-            LedMessage::Off => false,
-            LedMessage::State(state) => state,
-            LedMessage::Toggle => !self.state,
-        };
-        if self.state != new_state {
-            self.state = new_state;
-            match self.state {
-                true => self.pin.set_high().ok(),
-                false => self.pin.set_low().ok(),
-            };
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
+        async move {
+            loop {
+                inbox
+                    .process(|message| {
+                        let new_state = match message {
+                            LedMessage::On => true,
+                            LedMessage::Off => false,
+                            LedMessage::State(state) => state,
+                            LedMessage::Toggle => !self.state,
+                        };
+                        if self.state != new_state {
+                            self.state = new_state;
+                            match self.state {
+                                true => self.pin.set_high().ok(),
+                                false => self.pin.set_low().ok(),
+                            };
+                        }
+                    })
+                    .await;
+            }
         }
-
-        ImmediateFuture::new()
     }
 }

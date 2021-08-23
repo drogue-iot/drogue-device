@@ -4,12 +4,11 @@
 #![feature(generic_associated_types)]
 
 use core::future::Future;
-use core::pin::Pin;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
     clients::http::*,
     traits::{ip::*, tcp::*},
-    Actor, Address,
+    Actor, Address, Inbox,
 };
 pub enum Command {
     Send,
@@ -60,47 +59,52 @@ where
     type Configuration = S;
     #[rustfmt::skip]
     type Message<'m> where S: 'm = Command;
-    #[rustfmt::skip]
-    type OnStartFuture<'m> where S: 'm = impl Future<Output = ()> + 'm;
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where S: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
+    #[rustfmt::skip]
+    type OnMountFuture<'m, M> where S: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    fn on_mount<'m, M>(
+        &'m mut self,
+        config: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         self.socket.replace(config);
-    }
-
-    fn on_start<'m>(self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
-        async move {}
-    }
-
-    fn on_message<'m>(
-        self: Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
         async move {
-            match message {
-                Command::Send => {
-                    log::info!("Sending data");
-                    let this = unsafe { self.get_unchecked_mut() };
-                    let socket = this.socket.as_mut().unwrap();
-                    let mut client =
-                        HttpClient::new(socket, this.ip, this.port, this.username, this.password);
+            loop {
+                match inbox.next().await {
+                    Some((message, r)) => r.respond(match message {
+                        Command::Send => {
+                            log::info!("Sending data");
+                            let socket = self.socket.as_mut().unwrap();
+                            let mut client = HttpClient::new(
+                                socket,
+                                self.ip,
+                                self.port,
+                                self.username,
+                                self.password,
+                            );
 
-                    let mut rx_buf = [0; 1024];
-                    let response_len = client
-                        .post(
-                            "/v1/foo",
-                            b"Hello from Drogue",
-                            "application/plain",
-                            &mut rx_buf[..],
-                        )
-                        .await;
-                    if let Ok(response_len) = response_len {
-                        log::info!(
-                            "Response: {}",
-                            core::str::from_utf8(&rx_buf[..response_len]).unwrap()
-                        );
-                    }
+                            let mut rx_buf = [0; 1024];
+                            let response_len = client
+                                .post(
+                                    "/v1/foo",
+                                    b"Hello from Drogue",
+                                    "application/plain",
+                                    &mut rx_buf[..],
+                                )
+                                .await;
+                            if let Ok(response_len) = response_len {
+                                log::info!(
+                                    "Response: {}",
+                                    core::str::from_utf8(&rx_buf[..response_len]).unwrap()
+                                );
+                            }
+                        }
+                    }),
+                    _ => {}
                 }
             }
         }

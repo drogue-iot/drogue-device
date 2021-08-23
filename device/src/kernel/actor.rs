@@ -1,14 +1,11 @@
-use super::{
-    signal::{SignalFuture, SignalSlot},
-    util::ImmediateFuture,
-};
-use core::cell::{RefCell, UnsafeCell};
+use super::signal::{SignalFuture, SignalSlot};
+use core::cell::UnsafeCell;
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
 use embassy::{
-    executor::{raw::Task, SpawnError, SpawnToken, Spawner},
+    executor::{raw::Task, SpawnError, Spawner},
     util::{
         mpsc::{self, Channel, Receiver, RecvFuture, Sender, WithNoThreads},
         DropBomb,
@@ -35,38 +32,90 @@ pub trait Actor: Sized {
     /// The response type that this actor will return in `on_message`.
     type Response: Sized + Send = ();
 
-    /// Called to mount an actor into the system.
-    ///
-    /// The actor will be presented with both its own `Address<...>`.
-    ///
-    /// The default implementation does nothing.
-    fn on_mount(&mut self, _: Address<'static, Self>, _: Self::Configuration) {}
-
-    /// The future type returned in `on_start`, usually derived from an `async move` block
+    /// The future type returned in `on_mount`, usually derived from an `async move` block
     /// in the implementation.
-    ///
-    /// The default type returns the ImmediateFuture that is ready immediately.
-    type OnStartFuture<'a>: Future<Output = ()>
+    type OnMountFuture<'m, M>: Future<Output = ()>
     where
-        Self: 'a,
-    = ImmediateFuture;
+        Self: 'm,
+        M: 'm;
 
-    /// Called when an actor is started, before it can process messages
-    fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_>;
-
-    /// The future type returned in `on_message`, usually derived from an `async move` block
-    /// in the implementation. The return value of the future must be of the Response associated
-    /// type.
-    type OnMessageFuture<'a>: Future<Output = Self::Response>
+    /// Called when an actor is mounted into the system. The actor will be presented with its expected
+    /// configuration, address and an inbox to pull messages from.
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Self::Configuration,
+        _: Address<'static, Self>,
+        _: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
-        Self: 'a;
+        M: Inbox<'m, Self> + 'm;
+}
 
-    /// Handle an incoming message for this actor. The return value of the future must be of the
-    /// Response associated type.
-    fn on_message<'m>(
-        self: Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m>;
+pub trait Inbox<'a, A>
+where
+    A: Actor + 'a,
+{
+    #[rustfmt::skip]
+    type NextFuture<'m>: Future<Output = Option<(A::Message<'m>, Responder<A>)>> where Self: 'm, 'a: 'm;
+    fn next<'m>(&'m mut self) -> Self::NextFuture<'m>;
+
+    #[rustfmt::skip]
+    type ProcessFuture<'m, F>: Future<Output = ()> where F: 'm, Self: 'm, 'a: 'm;
+    fn process<'m, F: FnMut(A::Message<'m>) -> A::Response + 'm>(
+        &'m mut self,
+        f: F,
+    ) -> Self::ProcessFuture<'m, F>
+    where
+        'a: 'm;
+}
+
+impl<'a, A: Actor + 'static, const QUEUE_SIZE: usize> Inbox<'a, A>
+    for Receiver<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>
+{
+    #[rustfmt::skip]
+    type NextFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Option<(A::Message<'m>, Responder<A>)>> + 'm;
+    fn next<'m>(&'m mut self) -> Self::NextFuture<'m> {
+        async move {
+            // Safety: This is OK because 'a > 'm and we're doing this to ensure
+            // processing loop doesn't abuse the 'fake' lifetime while stored on the queue.
+            self.recv().await.map(|m| match m {
+                ActorMessage::Request(message, signal) => unsafe {
+                    (core::mem::transmute_copy(&message), Responder::new(signal))
+                },
+                ActorMessage::Notify(message) => unsafe {
+                    (core::mem::transmute_copy(&message), Responder::empty())
+                },
+            })
+        }
+    }
+
+    #[rustfmt::skip]
+    type ProcessFuture<'m, F> where 'a: 'm, A: 'm, F: 'm, = impl Future<Output = ()> + 'm;
+    fn process<'m, F: FnMut(A::Message<'m>) -> A::Response + 'm>(
+        &'m mut self,
+        mut f: F,
+    ) -> Self::ProcessFuture<'m, F>
+    where
+        'a: 'm,
+    {
+        async move {
+            if let Some(m) = self.recv().await {
+                match m {
+                    // Safety: This is OK because 'a > 'm and we're doing this to ensure
+                    // processing loop doesn't abuse the 'fake' lifetime while stored on the queue.
+                    ActorMessage::Request(message, signal) => {
+                        let message = unsafe { core::mem::transmute_copy(&message) };
+                        let response = f(message);
+                        unsafe { &*signal }.signal(response);
+                    }
+                    ActorMessage::Notify(message) => {
+                        let message = unsafe { core::mem::transmute_copy(&message) };
+                        let _ = f(message);
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// A handle to another actor for dispatching messages.
@@ -171,6 +220,12 @@ impl<'a, T, const QUEUE_SIZE: usize> MessageChannel<'a, T, QUEUE_SIZE> {
             .unwrap();
         receiver.recv()
     }
+
+    pub fn inbox(&self) -> &mut Receiver<'a, ActorMutex, T, QUEUE_SIZE> {
+        unsafe { &mut *self.channel_receiver.get() }
+            .as_mut()
+            .unwrap()
+    }
 }
 
 #[derive(Debug)]
@@ -194,54 +249,20 @@ pub enum SignalError {
 }
 
 pub trait ActorSpawner: Clone + Copy {
-    fn start<A: Actor, const QUEUE_SIZE: usize>(
+    fn spawn<F: Future<Output = ()> + 'static>(
         &self,
-        actor: &'static ActorContext<'static, A, QUEUE_SIZE>,
-    ) -> Result<(), SpawnError>
-    where
-        [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default;
+        task: &'static Task<F>,
+        future: F,
+    ) -> Result<(), SpawnError>;
 }
 
 impl ActorSpawner for Spawner {
-    fn start<A: Actor, const QUEUE_SIZE: usize>(
+    fn spawn<F: Future<Output = ()> + 'static>(
         &self,
-        actor: &'static ActorContext<'static, A, QUEUE_SIZE>,
-    ) -> Result<(), SpawnError>
-    where
-        [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
-    {
-        self.spawn(actor.spawn())
-    }
-}
-
-enum ActorState<'a, A: Actor + 'static, const QUEUE_SIZE: usize>
-where
-    A: Actor + 'static,
-{
-    Idle,
-    Start(A::OnStartFuture<'a>),
-    Process,
-    Receive(RecvFuture<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>),
-    Request(A::OnMessageFuture<'a>, *const SignalSlot<A::Response>),
-    Notify(A::OnMessageFuture<'a>),
-}
-
-pub struct ActorFuture<'a, A, const QUEUE_SIZE: usize>
-where
-    A: Actor + 'static,
-    [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
-{
-    context: &'a ActorContext<'a, A, QUEUE_SIZE>,
-}
-
-impl<'a, A, const QUEUE_SIZE: usize> Future for ActorFuture<'a, A, QUEUE_SIZE>
-where
-    A: Actor + 'static,
-    [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
-{
-    type Output = ();
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.context.poll(cx)
+        task: &'static Task<F>,
+        future: F,
+    ) -> Result<(), SpawnError> {
+        Spawner::spawn(self, Task::spawn(task, move || future))
     }
 }
 
@@ -253,8 +274,8 @@ where
     A: Actor + 'static,
     [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
 {
-    task: Task<ActorFuture<'static, A, QUEUE_SIZE>>,
-    state: RefCell<Option<ActorState<'a, A, QUEUE_SIZE>>>,
+
+    task: Task<A::OnMountFuture<'static, Receiver<'static, ActorMutex, ActorMessage<'static, A>, QUEUE_SIZE>>>,
     actor: UnsafeCell<A>,
     channel: MessageChannel<'a, ActorMessage<'a, A>, QUEUE_SIZE>,
     // NOTE: This wastes an extra signal because heapless requires at least 2 slots and
@@ -304,7 +325,6 @@ where
     pub fn new(actor: A) -> Self {
         Self {
             task: Task::new(),
-            state: RefCell::new(Some(ActorState::Idle)),
             actor: UnsafeCell::new(actor),
             channel: MessageChannel::new(),
             signals: UnsafeCell::new(Default::default()),
@@ -330,110 +350,32 @@ where
         config: A::Configuration,
         spawner: S,
     ) -> Address<'a, A> {
-        let address = Address::new(self);
-        unsafe { &mut *self.actor.get() }.on_mount(address, config);
         self.channel.initialize();
 
-        spawner.start(self).unwrap();
+        let inbox = self.channel.inbox();
+        let address = Address::new(self);
+        let future = unsafe { &mut *self.actor.get() }.on_mount(config, address, inbox);
+        let task = &self.task;
+        // TODO: Map to error?
+        spawner.spawn(task, future).unwrap();
         address
     }
 
-    pub(crate) fn spawn(&'static self) -> SpawnToken<ActorFuture<'static, A, QUEUE_SIZE>> {
-        let task = &self.task;
-        let future = ActorFuture { context: self };
-        let token = Task::spawn(task, move || future);
-        token
-    }
-
-    // Poll this actor to make progress
-    pub(crate) fn poll(&'a self, cx: &mut Context<'_>) -> Poll<()> {
-        loop {
-            let mut state = self.state.borrow_mut();
-            match state.as_mut().unwrap() {
-                ActorState::Idle => {
-                    let fut = unsafe { Pin::new_unchecked(&mut *self.actor.get()) }.on_start();
-                    state.replace(ActorState::Start(fut));
-                }
-                ActorState::Start(fut) => {
-                    let r = unsafe { Pin::new_unchecked(fut) }.poll(cx);
-                    if r.is_pending() {
-                        return Poll::Pending;
-                    } else {
-                        state.replace(ActorState::Process);
-                    }
-                }
-                ActorState::Process => {
-                    state.replace(ActorState::Receive(self.channel.receive()));
-                }
-                ActorState::Receive(fut) => {
-                    let r = unsafe { Pin::new_unchecked(fut) }.poll(cx);
-                    match r {
-                        Poll::Pending => {
-                            return Poll::Pending;
-                        }
-                        Poll::Ready(message) => match message.unwrap() {
-                            ActorMessage::Request(message, signal) => {
-                                let fut = unsafe { Pin::new_unchecked(&mut *self.actor.get()) }
-                                    .on_message(message);
-                                state.replace(ActorState::Request(fut, signal));
-                            }
-                            ActorMessage::Notify(message) => {
-                                let fut = unsafe { Pin::new_unchecked(&mut *self.actor.get()) }
-                                    .on_message(message);
-                                state.replace(ActorState::Notify(fut));
-                            }
-                        },
-                    }
-                }
-                ActorState::Request(fut, signal) => {
-                    let r = unsafe { Pin::new_unchecked(fut) }.poll(cx);
-                    match r {
-                        Poll::Pending => {
-                            return Poll::Pending;
-                        }
-                        Poll::Ready(value) => {
-                            unsafe { &**signal }.signal(value);
-                            state.replace(ActorState::Process);
-                        }
-                    }
-                }
-                ActorState::Notify(fut) => {
-                    let r = unsafe { Pin::new_unchecked(fut) }.poll(cx);
-                    if r.is_pending() {
-                        return Poll::Pending;
-                    } else {
-                        state.replace(ActorState::Process);
-                    }
-                }
-            }
-        }
-    }
-
-    // Used by test framework
-    pub(crate) async fn process(&'a self) {
-        // crate::log_stack!();
-        let actor = unsafe { Pin::new_unchecked(&mut *self.actor.get()) };
-        match self.channel.receive().await.unwrap() {
-            ActorMessage::Request(message, signal) => {
-                // crate::log_stack!();
-                let value = actor.on_message(message).await;
-                unsafe { &*signal }.signal(value);
-            }
-            ActorMessage::Notify(message) => {
-                // crate::log_stack!();
-                actor.on_message(message).await;
-            }
-        }
-    }
-
-    pub async fn run(&'a self) {
-        let actor = unsafe { Pin::new_unchecked(&mut *self.actor.get()) };
-        actor.on_start().await;
-        loop {
-            self.process().await;
-        }
+    pub(crate) fn initialize(
+        &'static self,
+        config: A::Configuration,
+    ) -> (
+        Address<'static, A>,
+        A::OnMountFuture<'static, Receiver<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>>,
+    ) {
+        self.channel.initialize();
+        let inbox = self.channel.inbox();
+        let address = Address::new(self);
+        let future = unsafe { &mut *self.actor.get() }.on_mount(config, address, inbox);
+        (address, future)
     }
 }
+
 pub struct RequestFuture<'a, A: Actor + 'a> {
     signal: SignalFuture<'a, A::Response>,
     bomb: Option<DropBomb>,
@@ -478,9 +420,46 @@ impl<T> From<mpsc::TrySendError<T>> for ActorError {
     }
 }
 
-pub enum ActorMessage<'m, A: Actor + 'm> {
+pub(crate) enum ActorMessage<'m, A: Actor + 'm> {
     Request(A::Message<'m>, *const SignalSlot<A::Response>),
     Notify(A::Message<'m>),
+}
+
+#[must_use]
+pub struct Responder<A>
+where
+    A: Actor,
+{
+    bomb: Option<DropBomb>,
+    signal: Option<*const SignalSlot<A::Response>>,
+}
+
+impl<A> Responder<A>
+where
+    A: Actor,
+{
+    pub fn new(signal: *const SignalSlot<A::Response>) -> Self {
+        Self {
+            bomb: Some(DropBomb::new()),
+            signal: Some(signal),
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            bomb: None,
+            signal: None,
+        }
+    }
+
+    pub fn respond(self, response: A::Response) {
+        if let Some(bomb) = self.bomb {
+            bomb.defuse();
+        }
+        if let Some(signal) = self.signal {
+            unsafe { &*signal }.signal(response);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -490,11 +469,10 @@ mod tests {
 
     #[test]
     fn test_multiple_notifications() {
-        let spawner = TestSpawner::new();
         let actor: &'static mut ActorContext<'static, DummyActor, 1> =
             Box::leak(Box::new(ActorContext::new(DummyActor::new())));
 
-        let address = actor.mount((), spawner);
+        let (address, mut actor_fut) = actor.initialize(());
 
         let result_1 = address.notify(TestMessage(0));
         let result_2 = address.notify(TestMessage(1));
@@ -502,18 +480,17 @@ mod tests {
         assert!(result_1.is_ok());
         assert!(result_2.is_err());
 
-        step_actor(actor);
+        step_actor(&mut actor_fut);
         let result_2 = address.notify(TestMessage(1));
         assert!(result_2.is_ok());
     }
 
     #[test]
     fn test_multiple_requests() {
-        let spawner = TestSpawner::new();
         let actor: &'static mut ActorContext<'static, DummyActor, 1> =
             Box::leak(Box::new(ActorContext::new(DummyActor::new())));
 
-        let address = actor.mount((), spawner);
+        let (address, mut actor_fut) = actor.initialize(());
 
         let result_fut_1 = address.request(TestMessage(0));
         let result_fut_2 = address.request(TestMessage(1));
@@ -526,7 +503,7 @@ mod tests {
         let mut fut_1 = result_fut_1.unwrap();
 
         while Pin::new(&mut fut_1).poll(&mut cx).is_pending() {
-            step_actor(actor);
+            step_actor(&mut actor_fut);
         }
 
         let result_fut_2 = address.request(TestMessage(1));
@@ -534,7 +511,7 @@ mod tests {
 
         let mut fut_2 = result_fut_2.unwrap();
         while Pin::new(&mut fut_2).poll(&mut cx).is_pending() {
-            step_actor(actor);
+            step_actor(&mut actor_fut);
         }
     }
 }

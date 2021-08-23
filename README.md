@@ -47,22 +47,29 @@ pub struct Increment;
 impl Actor for Counter {
     type Message<'a> = Increment;
 
-    /// The on_start method is called before any messages are processed for the
-    /// Actor, and can be used to write actors that never process messages.
-    type OnStartFuture<'a> = impl core::future::Future<Output = ()> + 'a;
-    fn on_start(self: core::pin::Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-        async move { }
-    }
-
-    /// The on_message method is called for every message that is received
-    /// by this actor.
-    type OnMessageFuture<'a> = impl core::future::Future<Output = ()> + 'a;
-    fn on_message<'m>(
-        self: core::pin::Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
+    /// The on_mount method is called before any messages are processed for the
+    /// Actor. The following parameters are provided:
+    /// * The actor configuration
+    /// * The address to 'self'
+    /// * An inbox from which the actor can await incoming messages
+    type OnMountFuture<'a> = impl core::future::Future<Output = ()> + 'a;
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm;
+    {
         async move {
-            self.count += 1;
+            loop {
+                // Await the next message and invoke the following closure. If async is needed in the processin
+                // loop, one can use inbox.next() to retrieve the next item.
+                inbox.process(|m| {
+                    self.count += 1;
+                }).await;
+            }
         }
     }
 }

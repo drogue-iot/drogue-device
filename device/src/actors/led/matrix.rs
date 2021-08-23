@@ -1,6 +1,6 @@
-use crate::kernel::{actor::Actor, util::ImmediateFuture};
+use crate::kernel::{actor::Actor, actor::Address, actor::Inbox};
 use core::future::Future;
-use core::pin::Pin;
+use embassy::time::{with_timeout, Duration, TimeoutError};
 use embedded_hal::digital::v2::OutputPin;
 
 // Led matrix driver supporting up to 32x32 led matrices.
@@ -8,6 +8,7 @@ pub struct LEDMatrix<P, const ROWS: usize, const COLS: usize>
 where
     P: OutputPin + 'static,
 {
+    refresh_delay: Duration,
     pin_rows: [P; ROWS],
     pin_cols: [P; COLS],
     frame_buffer: Frame,
@@ -51,8 +52,9 @@ impl<P, const ROWS: usize, const COLS: usize> LEDMatrix<P, ROWS, COLS>
 where
     P: OutputPin,
 {
-    pub fn new(pin_rows: [P; ROWS], pin_cols: [P; COLS]) -> Self {
+    pub fn new(pin_rows: [P; ROWS], pin_cols: [P; COLS], refresh_delay: Duration) -> Self {
         LEDMatrix {
+            refresh_delay,
             pin_rows,
             pin_cols,
             frame_buffer: Frame::new([0; 32]),
@@ -100,26 +102,33 @@ where
     #[rustfmt::skip]
     type Message<'m> = MatrixCommand<'m>;
     #[rustfmt::skip]
-    type OnStartFuture<'m> = ImmediateFuture;
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where P: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M> where P: 'm, M: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-        ImmediateFuture::new()
-    }
-
-    fn on_message<'m>(
-        mut self: Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         async move {
-            match message {
-                MatrixCommand::ApplyFrame(f) => self.apply(f.to_frame()),
-                MatrixCommand::On(x, y) => self.on(x, y),
-                MatrixCommand::Off(x, y) => self.off(x, y),
-                MatrixCommand::Clear => self.clear(),
-                MatrixCommand::Render => {
-                    self.render();
+            loop {
+                match with_timeout(self.refresh_delay, inbox.next()).await {
+                    Ok(Some((message, r))) => r.respond(match message {
+                        MatrixCommand::ApplyFrame(f) => self.apply(f.to_frame()),
+                        MatrixCommand::On(x, y) => self.on(x, y),
+                        MatrixCommand::Off(x, y) => self.off(x, y),
+                        MatrixCommand::Clear => self.clear(),
+                        MatrixCommand::Render => {
+                            self.render();
+                        }
+                    }),
+                    Err(TimeoutError) => {
+                        self.render();
+                    }
+                    _ => {}
                 }
             }
         }

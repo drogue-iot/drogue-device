@@ -3,7 +3,7 @@ use core::pin::Pin;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
     traits::lora::*,
-    Actor, Address,
+    Actor, Address, Inbox,
 };
 pub enum Command {
     Send,
@@ -38,39 +38,37 @@ impl<D: LoraDriver> Actor for App<D> {
     type Configuration = D;
     #[rustfmt::skip]
     type Message<'m> where D: 'm = Command;
-    #[rustfmt::skip]
-    type OnStartFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
+    #[rustfmt::skip]
+    type OnMountFuture<'m, M> where D: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    fn on_mount<'m, M>(
+        &'m mut self,
+        config: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         self.driver.replace(config);
-    }
-
-    fn on_start<'m>(self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
-        let me = unsafe { self.get_unchecked_mut() };
         async move {
-            let driver = me.driver.as_mut().unwrap();
+            let driver = self.driver.as_mut().unwrap();
             log::info!("Configuring modem");
-            driver.configure(&me.config).await.unwrap();
+            driver.configure(&self.config).await.unwrap();
             log::info!("Joining LoRaWAN network");
             driver.join(ConnectMode::OTAA).await.unwrap();
             log::info!("LoRaWAN network joined");
-        }
-    }
-
-    fn on_message<'m>(
-        self: Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
-        let me = unsafe { self.get_unchecked_mut() };
-        async move {
-            let driver = me.driver.as_mut().unwrap();
-            match message {
-                Command::Send => {
-                    log::info!("Sending data..");
-                    let result = driver.send(QoS::Confirmed, 1, b"ping").await;
-                    log::info!("Data sent: {:?}", result);
+            let driver = self.driver.as_mut().unwrap();
+            loop {
+                match inbox.next().await {
+                    Some((m, r)) => r.respond(match m {
+                        Command::Send => {
+                            log::info!("Sending data..");
+                            let result = driver.send(QoS::Confirmed, 1, b"ping").await;
+                            log::info!("Data sent: {:?}", result);
+                        }
+                    }),
+                    _ => {}
                 }
             }
         }

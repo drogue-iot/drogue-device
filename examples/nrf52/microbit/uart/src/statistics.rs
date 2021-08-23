@@ -1,8 +1,7 @@
 use core::future::Future;
-use core::pin::Pin;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
-    Actor,
+    Actor, Address, Inbox,
 };
 
 pub struct Statistics {
@@ -34,23 +33,28 @@ impl FromButtonEvent<StatisticsCommand> for Statistics {
 impl Actor for Statistics {
     type Configuration = ();
     type Message<'a> = StatisticsCommand;
-    type OnStartFuture<'a> = impl Future<Output = ()> + 'a;
-    type OnMessageFuture<'a> = impl Future<Output = ()> + 'a;
+    #[rustfmt::skip]
+    type OnMountFuture<'a, M> where M: 'a  = impl Future<Output = ()> + 'a;
 
-    fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-        async move {}
-    }
-
-    fn on_message<'m>(
-        mut self: Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         async move {
-            match message {
-                StatisticsCommand::PrintStatistics => {
-                    defmt::info!("Character count: {}", self.character_counter)
-                }
-                StatisticsCommand::IncrementCharacterCount => self.character_counter += 1,
+            loop {
+                inbox
+                    .process(|message| match message {
+                        StatisticsCommand::PrintStatistics => {
+                            defmt::info!("Character count: {}", self.character_counter)
+                        }
+                        StatisticsCommand::IncrementCharacterCount => self.character_counter += 1,
+                    })
+                    .await;
             }
         }
     }

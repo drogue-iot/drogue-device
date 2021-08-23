@@ -4,6 +4,7 @@
 
 #[cfg(feature = "std")]
 mod tests {
+    use core::future::Future;
     use drogue_device::*;
     use embassy::executor::Spawner;
     use std::sync::atomic::{AtomicU32, Ordering};
@@ -21,19 +22,26 @@ mod tests {
         impl Actor for MyActor {
             type Configuration = ();
             type Message<'a> = Add;
-            type OnStartFuture<'a> = ImmediateFuture;
-            type OnMessageFuture<'a> = ImmediateFuture;
 
-            fn on_start(self: core::pin::Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-                ImmediateFuture::new()
-            }
+    #[rustfmt::skip]
+            type OnMountFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
 
-            fn on_message<'m>(
-                self: core::pin::Pin<&'m mut Self>,
-                message: Self::Message<'m>,
-            ) -> Self::OnMessageFuture<'m> {
-                self.value.fetch_add(message.0, Ordering::SeqCst);
-                ImmediateFuture::new()
+            fn on_mount<'m, M>(
+                &'m mut self,
+                _: Self::Configuration,
+                _: Address<'static, Self>,
+                inbox: &'m mut M,
+            ) -> Self::OnMountFuture<'m, M>
+            where
+                M: Inbox<'m, Self> + 'm,
+            {
+                async move {
+                    loop {
+                        let (message, responder) = inbox.next().await.unwrap();
+                        self.value.fetch_add(message.0, Ordering::SeqCst);
+                        responder.respond(());
+                    }
+                }
             }
         }
 

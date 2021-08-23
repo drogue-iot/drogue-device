@@ -21,7 +21,6 @@ use embassy_stm32::{
     dma::NoDma,
     exti::ExtiInput,
     gpio::{Input, Level, Output, Pull, Speed},
-    interrupt,
     peripherals::{PA15, PA5, PB2, PB4, PB5, PB6, PB7, PC0, RNG, SPI1},
     rcc,
     rng::Random,

@@ -11,7 +11,7 @@ version = "0.1.0"
 doctest = false
 
 [dependencies]
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false, features = ["executor-agnostic"] }
 #embassy = {default-features = false, path = "../../../embassy/embassy", features = ["defmt"]}
 
 # LoRa dependencies

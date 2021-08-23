@@ -40,21 +40,24 @@
 //!
 //! impl Actor for MyActor {
 //!     type Message<'a> = SayHello<'a>;
-//!     type OnStartFuture<'a> = impl core::future::Future<Output = ()> + 'a;
-//!     type OnMessageFuture<'a> = impl core::future::Future<Output = ()> + 'a;
+//!     type OnMountFuture<'a> = impl core::future::Future<Output = ()> + 'a;
 //!
-//!     fn on_start(self: core::pin::Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-//!         async move { println!("[{}] started!", self.name) }
-//!     }
-//!
-//!     fn on_message<'m>(
-//!         self: core::pin::Pin<&'m mut Self>,
-//!         message: Self::Message<'m>,
-//!     ) -> Self::OnMessageFuture<'m> {
+//!     fn on_mount<'m, M>(
+//!         &'m mut self,
+//!         _: Self::Configuration,
+//!         _: Address<'static, Self>,
+//!         inbox: &'m mut M,
+//!     ) -> Self::OnMountFuture<'m, M>
+//!     where
+//!     M: Inbox<'m, Self> + 'm {
 //!         async move {
-//!             println!("[{}] Hello {}", self.name, message.0);
-//!         }
-//!     }
+//!             loop {
+//!                 inbox.process(|m| {
+//!                     println!("[{}] Hello {}", self.name, m.0);
+//!                  });
+//!              }
+//!          }
+//!      }
 //! }
 //!
 //! pub struct MyDevice {
@@ -80,7 +83,7 @@ pub(crate) mod fmt;
 
 pub mod kernel;
 pub use kernel::{
-    actor::{Actor, ActorContext, ActorSpawner, Address},
+    actor::{Actor, ActorContext, ActorSpawner, Address, Inbox},
     device::DeviceContext,
     package::Package,
     util::ImmediateFuture,

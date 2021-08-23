@@ -1,6 +1,5 @@
 use core::fmt::Write;
 use core::future::Future;
-use core::pin::Pin;
 use drogue_device::{actors::button::*, drivers::led::*, traits::lora::*, *};
 use embedded_hal::digital::v2::{StatefulOutputPin, ToggleableOutputPin};
 use heapless::String;
@@ -155,15 +154,18 @@ where
     #[rustfmt::skip]
     type Message<'m> where D: 'm = Command;
     #[rustfmt::skip]
-    type OnStartFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> where D: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M> where D: 'm, M: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
+    fn on_mount<'m, M>(
+        &'m mut self,
+        config: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         self.cfg.replace(config);
-    }
-
-    fn on_start<'m>(mut self: Pin<&'m mut Self>) -> Self::OnStartFuture<'m> {
         async move {
             self.config.init_led.on().ok();
             if let Some(mut cfg) = self.cfg.take() {
@@ -179,24 +181,21 @@ where
                 self.cfg.replace(cfg);
             }
             self.config.init_led.off().ok();
-        }
-    }
-
-    fn on_message<'m>(
-        mut self: Pin<&'m mut Self>,
-        message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
-        async move {
-            match message {
-                Command::Tick => {
-                    self.tick();
-                }
-                Command::Send => {
-                    self.send().await;
-                }
-                Command::TickAndSend => {
-                    self.tick();
-                    self.send().await;
+            loop {
+                match inbox.next().await {
+                    Some((message, responder)) => responder.respond(match message {
+                        Command::Tick => {
+                            self.tick();
+                        }
+                        Command::Send => {
+                            self.send().await;
+                        }
+                        Command::TickAndSend => {
+                            self.tick();
+                            self.send().await;
+                        }
+                    }),
+                    _ => {}
                 }
             }
         }
