@@ -111,7 +111,7 @@ impl Actor for DummyActor {
     type Message<'m> = TestMessage;
     #[rustfmt::skip]
     type OnStartFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
-    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
@@ -140,7 +140,7 @@ impl Actor for TestHandler {
     type Message<'m> = TestMessage;
     #[rustfmt::skip]
     type OnStartFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
-    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {

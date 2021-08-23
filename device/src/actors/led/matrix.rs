@@ -1,6 +1,5 @@
 use crate::kernel::{actor::Actor, actor::Inbox};
 use core::future::Future;
-use core::pin::Pin;
 use embassy::time::{with_timeout, Duration, TimeoutError};
 use embedded_hal::digital::v2::OutputPin;
 
@@ -105,7 +104,7 @@ where
     #[rustfmt::skip]
     type OnStartFuture<'m, M> where P: 'm, M: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_start<'m, M>(mut self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {

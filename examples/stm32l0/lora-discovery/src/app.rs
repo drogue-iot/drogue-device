@@ -161,7 +161,7 @@ where
         self.cfg.replace(config);
     }
 
-    fn on_start<'m, M>(mut self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {

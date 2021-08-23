@@ -1,6 +1,5 @@
 use crate::kernel::actor::{Actor, Address, Inbox};
 use core::future::Future;
-use core::pin::Pin;
 use embassy::traits::gpio::WaitForAnyEdge;
 use embedded_hal::digital::v2::InputPin;
 
@@ -48,9 +47,10 @@ impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Messag
         self.handler.replace(config);
     }
 
-    fn on_start<'m, M>(mut self: Pin<&'m mut Self>, _: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_start<'m, M>(&'m mut self, _: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
+        Self: 'm,
     {
         async move {
             loop {

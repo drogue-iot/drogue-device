@@ -1,6 +1,5 @@
 use crate::kernel::actor::{Actor, Address, Inbox};
 use core::future::Future;
-use core::pin::Pin;
 use embassy::time;
 
 pub struct Timer<'a, A: Actor + 'static> {
@@ -40,7 +39,7 @@ impl<'a, A: Actor + 'a> Actor for Timer<'a, A> {
     #[rustfmt::skip]
     type OnStartFuture<'m, M> where 'a: 'm, M: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {

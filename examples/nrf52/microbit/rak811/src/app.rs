@@ -45,19 +45,18 @@ impl<D: LoraDriver> Actor for App<D> {
 
     #[rustfmt::skip]
     type OnStartFuture<'m, M> where D: 'm, M: 'm = impl Future<Output = ()> + 'm;
-    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
-        let me = unsafe { self.get_unchecked_mut() };
         async move {
-            let driver = me.driver.as_mut().unwrap();
+            let driver = self.driver.as_mut().unwrap();
             log::info!("Configuring modem");
-            driver.configure(&me.config).await.unwrap();
+            driver.configure(&self.config).await.unwrap();
             log::info!("Joining LoRaWAN network");
             driver.join(ConnectMode::OTAA).await.unwrap();
             log::info!("LoRaWAN network joined");
-            let driver = me.driver.as_mut().unwrap();
+            let driver = self.driver.as_mut().unwrap();
             loop {
                 match inbox.next().await {
                     Some((m, r)) => r.respond(match m {

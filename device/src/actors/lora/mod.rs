@@ -2,7 +2,7 @@ use crate::{
     kernel::actor::{Actor, Address, Inbox},
     traits::lora::*,
 };
-use core::{future::Future, pin::Pin};
+use core::future::Future;
 
 /// Messages handled by lora actor
 pub enum LoraRequest<'m> {
@@ -94,13 +94,12 @@ where
 
     #[rustfmt::skip]
     type OnStartFuture<'m, M> where D: 'm, M: 'm = impl Future<Output = ()> + 'm;
-    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
         async move {
-            let this = unsafe { self.get_unchecked_mut() };
-            let driver = &mut this.driver;
+            let driver = &mut self.driver;
             loop {
                 if let Some((message, responder)) = inbox.next().await {
                     responder.respond(match message {

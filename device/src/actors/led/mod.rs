@@ -6,7 +6,6 @@ use crate::{
     kernel::{actor::Actor, actor::Inbox},
 };
 use core::future::Future;
-use core::pin::Pin;
 use embedded_hal::digital::v2::OutputPin;
 
 pub enum LedMessage {
@@ -57,28 +56,29 @@ where
     #[rustfmt::skip]
     type OnStartFuture<'m, M> where Self: 'm, M: 'm= impl Future<Output = ()> + 'm;
 
-    fn on_start<'m, M>(mut self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
         async move {
             loop {
-                if let Some((m, r)) = inbox.next().await {
-                    let new_state = match m {
-                        LedMessage::On => true,
-                        LedMessage::Off => false,
-                        LedMessage::State(state) => state,
-                        LedMessage::Toggle => !self.state,
-                    };
-                    if self.state != new_state {
-                        self.state = new_state;
-                        match self.state {
-                            true => self.pin.set_high().ok(),
-                            false => self.pin.set_low().ok(),
+                inbox
+                    .process(|message| {
+                        let new_state = match message {
+                            LedMessage::On => true,
+                            LedMessage::Off => false,
+                            LedMessage::State(state) => state,
+                            LedMessage::Toggle => !self.state,
                         };
-                    }
-                    r.respond(());
-                }
+                        if self.state != new_state {
+                            self.state = new_state;
+                            match self.state {
+                                true => self.pin.set_high().ok(),
+                                false => self.pin.set_low().ok(),
+                            };
+                        }
+                    })
+                    .await;
             }
         }
     }

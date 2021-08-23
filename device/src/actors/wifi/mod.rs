@@ -8,7 +8,6 @@ use crate::{
 };
 
 use core::future::Future;
-use core::pin::Pin;
 
 #[cfg(feature = "wifi+esp8266")]
 pub mod esp8266;
@@ -181,13 +180,12 @@ impl<N: Adapter> Actor for AdapterActor<N> {
 
     #[rustfmt::skip]
     type OnStartFuture<'m, M> where N: 'm, M: 'm = impl Future<Output = ()> + 'm;
-    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
         async move {
-            let this = unsafe { self.get_unchecked_mut() };
-            let driver = this.driver.as_mut().unwrap();
+            let driver = self.driver.as_mut().unwrap();
             loop {
                 if let Some((message, responder)) = inbox.next().await {
                     responder.respond(match message {

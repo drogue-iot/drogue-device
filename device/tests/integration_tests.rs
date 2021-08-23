@@ -5,7 +5,6 @@
 #[cfg(feature = "std")]
 mod tests {
     use core::future::Future;
-    use core::pin::Pin;
     use drogue_device::*;
     use embassy::executor::Spawner;
     use std::sync::atomic::{AtomicU32, Ordering};
@@ -27,10 +26,7 @@ mod tests {
     #[rustfmt::skip]
             type OnStartFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
 
-            fn on_start<'m, M>(
-                mut self: Pin<&'m mut Self>,
-                inbox: &'m mut M,
-            ) -> Self::OnStartFuture<'m, M>
+            fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
             where
                 M: Inbox<'m, Self> + 'm,
             {

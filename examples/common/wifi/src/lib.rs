@@ -67,24 +67,23 @@ where
 
     #[rustfmt::skip]
     type OnStartFuture<'m, M> where S: 'm, M: 'm = impl Future<Output = ()> + 'm;
-    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
         async move {
-            let this = unsafe { self.get_unchecked_mut() };
             loop {
                 match inbox.next().await {
                     Some((message, r)) => r.respond(match message {
                         Command::Send => {
                             log::info!("Sending data");
-                            let socket = this.socket.as_mut().unwrap();
+                            let socket = self.socket.as_mut().unwrap();
                             let mut client = HttpClient::new(
                                 socket,
-                                this.ip,
-                                this.port,
-                                this.username,
-                                this.password,
+                                self.ip,
+                                self.port,
+                                self.username,
+                                self.password,
                             );
 
                             let mut rx_buf = [0; 1024];

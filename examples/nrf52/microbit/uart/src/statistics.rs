@@ -37,21 +37,20 @@ impl Actor for Statistics {
     #[rustfmt::skip]
     type OnStartFuture<'a, M> where M: 'a  = impl Future<Output = ()> + 'a;
 
-    fn on_start<'m, M>(mut self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
         async move {
             loop {
-                match inbox.next().await {
-                    Some((message, r)) => r.respond(match message {
+                inbox
+                    .process(|message| match message {
                         StatisticsCommand::PrintStatistics => {
                             defmt::info!("Character count: {}", self.character_counter)
                         }
                         StatisticsCommand::IncrementCharacterCount => self.character_counter += 1,
-                    }),
-                    _ => {}
-                }
+                    })
+                    .await;
             }
         }
     }

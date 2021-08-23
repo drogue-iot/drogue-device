@@ -1,6 +1,5 @@
 use crate::statistics::*;
 use core::future::Future;
-use core::pin::Pin;
 use drogue_device::{actors::led::matrix::*, Actor, Address, Inbox};
 use embassy::{
     time::{Duration, Timer},
@@ -41,7 +40,7 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
         self.statistics.replace(config.1);
     }
 
-    fn on_start<'m, M>(mut self: Pin<&'m mut Self>, _: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_start<'m, M>(&'m mut self, _: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {

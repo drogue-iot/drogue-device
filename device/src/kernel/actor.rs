@@ -54,9 +54,9 @@ pub trait Actor: Sized {
 
     /// Called when an actor is started. An inbox is provided that the actor can use to await
     /// messages.
-    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
-        M: Inbox<'m, Self>;
+        M: Inbox<'m, Self> + 'm;
 }
 
 pub trait Inbox<'a, A>
@@ -66,6 +66,15 @@ where
     #[rustfmt::skip]
     type NextFuture<'m>: Future<Output = Option<(A::Message<'m>, Responder<A>)>> where Self: 'm, 'a: 'm;
     fn next<'m>(&'m mut self) -> Self::NextFuture<'m>;
+
+    #[rustfmt::skip]
+    type ProcessFuture<'m, F>: Future<Output = ()> where F: 'm, Self: 'm, 'a: 'm;
+    fn process<'m, F: FnMut(A::Message<'m>) -> A::Response + 'm>(
+        &'m mut self,
+        f: F,
+    ) -> Self::ProcessFuture<'m, F>
+    where
+        'a: 'm;
 }
 
 impl<'a, A: Actor + 'static, const QUEUE_SIZE: usize> Inbox<'a, A>
@@ -75,18 +84,41 @@ impl<'a, A: Actor + 'static, const QUEUE_SIZE: usize> Inbox<'a, A>
     type NextFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Option<(A::Message<'m>, Responder<A>)>> + 'm;
     fn next<'m>(&'m mut self) -> Self::NextFuture<'m> {
         async move {
-            let message = self.recv().await;
-            message.map(|m| match m {
-                // Safety: This is OK because 'a > 'm
-                ActorMessage::Request(message, signal) => (
-                    unsafe { core::mem::transmute_copy(&message) },
-                    Responder::new(signal),
-                ),
-                ActorMessage::Notify(message) => (
-                    unsafe { core::mem::transmute_copy(&message) },
-                    Responder::empty(),
-                ),
+            // Safety: This is OK because 'a > 'm
+            self.recv().await.map(|m| match m {
+                ActorMessage::Request(message, signal) => unsafe {
+                    (core::mem::transmute_copy(&message), Responder::new(signal))
+                },
+                ActorMessage::Notify(message) => unsafe {
+                    (core::mem::transmute_copy(&message), Responder::empty())
+                },
             })
+        }
+    }
+
+    #[rustfmt::skip]
+    type ProcessFuture<'m, F> where 'a: 'm, A: 'm, F: 'm, = impl Future<Output = ()> + 'm;
+    fn process<'m, F: FnMut(A::Message<'m>) -> A::Response + 'm>(
+        &'m mut self,
+        mut f: F,
+    ) -> Self::ProcessFuture<'m, F>
+    where
+        'a: 'm,
+    {
+        async move {
+            if let Some(m) = self.recv().await {
+                match m {
+                    ActorMessage::Request(message, signal) => {
+                        let message = unsafe { core::mem::transmute_copy(&message) };
+                        let response = f(message);
+                        unsafe { &*signal }.signal(response);
+                    }
+                    ActorMessage::Notify(message) => {
+                        let message = unsafe { core::mem::transmute_copy(&message) };
+                        let _ = f(message);
+                    }
+                }
+            }
         }
     }
 }
@@ -341,7 +373,7 @@ where
     > {
         let task = &self.task;
         let inbox = self.channel.inbox();
-        let me = unsafe { Pin::new_unchecked(&mut *self.actor.get()) };
+        let me = unsafe { &mut *self.actor.get() };
         let future = me.on_start(inbox);
         Task::spawn(task, move || future)
     }
@@ -349,7 +381,7 @@ where
     pub(crate) fn start(
         &'a self,
     ) -> A::OnStartFuture<'static, Receiver<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>> {
-        let actor = unsafe { Pin::new_unchecked(&mut *self.actor.get()) };
+        let actor = unsafe { &mut *self.actor.get() };
         let inbox = self.channel.inbox();
         actor.on_start(inbox)
     }

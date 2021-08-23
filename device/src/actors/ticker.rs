@@ -1,6 +1,5 @@
 use crate::kernel::actor::{Actor, Address, Inbox};
 use core::future::Future;
-use core::pin::Pin;
 use embassy::time::{Duration, Timer};
 
 pub struct Ticker<'a, A: Actor + 'static>
@@ -51,34 +50,33 @@ where
         self.actor.replace(config);
     }
 
-    fn on_start<'m, M>(self: Pin<&'m mut Self>, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
         async move {
-            let this = unsafe { self.get_unchecked_mut() };
-            this.me.unwrap().notify(TickerCommand::Start).unwrap();
+            self.me.unwrap().notify(TickerCommand::Start).unwrap();
             loop {
                 if let Some((message, r)) = inbox.next().await {
                     r.respond(match message {
                         TickerCommand::Tick => {
-                            if this.running {
+                            if self.running {
                                 // Wait the configured interval before sending the message
-                                Timer::after(this.interval).await;
-                                if let Some(actor) = this.actor {
+                                Timer::after(self.interval).await;
+                                if let Some(actor) = self.actor {
                                     // We continue even if we get an error, trying again
                                     // next tick.
-                                    let _ = actor.notify(this.message);
+                                    let _ = actor.notify(self.message);
                                 }
-                                this.me.unwrap().notify(TickerCommand::Tick).unwrap();
+                                self.me.unwrap().notify(TickerCommand::Tick).unwrap();
                             }
                         }
                         TickerCommand::Start => {
-                            this.running = true;
-                            this.me.unwrap().notify(TickerCommand::Tick).unwrap();
+                            self.running = true;
+                            self.me.unwrap().notify(TickerCommand::Tick).unwrap();
                         }
                         TickerCommand::Stop => {
-                            this.running = false;
+                            self.running = false;
                         }
                     });
                 }
