@@ -13,5 +13,5 @@ version = "0.1.0"
 log = "0.4"
 env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["log", "std"] }
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", features = ["std"] }
-embassy-std = {git = "https://github.com/embassy-rs/embassy.git", rev = "4b74e8fc50b3b1839f118d9b310f793a46adc416", default-features = false }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "548593ea415c79472bd2cf2d0c59aadfcf5f715c", features = ["std"] }
+embassy-std = {git = "https://github.com/embassy-rs/embassy.git", rev = "548593ea415c79472bd2cf2d0c59aadfcf5f715c", default-features = false }

@@ -18,6 +18,7 @@ use drogue_device::{
     *,
 };
 use embassy_stm32::{
+    dbgmcu::Dbgmcu,
     dma::NoDma,
     exti::ExtiInput,
     gpio::{Input, Level, Output, Pull, Speed},
@@ -89,12 +90,12 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     rtt_init_print!();
     unsafe {
         log::set_logger_racy(&LOGGER).unwrap();
+        Dbgmcu::enable_all();
     }
 
     log::set_max_level(log::LevelFilter::Trace);
 
     let mut rcc = rcc::Rcc::new(p.RCC);
-    rcc.enable_debug_wfe(&mut p.DBGMCU, true);
     let _ = rcc.enable_hsi48(&mut p.SYSCFG, p.CRS);
 
     unsafe { RNG.replace(Random::new(p.RNG)) };

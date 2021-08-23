@@ -403,7 +403,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=4b74e8fc50b3b1839f118d9b310f793a46adc416#4b74e8fc50b3b1839f118d9b310f793a46adc416"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=548593ea415c79472bd2cf2d0c59aadfcf5f715c#548593ea415c79472bd2cf2d0c59aadfcf5f715c"
 dependencies = [
  "atomic-polyfill",
  "cortex-m",
@@ -418,7 +418,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=4b74e8fc50b3b1839f118d9b310f793a46adc416#4b74e8fc50b3b1839f118d9b310f793a46adc416"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=548593ea415c79472bd2cf2d0c59aadfcf5f715c#548593ea415c79472bd2cf2d0c59aadfcf5f715c"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -429,7 +429,7 @@ dependencies = [
 [[package]]
 name = "embassy-std"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=4b74e8fc50b3b1839f118d9b310f793a46adc416#4b74e8fc50b3b1839f118d9b310f793a46adc416"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=548593ea415c79472bd2cf2d0c59aadfcf5f715c#548593ea415c79472bd2cf2d0c59aadfcf5f715c"
 dependencies = [
  "embassy",
  "embassy-macros",
@@ -439,7 +439,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=4b74e8fc50b3b1839f118d9b310f793a46adc416#4b74e8fc50b3b1839f118d9b310f793a46adc416"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=548593ea415c79472bd2cf2d0c59aadfcf5f715c#548593ea415c79472bd2cf2d0c59aadfcf5f715c"
 dependencies = [
  "embedded-hal",
 ]
@@ -775,9 +775,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.99"
+version = "0.2.100"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7f823d141fe0a24df1e23b4af4e3c7ba9e5966ec514ea068c93024aa7deb765"
+checksum = "a1fa8cddc8fbbee11227ef194b5317ed014b8acbf15139bd716a18ad3fe99ec5"
 
 [[package]]
 name = "log"
@@ -1098,9 +1098,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.74"
+version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1873d832550d4588c3dbc20f01361ab00bfe741048f71e3fecf145a7cc18b29c"
+checksum = "b7f58f7e8eaa0009c5fec437aabf511bd9933e4b2d7407bd05273c01a8906ea7"
 dependencies = [
  "proc-macro2",
  "quote",
