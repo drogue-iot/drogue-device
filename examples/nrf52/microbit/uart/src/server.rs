@@ -10,8 +10,7 @@ use crate::LedMatrix;
 
 pub struct EchoServer<'a, U: Write + Read + 'a> {
     uart: U,
-    matrix: Option<Address<'a, LedMatrix>>,
-    statistics: Option<Address<'a, Statistics>>,
+    _data: core::marker::PhantomData<&'a U>,
 }
 
 impl<'a, U: Write + Read + 'a> Unpin for EchoServer<'a, U> {}
@@ -20,8 +19,7 @@ impl<'a, U: Write + Read + 'a> EchoServer<'a, U> {
     pub fn new(uart: U) -> Self {
         Self {
             uart,
-            matrix: None,
-            statistics: None,
+            _data: core::marker::PhantomData,
         }
     }
 }
@@ -35,17 +33,17 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where M: 'm, 'a: 'm  = impl Future<Output = ()> + 'm;
 
-    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
-        self.matrix.replace(config.0);
-        self.statistics.replace(config.1);
-    }
-
-    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        config: Self::Configuration,
+        _: Address<'static, Self>,
+        _: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
-        let matrix = self.matrix.unwrap();
-        let statistics = self.statistics.unwrap();
+        let matrix = config.0;
+        let statistics = config.1;
         async move {
             for c in r"Hello, World!".chars() {
                 matrix.request(MatrixCommand::ApplyFrame(&c)).unwrap().await;

@@ -7,7 +7,6 @@ use crate::kernel::{
 use core::{
     cell::{RefCell, UnsafeCell},
     future::Future,
-    pin::Pin,
 };
 use embassy::io::{AsyncBufReadExt, AsyncWriteExt};
 use embedded_hal::digital::v2::OutputPin;
@@ -113,17 +112,19 @@ where
     #[rustfmt::skip]
     type Message<'m> where 'a: 'm = ();
 
-    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
-        self.modem.replace(config);
-    }
-
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where 'a: 'm, M: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        config: Self::Configuration,
+        _: Address<'static, Self>,
+        _: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
+        self.modem.replace(config);
         async move {
             self.modem.as_mut().unwrap().run().await;
         }

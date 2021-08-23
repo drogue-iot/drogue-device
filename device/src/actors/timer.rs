@@ -39,7 +39,12 @@ impl<'a, A: Actor + 'a> Actor for Timer<'a, A> {
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where 'a: 'm, M: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, inbox: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {

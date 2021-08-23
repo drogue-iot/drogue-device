@@ -45,15 +45,17 @@ where
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where 'a: 'm, M: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_mount(&mut self, me: Address<'a, Self>, config: Self::Configuration) {
-        self.me.replace(me);
-        self.actor.replace(config);
-    }
-
-    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, inbox: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        config: Self::Configuration,
+        me: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
+        self.me.replace(me);
+        self.actor.replace(config);
         async move {
             self.me.unwrap().notify(TickerCommand::Start).unwrap();
             loop {

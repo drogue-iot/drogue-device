@@ -1,8 +1,7 @@
 use core::future::Future;
-use core::pin::Pin;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
-    Actor, Inbox,
+    Actor, Address, Inbox,
 };
 
 pub struct Statistics {
@@ -37,7 +36,12 @@ impl Actor for Statistics {
     #[rustfmt::skip]
     type OnMountFuture<'a, M> where M: 'a  = impl Future<Output = ()> + 'a;
 
-    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, inbox: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {

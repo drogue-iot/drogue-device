@@ -86,18 +86,20 @@ impl Actor for App {
     #[rustfmt::skip]
     type Message<'m> = Command;
 
-    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
-        self.green.replace(config.0);
-        self.yellow.replace(config.1);
-        self.red.replace(config.2);
-    }
-
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
-    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, inbox: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        config: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
+        self.green.replace(config.0);
+        self.yellow.replace(config.1);
+        self.red.replace(config.2);
         async move {
             loop {
                 match inbox.next().await {

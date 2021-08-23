@@ -1,5 +1,4 @@
 use core::future::Future;
-use core::pin::Pin;
 use core::sync::atomic::{AtomicU32, Ordering};
 use drogue_device::*;
 
@@ -21,16 +20,18 @@ impl Actor for MyActor {
     type Configuration = &'static AtomicU32;
     type Message<'a> = SayHello<'a>;
 
-    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
-        self.counter.replace(config);
-    }
-
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
-    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, inbox: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        config: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
+        self.counter.replace(config);
         async move {
             log::info!("[{}] started!", self.name);
             loop {

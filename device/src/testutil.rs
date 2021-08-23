@@ -1,15 +1,14 @@
 use crate::actors::button::{ButtonEvent, FromButtonEvent};
 use crate::kernel::{
-    actor::{Actor, ActorContext, ActorSpawner, Inbox},
+    actor::{Actor, ActorSpawner, Address, Inbox},
     device::DeviceContext,
-    signal::SignalSlot,
 };
 use core::cell::RefCell;
 use core::future::Future;
 use core::pin::Pin;
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll};
-use embassy::executor::{raw, SpawnError, Spawner};
+use embassy::executor::{raw, raw::Task, SpawnError, Spawner};
 use embassy::time::driver::{AlarmHandle, Driver};
 use embassy::time::TICKS_PER_SECOND;
 use embassy::traits::gpio::WaitForAnyEdge;
@@ -32,13 +31,11 @@ impl TestSpawner {
 }
 
 impl ActorSpawner for TestSpawner {
-    fn start<A: Actor, const QUEUE_SIZE: usize>(
+    fn spawn<F: Future<Output = ()> + 'static>(
         &self,
-        _actor: &'static ActorContext<'static, A, QUEUE_SIZE>,
-    ) -> Result<(), SpawnError>
-    where
-        [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
-    {
+        _: &'static Task<F>,
+        _: F,
+    ) -> Result<(), SpawnError> {
         Ok(())
     }
 }
@@ -111,7 +108,12 @@ impl Actor for DummyActor {
     type Message<'m> = TestMessage;
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
-    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, inbox: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
@@ -140,7 +142,12 @@ impl Actor for TestHandler {
     type Message<'m> = TestMessage;
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
-    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, inbox: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {

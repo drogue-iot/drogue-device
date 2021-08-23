@@ -1,6 +1,5 @@
 use core::fmt::Write;
 use core::future::Future;
-use core::pin::Pin;
 use drogue_device::{actors::button::*, drivers::led::*, traits::lora::*, *};
 use embedded_hal::digital::v2::{StatefulOutputPin, ToggleableOutputPin};
 use heapless::String;
@@ -157,14 +156,16 @@ where
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where D: 'm, M: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
-        self.cfg.replace(config);
-    }
-
-    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, inbox: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        config: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
+        self.cfg.replace(config);
         async move {
             self.config.init_led.on().ok();
             if let Some(mut cfg) = self.cfg.take() {

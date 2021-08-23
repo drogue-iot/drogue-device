@@ -1,14 +1,11 @@
-use super::{
-    signal::{SignalFuture, SignalSlot},
-    util::ImmediateFuture,
-};
+use super::signal::{SignalFuture, SignalSlot};
 use core::cell::UnsafeCell;
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
 use embassy::{
-    executor::{raw::Task, SpawnError, SpawnToken, Spawner},
+    executor::{raw::Task, SpawnError, Spawner},
     util::{
         mpsc::{self, Channel, Receiver, RecvFuture, Sender, WithNoThreads},
         DropBomb,
@@ -79,7 +76,8 @@ impl<'a, A: Actor + 'static, const QUEUE_SIZE: usize> Inbox<'a, A>
     type NextFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Option<(A::Message<'m>, Responder<A>)>> + 'm;
     fn next<'m>(&'m mut self) -> Self::NextFuture<'m> {
         async move {
-            // Safety: This is OK because 'a > 'm
+            // Safety: This is OK because 'a > 'm and we're doing this to ensure
+            // processing loop doesn't abuse the 'fake' lifetime while stored on the queue.
             self.recv().await.map(|m| match m {
                 ActorMessage::Request(message, signal) => unsafe {
                     (core::mem::transmute_copy(&message), Responder::new(signal))
@@ -103,6 +101,8 @@ impl<'a, A: Actor + 'static, const QUEUE_SIZE: usize> Inbox<'a, A>
         async move {
             if let Some(m) = self.recv().await {
                 match m {
+                    // Safety: This is OK because 'a > 'm and we're doing this to ensure
+                    // processing loop doesn't abuse the 'fake' lifetime while stored on the queue.
                     ActorMessage::Request(message, signal) => {
                         let message = unsafe { core::mem::transmute_copy(&message) };
                         let response = f(message);
@@ -249,23 +249,20 @@ pub enum SignalError {
 }
 
 pub trait ActorSpawner: Clone + Copy {
-    fn start<A: Actor, const QUEUE_SIZE: usize>(
+    fn spawn<F: Future<Output = ()> + 'static>(
         &self,
-        actor: &'static ActorContext<'static, A, QUEUE_SIZE>,
-    ) -> Result<(), SpawnError>
-    where
-        [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default;
+        task: &'static Task<F>,
+        future: F,
+    ) -> Result<(), SpawnError>;
 }
 
 impl ActorSpawner for Spawner {
-    fn start<A: Actor, const QUEUE_SIZE: usize>(
+    fn spawn<F: Future<Output = ()> + 'static>(
         &self,
-        actor: &'static ActorContext<'static, A, QUEUE_SIZE>,
-    ) -> Result<(), SpawnError>
-    where
-        [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
-    {
-        self.spawn(actor.spawn())
+        task: &'static Task<F>,
+        future: F,
+    ) -> Result<(), SpawnError> {
+        Spawner::spawn(self, Task::spawn(task, move || future))
     }
 }
 
@@ -353,36 +350,29 @@ where
         config: A::Configuration,
         spawner: S,
     ) -> Address<'a, A> {
-        let address = Address::new(self);
-        unsafe { &mut *self.actor.get() }.on_mount(address, config);
         self.channel.initialize();
 
-        spawner.start(self).unwrap();
+        let inbox = self.channel.inbox();
+        let address = Address::new(self);
+        let future = unsafe { &mut *self.actor.get() }.on_mount(config, address, inbox);
+        let task = &self.task;
+        // TODO: Map to error?
+        spawner.spawn(task, future).unwrap();
         address
     }
 
-    pub(crate) fn spawn(
+    pub(crate) fn initialize(
         &'static self,
-    ) -> SpawnToken<
+        config: A::Configuration,
+    ) -> (
+        Address<'static, A>,
         A::OnMountFuture<'static, Receiver<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>>,
-    > {
-        let task = &self.task;
+    ) {
+        self.channel.initialize();
         let inbox = self.channel.inbox();
-        let me = unsafe { &mut *self.actor.get() };
-        let future = me.on_mount(inbox);
-        Task::spawn(task, move || future)
-    }
-
-    pub(crate) fn start(
-        &'a self,
-    ) -> A::OnMountFuture<'static, Receiver<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>> {
-        let actor = unsafe { &mut *self.actor.get() };
-        let inbox = self.channel.inbox();
-        actor.on_mount(inbox)
-    }
-
-    pub async fn run(&'static self) {
-        self.start().await;
+        let address = Address::new(self);
+        let future = unsafe { &mut *self.actor.get() }.on_mount(config, address, inbox);
+        (address, future)
     }
 }
 
@@ -479,11 +469,10 @@ mod tests {
 
     #[test]
     fn test_multiple_notifications() {
-        let spawner = TestSpawner::new();
         let actor: &'static mut ActorContext<'static, DummyActor, 1> =
             Box::leak(Box::new(ActorContext::new(DummyActor::new())));
 
-        let address = actor.mount((), spawner);
+        let (address, mut actor_fut) = actor.initialize(());
 
         let result_1 = address.notify(TestMessage(0));
         let result_2 = address.notify(TestMessage(1));
@@ -491,7 +480,6 @@ mod tests {
         assert!(result_1.is_ok());
         assert!(result_2.is_err());
 
-        let mut actor_fut = actor.start();
         step_actor(&mut actor_fut);
         let result_2 = address.notify(TestMessage(1));
         assert!(result_2.is_ok());
@@ -499,11 +487,10 @@ mod tests {
 
     #[test]
     fn test_multiple_requests() {
-        let spawner = TestSpawner::new();
         let actor: &'static mut ActorContext<'static, DummyActor, 1> =
             Box::leak(Box::new(ActorContext::new(DummyActor::new())));
 
-        let address = actor.mount((), spawner);
+        let (address, mut actor_fut) = actor.initialize(());
 
         let result_fut_1 = address.request(TestMessage(0));
         let result_fut_2 = address.request(TestMessage(1));
@@ -514,8 +501,6 @@ mod tests {
         let mut cx = std::task::Context::from_waker(waker);
 
         let mut fut_1 = result_fut_1.unwrap();
-
-        let mut actor_fut = actor.start();
 
         while Pin::new(&mut fut_1).poll(&mut cx).is_pending() {
             step_actor(&mut actor_fut);

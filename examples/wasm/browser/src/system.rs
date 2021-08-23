@@ -1,5 +1,6 @@
-use drogue_device::{kernel::signal::SignalSlot, *};
-use embassy::executor::SpawnError;
+use core::future::Future;
+use drogue_device::*;
+use embassy::executor::{raw::Task, SpawnError};
 use wasm_bindgen_futures::spawn_local;
 
 #[derive(Clone, Copy)]
@@ -12,14 +13,12 @@ impl WasmSpawner {
 }
 
 impl ActorSpawner for WasmSpawner {
-    fn start<A: Actor, const QUEUE_SIZE: usize>(
+    fn spawn<F: Future<Output = ()> + 'static>(
         &self,
-        actor: &'static ActorContext<'static, A, QUEUE_SIZE>,
-    ) -> Result<(), SpawnError>
-    where
-        [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
-    {
-        spawn_local(actor.run());
+        _: &'static Task<F>,
+        f: F,
+    ) -> Result<(), SpawnError> {
+        spawn_local(f);
         Ok(())
     }
 }

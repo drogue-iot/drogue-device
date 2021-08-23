@@ -39,16 +39,18 @@ impl<D: LoraDriver> Actor for App<D> {
     #[rustfmt::skip]
     type Message<'m> where D: 'm = Command;
 
-    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
-        self.driver.replace(config);
-    }
-
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where D: 'm, M: 'm = impl Future<Output = ()> + 'm;
-    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, inbox: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        config: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
+        self.driver.replace(config);
         async move {
             let driver = self.driver.as_mut().unwrap();
             log::info!("Configuring modem");

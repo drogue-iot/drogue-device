@@ -1,4 +1,4 @@
-use crate::kernel::{actor::Actor, actor::Inbox};
+use crate::kernel::{actor::Actor, actor::Address, actor::Inbox};
 use core::future::Future;
 use embassy::time::{with_timeout, Duration, TimeoutError};
 use embedded_hal::digital::v2::OutputPin;
@@ -104,7 +104,12 @@ where
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where P: 'm, M: 'm = impl Future<Output = ()> + 'm;
 
-    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, inbox: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {

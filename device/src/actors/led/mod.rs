@@ -3,7 +3,7 @@ pub mod matrix;
 
 use crate::{
     actors::button::{ButtonEvent, FromButtonEvent},
-    kernel::{actor::Actor, actor::Inbox},
+    kernel::{actor::Actor, actor::Address, actor::Inbox},
 };
 use core::future::Future;
 use embedded_hal::digital::v2::OutputPin;
@@ -56,7 +56,12 @@ where
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where Self: 'm, M: 'm= impl Future<Output = ()> + 'm;
 
-    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, inbox: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {

@@ -4,7 +4,6 @@
 #![feature(generic_associated_types)]
 
 use core::future::Future;
-use core::pin::Pin;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
     clients::http::*,
@@ -61,16 +60,18 @@ where
     #[rustfmt::skip]
     type Message<'m> where S: 'm = Command;
 
-    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
-        self.socket.replace(config);
-    }
-
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where S: 'm, M: 'm = impl Future<Output = ()> + 'm;
-    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, inbox: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        config: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
+        self.socket.replace(config);
         async move {
             loop {
                 match inbox.next().await {
