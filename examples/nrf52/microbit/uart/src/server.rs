@@ -33,14 +33,14 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
         'a: 'm,
     = ();
     #[rustfmt::skip]
-    type OnStartFuture<'m, M> where M: 'm, 'a: 'm  = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M> where M: 'm, 'a: 'm  = impl Future<Output = ()> + 'm;
 
     fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {
         self.matrix.replace(config.0);
         self.statistics.replace(config.1);
     }
 
-    fn on_start<'m, M>(&'m mut self, _: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {

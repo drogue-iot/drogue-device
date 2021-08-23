@@ -35,26 +35,21 @@ pub trait Actor: Sized {
     /// The response type that this actor will return in `on_message`.
     type Response: Sized + Send = ();
 
-    /// Called to mount an actor into the system.
-    ///
-    /// The actor will be presented with both its own `Address<...>`.
-    ///
-    /// The default implementation does nothing.
-    fn on_mount(&mut self, _: Address<'static, Self>, _: Self::Configuration) {}
-
-    /// The future type returned in `on_start`, usually derived from an `async move` block
+    /// The future type returned in `on_mount`, usually derived from an `async move` block
     /// in the implementation.
-    ///
-    /// The default type returns the ImmediateFuture that is ready immediately.
-    type OnStartFuture<'m, M>: Future<Output = ()>
+    type OnMountFuture<'m, M>: Future<Output = ()>
     where
         Self: 'm,
-        M: 'm,
-    = ImmediateFuture;
+        M: 'm;
 
-    /// Called when an actor is started. An inbox is provided that the actor can use to await
-    /// messages.
-    fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    /// Called when an actor is mounted into the system. The actor will be presented with its expected
+    /// configuration, address and an inbox to pull messages from.
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Self::Configuration,
+        _: Address<'static, Self>,
+        _: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm;
 }
@@ -283,7 +278,7 @@ where
     [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
 {
 
-    task: Task<A::OnStartFuture<'static, Receiver<'static, ActorMutex, ActorMessage<'static, A>, QUEUE_SIZE>>>,
+    task: Task<A::OnMountFuture<'static, Receiver<'static, ActorMutex, ActorMessage<'static, A>, QUEUE_SIZE>>>,
     actor: UnsafeCell<A>,
     channel: MessageChannel<'a, ActorMessage<'a, A>, QUEUE_SIZE>,
     // NOTE: This wastes an extra signal because heapless requires at least 2 slots and
@@ -369,21 +364,21 @@ where
     pub(crate) fn spawn(
         &'static self,
     ) -> SpawnToken<
-        A::OnStartFuture<'static, Receiver<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>>,
+        A::OnMountFuture<'static, Receiver<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>>,
     > {
         let task = &self.task;
         let inbox = self.channel.inbox();
         let me = unsafe { &mut *self.actor.get() };
-        let future = me.on_start(inbox);
+        let future = me.on_mount(inbox);
         Task::spawn(task, move || future)
     }
 
     pub(crate) fn start(
         &'a self,
-    ) -> A::OnStartFuture<'static, Receiver<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>> {
+    ) -> A::OnMountFuture<'static, Receiver<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>> {
         let actor = unsafe { &mut *self.actor.get() };
         let inbox = self.channel.inbox();
-        actor.on_start(inbox)
+        actor.on_mount(inbox)
     }
 
     pub async fn run(&'static self) {

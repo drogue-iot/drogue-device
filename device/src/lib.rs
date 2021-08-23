@@ -40,10 +40,10 @@
 //!
 //! impl Actor for MyActor {
 //!     type Message<'a> = SayHello<'a>;
-//!     type OnStartFuture<'a> = impl core::future::Future<Output = ()> + 'a;
+//!     type OnMountFuture<'a> = impl core::future::Future<Output = ()> + 'a;
 //!     type OnMessageFuture<'a> = impl core::future::Future<Output = ()> + 'a;
 //!
-//!     fn on_start(self: core::pin::Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
+//!     fn on_mount(self: core::pin::Pin<&'_ mut Self>) -> Self::OnMountFuture<'_> {
 //!         async move { println!("[{}] started!", self.name) }
 //!     }
 //!

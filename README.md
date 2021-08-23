@@ -47,10 +47,10 @@ pub struct Increment;
 impl Actor for Counter {
     type Message<'a> = Increment;
 
-    /// The on_start method is called before any messages are processed for the
+    /// The on_mount method is called before any messages are processed for the
     /// Actor, and can be used to write actors that never process messages.
-    type OnStartFuture<'a> = impl core::future::Future<Output = ()> + 'a;
-    fn on_start(self: core::pin::Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
+    type OnMountFuture<'a> = impl core::future::Future<Output = ()> + 'a;
+    fn on_mount(self: core::pin::Pin<&'_ mut Self>) -> Self::OnMountFuture<'_> {
         async move { }
     }
 

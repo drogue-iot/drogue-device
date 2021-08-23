@@ -43,14 +43,14 @@ where
     #[rustfmt::skip]
     type Message<'m> where 'a: 'm = TickerCommand;
     #[rustfmt::skip]
-    type OnStartFuture<'m, M> where 'a: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M> where 'a: 'm, M: 'm = impl Future<Output = ()> + 'm;
 
     fn on_mount(&mut self, me: Address<'a, Self>, config: Self::Configuration) {
         self.me.replace(me);
         self.actor.replace(config);
     }
 
-    fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+    fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, inbox: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {

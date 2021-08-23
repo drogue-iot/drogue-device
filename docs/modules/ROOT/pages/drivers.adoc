@@ -104,8 +104,8 @@ impl Actor for AtomicCounter {
     type Message<'m> = CounterMessage;
     type Response<'m> = u32;
 
-    type OnStartFuture<'m> = impl Future<Output = ()> + 'm;
-    fn on_start(mut self: Pin<&mut Self>) -> Self::OnStartFuture<'_> {
+    type OnMountFuture<'m> = impl Future<Output = ()> + 'm;
+    fn on_mount(mut self: Pin<&mut Self>) -> Self::OnMountFuture<'_> {
        async move {
        }
     }

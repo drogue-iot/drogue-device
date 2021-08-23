@@ -24,9 +24,9 @@ mod tests {
             type Message<'a> = Add;
 
     #[rustfmt::skip]
-            type OnStartFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
+            type OnMountFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
 
-            fn on_start<'m, M>(&'m mut self, inbox: &'m mut M) -> Self::OnStartFuture<'m, M>
+            fn on_mount<'m, M>(&'m mut self, _: Self::Configuration, _: Address<'static, Self>, inbox: &'m mut M) -> Self::OnMountFuture<'m, M>
             where
                 M: Inbox<'m, Self> + 'm,
             {
