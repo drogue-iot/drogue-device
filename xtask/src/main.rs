@@ -88,7 +88,7 @@ fn docs() -> Result<(), anyhow::Error> {
     generate_examples_page()
 }
 
-const MAIN_CATEGORIES: [&str; 3] = ["simple", "networking", "other"];
+const MAIN_CATEGORIES: [&str; 3] = ["basic", "networking", "other"];
 fn generate_examples_page() -> Result<(), anyhow::Error> {
     for kw in MAIN_CATEGORIES {
         let output = root_dir()

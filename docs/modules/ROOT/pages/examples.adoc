@@ -8,9 +8,9 @@ with a variant that uses a `esp8266` WiFi module.
 All example can be run using `cargo run`, which in some cases require the `probe-run` tool (`cargo
 install probe-run`) to flash the program.
 
-# Simple examples
+# Basic examples
 
-include::examples_simple.adoc[]
+include::examples_basic.adoc[]
 
 # Networking examples
 
