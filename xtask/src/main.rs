@@ -118,7 +118,7 @@ fn generate_examples_page() -> Result<(), anyhow::Error> {
             for package_kw in keywords {
                 if let toml::Value::String(s) = package_kw {
                     if s == kw {
-                        write!(
+                        writeln!(
                             &fh,
                             "* link:https://github.com/drogue-iot/drogue-device/tree/main/{}[{}]",
                             relative.unwrap().display(),
