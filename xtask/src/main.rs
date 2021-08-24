@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![deny(unused_must_use)]
 
+use std::io::Write;
 use std::{env, fs, path::PathBuf};
 
 use xshell::cmd;
@@ -12,6 +13,7 @@ fn main() -> Result<(), anyhow::Error> {
     match &args[..] {
         ["ci"] => test_ci(),
         ["update"] => update(),
+        ["docs"] => docs(),
         _ => {
             println!("USAGE cargo xtask [ci]");
             Ok(())
@@ -24,7 +26,7 @@ fn update() -> Result<(), anyhow::Error> {
     cmd!("cargo update").run()?;
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
-    do_examples(examples_dir, &update_example)?;
+    do_examples(examples_dir, &mut update_example)?;
     Ok(())
 }
 
@@ -33,7 +35,7 @@ fn test_ci() -> Result<(), anyhow::Error> {
     test_device()?;
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
-    do_examples(examples_dir, &test_example)?;
+    do_examples(examples_dir, &mut test_example)?;
     Ok(())
 }
 
@@ -47,9 +49,9 @@ fn test_device() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn do_examples<F: Fn(PathBuf) -> Result<(), anyhow::Error>>(
+fn do_examples<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
     current_dir: PathBuf,
-    f: &F,
+    f: &mut F,
 ) -> Result<(), anyhow::Error> {
     for entry in fs::read_dir(current_dir)? {
         let entry = entry?;
@@ -79,6 +81,61 @@ fn update_example(project_file: PathBuf) -> Result<(), anyhow::Error> {
     println!("Updating example {}", project_file.to_str().unwrap_or(""));
     let _p = xshell::pushd(project_file.parent().unwrap())?;
     cmd!("cargo update").run()?;
+    Ok(())
+}
+
+fn docs() -> Result<(), anyhow::Error> {
+    generate_examples_page()
+}
+
+const MAIN_CATEGORIES: [&str; 6] = ["basic", "wifi", "lorawan", "uart", "display", "other"];
+fn generate_examples_page() -> Result<(), anyhow::Error> {
+    for kw in MAIN_CATEGORIES {
+        let output = root_dir()
+            .join("docs")
+            .join("modules")
+            .join("ROOT")
+            .join("pages")
+            .join(format!("examples_{}.adoc", kw));
+        //println!("Output file: {:?}", output);
+
+        let mut fh = std::fs::File::create(output).expect("unable to open file");
+        let mut examples_dir = root_dir();
+        examples_dir.push("examples");
+        let mut entries = Vec::new();
+        do_examples(examples_dir, &mut |project_file| {
+            let contents = fs::read_to_string(&project_file).expect("error reading file");
+            let t = contents.parse::<toml::Value>().unwrap();
+            let relative = project_file.strip_prefix(root_dir())?.parent();
+            let other = vec!["other".into()];
+            let keywords = t["package"]
+                .get("keywords")
+                .map(|k| k.as_array().unwrap())
+                .unwrap_or(&other);
+            let description = t["package"]
+                .get("description")
+                .map(|s| s.as_str().unwrap())
+                .unwrap_or("Awesome example");
+            for package_kw in keywords {
+                if let toml::Value::String(s) = package_kw {
+                    if s == kw {
+                        entries.push(format!(
+                            "* link:https://github.com/drogue-iot/drogue-device/tree/main/{}[{}]",
+                            relative.unwrap().display(),
+                            description
+                        ));
+                    }
+                }
+            }
+            //println!("Value: {:?}", t["package"]);
+            // println!("Keywords for {:?}: {:?}", relative, keywords,);
+            Ok(())
+        })?;
+        entries.sort();
+        for entry in entries.iter() {
+            writeln!(fh, "{}", entry).unwrap();
+        }
+    }
     Ok(())
 }
 

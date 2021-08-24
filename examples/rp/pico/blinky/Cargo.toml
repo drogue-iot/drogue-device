@@ -7,6 +7,8 @@ authors = [
 edition = "2018"
 name = "blinky"
 version = "0.1.0"
+description = "Raspberry Pi Pico Blinky"
+keywords = ["rp", "rpi", "pico", "blinky", "basic"]
 
 [workspace]
 

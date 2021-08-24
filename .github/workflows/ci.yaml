@@ -21,3 +21,12 @@ jobs:
 
       - name: CI
         run: cargo xtask ci
+
+      - name: Documentation
+        run: cargo xtask docs
+
+      - name: Git diff
+        run: git diff
+
+      - name: Verify no changes to source modules
+        run: git diff-index --quiet HEAD

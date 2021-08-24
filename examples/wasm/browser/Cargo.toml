@@ -3,6 +3,8 @@ name = "browser"
 version = "0.1.0"
 authors = ["Ulf Lilleengen <lulf@redhat.com>"]
 edition = "2018"
+description = "WebAssembly using Drogue Device"
+keywords = ["wasm"]
 
 [workspace]
 

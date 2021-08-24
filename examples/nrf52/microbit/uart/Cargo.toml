@@ -6,6 +6,8 @@ authors = [
 edition = "2018"
 name = "microbit-uart"
 version = "0.1.0"
+description = "BBC micro:bit v2 uart and matrix display"
+keywords = ["uart", "microbit", "nrf", "nrf52", "display"]
 
 [workspace]
 
