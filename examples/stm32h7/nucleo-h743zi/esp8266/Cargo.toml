@@ -7,6 +7,8 @@ edition = "2018"
 name = "nucleo-h743zi_esp8266"
 version = "0.1.0"
 resolver = "2"
+description = "STM32 Nucleo-H743 + ESP8266 WiFi adapter"
+keywords = ["networking", "wifi", "esp8266", "stm32", "stm32h7"]
 
 [workspace]
 

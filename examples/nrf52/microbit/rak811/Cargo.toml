@@ -6,6 +6,8 @@ authors = [
 edition = "2018"
 name = "microbit-rak811"
 version = "0.1.0"
+description = "BBC micro:bit v2 + RAK811 LoRa adapter"
+keywords = ["networking", "lora", "lorawan", "rak811", "microbit", "nrf", "nrf52"]
 
 [workspace]
 

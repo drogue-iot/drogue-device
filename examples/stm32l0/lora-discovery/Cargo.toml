@@ -8,7 +8,7 @@ name = "lora-discovery"
 version = "0.1.0"
 resolver = "2"
 description = "STM32 LoRaWAN Discovery board sending data to The Things Network"
-keywords = ["lorawan", "lora", "stm32l0", "networking", "iot"]
+keywords = ["lorawan", "lora", "stm32l0", "networking", "iot", "stm32"]
 
 [workspace]
 

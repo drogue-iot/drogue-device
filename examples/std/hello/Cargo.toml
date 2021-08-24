@@ -6,6 +6,8 @@ authors = [
 edition = "2018"
 name = "hello"
 version = "0.1.0"
+description = "Hello world in std Rust"
+keywords = ["basic", "std"]
 
 [workspace]
 

@@ -6,6 +6,8 @@ authors = [
 edition = "2018"
 name = "esp8266"
 version = "0.1.0"
+description = "Serial adapter + ESP8266 adapter"
+keywords = ["std", "wifi", "networking"]
 
 [workspace]
 
