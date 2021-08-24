@@ -21,3 +21,6 @@ jobs:
 
       - name: CI
         run: cargo xtask ci
+
+      - name: Documentation
+        run: cargo xtask docs && git diff-index --quiet HEAD
