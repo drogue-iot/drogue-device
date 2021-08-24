@@ -183,7 +183,7 @@ where
             self.config.init_led.off().ok();
             loop {
                 match inbox.next().await {
-                    Some((message, responder)) => responder.respond(match message {
+                    Some(mut m) => match m.message() {
                         Command::Tick => {
                             self.tick();
                         }
@@ -194,7 +194,7 @@ where
                             self.tick();
                             self.send().await;
                         }
-                    }),
+                    },
                     _ => {}
                 }
             }

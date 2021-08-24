@@ -47,14 +47,14 @@ impl Actor for Statistics {
     {
         async move {
             loop {
-                inbox
-                    .process(|message| match message {
+                if let Some(mut m) = inbox.next().await {
+                    match *m.message() {
                         StatisticsCommand::PrintStatistics => {
                             defmt::info!("Character count: {}", self.character_counter)
                         }
                         StatisticsCommand::IncrementCharacterCount => self.character_counter += 1,
-                    })
-                    .await;
+                    }
+                }
             }
         }
     }

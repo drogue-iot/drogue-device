@@ -9,7 +9,6 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use core::future::Future;
-use core::pin::Pin;
 use drogue_device::actors::button::{ButtonEvent, FromButtonEvent};
 use drogue_device::actors::led::{Led, LedMessage};
 use drogue_device::{actors::button::Button, Actor, ActorContext, Address, DeviceContext, Inbox};
@@ -130,7 +129,7 @@ impl Actor for App {
         async move {
             loop {
                 match with_timeout(Duration::from_millis(50), inbox.next()).await {
-                    Ok(Some((message, r))) => r.respond(match message {
+                    Ok(Some(mut m)) => match m.message() {
                         Command::StartDancing => {
                             self.all_on();
                             self.dancing = true;
@@ -139,7 +138,7 @@ impl Actor for App {
                             self.dancing = false;
                             self.all_off();
                         }
-                    }),
+                    },
                     _ => {}
                 }
                 if self.dancing {

@@ -45,6 +45,7 @@ where
             self.request(AdapterRequest::Join(join))
                 .unwrap()
                 .await
+                .unwrap()
                 .join()
         }
     }
@@ -59,7 +60,13 @@ where
     #[rustfmt::skip]
     type OpenFuture<'m> where 'a: 'm = impl Future<Output = Self::SocketHandle> + 'm;
     fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
-        async move { self.request(AdapterRequest::Open).unwrap().await.open() }
+        async move {
+            self.request(AdapterRequest::Open)
+                .unwrap()
+                .await
+                .unwrap()
+                .open()
+        }
     }
 
     #[rustfmt::skip]
@@ -74,6 +81,7 @@ where
             self.request(AdapterRequest::Connect(handle, proto, dst))
                 .unwrap()
                 .await
+                .unwrap()
                 .connect()
         }
     }
@@ -85,6 +93,7 @@ where
             self.request(AdapterRequest::Write(handle, buf))
                 .unwrap()
                 .await
+                .unwrap()
                 .write()
         }
     }
@@ -100,6 +109,7 @@ where
             self.request(AdapterRequest::Read(handle, buf))
                 .unwrap()
                 .await
+                .unwrap()
                 .read()
         }
     }
@@ -172,7 +182,7 @@ impl<N: Adapter> Actor for AdapterActor<N> {
 
     #[rustfmt::skip]
     type Message<'m> where N: 'm = AdapterRequest<'m>;
-    type Response = AdapterResponse;
+    type Response = Option<AdapterResponse>;
 
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where N: 'm, M: 'm = impl Future<Output = ()> + 'm;
@@ -189,26 +199,27 @@ impl<N: Adapter> Actor for AdapterActor<N> {
         async move {
             let driver = self.driver.as_mut().unwrap();
             loop {
-                if let Some((message, responder)) = inbox.next().await {
-                    responder.respond(match message {
+                if let Some(mut m) = inbox.next().await {
+                    let response = match m.message() {
                         AdapterRequest::Join(join) => {
-                            AdapterResponse::Join(driver.join(join).await)
+                            AdapterResponse::Join(driver.join(*join).await)
                         }
                         AdapterRequest::Open => AdapterResponse::Open(driver.open().await),
                         AdapterRequest::Connect(handle, proto, addr) => {
-                            AdapterResponse::Connect(driver.connect(handle, proto, addr).await)
+                            AdapterResponse::Connect(driver.connect(*handle, *proto, *addr).await)
                         }
                         AdapterRequest::Write(handle, buf) => {
-                            AdapterResponse::Write(driver.write(handle, buf).await)
+                            AdapterResponse::Write(driver.write(*handle, buf).await)
                         }
                         AdapterRequest::Read(handle, buf) => {
-                            AdapterResponse::Read(driver.read(handle, buf).await)
+                            AdapterResponse::Read(driver.read(*handle, buf).await)
                         }
                         AdapterRequest::Close(handle) => {
-                            driver.close(handle).await;
+                            driver.close(*handle).await;
                             AdapterResponse::Close
                         }
-                    });
+                    };
+                    m.set_response(Some(response));
                 }
             }
         }

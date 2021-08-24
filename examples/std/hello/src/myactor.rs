@@ -36,10 +36,10 @@ impl Actor for MyActor {
             log::info!("[{}] started!", self.name);
             loop {
                 match inbox.next().await {
-                    Some((m, r)) => r.respond({
+                    Some(mut m) => {
                         let count = self.counter.unwrap().fetch_add(1, Ordering::SeqCst);
-                        log::info!("[{}] hello {}: {}", self.name, m.0, count);
-                    }),
+                        log::info!("[{}] hello {}: {}", self.name, m.message().0, count);
+                    }
                     _ => {}
                 }
             }

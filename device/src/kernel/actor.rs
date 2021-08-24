@@ -33,7 +33,7 @@ pub trait Actor: Sized {
 
     /// The response type that this actor will be expected to respond with for
     /// each message.
-    type Response: Sized + Send = ();
+    type Response: Sized + Send + Default = ();
 
     /// The future type returned in `on_mount`, usually derived from an `async move` block
     /// in the implementation using `impl Trait`.
@@ -59,70 +59,33 @@ where
     A: Actor + 'a,
 {
     #[rustfmt::skip]
-    type NextFuture<'m>: Future<Output = Option<(A::Message<'m>, Responder<A>)>> where Self: 'm, 'a: 'm;
+    type NextFuture<'m>: Future<Output = Option<InboxMessage<'m, A>>> where Self: 'm, 'a: 'm;
 
-    /// Retrieve the next message in the inbox. The returned value is a pair of the message and a responder instance.
+    /// Retrieve the next message in the inbox. A default value to use as a response must be
+    /// provided to ensure a response is always given.
     ///
-    /// NOTE: The responder _must_ be invoked and will panic if not.
     /// This method returns None if the channel is closed.
+    #[must_use = "Must set response for message"]
     fn next<'m>(&'m mut self) -> Self::NextFuture<'m>;
-
-    #[rustfmt::skip]
-    type ProcessFuture<'m, F>: Future<Output = ()> where F: 'm, Self: 'm, 'a: 'm;
-    /// Retrieve the next message in the inbox and invoke the provided closure, which must return a response.
-    fn process<'m, F: FnMut(A::Message<'m>) -> A::Response + 'm>(
-        &'m mut self,
-        f: F,
-    ) -> Self::ProcessFuture<'m, F>
-    where
-        'a: 'm;
 }
 
 impl<'a, A: Actor + 'static, const QUEUE_SIZE: usize> Inbox<'a, A>
     for Receiver<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>
 {
     #[rustfmt::skip]
-    type NextFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Option<(A::Message<'m>, Responder<A>)>> + 'm;
+    type NextFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Option<InboxMessage<'m, A>>> + 'm;
     fn next<'m>(&'m mut self) -> Self::NextFuture<'m> {
         async move {
             // Safety: This is OK because 'a > 'm and we're doing this to ensure
             // processing loop doesn't abuse the 'fake' lifetime while stored on the queue.
             self.recv().await.map(|m| match m {
                 ActorMessage::Request(message, signal) => unsafe {
-                    (core::mem::transmute_copy(&message), Responder::new(signal))
+                    InboxMessage::request(core::mem::transmute_copy(&message), signal)
                 },
                 ActorMessage::Notify(message) => unsafe {
-                    (core::mem::transmute_copy(&message), Responder::empty())
+                    InboxMessage::notify(core::mem::transmute_copy(&message))
                 },
             })
-        }
-    }
-
-    #[rustfmt::skip]
-    type ProcessFuture<'m, F> where 'a: 'm, A: 'm, F: 'm, = impl Future<Output = ()> + 'm;
-    fn process<'m, F: FnMut(A::Message<'m>) -> A::Response + 'm>(
-        &'m mut self,
-        mut f: F,
-    ) -> Self::ProcessFuture<'m, F>
-    where
-        'a: 'm,
-    {
-        async move {
-            if let Some(m) = self.recv().await {
-                match m {
-                    // Safety: This is OK because 'a > 'm and we're doing this to ensure
-                    // processing loop doesn't abuse the 'fake' lifetime while stored on the queue.
-                    ActorMessage::Request(message, signal) => {
-                        let message = unsafe { core::mem::transmute_copy(&message) };
-                        let response = f(message);
-                        unsafe { &*signal }.signal(response);
-                    }
-                    ActorMessage::Notify(message) => {
-                        let message = unsafe { core::mem::transmute_copy(&message) };
-                        let _ = f(message);
-                    }
-                }
-            }
         }
     }
 }
@@ -434,39 +397,57 @@ pub(crate) enum ActorMessage<'m, A: Actor + 'm> {
     Notify(A::Message<'m>),
 }
 
-#[must_use]
-pub struct Responder<A>
+/// Holds a message retrieved from the Inbox, ensuring that a response
+/// is delivered.
+pub struct InboxMessage<'m, A>
 where
-    A: Actor,
+    A: Actor + 'm,
 {
-    bomb: Option<DropBomb>,
+    message: A::Message<'m>,
+    response: Option<A::Response>,
     signal: Option<*const SignalSlot<A::Response>>,
 }
 
-impl<A> Responder<A>
+impl<'m, A> InboxMessage<'m, A>
 where
-    A: Actor,
+    A: Actor + 'm,
 {
-    pub fn new(signal: *const SignalSlot<A::Response>) -> Self {
+    pub(crate) fn request(message: A::Message<'m>, signal: *const SignalSlot<A::Response>) -> Self {
         Self {
-            bomb: Some(DropBomb::new()),
+            message,
+            response: Some(Default::default()),
             signal: Some(signal),
         }
     }
 
-    pub fn empty() -> Self {
+    pub(crate) fn notify(message: A::Message<'m>) -> Self {
         Self {
-            bomb: None,
+            message,
+            response: Some(Default::default()),
             signal: None,
         }
     }
 
-    pub fn respond(self, response: A::Response) {
-        if let Some(bomb) = self.bomb {
-            bomb.defuse();
-        }
+    /// Borrow the message payload.
+    pub fn message(&mut self) -> &mut A::Message<'m> {
+        &mut self.message
+    }
+
+    /// Set a response for this message, which will replace the default response.
+    pub fn set_response(&mut self, response: A::Response) {
+        self.response.replace(response);
+    }
+}
+
+impl<'m, A> Drop for InboxMessage<'m, A>
+where
+    A: Actor + 'm,
+{
+    fn drop(&mut self) {
         if let Some(signal) = self.signal {
-            unsafe { &*signal }.signal(response);
+            if let Some(response) = self.response.take() {
+                unsafe { &*signal }.signal(response);
+            }
         }
     }
 }

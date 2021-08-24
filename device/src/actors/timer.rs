@@ -50,16 +50,16 @@ impl<'a, A: Actor + 'a> Actor for Timer<'a, A> {
     {
         async move {
             loop {
-                if let Some((message, responder)) = inbox.next().await {
-                    responder.respond(match message {
+                if let Some(mut m) = inbox.next().await {
+                    match m.message() {
                         TimerMessage::Delay(dur) => {
-                            time::Timer::after(dur).await;
+                            time::Timer::after(*dur).await;
                         }
-                        TimerMessage::Schedule(dur, address, mut message) => {
-                            time::Timer::after(dur).await;
+                        TimerMessage::Schedule(dur, address, message) => {
+                            time::Timer::after(*dur).await;
                             let _ = address.notify(message.take().unwrap());
                         }
-                    });
+                    };
                 }
             }
         }
