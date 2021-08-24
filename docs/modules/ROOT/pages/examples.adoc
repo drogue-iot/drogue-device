@@ -6,39 +6,39 @@ are grouped by how advanced they are, and what they demonstrate such as networki
 All example can be run using `cargo run`, which in some cases require the `probe-run` tool (`cargo
 install probe-run`) to flash the program.
 
-# Basic examples
+== Basic examples
 
 Basic examples that only require a single board without any additional hardware.
 
 include::examples_basic.adoc[]
 
-# WiFi connectivity examples
+== WiFi connectivity examples
 
 Examples that demonstrates network connectivity using WiFi, usually using an additional network
 adapter module.  May require setting up additional network services (locally or third party).
 
 include::examples_wifi.adoc[]
 
-# LoRaWAN connectivity examples
+== LoRaWAN connectivity examples
 
 Examples that demonstrates network connectivity using LoRaWAN. May require setting up additional
 network services (locally or third party).
 
-include::examples_wifi.adoc[]
+include::examples_lorawan.adoc[]
 
-# Display examples
+== Display examples
 
 Examples that demonstrates the use of displays, either on board or as external peripherals.
 
 include::examples_display.adoc[]
 
-# UART examples
+== UART examples
 
 Examples that demonstrates the use of a UART.
 
 include::examples_uart.adoc[]
 
-# Other examples
+== Other examples
 
 Other examples that does not belong in any major category
 
