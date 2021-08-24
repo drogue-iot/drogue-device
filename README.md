@@ -12,7 +12,7 @@ Drogue device is an open source async, no-alloc framework for embedded devices. 
 * Offers built-in drivers for internet connectivity, such as WiFi and LoRaWAN.
 * All software is licensed under the Apache 2.0 open source license.
 
-See [the book](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and running some examples.
+See the [documentation](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and for some examples.
 
 ## What are Actors?
 
@@ -23,7 +23,7 @@ Actors in drogue-device are *async*, which means that they process messages usin
 
 ## Example application
 
-An overview of the examples can be found in [the book](https://book.drogue.io/drogue-device/dev/examples.html) or going to the [examples folder](https://github.com/drogue-iot/drogue-device/tree/main/examples) in this repository.
+An overview of the examples can be found in the [documentation](https://book.drogue.io/drogue-device/dev/examples.html).
 
 Drogue device runs on any platform supported by embassy, which at the time of writing includes:
 
