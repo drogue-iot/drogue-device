@@ -45,14 +45,20 @@ pub struct Increment;
 
 /// An Actor implements the Actor trait.
 impl Actor for Counter {
+    /// The Message associated type is the message types that the Actor can receive.
     type Message<'a> = Increment;
 
-    /// The on_mount method is called before any messages are processed for the
-    /// Actor. The following parameters are provided:
+    /// Drogue Device uses a feature from Nightly Rust called Generic Associated Types (GAT) in order
+    /// to support async functions in traits such as Actor.
+    type OnMountFuture<'a> = impl core::future::Future<Output = ()> + 'a;
+
+    /// An actor have to implement the on_mount method. on_mount() is invoked when the internals of an actor is ready,
+    /// and the actor can begin to receive messages from an inbox.
+    ///
+    /// The following arguments are provided:
     /// * The actor configuration
     /// * The address to 'self'
-    /// * An inbox from which the actor can await incoming messages
-    type OnMountFuture<'a> = impl core::future::Future<Output = ()> + 'a;
+    /// * An inbox from which the actor can receive messages
     fn on_mount<'m, M>(
         &'m mut self,
         _: Self::Configuration,
@@ -64,8 +70,9 @@ impl Actor for Counter {
     {
         async move {
             loop {
-                // Await the next message and invoke the following closure. If async is needed in the processin
-                // loop, one can use inbox.next() to retrieve the next item.
+                // Await the next message and invoke the provided closure. If the processing loop needs to
+                // invoke other async functions, you can use inbox.next() to retrieve an item together with a
+                // responder instance.
                 inbox.process(|m| {
                     self.count += 1;
                 }).await;

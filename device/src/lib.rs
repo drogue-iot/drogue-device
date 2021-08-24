@@ -22,7 +22,6 @@
 //! #![allow(incomplete_features)]
 //! #![feature(generic_associated_types)]
 //! #![feature(type_alias_impl_trait)]
-//! #![feature(concat_idents)]
 //!
 //! use drogue_device::*;
 //!
@@ -48,8 +47,8 @@
 //!         _: Address<'static, Self>,
 //!         inbox: &'m mut M,
 //!     ) -> Self::OnMountFuture<'m, M>
-//!     where
-//!     M: Inbox<'m, Self> + 'm {
+//!         where
+//!             M: Inbox<'m, Self> + 'm {
 //!         async move {
 //!             loop {
 //!                 inbox.process(|m| {
@@ -72,8 +71,8 @@
 //!         a: ActorContext::new(MyActor::new("a")),
 //!     });
 //!     let a_addr = DEVICE.mount(|device| {
-//!         device.a.mount((), spawner.into())
-//!     });
+//!         device.a.mount((), spawner)
+//!     }).await;
 //!     a_addr.request(SayHello("World")).await;
 //! }
 //!```

@@ -16,9 +16,7 @@ image::drogue-device-actor-model.png[Drogue Device Actor Model]
 
 === Async
 
-Each actor is ostensibly single-threaded, able to process a single message at a time, allowing for lock-free processing of each event.
-As embedded processors are ostensibly globally single-threaded, supporting multiple actors requires the usage of `async` and `.await` within the Rust ecosystem.
-Each actor can therefore process each message either synchronously if its logic is _non-blocking_ or using an `async` block if complex processing is required.
+Each actor is single-threaded, able to process a single message at a time, allowing for lock-free processing of each event. As embedded processors are globally single-threaded, supporting multiple actors requires the usage of `async` and `.await` within the Rust ecosystem. Each actor can therefore process each message either synchronously if its logic is _non-blocking_ or using an `async` block if complex processing is required.
 
 Each event is fully processed, in the order in which it is received, before the next event is considered.
 
@@ -26,16 +24,13 @@ While processing an event, an actor may send a message to another actor, which i
 
 === Messages
 
-All messages are sent using async channels attached to each actor. The channel depth is configurable based on `generic-array` and `heapless`. Once const generics is used by heapless, we will
-make the move as well.
-
+All messages are sent using async channels attached to each actor. The channel depth is configurable based on const generics. 
 === Addresses
 
 Each actor within the system has its own unique `Address` which is used to communicate with the actor (through it's FIFO). 
-There is an _async_ `send(msg)` method on each address to send a message asynchronously to the actor, which may only be used from another `async` context, as the sender must `.await` the response.
+There is an _async_ `request(msg)` method on each address to send a message asynchronously to the actor, which may only be used from another `async` context, as the sender must `.await` the response. There is also a _sync_ `notify(msg)` method on each address to send a message without awaiting a response.
 
-Specifically, the `Address` for a given actor may expose additional async methods to facility fluent APIs for communicating with the underlying actor.
-For instance, the `Address<SimpleLED<...>>` instance has a `turn_on()` and `turn_off()` pair of methods for manipulating the underlying LED.
+Specifically, the `Address` for a given actor may expose additional async methods or wrap an `Address` to facility fluent APIs for communicating with the underlying actor. For instance, the `Socket` type wraps an `Address` for actors that implement the `TcpSocket` trait.
 
 === State
 
@@ -45,8 +40,7 @@ Each Actor in the system defines the configuration it expects to get handed in i
 
 === Bootstrap & Mounting
 
-A top-level `Device` struct created by the application writer, maintain members for each actor. A static instance of `DeviceContext` is created to hold a static reference
-to the `Device` struct.
+A top-level `Device` struct created by the application writer, maintain members for each actor. A static instance of `DeviceContext` is created to hold a static reference to the `Device` struct.
 
 The application entry point is specified using a function marked with `#[embassy::main]`, and it will be passed a `Spawner` that is used when mounting actors and packages.
 

@@ -15,32 +15,35 @@ use embassy::{
 type ActorMutex = WithNoThreads;
 
 /// Trait that each actor must implement. An Actor must specify a message type
-/// it acts on, and an implementation of a message handler in `on_message`.
+/// it acts on, and an implementation of `on_mount` which is invoked when the
+/// actor is started.
 ///
 /// At run time, an Actor is held within an ActorContext, which contains the
-/// embassy task and the message queues.
+/// embassy task and the message queues. The size of the message queue is configured
+/// per ActorContext.
 pub trait Actor: Sized {
     /// The configuration that this actor will expect when mounted.
     type Configuration = ();
 
-    /// The message type that this actor will handle in `on_message`.
+    /// The message type that this actor will receive from its inbox.
     type Message<'a>: Sized
     where
         Self: 'a,
     = ();
 
-    /// The response type that this actor will return in `on_message`.
+    /// The response type that this actor will be expected to respond with for
+    /// each message.
     type Response: Sized + Send = ();
 
     /// The future type returned in `on_mount`, usually derived from an `async move` block
-    /// in the implementation.
+    /// in the implementation using `impl Trait`.
     type OnMountFuture<'m, M>: Future<Output = ()>
     where
         Self: 'm,
         M: 'm;
 
-    /// Called when an actor is mounted into the system. The actor will be presented with its expected
-    /// configuration, address and an inbox to pull messages from.
+    /// Called when an actor is mounted (activated). The actor will be provided with its expected
+    /// configuration, and address to itself, and an inbox used to receive incoming messages.
     fn on_mount<'m, M>(
         &'m mut self,
         _: Self::Configuration,
@@ -57,10 +60,16 @@ where
 {
     #[rustfmt::skip]
     type NextFuture<'m>: Future<Output = Option<(A::Message<'m>, Responder<A>)>> where Self: 'm, 'a: 'm;
+
+    /// Retrieve the next message in the inbox. The returned value is a pair of the message and a responder instance.
+    ///
+    /// NOTE: The responder _must_ be invoked and will panic if not.
+    /// This method returns None if the channel is closed.
     fn next<'m>(&'m mut self) -> Self::NextFuture<'m>;
 
     #[rustfmt::skip]
     type ProcessFuture<'m, F>: Future<Output = ()> where F: 'm, Self: 'm, 'a: 'm;
+    /// Retrieve the next message in the inbox and invoke the provided closure, which must return a response.
     fn process<'m, F: FnMut(A::Message<'m>) -> A::Response + 'm>(
         &'m mut self,
         f: F,

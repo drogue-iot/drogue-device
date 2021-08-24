@@ -116,12 +116,12 @@ impl Actor for AtomicCounter {
     {
         async move {
             loop {
-                inbox.process(|message| {
-                    match message {
+                if let Some((message, responder)) = inbox.next().await {
+                    responder.respond(match message {
                         CounterMessage::Increment => self.counter.increment().await,
                         CounterMessage::Add(value) => self.counter.add(value).await,
-                    }
-                }).await;
+                    });
+                }
             }
         }
     }
