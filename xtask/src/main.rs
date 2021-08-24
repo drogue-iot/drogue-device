@@ -26,7 +26,7 @@ fn update() -> Result<(), anyhow::Error> {
     cmd!("cargo update").run()?;
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
-    do_examples(examples_dir, &update_example)?;
+    do_examples(examples_dir, &mut update_example)?;
     Ok(())
 }
 
@@ -35,7 +35,7 @@ fn test_ci() -> Result<(), anyhow::Error> {
     test_device()?;
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
-    do_examples(examples_dir, &test_example)?;
+    do_examples(examples_dir, &mut test_example)?;
     Ok(())
 }
 
@@ -49,9 +49,9 @@ fn test_device() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn do_examples<F: Fn(PathBuf) -> Result<(), anyhow::Error>>(
+fn do_examples<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
     current_dir: PathBuf,
-    f: &F,
+    f: &mut F,
 ) -> Result<(), anyhow::Error> {
     for entry in fs::read_dir(current_dir)? {
         let entry = entry?;
@@ -99,10 +99,11 @@ fn generate_examples_page() -> Result<(), anyhow::Error> {
             .join(format!("examples_{}.adoc", kw));
         //println!("Output file: {:?}", output);
 
-        let fh = std::fs::File::create(output).expect("unable to open file");
+        let mut fh = std::fs::File::create(output).expect("unable to open file");
         let mut examples_dir = root_dir();
         examples_dir.push("examples");
-        do_examples(examples_dir, &|project_file| {
+        let mut entries = Vec::new();
+        do_examples(examples_dir, &mut |project_file| {
             let contents = fs::read_to_string(&project_file).expect("error reading file");
             let t = contents.parse::<toml::Value>().unwrap();
             let relative = project_file.strip_prefix(root_dir())?.parent();
@@ -118,13 +119,11 @@ fn generate_examples_page() -> Result<(), anyhow::Error> {
             for package_kw in keywords {
                 if let toml::Value::String(s) = package_kw {
                     if s == kw {
-                        writeln!(
-                            &fh,
+                        entries.push(format!(
                             "* link:https://github.com/drogue-iot/drogue-device/tree/main/{}[{}]",
                             relative.unwrap().display(),
                             description
-                        )
-                        .unwrap();
+                        ));
                     }
                 }
             }
@@ -132,6 +131,10 @@ fn generate_examples_page() -> Result<(), anyhow::Error> {
             // println!("Keywords for {:?}: {:?}", relative, keywords,);
             Ok(())
         })?;
+        entries.sort();
+        for entry in entries.iter() {
+            writeln!(fh, "{}", entry).unwrap();
+        }
     }
     Ok(())
 }
