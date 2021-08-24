@@ -63,14 +63,16 @@ impl Counter for MyCounter {
     type IncrementFuture<'m> = impl Future<Output = u32> + 'm;
     fn increment<'m>(&'m mut self) -> Self::IncrementFuture<'m> {
         async move {
-            self.counter += 1;
+            self.value += 1;
+            self.value
         }
     }
 
     type AddFuture<'m> = impl Future<Output = u32> + 'm;
     fn add<'m>(&'m mut self, value: u32) -> Self::AddFuture<'m> {
         async move {
-            self.counter += value;
+            self.value += value;
+            self.value
         }
     }
 }
@@ -116,11 +118,13 @@ impl Actor for AtomicCounter {
     {
         async move {
             loop {
-                if let Some((message, responder)) = inbox.next().await {
-                    responder.respond(match message {
+                if let Some(m) = inbox.next().await {
+                    let value = match m.message() {
                         CounterMessage::Increment => self.counter.increment().await,
-                        CounterMessage::Add(value) => self.counter.add(value).await,
-                    });
+                        CounterMessage::Add(value) => self.counter.add(*value).await,
+                    }
+                    // Set the response value
+                    message.set_response(value);
                 }
             }
         }

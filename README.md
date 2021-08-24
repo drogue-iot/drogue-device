@@ -70,12 +70,10 @@ impl Actor for Counter {
     {
         async move {
             loop {
-                // Await the next message and invoke the provided closure. If the processing loop needs to
-                // invoke other async functions, you can use inbox.next() to retrieve an item together with a
-                // responder instance.
-                inbox.process(|m| {
+                // Await the next message and increment the counter
+                if let Some(m) = inbox.next().await {
                     self.count += 1;
-                }).await;
+                }
             }
         }
     }

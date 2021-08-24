@@ -103,7 +103,7 @@ impl Actor for App {
         async move {
             loop {
                 match inbox.next().await {
-                    Some((_, r)) => r.respond(match self.color {
+                    Some(m) => match self.color {
                         None | Some(Color::Red) => {
                             self.color = Some(Color::Green);
                         }
@@ -113,7 +113,7 @@ impl Actor for App {
                         Some(Color::Yellow) => {
                             self.color = Some(Color::Red);
                         }
-                    }),
+                    },
                     _ => {}
                 }
 

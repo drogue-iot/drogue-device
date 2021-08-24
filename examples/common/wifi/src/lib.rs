@@ -75,7 +75,7 @@ where
         async move {
             loop {
                 match inbox.next().await {
-                    Some((message, r)) => r.respond(match message {
+                    Some(mut m) => match m.message() {
                         Command::Send => {
                             log::info!("Sending data");
                             let socket = self.socket.as_mut().unwrap();
@@ -103,7 +103,7 @@ where
                                 );
                             }
                         }
-                    }),
+                    },
                     _ => {}
                 }
             }

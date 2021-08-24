@@ -61,13 +61,13 @@ impl<D: LoraDriver> Actor for App<D> {
             let driver = self.driver.as_mut().unwrap();
             loop {
                 match inbox.next().await {
-                    Some((m, r)) => r.respond(match m {
+                    Some(mut m) => match m.message() {
                         Command::Send => {
                             log::info!("Sending data..");
                             let result = driver.send(QoS::Confirmed, 1, b"ping").await;
                             log::info!("Data sent: {:?}", result);
                         }
-                    }),
+                    },
                     _ => {}
                 }
             }

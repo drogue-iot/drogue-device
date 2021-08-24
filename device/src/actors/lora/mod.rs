@@ -23,6 +23,7 @@ where
             self.request(LoraRequest::Configure(config))
                 .unwrap()
                 .await
+                .unwrap()
                 .map(|_| ())
         }
     }
@@ -34,6 +35,7 @@ where
             self.request(LoraRequest::Join(mode))
                 .unwrap()
                 .await
+                .unwrap()
                 .map(|_| ())
         }
     }
@@ -45,6 +47,7 @@ where
             self.request(LoraRequest::Send(qos, port, data))
                 .unwrap()
                 .await
+                .unwrap()
                 .map(|_| ())
         }
     }
@@ -62,6 +65,7 @@ where
             self.request(LoraRequest::SendRecv(qos, port, data, rx))
                 .unwrap()
                 .await
+                .unwrap()
         }
     }
 }
@@ -90,7 +94,7 @@ where
 
     #[rustfmt::skip]
     type Message<'m> where D: 'm = LoraRequest<'m>;
-    type Response = Result<usize, LoraError>;
+    type Response = Option<Result<usize, LoraError>>;
 
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where D: 'm, M: 'm = impl Future<Output = ()> + 'm;
@@ -106,17 +110,18 @@ where
         async move {
             let driver = &mut self.driver;
             loop {
-                if let Some((message, responder)) = inbox.next().await {
-                    responder.respond(match message {
+                if let Some(mut m) = inbox.next().await {
+                    let response = match m.message() {
                         LoraRequest::Configure(config) => driver.configure(config).await.map(|_| 0),
-                        LoraRequest::Join(mode) => driver.join(mode).await.map(|_| 0),
+                        LoraRequest::Join(mode) => driver.join(*mode).await.map(|_| 0),
                         LoraRequest::Send(qos, port, buf) => {
-                            driver.send(qos, port, buf).await.map(|_| 0)
+                            driver.send(*qos, *port, buf).await.map(|_| 0)
                         }
                         LoraRequest::SendRecv(qos, port, buf, rx) => {
-                            driver.send_recv(qos, port, buf, rx).await
+                            driver.send_recv(*qos, *port, buf, rx).await
                         }
-                    });
+                    };
+                    m.set_response(Some(response));
                 }
             }
         }

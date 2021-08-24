@@ -116,7 +116,7 @@ where
         async move {
             loop {
                 match with_timeout(self.refresh_delay, inbox.next()).await {
-                    Ok(Some((message, r))) => r.respond(match message {
+                    Ok(Some(mut m)) => match *m.message() {
                         MatrixCommand::ApplyFrame(f) => self.apply(f.to_frame()),
                         MatrixCommand::On(x, y) => self.on(x, y),
                         MatrixCommand::Off(x, y) => self.off(x, y),
@@ -124,7 +124,7 @@ where
                         MatrixCommand::Render => {
                             self.render();
                         }
-                    }),
+                    },
                     Err(TimeoutError) => {
                         self.render();
                     }

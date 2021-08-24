@@ -1,14 +1,14 @@
 use super::ip::IpAddress;
 use core::future::Future;
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Join<'a> {
     Open,
     Wpa { ssid: &'a str, password: &'a str },
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum JoinError {
     Unknown,

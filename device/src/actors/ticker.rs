@@ -59,8 +59,8 @@ where
         async move {
             self.me.unwrap().notify(TickerCommand::Start).unwrap();
             loop {
-                if let Some((message, r)) = inbox.next().await {
-                    r.respond(match message {
+                if let Some(mut m) = inbox.next().await {
+                    match m.message() {
                         TickerCommand::Tick => {
                             if self.running {
                                 // Wait the configured interval before sending the message
@@ -80,7 +80,7 @@ where
                         TickerCommand::Stop => {
                             self.running = false;
                         }
-                    });
+                    }
                 }
             }
         }

@@ -44,7 +44,7 @@ impl Display for IpAddressV4 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct SocketAddress {
     ip: IpAddress,
@@ -65,6 +65,7 @@ impl SocketAddress {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum IpProtocol {
     Tcp,
     Udp,
