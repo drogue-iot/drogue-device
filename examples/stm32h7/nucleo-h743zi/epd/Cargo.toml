@@ -6,6 +6,7 @@ authors = [
 edition = "2018"
 name = "nucleo-h743zi_epd"
 version = "0.1.0"
+keywords = ["spi", "stm32h7", "epd", "display"]
 resolver = "2"
 
 [workspace]
@@ -30,15 +31,16 @@ embedded-hal = { version = "0.2.4", features = ["unproven"] }
 drogue-device = { path = "../../../../device", features = ["wifi+esp8266", "defmt", "defmt-trace"], default-features = false }
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
-heapless = "0.6"
+heapless = { version = "0.7.1", default-features = false }
 void = { version = "1", default-features = false }
 embedded-graphics = { version = "0.7.1" }
 embedded-graphics-core = { version = "0.3.2" }
-epd-waveshare = { git = "https://github.com/Caemor/epd-waveshare.git" }
-#epd-waveshare = { path = "/Users/bob/repos/epd-waveshare" }
+epd-waveshare = { git = "https://github.com/Caemor/epd-waveshare.git", features = [ "graphics"] }
+tinybmp = "0.3.1"
 
-embassy = {path = "/Users/bob/repos/drogue/embassy/embassy", default-features = false, features = ["defmt", "defmt-info", "time", "time-tick-32768hz"]}
-embassy-stm32 = {path = "/Users/bob/repos/drogue/embassy/embassy-stm32", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "09ffdf63f18e263962a8ea9f86c1caf4360cacee", default-features = false, features = ["defmt", "defmt-info", "time", "time-tick-32768hz"]}
+embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "09ffdf63f18e263962a8ea9f86c1caf4360cacee", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
+
 
 [profile.release]
 debug = 2

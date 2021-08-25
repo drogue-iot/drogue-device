@@ -11,7 +11,7 @@ version = "0.1.0"
 doctest = false
 
 [dependencies]
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "548593ea415c79472bd2cf2d0c59aadfcf5f715c", default-features = false, features = ["executor-agnostic"] }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "09ffdf63f18e263962a8ea9f86c1caf4360cacee", default-features = false, features = ["executor-agnostic"] }
 #embassy = {default-features = false, path = "../../../embassy/embassy", features = ["defmt"]}
 
 # LoRa dependencies
@@ -47,7 +47,7 @@ defmt = { version = "0.2", optional = true }
 base64 = { version = "0.13.0", default-features = false }
 
 [dev-dependencies]
-embassy-std = {git = "https://github.com/embassy-rs/embassy.git", rev = "548593ea415c79472bd2cf2d0c59aadfcf5f715c", default-features = false }
+embassy-std = {git = "https://github.com/embassy-rs/embassy.git", rev = "09ffdf63f18e263962a8ea9f86c1caf4360cacee", default-features = false }
 #embassy-std = {default-features = false, path = "../../../embassy/embassy-std" }
 
 drogue-device-macros = { path = "../macros" }

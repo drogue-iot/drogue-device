@@ -1,12 +1,14 @@
-== nucleo-h743zi-blinky drogue-device example
+== nucleo-h743zi-epd drogue-device example
 
-This example application runs out of the box on the STM32 Nucleo H743ZI development kit.
+This example application runs on the STM32 Nucleo H743ZI development kit attached to a
+WaveShare 5.6inch 7-color e-Paper Display.
 
 === Prerequisites
 
 ==== Hardware
 
 * STM32 Nucleo H743ZI development kit.
+* WaveShare 5.6inch 7-color e-Paper Display.
 * A finger or other stick-like device to push a button.
 
 ==== Software
@@ -39,4 +41,5 @@ cargo +nightly run --release -- --probe <VID>:<PID>
 ....
 
 Once flashed, the device will reset and look no different at first. 
-Upon pressing the blue user button, the LEDS will cycle from green to yellow to red and back again.
+Upon pressing the blue user button, the display will show Rodney and some text.
+The text will update upon each button push.

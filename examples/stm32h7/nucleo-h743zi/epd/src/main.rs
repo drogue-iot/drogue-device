@@ -9,13 +9,8 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use core::future::Future;
-use core::pin::Pin;
 use drogue_device::actors::button::{ButtonEvent, FromButtonEvent};
-use drogue_device::actors::led::{Led, LedMessage};
-use drogue_device::{
-    actors::button::Button,
-    Actor, ActorContext, Address, DeviceContext,
-};
+use drogue_device::{actors::button::Button, Actor, ActorContext, Address, DeviceContext, Inbox};
 use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::peripherals::*;
 use embassy_stm32::{exti::ExtiInput, gpio::{Input, Level, Output, Pull, Speed}, Peripherals, Config};
@@ -26,10 +21,16 @@ use embassy::time::Delay;
 use epd_waveshare::epd5in65f::{Epd5in65f, Display5in65f};
 use epd_waveshare::prelude::*;
 use embedded_graphics::mono_font::MonoTextStyleBuilder;
-use epd_waveshare::color::OctColor::{White, Black, Red, Blue};
 use embedded_graphics::text::{TextStyleBuilder, Baseline, Text};
 use embedded_graphics::geometry::Point;
 use embedded_graphics::Drawable;
+use heapless::{String, Vec};
+use core::fmt::Write;
+use embassy_stm32::rng::Random;
+use embassy::traits::rng::Rng;
+use embedded_graphics::image::{Image, ImageRaw};
+use tinybmp::Bmp;
+use embedded_graphics::pixelcolor::{RgbColor, Rgb888};
 
 type EpdSpi = Spi<'static, SPI1, NoDma, NoDma>;
 type Epd = Epd5in65f<EpdSpi, Output<'static, PD14>, Input<'static, PF3>, Output<'static, PG0>, Output<'static, PG1>, Delay>;
@@ -37,43 +38,106 @@ type Epd = Epd5in65f<EpdSpi, Output<'static, PD14>, Input<'static, PF3>, Output<
 pub struct App {
     spi: EpdSpi,
     epd: Epd,
+    presses: u16,
+    random: Random<RNG>,
 }
 
 impl App {
-    fn new(spi: EpdSpi, epd: Epd) -> Self {
+    fn new(spi: EpdSpi, epd: Epd, random: Random<RNG>) -> Self {
         Self {
             spi,
             epd,
+            presses: 0,
+            random,
         }
     }
 
-    fn draw(&mut self) {
-        //fn draw_text(display: &mut Display4in2, text: &str, x: i32, y: i32) {
+    async fn random_color(&mut self) -> (OctColor, OctColor) {
+        let mut v = [0; 1];
+        self.random.fill_bytes(&mut v).await.ok();
+
+        let fg = v[0] & 0b00000111;
+        let bg = (v[0] & 0b01110000) >> 4;
+
+        (OctColor::from_nibble(fg).unwrap_or(OctColor::Black), OctColor::from_nibble(bg).unwrap_or(OctColor::White))
+    }
+
+    async fn draw(&mut self) {
         let x = 20;
         let y = 20;
+        let colors = self.random_color().await;
         let style_a = MonoTextStyleBuilder::new()
             .font(&embedded_graphics::mono_font::ascii::FONT_10X20)
-            .text_color(Red)
-            .background_color(White)
+            .text_color(colors.0)
+            .background_color(colors.1)
             .build();
 
         let style_b = MonoTextStyleBuilder::new()
             .font(&embedded_graphics::mono_font::ascii::FONT_10X20)
-            .text_color(Blue)
-            .background_color(White)
+            .text_color(OctColor::Blue)
+            .background_color(OctColor::White)
             .build();
 
         let text_style = TextStyleBuilder::new().baseline(Baseline::Top).build();
 
         let mut display = Display5in65f::default();
-        let _ = Text::with_text_style("It's the weekend!", Point::new(x, y), style_a, text_style).draw(&mut display);
-        let _ = Text::with_text_style("Time for cocktails!", Point::new(x, y+40), style_b, text_style).draw(&mut display);
-        defmt::info!("READY TO UPDATE");
+
+        let mut text: String<128> = String::new();
+        write!(text, "Drawing #{}", self.presses).ok();
+
+        let _ = defmt::unwrap!(Text::with_text_style(text.as_str(), Point::new(x, y), style_a, text_style).draw(&mut display));
+        let _ = defmt::unwrap!(Text::with_text_style("Powered by Drogue Device", Point::new(x, y + 40), style_b, text_style).draw(&mut display));
+
+        let bmp_data = include_bytes!("rodney.bmp");
+        let bmp = Bmp::<Rgb888>::from_slice(bmp_data).unwrap();
+        let width = bmp.as_raw().header().image_size.width;
+
+        // 32kb frame buffer, more than enough.
+        let mut image_data: Vec<u8, 32767> = Vec::new();
+
+        let mut high = true;
+        let mut current_pixel = 0u8;
+        for pixel in bmp.pixels().into_iter() {
+            // two pixels stuffed into each byte of the frame buffer.
+            if high {
+                current_pixel = quantize_color(pixel.1).get_nibble() << 4;
+            } else {
+                current_pixel = current_pixel | quantize_color(pixel.1).get_nibble();
+                defmt::unwrap!(image_data.push(current_pixel));
+                current_pixel = 0;
+            }
+
+            high = !high;
+        }
+
+        let image = ImageRaw::<OctColor>::new(&*image_data, width);
+
+        let _ = Image::new(&image, Point::new(100, 100)).draw(&mut display);
+
         defmt::unwrap!(self.epd.update_frame( &mut self.spi, display.buffer(), &mut Delay));
-        defmt::info!("READY TO DISPLAY");
         defmt::unwrap!(self.epd.display_frame(&mut self.spi, &mut Delay));
-        defmt::info!("DONE DISPLAY");
-        //}
+    }
+}
+
+fn quantize_color(color: Rgb888) -> OctColor {
+    let r = color.r();
+    let g = color.g();
+    let b = color.b();
+
+    if r == 0xFF && g == 0xFF && b == 0xFF {
+        OctColor::White
+    } else if r == 0 && g == 0 && b == 0 {
+        OctColor::Black
+    } else if r > g && g > b {
+        OctColor::Yellow
+    } else if r > g && r > b {
+        OctColor::Red
+    } else if g > r && g > b {
+        OctColor::Green
+    } else if b > r && b > g {
+        OctColor::Blue
+    } else {
+        OctColor::Black
     }
 }
 
@@ -84,25 +148,23 @@ impl Actor for App {
     #[rustfmt::skip]
     type Message<'m> = Command;
 
-    fn on_mount(&mut self, _: Address<'static, Self>, config: Self::Configuration) {}
-
     #[rustfmt::skip]
-    type OnStartFuture<'m> = impl Future<Output=()> + 'm;
+    type OnMountFuture<'m, M> where M: 'm = impl Future<Output=()> + 'm;
 
-    fn on_start(self: Pin<&'_ mut Self>) -> Self::OnStartFuture<'_> {
-        async move {}
-    }
-
-    #[rustfmt::skip]
-    type OnMessageFuture<'m> = impl Future<Output=()> + 'm;
-
-    fn on_message<'m>(
-        mut self: Pin<&'m mut Self>,
-        _message: Self::Message<'m>,
-    ) -> Self::OnMessageFuture<'m> {
-        defmt::info!("message");
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Self::Configuration,
+        _: Address<'static, Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
+        where
+            M: Inbox<'m, Self> + 'm {
         async move {
-            self.draw();
+            loop {
+                let _msg = inbox.next().await;
+                self.presses += 1;
+                self.draw().await;
+            }
         }
     }
 }
@@ -131,7 +193,7 @@ pub struct MyDevice {
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 
-#[embassy::main(config="config()")]
+#[embassy::main(config = "config()")]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     unsafe {
         Dbgmcu::enable_all();
@@ -147,22 +209,21 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let rst = Output::new(p.PG1, Level::High, Speed::Medium);
     let mut delay = Delay;
 
-    defmt::info!("initializing EPD");
-    let mut epd = Epd5in65f::new(&mut spi, cs, busy, dc, rst, &mut delay);
-    defmt::info!("completed initializing EPD");
+    let epd = Epd5in65f::new(&mut spi, cs, busy, dc, rst, &mut delay);
 
-    let mut epd = match epd {
+    let epd = match epd {
         Ok(epd) => {
-            defmt::info!("epd initialized");
             epd
         }
-        Err(e) => {
+        Err(_) => {
             defmt::panic!("Error initializing EPD");
         }
     };
 
+    let rng = Random::new(p.RNG);
+
     DEVICE.configure(MyDevice {
-        app: ActorContext::new(App::new(spi, epd)),
+        app: ActorContext::new(App::new(spi, epd, rng)),
         button: ActorContext::new(Button::new(button)),
     });
 
