@@ -63,12 +63,12 @@ pub type Sx127x<'a> = Sx127xDriver<
     spi::Error,
 >;
 
-type Led1Pin = Output<'static, PB5>;
-type Led2Pin = Output<'static, PA5>;
-type Led3Pin = Output<'static, PB6>;
-type Led4Pin = Output<'static, PB7>;
+type Led1 = Led<Output<'static, PB5>>;
+type Led2 = Led<Output<'static, PA5>>;
+type Led3 = Led<Output<'static, PB6>>;
+type Led4 = Led<Output<'static, PB7>>;
 
-type MyApp = App<Address<'static, LoraActor<Sx127x<'static>>>, Led4Pin, Led2Pin, Led3Pin, Led1Pin>;
+type MyApp = App<Address<'static, LoraActor<Sx127x<'static>>>, Led4, Led2, Led3, Led1>;
 
 pub struct MyDevice {
     lora: ActorContext<'static, LoraActor<Sx127x<'static>>>,

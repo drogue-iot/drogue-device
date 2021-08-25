@@ -14,21 +14,35 @@ where
     pub fn new(pin: P) -> Self {
         Self { pin }
     }
+}
 
-    pub fn on(&mut self) -> Result<(), <P as OutputPin>::Error> {
-        self.pin.set_high()
+pub enum LedError<P>
+where
+    P: StatefulOutputPin + ToggleableOutputPin,
+{
+    Stateful(<P as OutputPin>::Error),
+    Toggleable(<P as ToggleableOutputPin>::Error),
+}
+
+impl<P> crate::traits::led::Led for Led<P>
+where
+    P: StatefulOutputPin + ToggleableOutputPin,
+{
+    type Error = LedError<P>;
+    fn on(&mut self) -> Result<(), Self::Error> {
+        self.pin.set_high().map_err(LedError::Stateful)
     }
 
-    pub fn off(&mut self) -> Result<(), <P as OutputPin>::Error> {
-        self.pin.set_low()
+    fn off(&mut self) -> Result<(), Self::Error> {
+        self.pin.set_low().map_err(LedError::Stateful)
     }
 
-    pub fn toggle(&mut self) -> Result<(), <P as ToggleableOutputPin>::Error> {
-        self.pin.toggle()
+    fn toggle(&mut self) -> Result<(), Self::Error> {
+        self.pin.toggle().map_err(LedError::Toggleable)
     }
 
-    pub fn state(&self) -> Result<bool, <P as OutputPin>::Error> {
-        self.pin.is_set_high()
+    fn state(&self) -> Result<bool, Self::Error> {
+        self.pin.is_set_high().map_err(LedError::Stateful)
     }
 }
 
