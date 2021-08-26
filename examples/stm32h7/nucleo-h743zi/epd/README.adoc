@@ -1,0 +1,45 @@
+== nucleo-h743zi-epd drogue-device example
+
+This example application runs on the STM32 Nucleo H743ZI development kit attached to a
+WaveShare 5.6inch 7-color e-Paper Display.
+
+=== Prerequisites
+
+==== Hardware
+
+* STM32 Nucleo H743ZI development kit.
+* WaveShare 5.6inch 7-color e-Paper Display.
+* A finger or other stick-like device to push a button.
+
+==== Software
+
+* To build the example, you need to have link:https://rustup.rs/[Rust Nightly].
+* To flash the example on the device, you need `probe-run` installed (`cargo install probe-run`).
+
+=== Configuring
+
+Make sure you have the correct target architecture supported in rust:
+
+....
+rustup target add thumbv7em-none-eabihf
+....
+
+==== Running
+
+To run the firmware:
+
+....
+cargo +nightly run --release
+....
+
+== Troubleshooting
+
+If you’re experiencing problems, try setting the `VID:PID` values to that of your probe (you can find that from lsusb once your board is powered).
+
+....
+cargo +nightly run --release -- --probe <VID>:<PID>
+....
+
+Once flashed, the device will reset and look no different at first. 
+Upon pressing the blue user button, the display will show Rodney and some text.
+The text will update upon each button push.

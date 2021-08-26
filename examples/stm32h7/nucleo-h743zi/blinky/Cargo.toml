@@ -35,8 +35,8 @@ cortex-m = { version = "0.7", features = ["inline-asm"] }
 heapless = "0.6"
 void = { version = "1", default-features = false }
 
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "548593ea415c79472bd2cf2d0c59aadfcf5f715c", default-features = false, features = ["defmt", "defmt-info", "time", "time-tick-32768hz"]}
-embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "548593ea415c79472bd2cf2d0c59aadfcf5f715c", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "09ffdf63f18e263962a8ea9f86c1caf4360cacee", default-features = false, features = ["defmt", "defmt-info", "time", "time-tick-32768hz"]}
+embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "09ffdf63f18e263962a8ea9f86c1caf4360cacee", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
 
 [profile.release]
 debug = 2

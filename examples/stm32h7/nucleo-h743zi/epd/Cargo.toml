@@ -4,11 +4,11 @@ authors = [
     "Bob McWhirter <bmcwhirt@redhat.com>"
 ]
 edition = "2018"
-name = "nucleo-h743zi_blinkdance"
+name = "nucleo-h743zi_epd"
 version = "0.1.0"
+description = "STM32 Nucleo-H743 7-color e-paper display"
+keywords = ["spi", "stm32h7", "epd", "display"]
 resolver = "2"
-description = "STM32 Nucleo-H743 blink dance"
-keywords = ["basic", "blinky", "stm32", "stm32h7"]
 
 [workspace]
 
@@ -29,15 +29,19 @@ defmt-rtt = "0.2"
 panic-probe = { version = "0.2.0", features = ["print-defmt"] }
 
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
-drogue-device = { path = "../../../../device", features = ["time", "defmt", "defmt-trace"], default-features = false }
+drogue-device = { path = "../../../../device", features = ["defmt", "defmt-trace"], default-features = false }
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
-heapless = "0.6"
+heapless = { version = "0.7.1", default-features = false }
 void = { version = "1", default-features = false }
-rand_core = { version = "0.6", default-features = false }
+embedded-graphics = { version = "0.7.1" }
+embedded-graphics-core = { version = "0.3.2" }
+epd-waveshare = { git = "https://github.com/Caemor/epd-waveshare.git", features = [ "graphics"] }
+tinybmp = "0.3.1"
 
 embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "09ffdf63f18e263962a8ea9f86c1caf4360cacee", default-features = false, features = ["defmt", "defmt-info", "time", "time-tick-32768hz"]}
 embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "09ffdf63f18e263962a8ea9f86c1caf4360cacee", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
+
 
 [profile.release]
 debug = 2
