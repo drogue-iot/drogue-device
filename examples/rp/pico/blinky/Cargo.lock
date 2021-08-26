@@ -262,7 +262,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=548593ea415c79472bd2cf2d0c59aadfcf5f715c#548593ea415c79472bd2cf2d0c59aadfcf5f715c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=09ffdf63f18e263962a8ea9f86c1caf4360cacee#09ffdf63f18e263962a8ea9f86c1caf4360cacee"
 dependencies = [
  "atomic-polyfill",
  "cortex-m 0.7.3",
@@ -277,7 +277,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=548593ea415c79472bd2cf2d0c59aadfcf5f715c#548593ea415c79472bd2cf2d0c59aadfcf5f715c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=09ffdf63f18e263962a8ea9f86c1caf4360cacee#09ffdf63f18e263962a8ea9f86c1caf4360cacee"
 dependencies = [
  "cortex-m 0.7.3",
  "embassy",
@@ -287,7 +287,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=548593ea415c79472bd2cf2d0c59aadfcf5f715c#548593ea415c79472bd2cf2d0c59aadfcf5f715c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=09ffdf63f18e263962a8ea9f86c1caf4360cacee#09ffdf63f18e263962a8ea9f86c1caf4360cacee"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -298,7 +298,7 @@ dependencies = [
 [[package]]
 name = "embassy-rp"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=548593ea415c79472bd2cf2d0c59aadfcf5f715c#548593ea415c79472bd2cf2d0c59aadfcf5f715c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=09ffdf63f18e263962a8ea9f86c1caf4360cacee#09ffdf63f18e263962a8ea9f86c1caf4360cacee"
 dependencies = [
  "atomic-polyfill",
  "cortex-m 0.7.3",
@@ -314,7 +314,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=548593ea415c79472bd2cf2d0c59aadfcf5f715c#548593ea415c79472bd2cf2d0c59aadfcf5f715c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=09ffdf63f18e263962a8ea9f86c1caf4360cacee#09ffdf63f18e263962a8ea9f86c1caf4360cacee"
 dependencies = [
  "embedded-hal",
 ]
