@@ -4,7 +4,6 @@ use core::future::Future;
 use embassy::time::{with_timeout, Duration, TimeoutError};
 use embedded_hal::digital::v2::OutputPin;
 
-<<<<<<< HEAD
 pub trait LedMatrixAddress {
     fn apply(&mut self, frame: &'static dyn ToFrame);
 }
@@ -20,12 +19,10 @@ where
 }
 
 pub struct LedMatrixActor<P, const ROWS: usize, const COLS: usize>
-=======
-pub struct LedMatrixDriver<P, const ROWS: usize, const COLS: usize>
->>>>>>> ca05993 (Fix)
 where
     P: OutputPin + 'static,
 {
+    refresh_interval: Duration,
     matrix: LedMatrix<P, ROWS, COLS>,
 }
 
@@ -33,7 +30,7 @@ impl<P, const ROWS: usize, const COLS: usize> LedMatrixActor<P, ROWS, COLS>
 where
     P: OutputPin + 'static,
 {
-    fn new(
+    pub fn new(
         refresh_interval: Duration,
         matrix: LedMatrix<P, ROWS, COLS>,
     ) -> LedMatrixActor<P, ROWS, COLS> {

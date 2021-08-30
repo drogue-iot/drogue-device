@@ -11,11 +11,12 @@ use statistics::*;
 
 use defmt_rtt as _;
 use drogue_device::{
-    actors::{button::Button, led::matrix::LedMatrixDriver},
+    actors::{button::Button, led::matrix::LedMatrixActor},
     drivers::led::matrix::LedMatrix,
     ActorContext, DeviceContext,
 };
 
+use embassy::time::Duration;
 use embassy_nrf::{
     gpio::{AnyPin, Input, Level, NoPin, Output, OutputDrive, Pin, Pull},
     gpiote::PortInput,
