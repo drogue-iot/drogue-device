@@ -60,7 +60,7 @@ where
         Self {
             radio_state: State::Idle,
             radio: LoRa::new(spi, cs, reset),
-            buffer: RadioBuffer { packet: Vec::new() },
+            buffer: RadioBuffer::new(),
         }
     }
 
@@ -94,9 +94,8 @@ where
                     self.radio.set_invert_iq(false)?;
                     self.radio.set_crc(true)?;
 
-                    let len = buf.packet.len();
                     self.radio.set_dio0_tx_done()?;
-                    self.radio.transmit_payload(&buf.packet[..len])
+                    self.radio.transmit_payload(&buf[..])
                 })();
                 match result {
                     Ok(_) => (State::Txing, Ok(LoraResponse::Txing)),
@@ -180,12 +179,8 @@ where
                         let snr = self.radio.get_packet_snr().unwrap_or(0.0) as i8;
                         if let Ok(size) = self.radio.read_packet_size() {
                             if let Ok(packet) = self.radio.read_packet() {
-                                self.buffer.packet.clear();
-                                self.buffer
-                                    .packet
-                                    .extend_from_slice(&packet[..size])
-                                    .ok()
-                                    .unwrap();
+                                self.buffer.clear();
+                                self.buffer.extend_from_slice(&packet[..size]).ok().unwrap();
                             }
                         }
                         self.radio.set_mode(RadioMode::Sleep).ok().unwrap();
@@ -229,7 +224,17 @@ pub enum RadioPhyEvent {
 }
 
 pub struct RadioBuffer {
-    pub packet: Vec<u8, 256>,
+    packet: Vec<u8, 256>,
+}
+
+impl RadioBuffer {
+    pub fn new() -> Self {
+        Self { packet: Vec::new() }
+    }
+
+    pub fn clear(&mut self) {
+        self.packet.clear();
+    }
 }
 
 impl PhyRxTxBuf for RadioBuffer {
