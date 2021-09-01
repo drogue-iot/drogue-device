@@ -12,7 +12,7 @@ use lorawan_device::{
 
 use super::sx127x_lora::{LoRa, RadioMode, IRQ};
 
-pub struct Sx127xRadio<SPI, CS, RESET, E>
+pub struct Sx127xRadio<'a, SPI, CS, RESET, E>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
@@ -20,7 +20,7 @@ where
 {
     radio: LoRa<SPI, CS, RESET>,
     radio_state: State,
-    buffer: RadioBuffer,
+    buffer: RadioBuffer<'a>,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -50,17 +50,17 @@ fn bandwidth_to_i64(bw: Bandwidth) -> i64 {
     }
 }
 
-impl<SPI, CS, RESET, E> Sx127xRadio<SPI, CS, RESET, E>
+impl<'a, SPI, CS, RESET, E> Sx127xRadio<'a, SPI, CS, RESET, E>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
 {
-    pub fn new(spi: SPI, cs: CS, reset: RESET) -> Self {
+    pub fn new(spi: SPI, cs: CS, reset: RESET, radio_buffer: &'a mut [u8]) -> Self {
         Self {
             radio_state: State::Idle,
             radio: LoRa::new(spi, cs, reset),
-            buffer: RadioBuffer::new(),
+            buffer: RadioBuffer::new(radio_buffer),
         }
     }
 
@@ -203,7 +203,7 @@ where
     }
 }
 
-impl<SPI, CS, RESET, E> Timings for Sx127xRadio<SPI, CS, RESET, E>
+impl<'a, SPI, CS, RESET, E> Timings for Sx127xRadio<'a, SPI, CS, RESET, E>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
@@ -223,55 +223,59 @@ pub enum RadioPhyEvent {
     Irq,
 }
 
-pub struct RadioBuffer {
-    packet: Vec<u8, 256>,
+pub struct RadioBuffer<'a> {
+    packet: &'a mut [u8],
+    len: usize,
 }
 
-impl RadioBuffer {
-    pub fn new() -> Self {
-        Self { packet: Vec::new() }
+impl<'a> RadioBuffer<'a> {
+    pub fn new(packet: &'a mut [u8]) -> Self {
+        Self { packet, len: 0 }
     }
 
     pub fn clear(&mut self) {
-        self.packet.clear();
+        self.len = 0;
     }
 }
 
 impl PhyRxTxBuf for RadioBuffer {
     fn clear_buf(&mut self) {
-        self.packet.clear();
+        self.len = 0;
     }
 
     fn extend_buf(&mut self, buf: &[u8]) {
-        self.packet.extend_from_slice(buf).unwrap();
-    }
-}
-
-impl Default for RadioBuffer {
-    fn default() -> Self {
-        Self { packet: Vec::new() }
+        if self.len + buf.len() < self.packet.len() {
+            self.packet[self.len..self.len + buf.len()].copy_from_slice(buf);
+            self.len += buf.len();
+        } else {
+            panic!(
+                "Not enough capacity to extend buffer: {} > {}",
+                self.len + buf.len(),
+                self.packet.len()
+            );
+        }
     }
 }
 
 impl AsMut<[u8]> for RadioBuffer {
     fn as_mut(&mut self) -> &mut [u8] {
-        self.packet.as_mut()
+        &mut self.packet[..self.len]
     }
 }
 
 impl AsRef<[u8]> for RadioBuffer {
     fn as_ref(&self) -> &[u8] {
-        self.packet.as_ref()
+        &self.packet[..self.len]
     }
 }
 
-impl<SPI, CS, RESET, E> PhyRxTx for Sx127xRadio<SPI, CS, RESET, E>
+impl<'a, SPI, CS, RESET, E> PhyRxTx for Sx127xRadio<'a, SPI, CS, RESET, E>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
 {
-    type PhyBuf = RadioBuffer;
+    type PhyBuf = RadioBuffer<'a>;
     type PhyEvent = RadioPhyEvent;
     type PhyError = ();
     type PhyResponse = ();

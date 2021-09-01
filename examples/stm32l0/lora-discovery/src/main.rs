@@ -127,7 +127,10 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     let ready = Input::new(p.PB4, Pull::Up);
     let ready_pin = ExtiInput::new(ready, p.EXTI4);
 
-    let lora = Sx127xDriver::new(ready_pin, spi, cs, reset, get_random_u32);
+    static mut RADIO_BUF: [u8; 255] = [0; 255];
+    let lora = Sx127xDriver::new(ready_pin, spi, cs, reset, get_random_u32, unsafe {
+        &mut RADIO_BUF
+    });
 
     let config = LoraConfig::new()
         .region(LoraRegion::EU868)

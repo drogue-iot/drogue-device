@@ -61,8 +61,15 @@ where
     CS: OutputPin + 'a,
     RESET: OutputPin + 'a,
 {
-    pub fn new(irq: P, spi: SPI, cs: CS, reset: RESET, get_random: fn() -> u32) -> Self {
-        let radio = Radio::new(spi, cs, reset);
+    pub fn new(
+        irq: P,
+        spi: SPI,
+        cs: CS,
+        reset: RESET,
+        get_random: fn() -> u32,
+        radio_buf: &'a mut [u8],
+    ) -> Self {
+        let radio = Radio::new(spi, cs, reset, radio_buf);
         Self {
             irq,
             state: Some(DriverState::New(radio)),
