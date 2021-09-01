@@ -1,10 +1,9 @@
 use crate::traits::lora::LoraError as DriverError;
 use embedded_hal::blocking::spi::{Transfer, Write};
 use embedded_hal::digital::v2::OutputPin;
-use heapless::Vec;
 use lorawan_device::{
     radio::{
-        Bandwidth, Error as LoraError, Event as LoraEvent, PhyRxTx, PhyRxTxBuf,
+        Bandwidth, Error as LoraError, Event as LoraEvent, PhyRxTx, RadioBuffer,
         Response as LoraResponse, RxQuality, SpreadingFactor,
     },
     Timings,
@@ -20,7 +19,7 @@ where
 {
     radio: LoRa<SPI, CS, RESET>,
     radio_state: State,
-    buffer: RadioBuffer<'a>,
+    rx_buffer: RadioBuffer<'a>,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -56,11 +55,11 @@ where
     CS: OutputPin,
     RESET: OutputPin,
 {
-    pub fn new(spi: SPI, cs: CS, reset: RESET, radio_buffer: &'a mut [u8]) -> Self {
+    pub fn new(spi: SPI, cs: CS, reset: RESET, rx_buffer: &'a mut [u8]) -> Self {
         Self {
             radio_state: State::Idle,
             radio: LoRa::new(spi, cs, reset),
-            buffer: RadioBuffer::new(radio_buffer),
+            rx_buffer: RadioBuffer::new(rx_buffer),
         }
     }
 
@@ -179,8 +178,11 @@ where
                         let snr = self.radio.get_packet_snr().unwrap_or(0.0) as i8;
                         if let Ok(size) = self.radio.read_packet_size() {
                             if let Ok(packet) = self.radio.read_packet() {
-                                self.buffer.clear();
-                                self.buffer.extend_from_slice(&packet[..size]).ok().unwrap();
+                                self.rx_buffer.clear();
+                                self.rx_buffer
+                                    .extend_from_slice(&packet[..size])
+                                    .ok()
+                                    .unwrap();
                             }
                         }
                         self.radio.set_mode(RadioMode::Sleep).ok().unwrap();
@@ -223,59 +225,12 @@ pub enum RadioPhyEvent {
     Irq,
 }
 
-pub struct RadioBuffer<'a> {
-    packet: &'a mut [u8],
-    len: usize,
-}
-
-impl<'a> RadioBuffer<'a> {
-    pub fn new(packet: &'a mut [u8]) -> Self {
-        Self { packet, len: 0 }
-    }
-
-    pub fn clear(&mut self) {
-        self.len = 0;
-    }
-}
-
-impl PhyRxTxBuf for RadioBuffer {
-    fn clear_buf(&mut self) {
-        self.len = 0;
-    }
-
-    fn extend_buf(&mut self, buf: &[u8]) {
-        if self.len + buf.len() < self.packet.len() {
-            self.packet[self.len..self.len + buf.len()].copy_from_slice(buf);
-            self.len += buf.len();
-        } else {
-            panic!(
-                "Not enough capacity to extend buffer: {} > {}",
-                self.len + buf.len(),
-                self.packet.len()
-            );
-        }
-    }
-}
-
-impl AsMut<[u8]> for RadioBuffer {
-    fn as_mut(&mut self) -> &mut [u8] {
-        &mut self.packet[..self.len]
-    }
-}
-
-impl AsRef<[u8]> for RadioBuffer {
-    fn as_ref(&self) -> &[u8] {
-        &self.packet[..self.len]
-    }
-}
-
 impl<'a, SPI, CS, RESET, E> PhyRxTx for Sx127xRadio<'a, SPI, CS, RESET, E>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
 {
-    type PhyBuf = RadioBuffer<'a>;
     type PhyEvent = RadioPhyEvent;
     type PhyError = ();
     type PhyResponse = ();
@@ -284,8 +239,8 @@ where
         self
     }
 
-    fn get_received_packet(&mut self) -> &mut Self::PhyBuf {
-        &mut self.buffer
+    fn get_received_packet(&mut self) -> &mut [u8] {
+        self.rx_buffer.as_mut()
     }
 
     fn handle_event(

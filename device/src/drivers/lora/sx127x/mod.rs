@@ -18,15 +18,15 @@ mod sx127x_radio;
 
 use sx127x_radio::{RadioPhyEvent, Sx127xRadio as Radio};
 
-enum DriverState<SPI, CS, RESET, E>
+enum DriverState<'a, SPI, CS, RESET, E>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E> + 'static,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     E: 'static,
 {
-    New(Radio<SPI, CS, RESET, E>),
-    Configured(LorawanDevice<Radio<SPI, CS, RESET, E>, Crypto>),
+    New(Radio<'a, SPI, CS, RESET, E>, &'a mut [u8]),
+    Configured(LorawanDevice<'a, Radio<'a, SPI, CS, RESET, E>, Crypto>),
 }
 
 pub struct Sx127xDriver<'a, P, SPI, CS, RESET, E>
@@ -38,9 +38,8 @@ where
     E: 'static,
 {
     irq: P,
-    state: Option<DriverState<SPI, CS, RESET, E>>,
+    state: Option<DriverState<'a, SPI, CS, RESET, E>>,
     get_random: fn() -> u32,
-    _phantom: core::marker::PhantomData<&'a SPI>,
 }
 
 pub enum DriverEvent {
@@ -67,18 +66,21 @@ where
         cs: CS,
         reset: RESET,
         get_random: fn() -> u32,
-        radio_buf: &'a mut [u8],
+        radio_tx_buf: &'a mut [u8],
+        radio_rx_buf: &'a mut [u8],
     ) -> Self {
-        let radio = Radio::new(spi, cs, reset, radio_buf);
+        let radio = Radio::new(spi, cs, reset, radio_rx_buf);
         Self {
             irq,
-            state: Some(DriverState::New(radio)),
-            _phantom: core::marker::PhantomData,
+            state: Some(DriverState::New(radio, radio_tx_buf)),
             get_random,
         }
     }
 
-    fn process_event(&mut self, event: LorawanEvent<'a, Radio<SPI, CS, RESET, E>>) -> DriverEvent {
+    fn process_event(
+        &mut self,
+        event: LorawanEvent<'a, Radio<'a, SPI, CS, RESET, E>>,
+    ) -> DriverEvent {
         //crate::log_stack("Process event");
         match self.state.take().unwrap() {
             DriverState::Configured(lorawan) => {
@@ -113,10 +115,10 @@ where
         }
     }
 
-    fn process_response(
+    fn process_response<'m>(
         &self,
-        lorawan: &mut LorawanDevice<Radio<SPI, CS, RESET, E>, Crypto>,
-        response: Result<LorawanResponse, LorawanError<Radio<SPI, CS, RESET, E>>>,
+        lorawan: &mut LorawanDevice<'m, Radio<'m, SPI, CS, RESET, E>, Crypto>,
+        response: Result<LorawanResponse, LorawanError<Radio<'m, SPI, CS, RESET, E>>>,
     ) -> DriverEvent {
         //crate::log_stack("Process response");
         match response {
@@ -328,7 +330,7 @@ where
     fn configure<'m>(&'m mut self, config: &'m LoraConfig) -> Self::ConfigureFuture<'m> {
         async move {
             match self.state.take().unwrap() {
-                DriverState::New(mut radio) => {
+                DriverState::New(mut radio, radio_tx_buf) => {
                     //crate::log_stack("lora driver configure");
                     radio.reset().await?;
                     //info!("Configuring radio");
@@ -344,15 +346,15 @@ where
                     }
                     let mut region = region.unwrap();
                     region.set_receive_delay1(5000);
-                    let mut lorawan: LorawanDevice<Radio<SPI, CS, RESET, E>, Crypto> =
-                        LorawanDevice::new(
-                            region,
-                            radio,
-                            dev_eui.reverse().into(),
-                            app_eui.reverse().into(),
-                            app_key.clone().into(),
-                            self.get_random,
-                        );
+                    let mut lorawan = LorawanDevice::new(
+                        region,
+                        radio,
+                        dev_eui.reverse().into(),
+                        app_eui.reverse().into(),
+                        app_key.clone().into(),
+                        self.get_random,
+                        radio_tx_buf,
+                    );
                     lorawan.set_datarate(data_rate);
                     self.state.replace(DriverState::Configured(lorawan));
                     Ok(())
