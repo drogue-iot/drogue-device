@@ -1,6 +1,6 @@
 use crate::traits::lora::*;
 use core::fmt::Write;
-use heapless::{consts::U128, String};
+use heapless::String;
 
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -105,7 +105,7 @@ pub struct FirmwareInfo {
     pub build: u8,
 }
 
-pub type CommandBuffer = String<U128>;
+pub type CommandBuffer = String<128>;
 
 impl<'a> Command<'a> {
     pub fn buffer() -> CommandBuffer {

@@ -33,7 +33,7 @@ rand_core = { version = "0.6.2", default-features = false, optional = true }
 
 # Utilities
 futures = { version = "0.3", default-features = false }
-heapless = "0.6"
+heapless = "0.7"
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 atomic-polyfill = "0.1"
 generic-array = "0.14"
