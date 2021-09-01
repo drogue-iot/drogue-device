@@ -3,8 +3,8 @@ use embedded_hal::blocking::spi::{Transfer, Write};
 use embedded_hal::digital::v2::OutputPin;
 use lorawan_device::{
     radio::{
-        Bandwidth, Error as LoraError, Event as LoraEvent, PhyRxTx, RadioBuffer,
-        Response as LoraResponse, RxQuality, SpreadingFactor,
+        Bandwidth, Error as LoraError, Event as LoraEvent, PhyRxTx, Response as LoraResponse,
+        RxQuality, SpreadingFactor,
     },
     Timings,
 };
@@ -19,7 +19,8 @@ where
 {
     radio: LoRa<SPI, CS, RESET>,
     radio_state: State,
-    rx_buffer: RadioBuffer<'a>,
+    rx_buffer: &'a mut [u8],
+    rx_buffer_written: usize,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -59,7 +60,8 @@ where
         Self {
             radio_state: State::Idle,
             radio: LoRa::new(spi, cs, reset),
-            rx_buffer: RadioBuffer::new(rx_buffer),
+            rx_buffer,
+            rx_buffer_written: 0,
         }
     }
 
@@ -177,13 +179,8 @@ where
                         let rssi = self.radio.get_packet_rssi().unwrap_or(0) as i16;
                         let snr = self.radio.get_packet_snr().unwrap_or(0.0) as i8;
                         if let Ok(size) = self.radio.read_packet_size() {
-                            if let Ok(packet) = self.radio.read_packet() {
-                                self.rx_buffer.clear();
-                                self.rx_buffer
-                                    .extend_from_slice(&packet[..size])
-                                    .ok()
-                                    .unwrap();
-                            }
+                            self.radio.read_packet(self.rx_buffer).ok().unwrap();
+                            self.rx_buffer_written = size;
                         }
                         self.radio.set_mode(RadioMode::Sleep).ok().unwrap();
                         (
@@ -240,7 +237,7 @@ where
     }
 
     fn get_received_packet(&mut self) -> &mut [u8] {
-        self.rx_buffer.as_mut()
+        &mut self.rx_buffer[..self.rx_buffer_written]
     }
 
     fn handle_event(

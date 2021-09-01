@@ -179,10 +179,13 @@ where
 
     /// Returns the contents of the fifo as a fixed 255 u8 array. This should only be called is there is a
     /// new packet ready to be read.
-    pub fn read_packet(&mut self) -> Result<[u8; 255], Error<E, CS::Error, RESET::Error>> {
-        let mut buffer = [0 as u8; 255];
+    pub fn read_packet(
+        &mut self,
+        buffer: &mut [u8],
+    ) -> Result<(), Error<E, CS::Error, RESET::Error>> {
         self.clear_irq()?;
         let size = self.read_register(Register::RegRxNbBytes.addr())?;
+        assert!(size as usize <= buffer.len());
         let fifo_addr = self.read_register(Register::RegFifoRxCurrentAddr.addr())?;
         self.write_register(Register::RegFifoAddrPtr.addr(), fifo_addr)?;
         for i in 0..size {
@@ -190,7 +193,7 @@ where
             buffer[i as usize] = byte;
         }
         self.write_register(Register::RegFifoAddrPtr.addr(), 0)?;
-        Ok(buffer)
+        Ok(())
     }
 
     /// Returns true if the radio is currently transmitting a packet.
