@@ -1,18 +1,17 @@
 use crate::traits::lora::LoraError as DriverError;
 use embedded_hal::blocking::spi::{Transfer, Write};
 use embedded_hal::digital::v2::OutputPin;
-use heapless::Vec;
 use lorawan_device::{
     radio::{
-        Bandwidth, Error as LoraError, Event as LoraEvent, PhyRxTx, PhyRxTxBuf,
-        Response as LoraResponse, RxQuality, SpreadingFactor,
+        Bandwidth, Error as LoraError, Event as LoraEvent, PhyRxTx, Response as LoraResponse,
+        RxQuality, SpreadingFactor,
     },
     Timings,
 };
 
 use super::sx127x_lora::{LoRa, RadioMode, IRQ};
 
-pub struct Sx127xRadio<SPI, CS, RESET, E>
+pub struct Sx127xRadio<'a, SPI, CS, RESET, E>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
@@ -20,7 +19,8 @@ where
 {
     radio: LoRa<SPI, CS, RESET>,
     radio_state: State,
-    buffer: RadioBuffer,
+    rx_buffer: &'a mut [u8],
+    rx_buffer_written: usize,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -50,17 +50,18 @@ fn bandwidth_to_i64(bw: Bandwidth) -> i64 {
     }
 }
 
-impl<SPI, CS, RESET, E> Sx127xRadio<SPI, CS, RESET, E>
+impl<'a, SPI, CS, RESET, E> Sx127xRadio<'a, SPI, CS, RESET, E>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
 {
-    pub fn new(spi: SPI, cs: CS, reset: RESET) -> Self {
+    pub fn new(spi: SPI, cs: CS, reset: RESET, rx_buffer: &'a mut [u8]) -> Self {
         Self {
             radio_state: State::Idle,
             radio: LoRa::new(spi, cs, reset),
-            buffer: RadioBuffer { packet: Vec::new() },
+            rx_buffer,
+            rx_buffer_written: 0,
         }
     }
 
@@ -94,12 +95,8 @@ where
                     self.radio.set_invert_iq(false)?;
                     self.radio.set_crc(true)?;
 
-                    let len = buf.packet.len();
-                    assert!(len < 255);
-                    let mut payload = [0; 255];
-                    payload[..len].copy_from_slice(&buf.packet[..len]);
                     self.radio.set_dio0_tx_done()?;
-                    self.radio.transmit_payload(payload, len)
+                    self.radio.transmit_payload(&buf[..])
                 })();
                 match result {
                     Ok(_) => (State::Txing, Ok(LoraResponse::Txing)),
@@ -182,14 +179,8 @@ where
                         let rssi = self.radio.get_packet_rssi().unwrap_or(0) as i16;
                         let snr = self.radio.get_packet_snr().unwrap_or(0.0) as i8;
                         if let Ok(size) = self.radio.read_packet_size() {
-                            if let Ok(packet) = self.radio.read_packet() {
-                                self.buffer.packet.clear();
-                                self.buffer
-                                    .packet
-                                    .extend_from_slice(&packet[..size])
-                                    .ok()
-                                    .unwrap();
-                            }
+                            self.radio.read_packet(self.rx_buffer).ok().unwrap();
+                            self.rx_buffer_written = size;
                         }
                         self.radio.set_mode(RadioMode::Sleep).ok().unwrap();
                         (
@@ -211,7 +202,7 @@ where
     }
 }
 
-impl<SPI, CS, RESET, E> Timings for Sx127xRadio<SPI, CS, RESET, E>
+impl<'a, SPI, CS, RESET, E> Timings for Sx127xRadio<'a, SPI, CS, RESET, E>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
@@ -231,45 +222,12 @@ pub enum RadioPhyEvent {
     Irq,
 }
 
-pub struct RadioBuffer {
-    pub packet: Vec<u8, 256>,
-}
-
-impl PhyRxTxBuf for RadioBuffer {
-    fn clear_buf(&mut self) {
-        self.packet.clear();
-    }
-
-    fn extend_buf(&mut self, buf: &[u8]) {
-        self.packet.extend_from_slice(buf).unwrap();
-    }
-}
-
-impl Default for RadioBuffer {
-    fn default() -> Self {
-        Self { packet: Vec::new() }
-    }
-}
-
-impl AsMut<[u8]> for RadioBuffer {
-    fn as_mut(&mut self) -> &mut [u8] {
-        self.packet.as_mut()
-    }
-}
-
-impl AsRef<[u8]> for RadioBuffer {
-    fn as_ref(&self) -> &[u8] {
-        self.packet.as_ref()
-    }
-}
-
-impl<SPI, CS, RESET, E> PhyRxTx for Sx127xRadio<SPI, CS, RESET, E>
+impl<'a, SPI, CS, RESET, E> PhyRxTx for Sx127xRadio<'a, SPI, CS, RESET, E>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
 {
-    type PhyBuf = RadioBuffer;
     type PhyEvent = RadioPhyEvent;
     type PhyError = ();
     type PhyResponse = ();
@@ -278,8 +236,8 @@ where
         self
     }
 
-    fn get_received_packet(&mut self) -> &mut Self::PhyBuf {
-        &mut self.buffer
+    fn get_received_packet(&mut self) -> &mut [u8] {
+        &mut self.rx_buffer[..self.rx_buffer_written]
     }
 
     fn handle_event(

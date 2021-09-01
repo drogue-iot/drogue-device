@@ -15,8 +15,8 @@ embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "09ffdf63f18
 #embassy = {default-features = false, path = "../../../embassy/embassy", features = ["defmt"]}
 
 # LoRa dependencies
-lorawan-device = { git = "https://github.com/lulf/rust-lorawan.git", rev = "2279fe55e9aeda5d3b9d2593763e3b2c031fa695", default-features = false, optional = true }
-lorawan-encoding = { git = "https://github.com/lulf/rust-lorawan.git", rev = "2279fe55e9aeda5d3b9d2593763e3b2c031fa695", default-features = false, features = ["default-crypto"], optional = true }
+lorawan-device = { git = "https://github.com/lulf/rust-lorawan.git", rev = "dd9e58c2a4feac7566687b5d887582a39272aa52", default-features = false, optional = true }
+lorawan-encoding = { git = "https://github.com/lulf/rust-lorawan.git", rev = "dd9e58c2a4feac7566687b5d887582a39272aa52", default-features = false, features = ["default-crypto"], optional = true }
 #lorawan-device = { path = "../../../rust-lorawan/device", default-features = false, optional = true }
 #lorawan-encoding = { path = "../../../rust-lorawan/encoding", default-features = false, features = ["default-crypto"], optional = true }
 bit_field = { version = "0.10", optional = true }
