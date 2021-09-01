@@ -135,9 +135,9 @@ where
 
     pub fn transmit_payload(
         &mut self,
-        buffer: [u8; 255],
-        payload_size: usize,
+        buffer: &[u8],
     ) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+        assert!(buffer.len() < 255);
         if self.transmitting()? {
             Err(Transmitting)
         } else {
@@ -151,10 +151,10 @@ where
             self.write_register(Register::RegIrqFlags.addr(), 0)?;
             self.write_register(Register::RegFifoAddrPtr.addr(), 0)?;
             self.write_register(Register::RegPayloadLength.addr(), 0)?;
-            for byte in buffer.iter().take(payload_size) {
+            for byte in buffer.iter() {
                 self.write_register(Register::RegFifo.addr(), *byte)?;
             }
-            self.write_register(Register::RegPayloadLength.addr(), payload_size as u8)?;
+            self.write_register(Register::RegPayloadLength.addr(), buffer.len() as u8)?;
             self.set_mode(RadioMode::Tx)?;
             Ok(())
         }

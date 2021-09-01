@@ -95,11 +95,8 @@ where
                     self.radio.set_crc(true)?;
 
                     let len = buf.packet.len();
-                    assert!(len < 255);
-                    let mut payload = [0; 255];
-                    payload[..len].copy_from_slice(&buf.packet[..len]);
                     self.radio.set_dio0_tx_done()?;
-                    self.radio.transmit_payload(payload, len)
+                    self.radio.transmit_payload(&buf.packet[..len])
                 })();
                 match result {
                     Ok(_) => (State::Txing, Ok(LoraResponse::Txing)),
