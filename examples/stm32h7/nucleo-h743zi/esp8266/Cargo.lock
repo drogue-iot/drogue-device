@@ -516,7 +516,7 @@ dependencies = [
  "embedded-hal",
  "futures",
  "generic-array 0.14.4",
- "heapless 0.6.1",
+ "heapless 0.7.5",
  "moveslice",
  "nom",
  "rand_core",
