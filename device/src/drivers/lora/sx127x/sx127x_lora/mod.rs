@@ -6,11 +6,14 @@
 #![allow(dead_code)]
 
 use bit_field::BitField;
-use embedded_hal::blocking::spi::{Transfer, Write};
+use embedded_hal::blocking::{
+    delay::DelayMs,
+    spi::{Transfer, Write},
+};
 use embedded_hal::digital::v2::OutputPin;
 use embedded_hal::spi::{Mode, Phase, Polarity};
 
-use embassy::time::{Duration, Timer};
+use embassy::time::Delay;
 
 mod register;
 use self::register::PaConfig;
@@ -70,11 +73,13 @@ where
         }
     }
 
-    pub async fn reset(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+    pub fn reset(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+        let mut d = Delay;
         self.reset.set_low().map_err(Reset)?;
-        Timer::after(Duration::from_millis(10)).await;
+
+        d.delay_ms(10 as u8);
         self.reset.set_high().map_err(Reset)?;
-        Timer::after(Duration::from_millis(10)).await;
+        d.delay_ms(10 as u8);
         let version = self.read_register(Register::RegVersion.addr())?;
         if version == VERSION_CHECK {
             self.set_mode(RadioMode::Sleep)?;

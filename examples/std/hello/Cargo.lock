@@ -152,7 +152,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=09ffdf63f18e263962a8ea9f86c1caf4360cacee#09ffdf63f18e263962a8ea9f86c1caf4360cacee"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=65bceafa6839b92dd5e4487485f687bdf4b42733#65bceafa6839b92dd5e4487485f687bdf4b42733"
 dependencies = [
  "atomic-polyfill",
  "cortex-m",
@@ -167,7 +167,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=09ffdf63f18e263962a8ea9f86c1caf4360cacee#09ffdf63f18e263962a8ea9f86c1caf4360cacee"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=65bceafa6839b92dd5e4487485f687bdf4b42733#65bceafa6839b92dd5e4487485f687bdf4b42733"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -176,19 +176,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "embassy-std"
-version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=09ffdf63f18e263962a8ea9f86c1caf4360cacee#09ffdf63f18e263962a8ea9f86c1caf4360cacee"
-dependencies = [
- "embassy",
- "embassy-macros",
- "lazy_static",
-]
-
-[[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=09ffdf63f18e263962a8ea9f86c1caf4360cacee#09ffdf63f18e263962a8ea9f86c1caf4360cacee"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=65bceafa6839b92dd5e4487485f687bdf4b42733#65bceafa6839b92dd5e4487485f687bdf4b42733"
 dependencies = [
  "embedded-hal",
 ]
@@ -324,7 +314,6 @@ version = "0.1.0"
 dependencies = [
  "drogue-device",
  "embassy",
- "embassy-std",
  "env_logger",
  "log",
 ]
@@ -349,12 +338,6 @@ name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
-
-[[package]]
-name = "lazy_static"
-version = "1.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
@@ -523,9 +506,9 @@ dependencies = [
 
 [[package]]
 name = "typenum"
-version = "1.13.0"
+version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "879f6906492a7cd215bfa4cf595b600146ccfac0c79bcbd1f3000162af5e8b06"
+checksum = "b63708a265f51345575b27fe43f9500ad611579e764c79edbc2037b1121959ec"
 
 [[package]]
 name = "unicode-xid"

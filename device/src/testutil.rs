@@ -8,7 +8,7 @@ use core::future::Future;
 use core::pin::Pin;
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll};
-use embassy::executor::{raw, raw::Task, SpawnError, Spawner};
+use embassy::executor::{raw, raw::TaskStorage as Task, SpawnError, Spawner};
 use embassy::time::driver::{AlarmHandle, Driver};
 use embassy::time::TICKS_PER_SECOND;
 use embassy::traits::gpio::WaitForAnyEdge;
@@ -277,7 +277,7 @@ impl TestSignal {
 pub struct TestRunner {
     inner: UnsafeCell<raw::Executor>,
     not_send: PhantomData<*mut ()>,
-    signaler: Signaler,
+    signaler: &'static Signaler,
     pins: UnsafeCell<Vec<InnerPin>>,
     signals: UnsafeCell<Vec<TestSignal>>,
     done: AtomicBool,
@@ -285,14 +285,17 @@ pub struct TestRunner {
 
 impl TestRunner {
     pub fn new() -> Self {
-        unsafe {
-            CLOCK_ZERO.as_mut_ptr().write(StdInstant::now());
-        }
-
+        let signaler = &*Box::leak(Box::new(Signaler::new()));
         Self {
-            inner: UnsafeCell::new(raw::Executor::new(Signaler::signal, ptr::null_mut())),
+            inner: UnsafeCell::new(raw::Executor::new(
+                |p| unsafe {
+                    let s = &*(p as *const () as *const Signaler);
+                    s.signal()
+                },
+                signaler as *const _ as _,
+            )),
             not_send: PhantomData,
-            signaler: Signaler::new(),
+            signaler,
             pins: UnsafeCell::new(Vec::new()),
             signals: UnsafeCell::new(Vec::new()),
             done: AtomicBool::new(false),
@@ -300,14 +303,13 @@ impl TestRunner {
     }
 
     pub fn initialize(&'static self, init: impl FnOnce(Spawner)) {
-        unsafe { (&mut *self.inner.get()).set_signal_ctx(&self.signaler as *const _ as _) };
         init(unsafe { (&*self.inner.get()).spawner() });
     }
 
     pub fn run_until_idle(&'static self) {
         self.signaler.prepare();
         while self.signaler.should_run() {
-            unsafe { (&*self.inner.get()).run_queued() };
+            unsafe { (&*self.inner.get()).poll() };
         }
     }
 
@@ -336,8 +338,6 @@ impl TestRunner {
     }
 }
 
-static mut CLOCK_ZERO: MaybeUninit<StdInstant> = MaybeUninit::uninit();
-
 struct Signaler {
     run: AtomicBool,
 }
@@ -357,38 +357,13 @@ impl Signaler {
         self.run.swap(false, Ordering::SeqCst)
     }
 
-    fn signal(ctx: *mut ()) {
-        let this = unsafe { &*(ctx as *mut Self) };
-        this.run.store(true, Ordering::SeqCst);
+    fn signal(&self) {
+        self.run.store(true, Ordering::SeqCst);
     }
 }
 
 static mut ALARM_AT: u64 = u64::MAX;
 static mut NEXT_ALARM_ID: u8 = 0;
-
-struct TimeDriver;
-embassy::time_driver_impl!(TimeDriver);
-
-impl Driver for TimeDriver {
-    fn now() -> u64 {
-        let zero = unsafe { CLOCK_ZERO.as_ptr().read() };
-        let dur = StdInstant::now().duration_since(zero);
-        dur.as_secs() * (TICKS_PER_SECOND as u64)
-            + (dur.subsec_nanos() as u64) * (TICKS_PER_SECOND as u64) / 1_000_000_000
-    }
-
-    unsafe fn allocate_alarm() -> Option<AlarmHandle> {
-        let r = NEXT_ALARM_ID;
-        NEXT_ALARM_ID += 1;
-        Some(AlarmHandle::new(r))
-    }
-
-    fn set_alarm_callback(_alarm: AlarmHandle, _callback: fn(*mut ()), _ctx: *mut ()) {}
-
-    fn set_alarm(_alarm: AlarmHandle, timestamp: u64) {
-        unsafe { ALARM_AT = ALARM_AT.min(timestamp) }
-    }
-}
 
 // Perform a process step for an Actor, processing a single message
 pub fn step_actor(actor_fut: &mut impl Future<Output = ()>) {

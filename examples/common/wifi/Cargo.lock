@@ -143,7 +143,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=09ffdf63f18e263962a8ea9f86c1caf4360cacee#09ffdf63f18e263962a8ea9f86c1caf4360cacee"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=65bceafa6839b92dd5e4487485f687bdf4b42733#65bceafa6839b92dd5e4487485f687bdf4b42733"
 dependencies = [
  "atomic-polyfill",
  "cortex-m",
@@ -158,7 +158,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=09ffdf63f18e263962a8ea9f86c1caf4360cacee#09ffdf63f18e263962a8ea9f86c1caf4360cacee"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=65bceafa6839b92dd5e4487485f687bdf4b42733#65bceafa6839b92dd5e4487485f687bdf4b42733"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -169,7 +169,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=09ffdf63f18e263962a8ea9f86c1caf4360cacee#09ffdf63f18e263962a8ea9f86c1caf4360cacee"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=65bceafa6839b92dd5e4487485f687bdf4b42733#65bceafa6839b92dd5e4487485f687bdf4b42733"
 dependencies = [
  "embedded-hal",
 ]
@@ -450,9 +450,9 @@ dependencies = [
 
 [[package]]
 name = "typenum"
-version = "1.13.0"
+version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "879f6906492a7cd215bfa4cf595b600146ccfac0c79bcbd1f3000162af5e8b06"
+checksum = "b63708a265f51345575b27fe43f9500ad611579e764c79edbc2037b1121959ec"
 
 [[package]]
 name = "unicode-xid"
