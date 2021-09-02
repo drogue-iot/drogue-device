@@ -15,7 +15,7 @@ use drogue_device::{actors::button::Button, Actor, ActorContext, Address, Device
 use embassy::time::{with_timeout, Duration};
 use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::peripherals::{PB0, PB14, PC13, PE1, RNG};
-use embassy_stm32::rng::Random;
+use embassy_stm32::rng::Rng;
 use embassy_stm32::{
     exti::ExtiInput,
     gpio::{Input, Level, Output, Pull, Speed},
@@ -41,7 +41,7 @@ pub enum Command {
 
 pub struct App {
     address: Option<Address<'static, App>>,
-    rng: Option<Random<RNG>>,
+    rng: Option<Rng<RNG>>,
     dancing: bool,
     green: Option<Address<'static, Led<LedGreenPin>>>,
     yellow: Option<Address<'static, Led<LedYellowPin>>>,
@@ -101,7 +101,7 @@ impl Default for App {
 
 impl Actor for App {
     type Configuration = (
-        Random<RNG>,
+        Rng<RNG>,
         Address<'static, Led<LedGreenPin>>,
         Address<'static, Led<LedYellowPin>>,
         Address<'static, Led<LedRedPin>>,
@@ -188,7 +188,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         button: ActorContext::new(Button::new(button)),
     });
 
-    let rng = Random::new(p.RNG);
+    let rng = Rng::new(p.RNG);
 
     DEVICE
         .mount(|device| async move {

@@ -484,6 +484,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 [[package]]
 name = "embassy"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=65bceafa6839b92dd5e4487485f687bdf4b42733#65bceafa6839b92dd5e4487485f687bdf4b42733"
 dependencies = [
  "atomic-polyfill",
  "cortex-m 0.7.3",
@@ -498,16 +499,17 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=65bceafa6839b92dd5e4487485f687bdf4b42733#65bceafa6839b92dd5e4487485f687bdf4b42733"
 dependencies = [
  "cortex-m 0.7.3",
  "embassy",
- "num-traits",
  "usb-device",
 ]
 
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=65bceafa6839b92dd5e4487485f687bdf4b42733#65bceafa6839b92dd5e4487485f687bdf4b42733"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -518,6 +520,7 @@ dependencies = [
 [[package]]
 name = "embassy-stm32"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=65bceafa6839b92dd5e4487485f687bdf4b42733#65bceafa6839b92dd5e4487485f687bdf4b42733"
 dependencies = [
  "atomic-polyfill",
  "bare-metal 1.0.0",
@@ -542,6 +545,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=65bceafa6839b92dd5e4487485f687bdf4b42733#65bceafa6839b92dd5e4487485f687bdf4b42733"
 dependencies = [
  "embedded-hal",
 ]
@@ -832,6 +836,7 @@ dependencies = [
 [[package]]
 name = "lorawan-device"
 version = "0.2.0"
+source = "git+https://github.com/lulf/rust-lorawan.git?rev=dd9e58c2a4feac7566687b5d887582a39272aa52#dd9e58c2a4feac7566687b5d887582a39272aa52"
 dependencies = [
  "as-slice 0.2.1",
  "generic-array 0.14.4",
@@ -842,6 +847,7 @@ dependencies = [
 [[package]]
 name = "lorawan-encoding"
 version = "0.6.2"
+source = "git+https://github.com/lulf/rust-lorawan.git?rev=dd9e58c2a4feac7566687b5d887582a39272aa52#dd9e58c2a4feac7566687b5d887582a39272aa52"
 dependencies = [
  "aes",
  "cmac",
@@ -877,15 +883,6 @@ name = "nb"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "546c37ac5d9e56f55e73b677106873d9d9f5190605e41a856503623648488cae"
-
-[[package]]
-name = "num-traits"
-version = "0.2.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a64b1ec5cda2586e284722486d802acf1f7dbdc623e2bfc57e65ca1cd099290"
-dependencies = [
- "autocfg",
-]
 
 [[package]]
 name = "num_cpus"
@@ -1178,6 +1175,7 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 [[package]]
 name = "stm32-metapac"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=65bceafa6839b92dd5e4487485f687bdf4b42733#65bceafa6839b92dd5e4487485f687bdf4b42733"
 dependencies = [
  "cortex-m 0.7.3",
  "cortex-m-rt 0.7.0",
@@ -1188,6 +1186,7 @@ dependencies = [
 [[package]]
 name = "stm32-metapac-gen"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=65bceafa6839b92dd5e4487485f687bdf4b42733#65bceafa6839b92dd5e4487485f687bdf4b42733"
 dependencies = [
  "chiptool",
  "proc-macro2",
@@ -1279,9 +1278,9 @@ dependencies = [
 
 [[package]]
 name = "typenum"
-version = "1.13.0"
+version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "879f6906492a7cd215bfa4cf595b600146ccfac0c79bcbd1f3000162af5e8b06"
+checksum = "b63708a265f51345575b27fe43f9500ad611579e764c79edbc2037b1121959ec"
 
 [[package]]
 name = "ufmt-write"

@@ -23,7 +23,7 @@ mod tests {
             type Configuration = ();
             type Message<'a> = Add;
 
-    #[rustfmt::skip]
+            #[rustfmt::skip]
             type OnMountFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
 
             fn on_mount<'m, M>(

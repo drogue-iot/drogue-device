@@ -11,7 +11,7 @@ version = "0.1.0"
 doctest = false
 
 [dependencies]
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "09ffdf63f18e263962a8ea9f86c1caf4360cacee", default-features = false, features = ["executor-agnostic"] }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "65bceafa6839b92dd5e4487485f687bdf4b42733", default-features = false, features = ["executor-agnostic"] }
 #embassy = {default-features = false, path = "../../../embassy/embassy", features = ["defmt"]}
 
 # LoRa dependencies
@@ -47,9 +47,7 @@ defmt = { version = "0.2", optional = true }
 base64 = { version = "0.13.0", default-features = false }
 
 [dev-dependencies]
-embassy-std = {git = "https://github.com/embassy-rs/embassy.git", rev = "09ffdf63f18e263962a8ea9f86c1caf4360cacee", default-features = false }
-#embassy-std = {default-features = false, path = "../../../embassy/embassy-std" }
-
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "65bceafa6839b92dd5e4487485f687bdf4b42733" , features = ["std", "time", "time-tick-1mhz"]}
 drogue-device-macros = { path = "../macros" }
 futures = { version = "0.3", default-features = false, features = ["executor"] }
 arrayvec = { version = "0.6" }
@@ -57,11 +55,11 @@ env_logger = "0.8"
 
 [features]
 default = [ "std", "log", "time" ]
-std = ["embassy/std"]
-time = ["embassy/time"]
-"lora+sx127x" = ["lorawan-device", "lorawan-encoding", "bit_field", "lora"]
+std = ["embassy/std", "embassy/time"]
+"lora+sx127x" = ["lorawan-device", "lorawan-encoding", "bit_field", "lora", "embassy/time"]
 "lora+rak811" = ["nom", "moveslice"]
 "wifi+esp8266" = ["nom", "moveslice"]
+time = []
 lora = []
 wifi = []
 fonts = []

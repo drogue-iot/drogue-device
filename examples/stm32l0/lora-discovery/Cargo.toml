@@ -26,11 +26,11 @@ heapless = "0.6"
 void = { version = "1", default-features = false }
 rand_core = { version = "0.6", default-features = false }
 
-#embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "09ffdf63f18e263962a8ea9f86c1caf4360cacee", default-features = false, features = ["time-tick-32768hz"] }
-#embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "09ffdf63f18e263962a8ea9f86c1caf4360cacee", default-features = false, features = ["stm32l072cz", "time-driver-tim2", "memory-x"] }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "65bceafa6839b92dd5e4487485f687bdf4b42733", default-features = false, features = ["time-tick-32768hz"] }
+embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "65bceafa6839b92dd5e4487485f687bdf4b42733", default-features = false, features = ["stm32l072cz", "time-driver-tim2", "memory-x"] }
 
-embassy = {path = "../../../../../embassy/embassy", default-features = false}
-embassy-stm32 = {path = "../../../../../embassy/embassy-stm32", default-features = false, features = ["stm32l072cz", "time-driver-tim2", "memory-x"] }
+#embassy = {path = "../../../../../embassy/embassy", default-features = false}
+#embassy-stm32 = {path = "../../../../../embassy/embassy-stm32", default-features = false, features = ["stm32l072cz", "time-driver-tim2", "memory-x"] }
 
 [profile.release]
 codegen-units = 1

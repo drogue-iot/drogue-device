@@ -24,7 +24,7 @@ use embassy_stm32::{
     exti::ExtiInput,
     gpio::{Input, Level, Output, Pull, Speed},
     peripherals::{PC13, PD12, PD13, RNG},
-    rng::Random,
+    rng::Rng,
     Peripherals,
 };
 
@@ -54,7 +54,7 @@ type RESET = Output<'static, PD12>;
 
 #[cfg(feature = "tls")]
 type AppSocket =
-    TlsSocket<'static, Socket<'static, Esp8266Controller<'static>>, Random<RNG>, Aes128GcmSha256>;
+    TlsSocket<'static, Socket<'static, Esp8266Controller<'static>>, Rng<RNG>, Aes128GcmSha256>;
 
 #[cfg(not(feature = "tls"))]
 type AppSocket = Socket<'static, Esp8266Controller<'static>>;
@@ -94,7 +94,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             &mut RX_BUFFER,
         )
     };
-    let rng = Random::new(p.RNG);
+    let rng = Rng::new(p.RNG);
 
     DEVICE.configure(MyDevice {
         wifi: Esp8266Wifi::new(usart, enable_pin, reset_pin),
