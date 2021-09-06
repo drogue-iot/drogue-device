@@ -8,32 +8,43 @@
 use defmt_rtt as _;
 use panic_probe as _;
 
+use core::fmt::Write;
 use core::future::Future;
 use drogue_device::actors::button::{ButtonEvent, FromButtonEvent};
 use drogue_device::{actors::button::Button, Actor, ActorContext, Address, DeviceContext, Inbox};
-use embassy_stm32::dbgmcu::Dbgmcu;
-use embassy_stm32::peripherals::*;
-use embassy_stm32::{exti::ExtiInput, gpio::{Input, Level, Output, Pull, Speed}, Peripherals, Config};
-use embassy_stm32::spi::{self, Spi};
-use embassy_stm32::dma::NoDma;
-use embassy_stm32::time::U32Ext;
 use embassy::time::Delay;
-use epd_waveshare::epd5in65f::{Epd5in65f, Display5in65f};
-use epd_waveshare::prelude::*;
-use embedded_graphics::mono_font::MonoTextStyleBuilder;
-use embedded_graphics::text::{TextStyleBuilder, Baseline, Text};
-use embedded_graphics::geometry::Point;
-use embedded_graphics::Drawable;
-use heapless::{String, Vec};
-use core::fmt::Write;
-use embassy_stm32::rng::Random;
 use embassy::traits::rng::Rng;
+use embassy_stm32::dbgmcu::Dbgmcu;
+use embassy_stm32::dma::NoDma;
+use embassy_stm32::peripherals::*;
+use embassy_stm32::rng::Rng as Random;
+use embassy_stm32::spi::{self, Spi};
+use embassy_stm32::time::U32Ext;
+use embassy_stm32::{
+    exti::ExtiInput,
+    gpio::{Input, Level, Output, Pull, Speed},
+    Config, Peripherals,
+};
+use embedded_graphics::geometry::Point;
 use embedded_graphics::image::{Image, ImageRaw};
+use embedded_graphics::mono_font::MonoTextStyleBuilder;
+use embedded_graphics::pixelcolor::{Rgb888, RgbColor};
+use embedded_graphics::text::{Baseline, Text, TextStyleBuilder};
+use embedded_graphics::Drawable;
+use epd_waveshare::epd5in65f::{Display5in65f, Epd5in65f};
+use epd_waveshare::prelude::*;
+use heapless::{String, Vec};
 use tinybmp::Bmp;
-use embedded_graphics::pixelcolor::{RgbColor, Rgb888};
 
 type EpdSpi = Spi<'static, SPI1, NoDma, NoDma>;
-type Epd = Epd5in65f<EpdSpi, Output<'static, PD14>, Input<'static, PF3>, Output<'static, PG0>, Output<'static, PG1>, Delay>;
+type Epd = Epd5in65f<
+    EpdSpi,
+    Output<'static, PD14>,
+    Input<'static, PF3>,
+    Output<'static, PG0>,
+    Output<'static, PG1>,
+    Delay,
+>;
 
 pub struct App {
     spi: EpdSpi,
@@ -59,7 +70,10 @@ impl App {
         let fg = v[0] & 0b00000111;
         let bg = (v[0] & 0b01110000) >> 4;
 
-        (OctColor::from_nibble(fg).unwrap_or(OctColor::Black), OctColor::from_nibble(bg).unwrap_or(OctColor::White))
+        (
+            OctColor::from_nibble(fg).unwrap_or(OctColor::Black),
+            OctColor::from_nibble(bg).unwrap_or(OctColor::White),
+        )
     }
 
     async fn draw(&mut self) {
@@ -85,8 +99,20 @@ impl App {
         let mut text: String<128> = String::new();
         write!(text, "Drawing #{}", self.presses).ok();
 
-        let _ = defmt::unwrap!(Text::with_text_style(text.as_str(), Point::new(x, y), style_a, text_style).draw(&mut display));
-        let _ = defmt::unwrap!(Text::with_text_style("Powered by Drogue Device", Point::new(x, y + 40), style_b, text_style).draw(&mut display));
+        let _ = defmt::unwrap!(Text::with_text_style(
+            text.as_str(),
+            Point::new(x, y),
+            style_a,
+            text_style
+        )
+        .draw(&mut display));
+        let _ = defmt::unwrap!(Text::with_text_style(
+            "Powered by Drogue Device",
+            Point::new(x, y + 40),
+            style_b,
+            text_style
+        )
+        .draw(&mut display));
 
         let bmp_data = include_bytes!("rodney.bmp");
         let bmp = Bmp::<Rgb888>::from_slice(bmp_data).unwrap();
@@ -114,7 +140,9 @@ impl App {
 
         let _ = Image::new(&image, Point::new(100, 100)).draw(&mut display);
 
-        defmt::unwrap!(self.epd.update_frame( &mut self.spi, display.buffer(), &mut Delay));
+        defmt::unwrap!(self
+            .epd
+            .update_frame(&mut self.spi, display.buffer(), &mut Delay));
         defmt::unwrap!(self.epd.display_frame(&mut self.spi, &mut Delay));
     }
 }
@@ -141,7 +169,6 @@ fn quantize_color(color: Rgb888) -> OctColor {
     }
 }
 
-
 impl Actor for App {
     type Configuration = ();
 
@@ -157,8 +184,9 @@ impl Actor for App {
         _: Address<'static, Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
-        where
-            M: Inbox<'m, Self> + 'm {
+    where
+        M: Inbox<'m, Self> + 'm,
+    {
         async move {
             loop {
                 let _msg = inbox.next().await;
@@ -176,8 +204,8 @@ pub enum Command {
 
 impl FromButtonEvent<Command> for App {
     fn from(event: ButtonEvent) -> Option<Command>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         match event {
             ButtonEvent::Pressed => Some(Command::Draw),
@@ -202,7 +230,16 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let button = Input::new(p.PC13, Pull::Down);
     let button = ExtiInput::new(button, p.EXTI13);
 
-    let mut spi = Spi::new(p.SPI1, p.PA5, p.PB5, p.PA6, NoDma, NoDma, 4.mhz(), spi::Config::default());
+    let mut spi = Spi::new(
+        p.SPI1,
+        p.PA5,
+        p.PB5,
+        p.PA6,
+        NoDma,
+        NoDma,
+        4.mhz(),
+        spi::Config::default(),
+    );
     let cs = Output::new(p.PD14, Level::High, Speed::Medium);
     let busy = Input::new(p.PF3, Pull::None);
     let dc = Output::new(p.PG0, Level::High, Speed::Medium);
@@ -212,9 +249,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let epd = Epd5in65f::new(&mut spi, cs, busy, dc, rst, &mut delay);
 
     let epd = match epd {
-        Ok(epd) => {
-            epd
-        }
+        Ok(epd) => epd,
         Err(_) => {
             defmt::panic!("Error initializing EPD");
         }
@@ -236,7 +271,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         .await;
     defmt::info!("Application initialized. Press 'A' button to draw");
 }
-
 
 #[allow(unused)]
 pub fn config() -> Config {

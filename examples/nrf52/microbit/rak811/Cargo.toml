@@ -21,7 +21,7 @@ drogue-device = { path = "../../../../device", features = ["lora+rak811"], defau
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.6", features = ["inline-asm"] }
 
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "09ffdf63f18e263962a8ea9f86c1caf4360cacee", default-features = false}
-embassy-nrf = {git = "https://github.com/embassy-rs/embassy.git", rev = "09ffdf63f18e263962a8ea9f86c1caf4360cacee", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "65bceafa6839b92dd5e4487485f687bdf4b42733", default-features = false}
+embassy-nrf = {git = "https://github.com/embassy-rs/embassy.git", rev = "65bceafa6839b92dd5e4487485f687bdf4b42733", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
 #embassy = {path = "../../../../../../embassy/embassy", default-features = false}
 #embassy-nrf = {path = "../../../../../../embassy/embassy-nrf", default-features = false, features = ["nrf52833"]}

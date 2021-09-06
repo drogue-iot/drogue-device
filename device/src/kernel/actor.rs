@@ -5,7 +5,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 
 use embassy::{
-    executor::{raw::Task, SpawnError, Spawner},
+    executor::{raw::TaskStorage as Task, SpawnError, Spawner},
     util::{
         mpsc::{self, Channel, Receiver, RecvFuture, Sender, WithNoThreads},
         DropBomb,

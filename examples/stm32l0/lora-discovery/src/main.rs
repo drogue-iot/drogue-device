@@ -13,7 +13,7 @@ use rtt_target::rtt_init_print;
 use drogue_device::{
     actors::{button::*, lora::*},
     drivers::led::*,
-    drivers::lora::sx127x::*,
+    drivers::lora::{sx127x::*, *},
     traits::lora::*,
     *,
 };
@@ -24,7 +24,7 @@ use embassy_stm32::{
     gpio::{Input, Level, Output, Pull, Speed},
     peripherals::{PA15, PA5, PB2, PB4, PB5, PB6, PB7, PC0, RNG, SPI1},
     rcc,
-    rng::Random,
+    rng::Rng,
     spi,
     time::U32Ext,
     Peripherals,
@@ -41,7 +41,7 @@ const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_eui.txt
 const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_key.txt"));
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
 
-static mut RNG: Option<Random<RNG>> = None;
+static mut RNG: Option<Rng<RNG>> = None;
 fn get_random_u32() -> u32 {
     unsafe {
         if let Some(rng) = &mut RNG {
@@ -54,13 +54,16 @@ fn get_random_u32() -> u32 {
     }
 }
 
-pub type Sx127x<'a> = Sx127xDriver<
+pub type Sx127x<'a> = LoraDevice<
     'a,
+    Sx127xRadio<
+        'a,
+        spi::Spi<'a, SPI1, NoDma, NoDma>,
+        Output<'a, PA15>,
+        Output<'a, PC0>,
+        spi::Error,
+    >,
     ExtiInput<'a, PB4>,
-    spi::Spi<'a, SPI1, NoDma, NoDma>,
-    Output<'a, PA15>,
-    Output<'a, PC0>,
-    spi::Error,
 >;
 
 type Led1 = Led<Output<'static, PB5>>;
@@ -98,7 +101,7 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     let mut rcc = rcc::Rcc::new(p.RCC);
     let _ = rcc.enable_hsi48(&mut p.SYSCFG, p.CRS);
 
-    unsafe { RNG.replace(Random::new(p.RNG)) };
+    unsafe { RNG.replace(Rng::new(p.RNG)) };
 
     let led1 = Led::new(Output::new(p.PB5, Level::Low, Speed::Low));
     let led2 = Led::new(Output::new(p.PA5, Level::Low, Speed::Low));
@@ -127,7 +130,16 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     let ready = Input::new(p.PB4, Pull::Up);
     let ready_pin = ExtiInput::new(ready, p.EXTI4);
 
-    let lora = Sx127xDriver::new(ready_pin, spi, cs, reset, get_random_u32);
+    static mut RADIO_TX_BUF: [u8; 255] = [0; 255];
+    static mut RADIO_RX_BUF: [u8; 255] = [0; 255];
+    let lora = unsafe {
+        LoraDevice::new(
+            Sx127xRadio::new(spi, cs, reset, &mut RADIO_RX_BUF),
+            ready_pin,
+            get_random_u32,
+            &mut RADIO_TX_BUF,
+        )
+    };
 
     let config = LoraConfig::new()
         .region(LoraRegion::EU868)

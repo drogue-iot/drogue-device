@@ -1,6 +1,6 @@
 use core::future::Future;
 use drogue_device::*;
-use embassy::executor::{raw::Task, SpawnError};
+use embassy::executor::{raw::TaskStorage as Task, SpawnError};
 use wasm_bindgen_futures::spawn_local;
 
 #[derive(Clone, Copy)]
