@@ -39,8 +39,8 @@ embedded-graphics-core = { version = "0.3.2" }
 epd-waveshare = { git = "https://github.com/Caemor/epd-waveshare.git", features = [ "graphics"] }
 tinybmp = "0.3.1"
 
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "65bceafa6839b92dd5e4487485f687bdf4b42733", default-features = false, features = ["defmt", "defmt-info", "time", "time-tick-32768hz"]}
-embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "65bceafa6839b92dd5e4487485f687bdf4b42733", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "9082e5f6c5982e7d220f54c8e64e0dd27c6c579d", default-features = false, features = ["defmt", "defmt-info", "time", "time-tick-32768hz"]}
+embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "9082e5f6c5982e7d220f54c8e64e0dd27c6c579d", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
 
 
 [profile.release]
