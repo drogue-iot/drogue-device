@@ -528,12 +528,12 @@ version = "0.2.0"
 source = "git+https://github.com/drogue-iot/drogue-tls.git?rev=59cb23017f546da8e0f186042758226165400548#59cb23017f546da8e0f186042758226165400548"
 dependencies = [
  "aes-gcm",
+ "defmt",
  "digest",
  "generic-array 0.14.4",
  "heapless 0.7.5",
  "hkdf",
  "hmac",
- "log",
  "nom",
  "p256",
  "rand_core",

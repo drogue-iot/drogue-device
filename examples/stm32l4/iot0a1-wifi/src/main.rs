@@ -23,7 +23,8 @@ use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::{
     gpio::{Level, Input, Output, Speed, Pull},
     exti::*,
-    peripherals:: {PA5, PB13, PB12, PC13, PE0, PE1, PE8, SPI3},
+    peripherals:: {PA5, PB13, PB12, PC13, PE0, PE1, PE8, SPI3, RNG},
+    rng::Rng,
     Peripherals,
 };
 use embassy_stm32::spi::{self, Config, Spi};
@@ -37,11 +38,8 @@ use drogue_device::drivers::wifi::eswifi::EsWifiController;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "tls")] {
-        mod rng;
-        use rng::*;
         use drogue_tls::{Aes128GcmSha256, TlsContext};
         use drogue_device::actors::socket::TlsSocket;
-        use nrf52833_pac as pac;
 
         const HOST: &str = "http.sandbox.drogue.cloud";
         const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
@@ -69,7 +67,7 @@ type EsWifi = EsWifiController<SPI, CS, RESET, WAKE, READY, SpiError>;
 
 #[cfg(feature = "tls")]
 type AppSocket =
-    TlsSocket<'static, Socket<'static, EsWifi>, Rng, Aes128GcmSha256>;
+    TlsSocket<'static, Socket<'static, EsWifi>, Rng<RNG>, Aes128GcmSha256>;
 
 #[cfg(not(feature = "tls"))]
 type AppSocket = Socket<'static, EsWifi>;
@@ -124,6 +122,9 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     defmt::info!("IP {}", ip);
     */
 
+    #[cfg(feature = "tls")]
+    let rng = Rng::new(p.RNG);
+
     DEVICE.configure(MyDevice {
         wifi: ActorContext::new(AdapterActor::new()),
         app: ActorContext::new(App::new(IP, PORT, USERNAME.trim_end(), PASSWORD.trim_end())),
@@ -145,7 +146,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             #[cfg(feature = "tls")]
             let socket = TlsSocket::wrap(
                 socket,
-                TlsContext::new(Rng::new(pac::Peripherals::take().unwrap().RNG), unsafe {
+                TlsContext::new(rng, unsafe {
                     &mut TLS_BUFFER
                 })
                 .with_server_name(HOST.trim_end()),

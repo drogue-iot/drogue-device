@@ -47,7 +47,7 @@ defmt-debug = []
 defmt-info = []
 defmt-warn = []
 defmt-error = []
-tls = ["drogue-tls", "drogue-tls/log", "drogue-device/tls"]
+tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls"]
 
 [patch.crates-io]
 cortex-m = { git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"] }
