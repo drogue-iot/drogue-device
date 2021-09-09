@@ -134,6 +134,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     DEVICE
         .mount(|device| async move {
             let mut wifi = device.wifi.mount(wifi, spawner);
+            defmt::info!("Joining WiFi network...");
             wifi.join(Join::Wpa {
                 ssid: WIFI_SSID.trim_end(),
                 password: WIFI_PSK.trim_end(),

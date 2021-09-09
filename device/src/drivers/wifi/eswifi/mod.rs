@@ -168,6 +168,7 @@ where
             .await
             .map_err(|_| JoinError::InvalidPassword)?;
 
+
         self.send(&command!(8, "C3=4").as_bytes(), &mut response)
             .await
             .map_err(|_| JoinError::Unknown)?;
@@ -177,7 +178,7 @@ where
             .await
             .map_err(|_| JoinError::Unknown)?;
 
-        //info!("[[{}]]", response);
+        info!("[[{}]]", response);
 
         let parse_result = parser::join_response(&response);
 
@@ -273,7 +274,12 @@ where
     #[rustfmt::skip]
     type JoinFuture<'m> where SPI: 'm = impl Future<Output = Result<IpAddress, JoinError>> + 'm;
     fn join<'m>(&'m mut self, join_info: Join<'m>) -> Self::JoinFuture<'m> {
-        async move { todo!() }
+        async move {
+            match join_info {
+                Join::Open => Err(JoinError::Unknown),
+                Join::Wpa { ssid, password } => self.join_wep(ssid, password).await,
+            }
+        }
     }
 }
 
