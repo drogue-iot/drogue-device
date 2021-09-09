@@ -12,9 +12,6 @@ use core::future::Future;
 #[cfg(feature = "wifi+esp8266")]
 pub mod esp8266;
 
-#[cfg(feature = "wifi+eswifi")]
-pub mod eswifi;
-
 /// Actor messages handled by network adapter actors
 pub enum AdapterRequest<'m> {
     Join(Join<'m>),
