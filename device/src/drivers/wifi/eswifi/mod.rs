@@ -3,14 +3,17 @@ mod parser;
 use embedded_hal::digital::v2::OutputPin;
 use embedded_hal::digital::v2::InputPin;
 
+use crate::actors::wifi::Adapter;
 use crate::traits::{
-    ip::IpAddress,
-    wifi::JoinError,
+    ip::{IpAddress, IpProtocol, SocketAddress},
+    tcp::{TcpError, TcpStack},
+    wifi::{Join, JoinError, WifiSupplicant},
 };
 
 use embedded_hal::blocking::spi::{Transfer, Write};
 use heapless::String;
 use core::fmt::Write as FmtWrite;
+use core::future::Future;
 use embassy::time::{Duration, Timer};
 
 use parser::{
@@ -257,3 +260,80 @@ where
     }
 
 }
+
+impl<SPI, CS, RESET, WAKEUP, READY, E> WifiSupplicant for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
+where
+    SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
+    CS: OutputPin + 'static,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
+    READY: InputPin + 'static,
+    E: 'static,
+{
+    #[rustfmt::skip]
+    type JoinFuture<'m> where SPI: 'm = impl Future<Output = Result<IpAddress, JoinError>> + 'm;
+    fn join<'m>(&'m mut self, join_info: Join<'m>) -> Self::JoinFuture<'m> {
+        async move { todo!() }
+    }
+}
+
+impl<SPI, CS, RESET, WAKEUP, READY, E> TcpStack for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
+where
+    SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
+    CS: OutputPin + 'static,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
+    READY: InputPin + 'static,
+    E: 'static,
+{
+    type SocketHandle = u8;
+
+    #[rustfmt::skip]
+    type OpenFuture<'m> where SPI: 'm = impl Future<Output = Self::SocketHandle> + 'm;
+    fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
+        async move { todo!() }
+    }
+
+    #[rustfmt::skip]
+    type ConnectFuture<'m> where SPI: 'm = impl Future<Output = Result<(), TcpError>> + 'm;
+    fn connect<'m>(
+        &'m mut self,
+        handle: Self::SocketHandle,
+        _: IpProtocol,
+        dst: SocketAddress,
+    ) -> Self::ConnectFuture<'m> {
+        async move { todo!() }
+    }
+
+    #[rustfmt::skip]
+    type WriteFuture<'m> where SPI: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
+    fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
+        async move { todo!() }
+    }
+
+    #[rustfmt::skip]
+    type ReadFuture<'m> where SPI: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
+    fn read<'m>(
+        &'m mut self,
+        handle: Self::SocketHandle,
+        buf: &'m mut [u8],
+    ) -> Self::ReadFuture<'m> {
+        async move { todo!() }
+    }
+
+    #[rustfmt::skip]
+    type CloseFuture<'m> where SPI: 'm,  = impl Future<Output = ()> + 'm;
+    fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
+        async move { todo!() }
+    }
+}
+
+impl<SPI, CS, RESET, WAKEUP, READY, E> Adapter for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
+where
+    SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
+    CS: OutputPin + 'static,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
+    READY: InputPin + 'static,
+    E: 'static,
+{}

@@ -10,19 +10,23 @@
 use defmt_rtt as _;
 use panic_probe as _;
 
+use wifi_app::*;
 use drogue_device::{
-    actors::led::*,
-    actors::ticker::*,
+    actors::socket::*,
+    actors::wifi::*,
+    actors::button::*,
+    traits::{ip::*, tcp::TcpStack, wifi::*},
 //    actors::wifi::eswifi::*,
 //    traits::{wifi::*},
     *};
 use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::{
     gpio::{Level, Input, Output, Speed, Pull},
-    peripherals:: {PA5, PB13, PB12},
+    exti::*,
+    peripherals:: {PA5, PB13, PB12, PC13, PE0, PE1, PE8, SPI3},
     Peripherals,
 };
-use embassy_stm32::spi::{Config, Spi};
+use embassy_stm32::spi::{self, Config, Spi};
 use embassy_stm32::time::Hertz;
 //use defmt::*;
 use embassy_stm32::dma::NoDma;
@@ -31,24 +35,55 @@ use embassy_stm32::dma::NoDma;
 //use cortex_m::prelude::_embedded_hal_blocking_spi_Transfer;
 use drogue_device::drivers::wifi::eswifi::EsWifiController;
 
+cfg_if::cfg_if! {
+    if #[cfg(feature = "tls")] {
+        mod rng;
+        use rng::*;
+        use drogue_tls::{Aes128GcmSha256, TlsContext};
+        use drogue_device::actors::socket::TlsSocket;
+        use nrf52833_pac as pac;
 
-type Led1Pin = Output<'static, PA5>;
-type ENABLE = Output<'static, PB13>;
-type RESET = Output<'static, PB12>;
+        const HOST: &str = "http.sandbox.drogue.cloud";
+        const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
+        const PORT: u16 = 443;
+        static mut TLS_BUFFER: [u8; 16384] = [0u8; 16384];
+    } else {
+        const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP for local network server
+        const PORT: u16 = 12345;
+    }
+}
+
+const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.ssid.txt"));
+const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.password.txt"));
+const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.username.txt"));
+const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.password.txt"));
+
+type WAKE = Output<'static, PB13>;
+type RESET = Output<'static, PE8>;
+type CS = Output<'static, PE0>;
+type READY = Input<'static, PE1>;
+type SPI = Spi<'static, SPI3, NoDma, NoDma>;
+type SpiError = spi::Error;
+
+type EsWifi = EsWifiController<SPI, CS, RESET, WAKE, READY, SpiError>;
+
+#[cfg(feature = "tls")]
+type AppSocket =
+    TlsSocket<'static, Socket<'static, EsWifi>, Rng, Aes128GcmSha256>;
+
+#[cfg(not(feature = "tls"))]
+type AppSocket = Socket<'static, EsWifi>;
 
 pub struct MyDevice {
-//    wifi: EsWifi<ENABLE, RESET>,
-    led: ActorContext<'static, Led<Led1Pin>>,
-    ticker: ActorContext<'static, Ticker<'static, Led<Led1Pin>>>,
+    wifi: ActorContext<'static, AdapterActor<EsWifi>>,
+    app: ActorContext<'static, App<AppSocket>>,
+    button: ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App<AppSocket>>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 
-const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.ssid.txt"));
-const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.password.txt"));
-
 #[embassy::main]
-async fn main(_spawner: embassy::executor::Spawner, p: Peripherals) {
+async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     unsafe {
         Dbgmcu::enable_all();
     }
@@ -78,45 +113,47 @@ async fn main(_spawner: embassy::executor::Spawner, p: Peripherals) {
         Err(err) => defmt::info!("Error... {}", err),
     }
 
+    let button_pin = Input::new(p.PC13, Pull::Up);
+    let button = ExtiInput::new(button_pin, p.EXTI13);
 
+
+
+    /*
     let ip = wifi.join_wep(WIFI_SSID, WIFI_PSK).await;
     defmt::info!("Joined...");
     defmt::info!("IP {}", ip);
+    */
 
+    DEVICE.configure(MyDevice {
+        wifi: ActorContext::new(AdapterActor::new()),
+        app: ActorContext::new(App::new(IP, PORT, USERNAME.trim_end(), PASSWORD.trim_end())),
+        button: ActorContext::new(Button::new(button)),
+    });
 
-    // DEVICE.configure(MyDevice {
-    //     //wifi: EsWifi::new(enable_pin, reset_pin),
-    //     ticker: ActorContext::new(Ticker::new(Duration::from_millis(500), LedMessage::Toggle)),
-    //     led: ActorContext::new(Led::new(Output::new(p.PA5, Level::High, Speed::Low))),
-    // });
+    DEVICE
+        .mount(|device| async move {
+            let mut wifi = device.wifi.mount(wifi, spawner);
+            wifi.join(Join::Wpa {
+                ssid: WIFI_SSID.trim_end(),
+                password: WIFI_PSK.trim_end(),
+            })
+            .await
+            .expect("Error joining wifi");
+            defmt::info!("WiFi network joined");
 
-    // DEVICE
-    //     .mount(|device| async move {
-    //         // let mut wifi = device.wifi.mount((), spawner);
-    //         // defmt::info!("wifi {} ", WIFI_SSID);
-    //         // wifi.join(Join::Wpa {
-    //         //     ssid: WIFI_SSID.trim_end(),
-    //         //     password: WIFI_PSK.trim_end(),
-    //         // })
-    //         // .await
-    //         // .expect("Error joining wifi");
-    //         // defmt::info!("WiFi network joined");
-
-    //         let led = device.led.mount((), spawner);
-    //         let ticker = device.ticker.mount(led, spawner);
-    //         ticker
-    //     })
-    //     .await;
-
-
-        // let mut i =0;
-        // loop {
-        //     let mut buf = [0x0Au8; 4];
-        //     unwrap!(cs.set_low());
-        //     unwrap!(spi.transfer(&mut buf));
-        //     unwrap!(cs.set_high());
-        //     i = i + 1;
-        //     info!("xfer {=[u8]:x} {}", buf, i);
-        // }
+            let socket = Socket::new(wifi, wifi.open().await);
+            #[cfg(feature = "tls")]
+            let socket = TlsSocket::wrap(
+                socket,
+                TlsContext::new(Rng::new(pac::Peripherals::take().unwrap().RNG), unsafe {
+                    &mut TLS_BUFFER
+                })
+                .with_server_name(HOST.trim_end()),
+            );
+            let app = device.app.mount(socket, spawner);
+            device.button.mount(app, spawner);
+        })
+        .await;
+    defmt::info!("Application initialized. Press 'User' button to send data");
 
 }

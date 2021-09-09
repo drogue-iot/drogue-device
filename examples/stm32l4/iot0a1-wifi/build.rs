@@ -36,6 +36,8 @@ fn main() {
     fs::create_dir_all(out.join("config")).expect("error creating output directory for config");
     copy_config(&out, "config/wifi.ssid.txt");
     copy_config(&out, "config/wifi.password.txt");
+    copy_config(&out, "config/http.username.txt");
+    copy_config(&out, "config/http.password.txt");
 
     // By default, Cargo will re-run a build script whenever
     // any file in the project changes. By specifying `memory.x`
