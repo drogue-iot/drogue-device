@@ -25,8 +25,8 @@ cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 
 # TODO: Get rid of these embassy deps some day
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "9082e5f6c5982e7d220f54c8e64e0dd27c6c579d", default-features = false}
-embassy-rp = {git = "https://github.com/embassy-rs/embassy.git", rev = "9082e5f6c5982e7d220f54c8e64e0dd27c6c579d", default-features = false}
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a", default-features = false}
+embassy-rp = {git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a", default-features = false}
 
 # embassy = {path = "../../../../../../embassy/embassy", default-features = false}
 # embassy-rp = {path = "../../../../../../embassy/embassy-rp", default-features = false}

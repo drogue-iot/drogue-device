@@ -53,9 +53,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.43"
+version = "1.0.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28ae2b3dec75a406790005a200b1bd89785afc02517a00ca99ecfe093ee9e6cf"
+checksum = "61604a8f862e1d5c3229fdd78f8b02c68dcf73a4c4b05fd636d12240aaa242c1"
 
 [[package]]
 name = "as-slice"
@@ -218,7 +218,7 @@ dependencies = [
  "indexmap",
  "lazy_static",
  "os_str_bytes",
- "strsim 0.10.0",
+ "strsim",
  "termcolor",
  "textwrap",
  "vec_map",
@@ -315,9 +315,9 @@ dependencies = [
 
 [[package]]
 name = "critical-section"
-version = "0.2.1"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84c1ce814a497d4fbc869a34a0da005fbd712d7034e4a48ee91e7f3c795a8b17"
+checksum = "ebff2c29d6206094e876d2cfc72e6c66a1e2875be4948249969b8b689d0bcc4b"
 dependencies = [
  "bare-metal 1.0.0",
  "cfg-if",
@@ -381,9 +381,9 @@ dependencies = [
 
 [[package]]
 name = "darling"
-version = "0.10.2"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d706e75d87e35569db781a9b5e2416cff1236a47ed380831f959382ccd5f858"
+checksum = "757c0ded2af11d8e739c4daea1ac623dd1624b06c844cf3f5a39f1bdbd99bb12"
 dependencies = [
  "darling_core",
  "darling_macro",
@@ -391,23 +391,23 @@ dependencies = [
 
 [[package]]
 name = "darling_core"
-version = "0.10.2"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0c960ae2da4de88a91b2d920c2a7233b400bc33cb28453a2987822d8392519b"
+checksum = "2c34d8efb62d0c2d7f60ece80f75e5c63c1588ba68032740494b0b9a996466e3"
 dependencies = [
  "fnv",
  "ident_case",
  "proc-macro2",
  "quote",
- "strsim 0.9.3",
+ "strsim",
  "syn",
 ]
 
 [[package]]
 name = "darling_macro"
-version = "0.10.2"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9b5a2f4ac4969822c62224815d069952656cadc7084fdca9751e6d959189b72"
+checksum = "ade7bff147130fe5e6d39f089c6bd49ec0250f35d70b2eebf72afdfc919f15cc"
 dependencies = [
  "darling_core",
  "quote",
@@ -460,6 +460,7 @@ dependencies = [
  "bit_field",
  "critical-section",
  "embassy",
+ "embassy-hal-common",
  "embedded-hal",
  "futures",
  "generic-array 0.14.4",
@@ -484,7 +485,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=9082e5f6c5982e7d220f54c8e64e0dd27c6c579d#9082e5f6c5982e7d220f54c8e64e0dd27c6c579d"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=bb72f7eb98ed0431a6b6adf3c59831aed0c4825a#bb72f7eb98ed0431a6b6adf3c59831aed0c4825a"
 dependencies = [
  "atomic-polyfill",
  "cortex-m 0.7.3",
@@ -493,13 +494,14 @@ dependencies = [
  "embassy-traits",
  "embedded-hal",
  "futures",
+ "heapless 0.7.5",
  "pin-project",
 ]
 
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=9082e5f6c5982e7d220f54c8e64e0dd27c6c579d#9082e5f6c5982e7d220f54c8e64e0dd27c6c579d"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=bb72f7eb98ed0431a6b6adf3c59831aed0c4825a#bb72f7eb98ed0431a6b6adf3c59831aed0c4825a"
 dependencies = [
  "cortex-m 0.7.3",
  "embassy",
@@ -510,7 +512,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=9082e5f6c5982e7d220f54c8e64e0dd27c6c579d#9082e5f6c5982e7d220f54c8e64e0dd27c6c579d"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=bb72f7eb98ed0431a6b6adf3c59831aed0c4825a#bb72f7eb98ed0431a6b6adf3c59831aed0c4825a"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -521,7 +523,7 @@ dependencies = [
 [[package]]
 name = "embassy-stm32"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=9082e5f6c5982e7d220f54c8e64e0dd27c6c579d#9082e5f6c5982e7d220f54c8e64e0dd27c6c579d"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=bb72f7eb98ed0431a6b6adf3c59831aed0c4825a#bb72f7eb98ed0431a6b6adf3c59831aed0c4825a"
 dependencies = [
  "atomic-polyfill",
  "bare-metal 1.0.0",
@@ -546,7 +548,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=9082e5f6c5982e7d220f54c8e64e0dd27c6c579d#9082e5f6c5982e7d220f54c8e64e0dd27c6c579d"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=bb72f7eb98ed0431a6b6adf3c59831aed0c4825a#bb72f7eb98ed0431a6b6adf3c59831aed0c4825a"
 dependencies = [
  "embedded-hal",
 ]
@@ -1166,9 +1168,9 @@ dependencies = [
 
 [[package]]
 name = "serde_yaml"
-version = "0.8.20"
+version = "0.8.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad104641f3c958dab30eb3010e834c2622d1f3f4c530fef1dee20ad9485f3c09"
+checksum = "d8c608a35705a5d3cdc9fbe403147647ff34b921f8e833e49306df898f9b20af"
 dependencies = [
  "dtoa",
  "indexmap",
@@ -1185,7 +1187,7 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 [[package]]
 name = "stm32-metapac"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=9082e5f6c5982e7d220f54c8e64e0dd27c6c579d#9082e5f6c5982e7d220f54c8e64e0dd27c6c579d"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=bb72f7eb98ed0431a6b6adf3c59831aed0c4825a#bb72f7eb98ed0431a6b6adf3c59831aed0c4825a"
 dependencies = [
  "cortex-m 0.7.3",
  "cortex-m-rt 0.7.0",
@@ -1196,7 +1198,7 @@ dependencies = [
 [[package]]
 name = "stm32-metapac-gen"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=9082e5f6c5982e7d220f54c8e64e0dd27c6c579d#9082e5f6c5982e7d220f54c8e64e0dd27c6c579d"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=bb72f7eb98ed0431a6b6adf3c59831aed0c4825a#bb72f7eb98ed0431a6b6adf3c59831aed0c4825a"
 dependencies = [
  "chiptool",
  "proc-macro2",
@@ -1204,12 +1206,6 @@ dependencies = [
  "serde",
  "serde_yaml",
 ]
-
-[[package]]
-name = "strsim"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6446ced80d6c486436db5c078dde11a9f73d42b57fb273121e160b84f63d894c"
 
 [[package]]
 name = "strsim"

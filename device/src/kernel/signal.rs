@@ -2,7 +2,7 @@ use atomic_polyfill::{AtomicBool, Ordering};
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use embassy::util::Signal;
+use embassy::channel::signal::Signal;
 
 pub struct SignalFuture<'s, T: Send> {
     signal: &'s SignalSlot<T>,

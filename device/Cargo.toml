@@ -11,7 +11,8 @@ version = "0.1.0"
 doctest = false
 
 [dependencies]
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "9082e5f6c5982e7d220f54c8e64e0dd27c6c579d", default-features = false, features = ["executor-agnostic"] }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a", default-features = false, features = ["executor-agnostic"] }
+embassy-hal-common = {git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a", default-features = false }
 #embassy = {default-features = false, path = "../../../embassy/embassy", features = ["defmt"]}
 
 # LoRa dependencies
@@ -37,7 +38,7 @@ heapless = "0.7"
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 atomic-polyfill = "0.1"
 generic-array = "0.14"
-critical-section = "0.2.1"
+critical-section = "0.2.3"
 
 # Logging alternatives
 log = { version = "0.4", optional = true }
@@ -47,7 +48,7 @@ defmt = { version = "0.2", optional = true }
 base64 = { version = "0.13.0", default-features = false }
 
 [dev-dependencies]
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "9082e5f6c5982e7d220f54c8e64e0dd27c6c579d" , features = ["std", "time", "time-tick-1mhz"]}
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a" , features = ["std", "time", "time-tick-1mhz"]}
 drogue-device-macros = { path = "../macros" }
 futures = { version = "0.3", default-features = false, features = ["executor"] }
 arrayvec = { version = "0.6" }
