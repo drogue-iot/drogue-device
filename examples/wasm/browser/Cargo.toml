@@ -12,28 +12,15 @@ keywords = ["wasm"]
 crate-type = ["cdylib"]
 
 [dependencies]
-wasm-bindgen = "0.2.74"
-js-sys = "0.3"
-wasm-bindgen-futures = "0.4.24"
-embedded-hal = { version = "0.2.4", features = ["unproven"] }
+wasm-bindgen = "0.2"
+embedded-hal = { version = "0.2", features = ["unproven"] }
 wasm-logger = "0.2.0"
 log = "0.4"
 
 drogue-device = { path = "../../../device", features = ["log"], default-features = false }
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "9082e5f6c5982e7d220f54c8e64e0dd27c6c579d", default-features = false, features = ["executor-agnostic", "time-tick-1000hz"] }
+drogue-wasm = {git = "https://github.com/drogue-iot/drogue-wasm.git", branch = "main" }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a", default-features = false, features = ["executor-agnostic", "wasm"] }
 #embassy = {default-features = false, path = "../../../../../embassy/embassy", features = ["executor-agnostic"] }
-
-critical-section = { version = "0.2.1", features = ["custom-impl"] }
-
-[dependencies.web-sys]
-version = "0.3.4"
-features = [
-  'Document',
-  'Element',
-  'HtmlElement',
-  'Node',
-  'Window',
-]
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.

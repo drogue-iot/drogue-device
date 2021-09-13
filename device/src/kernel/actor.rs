@@ -5,14 +5,13 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 
 use embassy::{
+    blocking_mutex::kind::Noop,
+    channel::mpsc::{self, Channel, Receiver, RecvFuture, Sender},
     executor::{raw::TaskStorage as Task, SpawnError, Spawner},
-    util::{
-        mpsc::{self, Channel, Receiver, RecvFuture, Sender, WithNoThreads},
-        DropBomb,
-    },
 };
+use embassy_hal_common::drop::DropBomb;
 
-type ActorMutex = WithNoThreads;
+type ActorMutex = Noop;
 
 /// Trait that each actor must implement. An Actor must specify a message type
 /// it acts on, and an implementation of `on_mount` which is invoked when the

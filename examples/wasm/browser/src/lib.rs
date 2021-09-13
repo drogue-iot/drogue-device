@@ -2,19 +2,13 @@
 #![feature(const_fn_fn_ptr_basics)]
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
-mod components;
-mod system;
-
-use components::*;
-use system::*;
-
-use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::spawn_local;
 
 use drogue_device::{
     actors::{button::*, led::*},
     *,
 };
+use drogue_wasm::*;
+use embassy::executor::Spawner;
 
 struct MyDevice {
     led: ActorContext<'static, Led<WebLed>>,
@@ -24,10 +18,12 @@ struct MyDevice {
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 
 // Called when the wasm module is instantiated
-#[wasm_bindgen(start)]
-pub fn main() -> Result<(), JsValue> {
+#[embassy::main]
+async fn main(spawner: Spawner) {
     wasm_logger::init(wasm_logger::Config::default());
-    let spawner = WasmSpawner::new();
+
+    static mut INPUT1: InputPin = InputPin::new();
+    static mut OUTPUT1: OutputPin = OutputPin::new();
 
     // Configure HTML elements
     unsafe {
@@ -51,14 +47,10 @@ pub fn main() -> Result<(), JsValue> {
         button: ActorContext::new(Button::new(button)),
     });
 
-    spawn_local(async move {
-        DEVICE
-            .mount(|device| async move {
-                let led = device.led.mount((), spawner);
-                device.button.mount(led, spawner);
-            })
-            .await
-    });
-
-    Ok(())
+    DEVICE
+        .mount(|device| async move {
+            let led = device.led.mount((), spawner);
+            device.button.mount(led, spawner);
+        })
+        .await;
 }

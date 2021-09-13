@@ -20,11 +20,12 @@ use atomic_polyfill::{AtomicBool, Ordering};
 use buffer::Buffer;
 use core::{future::Future, pin::Pin};
 use embassy::{
-    io::{AsyncBufReadExt, AsyncWriteExt},
-    util::{
-        mpsc::{self, Channel, Receiver, Sender, WithThreadModeOnly},
-        Signal,
+    blocking_mutex::kind::ThreadMode,
+    channel::{
+        mpsc::{self, Channel, Receiver, Sender},
+        signal::Signal,
     },
+    io::{AsyncBufReadExt, AsyncWriteExt},
 };
 use embedded_hal::digital::v2::OutputPin;
 use futures::future::{select, Either};
@@ -32,7 +33,7 @@ use futures::pin_mut;
 use protocol::{Command, ConnectionType, Response as AtResponse};
 
 pub const BUFFER_LEN: usize = 512;
-type DriverMutex = WithThreadModeOnly;
+type DriverMutex = ThreadMode;
 
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
