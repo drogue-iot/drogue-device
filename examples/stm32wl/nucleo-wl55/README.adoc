@@ -1,0 +1,62 @@
+== STM32 Nucleo-WL55 example
+
+This example application runs out of the box on the STM32 Nucleo-WL55 Kit (NUCLEO-WL55JC2)
+
+=== Prerequisites
+
+==== Hardware
+
+* link:https://www.st.com/en/evaluation-tools/nucleo-wl55jc.html[STM32 NUCLEO-WL55JC2]
+
+==== Software
+
+To build and flash the example, you need to have https://rustup.rs/[Rust Nightly]. In practice you can use whatever tool you want to flash the device, but this guide will assume that `probe-run` is used (`cargo install probe-run`).
+
+=== Configuring
+
+To use this example, you need to create the files `config/dev_eui.txt`, `config/app_eui.txt`, and `config/app_key.txt` to configure the device EUI, application EUI, and application key for OTAA configuration of your device.
+
+=== Building
+
+Make sure you have the correct target architecture supported in rust:
+
+....
+rustup +nightly target add thumbv6m-none-eabi
+....
+
+To build the firmware:
+
+....
+cargo +nightly build --release
+....
+
+=== Flashing
+
+Flashing the firmware uses `probe-run` which auto-detects the probe connected to your device. 
+The following command will build and flash the firmware and open the
+debugger console so you can see the console debug output.
+
+....
+cargo +nightly run --release
+....
+
+If you’re experiencing problems, try setting the `VID:PID` values to
+that of your probe (you can find that from lsusb once your board is
+powered).
+
+....
+cargo +nightly run --release -- --probe <VID>:<PID>
+....
+
+
+=== Usage
+
+Once the device is flashed, it will connect to the local LoRaWAN network. Once the network is joined, you can press the B1 button on the development kit to send a test message `ping:<num-clicks>`, where `num-clicks` is the number of times you pressed the button since resetting the board.
+
+==== LEDs
+
+The board features 3 user controllable LEDs. The program will use 3 of them to show the internal status:
+
+Blue:: Will light up when starting and turn off once it joined the LoRa network.
+Green:: Turns on while sending the uplink message.
+Red:: Can be controlled through the downlink message: `led:on` or `led:off`.

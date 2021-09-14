@@ -1,0 +1,52 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+edition = "2018"
+name = "nucleo-wl55"
+version = "0.1.0"
+resolver = "2"
+description = "STM32 Nucleo-WL55 using LoRaWAN connecting to The Things Network"
+keywords = ["lorawan", "lora", "stm32wl", "stm32wl55", "networking", "iot", "stm32"]
+
+[workspace]
+
+[dependencies]
+embedded-hal = { version = "0.2.4", features = ["unproven"] }
+defmt = "0.2"
+defmt-rtt = "0.2"
+panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+
+drogue-device = { path = "../../../device", features = ["defmt", "defmt-trace", "lora+stm32wl"], default-features = false }
+cortex-m-rt = "0.7"
+cortex-m = { version = "0.7", features = ["inline-asm"] }
+heapless = "0.7"
+void = { version = "1", default-features = false }
+rand_core = { version = "0.6", default-features = false }
+
+#embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "eff8ae9c4d93cdd44e27af653b16b339f03f11dd", default-features = false, features = ["defmt", "defmt-trace"] }
+#embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "eff8ae9c4d93cdd44e27af653b16b339f03f11dd", default-features = false, features = ["defmt", "defmt-trace", "stm32wl55jc_cm4", "time-driver-tim2", "memory-x", "unstable-pac", "subghz"] }
+
+embassy = {path = "../../../../../embassy/embassy", default-features = false, features = ["defmt", "defmt-trace"]}
+embassy-stm32 = {path = "../../../../../embassy/embassy-stm32", default-features = false, features = ["defmt", "defmt-trace", "stm32wl55jc_cm4", "time-driver-tim2", "memory-x", "unstable-pac", "subghz"] }
+
+[features]
+default = [
+    "defmt-default",
+]
+defmt-default = []
+defmt-trace = [ ]
+defmt-debug = [ ]
+defmt-info = [ ]
+defmt-warn = [ ]
+defmt-error = [ ]
+
+[profile.release]
+#codegen-units = 1
+debug = 2
+opt-level = "s"
+lto = "fat"
+#debug-assertions = false
+#incremental = false
+#overflow-checks = false
