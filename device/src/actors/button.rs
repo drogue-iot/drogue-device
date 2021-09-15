@@ -55,9 +55,7 @@ impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Messag
     {
         self.handler.replace(config);
         async move {
-            info!("MOUNTING BUTTON");
             loop {
-                info!("Button wait for edge");
                 self.pin.wait_for_any_edge().await;
                 let event = if self.pin.is_high().ok().unwrap() {
                     trace!("Button released");
