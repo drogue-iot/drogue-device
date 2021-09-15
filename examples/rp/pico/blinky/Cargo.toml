@@ -24,12 +24,8 @@ rp2040-pac = { version = "0.1.4", features = ["rt"] }
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 
-# TODO: Get rid of these embassy deps some day
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a", default-features = false}
-embassy-rp = {git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a", default-features = false}
-
-# embassy = {path = "../../../../../../embassy/embassy", default-features = false}
-# embassy-rp = {path = "../../../../../../embassy/embassy-rp", default-features = false}
+embassy = { version = "0.1.0", default-features = false }
+embassy-rp = { version = "0.1.0", default-features = false }
 
 [features]
 default = [
@@ -41,3 +37,12 @@ defmt-debug = [ ]
 defmt-info = [ ]
 defmt-warn = [ ]
 defmt-error = [ ]
+
+[patch.crates-io]
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a" }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a" }
+
+#embassy = { path = "../../../../../embassy/embassy" }
+#embassy-rp = { path = "../../../../../embassy/embassy-stm32" }
+#embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }

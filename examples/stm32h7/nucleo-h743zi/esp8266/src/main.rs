@@ -23,8 +23,7 @@ use embassy_stm32::{dma::NoDma, peripherals::UART7};
 use embassy_stm32::{
     exti::ExtiInput,
     gpio::{Input, Level, Output, Pull, Speed},
-    peripherals::{PC13, PD12, PD13, RNG},
-    rng::Rng,
+    peripherals::{PC13, PD12, PD13},
     Peripherals,
 };
 
@@ -32,6 +31,7 @@ cfg_if::cfg_if! {
     if #[cfg(feature = "tls")] {
         use drogue_tls::{Aes128GcmSha256, TlsContext};
         use drogue_device::actors::socket::TlsSocket;
+        use embassy_stm32::{rng::Rng, peripherals::RNG};
 
         const HOST: &str = "http.sandbox.drogue.cloud";
         const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
@@ -94,6 +94,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             &mut RX_BUFFER,
         )
     };
+
+    #[cfg(feature = "tls")]
     let rng = Rng::new(p.RNG);
 
     DEVICE.configure(MyDevice {

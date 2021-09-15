@@ -7,10 +7,9 @@ use embassy_stm32::{
     gpio::{AnyPin, Output},
     interrupt::SUBGHZ_RADIO,
     subghz::{
-        self, BitSync, CalibrateImage, CfgIrq, CodingRate, HeaderType, Irq, LoRaBandwidth,
-        LoRaModParams, LoRaPacketParams, LoRaSyncWord, Ocp, PaConfig, PaSel, PacketType, RampTime,
-        RegMode, RfFreq, SpreadingFactor as SF, StandbyClk, SubGhz, TcxoMode, TcxoTrim, Timeout,
-        TxParams,
+        CalibrateImage, CfgIrq, CodingRate, HeaderType, Irq, LoRaBandwidth, LoRaModParams,
+        LoRaPacketParams, LoRaSyncWord, Ocp, PaConfig, PacketType, RampTime, RegMode, RfFreq,
+        SpreadingFactor as SF, StandbyClk, SubGhz, TcxoMode, TcxoTrim, Timeout, TxParams,
     },
 };
 use embedded_hal::digital::v2::OutputPin;
@@ -81,21 +80,21 @@ impl<'a> RadioSwitch<'a> {
     }
 
     pub fn set_rx(&mut self) {
-        self.ctrl1.set_high();
-        self.ctrl2.set_low();
-        self.ctrl3.set_high();
+        self.ctrl1.set_high().unwrap();
+        self.ctrl2.set_low().unwrap();
+        self.ctrl3.set_high().unwrap();
     }
 
     fn set_tx_lp(&mut self) {
-        self.ctrl1.set_high();
-        self.ctrl2.set_high();
-        self.ctrl3.set_high();
+        self.ctrl1.set_high().unwrap();
+        self.ctrl2.set_high().unwrap();
+        self.ctrl3.set_high().unwrap();
     }
 
     fn set_tx_hp(&mut self) {
-        self.ctrl2.set_high();
-        self.ctrl1.set_low();
-        self.ctrl3.set_high();
+        self.ctrl2.set_high().unwrap();
+        self.ctrl1.set_low().unwrap();
+        self.ctrl3.set_high().unwrap();
     }
 }
 
@@ -134,24 +133,17 @@ impl<'a> SubGhzRadio<'a> {
         self.radio.set_regulator_mode(RegMode::Smps)?;
         self.radio.calibrate(0x7F)?;
 
-        while self.radio.rfbusys() {}
+        while self.radio.is_busy() {}
 
         self.radio.calibrate_image(CalibrateImage::ISM_863_870)?;
 
         self.radio.set_buffer_base_address(0, 0)?;
 
-        let pa_config = PaConfig::new()
-            .set_pa(PaSel::Lp)
-            .set_hp_max(0x0)
-            .set_pa_duty_cycle(0x1);
-
-        self.radio.set_pa_config(&pa_config)?;
+        self.radio.set_pa_config(&PaConfig::LP_14)?;
 
         self.radio.set_pa_ocp(Ocp::Max140m)?;
 
-        let tx_params = TxParams::new()
-            .set_ramp_time(RampTime::Micros40)
-            .set_power(0x0D);
+        let tx_params = TxParams::LP_14.set_ramp_time(RampTime::Micros40);
         self.radio.set_tx_params(&tx_params)?;
 
         self.radio.set_packet_type(PacketType::LoRa)?;
@@ -182,7 +174,7 @@ impl<'a> SubGhzRadio<'a> {
                         .set_crc_en(true)
                         .set_invert_iq(false);
 
-                    self.radio.set_lora_packet_params(&packet_params);
+                    self.radio.set_lora_packet_params(&packet_params)?;
 
                     let mod_params = LoRaModParams::new()
                         .set_sf(convert_spreading_factor(config.rf.spreading_factor))
@@ -348,19 +340,19 @@ impl<'a> PhyRxTx for SubGhzRadio<'a> {
 struct Error<'a>(LoraError<SubGhzRadio<'a>>);
 
 impl<'a> From<RadioError> for Error<'a> {
-    fn from(f: RadioError) -> Self {
+    fn from(_: RadioError) -> Self {
         Error(LoraError::PhyError(RadioError))
     }
 }
 
 impl<'a> From<embassy_stm32::spi::Error> for Error<'a> {
-    fn from(f: embassy_stm32::spi::Error) -> Self {
+    fn from(_: embassy_stm32::spi::Error) -> Self {
         Error(LoraError::PhyError(RadioError))
     }
 }
 
 impl<'a> From<embassy_stm32::spi::Error> for RadioError {
-    fn from(f: embassy_stm32::spi::Error) -> Self {
+    fn from(_: embassy_stm32::spi::Error) -> Self {
         RadioError
     }
 }
@@ -378,7 +370,7 @@ impl<'a> From<RadioError> for LoraError<SubGhzRadio<'a>> {
 }
 
 impl<'a> From<RadioError> for crate::traits::lora::LoraError {
-    fn from(f: RadioError) -> Self {
+    fn from(_: RadioError) -> Self {
         crate::traits::lora::LoraError::OtherError
     }
 }
@@ -400,7 +392,7 @@ impl<'a> Radio for SubGhzRadio<'a> {
     }
 }
 
-use embassy::util::InterruptFuture;
+/*
 impl RadioIrq for SUBGHZ_RADIO {
     #[rustfmt::skip]
     type Future<'m> = InterruptFuture<'m, SUBGHZ_RADIO>;
@@ -408,43 +400,44 @@ impl RadioIrq for SUBGHZ_RADIO {
         InterruptFuture::new(self)
     }
 }
+*/
 
-/*
 use core::future::Future;
+use embassy::channel::signal::Signal;
+use embassy::interrupt::Interrupt;
 use embassy::interrupt::InterruptExt;
-use embassy::util::InterruptFuture;
-use embassy::util::Signal;
 
-pub struct SubGhzRadioIrq {
-    signal: Signal<()>,
-    //  irq: SUBGHZ_RADIO,
+pub struct SubGhzRadioIrq<'a> {
+    signal: &'a Signal<()>,
+    irq: SUBGHZ_RADIO,
 }
 
-use core::ptr;
-impl SubGhzRadioIrq {
-    pub fn new() -> Self {
-        //irq: SUBGHZ_RADIO) -> Self {
-        /*
-        irq}.disable();
-        irq.set_handler(|_| {
-            trace!("RADIO IRQ");
+impl<'a> SubGhzRadioIrq<'a> {
+    pub fn new(irq: impl Unborrow<Target = SUBGHZ_RADIO>, signal: &'a mut Signal<()>) -> Self
+    where
+        'a: 'static,
+    {
+        unborrow!(irq);
+        irq.disable();
+        let state_ptr: *mut Signal<()> = signal;
+        irq.set_handler(|p| {
+            let signal = unsafe { &mut *(p as *mut Signal<()>) };
+            signal.signal(());
+            unsafe { SUBGHZ_RADIO::steal() }.disable();
         });
-        irq.set_handler_context(ptr::null_mut());
-        irq.unpend();
+        irq.set_handler_context(state_ptr as *mut ());
         irq.enable();
-        */
-        Self {
-            //   irq,
-            signal: Signal::new(),
-        }
+        Self { irq, signal }
     }
 }
 
-impl RadioIrq for SubGhzRadioIrq {
+impl RadioIrq for SubGhzRadioIrq<'static> {
     #[rustfmt::skip]
     type Future<'m> = impl Future<Output = ()> + 'm;
     fn wait<'m>(&'m mut self) -> Self::Future<'m> {
-        async move { self.signal.wait().await }
+        async move {
+            self.signal.wait().await;
+            self.signal.reset();
+        }
     }
 }
-*/

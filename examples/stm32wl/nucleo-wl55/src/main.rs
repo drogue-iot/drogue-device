@@ -15,28 +15,20 @@ use drogue_device::{
     traits::lora::{LoraConfig, LoraMode, LoraRegion, SpreadingFactor},
     *,
 };
-use embassy::time::{Duration, Timer};
-use embassy::util::InterruptFuture;
+use embassy::channel::signal::Signal;
+use embassy::traits::gpio::WaitForRisingEdge;
 use embassy_stm32::{
     dbgmcu::Dbgmcu,
     dma::NoDma,
     exti::ExtiInput,
     gpio::{Input, Level, Output, Pin, Pull, Speed},
     interrupt, pac,
-    pac::common::*,
-    pac::rcc::*,
-    pac::*,
-    peripherals::{PA0, PA5, PB11, PB15, PB4, PB5, PB6, PB7, PB9, PC0, RNG, SPI1, SUBGHZSPI},
+    peripherals::{PA0, PB11, PB15, PB9, RNG},
     rcc,
     rng::Rng,
-    spi,
     subghz::*,
-    time::U32Ext,
     Peripherals,
 };
-use embedded_hal::blocking::spi::Transfer;
-use embedded_hal::digital::v2::{InputPin, OutputPin};
-use heapless;
 use rand_core::RngCore;
 
 mod app;
@@ -52,9 +44,8 @@ fn get_random_u32() -> u32 {
     unsafe {
         if let Some(rng) = &mut RNG {
             rng.reset();
-            //let result = rng.next_u32();
-            0xFAFAFAFA
-            //result
+            let result = rng.next_u32();
+            result
         } else {
             panic!("No Rng exists!");
         }
@@ -65,15 +56,13 @@ type Led1 = Led<Output<'static, PB15>>;
 type Led2 = Led<Output<'static, PB9>>;
 type Led3 = Led<Output<'static, PB11>>;
 
-type LoraDriver = LoraDevice<'static, SubGhzRadio<'static>, embassy_stm32::interrupt::SUBGHZ_RADIO>;
+type LoraDriver = LoraDevice<'static, SubGhzRadio<'static>, SubGhzRadioIrq<'static>>;
 type MyApp = App<Address<'static, LoraActor<LoraDriver>>, Led1, Led2, Led3>;
 
-type SubGhzIrq = embassy_stm32::interrupt::SUBGHZ_RADIO;
-
 pub struct MyDevice {
-    lora: ActorContext<'static, LoraActor<LoraDriver>>,
+    //lora: ActorContext<'static, LoraActor<LoraDriver>>,
     button: ActorContext<'static, Button<'static, ExtiInput<'static, PA0>, MyApp>>,
-    app: ActorContext<'static, MyApp>,
+    app: ActorContext<'static, MyApp, 2>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -85,12 +74,14 @@ fn config() -> embassy_stm32::Config {
 }
 
 #[embassy::main(config = "config()")]
-async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
-    let mut rcc = rcc::Rcc::new(p.RCC);
-    rcc.select_rng_clock(rcc::RngClockSrc::LSI);
-
+async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     unsafe {
         Dbgmcu::enable_all();
+        let mut rcc = rcc::Rcc::new(p.RCC);
+        rcc.enable_lsi();
+        pac::RCC.ccipr().modify(|w| {
+            w.set_rngsel(0b01);
+        });
         RNG.replace(Rng::new(p.RNG));
     }
 
@@ -99,14 +90,18 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     let led3 = Led::new(Output::new(p.PB11, Level::Low, Speed::Low));
 
     let button = Input::new(p.PA0, Pull::Up);
-    let pin = ExtiInput::new(button, p.EXTI0);
+    let mut pin = ExtiInput::new(button, p.EXTI0);
 
     let ctrl1 = Output::new(p.PC3.degrade(), Level::High, Speed::High);
     let ctrl2 = Output::new(p.PC4.degrade(), Level::High, Speed::High);
     let ctrl3 = Output::new(p.PC5.degrade(), Level::High, Speed::High);
     let mut rfs = RadioSwitch::new(ctrl1, ctrl2, ctrl3);
     rfs.set_rx();
-    let radio_irq = interrupt::take!(SUBGHZ_RADIO);
+
+    static mut RADIO_SIGNAL: Signal<()> = Signal::new();
+    let radio_irq =
+        SubGhzRadioIrq::new(interrupt::take!(SUBGHZ_RADIO), unsafe { &mut RADIO_SIGNAL });
+
     let radio = SubGhz::new(p.SUBGHZSPI, p.PA5, p.PA7, p.PA6, NoDma, NoDma);
 
     let config = LoraConfig::new()
@@ -132,14 +127,14 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
 
     DEVICE.configure(MyDevice {
         app: ActorContext::new(App::new(config, led1, led2, led3)),
-        lora: ActorContext::new(LoraActor::new(lora)),
+        //lora: ActorContext::new(LoraActor::new(lora)),
         button: ActorContext::new(Button::new(pin)),
     });
 
     DEVICE
         .mount(|device| async move {
-            let lora = device.lora.mount((), spawner);
-            let app = device.app.mount(lora, spawner);
+            //let lora = device.lora.mount((), spawner);
+            let app = device.app.mount((), spawner);
             device.button.mount(app, spawner);
         })
         .await;

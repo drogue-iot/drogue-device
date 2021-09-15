@@ -69,38 +69,25 @@ where
         //crate::log_stack("Process event");
         match self.state.take().unwrap() {
             DriverState::Configured(lorawan) => {
-                let mut is_tx = false;
-                let mut is_rx = false;
-                let mut is_timeout = false;
                 match &event {
                     LorawanEvent::NewSessionRequest => {
                         trace!("New Session Request");
                     }
                     LorawanEvent::RadioEvent(e) => match e {
-                        radio::Event::TxRequest(_, _) => {
-                            is_tx = true;
-                            ()
-                        }
-                        radio::Event::RxRequest(_) => {
-                            is_rx = true;
-                            ()
-                        }
+                        radio::Event::TxRequest(_, _) => (),
+                        radio::Event::RxRequest(_) => (),
                         radio::Event::CancelRx => (),
                         radio::Event::PhyEvent(_) => {
                             trace!("Phy event");
                         }
                     },
-                    LorawanEvent::TimeoutFired => {
-                        is_timeout = true;
-                        ()
-                    }
+                    LorawanEvent::TimeoutFired => (),
                     LorawanEvent::SendDataRequest(_e) => {
                         trace!("SendData");
                     }
                 }
                 let (mut new_state, response) = lorawan.handle_event(event);
-                trace!("Event handled {} {} {}", is_rx, is_tx, is_timeout);
-                let event = self.process_response(&mut new_state, response, is_timeout);
+                let event = self.process_response(&mut new_state, response);
                 self.state.replace(DriverState::Configured(new_state));
                 event
             }
@@ -116,7 +103,6 @@ where
         &self,
         lorawan: &mut LorawanDevice<'m, R, Crypto>,
         response: Result<LorawanResponse, LorawanError<R>>,
-        is_rx: bool,
     ) -> DriverEvent
     where
         R: 'm,
@@ -125,8 +111,6 @@ where
         match response {
             Ok(response) => match response {
                 LorawanResponse::TimeoutRequest(ms) => {
-                    //let ms = if is_rx { ms - RX_DELAY1 } else { ms };
-
                     trace!("TimeoutRequest: {:?}", ms);
                     return DriverEvent::ProcessAfter(ms);
                 }
@@ -255,7 +239,7 @@ where
                             QoS::Unconfirmed => false,
                         },
                     );
-                    let event = self.process_response(&mut new_state, response, false);
+                    let event = self.process_response(&mut new_state, response);
                     self.state.replace(DriverState::Configured(new_state));
                     Ok(event)
                 } else {

@@ -412,7 +412,6 @@ dependencies = [
  "atomic-polyfill",
  "cortex-m 0.7.3",
  "critical-section",
- "defmt",
  "embassy-macros",
  "embassy-traits",
  "embedded-hal",

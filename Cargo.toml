@@ -1,6 +1,16 @@
 [workspace]
 members = [
     "device",
+    "apps/wifi",
     "macros",
     "xtask",
 ]
+
+[patch.crates-io]
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a" }
+
+# embassy = { path = "../../../../../embassy/embassy" }
+# embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
+# embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }

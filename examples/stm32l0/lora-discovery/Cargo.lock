@@ -848,9 +848,9 @@ dependencies = [
 [[package]]
 name = "lorawan-device"
 version = "0.2.0"
+source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=d62faae2371f9cddc4d17466c876e060b3b22b55#d62faae2371f9cddc4d17466c876e060b3b22b55"
 dependencies = [
  "as-slice 0.2.1",
- "defmt",
  "generic-array 0.14.4",
  "heapless 0.6.1",
  "lorawan-encoding",
@@ -859,10 +859,10 @@ dependencies = [
 [[package]]
 name = "lorawan-encoding"
 version = "0.6.2"
+source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=d62faae2371f9cddc4d17466c876e060b3b22b55#d62faae2371f9cddc4d17466c876e060b3b22b55"
 dependencies = [
  "aes",
  "cmac",
- "defmt",
  "generic-array 0.14.4",
 ]
 

@@ -12,9 +12,9 @@ rustflags = [
   "-C", "link-arg=-Tdefmt.x",
 
   # Code-size optimizations.
-  "-Z", "trap-unreachable=no",
-  "-C", "inline-threshold=5",
-  "-C", "no-vectorize-loops",
+#  "-Z", "trap-unreachable=no",
+#  "-C", "inline-threshold=5",
+#  "-C", "no-vectorize-loops",
 ]
 
 [build]
