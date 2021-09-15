@@ -79,7 +79,7 @@ dependencies = [
  "embassy-rp",
  "embedded-hal",
  "panic-probe",
- "rp2040-pac2 0.1.0 (git+https://github.com/Dirbaio/rp2040-pac?rev=254f4677937801155ca3cb17c7bb9d38eb62683e)",
+ "rp2040-pac",
 ]
 
 [[package]]
@@ -263,7 +263,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=bb72f7eb98ed0431a6b6adf3c59831aed0c4825a#bb72f7eb98ed0431a6b6adf3c59831aed0c4825a"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=fb697a265752644d835edce27efbb20d5557b297#fb697a265752644d835edce27efbb20d5557b297"
 dependencies = [
  "atomic-polyfill",
  "cortex-m 0.7.3",
@@ -279,7 +279,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=bb72f7eb98ed0431a6b6adf3c59831aed0c4825a#bb72f7eb98ed0431a6b6adf3c59831aed0c4825a"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=fb697a265752644d835edce27efbb20d5557b297#fb697a265752644d835edce27efbb20d5557b297"
 dependencies = [
  "cortex-m 0.7.3",
  "embassy",
@@ -290,7 +290,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=bb72f7eb98ed0431a6b6adf3c59831aed0c4825a#bb72f7eb98ed0431a6b6adf3c59831aed0c4825a"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=fb697a265752644d835edce27efbb20d5557b297#fb697a265752644d835edce27efbb20d5557b297"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -301,7 +301,7 @@ dependencies = [
 [[package]]
 name = "embassy-rp"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=bb72f7eb98ed0431a6b6adf3c59831aed0c4825a#bb72f7eb98ed0431a6b6adf3c59831aed0c4825a"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=fb697a265752644d835edce27efbb20d5557b297#fb697a265752644d835edce27efbb20d5557b297"
 dependencies = [
  "atomic-polyfill",
  "cortex-m 0.7.3",
@@ -311,13 +311,13 @@ dependencies = [
  "embassy-hal-common",
  "embassy-macros",
  "embedded-hal",
- "rp2040-pac2 0.1.0 (git+https://github.com/embassy-rs/rp2040-pac2?rev=9ad7223a48a065e612bc7dc7be5bf5bd0b41cfc4)",
+ "rp2040-pac2",
 ]
 
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=bb72f7eb98ed0431a6b6adf3c59831aed0c4825a#bb72f7eb98ed0431a6b6adf3c59831aed0c4825a"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=fb697a265752644d835edce27efbb20d5557b297#fb697a265752644d835edce27efbb20d5557b297"
 dependencies = [
  "embedded-hal",
 ]
@@ -546,11 +546,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2a38df5b15c8d5c7e8654189744d8e396bddc18ad48041a500ce52d6948941f"
 
 [[package]]
-name = "rp2040-pac2"
-version = "0.1.0"
-source = "git+https://github.com/Dirbaio/rp2040-pac?rev=254f4677937801155ca3cb17c7bb9d38eb62683e#254f4677937801155ca3cb17c7bb9d38eb62683e"
+name = "rp2040-pac"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b6e222c239e9f08d36faf5e2372b4eb0661b3535e3b28942db1e937a9d15f76"
 dependencies = [
  "cortex-m 0.7.3",
+ "cortex-m-rt 0.7.0",
+ "vcell",
 ]
 
 [[package]]

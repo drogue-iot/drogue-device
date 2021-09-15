@@ -4,49 +4,50 @@ authors = [
     "Bob McWhirter <bmcwhirt@redhat.com>"
 ]
 edition = "2018"
-name = "nucleo-h743zi_epd"
+name = "nucleo-wl55"
 version = "0.1.0"
-description = "STM32 Nucleo-H743 7-color e-paper display"
-keywords = ["spi", "stm32h7", "epd", "display"]
 resolver = "2"
+description = "STM32 Nucleo-WL55 using LoRaWAN connecting to The Things Network"
+keywords = ["lorawan", "lora", "stm32wl", "stm32wl55", "networking", "iot", "stm32"]
 
 [workspace]
+
+[dependencies]
+embedded-hal = { version = "0.2.4", features = ["unproven"] }
+
+defmt = "0.2"
+defmt-rtt = "0.2"
+panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+
+drogue-device = { path = "../../../device", features = ["defmt", "defmt-trace", "lora+stm32wl"], default-features = false }
+cortex-m-rt = "0.7"
+cortex-m = { version = "0.7", features = ["inline-asm"] }
+heapless = "0.7"
+void = { version = "1", default-features = false }
+rand_core = { version = "0.6", default-features = false }
+
+embassy = { version = "0.1.0", default-features = false }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["defmt", "defmt-trace", "stm32wl55jc_cm4", "time-driver-tim2", "unstable-pac", "subghz"] }
 
 [features]
 default = [
     "defmt-default",
 ]
 defmt-default = []
-defmt-trace = []
-defmt-debug = []
-defmt-info = []
-defmt-warn = []
-defmt-error = []
-
-[dependencies]
-defmt = "0.2"
-defmt-rtt = "0.2"
-panic-probe = { version = "0.2.0", features = ["print-defmt"] }
-
-embedded-hal = { version = "0.2.4", features = ["unproven"] }
-drogue-device = { path = "../../../../device", features = ["defmt", "defmt-trace"], default-features = false }
-cortex-m-rt = "0.7"
-cortex-m = { version = "0.7", features = ["inline-asm"] }
-heapless = { version = "0.7.1", default-features = false }
-void = { version = "1", default-features = false }
-embedded-graphics = { version = "0.7.1" }
-embedded-graphics-core = { version = "0.3.2" }
-epd-waveshare = { git = "https://github.com/Caemor/epd-waveshare.git", features = [ "graphics"] }
-tinybmp = "0.3.1"
-
-embassy = { version = "0.1.0", default-features = false }
-embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
-
+defmt-trace = [ ]
+defmt-debug = [ ]
+defmt-info = [ ]
+defmt-warn = [ ]
+defmt-error = [ ]
 
 [profile.release]
+codegen-units = 1
 debug = 2
-opt-level = "s"
+opt-level = "z"
 lto = "fat"
+debug-assertions = false
+incremental = false
+overflow-checks = false
 
 [patch.crates-io]
 embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }

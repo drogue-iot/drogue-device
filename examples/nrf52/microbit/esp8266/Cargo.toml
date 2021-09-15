@@ -22,12 +22,12 @@ drogue-device = { path = "../../../../device", features = ["wifi+esp8266", "log"
 drogue-tls = { git = "https://github.com/drogue-iot/drogue-tls.git", rev = "59cb23017f546da8e0f186042758226165400548", default-features = false, features = ["async"], optional = true}
 #drogue-tls = { version = "0.2.0", default-features = false, features = ["async"], optional = true}
 #drogue-tls = {path = "../../../drogue-tls", default-features = false, optional = true}
-wifi-app = { path = "../../../common/wifi" }
+wifi-app = { path = "../../../../apps/wifi" }
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.6", features = ["inline-asm"] }
 
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a", default-features = false}
-embassy-nrf = {git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
+embassy = { version = "0.1.0", default-features = false }
+embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
 nrf52833-pac = { version = "0.9", features = ["rt"] }
 #embassy = {path = "../../../../../../embassy/embassy", default-features = false}
 #embassy-nrf = {path = "../../../../../../embassy/embassy-nrf", default-features = false, features = ["nrf52833"]}
@@ -70,3 +70,12 @@ debug = false
 debug-assertions = false
 opt-level = 0
 overflow-checks = false
+
+[patch.crates-io]
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
+
+#embassy = { path = "../../../../../embassy/embassy" }
+#embassy-nrf = { path = "../../../../../embassy/embassy-stm32" }
+#embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }

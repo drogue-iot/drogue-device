@@ -36,10 +36,19 @@ heapless = "0.6"
 void = { version = "1", default-features = false }
 rand_core = { version = "0.6", default-features = false }
 
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a", default-features = false, features = ["defmt", "defmt-info", "time", "time-tick-32768hz"]}
-embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
+embassy = { version = "0.1.0", default-features = false }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
 
 [profile.release]
 debug = 2
 opt-level = "s"
 lto = "fat"
+
+[patch.crates-io]
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
+
+# embassy = { path = "../../../../../embassy/embassy" }
+# embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
+# embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }
