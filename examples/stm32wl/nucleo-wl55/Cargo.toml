@@ -26,7 +26,7 @@ void = { version = "1", default-features = false }
 rand_core = { version = "0.6", default-features = false }
 
 embassy = { version = "0.1.0", default-features = false }
-embassy-stm32 = { version = "0.1.0", default-features = false, features = ["defmt", "defmt-trace", "stm32wl55jc_cm4", "time-driver-tim2", "memory-x", "unstable-pac", "subghz"] }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["defmt", "defmt-trace", "stm32wl55jc_cm4", "time-driver-tim2", "unstable-pac", "subghz"] }
 
 [features]
 default = [
@@ -40,13 +40,13 @@ defmt-warn = [ ]
 defmt-error = [ ]
 
 [profile.release]
-#codegen-units = 1
+codegen-units = 1
 debug = 2
 opt-level = "z"
 lto = "fat"
-#debug-assertions = false
-#incremental = false
-#overflow-checks = false
+debug-assertions = false
+incremental = false
+overflow-checks = false
 
 [patch.crates-io]
 #embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "bb72f7eb98ed0431a6b6adf3c59831aed0c4825a" }

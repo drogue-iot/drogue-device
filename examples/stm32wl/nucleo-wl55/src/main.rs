@@ -16,7 +16,6 @@ use drogue_device::{
     *,
 };
 use embassy::channel::signal::Signal;
-use embassy::traits::gpio::WaitForRisingEdge;
 use embassy_stm32::{
     dbgmcu::Dbgmcu,
     dma::NoDma,
@@ -60,9 +59,9 @@ type LoraDriver = LoraDevice<'static, SubGhzRadio<'static>, SubGhzRadioIrq<'stat
 type MyApp = App<Address<'static, LoraActor<LoraDriver>>, Led1, Led2, Led3>;
 
 pub struct MyDevice {
-    //lora: ActorContext<'static, LoraActor<LoraDriver>>,
+    lora: ActorContext<'static, LoraActor<LoraDriver>>,
     button: ActorContext<'static, Button<'static, ExtiInput<'static, PA0>, MyApp>>,
-    app: ActorContext<'static, MyApp, 2>,
+    app: ActorContext<'static, MyApp>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -90,7 +89,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let led3 = Led::new(Output::new(p.PB11, Level::Low, Speed::Low));
 
     let button = Input::new(p.PA0, Pull::Up);
-    let mut pin = ExtiInput::new(button, p.EXTI0);
+    let pin = ExtiInput::new(button, p.EXTI0);
 
     let ctrl1 = Output::new(p.PC3.degrade(), Level::High, Speed::High);
     let ctrl2 = Output::new(p.PC4.degrade(), Level::High, Speed::High);
@@ -127,14 +126,14 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     DEVICE.configure(MyDevice {
         app: ActorContext::new(App::new(config, led1, led2, led3)),
-        //lora: ActorContext::new(LoraActor::new(lora)),
+        lora: ActorContext::new(LoraActor::new(lora)),
         button: ActorContext::new(Button::new(pin)),
     });
 
     DEVICE
         .mount(|device| async move {
-            //let lora = device.lora.mount((), spawner);
-            let app = device.app.mount((), spawner);
+            let lora = device.lora.mount((), spawner);
+            let app = device.app.mount(lora, spawner);
             device.button.mount(app, spawner);
         })
         .await;

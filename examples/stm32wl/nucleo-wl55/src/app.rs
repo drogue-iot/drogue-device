@@ -136,7 +136,7 @@ where
     LED3: Led + 'static,
 {
     #[rustfmt::skip]
-    type Configuration = ();
+    type Configuration = D;
     #[rustfmt::skip]
     type Message<'m> where D: 'm = Command;
     #[rustfmt::skip]
@@ -151,11 +151,10 @@ where
     where
         M: Inbox<'m, Self> + 'm,
     {
-        //self.driver.replace(config);
+        self.driver.replace(config);
         async move {
             defmt::info!("Configuring");
             self.init_led.on().ok();
-            /*
             let driver = self.driver.as_mut().unwrap();
             driver
                 .configure(&self.lora)
@@ -166,7 +165,6 @@ where
                 .join(ConnectMode::OTAA)
                 .await
                 .expect("error joining lora network");
-            */
             Timer::after(Duration::from_millis(500)).await;
             self.init_led.off().ok();
             defmt::info!("Configuration finished");
