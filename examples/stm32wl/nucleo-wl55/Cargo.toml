@@ -15,19 +15,20 @@ keywords = ["lorawan", "lora", "stm32wl", "stm32wl55", "networking", "iot", "stm
 [dependencies]
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 
-defmt = "0.2"
-defmt-rtt = "0.2"
+defmt = "0.2.3"
+defmt-rtt = "0.2.0"
 panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+#panic-halt = "0.2"
 
-drogue-device = { path = "../../../device", features = ["defmt", "defmt-trace", "lora+stm32wl"], default-features = false }
-cortex-m-rt = "0.7"
-cortex-m = { version = "0.7", features = ["inline-asm"] }
+drogue-device = { path = "../../../device", features = ["lora+stm32wl", "defmt", "defmt-trace"], default-features = false }
+cortex-m-rt = ">=0.6.15,<0.8" #"0.7"
+cortex-m = { version = "0.7.3", features = ["inline-asm"] }
 heapless = "0.7"
 void = { version = "1", default-features = false }
 rand_core = { version = "0.6", default-features = false }
 
 embassy = { version = "0.1.0", default-features = false }
-embassy-stm32 = { version = "0.1.0", default-features = false, features = ["defmt", "defmt-trace", "stm32wl55jc_cm4", "time-driver-tim2", "unstable-pac", "subghz"] }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["defmt", "stm32wl55jc_cm4", "time-driver-tim2", "unstable-pac", "subghz"] }
 
 [features]
 default = [
@@ -43,6 +44,7 @@ defmt-error = [ ]
 [profile.release]
 codegen-units = 1
 debug = 2
+#opt-level = 2
 opt-level = "z"
 lto = "fat"
 debug-assertions = false
@@ -54,6 +56,6 @@ embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a2657
 embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
 embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
 
-# embassy = { path = "../../../../../embassy/embassy" }
-# embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
-# embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }
+#embassy = { path = "../../../../../embassy/embassy" }
+#embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
+#embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }

@@ -31,10 +31,10 @@ async fn main(spawner: Spawner) {
         OUTPUT1.configure("led", |value| {
             if value {
                 log::info!("ON");
-                "ON"
+                OutputVisual::String("ON")
             } else {
                 log::info!("OFF");
-                "OFF"
+                OutputVisual::String("OFF")
             }
         });
     }

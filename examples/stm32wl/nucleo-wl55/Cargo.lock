@@ -274,32 +274,11 @@ dependencies = [
 
 [[package]]
 name = "cortex-m-rt"
-version = "0.6.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6d8353767db816419630a76d5f1ad5b09610d22b67ceb59647df6a8abc667f8"
-dependencies = [
- "cortex-m-rt-macros 0.1.8",
- "r0",
-]
-
-[[package]]
-name = "cortex-m-rt"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "069533b58e25b635fac881eb6556616bd8f83a3e0ffe2b4b9619289ed14d465e"
 dependencies = [
- "cortex-m-rt-macros 0.7.0",
-]
-
-[[package]]
-name = "cortex-m-rt-macros"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4717562afbba06e760d34451919f5c3bf3ac15c7bb897e8b04862a7428378647"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
+ "cortex-m-rt-macros",
 ]
 
 [[package]]
@@ -476,7 +455,7 @@ dependencies = [
  "embedded-hal",
  "futures",
  "generic-array 0.14.4",
- "heapless 0.7.5",
+ "heapless",
  "lorawan-device",
  "lorawan-encoding",
 ]
@@ -505,7 +484,7 @@ dependencies = [
  "embassy-traits",
  "embedded-hal",
  "futures",
- "heapless 0.7.5",
+ "heapless",
  "pin-project",
 ]
 
@@ -541,7 +520,7 @@ dependencies = [
  "bxcan",
  "cfg-if",
  "cortex-m 0.7.3",
- "cortex-m-rt 0.7.0",
+ "cortex-m-rt",
  "critical-section",
  "defmt",
  "embassy",
@@ -711,15 +690,6 @@ dependencies = [
 
 [[package]]
 name = "hash32"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4041af86e63ac4298ce40e5cca669066e75b6f1aa3390fe2561ffa5e1d9f4cc"
-dependencies = [
- "byteorder",
-]
-
-[[package]]
-name = "hash32"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0c35f58762feb77d74ebe43bdbc3210f09be9fe6742234d573bacc26ed92b67"
@@ -735,24 +705,12 @@ checksum = "ab5ef0d4909ef3724cc8cce6ccc8572c5c817592e9285f5464f8e86f8bd3726e"
 
 [[package]]
 name = "heapless"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "634bd4d29cbf24424d0a4bfcbf80c6960129dc24424752a7d1d1390607023422"
-dependencies = [
- "as-slice 0.1.5",
- "generic-array 0.14.4",
- "hash32 0.1.1",
- "stable_deref_trait",
-]
-
-[[package]]
-name = "heapless"
 version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "50530280e9a947b192e3a30a9d7bcead527b22da30ff7cbd334233d820aaf82a"
 dependencies = [
  "atomic-polyfill",
- "hash32 0.2.1",
+ "hash32",
  "stable_deref_trait",
 ]
 
@@ -832,18 +790,18 @@ dependencies = [
 [[package]]
 name = "lorawan-device"
 version = "0.2.0"
-source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=d62faae2371f9cddc4d17466c876e060b3b22b55#d62faae2371f9cddc4d17466c876e060b3b22b55"
+source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=55d34a5766f20f644db3357346423efdd2163010#55d34a5766f20f644db3357346423efdd2163010"
 dependencies = [
  "as-slice 0.2.1",
  "generic-array 0.14.4",
- "heapless 0.6.1",
+ "heapless",
  "lorawan-encoding",
 ]
 
 [[package]]
 name = "lorawan-encoding"
 version = "0.6.2"
-source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=d62faae2371f9cddc4d17466c876e060b3b22b55#d62faae2371f9cddc4d17466c876e060b3b22b55"
+source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=55d34a5766f20f644db3357346423efdd2163010#55d34a5766f20f644db3357346423efdd2163010"
 dependencies = [
  "aes",
  "cmac",
@@ -885,14 +843,14 @@ name = "nucleo-wl55"
 version = "0.1.0"
 dependencies = [
  "cortex-m 0.7.3",
- "cortex-m-rt 0.7.0",
+ "cortex-m-rt",
  "defmt",
  "defmt-rtt",
  "drogue-device",
  "embassy",
  "embassy-stm32",
  "embedded-hal",
- "heapless 0.7.5",
+ "heapless",
  "panic-probe",
  "rand_core",
  "void",
@@ -937,12 +895,11 @@ checksum = "6acbef58a60fe69ab50510a55bc8cdd4d6cf2283d27ad338f54cb52747a9cf2d"
 
 [[package]]
 name = "panic-probe"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45b5c81d6b51f415b3ba40b30dc598dfffb29ad4cf4a8815989754850ce6c0dc"
+checksum = "6a0fa226f55c70d0d70ad373802f0d65a775478afec75c0f3eee1de5d39057c9"
 dependencies = [
- "cortex-m 0.6.7",
- "cortex-m-rt 0.6.14",
+ "cortex-m 0.7.3",
  "defmt",
 ]
 
@@ -1031,12 +988,6 @@ checksum = "c3d0b9745dc2debf507c8422de05d7226cc1f0644216dfdfead988f9b1ab32a7"
 dependencies = [
  "proc-macro2",
 ]
-
-[[package]]
-name = "r0"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2a38df5b15c8d5c7e8654189744d8e396bddc18ad48041a500ce52d6948941f"
 
 [[package]]
 name = "rand_core"
@@ -1181,7 +1132,7 @@ version = "0.1.0"
 source = "git+https://github.com/embassy-rs/embassy.git?rev=fb697a265752644d835edce27efbb20d5557b297#fb697a265752644d835edce27efbb20d5557b297"
 dependencies = [
  "cortex-m 0.7.3",
- "cortex-m-rt 0.7.0",
+ "cortex-m-rt",
  "regex",
  "stm32-metapac-gen",
 ]
@@ -1287,9 +1238,9 @@ checksum = "8895849a949e7845e06bd6dc1aa51731a103c42707010a5b591c0038fb73385b"
 
 [[package]]
 name = "unicode-width"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9337591893a19b88d8d87f2cec1e73fad5cdfd10e5a6f349f498ad6ea2ffb1e3"
+checksum = "3ed742d4ea2bd1176e236172c8429aaf54486e7ac098db29ffe6529e0ce50973"
 
 [[package]]
 name = "unicode-xid"

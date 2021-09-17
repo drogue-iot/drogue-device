@@ -3,17 +3,19 @@ build-std = ["core"]
 
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
 # replace your chip as listed in `probe-run --list-chips`
-runner = "probe-run --chip STM32WLE5JCIx"
+runner = "probe-run --chip STM32WLE5JCIx --measure-stack"
 
 rustflags = [
   # LLD (shipped with the Rust toolchain) is used as the default linker
   "-C", "link-arg=--nmagic",
   "-C", "link-arg=-Tlink.x",
   "-C", "link-arg=-Tdefmt.x",
+  "-Z", "emit-stack-sizes",
+#  "-C", "linker=flip-link",
 
   # Code-size optimizations.
   "-Z", "trap-unreachable=no",
-  "-C", "inline-threshold=5",
+#  "-C", "inline-threshold=10",
   "-C", "no-vectorize-loops",
 ]
 

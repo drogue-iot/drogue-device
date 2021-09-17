@@ -7,6 +7,7 @@
 
 use defmt_rtt as _;
 use panic_probe as _;
+//use panic_halt as _;
 
 use drogue_device::{
     actors::{button::*, lora::*},
@@ -15,7 +16,6 @@ use drogue_device::{
     traits::lora::{LoraConfig, LoraMode, LoraRegion, SpreadingFactor},
     *,
 };
-use embassy::channel::signal::Signal;
 use embassy_stm32::{
     dbgmcu::Dbgmcu,
     dma::NoDma,
@@ -43,8 +43,7 @@ fn get_random_u32() -> u32 {
     unsafe {
         if let Some(rng) = &mut RNG {
             rng.reset();
-            let result = rng.next_u32();
-            result
+            rng.next_u32()
         } else {
             panic!("No Rng exists!");
         }
@@ -55,7 +54,7 @@ type Led1 = Led<Output<'static, PB15>>;
 type Led2 = Led<Output<'static, PB9>>;
 type Led3 = Led<Output<'static, PB11>>;
 
-type LoraDriver = LoraDevice<'static, SubGhzRadio<'static>, SubGhzRadioIrq<'static>>;
+type LoraDriver = LoraDevice<'static, SubGhzRadio<'static>>; //, SubGhzRadioIrq<'static>>;
 type MyApp = App<Address<'static, LoraActor<LoraDriver>>, Led1, Led2, Led3>;
 
 pub struct MyDevice {
@@ -97,10 +96,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let mut rfs = RadioSwitch::new(ctrl1, ctrl2, ctrl3);
     rfs.set_rx();
 
-    static mut RADIO_SIGNAL: Signal<()> = Signal::new();
-    let radio_irq =
-        SubGhzRadioIrq::new(interrupt::take!(SUBGHZ_RADIO), unsafe { &mut RADIO_SIGNAL });
-
     let radio = SubGhz::new(p.SUBGHZSPI, p.PA5, p.PA7, p.PA6, NoDma, NoDma);
 
     let config = LoraConfig::new()
@@ -113,12 +108,14 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     defmt::info!("Configuring with config {:?}", config);
 
-    static mut RADIO_TX_BUF: [u8; 255] = [0; 255];
-    static mut RADIO_RX_BUF: [u8; 255] = [0; 255];
+    static mut RADIO_STATE: SubGhzState<'static> = SubGhzState::new();
+    let irq = interrupt::take!(SUBGHZ_RADIO);
+    static mut RADIO_TX_BUF: [u8; 256] = [0; 256];
+    static mut RADIO_RX_BUF: [u8; 256] = [0; 256];
     let lora = unsafe {
         LoraDevice::new(
-            SubGhzRadio::new(radio, rfs, &mut RADIO_RX_BUF),
-            radio_irq,
+            SubGhzRadio::new(&mut RADIO_STATE, radio, rfs, &mut RADIO_RX_BUF, irq),
+            SubGhzRadioIrq::new(),
             get_random_u32,
             &mut RADIO_TX_BUF,
         )
@@ -134,7 +131,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         .mount(|device| async move {
             let lora = device.lora.mount((), spawner);
             let app = device.app.mount(lora, spawner);
-            // NOTE: device.button.mount(app, spawner);
+            device.button.mount(app, spawner);
         })
         .await;
 }

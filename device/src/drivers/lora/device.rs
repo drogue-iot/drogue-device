@@ -4,22 +4,17 @@ use embassy::time::*;
 
 use lorawan_device::{
     radio, region, Device as LorawanDevice, Error as LorawanError, Event as LorawanEvent,
-    Response as LorawanResponse, Timings,
+    JoinMode as LoraJoinMode, Response as LorawanResponse, Timings,
 };
 use lorawan_encoding::default_crypto::DefaultFactory as Crypto;
 
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum RadioPhyEvent {
-    Irq,
-}
-
-pub trait RadioIrq {
-    type Future<'m>: Future<Output = ()> + 'm;
+pub trait RadioIrq<E> {
+    type Future<'m>: Future<Output = E> + 'm;
     fn wait<'m>(&'m mut self) -> Self::Future<'m>;
 }
 
-pub trait Radio: radio::PhyRxTx<PhyEvent = RadioPhyEvent> + Timings {
+pub trait Radio: radio::PhyRxTx + Timings {
+    type Interrupt: RadioIrq<<Self as radio::PhyRxTx>::PhyEvent>;
     fn reset(&mut self) -> Result<(), DriverError>;
 }
 
@@ -31,13 +26,12 @@ where
     Configured(LorawanDevice<'a, R, Crypto>),
 }
 
-pub struct LoraDevice<'a, R, I>
+pub struct LoraDevice<'a, R>
 where
     R: Radio + 'a,
-    I: RadioIrq + 'a,
 {
     state: Option<DriverState<'a, R>>,
-    irq: I,
+    irq: R::Interrupt,
     get_random: fn() -> u32,
 }
 
@@ -52,15 +46,19 @@ pub enum DriverEvent {
     None,
 }
 
-impl<'a, R, I> LoraDevice<'a, R, I>
+impl<'a, R> LoraDevice<'a, R>
 where
     R: Radio + 'a,
-    I: RadioIrq + 'a,
 {
-    pub fn new(radio: R, irq: I, get_random: fn() -> u32, radio_tx_buf: &'a mut [u8]) -> Self {
+    pub fn new(
+        radio: R,
+        irq: R::Interrupt,
+        get_random: fn() -> u32,
+        radio_tx_buf: &'a mut [u8],
+    ) -> Self {
         Self {
-            irq,
             state: Some(DriverState::New(radio, radio_tx_buf)),
+            irq,
             get_random,
         }
     }
@@ -167,7 +165,6 @@ where
                 }
                 LorawanResponse::NoUpdate => {
                     info!("No update");
-                    return DriverEvent::JoinFailed;
                 }
                 LorawanResponse::UplinkSending(fcnt_up) => {
                     trace!("Uplink with FCnt {}", fcnt_up);
@@ -193,10 +190,9 @@ where
                 DriverEvent::ProcessAfter(ms) => {
                     let interrupt = self.irq.wait();
                     match with_timeout(Duration::from_millis(ms.into()), interrupt).await {
-                        Ok(_) => {
-                            event = self.process_event(LorawanEvent::RadioEvent(
-                                radio::Event::PhyEvent(RadioPhyEvent::Irq),
-                            ));
+                        Ok(r) => {
+                            event = self
+                                .process_event(LorawanEvent::RadioEvent(radio::Event::PhyEvent(r)));
                         }
                         Err(TimeoutError) => {
                             event = self.process_event(LorawanEvent::TimeoutFired);
@@ -212,10 +208,8 @@ where
                 }
                 _ => {
                     // Wait for interrupt
-                    self.irq.wait().await;
-                    event = self.process_event(LorawanEvent::RadioEvent(radio::Event::PhyEvent(
-                        RadioPhyEvent::Irq,
-                    )));
+                    let e = self.irq.wait().await;
+                    event = self.process_event(LorawanEvent::RadioEvent(radio::Event::PhyEvent(e)));
                 }
             }
         }
@@ -267,12 +261,11 @@ where
         loop {
             match event {
                 DriverEvent::ProcessAfter(ms) => {
-                    let interrupt = self.irq.wait();
-                    match with_timeout(Duration::from_millis(ms.into()), interrupt).await {
-                        Ok(_) => {
-                            event = self.process_event(LorawanEvent::RadioEvent(
-                                radio::Event::PhyEvent(RadioPhyEvent::Irq),
-                            ));
+                    let recv = self.irq.wait();
+                    match with_timeout(Duration::from_millis(ms.into()), recv).await {
+                        Ok(e) => {
+                            event = self
+                                .process_event(LorawanEvent::RadioEvent(radio::Event::PhyEvent(e)));
                         }
                         Err(TimeoutError) => {
                             event = self.process_event(LorawanEvent::TimeoutFired);
@@ -295,11 +288,9 @@ where
                     return Ok(0);
                 }
                 _ => {
-                    // Wait for interrupt
-                    self.irq.wait().await;
-                    event = self.process_event(LorawanEvent::RadioEvent(radio::Event::PhyEvent(
-                        RadioPhyEvent::Irq,
-                    )));
+                    // Wait for events
+                    let e = self.irq.wait().await;
+                    event = self.process_event(LorawanEvent::RadioEvent(radio::Event::PhyEvent(e)));
                 }
             }
         }
@@ -308,10 +299,9 @@ where
 
 const RX_DELAY1: u32 = 5000;
 
-impl<'a, R, I> LoraDriver for LoraDevice<'a, R, I>
+impl<'a, R> LoraDriver for LoraDevice<'a, R>
 where
     R: Radio,
-    I: RadioIrq,
 {
     #[rustfmt::skip]
     type ConfigureFuture<'m> where 'a: 'm, R: 'm  = impl Future<Output = Result<(), LoraError>> + 'm;
@@ -332,15 +322,15 @@ where
                     if let Err(e) = region {
                         return Err(e);
                     }
-                    let mut region = region.unwrap();
-                    region.set_receive_delay1(RX_DELAY1);
-                    info!("Creating new DEVICE!");
+                    let region = region.unwrap();
                     let mut lorawan = LorawanDevice::new(
                         region,
+                        LoraJoinMode::OTAA {
+                            deveui: dev_eui.reverse().into(),
+                            appeui: app_eui.reverse().into(),
+                            appkey: app_key.clone().into(),
+                        },
                         radio,
-                        dev_eui.reverse().into(),
-                        app_eui.reverse().into(),
-                        app_key.clone().into(),
                         self.get_random,
                         radio_tx_buf,
                     );
