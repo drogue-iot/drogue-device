@@ -7,9 +7,7 @@ edition = "2018"
 name = "wifi-app"
 version = "0.1.0"
 
-[workspace]
-
 [dependencies]
-drogue-device = { path = "../../../device", default-features = false }
+drogue-device = { path = "../../device", default-features = false }
 log = "0.4"
 heapless = "0.6"

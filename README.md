@@ -140,6 +140,7 @@ cargo xtask update
   * `device/src/actors` - common actors that can be used in applications
 * `macros` - macros used by drogue-device and application code
 * `examples` - examples for different platforms and boards
+* `apps` - applications that are portable across different platforms and boards
 
 
 ## Contributing

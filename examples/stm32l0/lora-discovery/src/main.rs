@@ -5,10 +5,8 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use log::LevelFilter;
+use defmt_rtt as _;
 use panic_probe as _;
-use rtt_logger::RTTLogger;
-use rtt_target::rtt_init_print;
 
 use drogue_device::{
     actors::{button::*, lora::*},
@@ -39,7 +37,6 @@ use app::*;
 const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/dev_eui.txt"));
 const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_eui.txt"));
 const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_key.txt"));
-static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Trace);
 
 static mut RNG: Option<Rng<RNG>> = None;
 fn get_random_u32() -> u32 {
@@ -90,13 +87,9 @@ fn config() -> embassy_stm32::Config {
 
 #[embassy::main(config = "config()")]
 async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
-    rtt_init_print!();
     unsafe {
-        log::set_logger_racy(&LOGGER).unwrap();
         Dbgmcu::enable_all();
     }
-
-    log::set_max_level(log::LevelFilter::Trace);
 
     let mut rcc = rcc::Rcc::new(p.RCC);
     let _ = rcc.enable_hsi48(&mut p.SYSCFG, p.CRS);
@@ -149,7 +142,7 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
         .app_eui(&APP_EUI.trim_end().into())
         .app_key(&APP_KEY.trim_end().into());
 
-    log::info!("Configuring with config {:?}", config);
+    defmt::info!("Configuring with config {:?}", config);
 
     DEVICE.configure(MyDevice {
         app: ActorContext::new(App::new(AppInitConfig {

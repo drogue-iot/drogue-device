@@ -1,7 +1,6 @@
 use crate::traits::lora::{LoraError as DriverError, *};
 use core::future::Future;
 use embassy::time::*;
-use embassy::traits::gpio::WaitForRisingEdge;
 
 use lorawan_device::{
     radio, region, Device as LorawanDevice, Error as LorawanError, Event as LorawanEvent,
@@ -13,6 +12,11 @@ use lorawan_encoding::default_crypto::DefaultFactory as Crypto;
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum RadioPhyEvent {
     Irq,
+}
+
+pub trait RadioIrq {
+    type Future<'m>: Future<Output = ()> + 'm;
+    fn wait<'m>(&'m mut self) -> Self::Future<'m>;
 }
 
 pub trait Radio: radio::PhyRxTx<PhyEvent = RadioPhyEvent> + Timings {
@@ -27,13 +31,13 @@ where
     Configured(LorawanDevice<'a, R, Crypto>),
 }
 
-pub struct LoraDevice<'a, R, P>
+pub struct LoraDevice<'a, R, I>
 where
     R: Radio + 'a,
-    P: WaitForRisingEdge,
+    I: RadioIrq + 'a,
 {
     state: Option<DriverState<'a, R>>,
-    irq: P,
+    irq: I,
     get_random: fn() -> u32,
 }
 
@@ -48,12 +52,12 @@ pub enum DriverEvent {
     None,
 }
 
-impl<'a, R, P> LoraDevice<'a, R, P>
+impl<'a, R, I> LoraDevice<'a, R, I>
 where
     R: Radio + 'a,
-    P: WaitForRisingEdge,
+    I: RadioIrq + 'a,
 {
-    pub fn new(radio: R, irq: P, get_random: fn() -> u32, radio_tx_buf: &'a mut [u8]) -> Self {
+    pub fn new(radio: R, irq: I, get_random: fn() -> u32, radio_tx_buf: &'a mut [u8]) -> Self {
         Self {
             irq,
             state: Some(DriverState::New(radio, radio_tx_buf)),
@@ -83,7 +87,6 @@ where
                     }
                 }
                 let (mut new_state, response) = lorawan.handle_event(event);
-                trace!("Event handled");
                 let event = self.process_response(&mut new_state, response);
                 self.state.replace(DriverState::Configured(new_state));
                 event
@@ -112,6 +115,7 @@ where
                     return DriverEvent::ProcessAfter(ms);
                 }
                 LorawanResponse::JoinSuccess => {
+                    trace!("Joined successfully!");
                     return DriverEvent::JoinSuccess;
                 }
                 LorawanResponse::ReadyToSend => {
@@ -162,7 +166,8 @@ where
                     return DriverEvent::SessionExpired;
                 }
                 LorawanResponse::NoUpdate => {
-                    // info!("No update");
+                    info!("No update");
+                    return DriverEvent::JoinFailed;
                 }
                 LorawanResponse::UplinkSending(fcnt_up) => {
                     trace!("Uplink with FCnt {}", fcnt_up);
@@ -186,7 +191,7 @@ where
         loop {
             match event {
                 DriverEvent::ProcessAfter(ms) => {
-                    let interrupt = self.irq.wait_for_rising_edge();
+                    let interrupt = self.irq.wait();
                     match with_timeout(Duration::from_millis(ms.into()), interrupt).await {
                         Ok(_) => {
                             event = self.process_event(LorawanEvent::RadioEvent(
@@ -207,7 +212,7 @@ where
                 }
                 _ => {
                     // Wait for interrupt
-                    self.irq.wait_for_rising_edge().await;
+                    self.irq.wait().await;
                     event = self.process_event(LorawanEvent::RadioEvent(radio::Event::PhyEvent(
                         RadioPhyEvent::Irq,
                     )));
@@ -262,7 +267,7 @@ where
         loop {
             match event {
                 DriverEvent::ProcessAfter(ms) => {
-                    let interrupt = self.irq.wait_for_rising_edge();
+                    let interrupt = self.irq.wait();
                     match with_timeout(Duration::from_millis(ms.into()), interrupt).await {
                         Ok(_) => {
                             event = self.process_event(LorawanEvent::RadioEvent(
@@ -291,7 +296,7 @@ where
                 }
                 _ => {
                     // Wait for interrupt
-                    self.irq.wait_for_rising_edge().await;
+                    self.irq.wait().await;
                     event = self.process_event(LorawanEvent::RadioEvent(radio::Event::PhyEvent(
                         RadioPhyEvent::Irq,
                     )));
@@ -301,32 +306,35 @@ where
     }
 }
 
-impl<'a, R, P> LoraDriver for LoraDevice<'a, R, P>
+const RX_DELAY1: u32 = 5000;
+
+impl<'a, R, I> LoraDriver for LoraDevice<'a, R, I>
 where
     R: Radio,
-    P: WaitForRisingEdge,
+    I: RadioIrq,
 {
     #[rustfmt::skip]
-    type ConfigureFuture<'m> where 'a: 'm, P: 'm, R: 'm  = impl Future<Output = Result<(), LoraError>> + 'm;
+    type ConfigureFuture<'m> where 'a: 'm, R: 'm  = impl Future<Output = Result<(), LoraError>> + 'm;
     fn configure<'m>(&'m mut self, config: &'m LoraConfig) -> Self::ConfigureFuture<'m> {
         async move {
             match self.state.take().unwrap() {
                 DriverState::New(mut radio, radio_tx_buf) => {
                     //crate::log_stack("lora driver configure");
                     radio.reset()?;
-                    //info!("Configuring radio");
+                    trace!("Configuring radio");
                     let dev_eui = config.device_eui.as_ref().expect("device EUI must be set");
                     let app_eui = config.app_eui.as_ref().expect("app EUI must be set");
                     let app_key = config.app_key.as_ref().expect("app KEY must be set");
                     //info!("Creating device");
                     let data_rate =
-                        to_datarate(config.spreading_factor.unwrap_or(SpreadingFactor::SF9));
+                        to_datarate(config.spreading_factor.unwrap_or(SpreadingFactor::SF7));
                     let region = to_region(config.region.unwrap_or(LoraRegion::EU868));
                     if let Err(e) = region {
                         return Err(e);
                     }
                     let mut region = region.unwrap();
-                    region.set_receive_delay1(5000);
+                    region.set_receive_delay1(RX_DELAY1);
+                    info!("Creating new DEVICE!");
                     let mut lorawan = LorawanDevice::new(
                         region,
                         radio,
@@ -350,19 +358,19 @@ where
     }
 
     #[rustfmt::skip]
-    type JoinFuture<'m> where 'a: 'm, P: 'm, R: 'm  = impl Future<Output = Result<(), LoraError>> + 'm;
+    type JoinFuture<'m> where 'a: 'm, R: 'm  = impl Future<Output = Result<(), LoraError>> + 'm;
     fn join<'m>(&'m mut self, _: ConnectMode) -> Self::JoinFuture<'m> {
         async move { self.join().await }
     }
 
     #[rustfmt::skip]
-    type SendFuture<'m> where 'a: 'm, P: 'm, R: 'm  = impl Future<Output = Result<(), LoraError>> + 'm;
+    type SendFuture<'m> where 'a: 'm, R: 'm  = impl Future<Output = Result<(), LoraError>> + 'm;
     fn send<'m>(&'m mut self, qos: QoS, port: Port, data: &'m [u8]) -> Self::SendFuture<'m> {
         async move { self.send_recv(qos, port, data, None).await.map(|_| ()) }
     }
 
     #[rustfmt::skip]
-    type SendRecvFuture<'m> where 'a: 'm, P: 'm, R: 'm = impl Future<Output = Result<usize, LoraError>> + 'm;
+    type SendRecvFuture<'m> where 'a: 'm, R: 'm = impl Future<Output = Result<usize, LoraError>> + 'm;
     fn send_recv<'m>(
         &'m mut self,
         qos: QoS,

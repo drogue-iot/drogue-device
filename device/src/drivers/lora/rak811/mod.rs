@@ -17,11 +17,12 @@ use core::{
     sync::atomic::{AtomicBool, Ordering},
 };
 use embassy::{
-    io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt},
-    util::{
-        mpsc::{self, Channel, Receiver, Sender, WithThreadModeOnly},
-        Signal,
+    blocking_mutex::kind::ThreadMode,
+    channel::{
+        mpsc::{self, Channel, Receiver, Sender},
+        signal::Signal,
     },
+    io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt},
 };
 use embedded_hal::digital::v2::OutputPin;
 use futures::future::{select, Either};
@@ -29,7 +30,7 @@ use futures::pin_mut;
 pub use protocol::*;
 
 const RECV_BUFFER_LEN: usize = 256;
-type DriverMutex = WithThreadModeOnly;
+type DriverMutex = ThreadMode;
 
 pub struct Initialized {
     signal: Signal<Result<LoraRegion, LoraError>>,

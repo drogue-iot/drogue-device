@@ -21,7 +21,7 @@ embedded-hal = { version = "0.2.4", features = ["unproven"] }
 drogue-device = { path = "../../../../device", features = ["wifi+esp8266", "defmt", "defmt-trace"], default-features = false }
 drogue-tls = { git = "https://github.com/drogue-iot/drogue-tls.git", rev = "59cb23017f546da8e0f186042758226165400548", default-features = false, features = ["async", "defmt"], optional = true}
 #drogue-tls = {path = "../../../../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
-wifi-app = { path = "../../../common/wifi" }
+wifi-app = { path = "../../../../apps/wifi" }
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 heapless = "0.6"
@@ -29,11 +29,8 @@ void = { version = "1", default-features = false }
 rand_core = { version = "0.6", default-features = false }
 cfg-if = "1.0.0"
 
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "65bceafa6839b92dd5e4487485f687bdf4b42733", default-features = false, features = ["defmt", "defmt-info", "time", "time-tick-32768hz"]}
-embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "65bceafa6839b92dd5e4487485f687bdf4b42733", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
-
-#embassy = {path = "../../../../../../embassy/embassy", default-features = false}
-#embassy-stm32 = {path = "../../../../../../embassy/embassy-stm32", default-features = false, features = ["stm32h743zi", "memory-x"] }
+embassy = { version = "0.1.0", default-features = false, features = ["defmt"] }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
 
 [features]
 default = []
@@ -43,3 +40,12 @@ tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls"]
 debug = 2
 opt-level = "s"
 lto = "fat"
+
+[patch.crates-io]
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
+
+# embassy = { path = "../../../../../embassy/embassy" }
+# embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
+# embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }

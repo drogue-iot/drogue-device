@@ -20,10 +20,8 @@ drogue-device = { path = "../../../../device", default-features = false, feature
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.6", features = ["inline-asm"] }
 
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "65bceafa6839b92dd5e4487485f687bdf4b42733", default-features = false}
-embassy-nrf = {git = "https://github.com/embassy-rs/embassy.git", rev = "65bceafa6839b92dd5e4487485f687bdf4b42733", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
-#embassy = {path = "../../../../../../embassy/embassy", default-features = false}
-#embassy-nrf = {path = "../../../../../../embassy/embassy-nrf", default-features = false, features = ["nrf52833"]}
+embassy = { version = "0.1.0", default-features = false }
+embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
 
 [features]
 default = [
@@ -35,3 +33,12 @@ defmt-debug = [ ]
 defmt-info = [ ]
 defmt-warn = [ ]
 defmt-error = [ ]
+
+[patch.crates-io]
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
+
+#embassy = { path = "../../../../../embassy/embassy" }
+#embassy-nrf = { path = "../../../../../embassy/embassy-stm32" }
+#embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }

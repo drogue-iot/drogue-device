@@ -1,6 +1,12 @@
 use core::fmt::Write;
 use core::future::Future;
-use drogue_device::{actors::button::*, traits::led::*, traits::lora::*, *};
+use drogue_device::{
+    actors::button::*,
+    traits::led::*,
+    traits::lora::{ConnectMode, LoraConfig, LoraDriver, QoS},
+    Actor, Address, Inbox,
+};
+use embassy::time::{Duration, Timer};
 use heapless::String;
 
 #[derive(Clone, Copy)]
@@ -10,13 +16,12 @@ pub enum Command {
     TickAndSend,
 }
 
-impl<D, L1, L2, L3, L4> FromButtonEvent<Command> for App<D, L1, L2, L3, L4>
+impl<D, LED1, LED2, LED3> FromButtonEvent<Command> for App<D, LED1, LED2, LED3>
 where
     D: LoraDriver,
-    L1: Led + 'static,
-    L2: Led + 'static,
-    L3: Led + 'static,
-    L4: Led + 'static,
+    LED1: Led + 'static,
+    LED2: Led + 'static,
+    LED3: Led + 'static,
 {
     fn from(event: ButtonEvent) -> Option<Command> {
         match event {
@@ -26,52 +31,35 @@ where
     }
 }
 
-pub struct AppConfig<D>
+pub struct App<D, LED1, LED2, LED3>
 where
     D: LoraDriver + 'static,
+    LED1: Led + 'static,
+    LED2: Led + 'static,
+    LED3: Led + 'static,
 {
-    pub lora: D,
-}
-
-pub struct AppInitConfig<L1, L2, L3, L4>
-where
-    L1: Led + 'static,
-    L2: Led + 'static,
-    L3: Led + 'static,
-    L4: Led + 'static,
-{
-    pub lora: LoraConfig,
-    pub init_led: L1,
-    pub tx_led: L2,
-    pub user_led: L3,
-    pub green_led: L4,
-}
-
-pub struct App<D, L1, L2, L3, L4>
-where
-    D: LoraDriver + 'static,
-    L1: Led + 'static,
-    L2: Led + 'static,
-    L3: Led + 'static,
-    L4: Led + 'static,
-{
-    config: AppInitConfig<L1, L2, L3, L4>,
-    cfg: Option<AppConfig<D>>,
+    lora: LoraConfig,
+    init_led: LED1,
+    tx_led: LED2,
+    user_led: LED3,
+    driver: Option<D>,
     counter: usize,
 }
 
-impl<D, L1, L2, L3, L4> App<D, L1, L2, L3, L4>
+impl<D, LED1, LED2, LED3> App<D, LED1, LED2, LED3>
 where
     D: LoraDriver,
-    L1: Led + 'static,
-    L2: Led + 'static,
-    L3: Led + 'static,
-    L4: Led + 'static,
+    LED1: Led + 'static,
+    LED2: Led + 'static,
+    LED3: Led + 'static,
 {
-    pub fn new(config: AppInitConfig<L1, L2, L3, L4>) -> Self {
+    pub fn new(config: LoraConfig, init_led: LED1, tx_led: LED2, user_led: LED3) -> Self {
         Self {
-            config,
-            cfg: None,
+            lora: config,
+            init_led,
+            tx_led,
+            user_led,
+            driver: None,
             counter: 0,
         }
     }
@@ -83,16 +71,16 @@ where
 
     async fn send(&mut self) {
         defmt::info!("Sending message...");
-        self.config.tx_led.on().ok();
+        self.tx_led.on().ok();
 
-        if let Some(ref mut cfg) = &mut self.cfg {
-            let mut tx = String::<heapless::consts::U32>::new();
+        if let Some(ref mut driver) = &mut self.driver {
+            let mut tx = String::<32>::new();
             write!(&mut tx, "ping:{}", self.counter).ok();
             defmt::info!("Message: {}", &tx.as_str());
             let tx = tx.into_bytes();
 
             let mut rx = [0; 64];
-            let result = cfg.lora.send_recv(QoS::Confirmed, 1, &tx, &mut rx).await;
+            let result = driver.send_recv(QoS::Confirmed, 1, &tx, &mut rx).await;
 
             match result {
                 Ok(rx_len) => {
@@ -111,10 +99,10 @@ where
                         }
                         match response {
                             b"led:on" => {
-                                self.config.user_led.on().ok();
+                                self.user_led.on().ok();
                             }
                             b"led:off" => {
-                                self.config.user_led.off().ok();
+                                self.user_led.off().ok();
                             }
                             _ => {}
                         }
@@ -125,31 +113,30 @@ where
                 }
             }
         }
-
-        self.config.tx_led.off().ok();
+        Timer::after(Duration::from_secs(1)).await;
+        self.tx_led.off().ok();
+        defmt::info!("Message sent!");
     }
 }
 
-impl<D, L1, L2, L3, L4> Unpin for App<D, L1, L2, L3, L4>
+impl<D, LED1, LED2, LED3> Unpin for App<D, LED1, LED2, LED3>
 where
     D: LoraDriver,
-    L1: Led + 'static,
-    L2: Led + 'static,
-    L3: Led + 'static,
-    L4: Led + 'static,
+    LED1: Led + 'static,
+    LED2: Led + 'static,
+    LED3: Led + 'static,
 {
 }
 
-impl<D, L1, L2, L3, L4> Actor for App<D, L1, L2, L3, L4>
+impl<D, LED1, LED2, LED3> Actor for App<D, LED1, LED2, LED3>
 where
     D: LoraDriver + 'static,
-    L1: Led + 'static,
-    L2: Led + 'static,
-    L3: Led + 'static,
-    L4: Led + 'static,
+    LED1: Led + 'static,
+    LED2: Led + 'static,
+    LED3: Led + 'static,
 {
     #[rustfmt::skip]
-    type Configuration = AppConfig<D>;
+    type Configuration = D;
     #[rustfmt::skip]
     type Message<'m> where D: 'm = Command;
     #[rustfmt::skip]
@@ -164,22 +151,23 @@ where
     where
         M: Inbox<'m, Self> + 'm,
     {
-        self.cfg.replace(config);
+        self.driver.replace(config);
         async move {
-            self.config.init_led.on().ok();
-            if let Some(mut cfg) = self.cfg.take() {
-                cfg.lora
-                    .configure(&self.config.lora)
-                    .await
-                    .expect("error configuring lora");
-                defmt::info!("Lora driver configured");
-                cfg.lora
-                    .join(ConnectMode::OTAA)
-                    .await
-                    .expect("error joining lora network");
-                self.cfg.replace(cfg);
-            }
-            self.config.init_led.off().ok();
+            defmt::info!("Configuring");
+            self.init_led.on().ok();
+            let driver = self.driver.as_mut().unwrap();
+            driver
+                .configure(&self.lora)
+                .await
+                .expect("error configuring lora");
+            defmt::trace!("Lora driver configured");
+            driver
+                .join(ConnectMode::OTAA)
+                .await
+                .expect("error joining lora network");
+            Timer::after(Duration::from_millis(500)).await;
+            self.init_led.off().ok();
+            defmt::info!("Configuration finished");
             loop {
                 match inbox.next().await {
                     Some(mut m) => match m.message() {

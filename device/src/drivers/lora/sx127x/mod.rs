@@ -1,5 +1,7 @@
-use super::{Radio, RadioPhyEvent};
+use super::{Radio, RadioIrq, RadioPhyEvent};
 use crate::traits::lora::LoraError as DriverError;
+use core::future::Future;
+use embassy::traits::gpio::WaitForRisingEdge;
 use embedded_hal::blocking::spi::{Transfer, Write};
 use embedded_hal::digital::v2::OutputPin;
 use lorawan_device::{
@@ -254,5 +256,13 @@ where
 {
     fn reset(&mut self) -> Result<(), DriverError> {
         self.radio.reset().map_err(|_| DriverError::OtherError)
+    }
+}
+
+impl<T: WaitForRisingEdge + 'static> RadioIrq for T {
+    #[rustfmt::skip]
+    type Future<'m> where T: 'm = impl Future<Output = ()> + 'm;
+    fn wait<'m>(&'m mut self) -> Self::Future<'m> {
+        self.wait_for_rising_edge()
     }
 }

@@ -12,29 +12,22 @@ keywords = ["wasm"]
 crate-type = ["cdylib"]
 
 [dependencies]
-wasm-bindgen = "0.2.74"
-js-sys = "0.3"
-wasm-bindgen-futures = "0.4.24"
-embedded-hal = { version = "0.2.4", features = ["unproven"] }
+wasm-bindgen = "0.2"
+embedded-hal = { version = "0.2", features = ["unproven"] }
 wasm-logger = "0.2.0"
 log = "0.4"
 
 drogue-device = { path = "../../../device", features = ["log"], default-features = false }
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "65bceafa6839b92dd5e4487485f687bdf4b42733", default-features = false, features = ["executor-agnostic", "time-tick-1000hz"] }
-#embassy = {default-features = false, path = "../../../../../embassy/embassy", features = ["executor-agnostic"] }
-
-critical-section = { version = "0.2.1", features = ["custom-impl"] }
-
-[dependencies.web-sys]
-version = "0.3.4"
-features = [
-  'Document',
-  'Element',
-  'HtmlElement',
-  'Node',
-  'Window',
-]
+drogue-wasm = {git = "https://github.com/drogue-iot/drogue-wasm.git", branch = "main" }
+embassy = { version = "0.1.0", default-features = false, features = ["wasm", "executor-agnostic"] }
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
+
+[patch.crates-io]
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
+
+#embassy = { path = "../../../../../embassy/embassy" }
+#embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }
