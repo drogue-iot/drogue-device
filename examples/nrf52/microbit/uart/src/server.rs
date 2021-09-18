@@ -6,7 +6,7 @@ use embassy::{
     traits::uart::{Read, Write},
 };
 
-use crate::LedMatrix;
+use crate::AppMatrix;
 
 pub struct EchoServer<'a, U: Write + Read + 'a> {
     uart: U,
@@ -25,7 +25,7 @@ impl<'a, U: Write + Read + 'a> EchoServer<'a, U> {
 }
 
 impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
-    type Configuration = (Address<'a, LedMatrix>, Address<'a, Statistics>);
+    type Configuration = (Address<'a, AppMatrix>, Address<'a, Statistics>);
     type Message<'m>
     where
         'a: 'm,

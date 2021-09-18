@@ -11,7 +11,8 @@ use statistics::*;
 
 use defmt_rtt as _;
 use drogue_device::{
-    actors::{button::Button, led::matrix::LEDMatrix},
+    actors::{button::Button, led::matrix::LedMatrixActor},
+    drivers::led::matrix::LedMatrix,
     ActorContext, DeviceContext,
 };
 
@@ -26,13 +27,13 @@ use embassy_nrf::{
 };
 use panic_probe as _;
 
-type LedMatrix = LEDMatrix<Output<'static, AnyPin>, 5, 5>;
+pub type AppMatrix = LedMatrixActor<Output<'static, AnyPin>, 5, 5>;
 
 pub struct MyDevice {
     button: ActorContext<'static, Button<'static, PortInput<'static, P0_14>, Statistics>>,
     statistics: ActorContext<'static, Statistics>,
     server: ActorContext<'static, EchoServer<'static, Uarte<'static, UARTE0>>>,
-    matrix: ActorContext<'static, LedMatrix, 1>,
+    matrix: ActorContext<'static, AppMatrix>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -69,13 +70,13 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         output_pin(p.P0_30.degrade()),
     ];
 
-    let led = LedMatrix::new(rows, cols, Duration::from_millis(1000 / 200));
+    let led = LedMatrix::new(rows, cols);
 
     DEVICE.configure(MyDevice {
         server: ActorContext::new(EchoServer::new(uarte)),
         button: ActorContext::new(Button::new(button_port)),
         statistics: ActorContext::new(Statistics::new()),
-        matrix: ActorContext::new(led),
+        matrix: ActorContext::new(LedMatrixActor::new(Duration::from_millis(1000 / 200), led)),
     });
 
     DEVICE
