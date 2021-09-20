@@ -721,7 +721,7 @@ dependencies = [
  "panic-probe",
  "rand_core",
  "rtt-logger",
- "rtt-target",
+ "rtt-target 0.2.2",
  "wifi-app",
 ]
 
@@ -805,13 +805,12 @@ dependencies = [
 
 [[package]]
 name = "panic-probe"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45b5c81d6b51f415b3ba40b30dc598dfffb29ad4cf4a8815989754850ce6c0dc"
+checksum = "6a0fa226f55c70d0d70ad373802f0d65a775478afec75c0f3eee1de5d39057c9"
 dependencies = [
- "cortex-m 0.6.7",
- "cortex-m-rt 0.6.14",
- "rtt-target",
+ "cortex-m 0.7.3",
+ "rtt-target 0.3.1",
 ]
 
 [[package]]
@@ -900,7 +899,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d082d3a20a5d4f69ad509720de1777fe5aa2092ea1af51b254ff79113d46d2ea"
 dependencies = [
  "log",
- "rtt-target",
+ "rtt-target 0.2.2",
 ]
 
 [[package]]
@@ -910,6 +909,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0869b4c5b6a6d8c5583fc473f9eb3423a170f77626b8c8a7fb18eddcda5770e2"
 dependencies = [
  "cortex-m 0.6.7",
+ "ufmt-write",
+]
+
+[[package]]
+name = "rtt-target"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "065d6058bb1204f51a562a67209e1817cf714759d5cf845aa45c75fa7b0b9d9b"
+dependencies = [
  "ufmt-write",
 ]
 

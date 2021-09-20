@@ -1,4 +1,4 @@
-use super::{Radio, RadioIrq, RadioPhyEvent};
+use super::{Radio, RadioIrq};
 use crate::traits::lora::LoraError as DriverError;
 use core::future::Future;
 use embassy::traits::gpio::WaitForRisingEdge;
@@ -15,16 +15,24 @@ use lorawan_device::{
 mod sx127x_lora;
 use sx127x_lora::{LoRa, RadioMode, IRQ};
 
-pub struct Sx127xRadio<'a, SPI, CS, RESET, E>
+#[derive(Debug, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum RadioPhyEvent {
+    Irq,
+}
+
+pub struct Sx127xRadio<'a, SPI, CS, RESET, E, I>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
+    I: WaitForRisingEdge,
 {
     radio: LoRa<SPI, CS, RESET>,
     radio_state: State,
     rx_buffer: &'a mut [u8],
     rx_buffer_written: usize,
+    _irq: core::marker::PhantomData<&'a I>,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -54,11 +62,12 @@ fn bandwidth_to_i64(bw: Bandwidth) -> i64 {
     }
 }
 
-impl<'a, SPI, CS, RESET, E> Sx127xRadio<'a, SPI, CS, RESET, E>
+impl<'a, SPI, CS, RESET, E, I> Sx127xRadio<'a, SPI, CS, RESET, E, I>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
+    I: WaitForRisingEdge,
 {
     pub fn new(spi: SPI, cs: CS, reset: RESET, rx_buffer: &'a mut [u8]) -> Self {
         Self {
@@ -66,6 +75,7 @@ where
             radio: LoRa::new(spi, cs, reset),
             rx_buffer,
             rx_buffer_written: 0,
+            _irq: core::marker::PhantomData,
         }
     }
 
@@ -199,11 +209,12 @@ where
     }
 }
 
-impl<'a, SPI, CS, RESET, E> Timings for Sx127xRadio<'a, SPI, CS, RESET, E>
+impl<'a, SPI, CS, RESET, E, I> Timings for Sx127xRadio<'a, SPI, CS, RESET, E, I>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
+    I: WaitForRisingEdge,
 {
     fn get_rx_window_offset_ms(&self) -> i32 {
         -500
@@ -213,11 +224,12 @@ where
     }
 }
 
-impl<'a, SPI, CS, RESET, E> PhyRxTx for Sx127xRadio<'a, SPI, CS, RESET, E>
+impl<'a, SPI, CS, RESET, E, I> PhyRxTx for Sx127xRadio<'a, SPI, CS, RESET, E, I>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
+    I: WaitForRisingEdge,
 {
     type PhyEvent = RadioPhyEvent;
     type PhyError = ();
@@ -248,21 +260,36 @@ where
     }
 }
 
-impl<'a, SPI, CS, RESET, E> Radio for Sx127xRadio<'a, SPI, CS, RESET, E>
+impl<'a, SPI, CS, RESET, E, I> Radio for Sx127xRadio<'a, SPI, CS, RESET, E, I>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
+    I: WaitForRisingEdge + 'static,
 {
+    type Interrupt = Sx127xRadioIrq<I>;
     fn reset(&mut self) -> Result<(), DriverError> {
         self.radio.reset().map_err(|_| DriverError::OtherError)
     }
 }
 
-impl<T: WaitForRisingEdge + 'static> RadioIrq for T {
+pub struct Sx127xRadioIrq<T: WaitForRisingEdge + 'static> {
+    irq: T,
+}
+
+impl<T: WaitForRisingEdge + 'static> Sx127xRadioIrq<T> {
+    pub fn new(irq: T) -> Self {
+        Self { irq }
+    }
+}
+
+impl<T: WaitForRisingEdge + 'static> RadioIrq<RadioPhyEvent> for Sx127xRadioIrq<T> {
     #[rustfmt::skip]
-    type Future<'m> where T: 'm = impl Future<Output = ()> + 'm;
+    type Future<'m> where T: 'm = impl Future<Output = RadioPhyEvent> + 'm;
     fn wait<'m>(&'m mut self) -> Self::Future<'m> {
-        self.wait_for_rising_edge()
+        async move {
+            self.irq.wait_for_rising_edge().await;
+            RadioPhyEvent::Irq
+        }
     }
 }

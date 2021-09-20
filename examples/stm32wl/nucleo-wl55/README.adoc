@@ -1,6 +1,4 @@
-== STM32 Nucleo-WL55 example *BROKEN*
-
-*NOTE*: This example is currently not working
+== STM32 Nucleo-WL55 example
 
 This example application runs out of the box on the STM32 Nucleo-WL55 Kit (NUCLEO-WL55JC2)
 

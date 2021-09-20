@@ -15,8 +15,10 @@ embassy = { version = "0.1.0", default-features = false, features = ["executor-a
 embassy-hal-common = { version = "0.1.0", default-features = false }
 
 # LoRa dependencies
-lorawan-device = { git = "https://github.com/ivajloip/rust-lorawan.git", rev = "d62faae2371f9cddc4d17466c876e060b3b22b55", default-features = false, optional = true }
-lorawan-encoding = { git = "https://github.com/ivajloip/rust-lorawan.git", rev = "d62faae2371f9cddc4d17466c876e060b3b22b55", default-features = false, features = ["default-crypto"], optional = true }
+lorawan-device = { git = "https://github.com/ivajloip/rust-lorawan.git", rev = "55d34a5766f20f644db3357346423efdd2163010", default-features = false, optional = true }
+lorawan-encoding = { git = "https://github.com/ivajloip/rust-lorawan.git", rev = "55d34a5766f20f644db3357346423efdd2163010", default-features = false, features = ["default-crypto"], optional = true }
+#lorawan-encoding = { path = "../../../rust-lorawan/encoding", default-features = false, features = ["default-crypto", "defmt", "defmt-trace"], optional = true }
+#lorawan-device = { path = "../../../rust-lorawan/device", default-features = false, optional = true, features = ["defmt-trace", "withdefmt"] }
 
 bit_field = { version = "0.10", optional = true }
 embassy-stm32 = { version = "0.1.0", default-features = false, optional = true }

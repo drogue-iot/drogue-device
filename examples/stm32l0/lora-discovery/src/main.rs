@@ -59,8 +59,8 @@ pub type Sx127x<'a> = LoraDevice<
         Output<'a, PA15>,
         Output<'a, PC0>,
         spi::Error,
+        ExtiInput<'a, PB4>,
     >,
-    ExtiInput<'a, PB4>,
 >;
 
 type Led1 = Led<Output<'static, PB5>>;
@@ -128,7 +128,7 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     let lora = unsafe {
         LoraDevice::new(
             Sx127xRadio::new(spi, cs, reset, &mut RADIO_RX_BUF),
-            ready_pin,
+            Sx127xRadioIrq::new(ready_pin),
             get_random_u32,
             &mut RADIO_TX_BUF,
         )

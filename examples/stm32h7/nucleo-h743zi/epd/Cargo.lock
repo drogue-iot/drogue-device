@@ -221,32 +221,11 @@ dependencies = [
 
 [[package]]
 name = "cortex-m-rt"
-version = "0.6.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6d8353767db816419630a76d5f1ad5b09610d22b67ceb59647df6a8abc667f8"
-dependencies = [
- "cortex-m-rt-macros 0.1.8",
- "r0",
-]
-
-[[package]]
-name = "cortex-m-rt"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "069533b58e25b635fac881eb6556616bd8f83a3e0ffe2b4b9619289ed14d465e"
 dependencies = [
- "cortex-m-rt-macros 0.7.0",
-]
-
-[[package]]
-name = "cortex-m-rt-macros"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4717562afbba06e760d34451919f5c3bf3ac15c7bb897e8b04862a7428378647"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
+ "cortex-m-rt-macros",
 ]
 
 [[package]]
@@ -464,7 +443,7 @@ dependencies = [
  "bxcan",
  "cfg-if",
  "cortex-m 0.7.3",
- "cortex-m-rt 0.7.0",
+ "cortex-m-rt",
  "critical-section",
  "defmt",
  "embassy",
@@ -824,7 +803,7 @@ name = "nucleo-h743zi_epd"
 version = "0.1.0"
 dependencies = [
  "cortex-m 0.7.3",
- "cortex-m-rt 0.7.0",
+ "cortex-m-rt",
  "defmt",
  "defmt-rtt",
  "drogue-device",
@@ -873,12 +852,11 @@ checksum = "6acbef58a60fe69ab50510a55bc8cdd4d6cf2283d27ad338f54cb52747a9cf2d"
 
 [[package]]
 name = "panic-probe"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45b5c81d6b51f415b3ba40b30dc598dfffb29ad4cf4a8815989754850ce6c0dc"
+checksum = "6a0fa226f55c70d0d70ad373802f0d65a775478afec75c0f3eee1de5d39057c9"
 dependencies = [
- "cortex-m 0.6.7",
- "cortex-m-rt 0.6.14",
+ "cortex-m 0.7.3",
  "defmt",
 ]
 
@@ -967,12 +945,6 @@ checksum = "c3d0b9745dc2debf507c8422de05d7226cc1f0644216dfdfead988f9b1ab32a7"
 dependencies = [
  "proc-macro2",
 ]
-
-[[package]]
-name = "r0"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2a38df5b15c8d5c7e8654189744d8e396bddc18ad48041a500ce52d6948941f"
 
 [[package]]
 name = "rand_core"
@@ -1117,7 +1089,7 @@ version = "0.1.0"
 source = "git+https://github.com/embassy-rs/embassy.git?rev=fb697a265752644d835edce27efbb20d5557b297#fb697a265752644d835edce27efbb20d5557b297"
 dependencies = [
  "cortex-m 0.7.3",
- "cortex-m-rt 0.7.0",
+ "cortex-m-rt",
  "regex",
  "stm32-metapac-gen",
 ]
@@ -1227,9 +1199,9 @@ checksum = "8895849a949e7845e06bd6dc1aa51731a103c42707010a5b591c0038fb73385b"
 
 [[package]]
 name = "unicode-width"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9337591893a19b88d8d87f2cec1e73fad5cdfd10e5a6f349f498ad6ea2ffb1e3"
+checksum = "3ed742d4ea2bd1176e236172c8429aaf54486e7ac098db29ffe6529e0ce50973"
 
 [[package]]
 name = "unicode-xid"
