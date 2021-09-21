@@ -65,7 +65,7 @@ where
 
     fn process_event(&mut self, event: LorawanEvent<'a, R>) -> DriverEvent {
         //crate::log_stack("Process event");
-        match self.state.take().unwrap() {
+        match self.state.as_mut().unwrap() {
             DriverState::Configured(lorawan) => {
                 match &event {
                     LorawanEvent::NewSessionRequest => {
@@ -84,21 +84,18 @@ where
                         trace!("SendData");
                     }
                 }
-                let (mut new_state, response) = lorawan.handle_event(event);
-                let event = self.process_response(&mut new_state, response);
-                self.state.replace(DriverState::Configured(new_state));
+                let response = lorawan.handle_event(event);
+                let event = Self::process_response(lorawan, response);
                 event
             }
             s => {
                 trace!("Not yet configured, event processing skipped");
-                self.state.replace(s);
                 DriverEvent::None
             }
         }
     }
 
     fn process_response<'m>(
-        &self,
         lorawan: &mut LorawanDevice<'m, R, Crypto>,
         response: Result<LorawanResponse, LorawanError<R>>,
     ) -> DriverEvent
@@ -221,11 +218,11 @@ where
         port: Port,
         data: &[u8],
     ) -> Result<DriverEvent, LoraError> {
-        match self.state.take().unwrap() {
+        match self.state.as_mut().unwrap() {
             DriverState::Configured(lorawan) => {
                 let ready_to_send = lorawan.ready_to_send_data();
                 if ready_to_send {
-                    let (mut new_state, response) = lorawan.send(
+                    let response = lorawan.send(
                         data,
                         port,
                         match qos {
@@ -233,17 +230,14 @@ where
                             QoS::Unconfirmed => false,
                         },
                     );
-                    let event = self.process_response(&mut new_state, response);
-                    self.state.replace(DriverState::Configured(new_state));
+                    let event = Self::process_response(lorawan, response);
                     Ok(event)
                 } else {
-                    self.state.replace(DriverState::Configured(lorawan));
                     Err(LoraError::NotReady)
                 }
             }
             other => {
                 //info!("Driver not yet initialized, ignoring configuration");
-                self.state.replace(other);
                 Err(LoraError::OtherError)
             }
         }
