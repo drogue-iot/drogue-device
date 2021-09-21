@@ -2,12 +2,13 @@
 build-std = ["core"]
 
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
-runner = "probe-run --chip STM32L072CZ"
+runner = "probe-run --chip STM32L072CZ --measure-stack"
 
 rustflags = [
   "-C", "link-arg=--nmagic",
   "-C", "link-arg=-Tlink.x",
   "-C", "link-arg=-Tdefmt.x",
+  "-Z", "emit-stack-sizes",
 ]
 
 [build]
