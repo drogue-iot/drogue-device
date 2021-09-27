@@ -75,11 +75,14 @@ where
 
     pub fn reset(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error>> {
         let mut d = Delay;
+        trace!("Pulling reset low");
         self.reset.set_low().map_err(Reset)?;
 
         d.delay_ms(10 as u8);
+        trace!("Pulling reset high");
         self.reset.set_high().map_err(Reset)?;
         d.delay_ms(10 as u8);
+        trace!("Reading register");
         let version = self.read_register(Register::RegVersion.addr())?;
         if version == VERSION_CHECK {
             self.set_mode(RadioMode::Sleep)?;
@@ -88,10 +91,12 @@ where
             let lna = self.read_register(Register::RegLna.addr())?;
             self.write_register(Register::RegLna.addr(), lna | 0x03)?;
             self.write_register(Register::RegModemConfig3.addr(), 0x04)?;
+            self.set_tcxo(true)?;
             self.set_mode(RadioMode::Stdby)?;
             self.cs.set_high().map_err(CS)?;
             Ok(())
         } else {
+            trace!("Version mismatch!");
             Err(Error::VersionMismatch(version))
         }
     }
@@ -364,6 +369,14 @@ where
         self.write_register(Register::RegSymbTimeoutLsb.addr(), 0x05)?;
 
         Ok(())
+    }
+
+    pub fn set_tcxo(&mut self, external: bool) -> Result<(), Error<E, CS::Error, RESET::Error>> {
+        if external {
+            self.write_register(Register::RegTcxo.addr(), 0x10)
+        } else {
+            self.write_register(Register::RegTcxo.addr(), 0x00)
+        }
     }
 
     /// Sets the signal bandwidth of the radio. Supported values are: `7800 Hz`, `10400 Hz`,

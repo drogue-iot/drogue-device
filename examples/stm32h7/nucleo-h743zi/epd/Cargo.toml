@@ -49,9 +49,9 @@ opt-level = "s"
 lto = "fat"
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "fb697a265752644d835edce27efbb20d5557b297" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a" }
 
 # embassy = { path = "../../../../../embassy/embassy" }
 # embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }

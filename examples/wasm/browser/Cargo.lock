@@ -169,7 +169,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=fb697a265752644d835edce27efbb20d5557b297#fb697a265752644d835edce27efbb20d5557b297"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a#b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a"
 dependencies = [
  "atomic-polyfill",
  "cortex-m",
@@ -188,7 +188,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=fb697a265752644d835edce27efbb20d5557b297#fb697a265752644d835edce27efbb20d5557b297"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a#b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a"
 dependencies = [
  "cortex-m",
  "embassy",
@@ -199,7 +199,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=fb697a265752644d835edce27efbb20d5557b297#fb697a265752644d835edce27efbb20d5557b297"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a#b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -210,7 +210,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=fb697a265752644d835edce27efbb20d5557b297#fb697a265752644d835edce27efbb20d5557b297"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a#b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a"
 dependencies = [
  "embedded-hal",
 ]
@@ -346,12 +346,13 @@ dependencies = [
 
 [[package]]
 name = "heapless"
-version = "0.7.5"
+version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50530280e9a947b192e3a30a9d7bcead527b22da30ff7cbd334233d820aaf82a"
+checksum = "fe65ef062f1af5b1b189842b0bc45bd671c38e1d22c6aa22e6ada03d01026d53"
 dependencies = [
  "atomic-polyfill",
  "hash32",
+ "spin",
  "stable_deref_trait",
 ]
 
@@ -363,9 +364,9 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "instant"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bee0328b1209d157ef001c94dd85b4f8f64139adb0eac2659f4b08382b2f474d"
+checksum = "716d3d89f35ac6a34fd0eed635395f4c3b76fa889338a4632e5231a8684216bd"
 dependencies = [
  "cfg-if",
 ]
@@ -576,6 +577,15 @@ name = "smallvec"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe0f37c9e8f3c5a4a66ad655a93c74daac4ad00c441533bf5c6e7990bb42604e"
+
+[[package]]
+name = "spin"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "511254be0c5bcf062b019a6c89c01a664aa359ded62f78aa72c6fc137c0590e5"
+dependencies = [
+ "lock_api",
+]
 
 [[package]]
 name = "stable_deref_trait"

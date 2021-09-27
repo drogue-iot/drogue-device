@@ -21,14 +21,21 @@ pub enum RadioPhyEvent {
     Irq,
 }
 
-pub struct Sx127xRadio<'a, SPI, CS, RESET, E, I>
+pub trait RadioSwitch {
+    fn set_tx(&mut self);
+    fn set_rx(&mut self);
+}
+
+pub struct Sx127xRadio<'a, SPI, CS, RESET, E, I, RFS>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
     I: WaitForRisingEdge,
+    RFS: RadioSwitch,
 {
     radio: LoRa<SPI, CS, RESET>,
+    rfs: RFS,
     radio_state: State,
     rx_buffer: &'a mut [u8],
     rx_buffer_written: usize,
@@ -62,20 +69,22 @@ fn bandwidth_to_i64(bw: Bandwidth) -> i64 {
     }
 }
 
-impl<'a, SPI, CS, RESET, E, I> Sx127xRadio<'a, SPI, CS, RESET, E, I>
+impl<'a, SPI, CS, RESET, E, I, RFS> Sx127xRadio<'a, SPI, CS, RESET, E, I, RFS>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
     I: WaitForRisingEdge,
+    RFS: RadioSwitch,
 {
-    pub fn new(spi: SPI, cs: CS, reset: RESET, rx_buffer: &'a mut [u8]) -> Self {
+    pub fn new(spi: SPI, cs: CS, reset: RESET, rx_buffer: &'a mut [u8], rfs: RFS) -> Self {
         Self {
             radio_state: State::Idle,
             radio: LoRa::new(spi, cs, reset),
             rx_buffer,
             rx_buffer_written: 0,
             _irq: core::marker::PhantomData,
+            rfs,
         }
     }
 
@@ -85,8 +94,10 @@ where
     ) -> (State, Result<LoraResponse<Self>, LoraError<Self>>) {
         match event {
             LoraEvent::TxRequest(config, buf) => {
+                //trace!("TX Request");
                 //trace!("Set config: {:?}", config);
                 let result = (move || {
+                    self.rfs.set_tx();
                     self.radio.set_tx_power(14, 0)?;
                     self.radio.set_frequency(config.rf.frequency)?;
                     // TODO: Modify radio to support other coding rates
@@ -111,8 +122,10 @@ where
                 }
             }
             LoraEvent::RxRequest(config) => {
+                //trace!("RX Request");
                 // trace!("Set RX config: {:?}", config);
                 let result = (move || {
+                    self.rfs.set_rx();
                     self.radio.reset_payload_length()?;
                     self.radio.set_frequency(config.frequency)?;
                     // TODO: Modify radio to support other coding rates
@@ -209,12 +222,13 @@ where
     }
 }
 
-impl<'a, SPI, CS, RESET, E, I> Timings for Sx127xRadio<'a, SPI, CS, RESET, E, I>
+impl<'a, SPI, CS, RESET, E, I, RFS> Timings for Sx127xRadio<'a, SPI, CS, RESET, E, I, RFS>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
     I: WaitForRisingEdge,
+    RFS: RadioSwitch,
 {
     fn get_rx_window_offset_ms(&self) -> i32 {
         -500
@@ -224,12 +238,13 @@ where
     }
 }
 
-impl<'a, SPI, CS, RESET, E, I> PhyRxTx for Sx127xRadio<'a, SPI, CS, RESET, E, I>
+impl<'a, SPI, CS, RESET, E, I, RFS> PhyRxTx for Sx127xRadio<'a, SPI, CS, RESET, E, I, RFS>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
     I: WaitForRisingEdge,
+    RFS: RadioSwitch,
 {
     type PhyEvent = RadioPhyEvent;
     type PhyError = ();
@@ -260,12 +275,13 @@ where
     }
 }
 
-impl<'a, SPI, CS, RESET, E, I> Radio for Sx127xRadio<'a, SPI, CS, RESET, E, I>
+impl<'a, SPI, CS, RESET, E, I, RFS> Radio for Sx127xRadio<'a, SPI, CS, RESET, E, I, RFS>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin,
     RESET: OutputPin,
     I: WaitForRisingEdge + 'static,
+    RFS: RadioSwitch,
 {
     type Interrupt = Sx127xRadioIrq<I>;
     fn reset(&mut self) -> Result<(), DriverError> {
