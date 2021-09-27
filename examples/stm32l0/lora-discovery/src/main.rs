@@ -60,6 +60,7 @@ pub type Sx127x<'a> = LoraDevice<
         Output<'a, PC0>,
         spi::Error,
         ExtiInput<'a, PB4>,
+        DummySwitch,
     >,
 >;
 
@@ -127,7 +128,7 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     static mut RADIO_RX_BUF: [u8; 255] = [0; 255];
     let lora = unsafe {
         LoraDevice::new(
-            Sx127xRadio::new(spi, cs, reset, &mut RADIO_RX_BUF),
+            Sx127xRadio::new(spi, cs, reset, &mut RADIO_RX_BUF, DummySwitch),
             Sx127xRadioIrq::new(ready_pin),
             get_random_u32,
             &mut RADIO_TX_BUF,
@@ -163,4 +164,10 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
             device.button.mount(app, spawner);
         })
         .await;
+}
+
+pub struct DummySwitch;
+impl RadioSwitch for DummySwitch {
+    fn set_rx(&mut self) {}
+    fn set_tx(&mut self) {}
 }

@@ -3,6 +3,37 @@
 version = 3
 
 [[package]]
+name = "aes"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "884391ef1066acaa41e766ba8f596341b96e93ce34f9a43e7d24bf0a0eaf0561"
+dependencies = [
+ "aes-soft",
+ "aesni",
+ "cipher",
+]
+
+[[package]]
+name = "aes-soft"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be14c7498ea50828a38d0e24a765ed2effe92a705885b57d029cd67d45744072"
+dependencies = [
+ "cipher",
+ "opaque-debug",
+]
+
+[[package]]
+name = "aesni"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea2e11f5e94c2f7d386164cc2aa1f97823fed6f259e486940a71c174dd01b0ce"
+dependencies = [
+ "cipher",
+ "opaque-debug",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "0.7.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -17,7 +48,7 @@ version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a785a543aea40f5e4e2e93bb2655d31bc21bb391fff65697150973e383f16bb"
 dependencies = [
- "as-slice",
+ "as-slice 0.1.5",
 ]
 
 [[package]]
@@ -35,6 +66,15 @@ dependencies = [
  "generic-array 0.12.4",
  "generic-array 0.13.3",
  "generic-array 0.14.4",
+ "stable_deref_trait",
+]
+
+[[package]]
+name = "as-slice"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "516b6b4f0e40d50dcda9365d53964ec74560ad4284da2e7fc97122cd83174516"
+dependencies = [
  "stable_deref_trait",
 ]
 
@@ -84,6 +124,12 @@ name = "base64"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
+
+[[package]]
+name = "bit_field"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcb6dd1c2376d2e096796e234a70e17e94cc2d5d54ff8ce42b28cef1d0d359a4"
 
 [[package]]
 name = "bitfield"
@@ -152,6 +198,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "cipher"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12f8e7987cbd042a63249497f41aed09f8e65add917ea6566effbc56578d6801"
+dependencies = [
+ "generic-array 0.14.4",
+]
+
+[[package]]
 name = "clap"
 version = "3.0.0-beta.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -180,6 +235,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "cmac"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73d4de4f7724e5fe70addfb2bd37c2abd2f95084a429d7773b0b9645499b4272"
+dependencies = [
+ "crypto-mac",
+ "dbl",
 ]
 
 [[package]]
@@ -283,6 +348,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "crypto-mac"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bff07008ec701e8028e2ceb8f83f0e4274ee62bd2dbdc4fefff2e9a91824081a"
+dependencies = [
+ "cipher",
+ "generic-array 0.14.4",
+ "subtle",
+]
+
+[[package]]
 name = "darling"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -315,6 +391,15 @@ dependencies = [
  "darling_core",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "dbl"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37e797687b5f09528a48fcb63b6914d0255b8a6c760699a919af37042f09d9b3"
+dependencies = [
+ "generic-array 0.14.4",
 ]
 
 [[package]]
@@ -361,6 +446,7 @@ version = "0.1.0"
 dependencies = [
  "atomic-polyfill",
  "base64",
+ "bit_field",
  "critical-section",
  "defmt",
  "embassy",
@@ -368,7 +454,9 @@ dependencies = [
  "embedded-hal",
  "futures",
  "generic-array 0.14.4",
- "heapless 0.7.7",
+ "heapless",
+ "lorawan-device",
+ "lorawan-encoding",
 ]
 
 [[package]]
@@ -395,7 +483,7 @@ dependencies = [
  "embassy-traits",
  "embedded-hal",
  "futures",
- "heapless 0.7.7",
+ "heapless",
  "pin-project",
 ]
 
@@ -433,7 +521,6 @@ dependencies = [
  "cortex-m 0.7.3",
  "cortex-m-rt",
  "critical-section",
- "defmt",
  "embassy",
  "embassy-hal-common",
  "embassy-macros",
@@ -601,15 +688,6 @@ dependencies = [
 
 [[package]]
 name = "hash32"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4041af86e63ac4298ce40e5cca669066e75b6f1aa3390fe2561ffa5e1d9f4cc"
-dependencies = [
- "byteorder",
-]
-
-[[package]]
-name = "hash32"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0c35f58762feb77d74ebe43bdbc3210f09be9fe6742234d573bacc26ed92b67"
@@ -625,24 +703,12 @@ checksum = "ab5ef0d4909ef3724cc8cce6ccc8572c5c817592e9285f5464f8e86f8bd3726e"
 
 [[package]]
 name = "heapless"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "634bd4d29cbf24424d0a4bfcbf80c6960129dc24424752a7d1d1390607023422"
-dependencies = [
- "as-slice",
- "generic-array 0.14.4",
- "hash32 0.1.1",
- "stable_deref_trait",
-]
-
-[[package]]
-name = "heapless"
 version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe65ef062f1af5b1b189842b0bc45bd671c38e1d22c6aa22e6ada03d01026d53"
 dependencies = [
  "atomic-polyfill",
- "hash32 0.2.1",
+ "hash32",
  "spin",
  "stable_deref_trait",
 ]
@@ -730,6 +796,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "lorawan-device"
+version = "0.2.0"
+source = "git+https://github.com/lulf/rust-lorawan.git?rev=d208a031d60e3af24f8bc687edae083aef09291f#d208a031d60e3af24f8bc687edae083aef09291f"
+dependencies = [
+ "as-slice 0.2.1",
+ "generic-array 0.14.4",
+ "heapless",
+ "lorawan-encoding",
+]
+
+[[package]]
+name = "lorawan-encoding"
+version = "0.6.2"
+source = "git+https://github.com/lulf/rust-lorawan.git?rev=d208a031d60e3af24f8bc687edae083aef09291f#d208a031d60e3af24f8bc687edae083aef09291f"
+dependencies = [
+ "aes",
+ "cmac",
+ "generic-array 0.14.4",
+]
+
+[[package]]
 name = "memchr"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -760,23 +847,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "546c37ac5d9e56f55e73b677106873d9d9f5190605e41a856503623648488cae"
 
 [[package]]
-name = "nucleo-h743zi_blinky"
-version = "0.1.0"
-dependencies = [
- "cortex-m 0.7.3",
- "cortex-m-rt",
- "defmt",
- "defmt-rtt",
- "drogue-device",
- "embassy",
- "embassy-stm32",
- "embedded-hal",
- "heapless 0.6.1",
- "panic-probe",
- "void",
-]
-
-[[package]]
 name = "num-traits"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -800,6 +870,12 @@ name = "once_cell"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "692fcb63b64b1758029e0a96ee63e049ce8c5948587f2f7208df04625e5f6b56"
+
+[[package]]
+name = "opaque-debug"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "os_str_bytes"
@@ -901,6 +977,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d0b9745dc2debf507c8422de05d7226cc1f0644216dfdfead988f9b1ab32a7"
 dependencies = [
  "proc-macro2",
+]
+
+[[package]]
+name = "rak811"
+version = "0.1.0"
+dependencies = [
+ "cortex-m 0.7.3",
+ "cortex-m-rt",
+ "defmt",
+ "defmt-rtt",
+ "drogue-device",
+ "embassy",
+ "embassy-stm32",
+ "embedded-hal",
+ "heapless",
+ "panic-probe",
+ "rand",
+]
+
+[[package]]
+name = "rand"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e7573632e6454cf6b99d7aac4ccca54be06da05aca2ef7423d22d27d4d4bcd8"
+dependencies = [
+ "rand_core",
 ]
 
 [[package]]
@@ -1077,6 +1179,12 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
+
+[[package]]
+name = "subtle"
+version = "2.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "svd-parser"

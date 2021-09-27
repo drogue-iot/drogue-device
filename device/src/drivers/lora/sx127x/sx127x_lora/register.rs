@@ -44,6 +44,7 @@ pub enum Register {
     RegInvertiq2 = 0x3b,
     RegDioMapping1 = 0x40,
     RegVersion = 0x42,
+    RegTcxo = 0x4b,
     RegPaDac = 0x4d,
 }
 #[derive(Clone, Copy)]

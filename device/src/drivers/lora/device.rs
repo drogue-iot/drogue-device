@@ -88,7 +88,7 @@ where
                 let event = Self::process_response(lorawan, response);
                 event
             }
-            s => {
+            _ => {
                 trace!("Not yet configured, event processing skipped");
                 DriverEvent::None
             }
@@ -106,6 +106,7 @@ where
         match response {
             Ok(response) => match response {
                 LorawanResponse::TimeoutRequest(ms) => {
+                    //                    let ms = if ms < 5000 { ms } else { ms - 5000 };
                     trace!("TimeoutRequest: {:?}", ms);
                     return DriverEvent::ProcessAfter(ms);
                 }
@@ -115,6 +116,7 @@ where
                 }
                 LorawanResponse::ReadyToSend => {
                     trace!("RxWindow expired but no ACK expected. Ready to Send");
+                    return DriverEvent::AckTimeout;
                 }
                 LorawanResponse::DownlinkReceived(fcnt_down) => {
                     if let Some(downlink) = lorawan.take_data_downlink() {
@@ -197,7 +199,6 @@ where
                     }
                 }
                 DriverEvent::JoinSuccess => {
-                    trace!("Joined successfully");
                     return Ok(());
                 }
                 DriverEvent::JoinFailed => {
@@ -236,7 +237,7 @@ where
                     Err(LoraError::NotReady)
                 }
             }
-            other => {
+            _ => {
                 //info!("Driver not yet initialized, ignoring configuration");
                 Err(LoraError::OtherError)
             }
@@ -274,8 +275,12 @@ where
                     return Ok(len);
                 }
                 DriverEvent::AckTimeout => {
-                    trace!("Ack timed out!");
-                    return Err(LoraError::AckTimeout);
+                    if qos == QoS::Confirmed {
+                        trace!("Ack timed out!");
+                        return Err(LoraError::AckTimeout);
+                    } else {
+                        return Ok(0);
+                    }
                 }
                 DriverEvent::Ack => {
                     trace!("Ack received!");
@@ -316,7 +321,8 @@ where
                     if let Err(e) = region {
                         return Err(e);
                     }
-                    let region = region.unwrap();
+                    let mut region = region.unwrap();
+                    region.set_receive_delay1(RX_DELAY1);
                     let mut lorawan = LorawanDevice::new(
                         region,
                         LoraJoinMode::OTAA {

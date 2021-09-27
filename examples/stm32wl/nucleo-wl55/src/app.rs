@@ -79,34 +79,11 @@ where
             defmt::info!("Message: {}", &tx.as_str());
             let tx = tx.into_bytes();
 
-            let mut rx = [0; 64];
-            let result = driver.send_recv(QoS::Confirmed, 1, &tx, &mut rx).await;
+            let result = driver.send(QoS::Unconfirmed, 1, &tx).await;
 
             match result {
-                Ok(rx_len) => {
+                Ok(_) => {
                     defmt::info!("Message sent!");
-                    if rx_len > 0 {
-                        let response = &rx[0..rx_len];
-                        match core::str::from_utf8(response) {
-                            Ok(str) => {
-                                defmt::info!("Received {} bytes from uplink:\n{}", rx_len, str)
-                            }
-                            Err(_) => defmt::info!(
-                                "Received {} bytes from uplink: {:x}",
-                                rx_len,
-                                &rx[0..rx_len]
-                            ),
-                        }
-                        match response {
-                            b"led:on" => {
-                                self.user_led.on().ok();
-                            }
-                            b"led:off" => {
-                                self.user_led.off().ok();
-                            }
-                            _ => {}
-                        }
-                    }
                 }
                 Err(e) => {
                     defmt::error!("Error sending message: {:?}", e);
@@ -115,7 +92,6 @@ where
         }
         Timer::after(Duration::from_secs(1)).await;
         self.tx_led.off().ok();
-        defmt::info!("Message sent!");
     }
 }
 

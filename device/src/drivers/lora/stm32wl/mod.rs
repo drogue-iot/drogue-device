@@ -491,11 +491,9 @@ impl RadioIrq<RadioPhyEvent> for SubGhzRadioIrq<'static> {
     #[rustfmt::skip]
     type Future<'m> = impl Future<Output = RadioPhyEvent> + 'm;
     fn wait<'m>(&'m mut self) -> Self::Future<'m> {
-        trace!("Waiting for IRQ");
         async move {
             let r = self.signal.wait().await;
             self.signal.reset();
-            trace!("IRQ raised");
             r
         }
     }
