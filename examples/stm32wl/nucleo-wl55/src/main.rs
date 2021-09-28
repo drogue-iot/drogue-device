@@ -13,7 +13,7 @@ use drogue_device::{
     actors::{button::*, lora::*},
     drivers::led::*,
     drivers::lora::{stm32wl::*, *},
-    traits::lora::{LoraConfig, LoraMode, LoraRegion, SpreadingFactor},
+    traits::lora::{JoinMode, LoraConfig, LoraMode, LoraRegion, SpreadingFactor},
     *,
 };
 use embassy_stm32::{
@@ -28,7 +28,6 @@ use embassy_stm32::{
     subghz::*,
     Peripherals,
 };
-use rand_core::RngCore;
 
 mod app;
 
@@ -38,23 +37,11 @@ const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/dev_eui.txt
 const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_eui.txt"));
 const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_key.txt"));
 
-static mut RNG: Option<Rng<RNG>> = None;
-fn get_random_u32() -> u32 {
-    unsafe {
-        if let Some(rng) = &mut RNG {
-            rng.reset();
-            rng.next_u32()
-        } else {
-            panic!("No Rng exists!");
-        }
-    }
-}
-
 type Led1 = Led<Output<'static, PB15>>;
 type Led2 = Led<Output<'static, PB9>>;
 type Led3 = Led<Output<'static, PB11>>;
 
-type LoraDriver = LoraDevice<'static, SubGhzRadio<'static>>; //, SubGhzRadioIrq<'static>>;
+type LoraDriver = LoraDevice<'static, SubGhzRadio<'static>, Rng<RNG>>; //, SubGhzRadioIrq<'static>>;
 type MyApp = App<Address<'static, LoraActor<LoraDriver>>, Led1, Led2, Led3>;
 
 pub struct MyDevice {
@@ -80,7 +67,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         pac::RCC.ccipr().modify(|w| {
             w.set_rngsel(0b01);
         });
-        RNG.replace(Rng::new(p.RNG));
     }
 
     let led1 = Led::new(Output::new(p.PB15, Level::Low, Speed::Low));
@@ -98,31 +84,34 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     let radio = SubGhz::new(p.SUBGHZSPI, p.PA5, p.PA7, p.PA6, NoDma, NoDma);
 
+    let join_mode = JoinMode::OTAA {
+        dev_eui: DEV_EUI.trim_end().into(),
+        app_eui: APP_EUI.trim_end().into(),
+        app_key: APP_KEY.trim_end().into(),
+    };
+
     let config = LoraConfig::new()
         .region(LoraRegion::EU868)
         .lora_mode(LoraMode::WAN)
-        .device_eui(&DEV_EUI.trim_end().into())
-        .spreading_factor(SpreadingFactor::SF12)
-        .app_eui(&APP_EUI.trim_end().into())
-        .app_key(&APP_KEY.trim_end().into());
+        .spreading_factor(SpreadingFactor::SF12);
 
     defmt::info!("Configuring with config {:?}", config);
 
     static mut RADIO_STATE: SubGhzState<'static> = SubGhzState::new();
     let irq = interrupt::take!(SUBGHZ_RADIO);
-    static mut RADIO_TX_BUF: [u8; 256] = [0; 256];
-    static mut RADIO_RX_BUF: [u8; 256] = [0; 256];
+    static mut RADIO_BUFFER: [u8; 256] = [0; 256];
     let lora = unsafe {
         LoraDevice::new(
-            SubGhzRadio::new(&mut RADIO_STATE, radio, rfs, &mut RADIO_RX_BUF, irq),
-            SubGhzRadioIrq::new(),
-            get_random_u32,
-            &mut RADIO_TX_BUF,
+            &config,
+            SubGhzRadio::new(&mut RADIO_STATE, radio, rfs, irq),
+            Rng::new(p.RNG),
+            &mut RADIO_BUFFER,
         )
+        .unwrap()
     };
 
     DEVICE.configure(MyDevice {
-        app: ActorContext::new(App::new(config, led1, led2, led3)),
+        app: ActorContext::new(App::new(join_mode, led1, led2, led3)),
         lora: ActorContext::new(LoraActor::new(lora)),
         button: ActorContext::new(Button::new(pin)),
     });

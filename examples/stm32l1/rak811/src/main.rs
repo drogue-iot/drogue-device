@@ -38,25 +38,11 @@ const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_key.txt
 
 use embassy::time::Timer;
 use rand::rngs::SmallRng;
-use rand::RngCore;
 use rand::SeedableRng;
-static mut RNG: Option<SmallRng> = None;
-
-fn get_random_u32() -> u32 {
-    unsafe {
-        if let Some(rng) = &mut RNG {
-            let result = rng.next_u32();
-            result
-        } else {
-            panic!("No Rng exists!");
-        }
-    }
-}
 
 pub type Sx127x<'a> = LoraDevice<
     'a,
     Sx127xRadio<
-        'a,
         spi::Spi<'a, SPI1, NoDma, NoDma>,
         Output<'a, PB0>,
         Output<'a, PB13>,
@@ -64,6 +50,7 @@ pub type Sx127x<'a> = LoraDevice<
         ExtiInput<'a, PA11>,
         RAKSwitch,
     >,
+    SmallRng,
 >;
 
 type Led1 = Led<Output<'static, PA12>>;
@@ -112,9 +99,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     }
     st.disable_counter();
     defmt::info!("Done");
-    unsafe {
-        RNG.replace(SmallRng::seed_from_u64(seed as u64));
-    }
+    let rng = SmallRng::seed_from_u64(seed as u64);
 
     let led1 = Led::new(Output::new(p.PA12, Level::Low, Speed::Low));
 
@@ -154,29 +139,32 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     let irq_pin = ExtiInput::new(dio0, p.EXTI11);
 
-    static mut RADIO_TX_BUF: [u8; 255] = [0; 255];
-    static mut RADIO_RX_BUF: [u8; 255] = [0; 255];
-    let lora = unsafe {
-        LoraDevice::new(
-            Sx127xRadio::new(spi, cs, reset, &mut RADIO_RX_BUF, rfs),
-            Sx127xRadioIrq::new(irq_pin),
-            get_random_u32,
-            &mut RADIO_TX_BUF,
-        )
+    let join_mode = JoinMode::OTAA {
+        dev_eui: DEV_EUI.trim_end().into(),
+        app_eui: APP_EUI.trim_end().into(),
+        app_key: APP_KEY.trim_end().into(),
     };
 
     let config = LoraConfig::new()
         .region(LoraRegion::EU868)
         .lora_mode(LoraMode::WAN)
-        .device_eui(&DEV_EUI.trim_end().into())
-        .spreading_factor(SpreadingFactor::SF9)
-        .app_eui(&APP_EUI.trim_end().into())
-        .app_key(&APP_KEY.trim_end().into());
+        .spreading_factor(SpreadingFactor::SF9);
 
     defmt::info!("Configuring with config {:?}", config);
 
+    static mut RADIO_BUFFER: [u8; 256] = [0; 256];
+    let lora = unsafe {
+        LoraDevice::new(
+            &config,
+            Sx127xRadio::new(spi, cs, reset, irq_pin, rfs).unwrap(),
+            rng,
+            &mut RADIO_BUFFER,
+        )
+        .unwrap()
+    };
+
     DEVICE.configure(MyDevice {
-        app: ActorContext::new(App::new(config, led1, Duration::from_secs(60))),
+        app: ActorContext::new(App::new(join_mode, led1, Duration::from_secs(60))),
         lora: ActorContext::new(LoraActor::new(lora)),
     });
 

@@ -8,6 +8,7 @@ name = "microbit-esp8266"
 version = "0.1.0"
 description = "BBC micro:bit v2 + ESP8266 WiFi adapter"
 keywords = ["networking", "wifi", "esp8266", "microbit", "nrf", "nrf52"]
+resolver = "2"
 
 [workspace]
 

@@ -6,8 +6,7 @@ use core::future::Future;
 
 /// Messages handled by lora actor
 pub enum LoraRequest<'m> {
-    Configure(&'m LoraConfig),
-    Join(ConnectMode),
+    Join(JoinMode),
     Send(QoS, Port, &'m [u8]),
     SendRecv(QoS, Port, &'m [u8], &'m mut [u8]),
 }
@@ -17,20 +16,8 @@ where
     D: LoraDriver + 'a,
 {
     #[rustfmt::skip]
-    type ConfigureFuture<'m> where 'a: 'm = impl Future<Output = Result<(), LoraError>> + 'm;
-    fn configure<'m>(&'m mut self, config: &'m LoraConfig) -> Self::ConfigureFuture<'m> {
-        async move {
-            self.request(LoraRequest::Configure(config))
-                .unwrap()
-                .await
-                .unwrap()
-                .map(|_| ())
-        }
-    }
-
-    #[rustfmt::skip]
     type JoinFuture<'m> where 'a: 'm = impl Future<Output = Result<(), LoraError>> + 'm;
-    fn join<'m>(&'m mut self, mode: ConnectMode) -> Self::JoinFuture<'m> {
+    fn join<'m>(&'m mut self, mode: JoinMode) -> Self::JoinFuture<'m> {
         async move {
             self.request(LoraRequest::Join(mode))
                 .unwrap()
@@ -112,7 +99,6 @@ where
             loop {
                 if let Some(mut m) = inbox.next().await {
                     let response = match m.message() {
-                        LoraRequest::Configure(config) => driver.configure(config).await.map(|_| 0),
                         LoraRequest::Join(mode) => driver.join(*mode).await.map(|_| 0),
                         LoraRequest::Send(qos, port, buf) => {
                             driver.send(*qos, *port, buf).await.map(|_| 0)

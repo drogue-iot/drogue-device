@@ -6,8 +6,9 @@ authors = [
 edition = "2018"
 name = "microbit-rak811"
 version = "0.1.0"
-description = "BBC micro:bit v2 + RAK811 LoRa Adapter"
+description = "BBC micro:bit v2 + RAK811 LoRa Adapter with AT command firmware"
 keywords = ["networking", "lora", "lorawan", "rak811", "microbit", "nrf", "nrf52"]
+resolver = "2"
 
 [workspace]
 
@@ -19,7 +20,7 @@ rtt-target = { version = "0.2.0", features = ["cortex-m"] }
 
 drogue-device = { path = "../../../../device", features = ["lora+rak811"], default-features = false }
 cortex-m-rt = "0.7"
-cortex-m = { version = "0.6", features = ["inline-asm"] }
+cortex-m = { version = "0.7", features = ["inline-asm"] }
 
 embassy = { version = "0.1.0", default-features = false }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}

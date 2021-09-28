@@ -1,4 +1,4 @@
-* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/rak811[BBC micro:bit v2 + RAK811 LoRa Adapter]
+* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/rak811[BBC micro:bit v2 + RAK811 LoRa Adapter with AT command firmware]
 * link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32l0/lora-discovery[STM32 LoRaWAN Discovery board connecting to The Things Network]
 * link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32l1/rak811[RAK811 Tracker Node connecting to The Things Network]
 * link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32wl/nucleo-wl55[STM32 Nucleo-WL55 using LoRaWAN connecting to The Things Network]

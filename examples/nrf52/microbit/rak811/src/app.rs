@@ -1,5 +1,4 @@
 use core::future::Future;
-use core::pin::Pin;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
     traits::lora::*,
@@ -19,14 +18,14 @@ impl<D: LoraDriver> FromButtonEvent<Command> for App<D> {
 }
 
 pub struct App<D: LoraDriver> {
-    config: LoraConfig,
+    join_mode: JoinMode,
     driver: Option<D>,
 }
 
 impl<D: LoraDriver> App<D> {
-    pub fn new(config: LoraConfig) -> Self {
+    pub fn new(join_mode: JoinMode) -> Self {
         Self {
-            config,
+            join_mode,
             driver: None,
         }
     }
@@ -53,10 +52,8 @@ impl<D: LoraDriver> Actor for App<D> {
         self.driver.replace(config);
         async move {
             let driver = self.driver.as_mut().unwrap();
-            log::info!("Configuring modem");
-            driver.configure(&self.config).await.unwrap();
             log::info!("Joining LoRaWAN network");
-            driver.join(ConnectMode::OTAA).await.unwrap();
+            driver.join(self.join_mode).await.unwrap();
             log::info!("LoRaWAN network joined");
             let driver = self.driver.as_mut().unwrap();
             loop {

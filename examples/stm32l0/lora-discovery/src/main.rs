@@ -28,8 +28,6 @@ use embassy_stm32::{
     Peripherals,
 };
 
-use rand_core::RngCore;
-
 mod app;
 
 use app::*;
@@ -38,23 +36,9 @@ const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/dev_eui.txt
 const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_eui.txt"));
 const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_key.txt"));
 
-static mut RNG: Option<Rng<RNG>> = None;
-fn get_random_u32() -> u32 {
-    unsafe {
-        if let Some(rng) = &mut RNG {
-            rng.reset();
-            let result = rng.next_u32();
-            result
-        } else {
-            panic!("No Rng exists!");
-        }
-    }
-}
-
 pub type Sx127x<'a> = LoraDevice<
     'a,
     Sx127xRadio<
-        'a,
         spi::Spi<'a, SPI1, NoDma, NoDma>,
         Output<'a, PA15>,
         Output<'a, PC0>,
@@ -62,6 +46,7 @@ pub type Sx127x<'a> = LoraDevice<
         ExtiInput<'a, PB4>,
         DummySwitch,
     >,
+    Rng<RNG>,
 >;
 
 type Led1 = Led<Output<'static, PB5>>;
@@ -95,8 +80,6 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     let mut rcc = rcc::Rcc::new(p.RCC);
     let _ = rcc.enable_hsi48(&mut p.SYSCFG, p.CRS);
 
-    unsafe { RNG.replace(Rng::new(p.RNG)) };
-
     let led1 = Led::new(Output::new(p.PB5, Level::Low, Speed::Low));
     let led2 = Led::new(Output::new(p.PA5, Level::Low, Speed::Low));
     let led3 = Led::new(Output::new(p.PB6, Level::Low, Speed::Low));
@@ -124,26 +107,22 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     let ready = Input::new(p.PB4, Pull::Up);
     let ready_pin = ExtiInput::new(ready, p.EXTI4);
 
-    static mut RADIO_TX_BUF: [u8; 255] = [0; 255];
-    static mut RADIO_RX_BUF: [u8; 255] = [0; 255];
-    let lora = unsafe {
-        LoraDevice::new(
-            Sx127xRadio::new(spi, cs, reset, &mut RADIO_RX_BUF, DummySwitch),
-            Sx127xRadioIrq::new(ready_pin),
-            get_random_u32,
-            &mut RADIO_TX_BUF,
-        )
+    let radio = Sx127xRadio::new(spi, cs, reset, ready_pin, DummySwitch).unwrap();
+    let join_mode = JoinMode::OTAA {
+        dev_eui: DEV_EUI.trim_end().into(),
+        app_eui: APP_EUI.trim_end().into(),
+        app_key: APP_KEY.trim_end().into(),
     };
 
     let config = LoraConfig::new()
         .region(LoraRegion::EU868)
         .lora_mode(LoraMode::WAN)
-        .device_eui(&DEV_EUI.trim_end().into())
-        .spreading_factor(SpreadingFactor::SF12)
-        .app_eui(&APP_EUI.trim_end().into())
-        .app_key(&APP_KEY.trim_end().into());
+        .spreading_factor(SpreadingFactor::SF12);
 
     defmt::info!("Configuring with config {:?}", config);
+
+    static mut RADIO_BUF: [u8; 256] = [0; 256];
+    let lora = unsafe { LoraDevice::new(&config, radio, Rng::new(p.RNG), &mut RADIO_BUF).unwrap() };
 
     DEVICE.configure(MyDevice {
         app: ActorContext::new(App::new(AppInitConfig {
@@ -151,7 +130,7 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
             green_led: led1,
             init_led: led4,
             user_led: led3,
-            lora: config,
+            join_mode,
         })),
         lora: ActorContext::new(LoraActor::new(lora)),
         button: ActorContext::new(Button::new(pin)),

@@ -40,7 +40,7 @@ where
     L3: Led + 'static,
     L4: Led + 'static,
 {
-    pub lora: LoraConfig,
+    pub join_mode: JoinMode,
     pub init_led: L1,
     pub tx_led: L2,
     pub user_led: L3,
@@ -168,15 +168,12 @@ where
         async move {
             self.config.init_led.on().ok();
             if let Some(mut cfg) = self.cfg.take() {
+                defmt::info!("Joining LoRaWAN network");
                 cfg.lora
-                    .configure(&self.config.lora)
-                    .await
-                    .expect("error configuring lora");
-                defmt::info!("Lora driver configured");
-                cfg.lora
-                    .join(ConnectMode::OTAA)
+                    .join(self.config.join_mode)
                     .await
                     .expect("error joining lora network");
+                defmt::info!("LoRaWAN network joined");
                 self.cfg.replace(cfg);
             }
             self.config.init_led.off().ok();
