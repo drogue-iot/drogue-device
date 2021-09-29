@@ -2,6 +2,13 @@ use crate::traits::lora::*;
 use core::fmt::Write;
 use heapless::String;
 
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum ConnectMode {
+    OTAA,
+    ABP,
+}
+
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ConfigKey {

@@ -15,10 +15,10 @@ embassy = { version = "0.1.0", default-features = false, features = ["executor-a
 embassy-hal-common = { version = "0.1.0", default-features = false }
 
 # LoRa dependencies
-lorawan-device = { git = "https://github.com/lulf/rust-lorawan.git", rev = "d208a031d60e3af24f8bc687edae083aef09291f", default-features = false, optional = true }
-lorawan-encoding = { git = "https://github.com/lulf/rust-lorawan.git", rev = "d208a031d60e3af24f8bc687edae083aef09291f", default-features = false, features = ["default-crypto"], optional = true }
+lorawan-device = { git = "https://github.com/lulf/rust-lorawan.git", rev = "a373d06fa8858d251bc70d5789cebcd9a638ec42", default-features = false, features = ["async"], optional = true }
+lorawan-encoding = { git = "https://github.com/lulf/rust-lorawan.git", rev = "a373d06fa8858d251bc70d5789cebcd9a638ec42", default-features = false, features = ["default-crypto"], optional = true }
 #lorawan-encoding = { path = "../../../rust-lorawan/encoding", default-features = false, features = ["default-crypto", "defmt", "defmt-trace"], optional = true }
-#lorawan-device = { path = "../../../rust-lorawan/device", default-features = false, optional = true, features = ["defmt-trace", "withdefmt"] }
+#lorawan-device = { path = "../../../rust-lorawan/device", default-features = false, optional = true, features = ["defmt-trace", "withdefmt", "async"] }
 
 bit_field = { version = "0.10", optional = true }
 embassy-stm32 = { version = "0.1.0", default-features = false, optional = true }
@@ -65,7 +65,7 @@ std = ["embassy/std", "embassy/time"]
 "lora+rak811" = ["nom", "moveslice"]
 "wifi+esp8266" = ["nom", "moveslice"]
 time = []
-lora = []
+lora = ["rand_core"]
 wifi = []
 fonts = []
 tls = ["drogue-tls", "rand_core"]

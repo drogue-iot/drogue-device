@@ -257,15 +257,37 @@ fn log_unexpected(r: Response) -> Result<(), LoraError> {
 
 impl<'a> LoraDriver for Rak811Controller<'a> {
     #[rustfmt::skip]
-    type ConfigureFuture<'m> where 'a: 'm = impl Future<Output = Result<(), LoraError>> + 'm;
-    fn configure<'m>(&'m mut self, config: &'m LoraConfig) -> Self::ConfigureFuture<'m> {
-        async move { self.apply_config(config).await }
-    }
-
-    #[rustfmt::skip]
     type JoinFuture<'m> where 'a: 'm = impl Future<Output = Result<(), LoraError>> + 'm;
-    fn join<'m>(&'m mut self, mode: ConnectMode) -> Self::JoinFuture<'m> {
+    fn join<'m>(&'m mut self, mode: JoinMode) -> Self::JoinFuture<'m> {
         async move {
+            let mode = match mode {
+                JoinMode::OTAA {
+                    dev_eui,
+                    app_eui,
+                    app_key,
+                } => {
+                    self.send_command_ok(Command::SetConfig(ConfigOption::DevEui(&dev_eui)))
+                        .await?;
+                    self.send_command_ok(Command::SetConfig(ConfigOption::AppEui(&app_eui)))
+                        .await?;
+                    self.send_command_ok(Command::SetConfig(ConfigOption::AppKey(&app_key)))
+                        .await?;
+                    ConnectMode::OTAA
+                }
+                JoinMode::ABP {
+                    news_key,
+                    apps_key,
+                    dev_addr,
+                } => {
+                    self.send_command_ok(Command::SetConfig(ConfigOption::DevAddr(&dev_addr)))
+                        .await?;
+                    self.send_command_ok(Command::SetConfig(ConfigOption::AppsKey(&apps_key)))
+                        .await?;
+                    self.send_command_ok(Command::SetConfig(ConfigOption::NwksKey(&news_key)))
+                        .await?;
+                    ConnectMode::ABP
+                }
+            };
             let response = self.send_command(Command::Join(mode)).await?;
             match response {
                 Response::Ok => {
@@ -350,7 +372,7 @@ impl<'a> Rak811Controller<'a> {
         }
     }
 
-    async fn apply_config(&mut self, config: &LoraConfig) -> Result<(), LoraError> {
+    pub async fn configure(&mut self, config: &LoraConfig) -> Result<(), LoraError> {
         if let Some(region) = self.initialized.wait().await? {
             self.config.region.replace(region);
         }
@@ -367,31 +389,6 @@ impl<'a> Rak811Controller<'a> {
                 self.config.lora_mode.replace(lora_mode);
             }
         }
-
-        if let Some(ref device_address) = config.device_address {
-            self.send_command_ok(Command::SetConfig(ConfigOption::DevAddr(device_address)))
-                .await?;
-            self.config.device_address.replace(*device_address);
-        }
-
-        if let Some(ref device_eui) = config.device_eui {
-            self.send_command_ok(Command::SetConfig(ConfigOption::DevEui(device_eui)))
-                .await?;
-            self.config.device_eui.replace(*device_eui);
-        }
-
-        if let Some(ref app_eui) = config.app_eui {
-            self.send_command_ok(Command::SetConfig(ConfigOption::AppEui(app_eui)))
-                .await?;
-            self.config.app_eui.replace(*app_eui);
-        }
-
-        if let Some(ref app_key) = config.app_key {
-            self.send_command_ok(Command::SetConfig(ConfigOption::AppKey(app_key)))
-                .await?;
-            self.config.app_key.replace(*app_key);
-        }
-
         debug!("Config applied");
         Ok(())
     }

@@ -3,17 +3,11 @@ use core::future::Future;
 
 /// API for accessing LoRa modules
 pub trait LoraDriver {
-    type ConfigureFuture<'a>: Future<Output = Result<(), LoraError>>
-    where
-        Self: 'a;
-    /// Configure the LoRa module with the provided config.
-    fn configure<'a>(&'a mut self, config: &'a LoraConfig) -> Self::ConfigureFuture<'a>;
-
     type JoinFuture<'a>: Future<Output = Result<(), LoraError>>
     where
         Self: 'a;
     /// Join a LoRaWAN network with the given connect mode.
-    fn join<'a>(&'a mut self, mode: ConnectMode) -> Self::JoinFuture<'a>;
+    fn join<'a>(&'a mut self, mode: JoinMode) -> Self::JoinFuture<'a>;
 
     type SendFuture<'a>: Future<Output = Result<(), LoraError>>
     where

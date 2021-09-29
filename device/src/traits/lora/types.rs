@@ -12,11 +12,19 @@ pub enum ResetMode {
     Reload,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum ConnectMode {
-    OTAA,
-    ABP,
+pub enum JoinMode {
+    OTAA {
+        dev_eui: EUI,
+        app_eui: EUI,
+        app_key: AppKey,
+    },
+    ABP {
+        news_key: NwksKey,
+        apps_key: AppsKey,
+        dev_addr: DevAddr,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -43,19 +51,19 @@ pub enum LoraRegion {
 pub type Port = u8;
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct DevAddr([u8; 4]);
+pub struct DevAddr(pub [u8; 4]);
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct EUI([u8; 8]);
+pub struct EUI(pub [u8; 8]);
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct AppKey([u8; 16]);
+pub struct AppKey(pub [u8; 16]);
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct NwksKey([u8; 16]);
+pub struct NwksKey(pub [u8; 16]);
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct AppsKey([u8; 16]);
+pub struct AppsKey(pub [u8; 16]);
 
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -74,10 +82,6 @@ pub struct LoraConfig {
     pub spreading_factor: Option<SpreadingFactor>,
     pub region: Option<LoraRegion>,
     pub lora_mode: Option<LoraMode>,
-    pub device_address: Option<DevAddr>,
-    pub device_eui: Option<EUI>,
-    pub app_eui: Option<EUI>,
-    pub app_key: Option<AppKey>,
 }
 
 impl LoraConfig {
@@ -86,10 +90,6 @@ impl LoraConfig {
             spreading_factor: None,
             region: None,
             lora_mode: None,
-            device_address: None,
-            device_eui: None,
-            app_eui: None,
-            app_key: None,
         }
     }
 
@@ -105,26 +105,6 @@ impl LoraConfig {
 
     pub fn lora_mode(mut self, lora_mode: LoraMode) -> Self {
         self.lora_mode.replace(lora_mode);
-        self
-    }
-
-    pub fn device_address(mut self, device_address: &DevAddr) -> Self {
-        self.device_address.replace(device_address.clone());
-        self
-    }
-
-    pub fn device_eui(mut self, device_eui: &EUI) -> Self {
-        self.device_eui.replace(device_eui.clone());
-        self
-    }
-
-    pub fn app_eui(mut self, app_eui: &EUI) -> Self {
-        self.app_eui.replace(app_eui.clone());
-        self
-    }
-
-    pub fn app_key(mut self, app_key: &AppKey) -> Self {
-        self.app_key.replace(app_key.clone());
         self
     }
 }

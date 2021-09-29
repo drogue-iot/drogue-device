@@ -86,24 +86,29 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     let reset_pin = Output::new(p.P1_02, Level::High, OutputDrive::Standard);
 
+    let join_mode = JoinMode::OTAA {
+        dev_eui: DEV_EUI.trim_end().into(),
+        app_eui: APP_EUI.trim_end().into(),
+        app_key: APP_KEY.trim_end().into(),
+    };
+
     let config = LoraConfig::new()
         .region(LoraRegion::EU868)
-        .lora_mode(LoraMode::WAN)
-        .device_eui(&DEV_EUI.trim_end().into())
-        .app_eui(&APP_EUI.trim_end().into())
-        .app_key(&APP_KEY.trim_end().into());
+        .lora_mode(LoraMode::WAN);
 
     DEVICE.configure(MyDevice {
         driver: UnsafeCell::new(Rak811Driver::new()),
         modem: ActorContext::new(Rak811ModemActor::new()),
-        app: ActorContext::new(App::new(config)),
+        app: ActorContext::new(App::new(join_mode)),
         button: ActorContext::new(Button::new(button_port)),
     });
 
     DEVICE
         .mount(|device| async move {
-            let (controller, modem) = unsafe { &mut *device.driver.get() }.initialize(u, reset_pin);
+            let (mut controller, modem) =
+                unsafe { &mut *device.driver.get() }.initialize(u, reset_pin);
             device.modem.mount(modem, spawner);
+            controller.configure(&config).await.unwrap();
             let app = device.app.mount(controller, spawner);
             device.button.mount(app, spawner);
         })

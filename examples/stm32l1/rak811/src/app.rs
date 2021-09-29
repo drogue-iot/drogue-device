@@ -2,7 +2,7 @@ use core::fmt::Write;
 use core::future::Future;
 use drogue_device::{
     traits::led::*,
-    traits::lora::{ConnectMode, LoraConfig, LoraDriver, QoS},
+    traits::lora::{JoinMode, LoraDriver, QoS},
     Actor, Address, Inbox,
 };
 use embassy::time::{Duration, Timer};
@@ -13,7 +13,7 @@ where
     D: LoraDriver + 'static,
     LED: Led + 'static,
 {
-    lora: LoraConfig,
+    join_mode: JoinMode,
     led: LED,
     driver: Option<D>,
     counter: usize,
@@ -25,9 +25,9 @@ where
     D: LoraDriver,
     LED: Led + 'static,
 {
-    pub fn new(config: LoraConfig, led: LED, interval: Duration) -> Self {
+    pub fn new(join_mode: JoinMode, led: LED, interval: Duration) -> Self {
         Self {
-            lora: config,
+            join_mode,
             led,
             driver: None,
             counter: 0,
@@ -80,21 +80,16 @@ where
     {
         self.driver.replace(config);
         async move {
-            defmt::info!("Configuring");
+            defmt::info!("Joining LoRaWAN network");
             self.led.on().ok();
             let driver = self.driver.as_mut().unwrap();
-            if let Err(e) = driver.configure(&self.lora).await {
-                defmt::error!("Error configuring lora driver: {}", e);
-                panic!();
-            }
-            defmt::trace!("Lora driver configured");
             driver
-                .join(ConnectMode::OTAA)
+                .join(self.join_mode)
                 .await
                 .expect("error joining lora network");
             Timer::after(Duration::from_millis(500)).await;
             self.led.off().ok();
-            defmt::info!("Configuration finished");
+            defmt::info!("LoRaWAN network joined");
             loop {
                 Timer::after(self.interval).await;
                 self.send().await;
