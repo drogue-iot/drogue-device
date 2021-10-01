@@ -204,39 +204,19 @@ dependencies = [
 
 [[package]]
 name = "cortex-m-rt"
-version = "0.6.14"
+version = "0.6.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6d8353767db816419630a76d5f1ad5b09610d22b67ceb59647df6a8abc667f8"
+checksum = "454f278bf469e2de0a4d22ea019d169d8944f86957c8207a39e3f66c32be2fc6"
 dependencies = [
- "cortex-m-rt-macros 0.1.8",
+ "cortex-m-rt-macros",
  "r0",
 ]
 
 [[package]]
-name = "cortex-m-rt"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "069533b58e25b635fac881eb6556616bd8f83a3e0ffe2b4b9619289ed14d465e"
-dependencies = [
- "cortex-m-rt-macros 0.7.0",
-]
-
-[[package]]
 name = "cortex-m-rt-macros"
-version = "0.1.8"
+version = "0.6.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4717562afbba06e760d34451919f5c3bf3ac15c7bb897e8b04862a7428378647"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "cortex-m-rt-macros"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0f6f3e36f203cfedbc78b357fb28730aa2c6dc1ab060ee5c2405e843988d3c7"
+checksum = "c8e3aa52243e26f5922fa522b0814019e0c98fc567e2756d715dce7ad7a81f49"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -418,7 +398,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a#b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
 dependencies = [
  "atomic-polyfill",
  "cortex-m 0.7.3",
@@ -434,7 +414,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a#b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
 dependencies = [
  "cortex-m 0.7.3",
  "embassy",
@@ -445,7 +425,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a#b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -456,10 +436,10 @@ dependencies = [
 [[package]]
 name = "embassy-nrf"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a#b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
 dependencies = [
  "cortex-m 0.7.3",
- "cortex-m-rt 0.7.0",
+ "cortex-m-rt",
  "critical-section",
  "embassy",
  "embassy-hal-common",
@@ -474,7 +454,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a#b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
 dependencies = [
  "embedded-hal",
 ]
@@ -743,7 +723,7 @@ version = "0.1.0"
 dependencies = [
  "cfg-if",
  "cortex-m 0.6.7",
- "cortex-m-rt 0.7.0",
+ "cortex-m-rt",
  "drogue-device",
  "drogue-tls",
  "embassy",
@@ -797,7 +777,7 @@ checksum = "ed3dee38c8f33516f9fab44ac568f79f82cfcd0d5747f1cb6276a17d0fd9801d"
 dependencies = [
  "bare-metal 0.2.5",
  "cortex-m 0.6.7",
- "cortex-m-rt 0.6.14",
+ "cortex-m-rt",
  "vcell",
 ]
 
@@ -808,7 +788,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd69bdb25903e18e098c040ef31dc863814437af010dea8bd55aa31f686cb461"
 dependencies = [
  "cortex-m 0.7.3",
- "cortex-m-rt 0.7.0",
+ "cortex-m-rt",
  "vcell",
 ]
 
@@ -1070,9 +1050,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.77"
+version = "1.0.78"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5239bc68e0fef57495900cfea4e8dc75596d9a319d7e16b1e0a440d24e6fe0a0"
+checksum = "a4eac2e6c19f5c3abc0c229bea31ff0b9b091c7b14990e8924b92902a303a0c0"
 dependencies = [
  "proc-macro2",
  "quote",

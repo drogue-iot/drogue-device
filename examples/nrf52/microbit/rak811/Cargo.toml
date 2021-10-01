@@ -26,9 +26,9 @@ embassy = { version = "0.1.0", default-features = false }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
 
 #embassy = { path = "../../../../../embassy/embassy" }
 #embassy-nrf = { path = "../../../../../embassy/embassy-stm32" }

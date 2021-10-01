@@ -186,7 +186,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a#b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
 dependencies = [
  "atomic-polyfill",
  "cortex-m",
@@ -205,7 +205,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a#b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
 dependencies = [
  "cortex-m",
  "embassy",
@@ -216,7 +216,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a#b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -227,7 +227,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a#b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
 dependencies = [
  "embedded-hal",
 ]
@@ -656,9 +656,9 @@ checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
 name = "syn"
-version = "1.0.77"
+version = "1.0.78"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5239bc68e0fef57495900cfea4e8dc75596d9a319d7e16b1e0a440d24e6fe0a0"
+checksum = "a4eac2e6c19f5c3abc0c229bea31ff0b9b091c7b14990e8924b92902a303a0c0"
 dependencies = [
  "proc-macro2",
  "quote",
