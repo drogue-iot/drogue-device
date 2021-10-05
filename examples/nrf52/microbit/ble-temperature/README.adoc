@@ -1,0 +1,49 @@
+== BBB Micro:bit BLE Temperature
+
+This example application runs out of the box on hte BBC micro:bit v2.0. It starts a BLE (Bluetooth Low Energy) temperature
+service identical to the default application provided on the micro:bit, but based on link:https://github.com/embassy-rs/embassy[embassy], link:https://github.com/embassy-rs/nrf-softdevice[nrf-softdevice], and link:https://github.com/drogue-iot/drogue-device[drogue-device].
+
+=== Prerequisites
+
+==== Hardware
+
+* BBC micro:bit v2.0
+* Mobile Phone with BLE
+
+==== Software
+
+* link:https://rustup.rs/[Rust] - To compile the example.
+* link:https://crates.io/crates/probe-rs-cli[probe-rs-cli] - To flash the BLE protocol stack from Nordic Semiconductor.
+* link:https://crates.io/crates/probe-run[probe-run] - To run the example.
+
+In practice you can use whatever tool you want to flash the device, but this guide will assume that `probe-rs-cli` is used to flash the BLE firmware, and `probe-run` to run the application.
+
+You can install both `probe-rs-cli` and `probe-run` using Cargo:
+
+```rust
+cargo install probe-rs-cli probe-run
+```
+
+On the phone, you need a BLE client. This example have been tested with the link:https://www.nordicsemi.com/Products/Development-tools/nrf-connect-for-mobile[nRF Connect] app, which supports both iPhone and Android.
+
+=== Flashing the BLE stack
+
+Download the link:https://www.nordicsemi.com/Products/Development-software/S113[Nordic nRF SoftDevice] firmware for the BLE protocl stack.
+
+Unzip the downloaded artifact and locate the file `s140_nrf52_7.3.0_softdevice.hex`, which is the firmware we're going to flash.
+
+To flash the device (make sure it is connected) run:
+
+```rust
+probe-rs-cli download s140_nrf52_7.3.0_softdevice.hex --chip nRF52833_xxAA --format Hex
+```
+
+=== Running the example
+
+To run the example, first run the device:
+
+```rust
+cargo run --release
+```
+
+This will start the application, and you should quickly see the 'Drogue Low Energy' application in the nRF Connect application. You can now connect to it and read the temperature values from the 'Temperature' characteristic.

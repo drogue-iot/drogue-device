@@ -26,6 +26,12 @@ network services (locally or third party).
 
 include::examples_lorawan.adoc[]
 
+== BLE connectivity examples
+
+Examples that demonstrates using Bluetooth Low Energy (BLE). May require running applications on a phone or PC.
+
+include::examples_ble.adoc[]
+
 == Display examples
 
 Examples that demonstrates the use of displays, either on board or as external peripherals.

@@ -24,7 +24,7 @@ drogue-tls = { git = "https://github.com/drogue-iot/drogue-tls.git", rev = "59cb
 #drogue-tls = { version = "0.2.0", default-features = false, features = ["async"], optional = true}
 #drogue-tls = {path = "../../../drogue-tls", default-features = false, optional = true}
 wifi-app = { path = "../../../../apps/wifi" }
-cortex-m-rt = "0.7"
+cortex-m-rt = "0.6"
 cortex-m = { version = "0.6", features = ["inline-asm"] }
 
 embassy = { version = "0.1.0", default-features = false }
@@ -73,9 +73,9 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "b6fc19182b4ae02ea1e9107ca28b88f4a3b0b60a" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
 
 #embassy = { path = "../../../../../embassy/embassy" }
 #embassy-nrf = { path = "../../../../../embassy/embassy-stm32" }
