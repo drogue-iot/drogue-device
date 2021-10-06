@@ -22,7 +22,7 @@ use panic_probe as _;
 use heapless::Vec;
 use nrf_softdevice::ble::{
     gatt_server::{self, Server},
-    peripheral, Connection, GattValue,
+    peripheral, Connection,
 };
 use nrf_softdevice::{raw, temperature_celsius, Softdevice};
 
@@ -42,51 +42,13 @@ struct TemperatureService {
 #[nrf_softdevice::gatt_server(uuid = "0000180a-0000-1000-8000-00805f9b34fb")]
 struct DeviceInformationService {
     #[characteristic(uuid = "00002a24-0000-1000-8000-00805f9b34fb", read)]
-    model_number: StaticValue,
+    model_number: Vec<u8, 32>,
     #[characteristic(uuid = "00002a25-0000-1000-8000-00805f9b34fb", read)]
-    serial_number: StaticValue,
+    serial_number: Vec<u8, 32>,
     #[characteristic(uuid = "00002a27-0000-1000-8000-00805f9b34fb", read)]
-    hardware_revision: StaticValue,
+    hardware_revision: Vec<u8, 4>,
     #[characteristic(uuid = "00002a29-0000-1000-8000-00805f9b34fb", read)]
-    manufacturer_name: StaticValue,
-}
-
-struct DrogueGatt {
-    temperature: TemperatureService,
-    device_info: DeviceInformationService,
-}
-
-use nrf_softdevice::ble::gatt_server::{Characteristic, CharacteristicHandles, RegisterError};
-
-impl Server for DrogueGatt {
-    type Event = TemperatureServiceEvent;
-    fn uuid() -> nrf_softdevice::ble::Uuid {
-        panic!("uuid dummy");
-    }
-
-    fn register<F>(_: u16, _: F) -> Result<Self, RegisterError>
-    where
-        F: FnMut(Characteristic, &[u8]) -> Result<CharacteristicHandles, RegisterError>,
-    {
-        panic!("register dummy");
-    }
-    fn on_write(&self, handle: u16, data: &[u8]) -> Option<<Self as Server>::Event> {
-        self.temperature.on_write(handle, data)
-    }
-}
-
-pub struct StaticValue<'a>(&'a str);
-impl<'a> GattValue for StaticValue<'a> {
-    const MIN_SIZE: usize = 0;
-    const MAX_SIZE: usize = 255;
-
-    fn from_gatt(_data: &[u8]) -> Self {
-        panic!("Cannot create string ref from data");
-    }
-
-    fn to_gatt(&self) -> &[u8] {
-        self.0.as_bytes()
-    }
+    manufacturer_name: Vec<u8, 32>,
 }
 
 static INTERVAL: AtomicU16 = AtomicU16::new(10_000);
@@ -95,27 +57,30 @@ static CONNECTIONS: CriticalSectionMutex<RefCell<Vec<Connection, 2>>> =
     CriticalSectionMutex::new(RefCell::new(Vec::new()));
 
 #[embassy::task]
-async fn temperature_monitor(sd: &'static Softdevice, service: &'static DrogueGatt) {
+async fn temperature_monitor(sd: &'static Softdevice, service: &'static TemperatureService) {
     loop {
         let interval = INTERVAL.load(Ordering::SeqCst);
-        defmt::trace!("Waiting for {} millis before measuring", interval);
         embassy::time::Timer::after(embassy::time::Duration::from_millis(interval.into())).await;
         let value: i8 = temperature_celsius(sd).unwrap().to_num();
-        defmt::trace!("Measuring temperature: {}", value);
+        defmt::trace!("Measured temperature: {}℃", value);
 
-        service.temperature.temperature_set(value).unwrap();
+        service.temperature_set(value).unwrap();
 
         CONNECTIONS.lock(|c| {
             let c = c.borrow();
             for c in c.iter() {
-                service.temperature.temperature_notify(&c, value).unwrap();
+                service.temperature_notify(&c, value).unwrap();
             }
         });
     }
 }
 
 #[embassy::task]
-async fn bluetooth_task(sd: &'static Softdevice, service: &'static DrogueGatt) {
+async fn bluetooth_task(
+    sd: &'static Softdevice,
+    temperature: &'static TemperatureService,
+    _device_info: &'static DeviceInformationService,
+) {
     #[rustfmt::skip]
     let adv_data = &[
         0x02, 0x01, raw::BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE as u8,
@@ -141,8 +106,8 @@ async fn bluetooth_task(sd: &'static Softdevice, service: &'static DrogueGatt) {
         defmt::info!("advertising done!");
 
         // Run the GATT server on the connection. This returns when the connection gets disconnected.
-        let res = gatt_server::run(&conn, service, |e| {
-            match e {
+        let res = gatt_server::run(&conn, |e| {
+            temperature.on_event(&e, |e| match e {
                 TemperatureServiceEvent::TemperatureNotificationsEnabled => {
                     CONNECTIONS
                         .lock(|c| c.borrow_mut().push(conn.clone()))
@@ -167,7 +132,7 @@ async fn bluetooth_task(sd: &'static Softdevice, service: &'static DrogueGatt) {
                     defmt::info!("adjust period!");
                     INTERVAL.store(period, Ordering::SeqCst);
                 }
-            };
+            });
         })
         .await;
 
@@ -220,24 +185,25 @@ async fn main(spawner: Spawner, _p: Peripherals) {
 
     let device_service: DeviceInformationService = gatt_server::register(sd).unwrap();
     device_service
-        .model_number_set(StaticValue("Drogue IoT micro:bit V2.0"))
-        .unwrap();
-    device_service.serial_number_set(StaticValue("1")).unwrap();
-    device_service
-        .manufacturer_name_set(StaticValue("BBC"))
+        .model_number_set(Vec::from_slice("Drogue IoT micro:bit v2.0".as_bytes()).unwrap())
         .unwrap();
     device_service
-        .hardware_revision_set(StaticValue("1"))
+        .serial_number_set(Vec::from_slice("1".as_bytes()).unwrap())
+        .unwrap();
+    device_service
+        .manufacturer_name_set(Vec::from_slice("BBC".as_bytes()).unwrap())
+        .unwrap();
+    device_service
+        .hardware_revision_set(Vec::from_slice("1".as_bytes()).unwrap())
         .unwrap();
 
-    static GATT: Forever<DrogueGatt> = Forever::new();
+    static TEMPERATURE: Forever<TemperatureService> = Forever::new();
+    let temperature = TEMPERATURE.put(gatt_server::register(sd).unwrap());
 
-    let service: &'static DrogueGatt = GATT.put(DrogueGatt {
-        temperature: gatt_server::register(sd).unwrap(),
-        device_info: device_service,
-    });
+    static DEVICE_INFO: Forever<DeviceInformationService> = Forever::new();
+    let device_info = DEVICE_INFO.put(device_service);
 
     defmt::unwrap!(spawner.spawn(softdevice_task(sd)));
-    defmt::unwrap!(spawner.spawn(bluetooth_task(sd, service)));
-    defmt::unwrap!(spawner.spawn(temperature_monitor(sd, service)));
+    defmt::unwrap!(spawner.spawn(bluetooth_task(sd, temperature, device_info)));
+    defmt::unwrap!(spawner.spawn(temperature_monitor(sd, temperature)));
 }
