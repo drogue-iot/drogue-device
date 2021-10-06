@@ -26,6 +26,8 @@ use nrf_softdevice::ble::{
 };
 use nrf_softdevice::{raw, temperature_celsius, Softdevice};
 
+mod ble;
+
 #[embassy::task]
 async fn softdevice_task(sd: &'static Softdevice) {
     sd.run().await;
