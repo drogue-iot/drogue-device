@@ -2,6 +2,7 @@
 members = [
     "device",
     "apps/wifi",
+    "apps/ble",
     "macros",
     "xtask",
 ]

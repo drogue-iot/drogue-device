@@ -12,7 +12,7 @@ use embassy::time::Duration;
 use heapless::Vec;
 
 use embassy::time::Ticker;
-use futures::{future::select, future::Either, pin_mut, Stream, StreamExt};
+use futures::{future::select, future::Either, pin_mut, Stream};
 
 pub struct BleController {
     pub sd: &'static Softdevice,
@@ -95,40 +95,75 @@ struct DeviceInformationService {
     manufacturer_name: Vec<u8, 32>,
 }
 
-pub struct GattServer {}
+pub struct GattServer {
+    sd: &'static Softdevice,
+    temperature: TemperatureService,
+    device_info: DeviceInformationService,
+    ticker: Ticker,
+    connections: Vec<Connection, 2>,
+}
 
 pub enum GattServerEvent {
     NewConnection(Connection),
 }
 
 impl GattServer {
-    pub fn new() -> Self {
-        //    let temperature = gatt_server::register(sd).unwrap();
-        //    let device_info = gatt_server::register(sd).unwrap();
-        Self {}
+    pub fn new(sd: &'static Softdevice) -> Self {
+        let temperature = gatt_server::register(sd).unwrap();
+        let device_info = gatt_server::register(sd).unwrap();
+        Self {
+            sd,
+            temperature,
+            device_info,
+            ticker: Ticker::every(Duration::from_secs(10)),
+            connections: Vec::new(),
+        }
+    }
+
+    fn handle_temperature_events<const N: usize>(
+        &mut self,
+        conn: &Connection,
+        events: Vec<TemperatureServiceEvent, N>,
+    ) {
+        let handle = conn.handle();
+        for event in events.iter() {
+            match event {
+                TemperatureServiceEvent::TemperatureNotificationsEnabled => {
+                    self.connections.push(conn.clone()).ok().unwrap();
+                    defmt::info!("notifications enabled!");
+                }
+                TemperatureServiceEvent::TemperatureNotificationsDisabled => {
+                    for i in 0..self.connections.len() {
+                        if self.connections[i].handle() == handle {
+                            self.connections.swap_remove(i);
+                            break;
+                        }
+                    }
+                    defmt::info!("notifications disabled!");
+                }
+                TemperatureServiceEvent::PeriodWrite(period) => {
+                    defmt::info!("adjust period!");
+                    self.ticker = Ticker::every(Duration::from_millis(*period as u64));
+                }
+            }
+        }
     }
 }
 
 impl Actor for GattServer {
     type Message<'m> = GattServerEvent;
 
-    type Configuration = (
-        &'static TemperatureService,
-        Address<'static, TemperatureMonitor>,
-    );
-
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where Self: 'm, M: 'm = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        configuration: Self::Configuration,
+        _: Self::Configuration,
         _: Address<'static, Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
-        let (service, monitor) = configuration;
         async move {
             loop {
                 loop {
@@ -136,101 +171,17 @@ impl Actor for GattServer {
                         let GattServerEvent::NewConnection(conn) = m.message();
                         // Run the GATT server on the connection. This returns when the connection gets disconnected.
                         let res = gatt_server::run(conn, |e| {
-                            if let Some(e) = service.on_event(e) {
-                                monitor
-                                    .notify(TemperatureMonitorEvent(conn.clone(), e))
-                                    .unwrap();
-                            }
+                            // TODO: Fix awkward interface of nrf-softdevice
+                            let mut queue: Vec<_, 4> = Vec::new();
+                            self.temperature.on_event(&e, |e| {
+                                queue.push(e).ok().unwrap();
+                            });
+                            self.handle_temperature_events(conn, queue);
                         })
                         .await;
 
                         if let Err(e) = res {
                             defmt::info!("gatt_server exited with error: {:?}", e);
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-pub struct TemperatureMonitor {
-    sd: &'static Softdevice,
-    ticker: Ticker,
-    connections: Vec<Connection, 2>,
-}
-
-impl TemperatureMonitor {
-    pub fn new(sd: &'static Softdevice) -> Self {
-        Self {
-            sd,
-            ticker: Ticker::every(Duration::from_secs(10)),
-            connections: Vec::new(),
-        }
-    }
-
-    fn handle_event(&mut self, conn: &Connection, event: &TemperatureServiceEvent) {
-        match event {
-            TemperatureServiceEvent::TemperatureNotificationsEnabled => {
-                self.connections.push(conn.clone()).ok().unwrap();
-                defmt::info!("notifications enabled!");
-            }
-            TemperatureServiceEvent::TemperatureNotificationsDisabled => {
-                for i in 0..self.connections.len() {
-                    if self.connections[i].handle() == conn.handle() {
-                        self.connections.swap_remove(i);
-                        break;
-                    }
-                }
-                defmt::info!("notifications disabled!");
-            }
-            TemperatureServiceEvent::PeriodWrite(period) => {
-                defmt::info!("adjust period!");
-                self.ticker = Ticker::every(Duration::from_millis(*period as u64));
-            }
-        }
-    }
-}
-
-pub struct TemperatureMonitorEvent(Connection, TemperatureServiceEvent);
-
-impl Actor for TemperatureMonitor {
-    type Configuration = &'static TemperatureService;
-    type Message<'m> = TemperatureMonitorEvent;
-
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where Self: 'm, M: 'm = impl Future<Output = ()> + 'm;
-    fn on_mount<'m, M>(
-        &'m mut self,
-        service: Self::Configuration,
-        _: Address<'static, Self>,
-        inbox: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
-    where
-        M: Inbox<'m, Self> + 'm,
-    {
-        async move {
-            loop {
-                let inbox_fut = inbox.next();
-                let ticker_fut = self.ticker.next();
-
-                pin_mut!(inbox_fut);
-                pin_mut!(ticker_fut);
-
-                match select(inbox_fut, ticker_fut).await {
-                    Either::Left((r, _)) => {
-                        if let Some(mut m) = r {
-                            let TemperatureMonitorEvent(conn, event) = m.message();
-                            self.handle_event(conn, event);
-                        }
-                    }
-                    Either::Right((_, _)) => {
-                        let value: i8 = temperature_celsius(self.sd).unwrap().to_num();
-                        defmt::trace!("Measuring temperature: {}", value);
-
-                        service.temperature_set(value).unwrap();
-                        for c in self.connections.iter() {
-                            service.temperature_notify(&c, value).unwrap();
                         }
                     }
                 }
