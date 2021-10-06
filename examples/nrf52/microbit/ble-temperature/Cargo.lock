@@ -582,6 +582,7 @@ dependencies = [
  "drogue-device",
  "embassy",
  "embassy-nrf",
+ "fixed",
  "futures",
  "heapless",
  "nrf-softdevice",
@@ -607,7 +608,6 @@ checksum = "546c37ac5d9e56f55e73b677106873d9d9f5190605e41a856503623648488cae"
 [[package]]
 name = "nrf-softdevice"
 version = "0.1.0"
-source = "git+https://github.com/lulf/nrf-softdevice.git?rev=230d133f4d6e02d2631a3fcdcebe7675764c17fb#230d133f4d6e02d2631a3fcdcebe7675764c17fb"
 dependencies = [
  "cortex-m 0.7.3",
  "cortex-m-rt",
@@ -625,7 +625,6 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice-macro"
 version = "0.1.0"
-source = "git+https://github.com/lulf/nrf-softdevice.git?rev=230d133f4d6e02d2631a3fcdcebe7675764c17fb#230d133f4d6e02d2631a3fcdcebe7675764c17fb"
 dependencies = [
  "Inflector",
  "darling 0.10.2",
@@ -638,7 +637,6 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice-s113"
 version = "0.1.1"
-source = "git+https://github.com/lulf/nrf-softdevice.git?rev=230d133f4d6e02d2631a3fcdcebe7675764c17fb#230d133f4d6e02d2631a3fcdcebe7675764c17fb"
 
 [[package]]
 name = "nrf52833-pac"

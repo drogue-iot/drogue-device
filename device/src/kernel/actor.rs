@@ -25,7 +25,7 @@ pub trait Actor: Sized {
     type Configuration = ();
 
     /// The message type that this actor will receive from its inbox.
-    type Message<'a>: Sized
+    type Message<'a>: Sized + Send
     where
         Self: 'a,
     = ();
@@ -79,10 +79,19 @@ impl<'a, A: Actor + 'static, const QUEUE_SIZE: usize> Inbox<'a, A>
             // processing loop doesn't abuse the 'fake' lifetime while stored on the queue.
             self.recv().await.map(|m| match m {
                 ActorMessage::Request(message, signal) => unsafe {
-                    InboxMessage::request(core::mem::transmute_copy(&message), signal)
+                    // Ensure we don't run destructor of the copied value
+                    let message = core::mem::ManuallyDrop::new(message);
+                    InboxMessage::request(
+                        core::mem::transmute_copy::<A::Message<'a>, A::Message<'m>>(&message),
+                        signal,
+                    )
                 },
                 ActorMessage::Notify(message) => unsafe {
-                    InboxMessage::notify(core::mem::transmute_copy(&message))
+                    // Ensure we don't run destructor of the copied value
+                    let message = core::mem::ManuallyDrop::new(message);
+                    InboxMessage::notify(
+                        core::mem::transmute_copy::<A::Message<'a>, A::Message<'m>>(&message),
+                    )
                 },
             })
         }
