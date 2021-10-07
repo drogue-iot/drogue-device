@@ -36,8 +36,7 @@ fn test_ci() -> Result<(), anyhow::Error> {
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
 
-    do_examples(examples_dir, 1, usize::MAX, &mut test_example)?;
-    /*
+    //do_examples(examples_dir, 1, usize::MAX, &mut test_example)?;
     for example in &[
         "nrf52/microbit",
         "stm32l0/lora-discovery",
@@ -53,7 +52,6 @@ fn test_ci() -> Result<(), anyhow::Error> {
         example_dir.push(example);
         test_example(example_dir)?;
     }
-    */
     Ok(())
 }
 
