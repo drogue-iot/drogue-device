@@ -6,6 +6,7 @@ pub(crate) mod fmt;
 mod advertiser;
 mod controller;
 mod gatt;
+pub mod microbit;
 
 pub use advertiser::*;
 pub use controller::*;
