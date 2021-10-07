@@ -36,7 +36,7 @@ fn test_ci() -> Result<(), anyhow::Error> {
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
 
-    //do_examples(examples_dir, 1, usize::MAX, &mut test_example)?;
+    //    do_examples(examples_dir, 1, 3, &mut test_example)?;
     for example in &[
         "nrf52/microbit",
         "stm32l0/lora-discovery",
@@ -64,8 +64,6 @@ fn test_device() -> Result<(), anyhow::Error> {
     cmd!("cargo test --all --features 'std wifi+esp8266'").run()?;
     Ok(())
 }
-
-const MAX_DEPTH: usize = 3;
 
 fn do_examples<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
     current_dir: PathBuf,
@@ -95,8 +93,8 @@ fn do_examples<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
 
 fn test_example(project_file: PathBuf) -> Result<(), anyhow::Error> {
     println!("Building example {}", project_file.to_str().unwrap_or(""));
-    let _p = xshell::pushd(project_file.parent().unwrap())?;
-    cmd!("cargo build").run()?;
+    let _p = xshell::pushd(project_file)?; //.parent().unwrap())?;
+    cmd!("cargo build --release").run()?;
     Ok(())
 }
 
