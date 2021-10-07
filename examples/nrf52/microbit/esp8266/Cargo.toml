@@ -20,13 +20,13 @@ drogue-device = { path = "../../../../device", features = ["wifi+esp8266", "defm
 drogue-tls = { git = "https://github.com/drogue-iot/drogue-tls.git", rev = "59cb23017f546da8e0f186042758226165400548", default-features = false, features = ["async"], optional = true}
 #drogue-tls = { version = "0.2.0", default-features = false, features = ["async"], optional = true}
 #drogue-tls = {path = "../../../drogue-tls", default-features = false, optional = true}
-wifi-app = { path = "../../../../apps/wifi" }
+wifi-app = { path = "../../../../apps/wifi", features = ["defmt", "defmt-info"] }
 cortex-m-rt = "0.6"
-cortex-m = { version = "0.6", features = ["inline-asm"] }
+cortex-m = { version = "0.7", features = ["inline-asm"] }
 
 embassy = { version = "0.1.0", default-features = false, features = ["defmt"] }
-embassy-nrf = { version = "0.1.0", default-features = false, features = ["defmt", "nrf52833", "time-driver-rtc1", "gpiote"]}
-nrf52833-pac = { version = "0.9", features = ["rt"] }
+embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
+# nrf52833-pac = { version = "0.10" }
 #embassy = {path = "../../../../../../embassy/embassy", default-features = false}
 #embassy-nrf = {path = "../../../../../../embassy/embassy-nrf", default-features = false, features = ["nrf52833"]}
 cfg-if = "1.0.0"

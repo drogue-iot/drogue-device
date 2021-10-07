@@ -3,6 +3,8 @@
 #![feature(type_alias_impl_trait)]
 #![feature(generic_associated_types)]
 
+pub(crate) mod fmt;
+
 use core::future::Future;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
@@ -77,7 +79,7 @@ where
                 match inbox.next().await {
                     Some(mut m) => match m.message() {
                         Command::Send => {
-                            log::info!("Sending data");
+                            info!("Sending data");
                             let socket = self.socket.as_mut().unwrap();
                             let mut client = HttpClient::new(
                                 socket,
@@ -97,7 +99,7 @@ where
                                 )
                                 .await;
                             if let Ok(response_len) = response_len {
-                                log::info!(
+                                info!(
                                     "Response: {}",
                                     core::str::from_utf8(&rx_buf[..response_len]).unwrap()
                                 );
