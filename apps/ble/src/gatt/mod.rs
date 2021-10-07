@@ -6,11 +6,11 @@ use nrf_softdevice::ble::{
 };
 use nrf_softdevice::Softdevice;
 
-mod temperature;
 mod device_info;
+mod temperature;
 
-pub use temperature::*;
 pub use device_info::*;
+pub use temperature::*;
 
 pub struct GattServer {
     sd: &'static Softdevice,
@@ -57,7 +57,9 @@ impl Actor for GattServer {
                         let GattServerEvent::NewConnection(conn) = m.message();
                         // Run the GATT server on the connection. This returns when the connection gets disconnected.
                         let res = gatt_server::run(conn, |e| {
+                            trace!("GATT write event received");
                             if let Some(e) = service.on_write(e) {
+                                trace!("Notifying temperature monitor");
                                 monitor.notify((conn.clone(), e)).unwrap();
                             }
                         })

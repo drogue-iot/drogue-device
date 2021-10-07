@@ -625,6 +625,7 @@ dependencies = [
  "cortex-m 0.7.3",
  "cortex-m-rt",
  "critical-section",
+ "defmt",
  "embassy",
  "fixed",
  "heapless",
