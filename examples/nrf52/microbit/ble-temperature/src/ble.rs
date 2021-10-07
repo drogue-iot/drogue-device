@@ -76,7 +76,7 @@ impl Actor for BleController {
 //let temperature = TEMPERATURE.put(gatt_server::register(sd).unwrap());
 
 #[nrf_softdevice::gatt_server(uuid = "e95d6100-251d-470a-a062-fa1922dfa9a8")]
-struct TemperatureService {
+pub struct TemperatureService {
     #[characteristic(uuid = "e95d9250-251d-470a-a062-fa1922dfa9a8", read, notify)]
     temperature: i8,
     #[characteristic(uuid = "e95d1b25-251d-470a-a062-fa1922dfa9a8", read, write)]
@@ -136,7 +136,7 @@ impl Actor for GattServer {
                         let GattServerEvent::NewConnection(conn) = m.message();
                         // Run the GATT server on the connection. This returns when the connection gets disconnected.
                         let res = gatt_server::run(conn, |e| {
-                            if let Some(e) = service.on_event(e) {
+                            if let Some(e) = service.on_write(e) {
                                 monitor
                                     .notify(TemperatureMonitorEvent(conn.clone(), e))
                                     .unwrap();
