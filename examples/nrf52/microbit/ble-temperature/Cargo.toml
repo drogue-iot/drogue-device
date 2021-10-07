@@ -30,7 +30,6 @@ ble = { path = "../../../../apps/ble", features = ["withdefmt", "defmt", "defmt-
 [features]
 default = [
     "defmt-default",
-    "defmt-trace",
 ]
 defmt-default = []
 defmt-trace = [ ]
