@@ -34,7 +34,7 @@ impl MicrobitBleService {
             temperature_service: gatt.register().unwrap(),
             _device_info_service: device_info,
             controller: ActorContext::new(controller),
-            advertiser: ActorContext::new(BleAdvertiser::new(sd)),
+            advertiser: ActorContext::new(BleAdvertiser::new(sd, "Drogue Low Energy")),
             gatt: ActorContext::new(gatt),
             monitor: ActorContext::new(TemperatureMonitor::new(sd)),
         }

@@ -1,5 +1,6 @@
 use core::future::Future;
 use drogue_device::{Actor, Address, Inbox};
+use heapless::Vec;
 use nrf_softdevice::ble::{peripheral, Connection};
 use nrf_softdevice::{raw, Softdevice};
 
@@ -10,13 +11,18 @@ pub trait Acceptor {
 
 pub struct BleAdvertiser<A: Acceptor + 'static> {
     sd: &'static Softdevice,
+    name: &'static str,
     _marker: core::marker::PhantomData<&'static A>,
 }
 
 impl<A: Acceptor> BleAdvertiser<A> {
-    pub fn new(sd: &'static Softdevice) -> Self {
+    pub fn new(sd: &'static Softdevice, name: &'static str) -> Self {
+        // Max bytes we have in advertisement packet
+        assert!(name.len() < 22);
+
         Self {
             sd,
+            name,
             _marker: core::marker::PhantomData,
         }
     }
@@ -36,23 +42,29 @@ impl<A: Acceptor> Actor for BleAdvertiser<A> {
     where
         M: Inbox<'m, Self> + 'm,
     {
+        let mut adv_data: Vec<u8, 31> = Vec::new();
         #[rustfmt::skip]
-    let adv_data = &[
-        0x02, 0x01, raw::BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE as u8,
-        0x03, 0x03, 0x09, 0x18,
-        0x12, 0x09, b'D', b'r', b'o', b'g', b'u', b'e', b' ', b'L', b'o', b'w', b' ', b'E',b'n', b'e', b'r', b'g', b'y',
-    ];
+        adv_data.extend_from_slice(&[
+            0x02, 0x01, raw::BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE as u8,
+            0x03, 0x03, 0x00, 0x61,
+            (1 + self.name.len() as u8), 0x09]).unwrap();
+
+        adv_data
+            .extend_from_slice(self.name.as_bytes())
+            .ok()
+            .unwrap();
+
         #[rustfmt::skip]
-    let scan_data = &[
-        0x03, 0x03, 0x09, 0x18,
-    ];
+        let scan_data = &[
+            0x03, 0x03, 0xA, 0x18,
+        ];
         info!("advertising started!");
 
         async move {
             loop {
                 let config = peripheral::Config::default();
                 let adv = peripheral::ConnectableAdvertisement::ScannableUndirected {
-                    adv_data,
+                    adv_data: &adv_data[..],
                     scan_data,
                 };
                 let conn = peripheral::advertise_connectable(self.sd, adv, &config)
