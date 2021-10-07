@@ -13,9 +13,22 @@ heapless = "0.7"
 futures     = { version = "0.3.17", default-features = false, features = ["async-await"] }
 
 embassy = { version = "0.1.0", default-features = false, features = ["time"] }
+fixed = "1.5.0"
 
-#nrf-softdevice = { version = "0.1.0", git = "https://github.com/lulf/nrf-softdevice.git", rev = "230d133f4d6e02d2631a3fcdcebe7675764c17fb", features = ["defmt", "defmt-trace", "nrf52833", "s113", "ble-peripheral", "critical-section-impl", "ble-gatt-server"] }
-#nrf-softdevice-s113 = { version = "0.1.0", git = "https://github.com/lulf/nrf-softdevice.git", rev = "230d133f4d6e02d2631a3fcdcebe7675764c17fb" }
+nrf-softdevice = { version = "0.1.0", git = "https://github.com/lulf/nrf-softdevice.git", rev = "4d4123639336e23088eeb53b54d90d6f8d618195", features = ["ble-peripheral", "critical-section-impl", "ble-gatt-server"] }
+nrf-softdevice-s113 = { version = "0.1.0", git = "https://github.com/lulf/nrf-softdevice.git", rev = "4d4123639336e23088eeb53b54d90d6f8d618195", optional = true }
 
-nrf-softdevice = { version = "0.1.0", path = "../../../../nrf-softdevice/nrf-softdevice", features = ["nrf52833", "s113", "ble-peripheral", "critical-section-impl", "ble-gatt-server"] }
-nrf-softdevice-s113 = { version = "0.1.0", path = "../../../../nrf-softdevice/nrf-softdevice-s113" }
+defmt = { version = "0.2", optional = true }
+log = { version = "0.4", optional = true }
+
+[features]
+s113 = ["nrf-softdevice-s113", "nrf-softdevice/s113"]
+nrf52833 = ["nrf-softdevice/nrf52833"]
+withdefmt = ["nrf-softdevice/defmt"]
+
+defmt-default = [ ]
+defmt-trace = [ ]
+defmt-debug = [ ]
+defmt-info = [ ]
+defmt-warn = [ ]
+defmt-error = [ ]

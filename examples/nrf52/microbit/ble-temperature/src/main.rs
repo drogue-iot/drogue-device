@@ -6,31 +6,14 @@
 
 use defmt_rtt as _;
 
-use core::cell::RefCell;
-use core::future::Future;
-use core::mem;
-use core::sync::atomic::AtomicU16;
-use core::sync::atomic::Ordering;
+use ble::*;
 use drogue_device::{ActorContext, Address, DeviceContext};
-use embassy::blocking_mutex::{CriticalSectionMutex, Mutex};
 use embassy::executor::Spawner;
-use embassy::util::Forever;
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::Peripherals;
 
 use panic_probe as _;
-
-use fixed::types::I30F2;
-use heapless::Vec;
-use nrf_softdevice::ble::{
-    gatt_server::{self, Server},
-    peripheral, Connection,
-};
-use nrf_softdevice::{raw, Softdevice};
-
-mod ble;
-use ble::*;
 
 pub struct MyDevice {
     service: TemperatureService,
@@ -53,11 +36,12 @@ fn config() -> Config {
 async fn main(spawner: Spawner, _p: Peripherals) {
     let (controller, sd) = BleController::new("Drogue IoT micro:bit v2.0");
 
+    let mut gatt = GattServer::new(sd);
     DEVICE.configure(MyDevice {
-        service: gatt_server::register(sd).unwrap(),
+        service: gatt.register().unwrap(),
         controller: ActorContext::new(controller),
         advertiser: ActorContext::new(BleAdvertiser::new(sd)),
-        gatt: ActorContext::new(GattServer::new()),
+        gatt: ActorContext::new(gatt),
         monitor: ActorContext::new(TemperatureMonitor::new(sd)),
     });
 

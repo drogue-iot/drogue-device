@@ -98,6 +98,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46afbd2983a5d5a7bd740ccb198caf5b82f45c40c09c0eed36052d91cb92e719"
 
 [[package]]
+name = "ble"
+version = "0.1.0"
+dependencies = [
+ "defmt",
+ "drogue-device",
+ "embassy",
+ "fixed",
+ "futures",
+ "heapless",
+ "nrf-softdevice",
+ "nrf-softdevice-s113",
+]
+
+[[package]]
 name = "bytemuck"
 version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -575,6 +589,7 @@ checksum = "308cc39be01b73d0d18f82a0e7b2a3df85245f84af96fdddc5d202d27e47b86a"
 name = "microbit-ble-temperature"
 version = "0.1.0"
 dependencies = [
+ "ble",
  "cortex-m 0.7.3",
  "cortex-m-rt",
  "defmt",
@@ -582,11 +597,8 @@ dependencies = [
  "drogue-device",
  "embassy",
  "embassy-nrf",
- "fixed",
  "futures",
  "heapless",
- "nrf-softdevice",
- "nrf-softdevice-s113",
  "panic-probe",
 ]
 
@@ -608,11 +620,11 @@ checksum = "546c37ac5d9e56f55e73b677106873d9d9f5190605e41a856503623648488cae"
 [[package]]
 name = "nrf-softdevice"
 version = "0.1.0"
+source = "git+https://github.com/lulf/nrf-softdevice.git?rev=4d4123639336e23088eeb53b54d90d6f8d618195#4d4123639336e23088eeb53b54d90d6f8d618195"
 dependencies = [
  "cortex-m 0.7.3",
  "cortex-m-rt",
  "critical-section",
- "defmt",
  "embassy",
  "fixed",
  "heapless",
@@ -625,6 +637,7 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice-macro"
 version = "0.1.0"
+source = "git+https://github.com/lulf/nrf-softdevice.git?rev=4d4123639336e23088eeb53b54d90d6f8d618195#4d4123639336e23088eeb53b54d90d6f8d618195"
 dependencies = [
  "Inflector",
  "darling 0.10.2",
@@ -637,6 +650,7 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice-s113"
 version = "0.1.1"
+source = "git+https://github.com/lulf/nrf-softdevice.git?rev=4d4123639336e23088eeb53b54d90d6f8d618195#4d4123639336e23088eeb53b54d90d6f8d618195"
 
 [[package]]
 name = "nrf52833-pac"

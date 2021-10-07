@@ -25,15 +25,17 @@ embassy-nrf = { version = "0.1.0", default-features = false, features = ["defmt"
 cortex-m        = { version = "0.7.2" }
 cortex-m-rt = "0.6"
 heapless = "0.7"
-fixed = "1.5.0"
 futures     = { version = "0.3.17", default-features = false, features = ["async-await"] }
+
+# Bluetooth app
+ble = { path = "../../../../apps/ble", features = ["defmt", "nrf52833", "s113"] }
 
 # Bindings for Nordic proprietary softdevice
 #nrf-softdevice = { version = "0.1.0", git = "https://github.com/lulf/nrf-softdevice.git", rev = "230d133f4d6e02d2631a3fcdcebe7675764c17fb", features = ["defmt", "defmt-trace", "nrf52833", "s113", "ble-peripheral", "critical-section-impl", "ble-gatt-server"] }
 #nrf-softdevice-s113 = { version = "0.1.0", git = "https://github.com/lulf/nrf-softdevice.git", rev = "230d133f4d6e02d2631a3fcdcebe7675764c17fb" }
 
-nrf-softdevice = { version = "0.1.0", path = "../../../../../../nrf-softdevice/nrf-softdevice", features = ["defmt", "defmt-trace", "nrf52833", "s113", "ble-peripheral", "critical-section-impl", "ble-gatt-server"] }
-nrf-softdevice-s113 = { version = "0.1.0", path = "../../../../../../nrf-softdevice/nrf-softdevice-s113" }
+#nrf-softdevice = { version = "0.1.0", path = "../../../../../../nrf-softdevice/nrf-softdevice", features = ["defmt", "defmt-trace", "nrf52833", "s113", "ble-peripheral", "critical-section-impl", "ble-gatt-server"] }
+#nrf-softdevice-s113 = { version = "0.1.0", path = "../../../../../../nrf-softdevice/nrf-softdevice-s113" }
 
 [features]
 default = [
