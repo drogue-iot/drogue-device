@@ -5,6 +5,7 @@ members = [
     "macros",
     "xtask",
 ]
+resolver = "2"
 
 [patch.crates-io]
 embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }

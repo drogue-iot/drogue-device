@@ -26,7 +26,7 @@ fn update() -> Result<(), anyhow::Error> {
     cmd!("cargo update").run()?;
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
-    do_examples(examples_dir, &mut update_example)?;
+    do_examples(examples_dir, 1, usize::MAX, &mut update_example)?;
     Ok(())
 }
 
@@ -35,7 +35,7 @@ fn test_ci() -> Result<(), anyhow::Error> {
     test_device()?;
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
-    do_examples(examples_dir, &mut test_example)?;
+    do_examples(examples_dir, 1, 3, &mut test_example)?;
     Ok(())
 }
 
@@ -49,10 +49,17 @@ fn test_device() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+const MAX_DEPTH: usize = 3;
+
 fn do_examples<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
     current_dir: PathBuf,
+    depth: usize,
+    max_depth: usize,
     f: &mut F,
 ) -> Result<(), anyhow::Error> {
+    if depth > max_depth {
+        return Ok(());
+    }
     for entry in fs::read_dir(current_dir)? {
         let entry = entry?;
         let path = entry.path();
@@ -63,7 +70,7 @@ fn do_examples<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
 
         let file_type = entry.file_type()?;
         if file_type.is_dir() && !path.ends_with("target") {
-            do_examples(path, f)?;
+            do_examples(path, depth + 1, max_depth, f)?;
         }
     }
 
@@ -105,7 +112,7 @@ fn generate_examples_page() -> Result<(), anyhow::Error> {
         let mut examples_dir = root_dir();
         examples_dir.push("examples");
         let mut entries = Vec::new();
-        do_examples(examples_dir, &mut |project_file| {
+        do_examples(examples_dir, 1, usize::MAX, &mut |project_file| {
             let contents = fs::read_to_string(&project_file).expect("error reading file");
             let t = contents.parse::<toml::Value>().unwrap();
             let relative = project_file.strip_prefix(root_dir())?.parent();

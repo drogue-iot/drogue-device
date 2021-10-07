@@ -6,7 +6,6 @@ authors = [
 edition = "2018"
 name = "drogue-device"
 version = "0.1.0"
-resolver = "2"
 
 [lib]
 doctest = false
