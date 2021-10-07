@@ -8,28 +8,26 @@ name = "microbit-rak811"
 version = "0.1.0"
 description = "BBC micro:bit v2 + RAK811 LoRa Adapter with AT command firmware"
 keywords = ["networking", "lora", "lorawan", "rak811", "microbit", "nrf", "nrf52"]
-resolver = "2"
-
-[workspace]
 
 [dependencies]
-panic-probe = { version = "0.2.0", features = ["print-rtt"] }
-log = "0.4"
-rtt-logger = "0.1"
-rtt-target = { version = "0.2.0", features = ["cortex-m"] }
+defmt = "0.2"
+defmt-rtt = "0.2"
+panic-probe = { version = "0.2.0", features = ["print-defmt"] }
 
 drogue-device = { path = "../../../../device", features = ["lora+rak811"], default-features = false }
-cortex-m-rt = "0.7"
+cortex-m-rt = "0.6"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 
 embassy = { version = "0.1.0", default-features = false }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
 
-[patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-
-#embassy = { path = "../../../../../embassy/embassy" }
-#embassy-nrf = { path = "../../../../../embassy/embassy-stm32" }
-#embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }
+[features]
+default = [
+    "defmt-default",
+]
+defmt-default = []
+defmt-trace = [ ]
+defmt-debug = [ ]
+defmt-info = [ ]
+defmt-warn = [ ]
+defmt-error = [ ]

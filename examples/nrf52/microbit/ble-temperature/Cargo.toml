@@ -8,9 +8,6 @@ name = "microbit-ble-temperature"
 version = "0.1.0"
 description = "BBC micro:bit v2 BLE temperature sensor"
 keywords = ["ble", "bluetooth", "microbit", "nrf", "nrf52", "temperature"]
-resolver = "2"
-
-[workspace]
 
 [dependencies]
 defmt = "0.2"
@@ -41,15 +38,3 @@ defmt-debug = [ ]
 defmt-info = [ ]
 defmt-warn = [ ]
 defmt-error = [ ]
-
-[patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-
-#embassy = { path = "../../../../../../embassy/embassy" }
-#embassy-nrf = { path = "../../../../../../embassy/embassy-nrf" }
-#embassy-hal-common = { path = "../../../../../../embassy/embassy-hal-common" }
-
-[profile.release]
-debug = 2
