@@ -7,6 +7,8 @@ name = "ble"
 version = "0.1.0"
 description = "Bluetooth Low Energy (BLE) GATT services and actors"
 
+[workspace]
+
 [dependencies]
 drogue-device = { path = "../../device", default-features = false }
 heapless = "0.7"
