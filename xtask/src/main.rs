@@ -35,7 +35,25 @@ fn test_ci() -> Result<(), anyhow::Error> {
     test_device()?;
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
-    do_examples(examples_dir, 1, 3, &mut test_example)?;
+
+    do_examples(examples_dir, 1, usize::MAX, &mut test_example)?;
+    /*
+    for example in &[
+        "nrf52/microbit",
+        "stm32l0/lora-discovery",
+        "stm32l1/rak811",
+        "rp/pico",
+        "stm32wl/nucleo-wl55",
+        "stm32h7/nucleo-h743zi",
+        "wasm/browser",
+        "std/esp8266",
+        "std/hello",
+    ] {
+        let mut example_dir = examples_dir.clone();
+        example_dir.push(example);
+        test_example(example_dir)?;
+    }
+    */
     Ok(())
 }
 
@@ -117,22 +135,24 @@ fn generate_examples_page() -> Result<(), anyhow::Error> {
             let t = contents.parse::<toml::Value>().unwrap();
             let relative = project_file.strip_prefix(root_dir())?.parent();
             let other = vec!["other".into()];
-            let keywords = t["package"]
-                .get("keywords")
-                .map(|k| k.as_array().unwrap())
-                .unwrap_or(&other);
-            let description = t["package"]
-                .get("description")
-                .map(|s| s.as_str().unwrap())
-                .unwrap_or("Awesome example");
-            for package_kw in keywords {
-                if let toml::Value::String(s) = package_kw {
-                    if s == kw {
-                        entries.push(format!(
+            if t.get("package").is_some() {
+                let keywords = t["package"]
+                    .get("keywords")
+                    .map(|k| k.as_array().unwrap())
+                    .unwrap_or(&other);
+                let description = t["package"]
+                    .get("description")
+                    .map(|s| s.as_str().unwrap())
+                    .unwrap_or("Awesome example");
+                for package_kw in keywords {
+                    if let toml::Value::String(s) = package_kw {
+                        if s == kw {
+                            entries.push(format!(
                             "* link:https://github.com/drogue-iot/drogue-device/tree/main/{}[{}]",
                             relative.unwrap().display(),
                             description
                         ));
+                        }
                     }
                 }
             }
