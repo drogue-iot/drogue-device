@@ -620,7 +620,6 @@ checksum = "546c37ac5d9e56f55e73b677106873d9d9f5190605e41a856503623648488cae"
 [[package]]
 name = "nrf-softdevice"
 version = "0.1.0"
-source = "git+https://github.com/lulf/nrf-softdevice.git?rev=4d4123639336e23088eeb53b54d90d6f8d618195#4d4123639336e23088eeb53b54d90d6f8d618195"
 dependencies = [
  "cortex-m 0.7.3",
  "cortex-m-rt",
@@ -637,7 +636,6 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice-macro"
 version = "0.1.0"
-source = "git+https://github.com/lulf/nrf-softdevice.git?rev=4d4123639336e23088eeb53b54d90d6f8d618195#4d4123639336e23088eeb53b54d90d6f8d618195"
 dependencies = [
  "Inflector",
  "darling 0.10.2",
@@ -650,7 +648,6 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice-s113"
 version = "0.1.1"
-source = "git+https://github.com/lulf/nrf-softdevice.git?rev=4d4123639336e23088eeb53b54d90d6f8d618195#4d4123639336e23088eeb53b54d90d6f8d618195"
 
 [[package]]
 name = "nrf52833-pac"

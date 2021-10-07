@@ -7,8 +7,10 @@ use nrf_softdevice::ble::{
 use nrf_softdevice::Softdevice;
 
 mod temperature;
+mod device_info;
 
 pub use temperature::*;
+pub use device_info::*;
 
 pub struct GattServer {
     sd: &'static Softdevice,
