@@ -25,7 +25,7 @@ pub trait Actor: Sized {
     type Configuration = ();
 
     /// The message type that this actor will receive from its inbox.
-    type Message<'a>: Sized
+    type Message<'a>: Sized + Send
     where
         Self: 'a,
     = ();

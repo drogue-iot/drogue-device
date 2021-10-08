@@ -10,15 +10,10 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll};
 use embassy::channel::signal::Signal;
 use embassy::executor::{raw, raw::TaskStorage as Task, SpawnError, Spawner};
-use embassy::time::driver::{AlarmHandle, Driver};
-use embassy::time::TICKS_PER_SECOND;
 use embassy::traits::gpio::WaitForAnyEdge;
 use embedded_hal::digital::v2::InputPin;
 use std::cell::UnsafeCell;
 use std::marker::PhantomData;
-use std::mem::MaybeUninit;
-use std::ptr;
-use std::time::Instant as StdInstant;
 use std::vec::Vec;
 
 #[derive(Clone, Copy)]

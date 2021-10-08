@@ -154,12 +154,12 @@ where
 }
 
 #[cfg(feature = "defmt")]
-pub trait ToFrame: core::fmt::Debug + defmt::Format {
+pub trait ToFrame: core::fmt::Debug + defmt::Format + Sync {
     fn to_frame(&self) -> Frame;
 }
 
 #[cfg(not(feature = "defmt"))]
-pub trait ToFrame: core::fmt::Debug {
+pub trait ToFrame: core::fmt::Debug + Sync {
     fn to_frame(&self) -> Frame;
 }
 
