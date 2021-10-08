@@ -26,7 +26,7 @@ fn update() -> Result<(), anyhow::Error> {
     cmd!("cargo update").run()?;
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
-    do_examples(examples_dir, &mut update_example)?;
+    do_examples(examples_dir, 1, usize::MAX, &mut update_example)?;
     Ok(())
 }
 
@@ -35,7 +35,23 @@ fn test_ci() -> Result<(), anyhow::Error> {
     test_device()?;
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
-    do_examples(examples_dir, &mut test_example)?;
+
+    //    do_examples(examples_dir, 1, 3, &mut test_example)?;
+    for example in &[
+        "nrf52/microbit",
+        "stm32l0/lora-discovery",
+        "stm32l1/rak811",
+        "rp/pico",
+        "stm32wl/nucleo-wl55",
+        "stm32h7/nucleo-h743zi",
+        "wasm/browser",
+        "std/esp8266",
+        "std/hello",
+    ] {
+        let mut example_dir = examples_dir.clone();
+        example_dir.push(example);
+        check_example(example_dir)?;
+    }
     Ok(())
 }
 
@@ -51,8 +67,13 @@ fn test_device() -> Result<(), anyhow::Error> {
 
 fn do_examples<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
     current_dir: PathBuf,
+    depth: usize,
+    max_depth: usize,
     f: &mut F,
 ) -> Result<(), anyhow::Error> {
+    if depth > max_depth {
+        return Ok(());
+    }
     for entry in fs::read_dir(current_dir)? {
         let entry = entry?;
         let path = entry.path();
@@ -63,17 +84,17 @@ fn do_examples<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
 
         let file_type = entry.file_type()?;
         if file_type.is_dir() && !path.ends_with("target") {
-            do_examples(path, f)?;
+            do_examples(path, depth + 1, max_depth, f)?;
         }
     }
 
     Ok(())
 }
 
-fn test_example(project_file: PathBuf) -> Result<(), anyhow::Error> {
+fn check_example(project_file: PathBuf) -> Result<(), anyhow::Error> {
     println!("Building example {}", project_file.to_str().unwrap_or(""));
-    let _p = xshell::pushd(project_file.parent().unwrap())?;
-    cmd!("cargo build --release").run()?;
+    let _p = xshell::pushd(project_file)?;
+    cmd!("cargo check").run()?;
     Ok(())
 }
 
@@ -105,27 +126,29 @@ fn generate_examples_page() -> Result<(), anyhow::Error> {
         let mut examples_dir = root_dir();
         examples_dir.push("examples");
         let mut entries = Vec::new();
-        do_examples(examples_dir, &mut |project_file| {
+        do_examples(examples_dir, 1, usize::MAX, &mut |project_file| {
             let contents = fs::read_to_string(&project_file).expect("error reading file");
             let t = contents.parse::<toml::Value>().unwrap();
             let relative = project_file.strip_prefix(root_dir())?.parent();
             let other = vec!["other".into()];
-            let keywords = t["package"]
-                .get("keywords")
-                .map(|k| k.as_array().unwrap())
-                .unwrap_or(&other);
-            let description = t["package"]
-                .get("description")
-                .map(|s| s.as_str().unwrap())
-                .unwrap_or("Awesome example");
-            for package_kw in keywords {
-                if let toml::Value::String(s) = package_kw {
-                    if s == kw {
-                        entries.push(format!(
+            if t.get("package").is_some() {
+                let keywords = t["package"]
+                    .get("keywords")
+                    .map(|k| k.as_array().unwrap())
+                    .unwrap_or(&other);
+                let description = t["package"]
+                    .get("description")
+                    .map(|s| s.as_str().unwrap())
+                    .unwrap_or("Awesome example");
+                for package_kw in keywords {
+                    if let toml::Value::String(s) = package_kw {
+                        if s == kw {
+                            entries.push(format!(
                             "* link:https://github.com/drogue-iot/drogue-device/tree/main/{}[{}]",
                             relative.unwrap().display(),
                             description
                         ));
+                        }
                     }
                 }
             }

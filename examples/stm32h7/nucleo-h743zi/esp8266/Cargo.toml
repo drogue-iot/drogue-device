@@ -10,8 +10,6 @@ resolver = "2"
 description = "STM32 Nucleo-H743 + ESP8266 WiFi adapter"
 keywords = ["networking", "wifi", "esp8266", "stm32", "stm32h7"]
 
-[workspace]
-
 [dependencies]
 defmt = "0.2"
 defmt-rtt = "0.2"
@@ -21,7 +19,7 @@ embedded-hal = { version = "0.2.4", features = ["unproven"] }
 drogue-device = { path = "../../../../device", features = ["wifi+esp8266", "defmt", "defmt-trace"], default-features = false }
 drogue-tls = { git = "https://github.com/drogue-iot/drogue-tls.git", rev = "59cb23017f546da8e0f186042758226165400548", default-features = false, features = ["async", "defmt"], optional = true}
 #drogue-tls = {path = "../../../../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
-wifi-app = { path = "../../../../apps/wifi" }
+wifi-app = { path = "../../../../apps/wifi", features = ["defmt"]}
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 heapless = "0.6"
@@ -35,17 +33,3 @@ embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm3
 [features]
 default = []
 tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls"]
-
-[profile.release]
-debug = 2
-opt-level = "s"
-lto = "fat"
-
-[patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-
-# embassy = { path = "../../../../../embassy/embassy" }
-# embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
-# embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }

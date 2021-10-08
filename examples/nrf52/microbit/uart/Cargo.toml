@@ -9,16 +9,14 @@ version = "0.1.0"
 description = "BBC micro:bit v2 uart and matrix display"
 keywords = ["uart", "microbit", "nrf", "nrf52", "display"]
 
-[workspace]
-
 [dependencies]
 defmt = "0.2"
 defmt-rtt = "0.2"
 panic-probe = { version = "0.2.0", features = ["print-defmt"] }
 
 drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "defmt-info", "fonts", "time"] }
-cortex-m-rt = "0.7"
-cortex-m = { version = "0.6", features = ["inline-asm"] }
+cortex-m-rt = "0.6"
+cortex-m = { version = "0.7", features = ["inline-asm"] }
 
 embassy = { version = "0.1.0", default-features = false }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
@@ -33,12 +31,3 @@ defmt-debug = [ ]
 defmt-info = [ ]
 defmt-warn = [ ]
 defmt-error = [ ]
-
-[patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-
-#embassy = { path = "../../../../../embassy/embassy" }
-#embassy-nrf = { path = "../../../../../embassy/embassy-stm32" }
-#embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }

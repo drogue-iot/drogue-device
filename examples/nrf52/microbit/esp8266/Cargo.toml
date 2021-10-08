@@ -8,75 +8,37 @@ name = "microbit-esp8266"
 version = "0.1.0"
 description = "BBC micro:bit v2 + ESP8266 WiFi adapter"
 keywords = ["networking", "wifi", "esp8266", "microbit", "nrf", "nrf52"]
-resolver = "2"
-
-[workspace]
 
 [dependencies]
-panic-probe = { version = "0.2.0", features = ["print-rtt"] }
-log = "0.4"
-rtt-logger = "0.1"
-rtt-target = { version = "0.2.0", features = ["cortex-m"] }
+defmt = "0.2"
+defmt-rtt = "0.2"
+panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+
 rand_core = { version = "0.6.2", default-features = false }
 
-drogue-device = { path = "../../../../device", features = ["wifi+esp8266", "log"], default-features = false }
+drogue-device = { path = "../../../../device", features = ["wifi+esp8266", "defmt", "defmt-info"], default-features = false }
 drogue-tls = { git = "https://github.com/drogue-iot/drogue-tls.git", rev = "59cb23017f546da8e0f186042758226165400548", default-features = false, features = ["async"], optional = true}
 #drogue-tls = { version = "0.2.0", default-features = false, features = ["async"], optional = true}
 #drogue-tls = {path = "../../../drogue-tls", default-features = false, optional = true}
-wifi-app = { path = "../../../../apps/wifi" }
+wifi-app = { path = "../../../../apps/wifi", features = ["defmt", "defmt-info"] }
 cortex-m-rt = "0.6"
-cortex-m = { version = "0.6", features = ["inline-asm"] }
+cortex-m = { version = "0.7", features = ["inline-asm"] }
 
-embassy = { version = "0.1.0", default-features = false }
+embassy = { version = "0.1.0", default-features = false, features = ["defmt"] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
-nrf52833-pac = { version = "0.9", features = ["rt"] }
+# nrf52833-pac = { version = "0.10" }
 #embassy = {path = "../../../../../../embassy/embassy", default-features = false}
 #embassy-nrf = {path = "../../../../../../embassy/embassy-nrf", default-features = false, features = ["nrf52833"]}
 cfg-if = "1.0.0"
 
-heapless = "0.6"
-
 [features]
-default = []
-tls = ["drogue-tls", "drogue-tls/log", "drogue-device/tls"]
-
-[profile.dev]
-codegen-units = 1
-debug = 2
-debug-assertions = true
-incremental = false
-opt-level = 3
-overflow-checks = true
-
-[profile.release]
-codegen-units = 1
-debug = 2
-debug-assertions = false
-incremental = false
-lto = "fat"
-opt-level = 's'
-overflow-checks = false
-
-# do not optimize proc-macro crates = faster builds from scratch
-[profile.dev.build-override]
-codegen-units = 8
-debug = false
-debug-assertions = false
-opt-level = 0
-overflow-checks = false
-
-[profile.release.build-override]
-codegen-units = 8
-debug = false
-debug-assertions = false
-opt-level = 0
-overflow-checks = false
-
-[patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-
-#embassy = { path = "../../../../../embassy/embassy" }
-#embassy-nrf = { path = "../../../../../embassy/embassy-stm32" }
-#embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }
+default = [
+    "defmt-default",
+]
+tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls"]
+defmt-default = []
+defmt-trace = [ ]
+defmt-debug = [ ]
+defmt-info = [ ]
+defmt-warn = [ ]
+defmt-error = [ ]

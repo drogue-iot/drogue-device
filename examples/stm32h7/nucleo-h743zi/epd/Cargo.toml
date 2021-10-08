@@ -10,8 +10,6 @@ description = "STM32 Nucleo-H743 7-color e-paper display"
 keywords = ["spi", "stm32h7", "epd", "display"]
 resolver = "2"
 
-[workspace]
-
 [features]
 default = [
     "defmt-default",
@@ -41,18 +39,3 @@ tinybmp = "0.3.1"
 
 embassy = { version = "0.1.0", default-features = false }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
-
-
-[profile.release]
-debug = 2
-opt-level = "s"
-lto = "fat"
-
-[patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-
-# embassy = { path = "../../../../../embassy/embassy" }
-# embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
-# embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }

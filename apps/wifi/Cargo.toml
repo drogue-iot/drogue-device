@@ -9,5 +9,14 @@ version = "0.1.0"
 
 [dependencies]
 drogue-device = { path = "../../device", default-features = false }
-log = "0.4"
-heapless = "0.6"
+defmt = { version = "0.2", optional = true }
+log = { version = "0.4", optional = true }
+
+[features]
+
+defmt-default = [ ]
+defmt-trace = [ ]
+defmt-debug = [ ]
+defmt-info = [ ]
+defmt-warn = [ ]
+defmt-error = [ ]

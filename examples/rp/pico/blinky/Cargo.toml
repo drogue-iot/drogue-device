@@ -10,8 +10,6 @@ version = "0.1.0"
 description = "Raspberry Pi Pico Blinky"
 keywords = ["rp", "rpi", "pico", "blinky", "basic"]
 
-[workspace]
-
 [dependencies]
 defmt = "0.2"
 defmt-rtt = "0.2"
@@ -37,12 +35,3 @@ defmt-debug = [ ]
 defmt-info = [ ]
 defmt-warn = [ ]
 defmt-error = [ ]
-
-[patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-
-#embassy = { path = "../../../../../embassy/embassy" }
-#embassy-rp = { path = "../../../../../embassy/embassy-stm32" }
-#embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }

@@ -8,10 +8,8 @@ mod app;
 
 use app::*;
 
-use log::LevelFilter;
+use defmt_rtt as _;
 use panic_probe as _;
-use rtt_logger::RTTLogger;
-use rtt_target::rtt_init_print;
 
 use core::cell::UnsafeCell;
 use drogue_device::{
@@ -31,8 +29,6 @@ const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/dev_eui.txt
 const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_eui.txt"));
 const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_key.txt"));
 
-static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Info);
-
 type UART = BufferedUarte<'static, UARTE0, TIMER0>;
 type RESET = Output<'static, P1_02>;
 
@@ -50,10 +46,6 @@ static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
-    rtt_init_print!();
-    log::set_logger(&LOGGER).unwrap();
-    log::set_max_level(log::LevelFilter::Info);
-
     let button_port = PortInput::new(Input::new(p.P0_14, Pull::Up));
 
     let mut config = uarte::Config::default();

@@ -19,7 +19,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: Swatinem/rust-cache@v1
+      - name: cache
+        id: cache-target
+        uses: actions/cache@v2
+        with:
+          path: target
+          key: ${{ runner.os }}
 
       - name: CI
         run: cargo xtask ci

@@ -456,7 +456,6 @@ dependencies = [
  "embassy-stm32",
  "embedded-hal",
  "futures",
- "generic-array 0.14.4",
  "heapless",
  "lorawan-device",
  "lorawan-encoding",
