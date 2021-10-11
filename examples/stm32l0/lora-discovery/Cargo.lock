@@ -476,7 +476,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=9fec833015579cca5f1b398745cac7ad08245f0c#9fec833015579cca5f1b398745cac7ad08245f0c"
 dependencies = [
  "atomic-polyfill",
  "cortex-m 0.7.3",
@@ -492,7 +492,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=9fec833015579cca5f1b398745cac7ad08245f0c#9fec833015579cca5f1b398745cac7ad08245f0c"
 dependencies = [
  "cortex-m 0.7.3",
  "embassy",
@@ -503,7 +503,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=9fec833015579cca5f1b398745cac7ad08245f0c#9fec833015579cca5f1b398745cac7ad08245f0c"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -514,7 +514,7 @@ dependencies = [
 [[package]]
 name = "embassy-stm32"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=9fec833015579cca5f1b398745cac7ad08245f0c#9fec833015579cca5f1b398745cac7ad08245f0c"
 dependencies = [
  "atomic-polyfill",
  "bare-metal 1.0.0",
@@ -540,7 +540,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=9fec833015579cca5f1b398745cac7ad08245f0c#9fec833015579cca5f1b398745cac7ad08245f0c"
 dependencies = [
  "embedded-hal",
 ]
@@ -840,7 +840,7 @@ dependencies = [
 [[package]]
 name = "lorawan-device"
 version = "0.2.0"
-source = "git+https://github.com/lulf/rust-lorawan.git?rev=a373d06fa8858d251bc70d5789cebcd9a638ec42#a373d06fa8858d251bc70d5789cebcd9a638ec42"
+source = "git+https://github.com/lulf/rust-lorawan.git?rev=e529b74421346cb6537f8872d3c8eddcf14804b4#e529b74421346cb6537f8872d3c8eddcf14804b4"
 dependencies = [
  "as-slice 0.2.1",
  "futures",
@@ -853,7 +853,7 @@ dependencies = [
 [[package]]
 name = "lorawan-encoding"
 version = "0.6.2"
-source = "git+https://github.com/lulf/rust-lorawan.git?rev=a373d06fa8858d251bc70d5789cebcd9a638ec42#a373d06fa8858d251bc70d5789cebcd9a638ec42"
+source = "git+https://github.com/lulf/rust-lorawan.git?rev=e529b74421346cb6537f8872d3c8eddcf14804b4#e529b74421346cb6537f8872d3c8eddcf14804b4"
 dependencies = [
  "aes",
  "cmac",
@@ -1199,7 +1199,7 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 [[package]]
 name = "stm32-metapac"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=9fec833015579cca5f1b398745cac7ad08245f0c#9fec833015579cca5f1b398745cac7ad08245f0c"
 dependencies = [
  "cortex-m 0.7.3",
  "cortex-m-rt",
@@ -1210,7 +1210,7 @@ dependencies = [
 [[package]]
 name = "stm32-metapac-gen"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=d9e2d176256ef4959c1ba60893ea361363d480d3#d9e2d176256ef4959c1ba60893ea361363d480d3"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=9fec833015579cca5f1b398745cac7ad08245f0c#9fec833015579cca5f1b398745cac7ad08245f0c"
 dependencies = [
  "chiptool",
  "proc-macro2",
@@ -1276,18 +1276,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.29"
+version = "1.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "602eca064b2d83369e2b2f34b09c70b605402801927c65c11071ac911d299b88"
+checksum = "854babe52e4df1653706b98fcfc05843010039b406875930a70e4d9644e5c417"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.29"
+version = "1.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bad553cc2c78e8de258400763a647e80e6d1b31ee237275d756f6836d204494c"
+checksum = "aa32fd3f627f367fe16f893e2597ae3c05020f8bba2666a4e6ea73d377e5714b"
 dependencies = [
  "proc-macro2",
  "quote",
