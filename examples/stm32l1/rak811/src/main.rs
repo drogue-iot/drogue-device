@@ -9,14 +9,9 @@ use defmt_rtt as _;
 use embedded_hal::digital::v2::OutputPin;
 use panic_probe as _;
 
-use drogue_device::{
-    actors::lora::*,
-    drivers::led::*,
-    drivers::lora::{sx127x::*, *},
-    traits::lora::*,
-    *,
-};
+use drogue_device::{actors::lora::*, drivers::led::*, drivers::lora::*, traits::lora::*, *};
 use embassy::time::Duration;
+use embassy_lora::sx127x::*;
 use embassy_stm32::{
     dbgmcu::Dbgmcu,
     dma::NoDma,
@@ -156,7 +151,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let lora = unsafe {
         LoraDevice::new(
             &config,
-            Sx127xRadio::new(spi, cs, reset, irq_pin, rfs).unwrap(),
+            Sx127xRadio::new(spi, cs, reset, irq_pin, rfs, &mut embassy::time::Delay).unwrap(),
             rng,
             &mut RADIO_BUFFER,
         )

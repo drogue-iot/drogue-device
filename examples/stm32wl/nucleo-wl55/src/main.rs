@@ -12,10 +12,11 @@ use panic_probe as _;
 use drogue_device::{
     actors::{button::*, lora::*},
     drivers::led::*,
-    drivers::lora::{stm32wl::*, *},
+    drivers::lora::*,
     traits::lora::{JoinMode, LoraConfig, LoraMode, LoraRegion, SpreadingFactor},
     *,
 };
+use embassy_lora::stm32wl::*;
 use embassy_stm32::{
     dbgmcu::Dbgmcu,
     dma::NoDma,
@@ -79,8 +80,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let ctrl1 = Output::new(p.PC3.degrade(), Level::High, Speed::High);
     let ctrl2 = Output::new(p.PC4.degrade(), Level::High, Speed::High);
     let ctrl3 = Output::new(p.PC5.degrade(), Level::High, Speed::High);
-    let mut rfs = RadioSwitch::new(ctrl1, ctrl2, ctrl3);
-    rfs.set_rx();
+    let rfs = RadioSwitch::new(ctrl1, ctrl2, ctrl3);
 
     let radio = SubGhz::new(p.SUBGHZSPI, p.PA5, p.PA7, p.PA6, NoDma, NoDma);
 

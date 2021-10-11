@@ -22,6 +22,7 @@ lorawan-encoding = { git = "https://github.com/lulf/rust-lorawan.git", rev = "e5
 
 bit_field = { version = "0.10", optional = true }
 embassy-stm32 = { version = "0.1.0", default-features = false, optional = true }
+embassy-lora = { version = "0.1.0", default-features = false, optional = true }
 #embassy-stm32 = {path = "../../../embassy/embassy-stm32", default-features = false, optional = true }
 
 # Wifi Dependencies
@@ -58,12 +59,10 @@ arrayvec = { version = "0.6" }
 [features]
 default = [ "std", "log", "time" ]
 std = ["embassy/std", "embassy/time"]
-"lora+sx127x" = ["lorawan-device", "lorawan-encoding", "bit_field", "lora", "embassy/time"]
-"lora+stm32wl" = ["lorawan-device", "lorawan-encoding", "bit_field", "embassy-stm32/subghz", "lora", "embassy/time"]
 "lora+rak811" = ["nom", "moveslice"]
 "wifi+esp8266" = ["nom", "moveslice"]
 time = []
-lora = ["rand_core"]
+lora = ["rand_core", "embassy-lora", "lorawan-device", "lorawan-encoding", "embassy/time"]
 wifi = []
 fonts = []
 tls = ["drogue-tls", "rand_core"]

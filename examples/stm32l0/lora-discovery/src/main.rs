@@ -11,10 +11,11 @@ use panic_probe as _;
 use drogue_device::{
     actors::{button::*, lora::*},
     drivers::led::*,
-    drivers::lora::{sx127x::*, *},
+    drivers::lora::*,
     traits::lora::*,
     *,
 };
+use embassy_lora::sx127x::*;
 use embassy_stm32::{
     dbgmcu::Dbgmcu,
     dma::NoDma,
@@ -107,7 +108,15 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
     let ready = Input::new(p.PB4, Pull::Up);
     let ready_pin = ExtiInput::new(ready, p.EXTI4);
 
-    let radio = Sx127xRadio::new(spi, cs, reset, ready_pin, DummySwitch).unwrap();
+    let radio = Sx127xRadio::new(
+        spi,
+        cs,
+        reset,
+        ready_pin,
+        DummySwitch,
+        &mut embassy::time::Delay,
+    )
+    .unwrap();
     let join_mode = JoinMode::OTAA {
         dev_eui: DEV_EUI.trim_end().into(),
         app_eui: APP_EUI.trim_end().into(),
