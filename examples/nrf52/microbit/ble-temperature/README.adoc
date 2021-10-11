@@ -30,12 +30,12 @@ On the phone, you need a BLE client. This example have been tested with the link
 
 Download the link:https://www.nordicsemi.com/Products/Development-software/S113[Nordic nRF SoftDevice] firmware for the BLE protocl stack.
 
-Unzip the downloaded artifact and locate the file `s140_nrf52_7.3.0_softdevice.hex`, which is the firmware we're going to flash.
+Unzip the downloaded artifact and locate the file `s113_nrf52_7.3.0_softdevice.hex`, which is the firmware we're going to flash.
 
 To flash the device (make sure it is connected) run:
 
 ```rust
-probe-rs-cli download s140_nrf52_7.3.0_softdevice.hex --chip nRF52833_xxAA --format Hex
+probe-rs-cli download s113_nrf52_7.3.0_softdevice.hex --chip nRF52833_xxAA --format Hex
 ```
 
 === Running the example

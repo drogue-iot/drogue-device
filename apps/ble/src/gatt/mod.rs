@@ -1,10 +1,9 @@
 use core::future::Future;
 use drogue_device::{Actor, Address, Inbox};
 use nrf_softdevice::ble::{
-    gatt_server::{self, RegisterError, Server},
+    gatt_server::{self, Server},
     Connection,
 };
-use nrf_softdevice::Softdevice;
 
 mod device_info;
 mod temperature;
@@ -12,31 +11,47 @@ mod temperature;
 pub use device_info::*;
 pub use temperature::*;
 
-pub struct GattServer {
-    sd: &'static Softdevice,
+pub struct GattServer<S, E>
+where
+    S: Server + 'static,
+    E: GattEventHandler<S> + 'static,
+{
+    _m1: core::marker::PhantomData<&'static S>,
+    _m2: core::marker::PhantomData<&'static E>,
 }
 
 pub enum GattServerEvent {
     NewConnection(Connection),
 }
 
-impl GattServer {
-    pub fn new(sd: &'static Softdevice) -> Self {
-        Self { sd }
-    }
+pub trait GattEventHandler<S>
+where
+    S: Server,
+{
+    fn on_event(&mut self, connection: Connection, event: S::Event);
+}
 
-    pub fn register<S: Server>(&mut self) -> Result<S, RegisterError> {
-        gatt_server::register(self.sd)
+impl<S, E> GattServer<S, E>
+where
+    S: Server,
+    E: GattEventHandler<S>,
+{
+    pub fn new() -> Self {
+        Self {
+            _m1: core::marker::PhantomData,
+            _m2: core::marker::PhantomData,
+        }
     }
 }
 
-impl Actor for GattServer {
+impl<S, E> Actor for GattServer<S, E>
+where
+    S: Server,
+    E: GattEventHandler<S>,
+{
     type Message<'m> = GattServerEvent;
 
-    type Configuration = (
-        &'static TemperatureService,
-        Address<'static, TemperatureMonitor>,
-    );
+    type Configuration = (&'static S, E);
 
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where Self: 'm, M: 'm = impl Future<Output = ()> + 'm;
@@ -49,19 +64,16 @@ impl Actor for GattServer {
     where
         M: Inbox<'m, Self> + 'm,
     {
-        let (service, monitor) = configuration;
+        let (server, mut handler) = configuration;
         async move {
             loop {
                 loop {
                     if let Some(mut m) = inbox.next().await {
                         let GattServerEvent::NewConnection(conn) = m.message();
                         // Run the GATT server on the connection. This returns when the connection gets disconnected.
-                        let res = gatt_server::run(conn, |e| {
+                        let res = gatt_server::run(conn, server, |e| {
                             trace!("GATT write event received");
-                            if let Some(e) = service.on_write(e) {
-                                trace!("Notifying temperature monitor");
-                                monitor.notify((conn.clone(), e)).unwrap();
-                            }
+                            handler.on_event(conn.clone(), e);
                         })
                         .await;
 
@@ -75,7 +87,11 @@ impl Actor for GattServer {
     }
 }
 
-impl super::advertiser::Acceptor for Address<'static, GattServer> {
+impl<S, E> super::advertiser::Acceptor for Address<'static, GattServer<S, E>>
+where
+    S: Server,
+    E: GattEventHandler<S>,
+{
     type Error = ();
     fn accept(&mut self, connection: Connection) -> Result<(), Self::Error> {
         self.notify(GattServerEvent::NewConnection(connection))

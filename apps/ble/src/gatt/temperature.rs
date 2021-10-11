@@ -9,7 +9,7 @@ use heapless::Vec;
 use embassy::time::Ticker;
 use futures::{future::select, future::Either, pin_mut, StreamExt};
 
-#[nrf_softdevice::gatt_server(uuid = "e95d6100-251d-470a-a062-fa1922dfa9a8")]
+#[nrf_softdevice::gatt_service(uuid = "e95d6100-251d-470a-a062-fa1922dfa9a8")]
 pub struct TemperatureService {
     #[characteristic(uuid = "e95d9250-251d-470a-a062-fa1922dfa9a8", read, notify)]
     temperature: i8,
