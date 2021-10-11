@@ -30,9 +30,9 @@ drogue-tls = { git = "https://github.com/drogue-iot/drogue-tls.git", rev = "59cb
 cfg-if = "1.0.0"
 
 atomic-polyfill = "0.1.3"
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "9082e5f6c5982e7d220f54c8e64e0dd27c6c579d", default-features = false, features=["defmt", "time"] }
-embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "9082e5f6c5982e7d220f54c8e64e0dd27c6c579d", default-features = false, features = ["defmt", "stm32l475vg", "time-driver-tim2", "memory-x"] }
-wifi-app = { path = "../../common/wifi" }
+embassy = { version = "0.1.0", default-features = false, features=["defmt", "time", "time-tick-32768hz"] }
+embassy-stm32 = {version = "0.1.0", default-features = false, features = ["defmt", "stm32l475vg", "time-driver-tim2", "memory-x"] }
+wifi-app = { path = "../../../apps/wifi", features = ["defmt", "defmt-info"] }
 
 
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
@@ -50,7 +50,9 @@ defmt-error = []
 tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls"]
 
 [patch.crates-io]
-cortex-m = { git = "https://github.com/rust-embedded/cortex-m.git", branch = "master", features = ["device"] }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
+embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
 
 [profile.release]
 codegen-units = 1
