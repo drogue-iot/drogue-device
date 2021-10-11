@@ -20,7 +20,7 @@ defmt-rtt = "0.2.0"
 panic-probe = { version = "0.2.0", features = ["print-defmt"] }
 #panic-halt = "0.2"
 
-drogue-device = { path = "../../../device", features = ["lora+stm32wl", "defmt", "defmt-info"], default-features = false }
+drogue-device = { path = "../../../device", features = ["lora", "defmt", "defmt-info"], default-features = false }
 cortex-m-rt = ">=0.6.15,<0.8" #"0.7"
 cortex-m = { version = "0.7.3", features = ["inline-asm"] }
 heapless = "0.7"
@@ -28,6 +28,7 @@ void = { version = "1", default-features = false }
 rand_core = { version = "0.6", default-features = false }
 
 embassy = { version = "0.1.0", default-features = false }
+embassy-lora = { version = "0.1.0", default-features = false, features = ["stm32wl"] }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["defmt", "stm32wl55jc_cm4", "time-driver-tim2", "unstable-pac", "subghz"] }
 
 [features]
@@ -52,9 +53,10 @@ incremental = false
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "9fec833015579cca5f1b398745cac7ad08245f0c" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "9fec833015579cca5f1b398745cac7ad08245f0c" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "9fec833015579cca5f1b398745cac7ad08245f0c" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "5ae276fe50d1445c9f2e8df3871b247f7d59fc0c" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "5ae276fe50d1445c9f2e8df3871b247f7d59fc0c" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "5ae276fe50d1445c9f2e8df3871b247f7d59fc0c" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "5ae276fe50d1445c9f2e8df3871b247f7d59fc0c" }
 
 #embassy = { path = "../../../../../embassy/embassy" }
 #embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
