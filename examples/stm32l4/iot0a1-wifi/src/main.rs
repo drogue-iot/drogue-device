@@ -10,25 +10,25 @@
 use defmt_rtt as _;
 use panic_probe as _;
 
-use wifi_app::*;
 use drogue_device::{
+    actors::button::*,
     actors::socket::*,
     actors::wifi::*,
-    actors::button::*,
     traits::{ip::*, tcp::TcpStack, wifi::*},
-//    actors::wifi::eswifi::*,
-//    traits::{wifi::*},
-    *};
-use embassy_stm32::dbgmcu::Dbgmcu;
-use embassy_stm32::{
-    gpio::{Level, Input, Output, Speed, Pull},
-    exti::*,
-    peripherals:: {PA5, PB13, PB12, PC13, PE0, PE1, PE8, SPI3, RNG},
-    rng::Rng,
-    Peripherals,
+    //    actors::wifi::eswifi::*,
+    //    traits::{wifi::*},
+    *,
 };
+use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::spi::{self, Config, Spi};
 use embassy_stm32::time::Hertz;
+use embassy_stm32::{
+    exti::*,
+    gpio::{Input, Level, Output, Pull, Speed},
+    peripherals::{PB13, PC13, PE0, PE1, PE8, SPI3},
+    Peripherals,
+};
+use wifi_app::*;
 //use defmt::*;
 use embassy_stm32::dma::NoDma;
 //use embedded_hal::digital::v2::{InputPin, OutputPin};
@@ -46,7 +46,7 @@ cfg_if::cfg_if! {
         const PORT: u16 = 443;
         static mut TLS_BUFFER: [u8; 16384] = [0u8; 16384];
     } else {
-        const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP for local network server
+        const IP: IpAddress = IpAddress::new_v4(192, 168, 68, 110); // IP for local network server
         const PORT: u16 = 12345;
     }
 }
@@ -66,8 +66,7 @@ type SpiError = spi::Error;
 type EsWifi = EsWifiController<SPI, CS, RESET, WAKE, READY, SpiError>;
 
 #[cfg(feature = "tls")]
-type AppSocket =
-    TlsSocket<'static, Socket<'static, EsWifi>, Rng<RNG>, Aes128GcmSha256>;
+type AppSocket = TlsSocket<'static, Socket<'static, EsWifi>, Rng<RNG>, Aes128GcmSha256>;
 
 #[cfg(not(feature = "tls"))]
 type AppSocket = Socket<'static, EsWifi>;
@@ -114,8 +113,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let button_pin = Input::new(p.PC13, Pull::Up);
     let button = ExtiInput::new(button_pin, p.EXTI13);
 
-
-
     /*
     let ip = wifi.join_wep(WIFI_SSID, WIFI_PSK).await;
     defmt::info!("Joined...");
@@ -147,15 +144,11 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             #[cfg(feature = "tls")]
             let socket = TlsSocket::wrap(
                 socket,
-                TlsContext::new(rng, unsafe {
-                    &mut TLS_BUFFER
-                })
-                .with_server_name(HOST.trim_end()),
+                TlsContext::new(rng, unsafe { &mut TLS_BUFFER }).with_server_name(HOST.trim_end()),
             );
             let app = device.app.mount(socket, spawner);
             device.button.mount(app, spawner);
         })
         .await;
     defmt::info!("Application initialized. Press 'User' button to send data");
-
 }

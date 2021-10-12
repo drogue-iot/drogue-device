@@ -1,7 +1,10 @@
 mod parser;
+mod socket_pool;
 
-use embedded_hal::digital::v2::OutputPin;
+use socket_pool::SocketPool;
+
 use embedded_hal::digital::v2::InputPin;
+use embedded_hal::digital::v2::OutputPin;
 
 use crate::actors::wifi::Adapter;
 use crate::traits::{
@@ -10,15 +13,13 @@ use crate::traits::{
     wifi::{Join, JoinError, WifiSupplicant},
 };
 
-use embedded_hal::blocking::spi::{Transfer, Write};
-use heapless::String;
 use core::fmt::Write as FmtWrite;
 use core::future::Future;
 use embassy::time::{Duration, Timer};
+use embedded_hal::blocking::spi::{Transfer, Write};
+use heapless::String;
 
-use parser::{
-    JoinResponse,
-};
+use parser::{CloseResponse, ConnectResponse, JoinResponse, ReadResponse, WriteResponse};
 
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -60,6 +61,7 @@ where
     reset: RESET,
     wakeup: WAKEUP,
     ready: READY,
+    socket_pool: SocketPool,
 }
 
 impl<SPI, CS, RESET, WAKEUP, READY, E> EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
@@ -71,19 +73,14 @@ where
     READY: InputPin + 'static,
     E: 'static,
 {
-    pub fn new(
-        spi: SPI,
-        cs: CS,
-        reset: RESET,
-        wakeup: WAKEUP,
-        ready: READY,
-    ) -> Self {
+    pub fn new(spi: SPI, cs: CS, reset: RESET, wakeup: WAKEUP, ready: READY) -> Self {
         Self {
             spi,
             cs,
             reset,
             wakeup,
             ready,
+            socket_pool: SocketPool::new(),
         }
     }
 
@@ -101,7 +98,7 @@ where
         Timer::after(Duration::from_millis(50)).await;
     }
 
-    pub async fn start(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>>{
+    pub async fn start(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
         info!("Starting eS-WiFi adapter!");
 
         self.reset().await;
@@ -144,8 +141,7 @@ where
         } else {
             // disable verbosity
             let mut resp = [0; 16];
-            self.send_string(&command!(8, "MT=1"), &mut resp)
-                .await?;
+            self.send_string(&command!(8, "MT=1"), &mut resp).await?;
             //self.state = State::Ready;
             info!("eS-WiFi adapter is ready");
         }
@@ -167,7 +163,6 @@ where
         self.send(&command!(72, "C2={}", password).as_bytes(), &mut response)
             .await
             .map_err(|_| JoinError::InvalidPassword)?;
-
 
         self.send(&command!(8, "C3=4").as_bytes(), &mut response)
             .await
@@ -228,7 +223,10 @@ where
         self.receive(response).await
     }
 
-    async fn receive<'a>(&'a mut self, response: &'a mut [u8]) -> Result<&'a [u8], Error<E, CS::Error, RESET::Error, READY::Error>> {
+    async fn receive<'a>(
+        &'a mut self,
+        response: &'a mut [u8],
+    ) -> Result<&'a [u8], Error<E, CS::Error, RESET::Error, READY::Error>> {
         let mut pos = 0;
 
         self.cs.set_low().map_err(CS)?;
@@ -259,10 +257,10 @@ where
 
         Ok(&response[0..pos])
     }
-
 }
 
-impl<SPI, CS, RESET, WAKEUP, READY, E> WifiSupplicant for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
+impl<SPI, CS, RESET, WAKEUP, READY, E> WifiSupplicant
+    for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin + 'static,
@@ -283,7 +281,8 @@ where
     }
 }
 
-impl<SPI, CS, RESET, WAKEUP, READY, E> TcpStack for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
+impl<SPI, CS, RESET, WAKEUP, READY, E> TcpStack
+    for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin + 'static,
@@ -297,7 +296,7 @@ where
     #[rustfmt::skip]
     type OpenFuture<'m> where SPI: 'm = impl Future<Output = Self::SocketHandle> + 'm;
     fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
-        async move { todo!() }
+        async move { self.socket_pool.open().await }
     }
 
     #[rustfmt::skip]
@@ -305,16 +304,132 @@ where
     fn connect<'m>(
         &'m mut self,
         handle: Self::SocketHandle,
-        _: IpProtocol,
+        proto: IpProtocol,
         dst: SocketAddress,
     ) -> Self::ConnectFuture<'m> {
-        async move { todo!() }
+        async move {
+            let mut response = [0u8; 1024];
+
+            let result = async {
+                self.send_string(&command!(8, "P0={}", handle), &mut response)
+                    .await
+                    .map_err(|_| TcpError::ConnectError)?;
+
+                match proto {
+                    IpProtocol::Tcp => {
+                        self.send_string(&command!(8, "P1=0"), &mut response)
+                            .await
+                            .map_err(|_| TcpError::ConnectError)?;
+                    }
+                    IpProtocol::Udp => {
+                        self.send_string(&command!(8, "P1=1"), &mut response)
+                            .await
+                            .map_err(|_| TcpError::ConnectError)?;
+                    }
+                }
+
+                self.send_string(&command!(32, "P3={}", dst.ip()), &mut response)
+                    .await
+                    .map_err(|_| TcpError::ConnectError)?;
+
+                self.send_string(&command!(32, "P4={}", dst.port()), &mut response)
+                    .await
+                    .map_err(|_| TcpError::ConnectError)?;
+
+                let response = self
+                    .send_string(&command!(8, "P6=1"), &mut response)
+                    .await
+                    .map_err(|_| TcpError::ConnectError)?;
+
+                if let Ok((_, ConnectResponse::Ok)) = parser::connect_response(&response) {
+                    Ok(())
+                } else {
+                    Err(TcpError::ConnectError)
+                }
+            }
+            .await;
+            result
+        }
     }
 
     #[rustfmt::skip]
     type WriteFuture<'m> where SPI: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
     fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
-        async move { todo!() }
+        async move {
+            let mut len = buf.len();
+            if len > 1046 {
+                len = 1046
+            }
+
+            let mut response = [0u8; 1024];
+
+            let result = async {
+                let command = command!(8, "P0={}", handle);
+                self.send(command.as_bytes(), &mut response)
+                    .await
+                    .map_err(|_| TcpError::WriteError)?;
+
+                self.send_string(&command!(8, "P0={}", handle), &mut response)
+                    .await
+                    .map_err(|_| TcpError::WriteError)?;
+
+                self.send_string(&command!(16, "S1={}", len), &mut response)
+                    .await
+                    .map_err(|_| TcpError::WriteError)?;
+
+                // to ensure it's an even number of bytes, abscond with 1 byte from the payload.
+                let prefix = [b'S', b'0', b'\r', buf[0]];
+                let remainder = &buf[1..len];
+
+                while self.ready.is_low().map_err(|_| TcpError::WriteError)? {}
+
+                self.cs.set_low().map_err(|_| TcpError::WriteError)?;
+
+                for chunk in prefix.chunks(2) {
+                    let mut xfer: [u8; 2] = [0; 2];
+                    xfer[1] = chunk[0];
+                    xfer[0] = chunk[1];
+                    if chunk.len() == 2 {
+                        xfer[0] = chunk[1]
+                    } else {
+                        xfer[0] = 0x0A
+                    }
+
+                    self.spi
+                        .transfer(&mut xfer)
+                        .map_err(|_| TcpError::WriteError)?;
+                }
+
+                for chunk in remainder.chunks(2) {
+                    let mut xfer: [u8; 2] = [0; 2];
+                    xfer[1] = chunk[0];
+                    if chunk.len() == 2 {
+                        xfer[0] = chunk[1]
+                    } else {
+                        xfer[0] = 0x0A
+                    }
+
+                    self.spi
+                        .transfer(&mut xfer)
+                        .map_err(|_| TcpError::WriteError)?;
+                }
+
+                self.cs.set_high().map_err(|_| TcpError::WriteError)?;
+
+                let response = self
+                    .receive(&mut response)
+                    .await
+                    .map_err(|_| TcpError::WriteError)?;
+
+                if let Ok((_, WriteResponse::Ok(len))) = parser::write_response(response) {
+                    Ok(len)
+                } else {
+                    Err(TcpError::WriteError)
+                }
+            }
+            .await;
+            result
+        }
     }
 
     #[rustfmt::skip]
@@ -324,17 +439,116 @@ where
         handle: Self::SocketHandle,
         buf: &'m mut [u8],
     ) -> Self::ReadFuture<'m> {
-        async move { todo!() }
+        async move {
+            let mut pos = 0;
+            //let buf_len = buf.len();
+            loop {
+                let result = async {
+                    let mut response = [0u8; 1100];
+
+                    self.send_string(&command!(8, "P0={}", handle), &mut response)
+                        .await
+                        .map_err(|_| TcpError::ReadError)?;
+
+                    let mut len = buf.len();
+                    if len > 1460 {
+                        len = 1460;
+                    }
+
+                    self.send_string(&command!(16, "R1={}", len), &mut response)
+                        .await
+                        .map_err(|_| TcpError::ReadError)?;
+
+                    self.send_string(&command!(8, "R2=15"), &mut response)
+                        .await
+                        .map_err(|_| TcpError::ReadError)?;
+
+                    self.send_string(&command!(8, "R3=1"), &mut response)
+                        .await
+                        .map_err(|_| TcpError::ReadError)?;
+
+                    while self.ready.is_low().map_err(|_| TcpError::ReadError)? {}
+                    self.cs.set_low().map_err(|_| TcpError::ReadError)?;
+
+                    let mut xfer = [b'0', b'R'];
+                    self.spi
+                        .transfer(&mut xfer)
+                        .map_err(|_| TcpError::ReadError)?;
+
+                    xfer = [b'\n', b'\r'];
+                    self.spi
+                        .transfer(&mut xfer)
+                        .map_err(|_| TcpError::ReadError)?;
+
+                    self.cs.set_high().map_err(|_| TcpError::ReadError)?;
+
+                    let response = self
+                        .receive(&mut response)
+                        .await
+                        .map_err(|_| TcpError::ReadError)?;
+
+                    if let Ok((_, ReadResponse::Ok(data))) = parser::read_response(&response) {
+                        for (i, b) in data.iter().enumerate() {
+                            buf[i] = *b;
+                        }
+                        Ok(data.len())
+                    } else {
+                        Err(TcpError::ReadError)
+                    }
+                    //result
+                }
+                .await;
+
+                match result {
+                    Ok(len) => {
+                        pos += len;
+                        if len == 0 || pos == buf.len() {
+                            return Ok(pos);
+                        }
+                    }
+                    Err(e) => {
+                        if pos == 0 {
+                            return Err(e);
+                        } else {
+                            return Ok(pos);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     #[rustfmt::skip]
     type CloseFuture<'m> where SPI: 'm,  = impl Future<Output = ()> + 'm;
     fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
-        async move { todo!() }
+        async move {
+            let mut response = [0u8; 1024];
+
+            match async {
+                self.send_string(&command!(8, "P0={}", handle), &mut response)
+                    .await
+                    .map_err(|_| TcpError::CloseError)?;
+
+                let response = self
+                    .send_string(&command!(8, "P6=0"), &mut response)
+                    .await
+                    .map_err(|_| TcpError::CloseError)?;
+
+                if let Ok((_, CloseResponse::Ok)) = parser::close_response(&response) {
+                    Ok(())
+                } else {
+                    Err(TcpError::CloseError)
+                }
+            }
+            .await {
+                _ => {}
+            }
+        }
     }
 }
 
-impl<SPI, CS, RESET, WAKEUP, READY, E> Adapter for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
+impl<SPI, CS, RESET, WAKEUP, READY, E> Adapter
+    for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
     CS: OutputPin + 'static,
@@ -342,4 +556,5 @@ where
     WAKEUP: OutputPin + 'static,
     READY: InputPin + 'static,
     E: 'static,
-{}
+{
+}

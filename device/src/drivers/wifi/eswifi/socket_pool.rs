@@ -1,62 +1,87 @@
-// use core::cell::RefCell;
-// use core::future::Future;
-// use core::pin::Pin;
-// use core::task::{Context, Poll, Waker};
+use core::cell::RefCell;
+use core::future::Future;
+use core::pin::Pin;
+use core::task::{Context, Poll, Waker};
 
-// use heapless::{consts::*, spsc::Queue};
+use heapless::spsc::Queue;
 
-// enum SocketState {
-//     Closed,
-//     Open,
-//     Connected,
-// }
+enum SocketState {
+    Closed,
+    Open,
+    Connected,
+}
 
-// impl Default for SocketState {
-//     fn default() -> Self {
-//         Self::Closed
-//     }
-// }
+impl Default for SocketState {
+    fn default() -> Self {
+        Self::Closed
+    }
+}
 
-// pub(crate) struct SocketPool {
-//     sockets: RefCell<[SocketState; 4]>,
-//     waiters: RefCell<Queue<Waker, U8>>,
-// }
+pub(crate) struct SocketPool {
+    sockets: RefCell<[SocketState; 4]>,
+    waiters: RefCell<Queue<Waker, 8>>,
+}
 
-// impl SocketPool {
-//     pub(crate) fn new() -> Self {
-//         Self {
-//             sockets: Default::default(),
-//             waiters: RefCell::new(Queue::new()),
-//         }
-//     }
+impl SocketPool {
+    pub(crate) fn new() -> Self {
+        Self {
+            sockets: Default::default(),
+            waiters: RefCell::new(Queue::new()),
+        }
+    }
 
-//     pub(crate) async fn open(&'static self) -> u8 {
-//         OpenFuture::new(self).await
-//     }
+    pub(crate) async fn open<'a>(&'a self) -> u8 {
+        OpenFuture::new(self).await
+    }
 
-//     fn poll_open(&self, waker: &Waker, waiting: bool) -> Poll<u8> {
-//         let mut sockets = self.sockets.borrow_mut();
-//         let available = sockets
-//             .iter()
-//             .enumerate()
-//             .take_while(|e| matches!(e, (_, SocketState::Closed)))
-//             .take(1)
-//             .next();
+    fn poll_open(&self, waker: &Waker, waiting: bool) -> Poll<u8> {
+        let mut sockets = self.sockets.borrow_mut();
+        let available = sockets
+            .iter()
+            .enumerate()
+            .take_while(|e| matches!(e, (_, SocketState::Closed)))
+            .take(1)
+            .next();
 
-//         if let Some((index, _)) = available {
-//             sockets[index] = SocketState::Open;
-//             Poll::Ready(index as u8)
-//         } else {
-//             if !waiting {
-//                 self.waiters.borrow_mut().enqueue(waker.clone()).unwrap();
-//             }
-//             Poll::Pending
-//         }
-//     }
-// }
+        if let Some((index, _)) = available {
+            sockets[index] = SocketState::Open;
+            Poll::Ready(index as u8)
+        } else {
+            if !waiting {
+                self.waiters.borrow_mut().enqueue(waker.clone()).unwrap();
+            }
+            Poll::Pending
+        }
+    }
+}
+
+pub(crate) struct OpenFuture<'a> {
+    pool: &'a SocketPool,
+    waiting: bool,
+}
+
+impl<'a> OpenFuture<'a> {
+    fn new(pool: &'a SocketPool) -> Self {
+        Self {
+            pool,
+            waiting: false,
+        }
+    }
+}
+impl<'a> Future for OpenFuture<'a> {
+    type Output = u8;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let result = self.pool.poll_open(cx.waker(), self.waiting);
+        if result.is_pending() {
+            self.waiting = true;
+        }
+        result
+    }
+}
 
 // pub(crate) struct OpenFuture {
-//     pool: &'static SocketPool,
+//     pool: &'a SocketPool,
 //     waiting: bool,
 // }
 
