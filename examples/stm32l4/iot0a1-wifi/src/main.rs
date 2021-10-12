@@ -38,6 +38,10 @@ use drogue_device::drivers::wifi::eswifi::EsWifiController;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "tls")] {
+        use embassy_stm32::{
+            rng::Rng,
+            peripherals::RNG,
+        };
         use drogue_tls::{Aes128GcmSha256, TlsContext};
         use drogue_device::actors::socket::TlsSocket;
 
