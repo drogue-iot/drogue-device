@@ -179,7 +179,7 @@ pub mod fonts {
         pub const CHECK_MARK: &[u8; 5] = &[
             0b00000,
             0b00001,
-            0b10010,
+            0b00010,
             0b10100,
             0b01000,
         ];
