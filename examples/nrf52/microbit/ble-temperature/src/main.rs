@@ -4,6 +4,7 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
+#[cfg(feature = "defmt-rtt")]
 use defmt_rtt as _;
 
 use ble::microbit::*;
@@ -13,7 +14,11 @@ use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::Peripherals;
 
+#[cfg(feature = "panic-probe")]
 use panic_probe as _;
+
+#[cfg(not(feature = "panic-probe"))]
+use panic_reset as _;
 
 pub struct MyDevice {
     ble_service: MicrobitBleService,

@@ -1,4 +1,12 @@
-[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+[target.'cfg(all(target_arch = "arm", target_os = "none", not(feature = "defmt")))']
+runner = "probe-run --chip nrf52833_xxAA"
+
+rustflags = [
+  "-C", "link-arg=--nmagic",
+  "-C", "link-arg=-Tlink.x",
+]
+
+[target.'cfg(all(target_arch = "arm", target_os = "none", feature = "defmt"))']
 runner = "probe-run --chip nrf52833_xxAA"
 
 rustflags = [
