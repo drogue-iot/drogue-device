@@ -1,28 +1,31 @@
 use crate::drivers::led::matrix::*;
 use crate::kernel::{actor::Actor, actor::Address, actor::Inbox};
 use core::future::Future;
-use embassy::time::{with_timeout, Duration, TimeoutError};
+use embassy::time::{with_timeout, Duration, Instant, TimeoutError};
 use embedded_hal::digital::v2::OutputPin;
 
-pub trait LedMatrixAddress {
-    fn apply(&mut self, frame: &'static dyn ToFrame);
+pub trait LedMatrixAddress<const ROWS: usize, const COLS: usize> {
+    fn apply(&mut self, frame: &'static dyn ToFrame<COLS, ROWS>);
 }
 
-impl<P, const ROWS: usize, const COLS: usize> LedMatrixAddress
+impl<P, const ROWS: usize, const COLS: usize> LedMatrixAddress<ROWS, COLS>
     for Address<'static, LedMatrixActor<P, ROWS, COLS>>
 where
     P: OutputPin + 'static,
 {
-    fn apply(&mut self, frame: &'static dyn ToFrame) {
+    fn apply(&mut self, frame: &'static dyn ToFrame<COLS, ROWS>) {
         self.notify(MatrixCommand::ApplyFrame(frame)).unwrap();
     }
 }
+
+pub const MAX_ANIMATION_FRAMES: usize = 128;
 
 pub struct LedMatrixActor<P, const ROWS: usize, const COLS: usize>
 where
     P: OutputPin + 'static,
 {
     refresh_interval: Duration,
+    animation: Option<Animation<COLS, ROWS, MAX_ANIMATION_FRAMES>>,
     matrix: LedMatrix<P, ROWS, COLS>,
 }
 
@@ -35,6 +38,7 @@ where
         matrix: LedMatrix<P, ROWS, COLS>,
     ) -> LedMatrixActor<P, ROWS, COLS> {
         Self {
+            animation: None,
             refresh_interval,
             matrix,
         }
@@ -46,7 +50,7 @@ where
     P: OutputPin,
 {
     #[rustfmt::skip]
-    type Message<'m> = MatrixCommand<'m>;
+    type Message<'m> = MatrixCommand<'m, COLS, ROWS>;
     #[rustfmt::skip]
     type OnMountFuture<'m, M> where P: 'm, M: 'm = impl Future<Output = ()> + 'm;
 
@@ -64,6 +68,14 @@ where
                 match with_timeout(self.refresh_interval, inbox.next()).await {
                     Ok(Some(mut m)) => match *m.message() {
                         MatrixCommand::ApplyFrame(f) => self.matrix.apply(f.to_frame()),
+                        MatrixCommand::ApplyText(s, effect, duration) => {
+                            self.animation.replace(
+                                bytes_to_animation(s.as_bytes(), effect, duration).unwrap(),
+                            );
+                        }
+                        MatrixCommand::ApplyAnimation(a, _, duration) => {
+                            self.animation.replace(to_animation(a, duration).unwrap());
+                        }
                         MatrixCommand::On(x, y) => self.matrix.on(x, y),
                         MatrixCommand::Off(x, y) => self.matrix.off(x, y),
                         MatrixCommand::Clear => self.matrix.clear(),
@@ -72,6 +84,18 @@ where
                         }
                     },
                     Err(TimeoutError) => {
+                        if let Some(a) = &mut self.animation {
+                            match a.next(Instant::now()) {
+                                AnimationState::Apply(frame) => {
+                                    self.matrix.apply(*frame);
+                                }
+                                AnimationState::Waiting => {}
+                                AnimationState::Done => {
+                                    self.animation.take().unwrap();
+                                    self.matrix.clear();
+                                }
+                            }
+                        }
                         self.matrix.render();
                     }
                     _ => {}
@@ -81,12 +105,198 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum MatrixCommand<'m> {
+#[derive(Clone, Copy)]
+pub enum MatrixCommand<'m, const XSIZE: usize, const YSIZE: usize> {
     On(usize, usize),
     Off(usize, usize),
     Clear,
     Render,
-    ApplyFrame(&'m dyn ToFrame),
+    ApplyFrame(&'m dyn ToFrame<XSIZE, YSIZE>),
+    ApplyText(&'m str, AnimationEffect, Duration),
+    ApplyAnimation(
+        &'m [&'m dyn ToFrame<XSIZE, YSIZE>],
+        AnimationEffect,
+        Duration,
+    ),
+}
+
+#[derive(Clone, Copy)]
+pub enum AnimationEffect {
+    None,
+    Slide,
+}
+
+pub struct Animation<const XSIZE: usize, const YSIZE: usize, const N: usize> {
+    frames: [Frame<XSIZE, YSIZE>; N],
+    index: usize,
+    length: usize,
+    wait: Duration,
+    next: Instant,
+}
+
+pub enum AnimationState<'a, const XSIZE: usize, const YSIZE: usize> {
+    Waiting,
+    Apply(&'a Frame<XSIZE, YSIZE>),
+    Done,
+}
+
+impl<const XSIZE: usize, const YSIZE: usize, const N: usize> Animation<XSIZE, YSIZE, N> {
+    fn next(&mut self, now: Instant) -> AnimationState<XSIZE, YSIZE> {
+        if self.next <= now {
+            if self.index < self.length {
+                // TODO: Handle skipping?
+                let current = &self.frames[self.index];
+                self.next += self.wait;
+                self.index += 1;
+                AnimationState::Apply(current)
+            } else {
+                AnimationState::Done
+            }
+        } else {
+            AnimationState::Waiting
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum AnimationError {
+    BufferTooSmall,
+    TooFast,
+}
+
+fn bytes_to_animation<const XSIZE: usize, const YSIZE: usize>(
+    from: &[u8],
+    effect: AnimationEffect,
+    duration: Duration,
+) -> Result<Animation<XSIZE, YSIZE, MAX_ANIMATION_FRAMES>, AnimationError> {
+    const N: usize = MAX_ANIMATION_FRAMES;
+    match effect {
+        AnimationEffect::None => {
+            if from.len() < N {
+                let mut frames: [Frame<XSIZE, YSIZE>; N] = [Frame::empty(); N];
+                let mut length = 0;
+                while length < from.len() {
+                    frames[length] = from[length].to_frame();
+                    length += 1;
+                }
+                if let Some(wait) = duration.checked_div(from.len() as u32) {
+                    Ok(Animation {
+                        frames,
+                        index: 0,
+                        length,
+                        wait,
+                        next: Instant::now(),
+                    })
+                } else {
+                    Err(AnimationError::TooFast)
+                }
+            } else {
+                Err(AnimationError::BufferTooSmall)
+            }
+        }
+        AnimationEffect::Slide => {
+            if (from.len() + (2 * from.len()) + 1) < N {
+                let mut frames: [Frame<XSIZE, YSIZE>; N] = [Frame::empty(); N];
+                let mut length = 0;
+                let mut f = 0;
+                while f < from.len() - 1 && length < N {
+                    let frame: Frame<XSIZE, YSIZE> = from[f].to_frame();
+                    let next = if f < from.len() - 2 {
+                        Some(from[f + 1].to_frame())
+                    } else {
+                        None
+                    };
+
+                    // First frame is base frame;
+                    frames[length] = frame;
+                    length += 1;
+
+                    // Add spacing if we have a next frame
+                    if next.is_some() && length < N {
+                        frames[length] = frame;
+                        frames[length].shift_left(1);
+                        length += 1;
+                    }
+
+                    // Add transition to next frame;
+                    let mut d = 0;
+                    while d < XSIZE && length < N {
+                        frames[length] = frames[length - 1];
+                        frames[length].shift_left(1);
+                        if let Some(next) = next {
+                            let mut n = next;
+                            n.shift_right(XSIZE - d);
+                            frames[length].or(&n);
+                        }
+                        length += 1;
+                        d += 1;
+                    }
+
+                    f += 1;
+                }
+
+                // End on the last frame
+                if length < N {
+                    frames[length] = from[from.len() - 1].to_frame();
+                    length += 1;
+                }
+                if let Some(wait) = duration.checked_div(length as u32) {
+                    Ok(Animation {
+                        frames,
+                        index: 0,
+                        length,
+                        wait,
+                        next: Instant::now(),
+                    })
+                } else {
+                    Err(AnimationError::TooFast)
+                }
+            } else {
+                Err(AnimationError::BufferTooSmall)
+            }
+        }
+    }
+}
+
+fn to_animation<const XSIZE: usize, const YSIZE: usize>(
+    from: &[&dyn ToFrame<XSIZE, YSIZE>],
+    duration: Duration,
+) -> Result<Animation<XSIZE, YSIZE, MAX_ANIMATION_FRAMES>, AnimationError> {
+    const N: usize = MAX_ANIMATION_FRAMES;
+    if from.len() < N {
+        let mut frames: [Frame<XSIZE, YSIZE>; N] = [Frame::empty(); N];
+        let mut length = 0;
+        while length < from.len() {
+            frames[length] = from[length].to_frame();
+            length += 1;
+        }
+        if let Some(wait) = duration.checked_div(from.len() as u32) {
+            Ok(Animation {
+                frames,
+                index: 0,
+                length,
+                wait,
+                next: Instant::now(),
+            })
+        } else {
+            Err(AnimationError::TooFast)
+        }
+    } else {
+        Err(AnimationError::BufferTooSmall)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_animation() {
+        let animation =
+            bytes_to_animation::<5, 5>(b"12", AnimationEffect::Slide, Duration::from_secs(1))
+                .unwrap();
+
+        assert_eq!(animation.length, 7);
+    }
 }

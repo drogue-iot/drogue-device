@@ -45,11 +45,13 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
         let matrix = config.0;
         let statistics = config.1;
         async move {
-            for c in r"Hello, World!".chars() {
-                matrix.request(MatrixCommand::ApplyFrame(&c)).unwrap().await;
-                Timer::after(Duration::from_millis(200)).await;
-            }
-            matrix.notify(MatrixCommand::Clear).unwrap();
+            matrix
+                .notify(MatrixCommand::ApplyText(
+                    "Hello, World!",
+                    AnimationEffect::Slide,
+                    Duration::from_secs(10),
+                ))
+                .unwrap();
 
             let mut buf = [0; 128];
             let motd = "Welcome to the Drogue Echo Service\r\n".as_bytes();

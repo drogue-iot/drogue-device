@@ -9,7 +9,7 @@ use defmt_rtt as _;
 
 use ble::microbit::*;
 use drogue_device::{
-    actors::led::matrix::{LedMatrixActor, MatrixCommand},
+    actors::led::matrix::{AnimationEffect, LedMatrixActor, MatrixCommand},
     drivers::led::matrix::{fonts, LedMatrix},
     ActorContext, Address, DeviceContext, Package,
 };
@@ -75,6 +75,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
     DEVICE
         .mount(|device| async move {
             let matrix = device.matrix.mount((), spawner);
+
             device
                 .ble_service
                 .mount(LedConnectionState(matrix), spawner);
@@ -93,6 +94,12 @@ impl ConnectionStateListener for LedConnectionState {
             .unwrap();
     }
     fn on_disconnected(&self) {
-        self.0.notify(MatrixCommand::Clear).unwrap();
+        self.0
+            .notify(MatrixCommand::ApplyText(
+                "Disconnected",
+                AnimationEffect::Slide,
+                Duration::from_secs(6),
+            ))
+            .unwrap()
     }
 }
