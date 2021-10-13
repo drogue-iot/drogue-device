@@ -20,15 +20,20 @@ where
     _m2: core::marker::PhantomData<&'static E>,
 }
 
-pub enum GattServerEvent {
-    NewConnection(Connection),
+pub enum GattEvent<S>
+where
+    S: Server,
+{
+    Connected(Connection),
+    Write(Connection, S::Event),
+    Disconnected(Connection),
 }
 
 pub trait GattEventHandler<S>
 where
     S: Server,
 {
-    fn on_event(&mut self, connection: Connection, event: S::Event);
+    fn on_event(&mut self, event: GattEvent<S>);
 }
 
 impl<S, E> GattServer<S, E>
@@ -49,7 +54,7 @@ where
     S: Server,
     E: GattEventHandler<S>,
 {
-    type Message<'m> = GattServerEvent;
+    type Message<'m> = Connection;
 
     type Configuration = (&'static S, E);
 
@@ -69,13 +74,18 @@ where
             loop {
                 loop {
                     if let Some(mut m) = inbox.next().await {
-                        let GattServerEvent::NewConnection(conn) = m.message();
+                        let conn = m.message();
+
+                        handler.on_event(GattEvent::Connected(conn.clone()));
+
                         // Run the GATT server on the connection. This returns when the connection gets disconnected.
                         let res = gatt_server::run(conn, server, |e| {
                             trace!("GATT write event received");
-                            handler.on_event(conn.clone(), e);
+                            handler.on_event(GattEvent::Write(conn.clone(), e));
                         })
                         .await;
+
+                        handler.on_event(GattEvent::Disconnected(conn.clone()));
 
                         if let Err(e) = res {
                             info!("gatt_server exited with error: {:?}", e);
@@ -94,7 +104,6 @@ where
 {
     type Error = ();
     fn accept(&mut self, connection: Connection) -> Result<(), Self::Error> {
-        self.notify(GattServerEvent::NewConnection(connection))
-            .map_err(|_| ())
+        self.notify(connection).map_err(|_| ())
     }
 }

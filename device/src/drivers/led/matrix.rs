@@ -15,6 +15,7 @@ where
  * A 32x32 bitmap that can be displayed on a LED matrix.
  */
 #[derive(Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Frame {
     bitmap: [u32; 32],
 }
@@ -167,7 +168,26 @@ pub trait ToFrame: core::fmt::Debug + Sync {
 pub mod fonts {
     use super::*;
 
-    fn frame_5x5(input: &[u8; 5]) -> Frame {
+    impl ToFrame for &[u8; 5] {
+        fn to_frame(&self) -> Frame {
+            frame_5x5(self)
+        }
+    }
+
+    mod bitmaps {
+        #[rustfmt::skip]
+        pub const CHECK_MARK: &[u8; 5] = &[
+            0b00000,
+            0b00001,
+            0b10010,
+            0b10100,
+            0b01000,
+        ];
+    }
+
+    pub use bitmaps::*;
+
+    pub fn frame_5x5(input: &[u8; 5]) -> Frame {
         // Mirror
         let mut bitmap: [u32; 32] = [0; 32];
         for (i, bm) in input.iter().enumerate() {

@@ -15,7 +15,7 @@ defmt-rtt = { version = "0.2", optional = true }
 panic-probe = { version = "0.2.0", features = ["print-defmt"], optional = true }
 panic-reset = "0.1.0"
 
-drogue-device = { path = "../../../../device", default-features = false, features = [] }
+drogue-device = { path = "../../../../device", default-features = false, features = ["time", "fonts"] }
 
 embassy = { version = "0.1.0", default-features = false, features = [] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "gpiote", "time-driver-rtc1"]}
