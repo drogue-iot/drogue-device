@@ -1,15 +1,18 @@
 use super::*;
 use drogue_device::{ActorContext, ActorSpawner, Address, Package};
 use heapless::Vec;
-use nrf_softdevice::ble::{gatt_server, Connection};
+use nrf_softdevice::ble::gatt_server;
 
-type Gatt = GattServer<MicrobitGattServer, Address<'static, TemperatureMonitor>>;
+type Gatt<C> = GattServer<MicrobitGattServer, MicrobitGattHandler<C>>;
 
-pub struct MicrobitBleService {
+pub struct MicrobitBleService<C>
+where
+    C: ConnectionStateListener + 'static,
+{
     server: MicrobitGattServer,
     controller: ActorContext<'static, BleController>,
-    advertiser: ActorContext<'static, BleAdvertiser<Address<'static, Gatt>>>,
-    gatt: ActorContext<'static, Gatt>,
+    advertiser: ActorContext<'static, BleAdvertiser<Address<'static, Gatt<C>>>>,
+    gatt: ActorContext<'static, Gatt<C>>,
     monitor: ActorContext<'static, TemperatureMonitor>,
 }
 
@@ -19,7 +22,10 @@ pub struct MicrobitGattServer {
     device_info: DeviceInformationService,
 }
 
-impl MicrobitBleService {
+impl<C> MicrobitBleService<C>
+where
+    C: ConnectionStateListener,
+{
     pub fn new() -> Self {
         let (controller, sd) = BleController::new("Drogue IoT micro:bit v2.0");
 
@@ -52,26 +58,56 @@ impl MicrobitBleService {
     }
 }
 
-impl Package for MicrobitBleService {
+impl<C> Package for MicrobitBleService<C>
+where
+    C: ConnectionStateListener,
+{
     type Primary = BleController;
+    type Configuration = C;
 
     fn mount<S: ActorSpawner>(
         &'static self,
-        _: Self::Configuration,
+        listener: Self::Configuration,
         spawner: S,
     ) -> Address<Self::Primary> {
         let controller = self.controller.mount((), spawner);
         let monitor = self.monitor.mount(&self.server.temperature, spawner);
-        let acceptor = self.gatt.mount((&self.server, monitor), spawner);
+        let handler = MicrobitGattHandler {
+            temperature: monitor,
+            listener,
+        };
+        let acceptor = self.gatt.mount((&self.server, handler), spawner);
         self.advertiser.mount(acceptor, spawner);
         controller
     }
 }
 
-impl GattEventHandler<MicrobitGattServer> for Address<'static, TemperatureMonitor> {
-    fn on_event(&mut self, connection: Connection, event: MicrobitGattServerEvent) {
-        if let MicrobitGattServerEvent::Temperature(e) = event {
-            self.notify((connection, e)).ok();
+pub trait ConnectionStateListener {
+    fn on_connected(&self);
+    fn on_disconnected(&self);
+}
+
+struct MicrobitGattHandler<C>
+where
+    C: ConnectionStateListener,
+{
+    pub temperature: Address<'static, TemperatureMonitor>,
+    pub listener: C,
+}
+
+impl<C> GattEventHandler<MicrobitGattServer> for MicrobitGattHandler<C>
+where
+    C: ConnectionStateListener,
+{
+    fn on_event(&mut self, event: GattEvent<MicrobitGattServer>) {
+        match event {
+            GattEvent::Write(connection, e) => {
+                if let MicrobitGattServerEvent::Temperature(e) = e {
+                    self.temperature.notify((connection, e)).ok();
+                }
+            }
+            GattEvent::Connected(_) => self.listener.on_connected(),
+            GattEvent::Disconnected(_) => self.listener.on_disconnected(),
         }
     }
 }

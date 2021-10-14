@@ -94,7 +94,7 @@ fn do_examples<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
 fn check_example(project_file: PathBuf) -> Result<(), anyhow::Error> {
     println!("Building example {}", project_file.to_str().unwrap_or(""));
     let _p = xshell::pushd(project_file)?;
-    cmd!("cargo check").run()?;
+    cmd!("cargo build --release").run()?;
     Ok(())
 }
 
