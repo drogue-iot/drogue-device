@@ -231,7 +231,7 @@ impl<const XSIZE: usize, const YSIZE: usize, const N: usize> Animation<XSIZE, YS
             }
         }?;
 
-        if let Some(wait) = duration.checked_div(from.len() as u32) {
+        if let Some(wait) = duration.checked_div(length as u32) {
             Ok(Animation {
                 frames,
                 index: 0,
@@ -311,7 +311,7 @@ impl<const XSIZE: usize, const YSIZE: usize, const N: usize> Animation<XSIZE, YS
             }
         }?;
 
-        if let Some(wait) = duration.checked_div(from.len() as u32) {
+        if let Some(wait) = duration.checked_div(length as u32) {
             Ok(Animation {
                 frames,
                 index: 0,
