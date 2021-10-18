@@ -64,7 +64,6 @@ std = ["embassy/std", "embassy/time"]
 time = []
 lora = ["rand_core", "embassy-lora", "lorawan-device", "lorawan-encoding", "embassy/time"]
 wifi = []
-fonts = []
 tls = ["drogue-tls", "rand_core"]
 
 defmt-default = [ ]
