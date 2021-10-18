@@ -17,7 +17,7 @@ The example can operate using plain TCP, or using TLS by enabling the `tls` feat
 
 * To build the example, you need to have link:https://rustup.rs/[Rust Nightly].
 * To flash the example on the device, you need `probe-run` installed (`cargo install probe-run`).
-* A TCP server (ncat) or a service like Drogue IoT Cloud. See [drogue-cloud](https://github.com/drogue-iot/drogue-cloud) for how to run that, or use the [sandbox](https://sandbox.drogue.cloud) (requires TLS).
+* A TCP server (ncat) or a service like Drogue IoT Cloud. See link:https://github.com/drogue-iot/drogue-cloud/[drogue-cloud] for how to run that, or use the link:https://sandbox.drogue.cloud/[sandbox] (requires TLS).
 
 === Configuring
 
@@ -33,7 +33,7 @@ rustup target add thumbv7em-none-eabihf
 
 === Running with plain TCP
 
-You can configure the IP constant to point to any TCP/HTTP server to receive events, or you can use [drogue cloud](https://github.com/drogue-iot/drogue-cloud) locally. For simplicity, start a local TCP server:
+You can configure the IP constant to point to any TCP/HTTP server to receive events, or you can use link:https://github.com/drogue-iot/drogue-cloud/[drogue cloud] locally. For simplicity, start a local TCP server:
 
 ....
 ncat -l 12345 --keep-open --exec "/bin/cat"
