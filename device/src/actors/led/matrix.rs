@@ -183,7 +183,7 @@ impl<const XSIZE: usize, const YSIZE: usize, const N: usize> Animation<XSIZE, YS
                 }
             }
             AnimationEffect::Slide => {
-                if (from.len() * XSIZE - 1) < N {
+                if (from.len() * (XSIZE + 2)) < N {
                     let mut frames: [Frame<XSIZE, YSIZE>; N] = [Frame::empty(); N];
                     let mut length = 0;
                     let mut f = 0;
@@ -263,7 +263,7 @@ impl<const XSIZE: usize, const YSIZE: usize, const N: usize> Animation<XSIZE, YS
                 }
             }
             AnimationEffect::Slide => {
-                if (from.len() * XSIZE - 1) < N {
+                if (from.len() * (XSIZE + 2)) < N {
                     let mut frames: [Frame<XSIZE, YSIZE>; N] = [Frame::empty(); N];
                     let mut length = 0;
                     let mut f = 0;
