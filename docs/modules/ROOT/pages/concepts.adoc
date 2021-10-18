@@ -25,6 +25,7 @@ While processing an event, an actor may send a message to another actor, which i
 === Messages
 
 All messages are sent using async channels attached to each actor. The channel depth is configurable based on const generics. 
+
 === Addresses
 
 Each actor within the system has its own unique `Address` which is used to communicate with the actor (through it's FIFO). 
