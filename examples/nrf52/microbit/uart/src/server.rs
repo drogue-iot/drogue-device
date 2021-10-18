@@ -2,7 +2,7 @@ use crate::statistics::*;
 use core::future::Future;
 use drogue_device::{actors::led::matrix::*, Actor, Address, Inbox};
 use embassy::{
-    time::{Duration, Timer},
+    time::Duration,
     traits::uart::{Read, Write},
 };
 
@@ -49,7 +49,7 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
                 .notify(MatrixCommand::ApplyText(
                     "Hello, World!",
                     AnimationEffect::Slide,
-                    Duration::from_secs(10),
+                    Duration::from_secs(8),
                 ))
                 .unwrap();
 

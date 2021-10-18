@@ -196,24 +196,24 @@ fn bytes_to_animation<const XSIZE: usize, const YSIZE: usize>(
             }
         }
         AnimationEffect::Slide => {
-            if (from.len() + (2 * from.len()) + 1) < N {
+            if (from.len() * XSIZE - 1) < N {
                 let mut frames: [Frame<XSIZE, YSIZE>; N] = [Frame::empty(); N];
                 let mut length = 0;
                 let mut f = 0;
-                while f < from.len() - 1 && length < N {
+                while f < from.len() && length < N {
                     let frame: Frame<XSIZE, YSIZE> = from[f].to_frame();
-                    let next = if f < from.len() - 2 {
-                        Some(from[f + 1].to_frame())
+                    let next = if f < from.len() - 1 {
+                        from[f + 1].to_frame()
                     } else {
-                        None
+                        Frame::empty()
                     };
 
                     // First frame is base frame;
                     frames[length] = frame;
                     length += 1;
 
-                    // Add spacing if we have a next frame
-                    if next.is_some() && length < N {
+                    // Add spacing before next frame
+                    if length < N {
                         frames[length] = frame;
                         frames[length].shift_left(1);
                         length += 1;
@@ -224,11 +224,12 @@ fn bytes_to_animation<const XSIZE: usize, const YSIZE: usize>(
                     while d < XSIZE && length < N {
                         frames[length] = frames[length - 1];
                         frames[length].shift_left(1);
-                        if let Some(next) = next {
-                            let mut n = next;
-                            n.shift_right(XSIZE - d);
-                            frames[length].or(&n);
-                        }
+
+                        // Or with next transition
+                        let mut n = next;
+                        n.shift_right(XSIZE - d);
+                        frames[length].or(&n);
+
                         length += 1;
                         d += 1;
                     }
@@ -236,11 +237,6 @@ fn bytes_to_animation<const XSIZE: usize, const YSIZE: usize>(
                     f += 1;
                 }
 
-                // End on the last frame
-                if length < N {
-                    frames[length] = from[from.len() - 1].to_frame();
-                    length += 1;
-                }
                 if let Some(wait) = duration.checked_div(length as u32) {
                     Ok(Animation {
                         frames,
@@ -297,6 +293,6 @@ mod tests {
             bytes_to_animation::<5, 5>(b"12", AnimationEffect::Slide, Duration::from_secs(1))
                 .unwrap();
 
-        assert_eq!(animation.length, 7);
+        assert_eq!(animation.length, 14);
     }
 }
