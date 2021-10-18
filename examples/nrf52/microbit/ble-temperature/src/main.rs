@@ -28,7 +28,7 @@ use panic_probe as _;
 #[cfg(not(feature = "panic-probe"))]
 use panic_reset as _;
 
-pub type AppMatrix = LedMatrixActor<Output<'static, AnyPin>, 5, 5>;
+pub type AppMatrix = LedMatrixActor<Output<'static, AnyPin>, 5, 5, 128>;
 pub struct LedConnectionState(Address<'static, AppMatrix>);
 
 pub struct MyDevice {
