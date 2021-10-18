@@ -465,9 +465,14 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
     type SocketHandle = u8;
 
     #[rustfmt::skip]
-    type OpenFuture<'m> where 'a: 'm = impl Future<Output = Self::SocketHandle> + 'm;
+    type OpenFuture<'m> where 'a: 'm = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm;
     fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
-        async move { self.socket_pool.open().await }
+        async move {
+            self.socket_pool
+                .open()
+                .await
+                .map_err(|_| TcpError::OpenError)
+        }
     }
 
     #[rustfmt::skip]

@@ -85,7 +85,7 @@ async fn main(spawner: embassy::executor::Spawner) {
             .expect("Error joining wifi");
             log::info!("WiFi network joined");
 
-            let socket = Socket::new(wifi, wifi.open().await);
+            let socket = Socket::new(wifi, wifi.open().await.unwrap());
             #[cfg(feature = "tls")]
             let socket = TlsSocket::wrap(
                 socket,
