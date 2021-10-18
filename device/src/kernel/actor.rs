@@ -132,7 +132,7 @@ impl<'a, A: Actor> Address<'a, A> {
     /// If an error occurs when enqueueing the message on the destination actor,
     /// an error is returned.
     ///
-    /// The returned future complete when the receiving actor have processed the
+    /// The returned future completes when the receiving actor has processed the
     /// message, and the result from processing is made available when the future
     /// is ready.
     ///
