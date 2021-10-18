@@ -221,48 +221,6 @@ impl<const XSIZE: usize, const YSIZE: usize> Frame<XSIZE, YSIZE> {
             self.bitmap[i].and(&other.bitmap[i]);
         }
     }
-
-    /*
-    fn transition(&self, to: Frame<XSIZE, YSIZE>) -> Animation
-    where
-        [(); COLS + 2]: ,
-    {
-        let f: Frame = Default::default();
-        let mut sequence = [f; { COLS + 2 }];
-        for r in 0..5 {
-            sequence[0].bitmap[r] = self.bitmap[r];
-        }
-        for r in 0..5 {
-            println!("FROM {:#07b}", sequence[0].bitmap[r]);
-            for c in 1..(COLS + 1) {
-                println!("AT {}x{}", r, c);
-                let from = sequence[c - 1].bitmap[r];
-                let to = if c == 1 { 0 } else { to.bitmap[r] };
-
-                //let d = (from & 0b11111) & ((to << to_pos) & 0b11111);
-                println!(
-                    "From bitmap {:#07b} shift left {:#07b}",
-                    from,
-                    (from << 1) & 0b11111
-                );
-
-                let to_pos = COLS - (c - 1);
-                let to_bit = (to >> to_pos) & 0x1;
-                let d = (((from << 1) & 0b11111) | to_bit) << (32 - 5);
-                println!(
-                    "To bitmap {:#07b} shift left {}, To bit: {}",
-                    to, to_pos, to_bit
-                );
-                println!("Result: {:#07b}", d);
-
-                // TODO: Dynamic mask based on COLS
-                sequence[c].bitmap[r] = d;
-            }
-        }
-        sequence[COLS + 1] = to;
-        sequence
-    }
-    */
 }
 
 impl<const XSIZE: usize, const YSIZE: usize> Default for Frame<XSIZE, YSIZE> {
@@ -764,61 +722,6 @@ pub mod fonts {
             assert!(frame.is_set(3, 4));
             assert!(!frame.is_set(4, 4));
         }
-
-        /*
-        #[test]
-        fn test_transition() {
-            let from = '7'.to_frame();
-            let sequence = from.transition::<5>(from);
-
-            assert_eq!(sequence[0], '7'.to_frame());
-
-            #[rustfmt::skip]
-            assert_eq!(sequence[1], frame_5x5(&[
-                0b11110,
-                0b00100,
-                0b01000,
-                0b10000,
-                0b00000,
-            ]));
-
-            #[rustfmt::skip]
-            assert_eq!(sequence[2], frame_5x5(&[
-                0b11101,
-                0b01000,
-                0b10000,
-                0b00000,
-                0b00001,
-            ]));
-
-            #[rustfmt::skip]
-            assert_eq!(sequence[3], frame_5x5(&[
-                0b11111,
-                0b10000,
-                0b00001,
-                0b00010,
-                0b00100,
-            ]));
-
-            #[rustfmt::skip]
-            assert_eq!(sequence[4], frame_5x5(&[
-                0b11111,
-                0b00001,
-                0b00010,
-                0b00100,
-                0b01000,
-            ]));
-
-            #[rustfmt::skip]
-            assert_eq!(sequence[5], frame_5x5(&[
-                0b11111,
-                0b00010,
-                0b00100,
-                0b01000,
-                0b10000,
-            ]));
-        }
-        */
 
         #[test]
         fn bitops() {

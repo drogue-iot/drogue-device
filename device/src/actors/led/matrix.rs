@@ -163,6 +163,7 @@ impl<const XSIZE: usize, const YSIZE: usize, const N: usize> Animation<XSIZE, YS
         }
     }
 
+    // TODO: Reuse from_frames implementation
     fn from_bytes(
         from: &[u8],
         effect: AnimationEffect,
