@@ -337,9 +337,8 @@ mod tests {
 
     #[test]
     fn test_animation() {
-        let animation =
-            bytes_to_animation::<5, 5>(b"12", AnimationEffect::Slide, Duration::from_secs(1))
-                .unwrap();
+        let animation: Animation<5, 5, 15> =
+            Animation::from_bytes(b"12", AnimationEffect::Slide, Duration::from_secs(1)).unwrap();
 
         assert_eq!(animation.length, 14);
     }
