@@ -25,7 +25,7 @@ pub enum AdapterRequest<'m> {
 /// Actor responses returned by network adapter actors
 pub enum AdapterResponse {
     Join(Result<IpAddress, JoinError>),
-    Open(u8),
+    Open(Result<u8, TcpError>),
     Connect(Result<(), TcpError>),
     Write(Result<usize, TcpError>),
     Read(Result<usize, TcpError>),
@@ -58,7 +58,7 @@ where
     type SocketHandle = A::SocketHandle;
 
     #[rustfmt::skip]
-    type OpenFuture<'m> where 'a: 'm = impl Future<Output = Self::SocketHandle> + 'm;
+    type OpenFuture<'m> where 'a: 'm = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm;
     fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
         async move {
             self.request(AdapterRequest::Open)
@@ -124,10 +124,10 @@ where
 }
 
 impl AdapterResponse {
-    fn open(self) -> u8 {
+    fn open(self) -> Result<u8, TcpError> {
         match self {
-            AdapterResponse::Open(handle) => handle,
-            _ => panic!("unexpected response type"),
+            AdapterResponse::Open(Ok(handle)) => Ok(handle),
+            _ => Err(TcpError::OpenError),
         }
     }
 

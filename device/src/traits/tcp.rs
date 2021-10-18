@@ -4,6 +4,7 @@ use core::future::Future;
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum TcpError {
+    OpenError,
     ConnectError,
     ReadError,
     WriteError,
@@ -37,7 +38,7 @@ pub trait TcpSocket {
 pub trait TcpStack {
     type SocketHandle: Copy;
 
-    type OpenFuture<'m>: Future<Output = Self::SocketHandle>
+    type OpenFuture<'m>: Future<Output = Result<Self::SocketHandle, TcpError>>
     where
         Self: 'm;
     fn open<'m>(&'m mut self) -> Self::OpenFuture<'m>;
