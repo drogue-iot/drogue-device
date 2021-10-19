@@ -1216,6 +1216,7 @@ name = "wifi-app"
 version = "0.1.0"
 dependencies = [
  "drogue-device",
+ "heapless",
 ]
 
 [[package]]

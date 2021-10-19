@@ -123,6 +123,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             );
             let app = device.app.mount(socket, spawner);
             device.button.mount(app, spawner);
+            app.request(Command::Update(22.0)).unwrap().await;
             app
         })
         .await;

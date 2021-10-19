@@ -22,8 +22,12 @@ use embassy_nrf::{
     gpiote::PortInput,
     interrupt,
     peripherals::{P0_09, P0_10, P0_14, TIMER0, UARTE0},
+    temp::Temp,
     uarte, Peripherals,
 };
+
+mod temperature;
+use temperature::TemperatureMonitor;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "tls")] {
@@ -63,6 +67,7 @@ pub struct MyDevice {
     wifi: Esp8266Wifi<UART, ENABLE, RESET>,
     app: ActorContext<'static, App<AppSocket>>,
     button: ActorContext<'static, Button<'static, PortInput<'static, P0_14>, App<AppSocket>>>,
+    temperature: ActorContext<'static, TemperatureMonitor<'static>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -106,6 +111,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         wifi: Esp8266Wifi::new(u, enable_pin, reset_pin),
         app: ActorContext::new(App::new(IP, PORT, USERNAME.trim_end(), PASSWORD.trim_end())),
         button: ActorContext::new(Button::new(button_port)),
+        temperature: ActorContext::new(TemperatureMonitor::new(Temp::new(p.TEMP))),
     });
 
     DEVICE
@@ -130,6 +136,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             );
             let app = device.app.mount(socket, spawner);
             device.button.mount(app, spawner);
+            device.temperature.mount(app, spawner);
         })
         .await;
     defmt::info!("Application initialized. Press 'A' button to send data");
