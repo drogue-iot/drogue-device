@@ -18,8 +18,8 @@ drogue-device = { path = "../../../device", features = ["log", "std"] }
 embassy = { version = "0.1.0", default-features = false, features = ["std"] }
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "5ae276fe50d1445c9f2e8df3871b247f7d59fc0c" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "5ae276fe50d1445c9f2e8df3871b247f7d59fc0c" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "675172f9816a41792d53ba9dcd33ad3592e94eb8" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "675172f9816a41792d53ba9dcd33ad3592e94eb8" }
 
 #embassy = { path = "../../../../../embassy/embassy" }
 #embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }
