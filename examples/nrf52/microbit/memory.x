@@ -1,7 +1,6 @@
 MEMORY
 {
   /* NOTE 1 K = 1 KiBi = 1024 bytes */
-  /* These values correspond to the NRF52833 with Softdevices S113 7.3.0 */
-  FLASH : ORIGIN = 0x0001C000, LENGTH = 400K
-  RAM : ORIGIN = 0x2000e8a8, LENGTH = 59560
+  FLASH : ORIGIN = 0x00000000, LENGTH = 512K
+  RAM : ORIGIN = 0x20000000, LENGTH = 128K
 }
