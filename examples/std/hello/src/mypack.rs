@@ -18,7 +18,7 @@ impl MyPack {
     }
 }
 
-// The Package trait by e implemented to initialize a package
+// The Package trait implementation to initialize this package
 impl Package for MyPack {
     type Primary = MyActor;
     type Configuration = ();
