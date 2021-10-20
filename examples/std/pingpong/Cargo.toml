@@ -1,0 +1,25 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+edition = "2018"
+name = "pingpong"
+version = "0.1.0"
+description = "Ping pong in std Rust"
+keywords = ["basic", "std"]
+
+[workspace]
+
+[dependencies]
+log = "0.4"
+env_logger = "0.8"
+drogue-device = { path = "../../../device", features = ["log", "std"] }
+embassy = { version = "0.1.0", default-features = false, features = ["std"] }
+
+[patch.crates-io]
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "a895b6351f68c1af104d2d65e6df121b4a100808" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "a895b6351f68c1af104d2d65e6df121b4a100808" }
+
+#embassy = { path = "../../../../../embassy/embassy" }
+#embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }

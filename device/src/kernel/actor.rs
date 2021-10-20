@@ -109,6 +109,8 @@ where
     state: &'a dyn ActorHandle<'a, A>,
 }
 
+unsafe impl<'a, A> Send for Address<'a, A> where A: Actor + 'static {}
+
 pub trait ActorHandle<'a, A>
 where
     A: Actor + 'static,
