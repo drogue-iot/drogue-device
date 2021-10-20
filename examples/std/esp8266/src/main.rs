@@ -96,6 +96,7 @@ async fn main(spawner: embassy::executor::Spawner) {
         })
         .await;
 
+    app.request(Command::Update(22.0)).unwrap().await;
     app.request(Command::Send).unwrap().await;
 }
 

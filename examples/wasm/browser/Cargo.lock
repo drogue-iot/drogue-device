@@ -81,9 +81,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.7.1"
+version = "3.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9df67f7bf9ef8498769f994239c45613ef0c5899415fb58e9add412d2c1a538"
+checksum = "8f1e260c3a9040a7c19a12468758f4c16f31a81a1fe087482be9570ec864bb6c"
 
 [[package]]
 name = "byteorder"
@@ -185,7 +185,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5ae276fe50d1445c9f2e8df3871b247f7d59fc0c#5ae276fe50d1445c9f2e8df3871b247f7d59fc0c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=a895b6351f68c1af104d2d65e6df121b4a100808#a895b6351f68c1af104d2d65e6df121b4a100808"
 dependencies = [
  "atomic-polyfill",
  "cortex-m",
@@ -204,7 +204,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5ae276fe50d1445c9f2e8df3871b247f7d59fc0c#5ae276fe50d1445c9f2e8df3871b247f7d59fc0c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=a895b6351f68c1af104d2d65e6df121b4a100808#a895b6351f68c1af104d2d65e6df121b4a100808"
 dependencies = [
  "cortex-m",
  "embassy",
@@ -215,7 +215,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5ae276fe50d1445c9f2e8df3871b247f7d59fc0c#5ae276fe50d1445c9f2e8df3871b247f7d59fc0c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=a895b6351f68c1af104d2d65e6df121b4a100808#a895b6351f68c1af104d2d65e6df121b4a100808"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -226,7 +226,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5ae276fe50d1445c9f2e8df3871b247f7d59fc0c#5ae276fe50d1445c9f2e8df3871b247f7d59fc0c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=a895b6351f68c1af104d2d65e6df121b4a100808#a895b6351f68c1af104d2d65e6df121b4a100808"
 dependencies = [
  "embedded-hal",
 ]
@@ -370,9 +370,9 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "instant"
-version = "0.1.11"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "716d3d89f35ac6a34fd0eed635395f4c3b76fa889338a4632e5231a8684216bd"
+checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if",
 ]
@@ -394,9 +394,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.103"
+version = "0.2.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd8f7255a17a627354f321ef0055d63b898c6fb27eff628af4d1b66b7331edf6"
+checksum = "7b2f96d100e1cf1929e7719b7edb3b90ab5298072638fccd77be9ce942ecdfce"
 
 [[package]]
 name = "lock_api"
@@ -517,9 +517,9 @@ checksum = "bc881b2c22681370c6a780e47af9840ef841837bc98118431d4e1868bd0c1086"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.29"
+version = "1.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9f5105d4fdaab20335ca9565e106a5d9b82b6219b5ba735731124ac6711d23d"
+checksum = "edc3358ebc67bc8b7fa0c007f945b0b18226f78437d61bec735a9eb96b61ee70"
 dependencies = [
  "unicode-xid",
 ]
@@ -612,9 +612,9 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "slab"
-version = "0.4.4"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c307a32c1c5c437f38c7fd45d753050587732ba8628319fbdf12a7e289ccc590"
+checksum = "9def91fd1e018fe007022791f865d0ccc9b3a0d5001e01aabb8b40e46000afb5"
 
 [[package]]
 name = "smallvec"
