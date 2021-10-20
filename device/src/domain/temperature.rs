@@ -10,6 +10,7 @@ pub trait TemperatureScale {
 }
 
 /// Discriminant for the _Kelvin_ temperature scale.
+#[derive(Clone)]
 pub struct Kelvin;
 
 impl TemperatureScale for Kelvin {
@@ -30,6 +31,7 @@ impl defmt::Format for Kelvin {
 }
 
 /// Discriminant for the _Celsius_ temperature scale.
+#[derive(Clone)]
 pub struct Celsius;
 
 impl Debug for Celsius {
@@ -50,6 +52,7 @@ impl TemperatureScale for Celsius {
 }
 
 /// Discriminant for the _Fahrenheit_ temperature scale.
+#[derive(Clone)]
 pub struct Fahrenheit;
 
 impl Debug for Fahrenheit {

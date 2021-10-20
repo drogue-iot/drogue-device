@@ -10,15 +10,16 @@ use core::future::Future;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
     clients::http::*,
+    domain::temperature::Celsius,
+    drivers::sensors::hts221::SensorAcquisition,
     traits::{ip::*, tcp::*},
     Actor, Address, Inbox,
 };
 use heapless::String;
 
-pub type Temperature = f32;
 pub enum Command {
     Send,
-    Update(Temperature),
+    Update(SensorAcquisition<Celsius>),
 }
 
 impl<S> FromButtonEvent<Command> for App<S>
@@ -80,15 +81,15 @@ where
     {
         self.socket.replace(config);
         async move {
-            let mut temperature: Option<f32> = None;
+            let mut temperature: Option<SensorAcquisition<Celsius>> = None;
             loop {
                 match inbox.next().await {
                     Some(mut m) => match m.message() {
                         Command::Update(t) => {
                             info!("Updating temperature measurement");
-                            temperature.replace(*t);
+                            temperature.replace(t.clone());
                         }
-                        Command::Send => match temperature {
+                        Command::Send => match &temperature {
                             Some(t) => {
                                 info!("Sending temperature measurement");
                                 let socket = self.socket.as_mut().unwrap();
@@ -101,7 +102,12 @@ where
                                 );
 
                                 let mut tx: String<64> = String::new();
-                                write!(tx, "{{\"temp\": {}}}", t).unwrap();
+                                write!(
+                                    tx,
+                                    "{{\"temp\": {}, \"humidity\": {}}}",
+                                    t.temperature, t.relative_humidity
+                                )
+                                .unwrap();
                                 let mut rx_buf = [0; 1024];
                                 let response_len = client
                                     .post(
