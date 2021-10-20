@@ -1,6 +1,6 @@
 == BBB Micro:bit BLE Temperature
 
-This example application runs out of the box on hte BBC micro:bit v2.0. It starts a BLE (Bluetooth Low Energy) temperature
+This example application runs out of the box on the BBC micro:bit v2.0. It starts a BLE (Bluetooth Low Energy) temperature
 service identical to the default application provided on the micro:bit, but based on link:https://github.com/embassy-rs/embassy[embassy], link:https://github.com/embassy-rs/nrf-softdevice[nrf-softdevice], and link:https://github.com/drogue-iot/drogue-device[drogue-device].
 
 === Prerequisites
