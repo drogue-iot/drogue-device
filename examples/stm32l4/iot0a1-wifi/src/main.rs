@@ -12,8 +12,11 @@ use panic_probe as _;
 
 use drogue_device::{
     actors::button::*,
+    actors::i2c::*,
+    actors::sensors::hts221::*,
     actors::socket::*,
     actors::wifi::*,
+    drivers::sensors::hts221::*,
     traits::{ip::*, tcp::TcpStack, wifi::*},
     //    actors::wifi::eswifi::*,
     //    traits::{wifi::*},
@@ -25,7 +28,7 @@ use embassy_stm32::time::Hertz;
 use embassy_stm32::{
     exti::*,
     gpio::{Input, Level, Output, Pull, Speed},
-    peripherals::{PB13, PC13, PE0, PE1, PE8, SPI3},
+    peripherals::{I2C2, PB13, PC13, PD15, PE0, PE1, PE8, SPI3},
     Peripherals,
 };
 use wifi_app::*;
@@ -75,10 +78,14 @@ type AppSocket = TlsSocket<'static, Socket<'static, EsWifi>, Rng<RNG>, Aes128Gcm
 #[cfg(not(feature = "tls"))]
 type AppSocket = Socket<'static, EsWifi>;
 
+//type I2cDriver = embassy_stm32::i2c::I2c<'static, I2C2>;
+
 pub struct MyDevice {
     wifi: ActorContext<'static, AdapterActor<EsWifi>>,
     app: ActorContext<'static, App<AppSocket>>,
     button: ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App<AppSocket>>>,
+    // i2c: ActorContext<'static, I2cPeripheral<I2cDriver>>,
+    //    sensor: ActorContext<'static, Sensor<ExtiInput<'static, PD15>, Address<'static, I2cPeripheral<I2cDriver>>, App<AppSocket>>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -117,6 +124,9 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let button_pin = Input::new(p.PC13, Pull::Up);
     let button = ExtiInput::new(button_pin, p.EXTI13);
 
+    let ready_pin = Input::new(p.PD15, Pull::Down);
+    let sensor_ready = ExtiInput::new(ready_pin, p.EXTI15);
+
     /*
     let ip = wifi.join_wep(WIFI_SSID, WIFI_PSK).await;
     defmt::info!("Joined...");
@@ -130,6 +140,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         wifi: ActorContext::new(AdapterActor::new()),
         app: ActorContext::new(App::new(IP, PORT, USERNAME.trim_end(), PASSWORD.trim_end())),
         button: ActorContext::new(Button::new(button)),
+        //sensor: ActorContext::new(Sensor::new(sensor_ready)),
     });
 
     DEVICE
@@ -152,6 +163,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             );
             let app = device.app.mount(socket, spawner);
             device.button.mount(app, spawner);
+            //device.sensor.mount((i2c, app), spawner);
         })
         .await;
     defmt::info!("Application initialized. Press 'User' button to send data");
