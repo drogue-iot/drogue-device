@@ -8,6 +8,7 @@
 #![feature(concat_idents)]
 
 use defmt_rtt as _;
+use domain::temperature::{Celsius, TemperatureScale};
 use panic_probe as _;
 
 use drogue_device::{
@@ -22,13 +23,15 @@ use drogue_device::{
     //    traits::{wifi::*},
     *,
 };
+use embassy::traits::i2c::I2c as I2cTrait;
 use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::spi::{self, Config, Spi};
 use embassy_stm32::time::Hertz;
 use embassy_stm32::{
     exti::*,
     gpio::{Input, Level, Output, Pull, Speed},
-    peripherals::{I2C2, PB13, PC13, PD15, PE0, PE1, PE8, SPI3},
+    i2c, interrupt,
+    peripherals::{DMA1_CH4, DMA1_CH5, I2C2, PB13, PC13, PD15, PE0, PE1, PE8, SPI3},
     Peripherals,
 };
 use wifi_app::*;
@@ -78,14 +81,21 @@ type AppSocket = TlsSocket<'static, Socket<'static, EsWifi>, Rng<RNG>, Aes128Gcm
 #[cfg(not(feature = "tls"))]
 type AppSocket = Socket<'static, EsWifi>;
 
-//type I2cDriver = embassy_stm32::i2c::I2c<'static, I2C2>;
+type I2cDriver = embassy_stm32::i2c::I2c<'static, I2C2, DMA1_CH4, DMA1_CH5>;
 
 pub struct MyDevice {
     wifi: ActorContext<'static, AdapterActor<EsWifi>>,
     app: ActorContext<'static, App<AppSocket>>,
     button: ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App<AppSocket>>>,
-    // i2c: ActorContext<'static, I2cPeripheral<I2cDriver>>,
-    //    sensor: ActorContext<'static, Sensor<ExtiInput<'static, PD15>, Address<'static, I2cPeripheral<I2cDriver>>, App<AppSocket>>>,
+    i2c: ActorContext<'static, I2cPeripheral<I2cDriver>>,
+    sensor: ActorContext<
+        'static,
+        Sensor<
+            ExtiInput<'static, PD15>,
+            Address<'static, I2cPeripheral<I2cDriver>>,
+            TemperatureLogger,
+        >,
+    >,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -127,6 +137,22 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let ready_pin = Input::new(p.PD15, Pull::Down);
     let sensor_ready = ExtiInput::new(ready_pin, p.EXTI15);
 
+    let i2c_irq = interrupt::take!(I2C2_EV);
+    let mut i2c = i2c::I2c::new(
+        p.I2C2,
+        p.PB10,
+        p.PB11,
+        i2c_irq,
+        p.DMA1_CH4,
+        p.DMA1_CH5,
+        Hertz(100_000),
+    );
+
+    const ADDRESS: u8 = 0x5F;
+    const WHOAMI: u8 = 0x0F;
+    let mut data = [0u8; 1];
+    defmt::unwrap!(i2c.write_read(ADDRESS, &[WHOAMI], &mut data).await);
+    defmt::info!("Whoami: {}", data[0]);
     /*
     let ip = wifi.join_wep(WIFI_SSID, WIFI_PSK).await;
     defmt::info!("Joined...");
@@ -140,11 +166,13 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         wifi: ActorContext::new(AdapterActor::new()),
         app: ActorContext::new(App::new(IP, PORT, USERNAME.trim_end(), PASSWORD.trim_end())),
         button: ActorContext::new(Button::new(button)),
-        //sensor: ActorContext::new(Sensor::new(sensor_ready)),
+        i2c: ActorContext::new(I2cPeripheral::new(i2c)),
+        sensor: ActorContext::new(Sensor::new(sensor_ready)),
     });
 
     DEVICE
         .mount(|device| async move {
+            /*
             let mut wifi = device.wifi.mount(wifi, spawner);
             defmt::info!("Joining WiFi network...");
             wifi.join(Join::Wpa {
@@ -161,10 +189,22 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
                 socket,
                 TlsContext::new(rng, unsafe { &mut TLS_BUFFER }).with_server_name(HOST.trim_end()),
             );
+
             let app = device.app.mount(socket, spawner);
             device.button.mount(app, spawner);
-            //device.sensor.mount((i2c, app), spawner);
+            */
+            let i2c = device.i2c.mount((), spawner);
+            // TODO: Send to app instead
+            device.sensor.mount((i2c, TemperatureLogger), spawner);
         })
         .await;
     defmt::info!("Application initialized. Press 'User' button to send data");
+}
+
+pub struct TemperatureLogger;
+
+impl<T: TemperatureScale> SensorMonitor<T> for TemperatureLogger {
+    fn notify(&self, value: SensorAcquisition<T>) {
+        defmt::info!("{}", value);
+    }
 }

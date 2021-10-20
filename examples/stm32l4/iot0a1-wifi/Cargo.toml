@@ -50,9 +50,13 @@ defmt-error = []
 tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls"]
 
 [patch.crates-io]
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
+#embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
+#embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
+#embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "d9e2d176256ef4959c1ba60893ea361363d480d3" }
+
+embassy = { path = "../../../../../embassy/embassy" }
+embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
+embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }
 
 [profile.release]
 codegen-units = 1
