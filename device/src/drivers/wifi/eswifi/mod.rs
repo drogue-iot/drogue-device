@@ -540,7 +540,8 @@ where
                     Err(TcpError::CloseError)
                 }
             }
-            .await {
+            .await
+            {
                 _ => {}
             }
         }
