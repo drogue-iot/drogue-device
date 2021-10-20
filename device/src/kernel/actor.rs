@@ -324,7 +324,7 @@ where
         Err(SignalError::NoAvailableSignal)
     }
 
-    /// Mount the underloying actor and initialize the channel.
+    /// Mount the underlying actor and initialize the channel.
     pub fn mount<S: ActorSpawner>(
         &'static self,
         config: A::Configuration,
