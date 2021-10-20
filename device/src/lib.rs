@@ -96,6 +96,8 @@ pub mod drivers;
 
 pub mod clients;
 
+pub mod domain;
+
 #[cfg(feature = "std")]
 pub mod testutil;
 
