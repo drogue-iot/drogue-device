@@ -22,12 +22,26 @@ impl Debug for Kelvin {
     }
 }
 
+#[cfg(feature = "defmt")]
+impl defmt::Format for Kelvin {
+    fn format(&self, f: defmt::Formatter<'_>) {
+        defmt::write!(f, "°K");
+    }
+}
+
 /// Discriminant for the _Celsius_ temperature scale.
 pub struct Celsius;
 
 impl Debug for Celsius {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("°C")
+    }
+}
+
+#[cfg(feature = "defmt")]
+impl defmt::Format for Celsius {
+    fn format(&self, f: defmt::Formatter<'_>) {
+        defmt::write!(f, "°C");
     }
 }
 
@@ -41,6 +55,13 @@ pub struct Fahrenheit;
 impl Debug for Fahrenheit {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("°F")
+    }
+}
+
+#[cfg(feature = "defmt")]
+impl defmt::Format for Fahrenheit {
+    fn format(&self, f: defmt::Formatter<'_>) {
+        defmt::write!(f, "°F");
     }
 }
 
@@ -66,6 +87,13 @@ impl<S: TemperatureScale> Clone for Temperature<S> {
 impl<S: TemperatureScale> Debug for Temperature<S> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}°{}", &self.value, S::LETTER)
+    }
+}
+
+#[cfg(feature = "defmt")]
+impl<S: TemperatureScale> defmt::Format for Temperature<S> {
+    fn format(&self, f: defmt::Formatter<'_>) {
+        defmt::write!(f, "{}°{}", &self.value, S::LETTER)
     }
 }
 

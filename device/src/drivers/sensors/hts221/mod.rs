@@ -26,6 +26,18 @@ impl<S: TemperatureScale> Debug for SensorAcquisition<S> {
     }
 }
 
+#[cfg(feature = "defmt")]
+impl<S: TemperatureScale> defmt::Format for SensorAcquisition<S> {
+    fn format(&self, f: defmt::Formatter<'_>) {
+        defmt::write!(
+            f,
+            "SensorAcquisition(temperature: {}, relative_humidity: {})",
+            &self.temperature,
+            &self.relative_humidity
+        );
+    }
+}
+
 pub const ADDR: u8 = 0x5F;
 
 pub enum Hts221Error<E> {
