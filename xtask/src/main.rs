@@ -47,6 +47,7 @@ fn test_ci() -> Result<(), anyhow::Error> {
         "wasm/browser",
         "std/esp8266",
         "std/hello",
+        "std/pingpong",
     ] {
         let mut example_dir = examples_dir.clone();
         example_dir.push(example);
