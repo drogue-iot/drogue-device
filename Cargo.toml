@@ -12,6 +12,7 @@ embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbae
 embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
 embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
 embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
 
 # embassy = { path = "../../../../../embassy/embassy" }
 # embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }

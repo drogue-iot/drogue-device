@@ -71,7 +71,7 @@ version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a785a543aea40f5e4e2e93bb2655d31bc21bb391fff65697150973e383f16bb"
 dependencies = [
- "as-slice",
+ "as-slice 0.1.5",
 ]
 
 [[package]]
@@ -93,6 +93,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "as-slice"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "516b6b4f0e40d50dcda9365d53964ec74560ad4284da2e7fc97122cd83174516"
+dependencies = [
+ "stable_deref_trait",
+]
+
+[[package]]
 name = "atomic-polyfill"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -100,6 +109,18 @@ checksum = "053f1ab4712fe8c55de46932b46ecc774ae7906278ddf7fc2fbaaaa663b84392"
 dependencies = [
  "critical-section",
  "riscv-target",
+]
+
+[[package]]
+name = "atomic-pool"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b407ed6d721feca5f9432fcd24dec6857debbc8f5d86a75538d871ee85b8b1f"
+dependencies = [
+ "as-slice 0.1.5",
+ "as-slice 0.2.1",
+ "atomic-polyfill",
+ "stable_deref_trait",
 ]
 
 [[package]]
@@ -507,6 +528,8 @@ dependencies = [
  "drogue-tls",
  "embassy",
  "embassy-hal-common",
+ "embassy-net",
+ "embassy-stm32",
  "embedded-hal",
  "futures",
  "heapless 0.7.7",
@@ -601,6 +624,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "embassy-net"
+version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746#2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746"
+dependencies = [
+ "as-slice 0.2.1",
+ "atomic-pool",
+ "defmt",
+ "embassy",
+ "futures",
+ "generic-array 0.14.4",
+ "heapless 0.7.7",
+ "managed",
+ "smoltcp",
+ "stable_deref_trait",
+]
+
+[[package]]
 name = "embassy-stm32"
 version = "0.1.0"
 source = "git+https://github.com/embassy-rs/embassy.git?rev=2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746#2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746"
@@ -616,6 +656,7 @@ dependencies = [
  "embassy",
  "embassy-hal-common",
  "embassy-macros",
+ "embassy-net",
  "embassy-traits",
  "embedded-hal",
  "futures",
@@ -625,6 +666,7 @@ dependencies = [
  "serde",
  "serde_yaml",
  "stm32-metapac",
+ "vcell",
 ]
 
 [[package]]
@@ -889,7 +931,7 @@ version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "634bd4d29cbf24424d0a4bfcbf80c6960129dc24424752a7d1d1390607023422"
 dependencies = [
- "as-slice",
+ "as-slice 0.1.5",
  "generic-array 0.14.4",
  "hash32 0.1.1",
  "stable_deref_trait",
@@ -1009,6 +1051,12 @@ checksum = "51b9bbe6c47d51fc3e1a9b945965946b4c44142ab8792c50835a980d362c2710"
 dependencies = [
  "cfg-if",
 ]
+
+[[package]]
+name = "managed"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ca88d725a0a943b096803bd34e73a4437208b6077654cc4ecb2947a5f91618d"
 
 [[package]]
 name = "memchr"
@@ -1137,6 +1185,27 @@ dependencies = [
  "rand_core",
  "void",
  "wifi-app",
+]
+
+[[package]]
+name = "nucleo-h743zi_ethernet"
+version = "0.1.0"
+dependencies = [
+ "cortex-m 0.7.3",
+ "cortex-m-rt",
+ "critical-section",
+ "defmt",
+ "defmt-rtt",
+ "drogue-device",
+ "embassy",
+ "embassy-macros",
+ "embassy-net",
+ "embassy-stm32",
+ "embedded-hal",
+ "heapless 0.7.7",
+ "panic-probe",
+ "rand_core",
+ "void",
 ]
 
 [[package]]
@@ -1470,6 +1539,16 @@ dependencies = [
  "cpufeatures",
  "digest",
  "opaque-debug",
+]
+
+[[package]]
+name = "smoltcp"
+version = "0.7.0"
+source = "git+https://github.com/smoltcp-rs/smoltcp?rev=e4241510337e095b9d21136c5f58b2eaa1b78479#e4241510337e095b9d21136c5f58b2eaa1b78479"
+dependencies = [
+ "bitflags",
+ "byteorder",
+ "managed",
 ]
 
 [[package]]

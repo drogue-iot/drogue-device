@@ -30,6 +30,10 @@ impl IpAddressV4 {
     pub fn new(a: u8, b: u8, c: u8, d: u8) -> Self {
         IpAddressV4(a, b, c, d)
     }
+
+    pub fn octets(&self) -> [u8; 4] {
+        [self.0, self.1, self.2, self.3]
+    }
 }
 
 impl Debug for IpAddressV4 {
