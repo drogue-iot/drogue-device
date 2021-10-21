@@ -8,10 +8,10 @@ members = [
 resolver = "2"
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "a895b6351f68c1af104d2d65e6df121b4a100808" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "a895b6351f68c1af104d2d65e6df121b4a100808" }
-embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "a895b6351f68c1af104d2d65e6df121b4a100808" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "a895b6351f68c1af104d2d65e6df121b4a100808" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
 
 # embassy = { path = "../../../../../embassy/embassy" }
 # embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
