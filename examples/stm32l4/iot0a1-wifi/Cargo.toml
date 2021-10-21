@@ -50,9 +50,9 @@ defmt-error = []
 tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls"]
 
 [patch.crates-io]
-embassy = {git = "https://github.com/lulf/embassy.git", rev = "5412968be27a7ce20497bf2f816f40d7d6b502a6" }
-embassy-stm32 = {git = "https://github.com/lulf/embassy.git", rev = "5412968be27a7ce20497bf2f816f40d7d6b502a6" }
-embassy-hal-common = { git = "https://github.com/lulf/embassy.git", rev = "5412968be27a7ce20497bf2f816f40d7d6b502a6" }
+embassy = {git = "https://github.com/lulf/embassy.git", rev = "f8ebc967a93abb70ea882225f38814a7f2f45a4d" }
+embassy-stm32 = {git = "https://github.com/lulf/embassy.git", rev = "f8ebc967a93abb70ea882225f38814a7f2f45a4d" }
+embassy-hal-common = { git = "https://github.com/lulf/embassy.git", rev = "f8ebc967a93abb70ea882225f38814a7f2f45a4d" }
 
 #embassy = { path = "../../../../../embassy/embassy" }
 #embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
