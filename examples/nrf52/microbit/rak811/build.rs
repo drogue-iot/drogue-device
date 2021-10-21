@@ -12,13 +12,14 @@ use std::env;
 use std::fs::{self, OpenOptions};
 use std::path::{Path, PathBuf};
 
-fn copy_config(out: &PathBuf, file: &str) {
-    if Path::new(file).exists() {
-        fs::copy(file, out.join(file)).expect("error copying file");
-        println!("cargo:rerun-if-changed={}", file);
+fn copy_config(out: &PathBuf, manifest_dir: &PathBuf, file: &str) {
+    let file_path = manifest_dir.join(file);
+    if Path::new(&file_path).exists() {
+        fs::copy(&file, out.join(file)).expect("error copying file");
+        println!("cargo:rerun-if-changed={}", file_path.display());
     } else {
         if env::var_os("CI").is_none() {
-            panic!("Unable to locate config file {}.", file);
+            panic!("Unable to locate config file {}.", file_path.display());
         } else {
             println!("Skipping missing configuration file when running in CI");
             let _ = OpenOptions::new()
@@ -30,17 +31,14 @@ fn copy_config(out: &PathBuf, file: &str) {
 }
 
 fn main() {
+    let manifest_dir = &PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
     let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
 
     // Copy credentials
     fs::create_dir_all(out.join("config")).expect("error creating output directory for config");
-    copy_config(&out, "config/dev_eui.txt");
-    copy_config(&out, "config/app_eui.txt");
-    copy_config(&out, "config/app_key.txt");
-
-    // By default, Cargo will re-run a build script whenever
-    // any file in the project changes. By specifying `memory.x`
-    // here, we ensure the build script is only re-run when
-    // `memory.x` is changed.
-    println!("cargo:rerun-if-changed=memory.x");
+    copy_config(&out, &manifest_dir, "config/dev_eui.txt");
+    copy_config(&out, &manifest_dir, "config/app_eui.txt");
+    copy_config(&out, &manifest_dir, "config/app_key.txt");
+    copy_config(&out, &manifest_dir, "memory.x");
+    println!("cargo:rustc-link-search={}", out.display());
 }
