@@ -5,7 +5,9 @@ use core::task::{Context, Poll, Waker};
 
 use heapless::spsc::Queue;
 
+#[derive(PartialEq)]
 enum SocketState {
+    HalfClosed,
     Closed,
     Open,
     Connected,
@@ -30,25 +32,49 @@ impl SocketPool {
         }
     }
 
-    pub(crate) async fn open<'a>(&'a self) -> u8 {
+    pub(crate) async fn open<'a>(&'a self) -> Result<u8, ()> {
         OpenFuture::new(self).await
     }
 
-    fn poll_open(&self, waker: &Waker, waiting: bool) -> Poll<u8> {
+    pub(crate) fn close<'a>(&'a self, socket: u8) {
+        let mut sockets = self.sockets.borrow_mut();
+        let index = socket as usize;
+        match sockets[index] {
+            SocketState::HalfClosed => {
+                sockets[index] = SocketState::Closed;
+            }
+            SocketState::Open | SocketState::Connected => {
+                sockets[index] = SocketState::HalfClosed;
+            }
+            SocketState::Closed => {
+                // nothing
+            }
+        }
+    }
+
+    pub(crate) fn is_closed<'a>(&'a self, socket: u8) -> bool {
+        let sockets = self.sockets.borrow();
+        let index = socket as usize;
+        sockets[index] == SocketState::Closed || sockets[index] == SocketState::HalfClosed
+    }
+
+    fn poll_open(&self, waker: &Waker, waiting: bool) -> Poll<Result<u8, ()>> {
         let mut sockets = self.sockets.borrow_mut();
         let available = sockets
             .iter()
             .enumerate()
-            .take_while(|e| matches!(e, (_, SocketState::Closed)))
-            .take(1)
+            .filter(|e| matches!(e, (_, SocketState::Closed)))
             .next();
 
         if let Some((index, _)) = available {
             sockets[index] = SocketState::Open;
-            Poll::Ready(index as u8)
+            Poll::Ready(Ok(index as u8))
         } else {
             if !waiting {
-                self.waiters.borrow_mut().enqueue(waker.clone()).unwrap();
+                return match self.waiters.borrow_mut().enqueue(waker.clone()) {
+                    Ok(_) => Poll::Pending,
+                    Err(_) => Poll::Ready(Err(())),
+                };
             }
             Poll::Pending
         }
@@ -69,7 +95,7 @@ impl<'a> OpenFuture<'a> {
     }
 }
 impl<'a> Future for OpenFuture<'a> {
-    type Output = u8;
+    type Output = Result<u8, ()>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let result = self.pool.poll_open(cx.waker(), self.waiting);
@@ -80,27 +106,22 @@ impl<'a> Future for OpenFuture<'a> {
     }
 }
 
-// pub(crate) struct OpenFuture {
-//     pool: &'a SocketPool,
-//     waiting: bool,
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use futures::executor::block_on;
 
-// impl OpenFuture {
-//     fn new(pool: &'static SocketPool) -> Self {
-//         Self {
-//             pool,
-//             waiting: false,
-//         }
-//     }
-// }
-// impl Future for OpenFuture {
-//     type Output = u8;
-
-//     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-//         let result = self.pool.poll_open(cx.waker(), self.waiting);
-//         if result.is_pending() {
-//             self.waiting = true;
-//         }
-//         result
-//     }
-// }
+    #[test]
+    fn max_simultaneous_sockets() {
+        let pool = SocketPool::new();
+        for i in 0..100 {
+            let expected = i % 4;
+            if !pool.is_closed(expected) {
+                pool.close(expected);
+                pool.close(expected); // account for HalfClosed state
+            }
+            let actual = block_on(pool.open());
+            assert_eq!(expected, actual.unwrap());
+        }
+    }
+}

@@ -172,7 +172,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     DEVICE
         .mount(|device| async move {
-            /*
             let mut wifi = device.wifi.mount(wifi, spawner);
             defmt::info!("Joining WiFi network...");
             wifi.join(Join::Wpa {
@@ -183,7 +182,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             .expect("Error joining wifi");
             defmt::info!("WiFi network joined");
 
-            let socket = Socket::new(wifi, wifi.open().await);
+            let socket = Socket::new(wifi, wifi.open().await.unwrap());
             #[cfg(feature = "tls")]
             let socket = TlsSocket::wrap(
                 socket,
@@ -192,7 +191,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
             let app = device.app.mount(socket, spawner);
             device.button.mount(app, spawner);
-            */
             let i2c = device.i2c.mount((), spawner);
             // TODO: Send to app instead
             device.sensor.mount((i2c, TemperatureLogger), spawner);
