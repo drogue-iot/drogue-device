@@ -15,7 +15,7 @@ The example can operate using plain TCP, or using TLS by enabling the `tls` feat
 
 ==== Software
 
-* To build the example, you need to have link:https://rustup.rs/[Rust Nightly].
+* To build the example, you need to have link:https://rustup.rs/[rustup].
 * To flash the example on the device, you need `probe-run` installed (`cargo install probe-run`).
 * A TCP server (ncat) or a service like Drogue IoT Cloud. See link:https://github.com/drogue-iot/drogue-cloud/[drogue-cloud] for how to run that, or use the link:https://sandbox.drogue.cloud/[sandbox] (requires TLS).
 
@@ -24,12 +24,6 @@ The example can operate using plain TCP, or using TLS by enabling the `tls` feat
 To access your local WiFi network, the store the ssid in `config/wifi.ssid.txt` and pre-shared key in `config/wifi.password.txt`.
 
 To authenticate the device to an HTTP service, you must store the username and password in `config/http.username.txt` and `config/http.password.txt`. For Drogue IoT Cloud, the username/password is stored in this form: `device_id@application`.
-
-Make sure you have the correct target architecture supported in rust:
-
-....
-rustup target add thumbv7em-none-eabihf
-....
 
 === Running with plain TCP
 
@@ -42,7 +36,7 @@ ncat -l 12345 --keep-open --exec "/bin/cat"
 To run the firmware:
 
 ....
-cargo +nightly run --release
+cargo run --release
 ....
 
 == Running with TLS
@@ -52,7 +46,7 @@ When the `tls` flag is enabled, the example is configured to use the Drogue IoT 
 To run the firmware:
 
 ....
-cargo +nightly run --release --features tls
+cargo run --release --features tls
 ....
 
 == Troubleshooting

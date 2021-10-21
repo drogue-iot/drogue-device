@@ -12,7 +12,7 @@ service identical to the default application provided on the micro:bit, but base
 
 ==== Software
 
-* link:https://rustup.rs/[Rust] - To compile the example.
+* link:https://rustup.rs/[rustup] - To compile the example with the correct toolchain.
 * link:https://crates.io/crates/probe-rs-cli[probe-rs-cli] - To flash the BLE protocol stack from Nordic Semiconductor.
 * link:https://crates.io/crates/probe-run[probe-run] - To run the example.
 

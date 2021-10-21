@@ -4,9 +4,9 @@ authors = [
     "Bob McWhirter <bmcwhirt@redhat.com>"
 ]
 edition = "2018"
-name = "pingpong"
+name = "package"
 version = "0.1.0"
-description = "Ping pong show how to use circular dependencies between actors"
+description = "Example application demonstrating how to write packages containing multiple actors"
 keywords = ["basic", "std"]
 
 [dependencies]

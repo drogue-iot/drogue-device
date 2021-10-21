@@ -13,23 +13,15 @@ WaveShare 5.6inch 7-color e-Paper Display.
 
 ==== Software
 
-* To build the example, you need to have link:https://rustup.rs/[Rust Nightly].
+* To build the example, you need to have link:https://rustup.rs/[rustup].
 * To flash the example on the device, you need `probe-run` installed (`cargo install probe-run`).
-
-=== Configuring
-
-Make sure you have the correct target architecture supported in rust:
-
-....
-rustup target add thumbv7em-none-eabihf
-....
 
 ==== Running
 
 To run the firmware:
 
 ....
-cargo +nightly run --release
+cargo run --release
 ....
 
 == Troubleshooting
@@ -37,7 +29,7 @@ cargo +nightly run --release
 If you’re experiencing problems, try setting the `VID:PID` values to that of your probe (you can find that from lsusb once your board is powered).
 
 ....
-cargo +nightly run --release -- --probe <VID>:<PID>
+cargo run --release -- --probe <VID>:<PID>
 ....
 
 Once flashed, the device will reset and look no different at first. 
