@@ -76,6 +76,14 @@ async fn main(spawner: Spawner, p: Peripherals) {
         .mount(|device| async move {
             let matrix = device.matrix.mount((), spawner);
 
+            matrix
+                .notify(MatrixCommand::ApplyText(
+                    "Hello, Drogue",
+                    AnimationEffect::Slide,
+                    Duration::from_secs(5),
+                ))
+                .unwrap();
+
             device
                 .ble_service
                 .mount(LedConnectionState(matrix), spawner);
