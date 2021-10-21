@@ -18,7 +18,7 @@ All boards with the RAK811 chip should function, but may have different capabili
 ==== Software
 
 To build and flash the example, you need to have
-https://rustup.rs/[Rust Nightly]. In practice
+https://rustup.rs/[rustup]. In practice
 you can use whatever tool you want to flash the device, but this guide
 will assume that `probe-run` is used (`cargo install probe-run`).
 
@@ -30,16 +30,8 @@ configuration of your device.
 
 === Building
 
-Make sure you have the correct target architecture supported in rust:
-
 ....
-rustup +nightly target add thumbv7m-none-eabi
-....
-
-To build the firmware:
-
-....
-cargo +nightly build --release
+cargo build --release
 ....
 
 === Flashing
@@ -49,7 +41,7 @@ The following command will build and flash the firmware and open the
 debugger console so you can see the console debug output.
 
 ....
-cargo +nightly run --release
+cargo run --release
 ....
 
 If you’re experiencing problems, try setting the `VID:PID` values to
@@ -57,7 +49,7 @@ that of your probe (you can find that from lsusb once your board is
 powered).
 
 ....
-cargo +nightly run --release -- --probe <VID>:<PID>
+cargo run --release -- --probe <VID>:<PID>
 ....
 
 

@@ -6,10 +6,8 @@ authors = [
 edition = "2018"
 name = "esp8266"
 version = "0.1.0"
-description = "Serial adapter + ESP8266 adapter"
+description = "Example using a USB-to-Serial adapter + ESP8266 adapter"
 keywords = ["std", "wifi", "networking"]
-
-[workspace]
 
 [dependencies]
 log = "0.4"
@@ -31,11 +29,3 @@ futures = { version = "0.3.8", default-features = false, features = ["async-awai
 
 [features]
 tls = ["drogue-tls", "drogue-tls/log"]
-
-
-[patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "a895b6351f68c1af104d2d65e6df121b4a100808" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "a895b6351f68c1af104d2d65e6df121b4a100808" }
-
-#embassy = { path = "../../../../../embassy/embassy" }
-#embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }

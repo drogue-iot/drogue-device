@@ -1,5 +1,5 @@
 * link:https://github.com/drogue-iot/drogue-device/tree/main/examples/rp/pico/blinky[Raspberry Pi Pico Blinky]
-* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/hello[Hello world in std Rust]
-* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/pingpong[Ping pong in std Rust]
+* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/package[Example application demonstrating how to write packages containing multiple actors]
+* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/pingpong[Ping pong show how to use circular dependencies between actors]
 * link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32h7/nucleo-h743zi/blinkdance[STM32 Nucleo-H743 blink dance]
 * link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32h7/nucleo-h743zi/blinky[STM32 Nucleo-H743 blinky]

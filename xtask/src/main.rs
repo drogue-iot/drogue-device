@@ -45,9 +45,7 @@ fn test_ci() -> Result<(), anyhow::Error> {
         "stm32wl/nucleo-wl55",
         "stm32h7/nucleo-h743zi",
         "wasm/browser",
-        "std/esp8266",
-        "std/hello",
-        "std/pingpong",
+        "std",
     ] {
         let mut example_dir = examples_dir.clone();
         example_dir.push(example);

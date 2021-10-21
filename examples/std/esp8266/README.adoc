@@ -1,6 +1,8 @@
-== std-esp8266 drogue-device example
+== std esp8266 example
 
-This example application runs out of the box on a PC with a ESP8266 breakout module flashed with AT firmware attached using a USB-to-Serial cable.
+This example demonstrates using a driver written for embedded on a standard computer with a module attached to a USB-to-Serial cable.
+
+The application runs out of the box on a PC with a ESP8266 breakout module flashed with AT firmware attached using a USB-to-Serial cable.
 
 === Prerequisites
 
@@ -11,7 +13,7 @@ This example application runs out of the box on a PC with a ESP8266 breakout mod
 
 ==== Software
 
-* To build the example, you need to have link:https://rustup.rs/[Rust Nightly].
+* To build the example, you need to have link:https://rustup.rs/[rustup].
 * A TCP server (ncat) or a service like Drogue IoT Cloud. See link:https://github.com/drogue-iot/drogue-cloud/[drogue-cloud] for how to run that, or use the link:https://sandbox.drogue.cloud/[sandbox] (requires TLS).
 
 === Configuring
@@ -31,7 +33,7 @@ ncat -l 12345 --keep-open --exec "/bin/cat"
 To run the firmware:
 
 ....
-cargo +nightly run --release
+cargo run --release
 ....
 
 

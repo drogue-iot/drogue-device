@@ -10,21 +10,15 @@ This example application runs out of the box on the Raspberry Pi Pico.
 
 ==== Software
 
-* link:https://rustup.rs/[Rust Nightly] to build the code
+* link:https://rustup.rs/[rustup] to build the code
 * link:https://github.com/raspberrypi/pico-sdk[Pico SDK] to convert binary from ELF to UF2 format. Follow the instructions there to build the SDK.
 
 === Building
 
-Make sure you have the correct target architecture supported in rust:
-
-....
-rustup +nightly target add thumbv6m-none-eabi
-....
-
 To build the firmware:
 
 ....
-cargo +nightly build --release
+cargo build --release
 ....
 
 === Flashing
