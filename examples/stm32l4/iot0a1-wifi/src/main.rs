@@ -8,7 +8,6 @@
 #![feature(concat_idents)]
 
 use defmt_rtt as _;
-use domain::temperature::{Celsius, TemperatureScale};
 use panic_probe as _;
 
 use drogue_device::{
@@ -17,10 +16,7 @@ use drogue_device::{
     actors::sensors::hts221::*,
     actors::socket::*,
     actors::wifi::*,
-    drivers::sensors::hts221::*,
     traits::{ip::*, tcp::TcpStack, wifi::*},
-    //    actors::wifi::eswifi::*,
-    //    traits::{wifi::*},
     *,
 };
 use embassy::traits::i2c::I2c as I2cTrait;
@@ -39,7 +35,6 @@ use wifi_app::*;
 use embassy_stm32::dma::NoDma;
 //use embedded_hal::digital::v2::{InputPin, OutputPin};
 
-//use cortex_m::prelude::_embedded_hal_blocking_spi_Transfer;
 use drogue_device::drivers::wifi::eswifi::EsWifiController;
 
 cfg_if::cfg_if! {
@@ -93,7 +88,7 @@ pub struct MyDevice {
         Sensor<
             ExtiInput<'static, PD15>,
             Address<'static, I2cPeripheral<I2cDriver>>,
-            TemperatureLogger,
+            AppAddress<AppSocket>,
         >,
     >,
 }
@@ -193,16 +188,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             device.button.mount(app, spawner);
             let i2c = device.i2c.mount((), spawner);
             // TODO: Send to app instead
-            device.sensor.mount((i2c, TemperatureLogger), spawner);
+            device.sensor.mount((i2c, app.into()), spawner);
         })
         .await;
     defmt::info!("Application initialized. Press 'User' button to send data");
-}
-
-pub struct TemperatureLogger;
-
-impl<T: TemperatureScale> SensorMonitor<T> for TemperatureLogger {
-    fn notify(&self, value: SensorAcquisition<T>) {
-        defmt::info!("{}", value);
-    }
 }

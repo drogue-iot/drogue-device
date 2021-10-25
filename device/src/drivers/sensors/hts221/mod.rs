@@ -1,7 +1,6 @@
 mod register;
-use crate::domain::temperature::{Celsius, Temperature, TemperatureScale};
+use crate::domain::{temperature::Celsius, SensorAcquisition};
 use crate::traits::i2c::I2cAddress;
-use core::fmt::{Debug, Formatter};
 use embassy::traits::i2c::*;
 use register::calibration::*;
 use register::ctrl1::{BlockDataUpdate, Ctrl1, OutputDataRate};
@@ -10,33 +9,6 @@ use register::ctrl3::Ctrl3;
 use register::h_out::Hout;
 use register::status::Status;
 use register::t_out::Tout;
-
-#[derive(Copy, Clone)]
-pub struct SensorAcquisition<S: TemperatureScale> {
-    pub temperature: Temperature<S>,
-    pub relative_humidity: f32,
-}
-
-impl<S: TemperatureScale> Debug for SensorAcquisition<S> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("SensorAcquisition")
-            .field("temperature", &self.temperature)
-            .field("relative_humidity", &self.relative_humidity)
-            .finish()
-    }
-}
-
-#[cfg(feature = "defmt")]
-impl<S: TemperatureScale> defmt::Format for SensorAcquisition<S> {
-    fn format(&self, f: defmt::Formatter<'_>) {
-        defmt::write!(
-            f,
-            "SensorAcquisition(temperature: {}, relative_humidity: {})",
-            &self.temperature,
-            &self.relative_humidity
-        );
-    }
-}
 
 pub const ADDR: u8 = 0x5F;
 

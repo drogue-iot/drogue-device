@@ -9,9 +9,9 @@ use core::fmt::Write;
 use core::future::Future;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
+    actors::sensors::SensorMonitor,
     clients::http::*,
-    domain::temperature::Celsius,
-    drivers::sensors::hts221::SensorAcquisition,
+    domain::{temperature::Celsius, SensorAcquisition},
     traits::{ip::*, tcp::*},
     Actor, Address, Inbox,
 };
@@ -86,7 +86,7 @@ where
                 match inbox.next().await {
                     Some(mut m) => match m.message() {
                         Command::Update(t) => {
-                            info!("Updating temperature measurement");
+                            info!("Updating current app temperature measurement: {}", t);
                             temperature.replace(t.clone());
                         }
                         Command::Send => match &temperature {
@@ -133,5 +133,21 @@ where
                 }
             }
         }
+    }
+}
+
+pub struct AppAddress<S: TcpSocket + 'static> {
+    address: Address<'static, App<S>>,
+}
+
+impl<S: TcpSocket> From<Address<'static, App<S>>> for AppAddress<S> {
+    fn from(address: Address<'static, App<S>>) -> Self {
+        Self { address }
+    }
+}
+
+impl<S: TcpSocket> SensorMonitor<Celsius> for AppAddress<S> {
+    fn notify(&self, value: SensorAcquisition<Celsius>) {
+        self.address.notify(Command::Update(value)).unwrap();
     }
 }

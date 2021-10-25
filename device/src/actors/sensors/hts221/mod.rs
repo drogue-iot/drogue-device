@@ -1,17 +1,12 @@
 use crate::domain::temperature::Celsius;
 use crate::drivers::sensors::hts221::*;
 
+use super::SensorMonitor;
 use crate::{Actor, Address, Inbox};
 use core::future::Future;
 use core::marker::PhantomData;
 use embassy::traits::gpio::WaitForAnyEdge;
 use embassy::traits::i2c::*;
-
-use crate::domain::temperature::TemperatureScale;
-
-pub trait SensorMonitor<S: TemperatureScale> {
-    fn notify(&self, value: SensorAcquisition<S>);
-}
 
 pub struct Sensor<P, I, S>
 where
