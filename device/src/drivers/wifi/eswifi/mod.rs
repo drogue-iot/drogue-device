@@ -48,6 +48,23 @@ macro_rules! command {
     })
 }
 
+pub struct Cs<'a, CS: OutputPin + 'a> {
+    cs: &'a mut CS,
+}
+
+impl<'a, CS: OutputPin + 'a> Cs<'a, CS> {
+    fn new(cs: &'a mut CS) -> Result<Self, CS::Error> {
+        cs.set_low()?;
+        Ok(Self { cs })
+    }
+}
+
+impl<'a, CS: OutputPin + 'a> Drop for Cs<'a, CS> {
+    fn drop(&mut self) {
+        let _ = self.cs.set_high();
+    }
+}
+
 pub struct EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
 where
     SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
@@ -99,9 +116,7 @@ where
         Timer::after(Duration::from_millis(50)).await;
     }
 
-    pub async fn wait_ready(
-        &mut self,
-    ) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
+    async fn wait_ready(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
         while self.ready.is_low().map_err(READY)? {
             self.ready.wait_for_rising_edge().await;
         }
@@ -118,26 +133,29 @@ where
         let mut pos = 0;
 
         self.wait_ready().await?;
+        {
+            let _cs = Cs::new(&mut self.cs).map_err(CS)?;
+            loop {
+                if self.ready.is_low().map_err(READY)? {
+                    break;
+                }
 
-        loop {
-            if pos >= response.len() {
-                break;
-            }
+                if pos >= response.len() {
+                    break;
+                }
 
-            let mut chunk = [0x0A, 0x0A];
-            self.cs.set_low().map_err(CS)?;
-            self.wait_ready().await?;
-            self.spi.transfer(&mut chunk).map_err(SPI)?;
-            self.cs.set_high().map_err(CS)?;
+                let mut chunk = [0x0A, 0x0A];
+                self.spi.transfer(&mut chunk).map_err(SPI)?;
 
-            // reverse order going from 16 -> 2*8 bits
-            if chunk[1] != NAK {
-                response[pos] = chunk[1];
-                pos += 1;
-            }
-            if chunk[0] != NAK {
-                response[pos] = chunk[0];
-                pos += 1;
+                // reverse order going from 16 -> 2*8 bits
+                if chunk[1] != NAK {
+                    response[pos] = chunk[1];
+                    pos += 1;
+                }
+                if chunk[0] != NAK {
+                    response[pos] = chunk[0];
+                    pos += 1;
+                }
             }
         }
 
@@ -215,20 +233,20 @@ where
         // info!("send {:?}", core::str::from_utf8(command).unwrap());
 
         self.wait_ready().await?;
+        {
+            let _cs = Cs::new(&mut self.cs).map_err(CS)?;
+            for chunk in command.chunks(2) {
+                let mut xfer: [u8; 2] = [0; 2];
+                xfer[1] = chunk[0];
+                if chunk.len() == 2 {
+                    xfer[0] = chunk[1]
+                } else {
+                    xfer[0] = 0x0A
+                }
 
-        self.cs.set_low().map_err(CS)?;
-        for chunk in command.chunks(2) {
-            let mut xfer: [u8; 2] = [0; 2];
-            xfer[1] = chunk[0];
-            if chunk.len() == 2 {
-                xfer[0] = chunk[1]
-            } else {
-                xfer[0] = 0x0A
+                self.spi.transfer(&mut xfer).map_err(SPI)?;
             }
-
-            self.spi.transfer(&mut xfer).map_err(SPI)?;
         }
-        self.cs.set_high().map_err(CS)?;
 
         self.receive(response).await
     }
@@ -239,11 +257,11 @@ where
     ) -> Result<&'a [u8], Error<E, CS::Error, RESET::Error, READY::Error>> {
         let mut pos = 0;
 
-        self.cs.set_low().map_err(CS)?;
         self.wait_ready().await?;
 
-        self.cs.set_low().map_err(CS)?;
-        loop {
+        let _cs = Cs::new(&mut self.cs).map_err(CS)?;
+
+        while self.ready.is_high().map_err(READY)? {
             if pos >= response.len() {
                 break;
             }
@@ -258,12 +276,7 @@ where
                 response[pos] = xfer[0];
                 pos += 1;
             }
-
-            if self.ready.is_low().map_err(READY)? {
-                break;
-            }
         }
-        self.cs.set_high().map_err(CS)?;
 
         Ok(&response[0..pos])
     }
@@ -398,38 +411,37 @@ where
 
                 self.wait_ready().await.map_err(|_| TcpError::WriteError)?;
 
-                self.cs.set_low().map_err(|_| TcpError::WriteError)?;
+                {
+                    let _cs = Cs::new(&mut self.cs).map_err(|_| TcpError::WriteError)?;
+                    for chunk in prefix.chunks(2) {
+                        let mut xfer: [u8; 2] = [0; 2];
+                        xfer[1] = chunk[0];
+                        xfer[0] = chunk[1];
+                        if chunk.len() == 2 {
+                            xfer[0] = chunk[1]
+                        } else {
+                            xfer[0] = 0x0A
+                        }
 
-                for chunk in prefix.chunks(2) {
-                    let mut xfer: [u8; 2] = [0; 2];
-                    xfer[1] = chunk[0];
-                    xfer[0] = chunk[1];
-                    if chunk.len() == 2 {
-                        xfer[0] = chunk[1]
-                    } else {
-                        xfer[0] = 0x0A
+                        self.spi
+                            .transfer(&mut xfer)
+                            .map_err(|_| TcpError::WriteError)?;
                     }
 
-                    self.spi
-                        .transfer(&mut xfer)
-                        .map_err(|_| TcpError::WriteError)?;
-                }
+                    for chunk in remainder.chunks(2) {
+                        let mut xfer: [u8; 2] = [0; 2];
+                        xfer[1] = chunk[0];
+                        if chunk.len() == 2 {
+                            xfer[0] = chunk[1]
+                        } else {
+                            xfer[0] = 0x0A
+                        }
 
-                for chunk in remainder.chunks(2) {
-                    let mut xfer: [u8; 2] = [0; 2];
-                    xfer[1] = chunk[0];
-                    if chunk.len() == 2 {
-                        xfer[0] = chunk[1]
-                    } else {
-                        xfer[0] = 0x0A
+                        self.spi
+                            .transfer(&mut xfer)
+                            .map_err(|_| TcpError::WriteError)?;
                     }
-
-                    self.spi
-                        .transfer(&mut xfer)
-                        .map_err(|_| TcpError::WriteError)?;
                 }
-
-                self.cs.set_high().map_err(|_| TcpError::WriteError)?;
 
                 let response = self
                     .receive(&mut response)
@@ -483,19 +495,20 @@ where
                         .map_err(|_| TcpError::ReadError)?;
 
                     self.wait_ready().await.map_err(|_| TcpError::ReadError)?;
-                    self.cs.set_low().map_err(|_| TcpError::ReadError)?;
 
-                    let mut xfer = [b'0', b'R'];
-                    self.spi
-                        .transfer(&mut xfer)
-                        .map_err(|_| TcpError::ReadError)?;
+                    {
+                        let _cs = Cs::new(&mut self.cs).map_err(|_| TcpError::ReadError)?;
 
-                    xfer = [b'\n', b'\r'];
-                    self.spi
-                        .transfer(&mut xfer)
-                        .map_err(|_| TcpError::ReadError)?;
+                        let mut xfer = [b'0', b'R'];
+                        self.spi
+                            .transfer(&mut xfer)
+                            .map_err(|_| TcpError::ReadError)?;
 
-                    self.cs.set_high().map_err(|_| TcpError::ReadError)?;
+                        xfer = [b'\n', b'\r'];
+                        self.spi
+                            .transfer(&mut xfer)
+                            .map_err(|_| TcpError::ReadError)?;
+                    }
 
                     let response = self
                         .receive(&mut response)
