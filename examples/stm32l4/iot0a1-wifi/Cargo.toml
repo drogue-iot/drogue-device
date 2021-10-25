@@ -18,7 +18,7 @@ defmt = "0.2"
 defmt-rtt = "0.2"
 panic-probe = { version = "0.2.0", features = ["print-defmt"] }
 
-drogue-device = { path = "../../../device", default-features = false, features = ["defmt", "defmt-info", "time", "wifi+eswifi"] }
+drogue-device = { path = "../../../device", default-features = false, features = ["defmt", "defmt-trace", "time", "wifi+eswifi"] }
 cortex-m-rt = "0.7.0"
 # cortex-m = { version = "0.7", features = ["inline-asm"] }
 cortex-m = "0.7.1"
@@ -41,7 +41,6 @@ embedded-hal = { version = "0.2.4", features = ["unproven"] }
 default = [
     "defmt-default",
     "defmt-trace",
-    "b-l4s5i-iot01a",
 ]
 defmt-default = []
 defmt-trace = []
@@ -51,7 +50,7 @@ defmt-warn = []
 defmt-error = []
 tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls"]
 b-l4s5i-iot01a = ["embassy-stm32/stm32l4s5vi"]
-b-l475e-iot01a1 = ["embassy-stm32/stm32l475vg"]
+b-l475e-iot01a = ["embassy-stm32/stm32l475vg"]
 
 [patch.crates-io]
 embassy = {git = "https://github.com/lulf/embassy.git", rev = "f8ebc967a93abb70ea882225f38814a7f2f45a4d" }
