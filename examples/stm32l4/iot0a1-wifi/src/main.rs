@@ -19,7 +19,6 @@ use drogue_device::{
     traits::{ip::*, tcp::TcpStack, wifi::*},
     *,
 };
-use embassy::traits::i2c::I2c as I2cTrait;
 use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::spi::{self, Config, Spi};
 use embassy_stm32::time::Hertz;
@@ -133,7 +132,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let sensor_ready = ExtiInput::new(ready_pin, p.EXTI15);
 
     let i2c_irq = interrupt::take!(I2C2_EV);
-    let mut i2c = i2c::I2c::new(
+    let i2c = i2c::I2c::new(
         p.I2C2,
         p.PB10,
         p.PB11,
@@ -143,11 +142,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         Hertz(100_000),
     );
 
-    const ADDRESS: u8 = 0x5F;
-    const WHOAMI: u8 = 0x0F;
-    let mut data = [0u8; 1];
-    defmt::unwrap!(i2c.write_read(ADDRESS, &[WHOAMI], &mut data).await);
-    defmt::info!("Whoami: {}", data[0]);
     /*
     let ip = wifi.join_wep(WIFI_SSID, WIFI_PSK).await;
     defmt::info!("Joined...");
