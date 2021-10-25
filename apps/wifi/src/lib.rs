@@ -148,6 +148,7 @@ impl<S: TcpSocket> From<Address<'static, App<S>>> for AppAddress<S> {
 
 impl<S: TcpSocket> SensorMonitor<Celsius> for AppAddress<S> {
     fn notify(&self, value: SensorAcquisition<Celsius>) {
-        self.address.notify(Command::Update(value)).unwrap();
+        // Ignore channel full error
+        let _ = self.address.notify(Command::Update(value));
     }
 }
