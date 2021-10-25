@@ -16,6 +16,7 @@ use drogue_device::{
     Actor, Address, Inbox,
 };
 use heapless::String;
+//use drogue_device::domain::temperature::Temperature;
 
 pub enum Command {
     Send,
@@ -81,6 +82,12 @@ where
     {
         self.socket.replace(config);
         async move {
+            // Uncomment to simulate sensor data if sensor is not working
+            // let sens = SensorAcquisition {
+            //     temperature: Temperature::<Celsius>::new(25.0),
+            //     relative_humidity: 56.0,
+            // };
+            // let mut temperature: Option<SensorAcquisition<Celsius>> = Some(sens);
             let mut temperature: Option<SensorAcquisition<Celsius>> = None;
             loop {
                 match inbox.next().await {
@@ -117,6 +124,7 @@ where
                                         &mut rx_buf[..],
                                     )
                                     .await;
+                                socket.close().await;
                                 if let Ok(response_len) = response_len {
                                     info!(
                                         "Response: {}",
