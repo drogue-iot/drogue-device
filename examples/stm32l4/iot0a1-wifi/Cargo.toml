@@ -9,6 +9,8 @@ edition = "2018"
 name = "iot0a1-wifi"
 version = "0.1.0"
 resolver = "2"
+description = "STM32 IoT Discovery board reporting sensor data using WiFi"
+keywords = ["wifi", "hts221", "stm32l4", "networking", "iot", "stm32"]
 
 [workspace]
 
