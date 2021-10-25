@@ -1,6 +1,7 @@
 use super::{App, AppSocket, Command};
 use drogue_device::{
-    domain::temperature::*, drivers::sensors::hts221::SensorAcquisition, Actor, Address, Inbox,
+    domain::{temperature::*, *},
+    Actor, Address, Inbox,
 };
 use embassy::time::{Duration, Timer};
 use embassy_nrf::temp::Temp;
