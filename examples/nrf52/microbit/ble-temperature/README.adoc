@@ -28,7 +28,7 @@ On the phone, you need a BLE client. This example have been tested with the link
 
 === Flashing the BLE stack
 
-Download the link:https://www.nordicsemi.com/Products/Development-software/S113[Nordic nRF SoftDevice] firmware for the BLE protocl stack.
+Download the link:https://www.nordicsemi.com/Products/Development-software/S113[Nordic nRF SoftDevice] firmware for the BLE protocol stack.
 
 Unzip the downloaded artifact and locate the file `s113_nrf52_7.3.0_softdevice.hex`, which is the firmware we're going to flash.
 
