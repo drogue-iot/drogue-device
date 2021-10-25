@@ -181,7 +181,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             let app = device.app.mount(socket, spawner);
             device.button.mount(app, spawner);
             let i2c = device.i2c.mount((), spawner);
-            // TODO: Send to app instead
             device.sensor.mount((i2c, app.into()), spawner);
         })
         .await;
