@@ -16,6 +16,7 @@ use crate::traits::{
 use core::fmt::Write as FmtWrite;
 use core::future::Future;
 use embassy::time::{Duration, Timer};
+use embassy::traits::gpio::WaitForRisingEdge;
 use embedded_hal::blocking::spi::{Transfer, Write};
 use heapless::String;
 
@@ -53,7 +54,7 @@ where
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
-    READY: InputPin + 'static,
+    READY: InputPin + WaitForRisingEdge + 'static,
     E: 'static,
 {
     spi: SPI,
@@ -70,7 +71,7 @@ where
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
-    READY: InputPin + 'static,
+    READY: InputPin + WaitForRisingEdge + 'static,
     E: 'static,
 {
     pub fn new(spi: SPI, cs: CS, reset: RESET, wakeup: WAKEUP, ready: READY) -> Self {
@@ -98,6 +99,15 @@ where
         Timer::after(Duration::from_millis(50)).await;
     }
 
+    pub async fn wait_ready(
+        &mut self,
+    ) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
+        while self.ready.is_low().map_err(READY)? {
+            self.ready.wait_for_rising_edge().await;
+        }
+        Ok(())
+    }
+
     pub async fn start(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
         info!("Starting eS-WiFi adapter!");
 
@@ -107,7 +117,7 @@ where
         let mut response = [0; 4];
         let mut pos = 0;
 
-        while self.ready.is_low().map_err(READY)? {}
+        self.wait_ready().await?;
 
         loop {
             if pos >= response.len() {
@@ -116,7 +126,7 @@ where
 
             let mut chunk = [0x0A, 0x0A];
             self.cs.set_low().map_err(CS)?;
-            while self.ready.is_low().map_err(READY)? {}
+            self.wait_ready().await?;
             self.spi.transfer(&mut chunk).map_err(SPI)?;
             self.cs.set_high().map_err(CS)?;
 
@@ -202,9 +212,9 @@ where
         command: &[u8],
         response: &'a mut [u8],
     ) -> Result<&'a [u8], Error<E, CS::Error, RESET::Error, READY::Error>> {
-        //info!("send {:?}", core::str::from_utf8(command).unwrap());
+        // info!("send {:?}", core::str::from_utf8(command).unwrap());
 
-        while self.ready.is_low().map_err(READY)? {}
+        self.wait_ready().await?;
 
         self.cs.set_low().map_err(CS)?;
         for chunk in command.chunks(2) {
@@ -230,7 +240,7 @@ where
         let mut pos = 0;
 
         self.cs.set_low().map_err(CS)?;
-        while self.ready.is_low().map_err(READY)? {}
+        self.wait_ready().await?;
 
         self.cs.set_low().map_err(CS)?;
         loop {
@@ -266,7 +276,7 @@ where
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
-    READY: InputPin + 'static,
+    READY: InputPin + WaitForRisingEdge + 'static,
     E: 'static,
 {
     #[rustfmt::skip]
@@ -288,7 +298,7 @@ where
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
-    READY: InputPin + 'static,
+    READY: InputPin + WaitForRisingEdge + 'static,
     E: 'static,
 {
     type SocketHandle = u8;
@@ -386,7 +396,7 @@ where
                 let prefix = [b'S', b'0', b'\r', buf[0]];
                 let remainder = &buf[1..len];
 
-                while self.ready.is_low().map_err(|_| TcpError::WriteError)? {}
+                self.wait_ready().await.map_err(|_| TcpError::WriteError)?;
 
                 self.cs.set_low().map_err(|_| TcpError::WriteError)?;
 
@@ -472,7 +482,7 @@ where
                         .await
                         .map_err(|_| TcpError::ReadError)?;
 
-                    while self.ready.is_low().map_err(|_| TcpError::ReadError)? {}
+                    self.wait_ready().await.map_err(|_| TcpError::ReadError)?;
                     self.cs.set_low().map_err(|_| TcpError::ReadError)?;
 
                     let mut xfer = [b'0', b'R'];
@@ -560,7 +570,7 @@ where
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
-    READY: InputPin + 'static,
+    READY: InputPin + WaitForRisingEdge + 'static,
     E: 'static,
 {
 }

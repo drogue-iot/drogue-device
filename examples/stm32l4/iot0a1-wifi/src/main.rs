@@ -63,7 +63,7 @@ const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.passw
 type WAKE = Output<'static, PB13>;
 type RESET = Output<'static, PE8>;
 type CS = Output<'static, PE0>;
-type READY = Input<'static, PE1>;
+type READY = ExtiInput<'static, PE1>;
 type SPI = Spi<'static, SPI3, NoDma, NoDma>;
 type SpiError = spi::Error;
 
@@ -118,6 +118,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let reset = Output::new(p.PE8, Level::Low, Speed::VeryHigh);
     let cs = Output::new(p.PE0, Level::High, Speed::VeryHigh);
     let ready = Input::new(p.PE1, Pull::Up);
+    let ready = ExtiInput::new(ready, p.EXTI1);
 
     let mut wifi = EsWifiController::new(spi, cs, reset, wake, ready);
     match wifi.start().await {
