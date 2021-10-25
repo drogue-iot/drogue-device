@@ -79,7 +79,7 @@ type I2cDriver = embassy_stm32::i2c::I2c<'static, I2C2, DMA1_CH4, DMA1_CH5>;
 
 pub struct MyDevice {
     wifi: ActorContext<'static, AdapterActor<EsWifi>>,
-    app: ActorContext<'static, App<AppSocket>>,
+    app: ActorContext<'static, App<AppSocket>, 2>,
     button: ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App<AppSocket>>>,
     i2c: ActorContext<'static, I2cPeripheral<I2cDriver>>,
     sensor: ActorContext<
