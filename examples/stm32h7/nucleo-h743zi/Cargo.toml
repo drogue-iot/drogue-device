@@ -41,11 +41,11 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
-embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
-embassy-macros = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb" }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb" }
+embassy-macros = { git = "https://github.com/embassy-rs/embassy.git", rev = "01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb" }
 
 #embassy = { path = "../../../../../embassy/embassy" }
 #embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }

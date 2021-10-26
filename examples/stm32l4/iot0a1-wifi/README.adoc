@@ -1,0 +1,72 @@
+== STM32 IOT01A drogue-device example
+
+This example application runs out of the box on the STM32 IOT01A development kits. It uses the on board peripherals such as WiFi and the temperature sensor to send data to an HTTP endpoint such as Drogue IoT Cloud.
+
+NOTE: There are multiple variants of this kit, so the example must be compiled and run using feature flags.
+
+The example can operate using plain TCP, or using TLS by enabling the `tls` feature flag.
+
+=== Prerequisites
+
+==== Hardware
+
+* STM32 IOT01A development kit
+
+==== Software
+
+* To build the example, you need to have link:https://rustup.rs/[rustup].
+* To flash the example on the device, you need `probe-run` installed (`cargo install probe-run`).
+* A TCP server (ncat) or a service like Drogue IoT Cloud. See link:https://github.com/drogue-iot/drogue-cloud/[drogue-cloud] for how to run that, or use the link:https://sandbox.drogue.cloud/[sandbox] (requires TLS).
+
+=== Configuring
+
+To access your local WiFi network, the store the ssid in `config/wifi.ssid.txt` and pre-shared key in `config/wifi.password.txt`.
+
+To authenticate the device to an HTTP service, you must store the username and password in `config/http.username.txt` and `config/http.password.txt`. For Drogue IoT Cloud, the username/password is stored in this form: `device_id@application`.
+
+=== Running with plain TCP
+
+You can configure the IP constant to point to any TCP/HTTP server to receive events, or you can use link:https://github.com/drogue-iot/drogue-cloud/[drogue cloud] locally. For simplicity, start a local TCP server:
+
+....
+ncat -l 12345 --keep-open --exec "/bin/cat"
+....
+
+To run the firmware using a given chip:
+
+....
+PROBE_RUN_CHIP=STM32L4S5VI cargo run --release --features b-l4s5i-iot01a
+....
+
+If you have the B-475E-IOT01A board, use the following parameters:
+
+....
+PROBE_RUN_CHIP=STM32L475VG cargo run --release --features b-l475e-iot01a
+....
+
+
+== Running with TLS
+
+When the `tls` flag is enabled, the example is configured to use the Drogue IoT Cloud sandbox. To use this example with your own Drogue IoT Cloud instance, you need to edit the HOST and PORT constants in `src/main.rs`. 
+
+To run the firmware using a given chip:
+
+....
+PROBE_RUN_CHIP=STM32L4S5VI cargo run --release --features b-l4s5i-iot01a,tls
+....
+
+If you have the B-475E-IOT01A board, use the following parameters:
+
+....
+PROBE_RUN_CHIP=STM32L475VG cargo run --release --features b-l475e-iot01a,tls
+....
+
+== Troubleshooting
+
+If you’re experiencing problems, try setting the `VID:PID` values to that of your probe (you can find that from lsusb once your board is powered).
+
+....
+cargo run --release -- --probe <VID>:<PID>
+....
+
+Once flashed, the device will reset and attempt to join the WiFi network. If successful, it will print a message to the RTT log. You can then press the 'A' button on the micro:bit board to send a test message from the device.

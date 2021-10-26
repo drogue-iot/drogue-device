@@ -54,7 +54,7 @@ cargo run --release --features tls
 If you’re experiencing problems, try setting the `VID:PID` values to that of your probe (you can find that from lsusb once your board is powered).
 
 ....
-cargo +nightly run --release -- --probe <VID>:<PID>
+cargo run --release -- --probe <VID>:<PID>
 ....
 
 Once flashed, the device will reset and attempt to join the WiFi network. If successful, it will print a message to the RTT log. You can then press the 'A' button on the micro:bit board to send a test message from the device.

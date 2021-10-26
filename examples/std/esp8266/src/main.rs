@@ -7,6 +7,7 @@ mod serial;
 use async_io::Async;
 use drogue_device::{
     actors::{socket::*, wifi::esp8266::*},
+    domain::{temperature::Temperature, SensorAcquisition},
     drivers::wifi::esp8266::*,
     traits::{ip::*, tcp::*, wifi::*},
     *,
@@ -96,7 +97,12 @@ async fn main(spawner: embassy::executor::Spawner) {
         })
         .await;
 
-    app.request(Command::Update(22.0)).unwrap().await;
+    app.request(Command::Update(SensorAcquisition {
+        temperature: Temperature::new(22.0),
+        relative_humidity: 0.0,
+    }))
+    .unwrap()
+    .await;
     app.request(Command::Send).unwrap().await;
 }
 

@@ -8,6 +8,7 @@ use crate::{
 use core::future::Future;
 use embedded_hal::digital::v2::OutputPin;
 
+#[derive(Clone, Copy)]
 pub enum LedMessage {
     On,
     Off,

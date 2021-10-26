@@ -9,16 +9,18 @@ use core::fmt::Write;
 use core::future::Future;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
+    actors::sensors::SensorMonitor,
     clients::http::*,
+    domain::{temperature::Celsius, SensorAcquisition},
     traits::{ip::*, tcp::*},
     Actor, Address, Inbox,
 };
 use heapless::String;
+//use drogue_device::domain::temperature::Temperature;
 
-pub type Temperature = f32;
 pub enum Command {
     Send,
-    Update(Temperature),
+    Update(SensorAcquisition<Celsius>),
 }
 
 impl<S> FromButtonEvent<Command> for App<S>
@@ -80,15 +82,21 @@ where
     {
         self.socket.replace(config);
         async move {
-            let mut temperature: Option<f32> = None;
+            // Uncomment to simulate sensor data if sensor is not working
+            // let sens = SensorAcquisition {
+            //     temperature: Temperature::<Celsius>::new(25.0),
+            //     relative_humidity: 56.0,
+            // };
+            // let mut temperature: Option<SensorAcquisition<Celsius>> = Some(sens);
+            let mut temperature: Option<SensorAcquisition<Celsius>> = None;
             loop {
                 match inbox.next().await {
                     Some(mut m) => match m.message() {
                         Command::Update(t) => {
-                            info!("Updating temperature measurement");
-                            temperature.replace(*t);
+                            info!("Updating current app temperature measurement: {}", t);
+                            temperature.replace(t.clone());
                         }
-                        Command::Send => match temperature {
+                        Command::Send => match &temperature {
                             Some(t) => {
                                 info!("Sending temperature measurement");
                                 let socket = self.socket.as_mut().unwrap();
@@ -101,7 +109,12 @@ where
                                 );
 
                                 let mut tx: String<64> = String::new();
-                                write!(tx, "{{\"temp\": {}}}", t).unwrap();
+                                write!(
+                                    tx,
+                                    "{{\"temp\": {}, \"humidity\": {}}}",
+                                    t.temperature, t.relative_humidity
+                                )
+                                .unwrap();
                                 let mut rx_buf = [0; 1024];
                                 let response_len = client
                                     .post(
@@ -111,6 +124,7 @@ where
                                         &mut rx_buf[..],
                                     )
                                     .await;
+                                socket.close().await;
                                 if let Ok(response_len) = response_len {
                                     info!(
                                         "Response: {}",
@@ -127,5 +141,22 @@ where
                 }
             }
         }
+    }
+}
+
+pub struct AppAddress<S: TcpSocket + 'static> {
+    address: Address<'static, App<S>>,
+}
+
+impl<S: TcpSocket> From<Address<'static, App<S>>> for AppAddress<S> {
+    fn from(address: Address<'static, App<S>>) -> Self {
+        Self { address }
+    }
+}
+
+impl<S: TcpSocket> SensorMonitor<Celsius> for AppAddress<S> {
+    fn notify(&self, value: SensorAcquisition<Celsius>) {
+        // Ignore channel full error
+        let _ = self.address.notify(Command::Update(value));
     }
 }

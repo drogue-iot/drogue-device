@@ -258,7 +258,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746#2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb#01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb"
 dependencies = [
  "atomic-polyfill",
  "cortex-m 0.7.3",
@@ -274,7 +274,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746#2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb#01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb"
 dependencies = [
  "cortex-m 0.7.3",
  "embassy",
@@ -285,7 +285,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746#2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb#01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -296,7 +296,7 @@ dependencies = [
 [[package]]
 name = "embassy-rp"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746#2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb#01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb"
 dependencies = [
  "atomic-polyfill",
  "cortex-m 0.7.3",
@@ -312,7 +312,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746#2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb#01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb"
 dependencies = [
  "embedded-hal",
 ]
@@ -539,9 +539,9 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.30"
+version = "1.0.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edc3358ebc67bc8b7fa0c007f945b0b18226f78437d61bec735a9eb96b61ee70"
+checksum = "ba508cc11742c0dc5c1659771673afbab7a0efab23aa17e854cbab0837ed0b43"
 dependencies = [
  "unicode-xid",
 ]
@@ -672,9 +672,9 @@ checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
 name = "syn"
-version = "1.0.80"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d010a1623fbd906d51d650a9916aaefc05ffa0e4053ff7fe601167f3e715d194"
+checksum = "f2afee18b8beb5a596ecb4a2dce128c719b4ba399d34126b9e4396e3f9860966"
 dependencies = [
  "proc-macro2",
  "quote",
