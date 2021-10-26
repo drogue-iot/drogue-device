@@ -279,7 +279,11 @@ where
                 pos += 1;
             }
         }
-        trace!("got response!");
+        trace!(
+            "response {} bytes:  {:?}",
+            pos,
+            core::str::from_utf8(&response[0..pos]).unwrap()
+        );
 
         Ok(&response[0..pos])
     }
