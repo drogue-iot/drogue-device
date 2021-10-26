@@ -456,8 +456,8 @@ dependencies = [
  "embedded-hal",
  "futures",
  "heapless",
- "lorawan-device 0.2.0 (git+https://github.com/lulf/rust-lorawan.git?rev=e529b74421346cb6537f8872d3c8eddcf14804b4)",
- "lorawan-encoding 0.6.2 (git+https://github.com/lulf/rust-lorawan.git?rev=e529b74421346cb6537f8872d3c8eddcf14804b4)",
+ "lorawan-device",
+ "lorawan-encoding",
  "rand_core",
 ]
 
@@ -511,8 +511,8 @@ dependencies = [
  "embassy-stm32",
  "embedded-hal",
  "futures",
- "lorawan-device 0.2.0 (git+https://github.com/ivajloip/rust-lorawan.git?rev=4bff2e0021103adfbccedcbf49dbcd0474adc4b2)",
- "lorawan-encoding 0.6.2 (git+https://github.com/ivajloip/rust-lorawan.git?rev=4bff2e0021103adfbccedcbf49dbcd0474adc4b2)",
+ "lorawan-device",
+ "lorawan-encoding",
 ]
 
 [[package]]
@@ -823,20 +823,7 @@ dependencies = [
  "futures",
  "generic-array 0.14.4",
  "heapless",
- "lorawan-encoding 0.6.2 (git+https://github.com/ivajloip/rust-lorawan.git?rev=4bff2e0021103adfbccedcbf49dbcd0474adc4b2)",
- "rand_core",
-]
-
-[[package]]
-name = "lorawan-device"
-version = "0.2.0"
-source = "git+https://github.com/lulf/rust-lorawan.git?rev=e529b74421346cb6537f8872d3c8eddcf14804b4#e529b74421346cb6537f8872d3c8eddcf14804b4"
-dependencies = [
- "as-slice 0.2.1",
- "futures",
- "generic-array 0.14.4",
- "heapless",
- "lorawan-encoding 0.6.2 (git+https://github.com/lulf/rust-lorawan.git?rev=e529b74421346cb6537f8872d3c8eddcf14804b4)",
+ "lorawan-encoding",
  "rand_core",
 ]
 
@@ -844,14 +831,6 @@ dependencies = [
 name = "lorawan-encoding"
 version = "0.6.2"
 source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=4bff2e0021103adfbccedcbf49dbcd0474adc4b2#4bff2e0021103adfbccedcbf49dbcd0474adc4b2"
-dependencies = [
- "generic-array 0.14.4",
-]
-
-[[package]]
-name = "lorawan-encoding"
-version = "0.6.2"
-source = "git+https://github.com/lulf/rust-lorawan.git?rev=e529b74421346cb6537f8872d3c8eddcf14804b4#e529b74421346cb6537f8872d3c8eddcf14804b4"
 dependencies = [
  "aes",
  "cmac",
@@ -1027,9 +1006,9 @@ checksum = "bc881b2c22681370c6a780e47af9840ef841837bc98118431d4e1868bd0c1086"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.30"
+version = "1.0.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edc3358ebc67bc8b7fa0c007f945b0b18226f78437d61bec735a9eb96b61ee70"
+checksum = "b581350bde2d774a19c6f30346796806b8f42b5fd3458c5f9a8623337fb27897"
 dependencies = [
  "unicode-xid",
 ]
