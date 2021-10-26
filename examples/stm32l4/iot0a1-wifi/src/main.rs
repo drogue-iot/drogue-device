@@ -20,14 +20,15 @@ use drogue_device::{
     *,
 };
 use embassy_stm32::dbgmcu::Dbgmcu;
-use embassy_stm32::spi::{self, Config, Spi};
+use embassy_stm32::rcc::{ClockSrc, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv};
+use embassy_stm32::spi::{self, Config as SpiConfig, Spi};
 use embassy_stm32::time::Hertz;
 use embassy_stm32::{
     exti::*,
     gpio::{Input, Level, Output, Pull, Speed},
     i2c, interrupt,
     peripherals::{DMA1_CH4, DMA1_CH5, I2C2, PB13, PC13, PD15, PE0, PE1, PE8, SPI3},
-    Peripherals,
+    Config, Peripherals,
 };
 use wifi_app::*;
 //use defmt::*;
@@ -50,7 +51,7 @@ cfg_if::cfg_if! {
         const PORT: u16 = 443;
         static mut TLS_BUFFER: [u8; 16384] = [0u8; 16384];
     } else {
-        const IP: IpAddress = IpAddress::new_v4(192, 168, 68, 110); // IP for local network server
+        const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP for local network server
         const PORT: u16 = 12345;
     }
 }
@@ -94,7 +95,19 @@ pub struct MyDevice {
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 
-#[embassy::main]
+fn config() -> Config {
+    let mut config = Config::default();
+    config.rcc = config.rcc.clock_src(ClockSrc::PLL(
+        PLLSource::HSI16,
+        PLLClkDiv::Div2,
+        PLLSrcDiv::Div1,
+        PLLMul::Mul8,
+        Some(PLLClkDiv::Div2),
+    ));
+    config
+}
+
+#[embassy::main(config = "config()")]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     unsafe {
         Dbgmcu::enable_all();
@@ -110,7 +123,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         NoDma,
         NoDma,
         Hertz(1_000_000),
-        Config::default(),
+        SpiConfig::default(),
     );
 
     let _boot = Output::new(p.PB12, Level::Low, Speed::VeryHigh);

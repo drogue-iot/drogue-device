@@ -230,7 +230,7 @@ where
         command: &[u8],
         response: &'a mut [u8],
     ) -> Result<&'a [u8], Error<E, CS::Error, RESET::Error, READY::Error>> {
-        // info!("send {:?}", core::str::from_utf8(command).unwrap());
+        info!("send {:?}", core::str::from_utf8(command).unwrap());
 
         self.wait_ready().await?;
         {
@@ -247,6 +247,8 @@ where
                 self.spi.transfer(&mut xfer).map_err(SPI)?;
             }
         }
+
+        info!("sent! awaiting response");
 
         self.receive(response).await
     }
@@ -277,6 +279,7 @@ where
                 pos += 1;
             }
         }
+        trace!("got response!");
 
         Ok(&response[0..pos])
     }
@@ -385,6 +388,7 @@ where
     fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
         async move {
             let mut len = buf.len();
+            trace!("Writing buf with len {}", len);
             if len > 1046 {
                 len = 1046
             }

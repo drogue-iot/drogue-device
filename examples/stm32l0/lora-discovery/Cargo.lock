@@ -456,8 +456,8 @@ dependencies = [
  "embedded-hal",
  "futures",
  "heapless 0.7.7",
- "lorawan-device",
- "lorawan-encoding",
+ "lorawan-device 0.2.0 (git+https://github.com/lulf/rust-lorawan.git?rev=e529b74421346cb6537f8872d3c8eddcf14804b4)",
+ "lorawan-encoding 0.6.2 (git+https://github.com/lulf/rust-lorawan.git?rev=e529b74421346cb6537f8872d3c8eddcf14804b4)",
  "rand_core",
 ]
 
@@ -476,7 +476,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746#2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb#01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb"
 dependencies = [
  "atomic-polyfill",
  "cortex-m 0.7.3",
@@ -492,7 +492,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746#2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb#01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb"
 dependencies = [
  "cortex-m 0.7.3",
  "embassy",
@@ -503,21 +503,21 @@ dependencies = [
 [[package]]
 name = "embassy-lora"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746#2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb#01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb"
 dependencies = [
  "bit_field",
  "embassy",
  "embassy-hal-common",
  "embedded-hal",
  "futures",
- "lorawan-device",
- "lorawan-encoding",
+ "lorawan-device 0.2.0 (git+https://github.com/ivajloip/rust-lorawan.git?rev=4bff2e0021103adfbccedcbf49dbcd0474adc4b2)",
+ "lorawan-encoding 0.6.2 (git+https://github.com/ivajloip/rust-lorawan.git?rev=4bff2e0021103adfbccedcbf49dbcd0474adc4b2)",
 ]
 
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746#2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb#01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -528,7 +528,7 @@ dependencies = [
 [[package]]
 name = "embassy-stm32"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746#2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb#01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb"
 dependencies = [
  "atomic-polyfill",
  "bare-metal 1.0.0",
@@ -554,7 +554,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746#2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb#01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb"
 dependencies = [
  "embedded-hal",
 ]
@@ -805,9 +805,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.104"
+version = "0.2.105"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b2f96d100e1cf1929e7719b7edb3b90ab5298072638fccd77be9ce942ecdfce"
+checksum = "869d572136620d55835903746bcb5cdc54cb2851fd0aeec53220b4bb65ef3013"
 
 [[package]]
 name = "linked-hash-map"
@@ -855,14 +855,35 @@ dependencies = [
 [[package]]
 name = "lorawan-device"
 version = "0.2.0"
+source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=4bff2e0021103adfbccedcbf49dbcd0474adc4b2#4bff2e0021103adfbccedcbf49dbcd0474adc4b2"
+dependencies = [
+ "as-slice 0.2.1",
+ "futures",
+ "generic-array 0.14.4",
+ "heapless 0.7.7",
+ "lorawan-encoding 0.6.2 (git+https://github.com/ivajloip/rust-lorawan.git?rev=4bff2e0021103adfbccedcbf49dbcd0474adc4b2)",
+ "rand_core",
+]
+
+[[package]]
+name = "lorawan-device"
+version = "0.2.0"
 source = "git+https://github.com/lulf/rust-lorawan.git?rev=e529b74421346cb6537f8872d3c8eddcf14804b4#e529b74421346cb6537f8872d3c8eddcf14804b4"
 dependencies = [
  "as-slice 0.2.1",
  "futures",
  "generic-array 0.14.4",
  "heapless 0.7.7",
- "lorawan-encoding",
+ "lorawan-encoding 0.6.2 (git+https://github.com/lulf/rust-lorawan.git?rev=e529b74421346cb6537f8872d3c8eddcf14804b4)",
  "rand_core",
+]
+
+[[package]]
+name = "lorawan-encoding"
+version = "0.6.2"
+source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=4bff2e0021103adfbccedcbf49dbcd0474adc4b2#4bff2e0021103adfbccedcbf49dbcd0474adc4b2"
+dependencies = [
+ "generic-array 0.14.4",
 ]
 
 [[package]]
@@ -1217,7 +1238,7 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 [[package]]
 name = "stm32-metapac"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746#2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb#01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb"
 dependencies = [
  "cortex-m 0.7.3",
  "cortex-m-rt",
@@ -1228,7 +1249,7 @@ dependencies = [
 [[package]]
 name = "stm32-metapac-gen"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746#2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb#01e5376b2531ccd97ee760ef1dd7c3ec5d82ccfb"
 dependencies = [
  "chiptool",
  "proc-macro2",
