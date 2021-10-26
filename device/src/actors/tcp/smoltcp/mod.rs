@@ -1,16 +1,12 @@
 pub mod tcpstack;
 
-use core::cell::RefCell;
 use core::cell::UnsafeCell;
-use core::future::Future;
 
 use embassy_net::{Configurator, Device, StackResources};
 
 use crate::actors::tcp::smoltcp::tcpstack::{EmbassyNetTask, SmolRequest};
 use crate::drivers::tcp::smoltcp::SmolTcpStack;
-use crate::traits::ip::{IpProtocol, SocketAddress};
-use crate::traits::tcp::{TcpError, TcpStack};
-use crate::{Actor, ActorContext, ActorSpawner, Address, Inbox, Package};
+use crate::{ActorContext, ActorSpawner, Address, Package};
 
 pub struct SmolTcp<
     DEVICE: Device,
@@ -70,7 +66,7 @@ impl<
             );
         }
         let addr = self.driver.mount((), spawner);
-        addr.notify(SmolRequest::Initialize);
+        defmt::unwrap!(addr.notify(SmolRequest::Initialize));
         self.embassy_net.mount((), spawner);
         addr
     }

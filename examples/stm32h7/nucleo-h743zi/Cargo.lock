@@ -529,7 +529,6 @@ dependencies = [
  "embassy",
  "embassy-hal-common",
  "embassy-net",
- "embassy-stm32",
  "embedded-hal",
  "futures",
  "heapless 0.7.7",

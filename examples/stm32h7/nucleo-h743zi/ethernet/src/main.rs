@@ -8,33 +8,23 @@
 use defmt_rtt as _;
 use panic_probe as _;
 
-use core::future::Future;
-use core::pin::Pin;
-use drogue_device::actors::button::{ButtonEvent, FromButtonEvent};
 use drogue_device::actors::tcp::smoltcp::SmolTcp;
-use drogue_device::actors::led::{Led, LedMessage};
-use drogue_device::drivers::tcp::smoltcp::SmolTcpStack;
 use drogue_device::{
-    actors::button::Button, Actor, ActorContext, Address, DeviceContext, Inbox, Package,
+    DeviceContext, Package,
 };
 use embassy::util::Forever;
-//use embassy_macros::interrupt_take;
 use embassy_net::StaticConfigurator;
-use embassy_net::{Config as NetConfig, Ipv4Address, Ipv4Cidr, StackResources, TcpSocket};
+use embassy_net::{Config as NetConfig, Ipv4Address, Ipv4Cidr};
 use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::eth::lan8742a::LAN8742A;
 use embassy_stm32::interrupt;
-use embassy_stm32::peripherals::{PB0, PB14, PC13, PE1, RNG};
+use embassy_stm32::peripherals::RNG;
 use embassy_stm32::rng::Rng;
 use embassy_stm32::{
     eth::{Ethernet, State},
-    exti::ExtiInput,
-    gpio::{Input, Level, Output, Pull, Speed},
     Peripherals,
 };
 use heapless::Vec;
-
-type LedYellowPin = Output<'static, PE1>;
 
 type EthernetDevice = Ethernet<'static, LAN8742A, 4, 4>;
 type SmolTcpPackage = SmolTcp<EthernetDevice, StaticConfigurator, 1, 2, 1024>;

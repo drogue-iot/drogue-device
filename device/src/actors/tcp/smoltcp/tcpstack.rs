@@ -1,7 +1,7 @@
 use crate::drivers::tcp::smoltcp::{SmolSocketHandle, SmolTcpStack};
 use crate::traits::ip::{IpProtocol, SocketAddress};
 use crate::traits::tcp::{TcpError, TcpStack};
-use crate::{Actor, ActorContext, ActorSpawner, Address, Inbox, Package};
+use crate::{Actor, Address, Inbox};
 use core::future::Future;
 
 /// Actor messages handled by network adapter actors
@@ -72,7 +72,7 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
     type OnMountFuture<'m, M> where Self: 'm, M: 'm = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        config: Self::Configuration,
+        _: Self::Configuration,
         _: Address<'static, Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
@@ -84,7 +84,6 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
                 if let Some(mut m) = inbox.next().await {
                     let response = match m.message() {
                         SmolRequest::Initialize => {
-                            defmt::info!("initializing tcp");
                             unsafe { self.initialize() };
                             SmolResponse::Initialized
                         }

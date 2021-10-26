@@ -1,4 +1,3 @@
-use atomic_polyfill::AtomicBool;
 use core::cell::RefCell;
 use core::cell::UnsafeCell;
 use core::future::Future;
@@ -42,10 +41,9 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
     pub(crate) fn initialize(&self) {
         defmt::info!("initializing socket pool");
         unsafe {
-            for (i, (rx_buf, tx_buf)) in (&mut *self.buffers.get()).iter_mut().enumerate() {
+            for (rx_buf, tx_buf) in (&mut *self.buffers.get()).iter_mut() {
                 let socket = TcpSocket::new(rx_buf, tx_buf);
-                //self.sockets.borrow_mut().push(socket);
-                (&mut *self.sockets.get()).push(socket);
+                (&mut *self.sockets.get()).push(socket).ok();
             }
         }
     }

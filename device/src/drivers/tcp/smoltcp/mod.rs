@@ -3,7 +3,7 @@ use crate::traits::tcp::{TcpError, TcpStack};
 use core::future::Future;
 use core::marker::PhantomData;
 use embassy::io::{AsyncBufReadExt, AsyncWriteExt};
-use embassy_net::{Ipv4Address, TcpSocket};
+use embassy_net::Ipv4Address;
 use socket_pool::PoolHandle;
 use socket_pool::SocketPool;
 
@@ -82,7 +82,6 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
                                 .await
                                 .map_err(|_| TcpError::ConnectError)
                         }
-                        _ => Err(TcpError::ConnectError),
                     }
                 }
                 IpProtocol::Udp => Err(TcpError::ConnectError),
