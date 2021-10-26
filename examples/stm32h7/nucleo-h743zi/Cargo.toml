@@ -4,6 +4,7 @@ members = [
     "blinkdance",
     "esp8266",
     "epd",
+    "ethernet",
 ]
 resolver = "2"
 
@@ -43,6 +44,8 @@ overflow-checks = false
 embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
 embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
 embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
+embassy-macros = { git = "https://github.com/embassy-rs/embassy.git", rev = "2b4e2bcbaeed7702fd78dafcaa7bd30570f2c746" }
 
 #embassy = { path = "../../../../../embassy/embassy" }
 #embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }

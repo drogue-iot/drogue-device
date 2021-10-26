@@ -1,0 +1,41 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+edition = "2018"
+name = "nucleo-h743zi_ethernet"
+version = "0.1.0"
+resolver = "2"
+description = "STM32 Nucleo-H743 ethernet"
+keywords = ["ethernet", "stm32", "stm32h7"]
+
+[features]
+default = [
+    "defmt-default",
+]
+defmt-default = []
+defmt-trace = []
+defmt-debug = []
+defmt-info = []
+defmt-warn = []
+defmt-error = []
+
+[dependencies]
+defmt = "0.2"
+defmt-rtt = "0.2"
+panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+
+embedded-hal = { version = "0.2.4", features = ["unproven"] }
+drogue-device = { path = "../../../../device", features = ["defmt", "defmt-trace", "tcp+smoltcp"], default-features = false }
+cortex-m-rt = "0.7"
+cortex-m = { version = "0.7", features = ["inline-asm"] }
+heapless = "0.7"
+void = { version = "1", default-features = false }
+critical-section = "0.2.3"
+rand_core = "0.6.3"
+
+embassy = { version = "0.1.0", default-features = false }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "net", "time-driver-tim2"] }
+embassy-net = { version = "0.1.0", default-features = false, features = ["defmt", "defmt-info"] }
+embassy-macros = { version = "0.1.0" }
