@@ -107,7 +107,8 @@ fn config() -> Config {
     config
 }
 
-#[embassy::main(config = "config()")]
+//#[embassy::main(config = "config()")]
+#[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     unsafe {
         Dbgmcu::enable_all();
