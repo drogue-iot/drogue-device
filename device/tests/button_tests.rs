@@ -5,16 +5,28 @@
 #[cfg(feature = "std")]
 mod tests {
     use drogue_device::{actors::button::*, testutil::*, *};
+    #[allow(unused_imports)]
     use drogue_device_macros::test as drogue_test;
     use embassy::executor::Spawner;
 
+    #[allow(dead_code)]
     struct TestDevicePressed {
         handler: ActorContext<'static, TestHandler>,
         button: ActorContext<'static, Button<'static, TestPin, TestHandler>>,
     }
 
+    //This test is only here to generate a message that tests in this file
+    //are currently commented out. When the tests below are enabled again this
+    //test should be removed.
+    #[test]
+    #[ignore]
+    fn test_are_broken_and_currently_being_ignored() {
+        assert!(true);
+    }
+
     //TODO: Broken
     //#[drogue_test]
+    #[allow(dead_code)]
     async fn test_pressed(spawner: Spawner, mut context: TestContext<TestDevicePressed>) {
         let pin = context.pin(true);
         let notified = context.signal();
@@ -37,6 +49,7 @@ mod tests {
         assert_eq!(0, notified.message().unwrap().0);
     }
 
+    #[allow(dead_code)]
     struct TestDeviceReleased {
         handler: ActorContext<'static, TestHandler>,
         button: ActorContext<'static, Button<'static, TestPin, TestHandler>>,
@@ -44,6 +57,7 @@ mod tests {
 
     // TODO: Broken
     //#[drogue_test]
+    #[allow(dead_code)]
     async fn test_released(spawner: Spawner, mut context: TestContext<TestDeviceReleased>) {
         let pin = context.pin(false);
         let notified = context.signal();
