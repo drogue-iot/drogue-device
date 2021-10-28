@@ -67,7 +67,7 @@ mod tls {
     use core::future::Future;
     use drogue_tls::{
         traits::{AsyncRead, AsyncWrite},
-        TlsCipherSuite, TlsConnection, TlsContext, TlsError,
+        NoClock, TlsCipherSuite, TlsConnection, TlsContext, TlsError,
     };
     use rand_core::{CryptoRng, RngCore};
 
@@ -107,8 +107,8 @@ mod tls {
         RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'static,
     {
-        New(TlsContext<'a, CipherSuite, RNG>, S),
-        Connected(TlsConnection<'a, RNG, S, CipherSuite>),
+        New(TlsContext<'a, CipherSuite, RNG, NoClock>, S),
+        Connected(TlsConnection<'a, RNG, NoClock, S, CipherSuite>),
     }
 
     pub struct TlsSocket<'a, S, RNG, CipherSuite>
@@ -126,7 +126,7 @@ mod tls {
         RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'static,
     {
-        pub fn wrap(socket: S, context: TlsContext<'a, CipherSuite, RNG>) -> Self {
+        pub fn wrap(socket: S, context: TlsContext<'a, CipherSuite, RNG, NoClock>) -> Self {
             Self {
                 state: Some(State::New(context, socket)),
             }
@@ -152,7 +152,7 @@ mod tls {
                         match socket.connect(proto, dst).await {
                             Ok(_) => {
                                 info!("TCP connection opened");
-                                let mut tls: TlsConnection<'a, RNG, S, CipherSuite> =
+                                let mut tls: TlsConnection<'a, RNG, NoClock, S, CipherSuite> =
                                     TlsConnection::new(context, socket);
                                 match tls.open().await {
                                     Ok(_) => {

@@ -50,9 +50,11 @@ cfg_if::cfg_if! {
         use drogue_tls::{Aes128GcmSha256, TlsContext};
         use drogue_device::actors::socket::TlsSocket;
 
-        const HOST: &str = "http.sandbox.drogue.cloud";
-        const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
-        const PORT: u16 = 443;
+        //const HOST: &str = "http.sandbox.drogue.cloud";
+        //const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
+        const HOST: &str = "localhost";
+        const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP resolved for "http.sandbox.drogue.cloud"
+        const PORT: u16 = 12345;
         static mut TLS_BUFFER: [u8; 16384] = [0u8; 16384];
     } else {
         const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP for local network server

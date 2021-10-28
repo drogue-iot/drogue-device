@@ -28,7 +28,8 @@ cortex-m = "0.7.1"
 
 # embassy = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features=["defmt"] }
 # embassy-stm32 = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features = ["defmt", "stm32l432kc"] }
-drogue-tls = { git = "https://github.com/drogue-iot/drogue-tls.git", rev = "59cb23017f546da8e0f186042758226165400548", default-features = false, features = ["async"], optional = true}
+#drogue-tls = { git = "https://github.com/drogue-iot/drogue-tls.git", rev = "177b5a5b7aa60f27a9994fd76e48737553c9f9e0", default-features = false, features = ["async"], optional = true}
+drogue-tls = {path = "../../../../drogue-tls", default-features = false, features = ["async", "defmt", "defmt-trace"], optional = true}
 cfg-if = "1.0.0"
 
 atomic-polyfill = "0.1.3"

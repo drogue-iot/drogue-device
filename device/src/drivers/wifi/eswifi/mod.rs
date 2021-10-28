@@ -496,7 +496,7 @@ where
             //let buf_len = buf.len();
             loop {
                 let result = async {
-                    let mut response = [0u8; 1460];
+                    let mut response = [0u8; 600];
 
                     self.send_string(&command!(8, "P0={}", handle), &mut response)
                         .await
@@ -509,7 +509,7 @@ where
                         .await
                         .map_err(|_| TcpError::ReadError)?;
 
-                    self.send_string(&command!(8, "R2=15"), &mut response)
+                    self.send_string(&command!(8, "R2=1500"), &mut response)
                         .await
                         .map_err(|_| TcpError::ReadError)?;
 
@@ -535,6 +535,12 @@ where
                             .map_err(|_| TcpError::ReadError)?;
                     }
 
+                    trace!(
+                        "Receiving {} bytes, total buffer size is {}, pos is {}",
+                        len,
+                        buf.len(),
+                        pos
+                    );
                     let response = self
                         .receive(&mut response)
                         .await
@@ -545,6 +551,7 @@ where
                             "response parsed:  {:?}",
                             core::str::from_utf8(&data).unwrap()
                         );*/
+                        trace!("Len is {}, data len is {}", len, data.len());
                         for (i, b) in data.iter().enumerate() {
                             buf[pos + i] = *b;
                         }
