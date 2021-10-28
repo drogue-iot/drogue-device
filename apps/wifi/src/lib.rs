@@ -93,7 +93,7 @@ where
                 match inbox.next().await {
                     Some(mut m) => match m.message() {
                         Command::Update(t) => {
-                            info!("Updating current app temperature measurement: {}", t);
+                            //trace!("Updating current app temperature measurement: {}", t);
                             temperature.replace(t.clone());
                         }
                         Command::Send => match &temperature {

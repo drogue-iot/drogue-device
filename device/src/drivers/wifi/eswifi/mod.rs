@@ -233,7 +233,7 @@ where
         command: &[u8],
         response: &'a mut [u8],
     ) -> Result<&'a [u8], Error<E, CS::Error, RESET::Error, READY::Error>> {
-        trace!("send {:?}", core::str::from_utf8(command).unwrap());
+        //trace!("send {:?}", core::str::from_utf8(command).unwrap());
 
         self.wait_ready().await?;
         {
@@ -514,7 +514,7 @@ where
                         .await
                         .map_err(|_| TcpError::ReadError)?;
 
-                    self.send_string(&command!(8, "R2=1500"), &mut response)
+                    self.send_string(&command!(8, "R2=15"), &mut response)
                         .await
                         .map_err(|_| TcpError::ReadError)?;
 
@@ -546,10 +546,10 @@ where
                         .map_err(|_| TcpError::ReadError)?;
 
                     if let Ok((_, ReadResponse::Ok(data))) = parser::read_response(&response) {
-                        trace!(
+                        /*trace!(
                             "response parsed:  {:?}",
                             core::str::from_utf8(&data).unwrap()
-                        );
+                        );*/
                         for (i, b) in data.iter().enumerate() {
                             buf[pos + i] = *b;
                         }
@@ -562,10 +562,8 @@ where
 
                 match result {
                     Ok(len) => {
-                        trace!("Ok len: {}", len);
                         pos += len;
                         if len == 0 || pos == buf.len() {
-                            trace!("Ok POS: {}", pos);
                             return Ok(pos);
                         }
                     }
@@ -573,7 +571,6 @@ where
                         if pos == 0 {
                             return Err(e);
                         } else {
-                            trace!("ERR OK POS: {}", pos);
                             return Ok(pos);
                         }
                     }

@@ -74,26 +74,22 @@ where
                 }
                 let result = self.socket.write(&data.as_bytes()[..data.len()]).await;
                 match result {
-                    Ok(_) => {
-                        info!("Request sent");
-                        match request.payload {
-                            None => {
-                                return self.read_response(rx_buf).await;
-                            }
-                            Some(payload) => {
-                                let result = self.socket.write(payload).await;
-                                match result {
-                                    Ok(_) => {
-                                        info!("Payload sent");
-                                        return self.read_response(rx_buf).await;
-                                    }
-                                    Err(e) => {
-                                        warn!("Error sending data: {:?}", e);
-                                    }
+                    Ok(_) => match request.payload {
+                        None => {
+                            return self.read_response(rx_buf).await;
+                        }
+                        Some(payload) => {
+                            let result = self.socket.write(payload).await;
+                            match result {
+                                Ok(_) => {
+                                    return self.read_response(rx_buf).await;
+                                }
+                                Err(e) => {
+                                    warn!("Error sending data: {:?}", e);
                                 }
                             }
                         }
-                    }
+                    },
                     Err(e) => {
                         warn!("Error sending headers: {:?}", e);
                     }
