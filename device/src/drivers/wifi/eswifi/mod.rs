@@ -270,13 +270,10 @@ where
 
         let _cs = Cs::new(&mut self.cs).map_err(CS)?;
 
-        while self.ready.is_high().map_err(READY)? {
-            if pos >= response.len() {
-                break;
-            }
+        while self.ready.is_high().map_err(READY)? && response.len() - pos > 0 {
+            //trace!("Receive pos({}), len({})", pos, response.len());
 
             let mut xfer: [u8; 2] = [0x0A, 0x0A];
-
             self.spi
                 .read_write(&mut xfer, &[0x0A, 0x0A])
                 .await
@@ -499,16 +496,14 @@ where
             //let buf_len = buf.len();
             loop {
                 let result = async {
-                    let mut response = [0u8; 1100];
+                    let mut response = [0u8; 1460];
 
                     self.send_string(&command!(8, "P0={}", handle), &mut response)
                         .await
                         .map_err(|_| TcpError::ReadError)?;
 
-                    let mut len = buf.len();
-                    if len > 1460 {
-                        len = 1460;
-                    }
+                    let maxlen = buf.len() - pos;
+                    let len = core::cmp::min(1460, maxlen);
 
                     self.send_string(&command!(16, "R1={}", len), &mut response)
                         .await

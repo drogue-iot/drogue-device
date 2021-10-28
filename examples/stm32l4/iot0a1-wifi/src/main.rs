@@ -20,7 +20,9 @@ use drogue_device::{
     *,
 };
 use embassy_stm32::dbgmcu::Dbgmcu;
-use embassy_stm32::rcc::{ClockSrc, MSIRange, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv};
+use embassy_stm32::rcc::{
+    AHBPrescaler, ClockSrc, MSIRange, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv,
+};
 use embassy_stm32::spi::{self, Config as SpiConfig, Spi};
 use embassy_stm32::time::Hertz;
 use embassy_stm32::{
@@ -30,6 +32,7 @@ use embassy_stm32::{
     peripherals::{
         DMA1_CH4, DMA1_CH5, DMA2_CH1, DMA2_CH2, I2C2, PB13, PC13, PD15, PE0, PE1, PE8, SPI3,
     },
+    rcc::Rcc,
     Config, Peripherals,
 };
 use wifi_app::*;
@@ -96,26 +99,35 @@ pub struct MyDevice {
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 
+// Clock configuration that enables suffiently fast clock for RNG
 fn config() -> Config {
     let mut config = Config::default();
-    /*config.rcc = config.rcc.clock_src(ClockSrc::PLL(
-        PLLSource::HSI16,
-        PLLClkDiv::Div2,
-        PLLSrcDiv::Div1,
-        PLLMul::Mul8,
-        Some(PLLClkDiv::Div2),
-    ));*/
-    config.rcc = config.rcc.clock_src(ClockSrc::MSI(MSIRange::Range10));
+    config.rcc = config
+        .rcc
+        .clock_src(ClockSrc::PLL(
+            PLLSource::HSI16,
+            PLLClkDiv::Div2,
+            PLLSrcDiv::Div1,
+            PLLMul::Mul10,
+            Some(PLLClkDiv::Div2),
+        ))
+        .ahb_pre(AHBPrescaler::Div8);
     config
 }
 
-#[embassy::main] //(config = "config()")]
+#[embassy::main(config = "config()")]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     unsafe {
         Dbgmcu::enable_all();
     }
 
-    defmt::info!("Starting up...");
+    /*
+    let rcc = Rcc::new(p.RCC);
+    defmt::info!(
+        "Starting up... with system clock: {} Hz",
+        rcc.clocks().sys.0
+    );
+    */
 
     let spi = Spi::new(
         p.SPI3,
