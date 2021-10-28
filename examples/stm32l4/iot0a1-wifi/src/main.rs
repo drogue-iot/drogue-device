@@ -20,19 +20,20 @@ use drogue_device::{
     *,
 };
 use embassy_stm32::dbgmcu::Dbgmcu;
-use embassy_stm32::rcc::{ClockSrc, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv};
+use embassy_stm32::rcc::{ClockSrc, MSIRange, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv};
 use embassy_stm32::spi::{self, Config as SpiConfig, Spi};
 use embassy_stm32::time::Hertz;
 use embassy_stm32::{
     exti::*,
     gpio::{Input, Level, Output, Pull, Speed},
     i2c, interrupt,
-    peripherals::{DMA1_CH4, DMA1_CH5, I2C2, PB13, PC13, PD15, PE0, PE1, PE8, SPI3},
+    peripherals::{
+        DMA1_CH4, DMA1_CH5, DMA2_CH1, DMA2_CH2, I2C2, PB13, PC13, PD15, PE0, PE1, PE8, SPI3,
+    },
     Config, Peripherals,
 };
 use wifi_app::*;
 //use defmt::*;
-use embassy_stm32::dma::NoDma;
 //use embedded_hal::digital::v2::{InputPin, OutputPin};
 
 use drogue_device::drivers::wifi::eswifi::EsWifiController;
@@ -65,7 +66,7 @@ type WAKE = Output<'static, PB13>;
 type RESET = Output<'static, PE8>;
 type CS = Output<'static, PE0>;
 type READY = ExtiInput<'static, PE1>;
-type SPI = Spi<'static, SPI3, NoDma, NoDma>;
+type SPI = Spi<'static, SPI3, DMA2_CH2, DMA2_CH1>;
 type SpiError = spi::Error;
 
 type EsWifi = EsWifiController<SPI, CS, RESET, WAKE, READY, SpiError>;
@@ -97,17 +98,18 @@ static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 
 fn config() -> Config {
     let mut config = Config::default();
-    config.rcc = config.rcc.clock_src(ClockSrc::PLL(
+    /*config.rcc = config.rcc.clock_src(ClockSrc::PLL(
         PLLSource::HSI16,
         PLLClkDiv::Div2,
         PLLSrcDiv::Div1,
         PLLMul::Mul8,
         Some(PLLClkDiv::Div2),
-    ));
+    ));*/
+    config.rcc = config.rcc.clock_src(ClockSrc::MSI(MSIRange::Range10));
     config
 }
 
-#[embassy::main(config = "config()")]
+#[embassy::main] //(config = "config()")]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     unsafe {
         Dbgmcu::enable_all();
@@ -120,8 +122,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         p.PC10,
         p.PC12,
         p.PC11,
-        NoDma,
-        NoDma,
+        p.DMA2_CH2,
+        p.DMA2_CH1,
         Hertz(1_000_000),
         SpiConfig::default(),
     );
