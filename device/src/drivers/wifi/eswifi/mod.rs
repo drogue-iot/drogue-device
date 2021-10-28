@@ -118,7 +118,7 @@ where
 
     async fn wait_ready(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
         while self.ready.is_low().map_err(READY)? {
-            self.ready.wait_for_any_edge().await;
+            //self.ready.wait_for_any_edge().await;
         }
         Ok(())
     }
@@ -289,11 +289,13 @@ where
                 pos += 1;
             }
         }
+        /*
         trace!(
             "response {} bytes:  {:?}",
             pos,
             core::str::from_utf8(&response[0..pos]).unwrap()
         );
+        */
 
         Ok(&response[0..pos])
     }
@@ -512,7 +514,7 @@ where
                         .await
                         .map_err(|_| TcpError::ReadError)?;
 
-                    self.send_string(&command!(8, "R2=15"), &mut response)
+                    self.send_string(&command!(8, "R2=1500"), &mut response)
                         .await
                         .map_err(|_| TcpError::ReadError)?;
 
@@ -544,21 +546,26 @@ where
                         .map_err(|_| TcpError::ReadError)?;
 
                     if let Ok((_, ReadResponse::Ok(data))) = parser::read_response(&response) {
+                        trace!(
+                            "response parsed:  {:?}",
+                            core::str::from_utf8(&data).unwrap()
+                        );
                         for (i, b) in data.iter().enumerate() {
-                            buf[i] = *b;
+                            buf[pos + i] = *b;
                         }
                         Ok(data.len())
                     } else {
                         Err(TcpError::ReadError)
                     }
-                    //result
                 }
                 .await;
 
                 match result {
                     Ok(len) => {
+                        trace!("Ok len: {}", len);
                         pos += len;
                         if len == 0 || pos == buf.len() {
+                            trace!("Ok POS: {}", pos);
                             return Ok(pos);
                         }
                     }
@@ -566,6 +573,7 @@ where
                         if pos == 0 {
                             return Err(e);
                         } else {
+                            trace!("ERR OK POS: {}", pos);
                             return Ok(pos);
                         }
                     }
