@@ -400,87 +400,88 @@ where
     type WriteFuture<'m> where SPI: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
     fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
         async move {
-            let mut len = buf.len();
-            //trace!("Writing buf with len {}", len);
-            if len > 1046 {
-                len = 1046
-            }
+            let mut remaining = buf.len();
+            while remaining > 0 {
+                //trace!("Writing buf with len {}", len);
 
-            let mut response = [0u8; 1024];
+                let mut response = [0u8; 1024];
+                let to_send = core::cmp::min(1046, remaining);
 
-            let result = async {
-                let command = command!(8, "P0={}", handle);
-                self.send(command.as_bytes(), &mut response)
-                    .await
-                    .map_err(|_| TcpError::WriteError)?;
+                remaining -= to_send;
+                let result = async {
+                    let command = command!(8, "P0={}", handle);
+                    self.send(command.as_bytes(), &mut response)
+                        .await
+                        .map_err(|_| TcpError::WriteError)?;
 
-                self.send_string(&command!(8, "P0={}", handle), &mut response)
-                    .await
-                    .map_err(|_| TcpError::WriteError)?;
+                    self.send_string(&command!(8, "P0={}", handle), &mut response)
+                        .await
+                        .map_err(|_| TcpError::WriteError)?;
 
-                self.send_string(&command!(16, "S1={}", len), &mut response)
-                    .await
-                    .map_err(|_| TcpError::WriteError)?;
+                    self.send_string(&command!(16, "S1={}", to_send), &mut response)
+                        .await
+                        .map_err(|_| TcpError::WriteError)?;
 
-                // to ensure it's an even number of bytes, abscond with 1 byte from the payload.
-                let prefix = [b'S', b'0', b'\r', buf[0]];
-                let remainder = &buf[1..len];
+                    // to ensure it's an even number of bytes, abscond with 1 byte from the payload.
+                    let prefix = [b'S', b'0', b'\r', buf[0]];
+                    let remainder = &buf[1..to_send];
 
-                self.wait_ready().await.map_err(|_| TcpError::WriteError)?;
+                    self.wait_ready().await.map_err(|_| TcpError::WriteError)?;
 
-                {
-                    let _cs = Cs::new(&mut self.cs).map_err(|_| TcpError::WriteError)?;
-                    for chunk in prefix.chunks(2) {
-                        let mut xfer: [u8; 2] = [0; 2];
-                        xfer[1] = chunk[0];
-                        xfer[0] = chunk[1];
-                        if chunk.len() == 2 {
-                            xfer[0] = chunk[1]
-                        } else {
-                            xfer[0] = 0x0A
+                    {
+                        let _cs = Cs::new(&mut self.cs).map_err(|_| TcpError::WriteError)?;
+                        for chunk in prefix.chunks(2) {
+                            let mut xfer: [u8; 2] = [0; 2];
+                            xfer[1] = chunk[0];
+                            xfer[0] = chunk[1];
+                            if chunk.len() == 2 {
+                                xfer[0] = chunk[1]
+                            } else {
+                                xfer[0] = 0x0A
+                            }
+
+                            let a = xfer[0];
+                            let b = xfer[1];
+
+                            self.spi
+                                .read_write(&mut xfer, &[a, b])
+                                .await
+                                .map_err(|_| TcpError::WriteError)?;
                         }
 
-                        let a = xfer[0];
-                        let b = xfer[1];
+                        for chunk in remainder.chunks(2) {
+                            let mut xfer: [u8; 2] = [0; 2];
+                            xfer[1] = chunk[0];
+                            if chunk.len() == 2 {
+                                xfer[0] = chunk[1]
+                            } else {
+                                xfer[0] = 0x0A
+                            }
 
-                        self.spi
-                            .read_write(&mut xfer, &[a, b])
-                            .await
-                            .map_err(|_| TcpError::WriteError)?;
-                    }
+                            let a = xfer[0];
+                            let b = xfer[1];
 
-                    for chunk in remainder.chunks(2) {
-                        let mut xfer: [u8; 2] = [0; 2];
-                        xfer[1] = chunk[0];
-                        if chunk.len() == 2 {
-                            xfer[0] = chunk[1]
-                        } else {
-                            xfer[0] = 0x0A
+                            self.spi
+                                .read_write(&mut xfer, &[a, b])
+                                .await
+                                .map_err(|_| TcpError::WriteError)?;
                         }
+                    }
 
-                        let a = xfer[0];
-                        let b = xfer[1];
+                    let response = self
+                        .receive(&mut response)
+                        .await
+                        .map_err(|_| TcpError::WriteError)?;
 
-                        self.spi
-                            .read_write(&mut xfer, &[a, b])
-                            .await
-                            .map_err(|_| TcpError::WriteError)?;
+                    if let Ok((_, WriteResponse::Ok(len))) = parser::write_response(response) {
+                        Ok(len)
+                    } else {
+                        Err(TcpError::WriteError)
                     }
                 }
-
-                let response = self
-                    .receive(&mut response)
-                    .await
-                    .map_err(|_| TcpError::WriteError)?;
-
-                if let Ok((_, WriteResponse::Ok(len))) = parser::write_response(response) {
-                    Ok(len)
-                } else {
-                    Err(TcpError::WriteError)
-                }
+                .await?;
             }
-            .await;
-            result
+            Ok(buf.len())
         }
     }
 
@@ -503,7 +504,7 @@ where
                         .map_err(|_| TcpError::ReadError)?;
 
                     let maxlen = buf.len() - pos;
-                    let len = core::cmp::min(1460, maxlen);
+                    let len = core::cmp::min(response.len() - 10, maxlen);
 
                     self.send_string(&command!(16, "R1={}", len), &mut response)
                         .await
