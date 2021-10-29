@@ -512,6 +512,7 @@ dependencies = [
 [[package]]
 name = "drogue-tls"
 version = "0.2.0"
+source = "git+https://github.com/drogue-iot/drogue-tls.git?rev=177b5a5b7aa60f27a9994fd76e48737553c9f9e0#177b5a5b7aa60f27a9994fd76e48737553c9f9e0"
 dependencies = [
  "aes-gcm",
  "defmt",
@@ -905,7 +906,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a257582fdcde896fd96463bf2d40eefea0580021c0712a0e2b028b60b47a837a"
 
 [[package]]
-name = "iot0a1-wifi"
+name = "iot01a-wifi"
 version = "0.1.0"
 dependencies = [
  "atomic-polyfill",
