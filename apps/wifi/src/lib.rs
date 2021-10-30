@@ -93,7 +93,7 @@ where
                 match inbox.next().await {
                     Some(mut m) => match m.message() {
                         Command::Update(t) => {
-                            info!("Updating current app temperature measurement: {}", t);
+                            //trace!("Updating current app temperature measurement: {}", t);
                             temperature.replace(t.clone());
                         }
                         Command::Send => match &temperature {
@@ -116,20 +116,29 @@ where
                                 )
                                 .unwrap();
                                 let mut rx_buf = [0; 1024];
-                                let response_len = client
-                                    .post(
-                                        "/v1/foo",
-                                        tx.as_bytes(),
-                                        "application/json",
+                                let response = client
+                                    .request(
+                                        Request::post()
+                                            .path("/v1/foo")
+                                            .payload(tx.as_bytes())
+                                            .content_type(ContentType::ApplicationJson),
                                         &mut rx_buf[..],
                                     )
                                     .await;
                                 socket.close().await;
-                                if let Ok(response_len) = response_len {
-                                    info!(
-                                        "Response: {}",
-                                        core::str::from_utf8(&rx_buf[..response_len]).unwrap()
-                                    );
+                                match response {
+                                    Ok(response) => {
+                                        info!("Response status: {:?}", response.status);
+                                        if let Some(payload) = response.payload {
+                                            let s = core::str::from_utf8(payload).unwrap();
+                                            info!("Payload: {}", s);
+                                        } else {
+                                            info!("No response body");
+                                        }
+                                    }
+                                    Err(e) => {
+                                        warn!("Error doing HTTP request: {:?}", e);
+                                    }
                                 }
                             }
                             None => {
