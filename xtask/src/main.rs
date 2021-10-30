@@ -41,6 +41,7 @@ fn test_ci() -> Result<(), anyhow::Error> {
         "nrf52/microbit",
         "stm32l0/lora-discovery",
         "stm32l1/rak811",
+        "stm32l4/iot01a-wifi",
         "rp/pico",
         "stm32wl/nucleo-wl55",
         "stm32h7/nucleo-h743zi",

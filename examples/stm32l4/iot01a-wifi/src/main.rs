@@ -20,19 +20,23 @@ use drogue_device::{
     *,
 };
 use embassy_stm32::dbgmcu::Dbgmcu;
-use embassy_stm32::rcc::{ClockSrc, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv};
+use embassy_stm32::rcc::{
+    AHBPrescaler, ClockSrc, MSIRange, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv,
+};
 use embassy_stm32::spi::{self, Config as SpiConfig, Spi};
 use embassy_stm32::time::Hertz;
 use embassy_stm32::{
     exti::*,
     gpio::{Input, Level, Output, Pull, Speed},
     i2c, interrupt,
-    peripherals::{DMA1_CH4, DMA1_CH5, I2C2, PB13, PC13, PD15, PE0, PE1, PE8, SPI3},
+    peripherals::{
+        DMA1_CH4, DMA1_CH5, DMA2_CH1, DMA2_CH2, I2C2, PB13, PC13, PD15, PE0, PE1, PE8, SPI3,
+    },
+    rcc::Rcc,
     Config, Peripherals,
 };
 use wifi_app::*;
 //use defmt::*;
-use embassy_stm32::dma::NoDma;
 //use embedded_hal::digital::v2::{InputPin, OutputPin};
 
 use drogue_device::drivers::wifi::eswifi::EsWifiController;
@@ -46,9 +50,11 @@ cfg_if::cfg_if! {
         use drogue_tls::{Aes128GcmSha256, TlsContext};
         use drogue_device::actors::socket::TlsSocket;
 
-        const HOST: &str = "http.sandbox.drogue.cloud";
-        const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
-        const PORT: u16 = 443;
+        //const HOST: &str = "http.sandbox.drogue.cloud";
+        //const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
+        const HOST: &str = "localhost";
+        const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP resolved for "http.sandbox.drogue.cloud"
+        const PORT: u16 = 12345;
         static mut TLS_BUFFER: [u8; 16384] = [0u8; 16384];
     } else {
         const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP for local network server
@@ -65,7 +71,7 @@ type WAKE = Output<'static, PB13>;
 type RESET = Output<'static, PE8>;
 type CS = Output<'static, PE0>;
 type READY = ExtiInput<'static, PE1>;
-type SPI = Spi<'static, SPI3, NoDma, NoDma>;
+type SPI = Spi<'static, SPI3, DMA2_CH2, DMA2_CH1>;
 type SpiError = spi::Error;
 
 type EsWifi = EsWifiController<SPI, CS, RESET, WAKE, READY, SpiError>;
@@ -95,15 +101,19 @@ pub struct MyDevice {
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 
+// Clock configuration that enables suffiently fast clock for RNG
 fn config() -> Config {
     let mut config = Config::default();
-    config.rcc = config.rcc.clock_src(ClockSrc::PLL(
-        PLLSource::HSI16,
-        PLLClkDiv::Div2,
-        PLLSrcDiv::Div1,
-        PLLMul::Mul8,
-        Some(PLLClkDiv::Div2),
-    ));
+    config.rcc = config
+        .rcc
+        .clock_src(ClockSrc::PLL(
+            PLLSource::HSI16,
+            PLLClkDiv::Div2,
+            PLLSrcDiv::Div1,
+            PLLMul::Mul10,
+            Some(PLLClkDiv::Div2),
+        ))
+        .ahb_pre(AHBPrescaler::Div8);
     config
 }
 
@@ -113,15 +123,21 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         Dbgmcu::enable_all();
     }
 
-    defmt::info!("Starting up...");
+    /*
+    let rcc = Rcc::new(p.RCC);
+    defmt::info!(
+        "Starting up... with system clock: {} Hz",
+        rcc.clocks().sys.0
+    );
+    */
 
     let spi = Spi::new(
         p.SPI3,
         p.PC10,
         p.PC12,
         p.PC11,
-        NoDma,
-        NoDma,
+        p.DMA2_CH2,
+        p.DMA2_CH1,
         Hertz(1_000_000),
         SpiConfig::default(),
     );
