@@ -255,12 +255,13 @@ where
 
         //info!("sent! awaiting response");
 
-        self.receive(response).await
+        self.receive(response, 0).await
     }
 
     async fn receive<'a>(
         &'a mut self,
         response: &'a mut [u8],
+        min_len: usize,
     ) -> Result<&'a [u8], Error<E, CS::Error, RESET::Error, READY::Error>> {
         let mut pos = 0;
 
@@ -281,7 +282,8 @@ where
 
             response[pos] = xfer[1];
             pos += 1;
-            if xfer[0] != NAK {
+
+            if xfer[0] != NAK || pos < min_len {
                 response[pos] = xfer[0];
                 pos += 1;
             }
@@ -469,7 +471,7 @@ where
                     }
 
                     let response = self
-                        .receive(&mut response)
+                        .receive(&mut response, 0)
                         .await
                         .map_err(|_| TcpError::WriteError)?;
 
@@ -510,7 +512,7 @@ where
                         .await
                         .map_err(|_| TcpError::ReadError)?;
 
-                    self.send_string(&command!(8, "R2=1500"), &mut response)
+                    self.send_string(&command!(8, "R2=0"), &mut response)
                         .await
                         .map_err(|_| TcpError::ReadError)?;
 
@@ -543,7 +545,7 @@ where
                         pos
                     );
                     let response = self
-                        .receive(&mut response)
+                        .receive(&mut response, len)
                         .await
                         .map_err(|_| TcpError::ReadError)?;
 

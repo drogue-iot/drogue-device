@@ -52,13 +52,15 @@ cfg_if::cfg_if! {
 
         //const HOST: &str = "http.sandbox.drogue.cloud";
         //const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
+        //const PORT: u16 = 443;
+
         const HOST: &str = "localhost";
-        const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP resolved for "http.sandbox.drogue.cloud"
-        const PORT: u16 = 12345;
+        const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP of local drogue service
+        const PORT: u16 = 8088;
         static mut TLS_BUFFER: [u8; 16384] = [0u8; 16384];
     } else {
         const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP for local network server
-        const PORT: u16 = 12345;
+        const PORT: u16 = 8088;
     }
 }
 
