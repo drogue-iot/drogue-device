@@ -154,8 +154,8 @@ mod tls {
                                 info!("TCP connection opened");
                                 let mut tls: TlsConnection<'a, RNG, NoClock, S, CipherSuite> =
                                     TlsConnection::new(context, socket);
-                                // FIXME: support configuring cert size
-                                match tls.open::<4096>().await {
+                                // FIXME: support configuring cert size when verification is supported on ARM Cortex M
+                                match tls.open::<1>().await {
                                     Ok(_) => {
                                         info!("TLS connection opened");
                                         self.state.replace(State::Connected(tls));

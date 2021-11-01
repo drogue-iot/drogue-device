@@ -13,8 +13,7 @@ keywords = ["std", "wifi", "networking"]
 log = "0.4"
 env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["log", "std", "wifi+esp8266", "tls"] }
-drogue-tls = { git = "https://github.com/drogue-iot/drogue-tls.git", rev = "35033c66bfc622e6e5b271143c45cee1dbc2f0f8", default-features = false, features = ["async"], optional = true}
-#drogue-tls = { version = "0.2.0", default-features = false, features = ["async"], optional = true}
+drogue-tls = { version = "0.3.0", default-features = false, features = ["async"], optional = true}
 #drogue-tls = {path = "../../drogue-tls", default-features = false, optional = true}
 
 embassy = { version = "0.1.0", default-features = false, features = ["std"] }

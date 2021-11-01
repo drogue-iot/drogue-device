@@ -511,7 +511,9 @@ dependencies = [
 
 [[package]]
 name = "drogue-tls"
-version = "0.2.0"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "622784fbe64baf37f7db23fc3cbb02a6d5175b0056671c84abff528b875bca01"
 dependencies = [
  "aes-gcm",
  "defmt",
