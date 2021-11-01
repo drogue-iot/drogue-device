@@ -17,7 +17,7 @@ panic-probe = { version = "0.2.0", features = ["print-defmt"] }
 
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 drogue-device = { path = "../../../../device", features = ["wifi+esp8266", "defmt", "defmt-trace"], default-features = false }
-drogue-tls = { git = "https://github.com/drogue-iot/drogue-tls.git", rev = "177b5a5b7aa60f27a9994fd76e48737553c9f9e0", default-features = false, features = ["async", "defmt"], optional = true}
+drogue-tls = { version = "0.3.0", default-features = false, features = ["async", "defmt"], optional = true}
 #drogue-tls = {path = "../../../../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
 wifi-app = { path = "../../../../apps/wifi", features = ["defmt"]}
 cortex-m-rt = "0.7"

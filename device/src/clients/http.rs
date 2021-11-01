@@ -1,9 +1,9 @@
 use crate::traits::{
     ip::{IpAddress, IpProtocol, SocketAddress},
-    tcp::TcpSocket,
+    tcp::{TcpError, TcpSocket},
 };
-use core::convert::{TryFrom, TryInto};
 use core::fmt::{Display, Write};
+use core::{num::ParseIntError, str::Utf8Error};
 use heapless::String;
 
 pub struct HttpClient<'a, S>
@@ -41,7 +41,7 @@ where
         &mut self,
         request: Request<'m>,
         rx_buf: &'m mut [u8],
-    ) -> Result<Response<'m>, ()> {
+    ) -> Result<Response<'m>, Error> {
         match self
             .socket
             .connect(IpProtocol::Tcp, SocketAddress::new(self.ip, self.port))
@@ -86,48 +86,42 @@ where
                                 }
                                 Err(e) => {
                                     warn!("Error sending data: {:?}", e);
+                                    Err(e.into())
                                 }
                             }
                         }
                     },
                     Err(e) => {
                         warn!("Error sending headers: {:?}", e);
+                        Err(e.into())
                     }
                 }
             }
             Err(e) => {
                 warn!("Error connecting to {}:{}: {:?}", self.ip, self.port, e);
+                Err(e.into())
             }
         }
-        Err(())
     }
 
-    async fn read_response<'m>(&mut self, rx_buf: &'m mut [u8]) -> Result<Response<'m>, ()> {
+    async fn read_response<'m>(&mut self, rx_buf: &'m mut [u8]) -> Result<Response<'m>, Error> {
         let mut pos = 0;
-        let mut done = false;
         let mut buf: [u8; 1024] = [0; 1024];
         let mut header_end = 0;
-        while pos < buf.len() && !done {
-            let n = self.socket.read(&mut buf[pos..]).await.map_err(|_| ())?;
+        while pos < buf.len() {
+            let n = self.socket.read(&mut buf[pos..]).await?;
 
             /*
             info!(
                 "read data from socket:  {:?}",
                 core::str::from_utf8(&buf[pos..pos + n]).unwrap()
-            );
-            */
+            );*/
             pos += n;
 
             // Look for header end
-            if pos >= 4 {
-                //trace!("Looking for header between 0..{}", pos);
-                for p in 0..pos - 4 {
-                    if &buf[p..p + 4] == b"\r\n\r\n" {
-                        header_end = p + 4;
-                        done = true;
-                        break;
-                    }
-                }
+            if let Some(n) = find_sequence(&buf[..pos], b"\r\n\r\n") {
+                header_end = n + 4;
+                break;
             }
         }
 
@@ -136,23 +130,21 @@ where
         let mut content_type = None;
         let mut content_length = 0;
 
-        let header = core::str::from_utf8(&buf[..header_end]).map_err(|_| ())?;
+        let header = core::str::from_utf8(&mut buf[..header_end])?;
+
+        trace!("Received header: {}", header);
 
         let lines = header.split("\r\n");
         for line in lines {
             if line.starts_with("HTTP") {
                 let pos = b"HTTP/N.N ".len();
-                status = line[pos..pos + 3]
-                    .parse::<u32>()
-                    .map_err(|_| ())?
-                    .try_into()?;
-            // FIXME: Make it case insensitive
-            } else if line.starts_with("Content-Type: ") {
-                content_type.replace(line["Content-Type: ".len()..].into());
-            } else if line.starts_with("Content-Length: ") {
-                content_length = line["Content-Length: ".len()..]
-                    .parse::<usize>()
-                    .map_err(|_| ())?;
+                status = line[pos..pos + 3].parse::<u32>()?.into();
+            } else if match_header(line, "content-type") {
+                content_type.replace(line["content-type:".len()..].trim_start().into());
+            } else if match_header(line, "content-length") {
+                content_length = line["content-length:".len()..]
+                    .trim_start()
+                    .parse::<usize>()?;
             }
         }
 
@@ -181,8 +173,7 @@ where
                     let n = self
                         .socket
                         .read(&mut rx_buf[to_copy + pos..to_copy + to_read])
-                        .await
-                        .map_err(|_| ())?;
+                        .await?;
                     pos += n;
                 }
                 to_copy + to_read
@@ -252,6 +243,31 @@ impl Display for Method {
 
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum Error {
+    Socket(TcpError),
+    Parse,
+}
+
+impl From<TcpError> for Error {
+    fn from(e: TcpError) -> Error {
+        Error::Socket(e)
+    }
+}
+
+impl From<ParseIntError> for Error {
+    fn from(_: ParseIntError) -> Error {
+        Error::Parse
+    }
+}
+
+impl From<Utf8Error> for Error {
+    fn from(_: Utf8Error) -> Error {
+        Error::Parse
+    }
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Response<'a> {
     pub status: Status,
     pub content_type: Option<ContentType>,
@@ -260,24 +276,27 @@ pub struct Response<'a> {
 
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[repr(u32)]
 pub enum Status {
     Ok = 200,
     Created = 201,
+    Accepted = 202,
     BadRequest = 400,
     Unauthorized = 401,
     NotFound = 404,
+    Unknown(u32) = 0,
 }
 
-impl TryFrom<u32> for Status {
-    type Error = ();
-    fn try_from(from: u32) -> Result<Status, Self::Error> {
+impl From<u32> for Status {
+    fn from(from: u32) -> Status {
         match from {
-            200 => Ok(Status::Ok),
-            201 => Ok(Status::Created),
-            400 => Ok(Status::BadRequest),
-            401 => Ok(Status::Unauthorized),
-            404 => Ok(Status::NotFound),
-            _ => Err(()),
+            200 => Status::Ok,
+            201 => Status::Created,
+            202 => Status::Accepted,
+            400 => Status::BadRequest,
+            401 => Status::Unauthorized,
+            404 => Status::NotFound,
+            n => Status::Unknown(n),
         }
     }
 }
@@ -309,5 +328,60 @@ impl Display for ContentType {
             }
         }
         Ok(())
+    }
+}
+
+// Find the needle sequence in the haystack. If found, return the hackstack position
+// where the sequence was found.
+fn find_sequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    if haystack.len() < needle.len() {
+        None
+    } else {
+        let mut p = 0;
+        let mut windows = haystack.windows(needle.len());
+        loop {
+            if let Some(w) = windows.next() {
+                if w == needle {
+                    return Some(p);
+                }
+                p += 1;
+            } else {
+                return None;
+            }
+        }
+    }
+}
+
+fn match_header(line: &str, hdr: &str) -> bool {
+    if line.len() >= hdr.len() {
+        line[0..hdr.len()].eq_ignore_ascii_case(hdr)
+    } else {
+        false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sequence() {
+        assert_eq!(Some(0), find_sequence(b"\r\n\r\n", b"\r\n\r\n"));
+        assert_eq!(Some(3), find_sequence(b"foo\r\n\r\n", b"\r\n\r\n"));
+        assert_eq!(Some(0), find_sequence(b"\r\n\r\nfoo", b"\r\n\r\n"));
+        assert_eq!(Some(3), find_sequence(b"foo\r\n\r\nbar", b"\r\n\r\n"));
+        assert_eq!(None, find_sequence(b"foobar\r\n\rother", b"\r\n\r\n"));
+        assert_eq!(None, find_sequence(b"foo", b"\r\n\r\n"));
+    }
+
+    #[test]
+    fn test_match_header() {
+        assert!(match_header("Content-Length: 4", "Content-Length"));
+        assert!(match_header("content-length: 4", "Content-Length"));
+        assert!(match_header("Content-length: 4", "Content-Length"));
+        assert!(!match_header(
+            "Content-type: application/json",
+            "Content-Length"
+        ));
     }
 }
