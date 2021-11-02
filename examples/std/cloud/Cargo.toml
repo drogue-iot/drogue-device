@@ -13,8 +13,8 @@ keywords = ["std", "networking", "cloud"]
 pem-parser = "0.1.1"
 log = "0.4"
 env_logger = "0.8"
-drogue-device = { path = "../../../device", features = ["log", "std","tls"] }
-drogue-tls = { version = "0.3.0", default-features = false, features = ["async"]}
+drogue-device = { path = "../../../device", features = ["log", "std", "tls"] }
+drogue-tls = { version = "0.3.0", default-features = false, features = ["async", "log"]}
 
 embassy = { version = "0.1.0", default-features = false, features = ["std"] }
 rand = "0.8"

@@ -46,11 +46,17 @@ async fn main(spawner: embassy::executor::Spawner) {
         app: ActorContext::new(App::new(IP, PORT, USERNAME.trim_end(), PASSWORD.trim_end())),
     });
 
+    log::info!("Mounting device");
     let app = DEVICE
         .mount(|device| async move {
+            log::info!("Mounting network");
             let network = device.network.mount((), spawner);
 
-            let socket = Socket::new(network, network.open().await.unwrap());
+            log::info!("Opening socket");
+            let handle = network.open().await.unwrap();
+            log::info!("Mounting socket");
+            let socket = Socket::new(network, handle);
+            log::info!("Socket opened");
             let socket = TlsSocket::wrap(
                 socket,
                 TlsContext::new(OsRng, unsafe { &mut TLS_BUFFER })
@@ -60,11 +66,14 @@ async fn main(spawner: embassy::executor::Spawner) {
         })
         .await;
 
+    log::info!("Updating sensor value");
     app.request(Command::Update(SensorAcquisition {
         temperature: Temperature::new(22.0),
         relative_humidity: 0.0,
     }))
     .unwrap()
     .await;
+
+    log::info!("Sending command");
     app.request(Command::Send).unwrap().await;
 }
