@@ -17,46 +17,23 @@ pub enum SmolRequest<'m> {
 /// Actor responses returned by network adapter actors
 pub enum SmolResponse {
     Initialized,
-    Open(Result<SmolSocketHandle, TcpError>),
-    Connect(Result<(), TcpError>),
-    Write(Result<usize, TcpError>),
-    Read(Result<usize, TcpError>),
-    Close,
+    Tcp(TcpResponse<SmolSocketHandle>),
 }
 
 impl SmolResponse {
-    fn open(self) -> Result<SmolSocketHandle, TcpError> {
+    fn tcp(self) -> TcpResponse<SmolSocketHandle> {
         match self {
-            SmolResponse::Open(Ok(handle)) => Ok(handle),
-            _ => Err(TcpError::OpenError),
-        }
-    }
-
-    fn connect(self) -> Result<(), TcpError> {
-        match self {
-            SmolResponse::Connect(result) => result,
+            SmolResponse::Tcp(r) => r,
             _ => panic!("unexpected response type"),
         }
     }
+}
 
-    fn write(self) -> Result<usize, TcpError> {
+impl Into<TcpResponse<SmolSocketHandle>> for Option<SmolResponse> {
+    fn into(self) -> TcpResponse<u8> {
         match self {
-            SmolResponse::Write(result) => result,
-            _ => panic!("unexpected response type"),
-        }
-    }
-
-    fn read(self) -> Result<usize, TcpError> {
-        match self {
-            SmolResponse::Read(result) => result,
-            _ => panic!("unexpected response type"),
-        }
-    }
-
-    fn close(self) {
-        match self {
-            SmolResponse::Close => (),
-            _ => panic!("unexpected response type"),
+            Some(SmolResponse::Tcp(r)) => r,
+            _ => panic!("cannot convert response to tcp response"),
         }
     }
 }
@@ -109,78 +86,30 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
     }
 }
 
-// Feels like there could be a blanket impl for TcpStack-impling actors to their Address<_>.
-//
-impl<'a, 'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usize> TcpStack
-    for Address<'a, SmolTcpStack<'buffer, POOL_SIZE, BACKLOG, BUF_SIZE>>
+impl<'a, 'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usize>
+    TcpActor<SmolTcpStack<'buffer, POOL_SIZE, BACKLOG, BUF_SIZE>>
+    for SmolTcpStack<'buffer, POOL_SIZE, BACKLOG, BUF_SIZE>
 {
-    type SocketHandle =
-        <SmolTcpStack<'buffer, POOL_SIZE, BACKLOG, BUF_SIZE> as TcpStack>::SocketHandle;
+    type SocketHandle = SmolSocketHandle;
 
-    #[rustfmt::skip]
-    type OpenFuture<'m> where 'a: 'm = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm;
-
-    fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
-        async move {
-            self.request(SmolRequest::Open)
-                .unwrap()
-                .await
-                .unwrap()
-                .open()
-        }
+    fn open<'m>() -> SmolRequest<'m> {
+        SmolRequest::Open
     }
-
-    #[rustfmt::skip]
-    type ConnectFuture<'m> where 'a: 'm  =  impl Future<Output = Result<(), TcpError>> + 'm;
     fn connect<'m>(
-        &'m mut self,
         handle: Self::SocketHandle,
         proto: IpProtocol,
         dst: SocketAddress,
-    ) -> Self::ConnectFuture<'m> {
-        async move {
-            self.request(SmolRequest::Connect(handle, proto, dst))
-                .unwrap()
-                .await
-                .unwrap()
-                .connect()
-        }
+    ) -> SmolRequest<'m> {
+        SmolRequest::Connect(handle, proto, dst)
     }
-
-    #[rustfmt::skip]
-    type WriteFuture<'m> where 'a: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
-    fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
-        async move {
-            self.request(SmolRequest::Write(handle, buf))
-                .unwrap()
-                .await
-                .unwrap()
-                .write()
-        }
+    fn write<'m>(handle: Self::SocketHandle, buf: &'m [u8]) -> SmolRequest<'m> {
+        SmolRequest::Write(handle, buf)
     }
-
-    #[rustfmt::skip]
-    type ReadFuture<'m> where 'a: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
-    fn read<'m>(
-        &'m mut self,
-        handle: Self::SocketHandle,
-        buf: &'m mut [u8],
-    ) -> Self::ReadFuture<'m> {
-        async move {
-            self.request(SmolRequest::Read(handle, buf))
-                .unwrap()
-                .await
-                .unwrap()
-                .read()
-        }
+    fn read<'m>(handle: Self::SocketHandle, buf: &'m mut [u8]) -> SmolRequest<'m> {
+        SmolRequest::Read(handle, buf)
     }
-
-    #[rustfmt::skip]
-    type CloseFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
-    fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
-        async move {
-            self.request(SmolRequest::Close(handle)).unwrap().await;
-        }
+    fn close<'m>(handle: Self::SocketHandle) -> SmolRequest<'m> {
+        SmolRequest::Close(handle)
     }
 }
 

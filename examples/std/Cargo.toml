@@ -3,6 +3,7 @@ members = [
     "pingpong",
     "package",
     "esp8266",
+    "cloud",
 ]
 resolver = "2"
 
