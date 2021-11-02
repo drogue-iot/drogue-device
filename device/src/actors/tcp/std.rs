@@ -41,16 +41,13 @@ impl Actor for StdTcpActor {
         async move {
             loop {
                 if let Some(mut m) = inbox.next().await {
-                    info!("Got new message!");
                     let response = match m.message() {
                         TcpRequest::Open => {
-                            info!("TCP open!");
                             let handle = self
                                 .socket_pool
                                 .open()
                                 .await
                                 .map_err(|_| TcpError::OpenError);
-                            info!("Opened!");
                             TcpResponse::Open(handle)
                         }
                         TcpRequest::Connect(handle, _proto, addr) => {
