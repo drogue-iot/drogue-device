@@ -7,7 +7,7 @@ edition = "2018"
 name = "microbit-esp8266"
 version = "0.1.0"
 description = "BBC micro:bit v2 + ESP8266 WiFi adapter"
-keywords = ["networking", "wifi", "esp8266", "microbit", "nrf", "nrf52"]
+keywords = ["networking", "wifi", "esp8266", "microbit", "nrf", "nrf52", "cloud"]
 
 [dependencies]
 defmt = "0.2"

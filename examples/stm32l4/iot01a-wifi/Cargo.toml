@@ -10,7 +10,7 @@ name = "iot01a-wifi"
 version = "0.1.0"
 resolver = "2"
 description = "STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi"
-keywords = ["wifi", "hts221", "stm32l4", "networking", "iot", "stm32"]
+keywords = ["wifi", "hts221", "stm32l4", "networking", "iot", "stm32", "cloud"]
 
 [workspace]
 

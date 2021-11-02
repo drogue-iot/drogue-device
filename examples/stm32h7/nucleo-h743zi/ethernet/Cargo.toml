@@ -8,7 +8,7 @@ name = "nucleo-h743zi_ethernet"
 version = "0.1.0"
 resolver = "2"
 description = "STM32 Nucleo-H743 ethernet"
-keywords = ["ethernet", "stm32", "stm32h7"]
+keywords = ["ethernet", "stm32", "stm32h7", "networking"]
 
 [features]
 default = [

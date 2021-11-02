@@ -14,15 +14,13 @@ include::examples_basic.adoc[]
 
 == WiFi connectivity examples
 
-Examples that demonstrates network connectivity using WiFi, usually using an additional network
-adapter module.  May require setting up additional network services (locally or third party).
+Examples that demonstrates network connectivity using WiFi, usually using an additional network adapter module.  May require setting up additional network services (locally or third party).
 
 include::examples_wifi.adoc[]
 
 == LoRaWAN connectivity examples
 
-Examples that demonstrates network connectivity using LoRaWAN. May require setting up additional
-network services (locally or third party).
+Examples that demonstrates network connectivity using LoRaWAN. May require setting up additional network services (locally or third party).
 
 include::examples_lorawan.adoc[]
 
@@ -31,6 +29,12 @@ include::examples_lorawan.adoc[]
 Examples that demonstrates using Bluetooth Low Energy (BLE). May require running applications on a phone or PC.
 
 include::examples_ble.adoc[]
+
+== Drogue Cloud connectivity examples
+
+Examples that demonstrate connectivity to Drogue Cloud.
+
+include::examples_cloud.adoc[]
 
 == Display examples
 
