@@ -1,65 +1,81 @@
-use super::wifi::*;
+use super::tcp::{TcpActor, TcpResponse};
 use crate::{
-    kernel::actor::Address,
+    kernel::actor::{Actor, Address},
     traits::{
         ip::{IpProtocol, SocketAddress},
-        tcp::{TcpError, TcpSocket, TcpStack},
+        tcp::{TcpError, TcpSocket},
     },
 };
-
 use core::future::Future;
 
 /// A Socket type for connecting to a network endpoint + sending and receiving data.
 #[derive(Clone, Copy)]
 pub struct Socket<'a, A>
 where
-    A: Adapter + 'static,
+    A: Actor + TcpActor<A> + 'static,
+    A::Response: Into<TcpResponse<A::SocketHandle>>,
 {
-    address: Address<'a, AdapterActor<A>>,
+    address: Address<'a, A>,
     handle: A::SocketHandle,
 }
 
 impl<'a, A> Socket<'a, A>
 where
-    A: Adapter + 'static,
+    A: Actor + TcpActor<A> + 'static,
+    A::Response: Into<TcpResponse<A::SocketHandle>>,
 {
-    pub fn new(address: Address<'a, AdapterActor<A>>, handle: A::SocketHandle) -> Socket<'a, A> {
+    pub fn new(address: Address<'a, A>, handle: A::SocketHandle) -> Socket<'a, A> {
         Self { address, handle }
     }
 }
 
 impl<'a, A> TcpSocket for Socket<'a, A>
 where
-    A: Adapter + 'static,
+    A: Actor + TcpActor<A> + 'static,
+    A::Response: Into<TcpResponse<A::SocketHandle>>,
 {
     #[rustfmt::skip]
     type ConnectFuture<'m> where 'a: 'm, A: 'm =  impl Future<Output = Result<(), TcpError>> + 'm;
     fn connect<'m>(&'m mut self, proto: IpProtocol, dst: SocketAddress) -> Self::ConnectFuture<'m> {
-        async move { self.address.connect(self.handle, proto, dst).await }
+        async move {
+            let m = A::connect(self.handle, proto, dst);
+            self.address.request(m).unwrap().await.into().connect()
+        }
     }
 
     #[rustfmt::skip]
     type WriteFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
     fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
-        async move { self.address.write(self.handle, buf).await }
+        async move {
+            let m = A::write(self.handle, buf);
+            self.address.request(m).unwrap().await.into().write()
+        }
     }
 
     #[rustfmt::skip]
     type ReadFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
     fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m> {
-        async move { self.address.read(self.handle, buf).await }
+        async move {
+            let m = A::read(self.handle, buf);
+            self.address.request(m).unwrap().await.into().read()
+        }
     }
 
     #[rustfmt::skip]
     type CloseFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = ()> + 'm;
     fn close<'m>(&'m mut self) -> Self::CloseFuture<'m> {
-        async move { self.address.close(self.handle).await }
+        async move {
+            let m = A::close(self.handle);
+            self.address.request(m).unwrap().await;
+        }
     }
 }
 
 #[cfg(feature = "tls")]
 mod tls {
-    use super::{Adapter, Socket};
+    use super::Socket;
+    use crate::actors::tcp::{TcpActor, TcpResponse};
+    use crate::kernel::actor::Actor;
     use crate::traits::{
         ip::{IpProtocol, SocketAddress},
         tcp::{TcpError, TcpSocket},
@@ -71,9 +87,10 @@ mod tls {
     };
     use rand_core::{CryptoRng, RngCore};
 
-    impl<'a, T> AsyncRead for Socket<'a, T>
+    impl<'a, A> AsyncRead for Socket<'a, A>
     where
-        T: Adapter + 'static,
+        A: Actor + TcpActor<A> + 'static,
+        A::Response: Into<TcpResponse<A::SocketHandle>>,
     {
         #[rustfmt::skip]
         type ReadFuture<'m> where Self: 'm = impl Future<Output = Result<usize, TlsError>> + 'm;
@@ -86,9 +103,10 @@ mod tls {
         }
     }
 
-    impl<'a, T> AsyncWrite for Socket<'a, T>
+    impl<'a, A> AsyncWrite for Socket<'a, A>
     where
-        T: Adapter + 'static,
+        A: Actor + TcpActor<A> + 'static,
+        A::Response: Into<TcpResponse<A::SocketHandle>>,
     {
         #[rustfmt::skip]
         type WriteFuture<'m> where Self: 'm = impl Future<Output = Result<usize, TlsError>> + 'm;
@@ -151,13 +169,11 @@ mod tls {
                     Some(State::New(context, mut socket)) => {
                         match socket.connect(proto, dst).await {
                             Ok(_) => {
-                                info!("TCP connection opened");
                                 let mut tls: TlsConnection<'a, RNG, NoClock, S, CipherSuite> =
                                     TlsConnection::new(context, socket);
                                 // FIXME: support configuring cert size when verification is supported on ARM Cortex M
                                 match tls.open::<1>().await {
                                     Ok(_) => {
-                                        info!("TLS connection opened");
                                         self.state.replace(State::Connected(tls));
                                         Ok(())
                                     }

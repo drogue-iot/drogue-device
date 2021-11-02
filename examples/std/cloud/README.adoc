@@ -1,0 +1,22 @@
+== std drogue cloud example
+
+This example demonstrates using Drogue Device sending telemetry messages to Drogue Cloud. This example runs on any target supporting the Rust standard library.
+
+=== Prerequisites
+
+==== Software
+
+* To build the example, you need to have link:https://rustup.rs/[rustup].
+* A service like Drogue IoT Cloud. See link:https://github.com/drogue-iot/drogue-cloud/[drogue-cloud] for how to run that, or use the link:https://sandbox.drogue.cloud/[sandbox] (requires TLS).
+
+=== Configuring
+
+To authenticate the device to the cloud service, you must store the username and password in `config/http.username.txt` and `config/http.password.txt`. For Drogue IoT Cloud, the username is stored in this form: `device_id@application`.
+
+== Running
+
+To run the application:
+
+....
+RUST_LOG=info cargo run --release
+....

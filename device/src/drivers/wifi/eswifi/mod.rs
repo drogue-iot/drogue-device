@@ -1,7 +1,6 @@
 mod parser;
-mod socket_pool;
 
-use socket_pool::SocketPool;
+use crate::drivers::common::socket_pool::SocketPool;
 
 use embedded_hal::digital::v2::InputPin;
 use embedded_hal::digital::v2::OutputPin;

@@ -7,9 +7,8 @@ mod buffer;
 mod num;
 mod parser;
 mod protocol;
-mod socket_pool;
 
-use socket_pool::SocketPool;
+use crate::drivers::common::socket_pool::SocketPool;
 
 use crate::traits::{
     ip::{IpAddress, IpProtocol, SocketAddress},

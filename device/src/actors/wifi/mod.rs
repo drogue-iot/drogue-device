@@ -1,12 +1,12 @@
+use super::tcp::{TcpActor, TcpResponse};
 use crate::{
     kernel::actor::{Actor, Address, Inbox},
     traits::{
         ip::{IpAddress, IpProtocol, SocketAddress},
-        tcp::{TcpError, TcpStack},
+        tcp::TcpStack,
         wifi::{Join, JoinError, WifiSupplicant},
     },
 };
-
 use core::future::Future;
 
 #[cfg(feature = "wifi+esp8266")]
@@ -25,11 +25,16 @@ pub enum AdapterRequest<'m> {
 /// Actor responses returned by network adapter actors
 pub enum AdapterResponse {
     Join(Result<IpAddress, JoinError>),
-    Open(Result<u8, TcpError>),
-    Connect(Result<(), TcpError>),
-    Write(Result<usize, TcpError>),
-    Read(Result<usize, TcpError>),
-    Close,
+    Tcp(TcpResponse<u8>),
+}
+
+impl Into<TcpResponse<u8>> for Option<AdapterResponse> {
+    fn into(self) -> TcpResponse<u8> {
+        match self {
+            Some(AdapterResponse::Tcp(r)) => r,
+            _ => panic!("cannot convert response to tcp response"),
+        }
+    }
 }
 
 pub trait Adapter: WifiSupplicant + TcpStack<SocketHandle = u8> {}
@@ -51,86 +56,31 @@ where
     }
 }
 
-impl<'a, A> TcpStack for Address<'a, AdapterActor<A>>
-where
-    A: Adapter + 'static,
-{
-    type SocketHandle = A::SocketHandle;
+impl<N: Adapter> TcpActor<AdapterActor<N>> for AdapterActor<N> {
+    type SocketHandle = u8;
 
-    #[rustfmt::skip]
-    type OpenFuture<'m> where 'a: 'm = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm;
-    fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
-        async move {
-            self.request(AdapterRequest::Open)
-                .unwrap()
-                .await
-                .unwrap()
-                .open()
-        }
+    fn open<'m>() -> AdapterRequest<'m> {
+        AdapterRequest::Open
     }
-
-    #[rustfmt::skip]
-    type ConnectFuture<'m> where 'a: 'm, A: 'm =  impl Future<Output = Result<(), TcpError>> + 'm;
     fn connect<'m>(
-        &'m mut self,
         handle: Self::SocketHandle,
         proto: IpProtocol,
         dst: SocketAddress,
-    ) -> Self::ConnectFuture<'m> {
-        async move {
-            self.request(AdapterRequest::Connect(handle, proto, dst))
-                .unwrap()
-                .await
-                .unwrap()
-                .connect()
-        }
+    ) -> AdapterRequest<'m> {
+        AdapterRequest::Connect(handle, proto, dst)
     }
-
-    #[rustfmt::skip]
-    type WriteFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
-    fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
-        async move {
-            self.request(AdapterRequest::Write(handle, buf))
-                .unwrap()
-                .await
-                .unwrap()
-                .write()
-        }
+    fn write<'m>(handle: Self::SocketHandle, buf: &'m [u8]) -> AdapterRequest<'m> {
+        AdapterRequest::Write(handle, buf)
     }
-
-    #[rustfmt::skip]
-    type ReadFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
-    fn read<'m>(
-        &'m mut self,
-        handle: Self::SocketHandle,
-        buf: &'m mut [u8],
-    ) -> Self::ReadFuture<'m> {
-        async move {
-            self.request(AdapterRequest::Read(handle, buf))
-                .unwrap()
-                .await
-                .unwrap()
-                .read()
-        }
+    fn read<'m>(handle: Self::SocketHandle, buf: &'m mut [u8]) -> AdapterRequest<'m> {
+        AdapterRequest::Read(handle, buf)
     }
-
-    #[rustfmt::skip]
-    type CloseFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = ()> + 'm;
-    fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
-        async move {
-            self.request(AdapterRequest::Close(handle)).unwrap().await;
-        }
+    fn close<'m>(handle: Self::SocketHandle) -> AdapterRequest<'m> {
+        AdapterRequest::Close(handle)
     }
 }
 
 impl AdapterResponse {
-    fn open(self) -> Result<u8, TcpError> {
-        match self {
-            AdapterResponse::Open(Ok(handle)) => Ok(handle),
-            _ => Err(TcpError::OpenError),
-        }
-    }
-
     fn join(self) -> Result<IpAddress, JoinError> {
         match self {
             AdapterResponse::Join(result) => result,
@@ -138,30 +88,9 @@ impl AdapterResponse {
         }
     }
 
-    fn connect(self) -> Result<(), TcpError> {
+    fn tcp(self) -> TcpResponse<u8> {
         match self {
-            AdapterResponse::Connect(result) => result,
-            _ => panic!("unexpected response type"),
-        }
-    }
-
-    fn write(self) -> Result<usize, TcpError> {
-        match self {
-            AdapterResponse::Write(result) => result,
-            _ => panic!("unexpected response type"),
-        }
-    }
-
-    fn read(self) -> Result<usize, TcpError> {
-        match self {
-            AdapterResponse::Read(result) => result,
-            _ => panic!("unexpected response type"),
-        }
-    }
-
-    fn close(self) {
-        match self {
-            AdapterResponse::Close => (),
+            AdapterResponse::Tcp(r) => r,
             _ => panic!("unexpected response type"),
         }
     }
@@ -204,19 +133,21 @@ impl<N: Adapter> Actor for AdapterActor<N> {
                         AdapterRequest::Join(join) => {
                             AdapterResponse::Join(driver.join(*join).await)
                         }
-                        AdapterRequest::Open => AdapterResponse::Open(driver.open().await),
-                        AdapterRequest::Connect(handle, proto, addr) => {
-                            AdapterResponse::Connect(driver.connect(*handle, *proto, *addr).await)
+                        AdapterRequest::Open => {
+                            AdapterResponse::Tcp(TcpResponse::Open(driver.open().await))
                         }
-                        AdapterRequest::Write(handle, buf) => {
-                            AdapterResponse::Write(driver.write(*handle, buf).await)
-                        }
+                        AdapterRequest::Connect(handle, proto, addr) => AdapterResponse::Tcp(
+                            TcpResponse::Connect(driver.connect(*handle, *proto, *addr).await),
+                        ),
+                        AdapterRequest::Write(handle, buf) => AdapterResponse::Tcp(
+                            TcpResponse::Write(driver.write(*handle, buf).await),
+                        ),
                         AdapterRequest::Read(handle, buf) => {
-                            AdapterResponse::Read(driver.read(*handle, buf).await)
+                            AdapterResponse::Tcp(TcpResponse::Read(driver.read(*handle, buf).await))
                         }
                         AdapterRequest::Close(handle) => {
                             driver.close(*handle).await;
-                            AdapterResponse::Close
+                            AdapterResponse::Tcp(TcpResponse::Close)
                         }
                     };
                     m.set_response(Some(response));

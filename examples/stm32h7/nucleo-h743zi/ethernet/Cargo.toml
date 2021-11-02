@@ -8,7 +8,7 @@ name = "nucleo-h743zi_ethernet"
 version = "0.1.0"
 resolver = "2"
 description = "STM32 Nucleo-H743 ethernet"
-keywords = ["ethernet", "stm32", "stm32h7"]
+keywords = ["ethernet", "stm32", "stm32h7", "networking"]
 
 [features]
 default = [
@@ -32,7 +32,7 @@ cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 heapless = "0.7"
 void = { version = "1", default-features = false }
-critical-section = "0.2.3"
+critical-section = "0.2.5"
 rand_core = "0.6.3"
 
 embassy = { version = "0.1.0", default-features = false }

@@ -7,7 +7,7 @@ edition = "2018"
 name = "esp8266"
 version = "0.1.0"
 description = "Example using a USB-to-Serial adapter + ESP8266 adapter"
-keywords = ["std", "wifi", "networking"]
+keywords = ["std", "wifi", "networking", "cloud"]
 
 [dependencies]
 log = "0.4"

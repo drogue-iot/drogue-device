@@ -24,8 +24,7 @@ mod tests {
         assert!(true);
     }
 
-    //TODO: Broken
-    //#[drogue_test]
+    #[drogue_test]
     #[allow(dead_code)]
     async fn test_pressed(spawner: Spawner, mut context: TestContext<TestDevicePressed>) {
         let pin = context.pin(true);
@@ -55,8 +54,7 @@ mod tests {
         button: ActorContext<'static, Button<'static, TestPin, TestHandler>>,
     }
 
-    // TODO: Broken
-    //#[drogue_test]
+    #[drogue_test]
     #[allow(dead_code)]
     async fn test_released(spawner: Spawner, mut context: TestContext<TestDeviceReleased>) {
         let pin = context.pin(false);
