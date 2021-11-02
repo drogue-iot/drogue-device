@@ -98,9 +98,9 @@ dependencies = [
 
 [[package]]
 name = "atomic-polyfill"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "053f1ab4712fe8c55de46932b46ecc774ae7906278ddf7fc2fbaaaa663b84392"
+checksum = "e686d748538a32325b28d6411dd8a939e7ad5128e5d0023cc4fd3573db456042"
 dependencies = [
  "critical-section",
  "riscv-target",
@@ -276,9 +276,9 @@ checksum = "dcb25d077389e53838a8158c8e99174c5a9d902dee4904320db714f3c653ffba"
 
 [[package]]
 name = "critical-section"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "673b836c1c5a73bd981805236f46dfddbe1092a6a829b22464bd40d7ceefd2f9"
+checksum = "01e191a5a6f6edad9b679777ef6b6c0f2bdd4a333f2ecb8f61c3e28109a03d70"
 dependencies = [
  "bare-metal 1.0.0",
  "cfg-if",

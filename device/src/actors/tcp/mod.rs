@@ -91,17 +91,6 @@ where
 {
     pub async fn open(&self) -> Result<T::SocketHandle, TcpError> {
         let m = T::open();
-        info!("Created open message");
-        let r = Address::request(self, m)
-            .map_err(|_| log::info!("GOT ERROR ON REQUEST"))
-            .unwrap()
-            .await;
-
-        info!("Got response for open");
-        /*
-        .await
-        .into()
-        .open();*/
-        Err(TcpError::OpenError)
+        Address::request(self, m).unwrap().await.into().open()
     }
 }
