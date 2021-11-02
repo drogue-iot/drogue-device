@@ -1,3 +1,4 @@
+use crate::actors::tcp::{TcpActor, TcpResponse};
 use crate::drivers::tcp::smoltcp::{SmolSocketHandle, SmolTcpStack};
 use crate::traits::ip::{IpProtocol, SocketAddress};
 use crate::traits::tcp::{TcpError, TcpStack};
@@ -30,7 +31,7 @@ impl SmolResponse {
 }
 
 impl Into<TcpResponse<SmolSocketHandle>> for Option<SmolResponse> {
-    fn into(self) -> TcpResponse<u8> {
+    fn into(self) -> TcpResponse<SmolSocketHandle> {
         match self {
             Some(SmolResponse::Tcp(r)) => r,
             _ => panic!("cannot convert response to tcp response"),
@@ -64,19 +65,21 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
                             unsafe { self.initialize() };
                             SmolResponse::Initialized
                         }
-                        SmolRequest::Open => SmolResponse::Open(self.open().await),
-                        SmolRequest::Connect(handle, proto, addr) => {
-                            SmolResponse::Connect(self.connect(*handle, *proto, *addr).await)
+                        SmolRequest::Open => {
+                            SmolResponse::Tcp(TcpResponse::Open(self.open().await))
                         }
+                        SmolRequest::Connect(handle, proto, addr) => SmolResponse::Tcp(
+                            TcpResponse::Connect(self.connect(*handle, *proto, *addr).await),
+                        ),
                         SmolRequest::Write(handle, buf) => {
-                            SmolResponse::Write(self.write(*handle, buf).await)
+                            SmolResponse::Tcp(TcpResponse::Write(self.write(*handle, buf).await))
                         }
                         SmolRequest::Read(handle, buf) => {
-                            SmolResponse::Read(self.read(*handle, buf).await)
+                            SmolResponse::Tcp(TcpResponse::Read(self.read(*handle, buf).await))
                         }
                         SmolRequest::Close(handle) => {
                             self.close(*handle).await;
-                            SmolResponse::Close
+                            SmolResponse::Tcp(TcpResponse::Close)
                         }
                     };
                     m.set_response(Some(response));

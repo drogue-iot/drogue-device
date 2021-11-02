@@ -1,17 +1,17 @@
 #[cfg(feature = "tcp+smoltcp")]
 pub mod smoltcp;
 
+#[cfg(feature = "std")]
+pub mod std;
+
 use crate::{
     kernel::actor::{Actor, Address},
     traits::{
         ip::{IpProtocol, SocketAddress},
-        tcp::{TcpError, TcpSocket, TcpStack},
+        tcp::TcpError,
     },
 };
 
-use core::future::Future;
-
-use core::convert::TryInto;
 // Trait that defines the mapping from API to request and response to result.
 pub trait TcpActor<A>
 where
@@ -73,5 +73,24 @@ impl<H> TcpResponse<H> {
             TcpResponse::Close => (),
             _ => panic!("unexpected response type"),
         }
+    }
+}
+
+pub enum TcpRequest<'m, H> {
+    Open,
+    Connect(H, IpProtocol, SocketAddress),
+    Write(H, &'m [u8]),
+    Read(H, &'m mut [u8]),
+    Close(H),
+}
+
+impl<'a, T> Address<'a, T>
+where
+    T: Actor + TcpActor<T> + 'a,
+    T::Response: Into<TcpResponse<T::SocketHandle>>,
+{
+    pub async fn open(&self) -> Result<T::SocketHandle, TcpError> {
+        let m = T::open();
+        self.request(m).unwrap().await.into().open()
     }
 }

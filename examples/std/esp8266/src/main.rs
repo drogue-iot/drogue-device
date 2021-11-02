@@ -6,10 +6,13 @@ mod serial;
 
 use async_io::Async;
 use drogue_device::{
-    actors::{socket::*, wifi::esp8266::*},
+    actors::{
+        socket::*,
+        wifi::{esp8266::*, AdapterActor},
+    },
     domain::{temperature::Temperature, SensorAcquisition},
     drivers::wifi::esp8266::*,
-    traits::{ip::*, tcp::*, wifi::*},
+    traits::{ip::*, wifi::*},
     *,
 };
 use embassy::io::FromStdIo;
@@ -45,11 +48,15 @@ type ENABLE = DummyPin;
 type RESET = DummyPin;
 
 #[cfg(feature = "tls")]
-type AppSocket =
-    TlsSocket<'static, Socket<'static, Esp8266Controller<'static>>, OsRng, Aes128GcmSha256>;
+type AppSocket = TlsSocket<
+    'static,
+    Socket<'static, AdapterActor<Esp8266Controller<'static>>>,
+    OsRng,
+    Aes128GcmSha256,
+>;
 
 #[cfg(not(feature = "tls"))]
-type AppSocket = Socket<'static, Esp8266Controller<'static>>;
+type AppSocket = Socket<'static, AdapterActor<Esp8266Controller<'static>>>;
 
 pub struct MyDevice {
     wifi: Esp8266Wifi<UART, ENABLE, RESET>,

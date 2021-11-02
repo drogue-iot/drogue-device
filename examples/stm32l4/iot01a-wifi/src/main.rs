@@ -16,7 +16,7 @@ use drogue_device::{
     actors::sensors::hts221::*,
     actors::socket::*,
     actors::wifi::*,
-    traits::{ip::*, tcp::TcpStack, wifi::*},
+    traits::{ip::*, wifi::*},
     *,
 };
 use embassy_stm32::dbgmcu::Dbgmcu;
@@ -79,10 +79,11 @@ type SpiError = spi::Error;
 type EsWifi = EsWifiController<SPI, CS, RESET, WAKE, READY, SpiError>;
 
 #[cfg(feature = "tls")]
-type AppSocket = TlsSocket<'static, Socket<'static, EsWifi>, Rng<RNG>, Aes128GcmSha256>;
+type AppSocket =
+    TlsSocket<'static, Socket<'static, AdapterActor<EsWifi>>, Rng<RNG>, Aes128GcmSha256>;
 
 #[cfg(not(feature = "tls"))]
-type AppSocket = Socket<'static, EsWifi>;
+type AppSocket = Socket<'static, AdapterActor<EsWifi>>;
 
 type I2cDriver = embassy_stm32::i2c::I2c<'static, I2C2, DMA1_CH4, DMA1_CH5>;
 

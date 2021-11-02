@@ -1,0 +1,27 @@
+[package]
+name = "cloud"
+version = "0.1.0"
+edition = "2018"
+authors = [
+    "Bob McWhirter <bmcwhirt@redhat.com>",
+    "Ulf Lilleengen <lulf@redhat.com>"
+]
+description = "Example sending telemetry data from Drogue Device to Drogue Cloud"
+keywords = ["std", "networking", "cloud"]
+
+[dependencies]
+pem-parser = "0.1.1"
+log = "0.4"
+env_logger = "0.8"
+drogue-device = { path = "../../../device", features = ["log", "std","tls"] }
+drogue-tls = { version = "0.3.0", default-features = false, features = ["async"]}
+
+embassy = { version = "0.1.0", default-features = false, features = ["std"] }
+rand = "0.8"
+cfg-if = "1.0.0"
+
+embedded-hal = {version = "0.2.4", features = ["unproven"] }
+wifi-app = { path = "../../../apps/wifi" }
+nix = "0.19.1"
+async-io = "1.3.1"
+futures = { version = "0.3.8", default-features = false, features = ["async-await"] }

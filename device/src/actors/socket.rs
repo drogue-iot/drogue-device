@@ -1,10 +1,9 @@
 use super::tcp::{TcpActor, TcpResponse};
-use super::wifi::*;
 use crate::{
     kernel::actor::{Actor, Address},
     traits::{
         ip::{IpProtocol, SocketAddress},
-        tcp::{TcpError, TcpSocket, TcpStack},
+        tcp::{TcpError, TcpSocket},
     },
 };
 use core::future::Future;

@@ -10,10 +10,14 @@ use panic_probe as _;
 use wifi_app::*;
 
 use drogue_device::{
-    actors::{button::Button, socket::Socket, wifi::esp8266::*},
+    actors::{
+        button::Button,
+        socket::Socket,
+        wifi::{esp8266::*, AdapterActor},
+    },
     domain::{temperature::Temperature, SensorAcquisition},
     drivers::wifi::esp8266::Esp8266Controller,
-    traits::{ip::*, tcp::TcpStack, wifi::*},
+    traits::{ip::*, wifi::*},
     ActorContext, DeviceContext, Package,
 };
 use embassy::util::Forever;
@@ -54,11 +58,15 @@ type ENABLE = Output<'static, PD13>;
 type RESET = Output<'static, PD12>;
 
 #[cfg(feature = "tls")]
-type AppSocket =
-    TlsSocket<'static, Socket<'static, Esp8266Controller<'static>>, Rng<RNG>, Aes128GcmSha256>;
+type AppSocket = TlsSocket<
+    'static,
+    Socket<'static, AdapterActor<Esp8266Controller<'static>>>,
+    Rng<RNG>,
+    Aes128GcmSha256,
+>;
 
 #[cfg(not(feature = "tls"))]
-type AppSocket = Socket<'static, Esp8266Controller<'static>>;
+type AppSocket = Socket<'static, AdapterActor<Esp8266Controller<'static>>>;
 
 pub struct MyDevice {
     wifi: Esp8266Wifi<UART, ENABLE, RESET>,

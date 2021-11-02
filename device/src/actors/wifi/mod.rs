@@ -3,7 +3,7 @@ use crate::{
     kernel::actor::{Actor, Address, Inbox},
     traits::{
         ip::{IpAddress, IpProtocol, SocketAddress},
-        tcp::{TcpError, TcpStack},
+        tcp::TcpStack,
         wifi::{Join, JoinError, WifiSupplicant},
     },
 };
