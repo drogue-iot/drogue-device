@@ -1197,6 +1197,7 @@ dependencies = [
  "defmt",
  "defmt-rtt",
  "drogue-device",
+ "drogue-tls",
  "embassy",
  "embassy-macros",
  "embassy-net",
@@ -1206,6 +1207,7 @@ dependencies = [
  "panic-probe",
  "rand_core",
  "void",
+ "wifi-app",
 ]
 
 [[package]]

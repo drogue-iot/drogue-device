@@ -8,9 +8,11 @@
 use defmt_rtt as _;
 use panic_probe as _;
 
-use drogue_device::actors::tcp::smoltcp::SmolTcp;
 use drogue_device::{
-    DeviceContext, Package,
+    actors::{button::*, socket::*, tcp::smoltcp::SmolTcp},
+    domain::{temperature::Temperature, SensorAcquisition},
+    traits::ip::*,
+    ActorContext, DeviceContext, Package,
 };
 use embassy::util::Forever;
 use embassy_net::StaticConfigurator;
@@ -24,29 +26,48 @@ use embassy_stm32::{
     eth::{Ethernet, State},
     Peripherals,
 };
+use embassy_stm32::{
+    exti::ExtiInput,
+    gpio::{Input, Pull},
+    peripherals::PC13,
+};
 use heapless::Vec;
+use wifi_app::*;
+
+use drogue_device::actors::socket::TlsSocket;
+use drogue_tls::{Aes128GcmSha256, TlsContext};
+
+//const HOST: &str = "http.sandbox.drogue.cloud";
+//const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
+//const PORT: u16 = 443;
+
+const HOST: &str = "localhost";
+const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP of local drogue service
+const PORT: u16 = 8088;
+static mut TLS_BUFFER: [u8; 16384] = [0u8; 16384];
+
+const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.username.txt"));
+const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.password.txt"));
 
 type EthernetDevice = Ethernet<'static, LAN8742A, 4, 4>;
 type SmolTcpPackage = SmolTcp<EthernetDevice, StaticConfigurator, 1, 2, 1024>;
+
+type AppSocket = TlsSocket<
+    'static,
+    Socket<'static, <SmolTcpPackage as Package>::Primary>,
+    TlsRand,
+    Aes128GcmSha256,
+>;
 
 static STATE: Forever<State<'static, 4, 4>> = Forever::new();
 
 pub struct MyDevice {
     tcp: SmolTcpPackage,
+    app: ActorContext<'static, App<AppSocket>, 2>,
+    button: ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App<AppSocket>>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
-
-static mut RNG_INST: Option<Rng<RNG>> = None;
-
-#[no_mangle]
-fn _embassy_rand(buf: &mut [u8]) {
-    use rand_core::RngCore;
-
-    critical_section::with(|_| unsafe {
-        defmt::unwrap!(RNG_INST.as_mut()).fill_bytes(buf);
-    });
-}
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
@@ -69,8 +90,13 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         )
     };
 
+    let button = Input::new(p.PC13, Pull::Down);
+    let button = ExtiInput::new(button, p.EXTI13);
+
     DEVICE.configure(MyDevice {
         tcp: SmolTcpPackage::new(eth),
+        app: ActorContext::new(App::new(IP, PORT, USERNAME.trim_end(), PASSWORD.trim_end())),
+        button: ActorContext::new(Button::new(button)),
     });
 
     let config = StaticConfigurator::new(NetConfig {
@@ -80,7 +106,58 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     });
 
     DEVICE
-        .mount(|device| async move { device.tcp.mount(config, spawner) })
+        .mount(|device| async move {
+            let net = device.tcp.mount(config, spawner);
+            let socket = Socket::new(net, net.open().await.unwrap());
+            let socket = TlsSocket::wrap(
+                socket,
+                TlsContext::new(TlsRand, unsafe { &mut TLS_BUFFER })
+                    .with_server_name(HOST.trim_end()),
+            );
+
+            let app = device.app.mount(socket, spawner);
+            app.request(Command::Update(SensorAcquisition {
+                temperature: Temperature::new(22.0),
+                relative_humidity: 0.0,
+            }))
+            .unwrap()
+            .await;
+            device.button.mount(app, spawner);
+        })
         .await;
-    //defmt::info!("Application initialized. Press 'A' button to cycle LEDs");
+    defmt::info!("Application initialized. Press 'A' button to send data");
 }
+
+static mut RNG_INST: Option<Rng<RNG>> = None;
+
+#[no_mangle]
+fn _embassy_rand(buf: &mut [u8]) {
+    use rand_core::RngCore;
+
+    critical_section::with(|_| unsafe {
+        defmt::unwrap!(RNG_INST.as_mut()).fill_bytes(buf);
+    });
+}
+
+pub struct TlsRand;
+
+impl rand_core::RngCore for TlsRand {
+    fn next_u32(&mut self) -> u32 {
+        critical_section::with(|_| unsafe { defmt::unwrap!(RNG_INST.as_mut()).next_u32() })
+    }
+    fn next_u64(&mut self) -> u64 {
+        critical_section::with(|_| unsafe { defmt::unwrap!(RNG_INST.as_mut()).next_u64() })
+    }
+    fn fill_bytes(&mut self, buf: &mut [u8]) {
+        critical_section::with(|_| unsafe {
+            defmt::unwrap!(RNG_INST.as_mut()).fill_bytes(buf);
+        });
+    }
+    fn try_fill_bytes(&mut self, buf: &mut [u8]) -> Result<(), rand_core::Error> {
+        critical_section::with(|_| unsafe {
+            defmt::unwrap!(RNG_INST.as_mut()).fill_bytes(buf);
+        });
+        Ok(())
+    }
+}
+impl rand_core::CryptoRng for TlsRand {}
