@@ -19,7 +19,7 @@ embedded-hal = { version = "0.2.4", features = ["unproven"] }
 drogue-device = { path = "../../../../device", features = ["wifi+esp8266", "defmt", "defmt-trace"], default-features = false }
 drogue-tls = { version = "0.3.0", default-features = false, features = ["async", "defmt"], optional = true}
 #drogue-tls = {path = "../../../../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
-wifi-app = { path = "../../../../apps/wifi", features = ["defmt"]}
+drogue-temperature = { path = "../../../../apps/drogue-temperature", features = ["defmt"]}
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 heapless = "0.6"

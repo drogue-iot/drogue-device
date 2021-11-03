@@ -4,7 +4,8 @@ authors = [
     "Bob McWhirter <bmcwhirt@redhat.com>"
 ]
 edition = "2018"
-name = "wifi-app"
+name = "drogue-temperature"
+description = "Application reporting temperature data to Drogue Cloud"
 version = "0.1.0"
 
 [dependencies]
