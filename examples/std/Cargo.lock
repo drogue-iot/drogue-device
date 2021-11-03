@@ -211,6 +211,7 @@ dependencies = [
  "async-io",
  "cfg-if",
  "drogue-device",
+ "drogue-temperature",
  "drogue-tls",
  "embassy",
  "embedded-hal",
@@ -220,7 +221,6 @@ dependencies = [
  "nix",
  "pem-parser",
  "rand",
- "wifi-app",
 ]
 
 [[package]]
@@ -382,6 +382,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "drogue-temperature"
+version = "0.1.0"
+dependencies = [
+ "drogue-device",
+ "heapless",
+]
+
+[[package]]
 name = "drogue-tls"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -492,6 +500,7 @@ dependencies = [
  "async-io",
  "cfg-if",
  "drogue-device",
+ "drogue-temperature",
  "drogue-tls",
  "embassy",
  "embedded-hal",
@@ -500,7 +509,6 @@ dependencies = [
  "log",
  "nix",
  "rand",
- "wifi-app",
 ]
 
 [[package]]
@@ -1265,14 +1273,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d743fdedc5c64377b5fc2bc036b01c7fd642205a0d96356034ae3404d49eb7fb"
 dependencies = [
  "cc",
-]
-
-[[package]]
-name = "wifi-app"
-version = "0.1.0"
-dependencies = [
- "drogue-device",
- "heapless",
 ]
 
 [[package]]
