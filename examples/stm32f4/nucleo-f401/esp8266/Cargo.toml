@@ -1,0 +1,34 @@
+[package]
+authors = [
+    "Jim Crossley <jim@crossleys.org>"
+]
+edition = "2018"
+name = "nucleo-f401_esp8266"
+version = "0.1.0"
+resolver = "2"
+description = "STM32 Nucleo-F401 + ESP8266 WiFi adapter"
+keywords = ["networking", "wifi", "esp8266", "stm32", "stm32f4", "cloud"]
+
+[dependencies]
+defmt = "0.2"
+defmt-rtt = "0.2"
+panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+
+embedded-hal = { version = "0.2.4", features = ["unproven"] }
+drogue-device = { path = "../../../../device", features = ["wifi+esp8266", "defmt", "defmt-trace"], default-features = false }
+drogue-temperature = { path = "../../../../apps/drogue-temperature", features = ["defmt", "defmt-trace"]}
+cortex-m-rt = "0.7"
+cortex-m = { version = "0.7", features = ["inline-asm"] }
+heapless = "0.6"
+void = { version = "1", default-features = false }
+rand_core = { version = "0.6", default-features = false }
+cfg-if = "1.0.0"
+
+embassy = { version = "0.1.0", default-features = false, features = ["defmt"] }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32f401re", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
+
+[features]
+default = [
+        "defmt",
+        "defmt-trace",
+]
