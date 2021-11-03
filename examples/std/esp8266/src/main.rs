@@ -20,7 +20,7 @@ use embedded_hal::digital::v2::OutputPin;
 use futures::io::BufReader;
 use nix::sys::termios;
 use serial::*;
-use wifi_app::*;
+use drogue_temperature::*;
 
 const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.ssid.txt"));
 const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.password.txt"));

@@ -4,7 +4,7 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use wifi_app::*;
+use drogue_temperature::*;
 
 use defmt_rtt as _;
 use panic_probe as _;

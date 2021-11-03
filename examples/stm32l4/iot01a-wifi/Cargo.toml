@@ -35,7 +35,7 @@ cfg-if = "1.0.0"
 atomic-polyfill = "0.1"
 embassy = { version = "0.1.0", default-features = false, features=["defmt", "time", "time-tick-32768hz"] }
 embassy-stm32 = {version = "0.1.0", default-features = false, features = ["defmt", "time-driver-tim2", "memory-x"] }
-wifi-app = { path = "../../../apps/wifi", features = ["defmt", "defmt-info"] }
+drogue-temperature = { path = "../../../apps/drogue-temperature", features = ["defmt", "defmt-info"] }
 
 
 embedded-hal = { version = "0.2.4", features = ["unproven"] }

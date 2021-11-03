@@ -453,6 +453,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "drogue-temperature"
+version = "0.1.0"
+dependencies = [
+ "defmt",
+ "drogue-device",
+ "heapless",
+]
+
+[[package]]
 name = "drogue-tls"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -851,13 +860,13 @@ dependencies = [
  "defmt",
  "defmt-rtt",
  "drogue-device",
+ "drogue-temperature",
  "drogue-tls",
  "embassy",
  "embassy-nrf",
  "fixed",
  "panic-probe",
  "rand_core",
- "wifi-app",
 ]
 
 [[package]]
@@ -1317,15 +1326,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ee8f19f9d74293faf70901bc20ad067dc1ad390d2cbf1e3f75f721ffee908b6"
 dependencies = [
  "vcell",
-]
-
-[[package]]
-name = "wifi-app"
-version = "0.1.0"
-dependencies = [
- "defmt",
- "drogue-device",
- "heapless",
 ]
 
 [[package]]

@@ -32,7 +32,7 @@ use embassy_stm32::{
     peripherals::PC13,
 };
 use heapless::Vec;
-use wifi_app::*;
+use drogue_temperature::*;
 
 use drogue_device::actors::socket::TlsSocket;
 use drogue_tls::{Aes128GcmSha256, TlsContext};

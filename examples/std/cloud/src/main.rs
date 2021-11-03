@@ -11,7 +11,7 @@ use drogue_device::{
 };
 use drogue_tls::{Aes128GcmSha256, TlsContext};
 use rand::rngs::OsRng;
-use wifi_app::*;
+use drogue_temperature::*;
 
 const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.username.txt"));
 const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.password.txt"));
