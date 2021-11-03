@@ -1206,7 +1206,10 @@ dependencies = [
  "defmt",
  "defmt-rtt",
  "drogue-device",
+<<<<<<< HEAD
  "drogue-temperature",
+=======
+>>>>>>> 822e197 (Use Socket API and drogue cloud app for ethernet example)
  "drogue-tls",
  "embassy",
  "embassy-macros",
@@ -1217,6 +1220,7 @@ dependencies = [
  "panic-probe",
  "rand_core",
  "void",
+ "wifi-app",
 ]
 
 [[package]]
