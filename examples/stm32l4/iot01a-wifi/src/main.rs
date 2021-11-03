@@ -32,7 +32,7 @@ use embassy_stm32::{
     },
     Config, Peripherals,
 };
-use wifi_app::*;
+use drogue_temperature::*;
 //use defmt::*;
 //use embedded_hal::digital::v2::{InputPin, OutputPin};
 
