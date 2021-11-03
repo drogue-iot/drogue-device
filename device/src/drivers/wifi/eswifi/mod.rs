@@ -409,7 +409,7 @@ where
                 let to_send = core::cmp::min(1046, remaining);
 
                 remaining -= to_send;
-                let result = async {
+                async {
                     let command = command!(8, "P0={}", handle);
                     self.send(command.as_bytes(), &mut response)
                         .await

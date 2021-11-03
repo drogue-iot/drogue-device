@@ -9,7 +9,6 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use core::future::Future;
-use core::pin::Pin;
 use drogue_device::actors::button::{ButtonEvent, FromButtonEvent};
 use drogue_device::actors::led::{Led, LedMessage};
 use drogue_device::{actors::button::Button, Actor, ActorContext, Address, DeviceContext, Inbox};
@@ -103,7 +102,7 @@ impl Actor for App {
         async move {
             loop {
                 match inbox.next().await {
-                    Some(m) => match self.color {
+                    Some(_) => match self.color {
                         None | Some(Color::Red) => {
                             self.color = Some(Color::Green);
                         }

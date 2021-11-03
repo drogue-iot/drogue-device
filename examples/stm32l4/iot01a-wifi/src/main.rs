@@ -20,9 +20,7 @@ use drogue_device::{
     *,
 };
 use embassy_stm32::dbgmcu::Dbgmcu;
-use embassy_stm32::rcc::{
-    AHBPrescaler, ClockSrc, MSIRange, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv,
-};
+use embassy_stm32::rcc::{AHBPrescaler, ClockSrc, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv};
 use embassy_stm32::spi::{self, Config as SpiConfig, Spi};
 use embassy_stm32::time::Hertz;
 use embassy_stm32::{
@@ -32,7 +30,6 @@ use embassy_stm32::{
     peripherals::{
         DMA1_CH4, DMA1_CH5, DMA2_CH1, DMA2_CH2, I2C2, PB13, PC13, PD15, PE0, PE1, PE8, SPI3,
     },
-    rcc::Rcc,
     Config, Peripherals,
 };
 use wifi_app::*;

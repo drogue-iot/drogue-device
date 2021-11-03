@@ -1,7 +1,7 @@
 use crate::actors::tcp::{TcpActor, TcpResponse};
 use crate::drivers::tcp::smoltcp::{SmolSocketHandle, SmolTcpStack};
 use crate::traits::ip::{IpProtocol, SocketAddress};
-use crate::traits::tcp::{TcpError, TcpStack};
+use crate::traits::tcp::TcpStack;
 use crate::{Actor, Address, Inbox};
 use core::future::Future;
 
