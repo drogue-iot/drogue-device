@@ -40,7 +40,6 @@ overflow-checks = false
 embassy = { git = "https://github.com/lulf/embassy.git", rev = "5bb3c71c597e46267f37ce734866f2db8af21649" }
 embassy-stm32 = { git = "https://github.com/lulf/embassy.git", rev = "5bb3c71c597e46267f37ce734866f2db8af21649" }
 embassy-hal-common = { git = "https://github.com/lulf/embassy.git", rev = "5bb3c71c597e46267f37ce734866f2db8af21649" }
-embassy-net = { git = "https://github.com/lulf/embassy.git", rev = "5bb3c71c597e46267f37ce734866f2db8af21649" }
 embassy-macros = { git = "https://github.com/lulf/embassy.git", rev = "5bb3c71c597e46267f37ce734866f2db8af21649" }
 
 #embassy = { path = "../../../../../embassy/embassy" }

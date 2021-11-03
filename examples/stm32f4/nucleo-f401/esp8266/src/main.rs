@@ -7,7 +7,7 @@
 use defmt_rtt as _;
 use panic_probe as _;
 
-use wifi_app::*;
+use drogue_temperature::*;
 
 use drogue_device::{
     actors::{
