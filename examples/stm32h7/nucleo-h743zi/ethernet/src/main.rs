@@ -125,7 +125,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             device.button.mount(app, spawner);
         })
         .await;
-    defmt::info!("Application initialized. Press 'A' button to send data");
+    defmt::info!("Application initialized. Press the blue button to send data");
 }
 
 static mut RNG_INST: Option<Rng<RNG>> = None;
