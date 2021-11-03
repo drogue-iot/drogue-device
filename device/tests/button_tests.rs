@@ -15,15 +15,6 @@ mod tests {
         button: ActorContext<'static, Button<'static, TestPin, TestHandler>>,
     }
 
-    //This test is only here to generate a message that tests in this file
-    //are currently commented out. When the tests below are enabled again this
-    //test should be removed.
-    #[test]
-    #[ignore]
-    fn test_are_broken_and_currently_being_ignored() {
-        assert!(true);
-    }
-
     #[drogue_test]
     #[allow(dead_code)]
     async fn test_pressed(spawner: Spawner, mut context: TestContext<TestDevicePressed>) {

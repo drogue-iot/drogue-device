@@ -50,15 +50,15 @@ pub struct App {
 
 impl App {
     fn all_on(&self) {
-        self.green.unwrap().notify(LedMessage::On);
-        self.yellow.unwrap().notify(LedMessage::On);
-        self.red.unwrap().notify(LedMessage::On);
+        self.green.unwrap().notify(LedMessage::On).unwrap();
+        self.yellow.unwrap().notify(LedMessage::On).unwrap();
+        self.red.unwrap().notify(LedMessage::On).unwrap();
     }
 
     fn all_off(&self) {
-        self.green.unwrap().notify(LedMessage::Off);
-        self.yellow.unwrap().notify(LedMessage::Off);
-        self.red.unwrap().notify(LedMessage::Off);
+        self.green.unwrap().notify(LedMessage::Off).unwrap();
+        self.yellow.unwrap().notify(LedMessage::Off).unwrap();
+        self.red.unwrap().notify(LedMessage::Off).unwrap();
     }
 
     fn randomize(&mut self) {
@@ -69,19 +69,19 @@ impl App {
         let red = (val & 0b100) != 0;
 
         if green {
-            self.green.unwrap().notify(LedMessage::On);
+            self.green.unwrap().notify(LedMessage::On).unwrap();
         } else {
-            self.green.unwrap().notify(LedMessage::Off);
+            self.green.unwrap().notify(LedMessage::Off).unwrap();
         }
         if yellow {
-            self.yellow.unwrap().notify(LedMessage::On);
+            self.yellow.unwrap().notify(LedMessage::On).unwrap();
         } else {
-            self.yellow.unwrap().notify(LedMessage::Off);
+            self.yellow.unwrap().notify(LedMessage::Off).unwrap();
         }
         if red {
-            self.red.unwrap().notify(LedMessage::On);
+            self.red.unwrap().notify(LedMessage::On).unwrap();
         } else {
-            self.red.unwrap().notify(LedMessage::Off);
+            self.red.unwrap().notify(LedMessage::Off).unwrap();
         }
     }
 }

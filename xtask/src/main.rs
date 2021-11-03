@@ -32,6 +32,7 @@ fn update() -> Result<(), anyhow::Error> {
 
 fn test_ci() -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("CI", "true");
+    let _e = xshell::pushenv("RUSTFLAGS", "-Dwarnings");
     test_device()?;
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
