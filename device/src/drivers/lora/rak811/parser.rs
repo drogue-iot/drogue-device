@@ -77,13 +77,13 @@ named!(
         opt!(crlf) >>
         opt!(crlf) >>
         tag!("Selected LoraWAN ") >>
-        major: parse_u8 >>
+        _major: parse_u8 >>
         tag!(".") >>
-        minor: parse_u8 >>
+        _minor: parse_u8 >>
         tag!(".") >>
-        patch: parse_u8 >>
+        _patch: parse_u8 >>
         tag!(" Region: ") >>
-        region: lora_region >>
+        _region: lora_region >>
         tag!(" ") >>
         crlf >>
         crlf >>
@@ -220,11 +220,11 @@ named!(
         crlf >>
         crlf >>
         tag!("Selected LoraWAN ") >>
-        major: parse_u8 >>
+        _major: parse_u8 >>
         tag!(".") >>
-        minor: parse_u8 >>
+        _minor: parse_u8 >>
         tag!(".") >>
-        patch: parse_u8 >>
+        _patch: parse_u8 >>
         tag!(" Region: ") >>
         region: lora_region >>
         tag!(" ") >>

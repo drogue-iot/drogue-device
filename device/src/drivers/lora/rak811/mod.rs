@@ -328,12 +328,14 @@ impl<'a> LoraDriver for Rak811Controller<'a> {
     type SendRecvFuture<'m> where 'a: 'm = impl Future<Output = Result<usize, LoraError>> + 'm;
     fn send_recv<'m>(
         &'m mut self,
-        qos: QoS,
-        port: Port,
-        data: &'m [u8],
-        rx: &'m mut [u8],
+        _qos: QoS,
+        _port: Port,
+        _data: &'m [u8],
+        _rx: &'m mut [u8],
     ) -> Self::SendRecvFuture<'m> {
-        async move { Ok(0) }
+        async move {
+            todo!()
+        }
     }
 }
 
@@ -368,7 +370,7 @@ impl<'a> Rak811Controller<'a> {
     async fn send_command_ok<'m>(&mut self, command: Command<'m>) -> Result<(), LoraError> {
         match self.send_command(command).await? {
             Response::Ok => Ok(()),
-            r => Err(LoraError::OtherError),
+            _ => Err(LoraError::OtherError),
         }
     }
 
