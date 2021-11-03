@@ -26,9 +26,3 @@ cfg-if = "1.0.0"
 
 embassy = { version = "0.1.0", default-features = false, features = ["defmt"] }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32f401re", "defmt", "defmt-info", "memory-x", "time-driver-tim2"] }
-
-[features]
-default = [
-        "defmt",
-        "defmt-trace",
-]
