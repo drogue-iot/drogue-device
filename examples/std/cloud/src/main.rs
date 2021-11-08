@@ -9,9 +9,9 @@ use drogue_device::{
     traits::ip::*,
     *,
 };
+use drogue_temperature::*;
 use drogue_tls::{Aes128GcmSha256, TlsContext};
 use rand::rngs::OsRng;
-use drogue_temperature::*;
 
 const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.username.txt"));
 const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.password.txt"));
@@ -61,9 +61,12 @@ async fn main(spawner: embassy::executor::Spawner) {
         })
         .await;
 
-    app.request(Command::Update(SensorAcquisition {
-        temperature: Temperature::new(22.0),
-        relative_humidity: 0.0,
+    app.request(Command::Update(SensorData {
+        data: SensorAcquisition {
+            temperature: Temperature::new(22.0),
+            relative_humidity: 0.0,
+        },
+        location: None,
     }))
     .unwrap()
     .await;

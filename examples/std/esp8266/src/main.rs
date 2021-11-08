@@ -15,12 +15,12 @@ use drogue_device::{
     traits::{ip::*, wifi::*},
     *,
 };
+use drogue_temperature::*;
 use embassy::io::FromStdIo;
 use embedded_hal::digital::v2::OutputPin;
 use futures::io::BufReader;
 use nix::sys::termios;
 use serial::*;
-use drogue_temperature::*;
 
 const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.ssid.txt"));
 const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.password.txt"));
@@ -104,9 +104,12 @@ async fn main(spawner: embassy::executor::Spawner) {
         })
         .await;
 
-    app.request(Command::Update(SensorAcquisition {
-        temperature: Temperature::new(22.0),
-        relative_humidity: 0.0,
+    app.request(Command::Update(SensorData {
+        data: SensorAcquisition {
+            temperature: Temperature::new(22.0),
+            relative_humidity: 0.0,
+        },
+        location: None,
     }))
     .unwrap()
     .await;

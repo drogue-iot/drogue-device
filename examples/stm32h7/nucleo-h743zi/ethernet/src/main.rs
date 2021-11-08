@@ -14,6 +14,7 @@ use drogue_device::{
     traits::ip::*,
     ActorContext, DeviceContext, Package,
 };
+use drogue_temperature::*;
 use embassy::util::Forever;
 use embassy_net::StaticConfigurator;
 use embassy_net::{Config as NetConfig, Ipv4Address, Ipv4Cidr};
@@ -32,7 +33,6 @@ use embassy_stm32::{
     peripherals::PC13,
 };
 use heapless::Vec;
-use drogue_temperature::*;
 
 use drogue_device::actors::socket::TlsSocket;
 use drogue_tls::{Aes128GcmSha256, TlsContext};
@@ -116,9 +116,12 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             );
 
             let app = device.app.mount(socket, spawner);
-            app.request(Command::Update(SensorAcquisition {
-                temperature: Temperature::new(22.0),
-                relative_humidity: 0.0,
+            app.request(Command::Update(SensorData {
+                data: SensorAcquisition {
+                    temperature: Temperature::new(22.0),
+                    relative_humidity: 0.0,
+                },
+                location: None,
             }))
             .unwrap()
             .await;
