@@ -7,6 +7,7 @@ pub(crate) mod fmt;
 
 use core::fmt::Write;
 use core::future::Future;
+use core::marker::PhantomData;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
     actors::sensors::SensorMonitor,
@@ -37,7 +38,7 @@ pub enum Command {
 
 impl<S> FromButtonEvent<Command> for App<S>
 where
-    S: TcpSocket + 'static,
+    S: SocketFactory + 'static,
 {
     fn from(event: ButtonEvent) -> Option<Command> {
         match event {
@@ -49,33 +50,41 @@ where
 
 pub struct App<S>
 where
-    S: TcpSocket + 'static,
+    S: SocketFactory + 'static,
 {
     ip: IpAddress,
     port: u16,
+    host: &'static str,
     username: &'static str,
     password: &'static str,
-    socket: Option<S>,
+    socket: PhantomData<&'static S>,
 }
 
 impl<S> App<S>
 where
-    S: TcpSocket + 'static,
+    S: SocketFactory + 'static,
 {
-    pub fn new(ip: IpAddress, port: u16, username: &'static str, password: &'static str) -> Self {
+    pub fn new(
+        ip: IpAddress,
+        port: u16,
+        host: &'static str,
+        username: &'static str,
+        password: &'static str,
+    ) -> Self {
         Self {
             ip,
             port,
+            host,
             username,
             password,
-            socket: None,
+            socket: PhantomData,
         }
     }
 }
 
 impl<S> Actor for App<S>
 where
-    S: TcpSocket + 'static,
+    S: SocketFactory + 'static,
 {
     type Configuration = S;
     #[rustfmt::skip]
@@ -85,14 +94,13 @@ where
     type OnMountFuture<'m, M> where S: 'm, M: 'm = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        config: Self::Configuration,
+        mut socket_factory: Self::Configuration,
         _: Address<'static, Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
-        self.socket.replace(config);
         async move {
             let mut sensor_data: Option<SensorData> = None;
             loop {
@@ -105,11 +113,11 @@ where
                         Command::Send => match &sensor_data {
                             Some(t) => {
                                 info!("Sending temperature measurement");
-                                let socket = self.socket.as_mut().unwrap();
                                 let mut client = HttpClient::new(
-                                    socket,
+                                    &mut socket_factory,
                                     self.ip,
                                     self.port,
+                                    self.host,
                                     self.username,
                                     self.password,
                                 );
@@ -118,20 +126,22 @@ where
                                 if let Some(loc) = &t.location {
                                     write!(
                                         tx,
-                                        "{{\"geoloc\"{{\"lat\": {}, \"lon\": {}}}, \"temp\": {}, \"hum\": {}}}",
+                                        "{{\"geoloc\": {{\"lat\": {}, \"lon\": {}}}, \"temp\": {}, \"hum\": {}}}",
                                         loc.lat,
                                         loc.lon,
-                                        t.data.temperature, t.data.relative_humidity
+                                        t.data.temperature.raw_value(), t.data.relative_humidity
                                     )
                                     .unwrap();
                                 } else {
                                     write!(
                                         tx,
                                         "{{\"temp\": {}, \"hum\": {}}}",
-                                        t.data.temperature, t.data.relative_humidity
+                                        t.data.temperature.raw_value(),
+                                        t.data.relative_humidity
                                     )
                                     .unwrap();
                                 }
+                                info!("Sending data: {}", tx);
                                 let mut rx_buf = [0; 1024];
                                 let response = client
                                     .request(
@@ -142,7 +152,6 @@ where
                                         &mut rx_buf[..],
                                     )
                                     .await;
-                                socket.close().await;
                                 match response {
                                     Ok(response) => {
                                         info!("Response status: {:?}", response.status);
@@ -170,17 +179,17 @@ where
     }
 }
 
-pub struct AppAddress<S: TcpSocket + 'static> {
+pub struct AppAddress<S: SocketFactory + 'static> {
     address: Address<'static, App<S>>,
 }
 
-impl<S: TcpSocket> From<Address<'static, App<S>>> for AppAddress<S> {
+impl<S: SocketFactory> From<Address<'static, App<S>>> for AppAddress<S> {
     fn from(address: Address<'static, App<S>>) -> Self {
         Self { address }
     }
 }
 
-impl<S: TcpSocket> SensorMonitor<Celsius> for AppAddress<S> {
+impl<S: SocketFactory> SensorMonitor<Celsius> for AppAddress<S> {
     fn notify(&self, value: SensorAcquisition<Celsius>) {
         // Ignore channel full error
         let _ = self.address.notify(Command::Update(SensorData {

@@ -109,6 +109,10 @@ impl<S: TemperatureScale> Temperature<S> {
             _marker: PhantomData::default(),
         }
     }
+
+    pub fn raw_value(&self) -> f32 {
+        self.value
+    }
 }
 
 impl Temperature<Celsius> {

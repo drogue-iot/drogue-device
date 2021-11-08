@@ -35,6 +35,14 @@ pub trait TcpSocket {
     fn close<'m>(&'m mut self) -> Self::CloseFuture<'m>;
 }
 
+pub trait SocketFactory {
+    type Socket: TcpSocket;
+    type OpenFuture<'m>: Future<Output = Result<Self::Socket, TcpError>>
+    where
+        Self: 'm;
+    fn open<'m>(&'m mut self) -> Self::OpenFuture<'m>;
+}
+
 pub trait TcpStack {
     type SocketHandle: Copy;
 

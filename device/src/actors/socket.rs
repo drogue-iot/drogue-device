@@ -3,7 +3,7 @@ use crate::{
     kernel::actor::{Actor, Address},
     traits::{
         ip::{IpProtocol, SocketAddress},
-        tcp::{TcpError, TcpSocket},
+        tcp::{SocketFactory, TcpError, TcpSocket},
     },
 };
 use core::future::Future;
@@ -26,6 +26,26 @@ where
 {
     pub fn new(address: Address<'a, A>, handle: A::SocketHandle) -> Socket<'a, A> {
         Self { address, handle }
+    }
+}
+
+impl<A> SocketFactory for Address<'static, A>
+where
+    A: Actor + TcpActor<A> + 'static,
+    A::Response: Into<TcpResponse<A::SocketHandle>>,
+{
+    type Socket = Socket<'static, A>;
+
+    #[rustfmt::skip]
+    type OpenFuture<'m> where A: 'm =  impl Future<Output = Result<Self::Socket, TcpError>> + 'm;
+    fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
+        async move {
+            let m = A::open();
+            match self.request(m).unwrap().await.into().open() {
+                Ok(h) => Ok(Socket::new(self.clone(), h)),
+                Err(e) => Err(e),
+            }
+        }
     }
 }
 
@@ -78,8 +98,9 @@ mod tls {
     use crate::kernel::actor::Actor;
     use crate::traits::{
         ip::{IpProtocol, SocketAddress},
-        tcp::{TcpError, TcpSocket},
+        tcp::{SocketFactory, TcpError, TcpSocket},
     };
+    use core::cell::UnsafeCell;
     use core::future::Future;
     use drogue_tls::{
         traits::{AsyncRead, AsyncWrite},
@@ -147,6 +168,23 @@ mod tls {
         pub fn wrap(socket: S, context: TlsContext<'a, CipherSuite, RNG, NoClock>) -> Self {
             Self {
                 state: Some(State::New(context, socket)),
+            }
+        }
+
+        pub async fn free<'m>(&'m mut self) -> Option<TlsContext<'a, CipherSuite, RNG, NoClock>> {
+            match self.state.take() {
+                Some(State::Connected(session)) => match session.close().await {
+                    Ok((context, mut socket)) => {
+                        socket.close().await;
+                        Some(context)
+                    }
+                    _ => None,
+                },
+                Some(State::New(context, mut socket)) => {
+                    socket.close().await;
+                    Some(context)
+                }
+                None => None,
             }
         }
     }
@@ -263,6 +301,153 @@ mod tls {
                     None => {}
                 }
             }
+        }
+    }
+
+    pub struct TlsSingleSocketFactory<'a, S, RNG, CipherSuite>
+    where
+        S: SocketFactory + 'static,
+        RNG: CryptoRng + RngCore + 'static,
+        CipherSuite: TlsCipherSuite + 'static,
+        S::Socket: AsyncWrite + AsyncRead + 'static,
+    {
+        factory: S,
+        holder: UnsafeCell<SocketHolder<'a, S::Socket, RNG, CipherSuite>>,
+    }
+
+    impl<'a, S, RNG, CipherSuite> TlsSingleSocketFactory<'a, S, RNG, CipherSuite>
+    where
+        S: SocketFactory + 'static,
+        RNG: CryptoRng + RngCore + 'static,
+        CipherSuite: TlsCipherSuite + 'static,
+        S::Socket: AsyncWrite + AsyncRead + 'a,
+    {
+        pub fn new(factory: S, context: TlsContext<'a, CipherSuite, RNG, NoClock>) -> Self {
+            Self {
+                factory,
+                holder: UnsafeCell::new(SocketHolder {
+                    context: Some(context),
+                    socket: None,
+                }),
+            }
+        }
+    }
+
+    impl<'a, S, RNG, CipherSuite> SocketFactory for TlsSingleSocketFactory<'a, S, RNG, CipherSuite>
+    where
+        S: SocketFactory + 'a,
+        RNG: CryptoRng + RngCore + 'a,
+        CipherSuite: TlsCipherSuite + 'a,
+        S::Socket: AsyncWrite + AsyncRead + 'a,
+    {
+        type Socket = ReusableSocket<'a, S::Socket, RNG, CipherSuite>;
+
+        #[rustfmt::skip]
+        type OpenFuture<'m> where 'a: 'm, S: 'm, RNG: 'm, CipherSuite: 'm =  impl Future<Output = Result<Self::Socket, TcpError>> + 'm;
+        fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
+            async move {
+                match self.factory.open().await {
+                    Ok(h) => {
+                        let holder = unsafe { &mut *self.holder.get() };
+                        holder.open(h)?;
+                        Ok(ReusableSocket { holder })
+                    }
+                    Err(e) => Err(e),
+                }
+            }
+        }
+    }
+
+    pub struct SocketHolder<'a, S, RNG, CipherSuite>
+    where
+        S: TcpSocket + AsyncWrite + AsyncRead + 'static,
+        RNG: CryptoRng + RngCore + 'static,
+        CipherSuite: TlsCipherSuite + 'static,
+    {
+        socket: Option<TlsSocket<'a, S, RNG, CipherSuite>>,
+        context: Option<TlsContext<'a, CipherSuite, RNG, NoClock>>,
+    }
+
+    impl<'a, S, RNG, CipherSuite> SocketHolder<'a, S, RNG, CipherSuite>
+    where
+        S: TcpSocket + AsyncWrite + AsyncRead + 'static,
+        RNG: CryptoRng + RngCore + 'static,
+        CipherSuite: TlsCipherSuite + 'static,
+    {
+        fn open(&mut self, socket: S) -> Result<(), TcpError> {
+            match self.context.take() {
+                Some(context) => {
+                    self.socket.replace(TlsSocket::wrap(socket, context));
+                    Ok(())
+                }
+                _ => Err(TcpError::OpenError),
+            }
+        }
+
+        fn socket(&mut self) -> &mut TlsSocket<'a, S, RNG, CipherSuite> {
+            match self.socket.as_mut() {
+                Some(socket) => socket,
+                _ => {
+                    panic!("referencing unopened socket!");
+                }
+            }
+        }
+
+        async fn close(&mut self) {
+            match self.socket.take() {
+                Some(mut socket) => {
+                    if let Some(context) = socket.free().await {
+                        self.context.replace(context);
+                    }
+                }
+                _ => {
+                    panic!("attempting to unopened socket")
+                }
+            }
+        }
+    }
+
+    pub struct ReusableSocket<'a, S, RNG, CipherSuite>
+    where
+        S: TcpSocket + AsyncWrite + AsyncRead + 'static,
+        RNG: CryptoRng + RngCore + 'static,
+        CipherSuite: TlsCipherSuite + 'static,
+    {
+        holder: &'a mut SocketHolder<'a, S, RNG, CipherSuite>,
+    }
+
+    impl<'a, S, RNG, CipherSuite> TcpSocket for ReusableSocket<'a, S, RNG, CipherSuite>
+    where
+        S: TcpSocket + AsyncWrite + AsyncRead + 'static,
+        RNG: CryptoRng + RngCore + 'static,
+        CipherSuite: TlsCipherSuite + 'static,
+    {
+        #[rustfmt::skip]
+        type ConnectFuture<'m> where 'a: 'm, S: 'm, RNG: 'm, CipherSuite: 'm =  impl Future<Output = Result<(), TcpError>> + 'm;
+        fn connect<'m>(
+            &'m mut self,
+            proto: IpProtocol,
+            dst: SocketAddress,
+        ) -> Self::ConnectFuture<'m> {
+            self.holder.socket().connect(proto, dst)
+        }
+
+            #[rustfmt::skip]
+        type WriteFuture<'m> where 'a: 'm, RNG: 'm, CipherSuite: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
+        fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
+            self.holder.socket().write(buf)
+        }
+
+            #[rustfmt::skip]
+        type ReadFuture<'m> where 'a: 'm, RNG: 'm, CipherSuite: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
+        fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m> {
+            self.holder.socket().read(buf)
+        }
+
+            #[rustfmt::skip]
+        type CloseFuture<'m> where 'a: 'm, RNG: 'm, CipherSuite: 'm = impl Future<Output = ()> + 'm;
+        fn close<'m>(&'m mut self) -> Self::CloseFuture<'m> {
+            self.holder.close()
         }
     }
 }

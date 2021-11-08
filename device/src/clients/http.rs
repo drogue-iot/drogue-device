@@ -1,6 +1,6 @@
 use crate::traits::{
     ip::{IpAddress, IpProtocol, SocketAddress},
-    tcp::{TcpError, TcpSocket},
+    tcp::{SocketFactory, TcpError, TcpSocket},
 };
 use core::fmt::{Display, Write};
 use core::{num::ParseIntError, str::Utf8Error};
@@ -8,29 +8,32 @@ use heapless::String;
 
 pub struct HttpClient<'a, S>
 where
-    S: TcpSocket + 'static,
+    S: SocketFactory + 'static,
 {
-    socket: &'a mut S,
+    socket_factory: &'a mut S,
     ip: IpAddress,
     port: u16,
+    host: &'a str,
     username: &'a str,
     password: &'a str,
 }
 
 impl<'a, S> HttpClient<'a, S>
 where
-    S: TcpSocket + 'static,
+    S: SocketFactory + 'static,
 {
     pub fn new(
-        socket: &'a mut S,
+        socket_factory: &'a mut S,
         ip: IpAddress,
         port: u16,
+        host: &'a str,
         username: &'a str,
         password: &'a str,
     ) -> Self {
         Self {
-            socket,
+            socket_factory,
             ip,
+            host,
             port,
             username,
             password,
@@ -42,8 +45,8 @@ where
         request: Request<'m>,
         rx_buf: &'m mut [u8],
     ) -> Result<Response<'m>, Error> {
-        match self
-            .socket
+        let mut socket = self.socket_factory.open().await?;
+        let result = match socket
             .connect(IpProtocol::Tcp, SocketAddress::new(self.ip, self.port))
             .await
         {
@@ -62,6 +65,7 @@ where
                     request.path.unwrap_or("/")
                 )
                 .unwrap();
+                write!(data, "Host: {}\r\n", self.host).unwrap();
                 write!(data, "Authorization: Basic {}\r\n", unsafe {
                     core::str::from_utf8_unchecked(&authz[..authz_len])
                 })
@@ -72,18 +76,14 @@ where
                 if let Some(payload) = request.payload {
                     write!(data, "Content-Length: {}\r\n\r\n", payload.len()).unwrap();
                 }
-                let result = self.socket.write(&data.as_bytes()[..data.len()]).await;
+                let result = socket.write(&data.as_bytes()[..data.len()]).await;
                 match result {
                     Ok(_) => match request.payload {
-                        None => {
-                            return self.read_response(rx_buf).await;
-                        }
+                        None => self.read_response(&mut socket, rx_buf).await,
                         Some(payload) => {
-                            let result = self.socket.write(payload).await;
+                            let result = socket.write(payload).await;
                             match result {
-                                Ok(_) => {
-                                    return self.read_response(rx_buf).await;
-                                }
+                                Ok(_) => self.read_response(&mut socket, rx_buf).await,
                                 Err(e) => {
                                     warn!("Error sending data: {:?}", e);
                                     Err(e.into())
@@ -101,15 +101,21 @@ where
                 warn!("Error connecting to {}:{}: {:?}", self.ip, self.port, e);
                 Err(e.into())
             }
-        }
+        };
+        socket.close().await;
+        result
     }
 
-    async fn read_response<'m>(&mut self, rx_buf: &'m mut [u8]) -> Result<Response<'m>, Error> {
+    async fn read_response<'m, T: TcpSocket>(
+        &mut self,
+        socket: &mut T,
+        rx_buf: &'m mut [u8],
+    ) -> Result<Response<'m>, Error> {
         let mut pos = 0;
         let mut buf: [u8; 1024] = [0; 1024];
         let mut header_end = 0;
         while pos < buf.len() {
-            let n = self.socket.read(&mut buf[pos..]).await?;
+            let n = socket.read(&mut buf[pos..]).await?;
 
             /*
             info!(
@@ -170,8 +176,7 @@ where
                 let to_read = to_read - to_copy;
                 let mut pos = 0;
                 while pos < to_read {
-                    let n = self
-                        .socket
+                    let n = socket
                         .read(&mut rx_buf[to_copy + pos..to_copy + to_read])
                         .await?;
                     pos += n;
