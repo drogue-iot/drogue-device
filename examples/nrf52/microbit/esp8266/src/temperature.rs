@@ -1,4 +1,4 @@
-use super::{App, AppSocket, Command};
+use super::{App, AppSocket, Command, SensorData};
 use drogue_device::{
     domain::{temperature::*, *},
     Actor, Address, Inbox,
@@ -39,7 +39,12 @@ impl<'d> Actor for TemperatureMonitor<'d> {
                     temperature: Temperature::<Celsius>::new(t.to_num::<f32>()),
                     relative_humidity: 0.0,
                 };
-                app.request(Command::Update(d)).unwrap().await;
+                app.request(Command::Update(SensorData {
+                    data: d,
+                    location: None,
+                }))
+                .unwrap()
+                .await;
                 Timer::after(self.interval).await;
             }
         }

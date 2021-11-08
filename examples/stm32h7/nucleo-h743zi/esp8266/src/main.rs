@@ -132,9 +132,12 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             );
             let app = device.app.mount(socket, spawner);
             device.button.mount(app, spawner);
-            app.request(Command::Update(SensorAcquisition {
-                temperature: Temperature::new(22.0),
-                relative_humidity: 0.0,
+            app.request(Command::Update(SensorData {
+                data: SensorAcquisition {
+                    temperature: Temperature::new(22.0),
+                    relative_humidity: 0.0,
+                },
+                location: None,
             }))
             .unwrap()
             .await;

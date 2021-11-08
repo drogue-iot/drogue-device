@@ -18,9 +18,21 @@ use drogue_device::{
 use heapless::String;
 //use drogue_device::domain::temperature::Temperature;
 
+#[derive(Clone)]
+pub struct GeoLocation {
+    pub lon: f64,
+    pub lat: f64,
+}
+
+#[derive(Clone)]
+pub struct SensorData {
+    pub data: SensorAcquisition<Celsius>,
+    pub location: Option<GeoLocation>,
+}
+
 pub enum Command {
     Send,
-    Update(SensorAcquisition<Celsius>),
+    Update(SensorData),
 }
 
 impl<S> FromButtonEvent<Command> for App<S>
@@ -82,21 +94,15 @@ where
     {
         self.socket.replace(config);
         async move {
-            // Uncomment to simulate sensor data if sensor is not working
-            // let sens = SensorAcquisition {
-            //     temperature: Temperature::<Celsius>::new(25.0),
-            //     relative_humidity: 56.0,
-            // };
-            // let mut temperature: Option<SensorAcquisition<Celsius>> = Some(sens);
-            let mut temperature: Option<SensorAcquisition<Celsius>> = None;
+            let mut sensor_data: Option<SensorData> = None;
             loop {
                 match inbox.next().await {
                     Some(mut m) => match m.message() {
                         Command::Update(t) => {
                             //trace!("Updating current app temperature measurement: {}", t);
-                            temperature.replace(t.clone());
+                            sensor_data.replace(t.clone());
                         }
-                        Command::Send => match &temperature {
+                        Command::Send => match &sensor_data {
                             Some(t) => {
                                 info!("Sending temperature measurement");
                                 let socket = self.socket.as_mut().unwrap();
@@ -108,13 +114,24 @@ where
                                     self.password,
                                 );
 
-                                let mut tx: String<64> = String::new();
-                                write!(
-                                    tx,
-                                    "{{\"temp\": {}, \"humidity\": {}}}",
-                                    t.temperature, t.relative_humidity
-                                )
-                                .unwrap();
+                                let mut tx: String<256> = String::new();
+                                if let Some(loc) = &t.location {
+                                    write!(
+                                        tx,
+                                        "{{\"geoloc\"{{\"lat\": {}, \"lon\": {}}}, \"temp\": {}, \"hum\": {}}}",
+                                        loc.lat,
+                                        loc.lon,
+                                        t.data.temperature, t.data.relative_humidity
+                                    )
+                                    .unwrap();
+                                } else {
+                                    write!(
+                                        tx,
+                                        "{{\"temp\": {}, \"hum\": {}}}",
+                                        t.data.temperature, t.data.relative_humidity
+                                    )
+                                    .unwrap();
+                                }
                                 let mut rx_buf = [0; 1024];
                                 let response = client
                                     .request(
@@ -166,6 +183,9 @@ impl<S: TcpSocket> From<Address<'static, App<S>>> for AppAddress<S> {
 impl<S: TcpSocket> SensorMonitor<Celsius> for AppAddress<S> {
     fn notify(&self, value: SensorAcquisition<Celsius>) {
         // Ignore channel full error
-        let _ = self.address.notify(Command::Update(value));
+        let _ = self.address.notify(Command::Update(SensorData {
+            data: value,
+            location: None,
+        }));
     }
 }
