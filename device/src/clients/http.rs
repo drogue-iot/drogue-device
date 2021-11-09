@@ -1,38 +1,89 @@
 use crate::traits::{
-    ip::{IpAddress, IpProtocol, SocketAddress},
-    tcp::{SocketFactory, TcpError, TcpSocket},
+    dns::{DnsError, DnsResolver},
+    ip::IpAddress,
+    tcp::TcpError,
+};
+use crate::{
+    actors::{socket::*, tcp::*},
+    traits::{
+        ip::{IpProtocol, SocketAddress},
+        tcp::TcpSocket,
+    },
+    Actor, Address,
 };
 use core::fmt::{Display, Write};
+use core::future::Future;
 use core::{num::ParseIntError, str::Utf8Error};
+
 use heapless::String;
 
-pub struct HttpClient<'a, S>
+pub trait ConnectionFactory: Sized {
+    type Connection: NetworkConnection;
+    type ConnectFuture<'m>: Future<Output = Result<Self::Connection, NetworkError>>
+    where
+        Self: 'm;
+    fn connect<'m>(
+        &'m mut self,
+        host: &'m str,
+        ip: IpAddress,
+        port: u16,
+    ) -> Self::ConnectFuture<'m>;
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum NetworkError {
+    Tcp(TcpError),
+    #[cfg(feature = "tls")]
+    Tls(drogue_tls::TlsError),
+}
+
+pub trait NetworkConnection {
+    type WriteFuture<'m>: Future<Output = Result<usize, NetworkError>>
+    where
+        Self: 'm;
+    fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m>;
+
+    type ReadFuture<'m>: Future<Output = Result<usize, NetworkError>>
+    where
+        Self: 'm;
+    fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m>;
+
+    type CloseFuture<'m>: Future<Output = Result<(), NetworkError>>
+    where
+        Self: 'm;
+    fn close<'m>(self) -> Self::CloseFuture<'m>;
+}
+
+pub struct HttpClient<'a, C, D>
 where
-    S: SocketFactory + 'static,
+    C: ConnectionFactory + 'a,
+    D: DnsResolver<1> + 'a,
 {
-    socket_factory: &'a mut S,
-    ip: IpAddress,
-    port: u16,
+    connection_factory: &'a mut C,
+    dns_resolver: &'a D,
     host: &'a str,
+    port: u16,
     username: &'a str,
     password: &'a str,
 }
 
-impl<'a, S> HttpClient<'a, S>
+impl<'a, C, D> HttpClient<'a, C, D>
 where
-    S: SocketFactory + 'static,
+    C: ConnectionFactory + 'a,
+    D: DnsResolver<1> + 'a,
 {
     pub fn new(
-        socket_factory: &'a mut S,
-        ip: IpAddress,
-        port: u16,
+        connection_factory: &'a mut C,
+        dns_resolver: &'a D,
         host: &'a str,
+        port: u16,
         username: &'a str,
         password: &'a str,
     ) -> Self {
         Self {
-            socket_factory,
-            ip,
+            connection_factory,
+            dns_resolver,
             host,
             port,
             username,
@@ -45,77 +96,73 @@ where
         request: Request<'m>,
         rx_buf: &'m mut [u8],
     ) -> Result<Response<'m>, Error> {
-        let mut socket = self.socket_factory.open().await?;
-        let result = match socket
-            .connect(IpProtocol::Tcp, SocketAddress::new(self.ip, self.port))
-            .await
-        {
-            Ok(_) => {
-                info!("Connected to {}:{}", self.ip, self.port);
-                let mut combined: String<128> = String::new();
-                write!(combined, "{}:{}", self.username, self.password).unwrap();
-                let mut authz = [0; 256];
-                let authz_len =
-                    base64::encode_config_slice(combined.as_bytes(), base64::STANDARD, &mut authz);
-                let mut data: String<1024> = String::new();
-                write!(
-                    data,
-                    "{} {} HTTP/1.1\r\n",
-                    request.method,
-                    request.path.unwrap_or("/")
-                )
-                .unwrap();
-                write!(data, "Host: {}\r\n", self.host).unwrap();
-                write!(data, "Authorization: Basic {}\r\n", unsafe {
-                    core::str::from_utf8_unchecked(&authz[..authz_len])
-                })
-                .unwrap();
-                if let Some(content_type) = request.content_type {
-                    write!(data, "Content-Type: {}\r\n", content_type).unwrap();
-                }
-                if let Some(payload) = request.payload {
-                    write!(data, "Content-Length: {}\r\n\r\n", payload.len()).unwrap();
-                }
-                let result = socket.write(&data.as_bytes()[..data.len()]).await;
-                match result {
-                    Ok(_) => match request.payload {
-                        None => self.read_response(&mut socket, rx_buf).await,
-                        Some(payload) => {
-                            let result = socket.write(payload).await;
-                            match result {
-                                Ok(_) => self.read_response(&mut socket, rx_buf).await,
-                                Err(e) => {
-                                    warn!("Error sending data: {:?}", e);
-                                    Err(e.into())
-                                }
-                            }
+        let ips = self.dns_resolver.resolve(self.host).await?;
+        let ip = ips[0];
+        let mut connection = self
+            .connection_factory
+            .connect(self.host, ip, self.port)
+            .await?;
+
+        info!("Connected to {}:{}", self.host, self.port);
+
+        let mut combined: String<128> = String::new();
+        write!(combined, "{}:{}", self.username, self.password).unwrap();
+        let mut authz = [0; 256];
+        let authz_len =
+            base64::encode_config_slice(combined.as_bytes(), base64::STANDARD, &mut authz);
+        let mut data: String<1024> = String::new();
+        write!(
+            data,
+            "{} {} HTTP/1.1\r\n",
+            request.method,
+            request.path.unwrap_or("/")
+        )
+        .unwrap();
+        write!(data, "Host: {}\r\n", self.host).unwrap();
+        write!(data, "Authorization: Basic {}\r\n", unsafe {
+            core::str::from_utf8_unchecked(&authz[..authz_len])
+        })
+        .unwrap();
+        if let Some(content_type) = request.content_type {
+            write!(data, "Content-Type: {}\r\n", content_type).unwrap();
+        }
+        if let Some(payload) = request.payload {
+            write!(data, "Content-Length: {}\r\n\r\n", payload.len()).unwrap();
+        }
+        let result = connection.write(&data.as_bytes()[..data.len()]).await;
+        let result = match result {
+            Ok(_) => match request.payload {
+                None => self.read_response(&mut connection, rx_buf).await,
+                Some(payload) => {
+                    let result = connection.write(payload).await;
+                    match result {
+                        Ok(_) => self.read_response(&mut connection, rx_buf).await,
+                        Err(e) => {
+                            warn!("Error sending data: {:?}", e);
+                            Err(e.into())
                         }
-                    },
-                    Err(e) => {
-                        warn!("Error sending headers: {:?}", e);
-                        Err(e.into())
                     }
                 }
-            }
+            },
             Err(e) => {
-                warn!("Error connecting to {}:{}: {:?}", self.ip, self.port, e);
+                warn!("Error sending headers: {:?}", e);
                 Err(e.into())
             }
         };
-        socket.close().await;
+        connection.close().await?;
         result
     }
 
-    async fn read_response<'m, T: TcpSocket>(
+    async fn read_response<'m>(
         &mut self,
-        socket: &mut T,
+        connection: &mut C::Connection,
         rx_buf: &'m mut [u8],
     ) -> Result<Response<'m>, Error> {
         let mut pos = 0;
         let mut buf: [u8; 1024] = [0; 1024];
         let mut header_end = 0;
         while pos < buf.len() {
-            let n = socket.read(&mut buf[pos..]).await?;
+            let n = connection.read(&mut buf[pos..]).await?;
 
             /*
             info!(
@@ -172,11 +219,11 @@ where
             rx_buf[..to_copy].copy_from_slice(&buf[header_end..header_end + to_copy]);
 
             let len = if to_copy < to_read {
-                // Fetch rest from socket
+                // Fetch rest from connection
                 let to_read = to_read - to_copy;
                 let mut pos = 0;
                 while pos < to_read {
-                    let n = socket
+                    let n = connection
                         .read(&mut rx_buf[to_copy + pos..to_copy + to_read])
                         .await?;
                     pos += n;
@@ -249,13 +296,20 @@ impl Display for Method {
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Error {
-    Socket(TcpError),
+    Network(NetworkError),
+    Dns(DnsError),
     Parse,
 }
 
-impl From<TcpError> for Error {
-    fn from(e: TcpError) -> Error {
-        Error::Socket(e)
+impl From<NetworkError> for Error {
+    fn from(e: NetworkError) -> Error {
+        Error::Network(e)
+    }
+}
+
+impl From<DnsError> for Error {
+    fn from(e: DnsError) -> Error {
+        Error::Dns(e)
     }
 }
 
@@ -281,7 +335,6 @@ pub struct Response<'a> {
 
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[repr(u32)]
 pub enum Status {
     Ok = 200,
     Created = 201,
@@ -289,7 +342,7 @@ pub enum Status {
     BadRequest = 400,
     Unauthorized = 401,
     NotFound = 404,
-    Unknown(u32) = 0,
+    Unknown = 0,
 }
 
 impl From<u32> for Status {
@@ -301,7 +354,10 @@ impl From<u32> for Status {
             400 => Status::BadRequest,
             401 => Status::Unauthorized,
             404 => Status::NotFound,
-            n => Status::Unknown(n),
+            n => {
+                warn!("Unknown status code: {:?}", n);
+                Status::Unknown
+            }
         }
     }
 }
@@ -362,6 +418,326 @@ fn match_header(line: &str, hdr: &str) -> bool {
         line[0..hdr.len()].eq_ignore_ascii_case(hdr)
     } else {
         false
+    }
+}
+
+impl<'a, A> ConnectionFactory for Address<'a, A>
+where
+    A: Actor + TcpActor<A> + 'static,
+    A::Response: Into<TcpResponse<A::SocketHandle>>,
+{
+    type Connection = Socket<'a, A>;
+    type ConnectFuture<'m>
+    where
+        'a: 'm,
+        A: 'm,
+    = impl Future<Output = Result<Self::Connection, NetworkError>> + 'm;
+
+    fn connect<'m>(&'m mut self, _: &'m str, ip: IpAddress, port: u16) -> Self::ConnectFuture<'m> {
+        async move {
+            let mut socket = Socket::new(self.clone(), self.open().await.unwrap());
+            match socket
+                .connect(IpProtocol::Tcp, SocketAddress::new(ip, port))
+                .await
+            {
+                Ok(_) => {
+                    trace!("Connection established");
+                    Ok(socket)
+                }
+                Err(e) => {
+                    warn!("Error creating connection: {:?}", e);
+                    Err(NetworkError::Tcp(e))
+                }
+            }
+        }
+    }
+}
+
+impl<'a, A> NetworkConnection for Socket<'a, A>
+where
+    A: Actor + TcpActor<A> + 'static,
+    A::Response: Into<TcpResponse<A::SocketHandle>>,
+{
+    type WriteFuture<'m>
+    where
+        'a: 'm,
+        A: 'm,
+    = impl Future<Output = Result<usize, NetworkError>> + 'm;
+    fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
+        async move {
+            TcpSocket::write(self, buf)
+                .await
+                .map_err(|e| NetworkError::Tcp(e))
+        }
+    }
+
+    type ReadFuture<'m>
+    where
+        'a: 'm,
+        A: 'm,
+    = impl Future<Output = Result<usize, NetworkError>> + 'm;
+    fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m> {
+        async move {
+            TcpSocket::read(self, buf)
+                .await
+                .map_err(|e| NetworkError::Tcp(e))
+        }
+    }
+
+    type CloseFuture<'m>
+    where
+        'a: 'm,
+        A: 'm,
+    = impl Future<Output = Result<(), NetworkError>> + 'm;
+    fn close<'m>(self) -> Self::CloseFuture<'m> {
+        async move {
+            TcpSocket::close(self)
+                .await
+                .map_err(|e| NetworkError::Tcp(e))
+        }
+    }
+}
+
+#[cfg(feature = "tls")]
+pub use tls::*;
+
+#[cfg(feature = "tls")]
+mod tls {
+    use super::NetworkConnection;
+    use super::NetworkError;
+    use crate::actors::{
+        socket::*,
+        tcp::{TcpActor, TcpResponse},
+    };
+    use crate::kernel::actor::Actor;
+    use crate::traits::{
+        ip::{IpAddress, IpProtocol, SocketAddress},
+        tcp::TcpSocket,
+    };
+    use crate::Address;
+    use core::cell::UnsafeCell;
+    use core::future::Future;
+    use core::mem::MaybeUninit;
+    use drogue_tls::{NoClock, TlsCipherSuite, TlsConfig, TlsConnection, TlsContext};
+    use rand_core::{CryptoRng, RngCore};
+
+    use atomic_polyfill::{AtomicBool, Ordering};
+    use core::marker::PhantomData;
+
+    pub struct TlsBuffer<const N: usize> {
+        buf: UnsafeCell<[u8; N]>,
+        free: AtomicBool,
+    }
+
+    impl<const N: usize> TlsBuffer<N> {
+        pub const fn new() -> Self {
+            Self {
+                buf: UnsafeCell::new([0; N]),
+                free: AtomicBool::new(true),
+            }
+        }
+    }
+
+    impl<const N: usize> TlsBuffer<N> {
+        pub fn allocate(&self) -> Option<*mut [u8]> {
+            if self.free.swap(false, Ordering::SeqCst) {
+                Some(unsafe { &mut *self.buf.get() })
+            } else {
+                None
+            }
+        }
+
+        pub fn free(&self) {
+            self.free.store(true, Ordering::SeqCst);
+        }
+    }
+
+    pub struct TlsConnectionFactory<
+        'a,
+        A,
+        CipherSuite,
+        RNG,
+        const TLS_BUFFER_SIZE: usize,
+        const N: usize,
+    >
+    where
+        A: Actor + TcpActor<A> + 'static,
+        A::Response: Into<TcpResponse<A::SocketHandle>>,
+        RNG: CryptoRng + RngCore + 'a,
+        CipherSuite: TlsCipherSuite + 'static,
+    {
+        rng: RNG,
+        pool: [MaybeUninit<TlsBuffer<TLS_BUFFER_SIZE>>; N],
+        network: Address<'a, A>,
+        _cipher: PhantomData<&'a CipherSuite>,
+    }
+
+    impl<'a, A, CipherSuite, RNG, const TLS_BUFFER_SIZE: usize, const N: usize>
+        TlsConnectionFactory<'a, A, CipherSuite, RNG, TLS_BUFFER_SIZE, N>
+    where
+        A: Actor + TcpActor<A> + 'static,
+        A::Response: Into<TcpResponse<A::SocketHandle>>,
+        RNG: CryptoRng + RngCore + 'static,
+        CipherSuite: TlsCipherSuite + 'a,
+    {
+        pub fn new(network: Address<'a, A>, rng: RNG) -> Self {
+            let mut pool: [MaybeUninit<TlsBuffer<TLS_BUFFER_SIZE>>; N] =
+                unsafe { MaybeUninit::uninit().assume_init() };
+            for i in 0..N {
+                pool[i].write(TlsBuffer::new());
+            }
+            Self {
+                network,
+                rng,
+                pool,
+                _cipher: PhantomData,
+            }
+        }
+    }
+
+    impl<'a, A, CipherSuite, RNG, const TLS_BUFFER_SIZE: usize, const N: usize>
+        super::ConnectionFactory
+        for TlsConnectionFactory<'a, A, CipherSuite, RNG, TLS_BUFFER_SIZE, N>
+    where
+        A: Actor + TcpActor<A> + 'static,
+        A::Response: Into<TcpResponse<A::SocketHandle>>,
+        RNG: CryptoRng + RngCore + 'static,
+        CipherSuite: TlsCipherSuite + 'a,
+    {
+        type Connection = TlsNetworkConnection<'a, A, CipherSuite, TLS_BUFFER_SIZE>;
+        type ConnectFuture<'m>
+        where
+            'a: 'm,
+            A: 'm,
+            RNG: 'm,
+            CipherSuite: 'm,
+        = impl Future<Output = Result<Self::Connection, NetworkError>> + 'm;
+
+        fn connect<'m>(
+            &'m mut self,
+            host: &'m str,
+            ip: IpAddress,
+            port: u16,
+        ) -> Self::ConnectFuture<'m> {
+            async move {
+                let mut idx = 0;
+                let mut buffer = None;
+                for i in 0..self.pool.len() {
+                    if let Some(buf) = unsafe { self.pool[i].assume_init_ref() }.allocate() {
+                        idx = i;
+                        buffer.replace(buf);
+                    }
+                }
+
+                let mut socket =
+                    Socket::new(self.network.clone(), self.network.open().await.unwrap());
+                match socket
+                    .connect(IpProtocol::Tcp, SocketAddress::new(ip, port))
+                    .await
+                {
+                    Ok(_) => {
+                        trace!("Connection established");
+                        let config = TlsConfig::new().with_server_name(host);
+                        let mut tls: TlsConnection<'a, Socket<'a, A>, CipherSuite> =
+                            TlsConnection::new(socket, unsafe { &mut *buffer.unwrap() });
+                        // FIXME: support configuring cert size when verification is supported on ARM Cortex M
+                        match tls
+                            .open::<RNG, NoClock, 1>(TlsContext::new(&config, &mut self.rng))
+                            .await
+                        {
+                            Ok(_) => Ok(TlsNetworkConnection::new(tls, self.pool[idx].as_ptr())),
+                            Err(e) => {
+                                warn!("Error creating TLS session: {:?}", e);
+                                Err(NetworkError::Tls(e))
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        warn!("Error creating connection: {:?}", e);
+                        Err(NetworkError::Tcp(e))
+                    }
+                }
+            }
+        }
+    }
+
+    pub struct TlsNetworkConnection<'a, A, CipherSuite, const N: usize>
+    where
+        A: Actor + TcpActor<A> + 'static,
+        A::Response: Into<TcpResponse<A::SocketHandle>>,
+        CipherSuite: TlsCipherSuite + 'static,
+    {
+        buffer: *const TlsBuffer<N>,
+        connection: TlsConnection<'a, Socket<'a, A>, CipherSuite>,
+    }
+
+    impl<'a, A, CipherSuite, const N: usize> TlsNetworkConnection<'a, A, CipherSuite, N>
+    where
+        A: Actor + TcpActor<A> + 'static,
+        A::Response: Into<TcpResponse<A::SocketHandle>>,
+        CipherSuite: TlsCipherSuite + 'a,
+    {
+        pub fn new(
+            connection: TlsConnection<'a, Socket<'a, A>, CipherSuite>,
+            buffer: *const TlsBuffer<N>,
+        ) -> Self {
+            Self { connection, buffer }
+        }
+    }
+
+    impl<'a, A, CipherSuite, const N: usize> NetworkConnection
+        for TlsNetworkConnection<'a, A, CipherSuite, N>
+    where
+        A: Actor + TcpActor<A> + 'static,
+        A::Response: Into<TcpResponse<A::SocketHandle>>,
+        CipherSuite: TlsCipherSuite + 'a,
+    {
+        type WriteFuture<'m>
+        where
+            'a: 'm,
+            A: 'm,
+            CipherSuite: 'm,
+        = impl Future<Output = Result<usize, NetworkError>> + 'm;
+        fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
+            async move {
+                self.connection
+                    .write(buf)
+                    .await
+                    .map_err(|e| NetworkError::Tls(e))
+            }
+        }
+
+        type ReadFuture<'m>
+        where
+            'a: 'm,
+            A: 'm,
+            CipherSuite: 'm,
+        = impl Future<Output = Result<usize, NetworkError>> + 'm;
+        fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m> {
+            async move {
+                self.connection
+                    .read(buf)
+                    .await
+                    .map_err(|e| NetworkError::Tls(e))
+            }
+        }
+
+        type CloseFuture<'m>
+        where
+            'a: 'm,
+            A: 'm,
+            CipherSuite: 'm,
+        = impl Future<Output = Result<(), NetworkError>> + 'm;
+        fn close<'m>(self) -> Self::CloseFuture<'m> {
+            async move {
+                let result = match self.connection.close().await {
+                    Ok(socket) => NetworkConnection::close(socket).await,
+                    Err(e) => Err(NetworkError::Tls(e)),
+                };
+                unsafe { &*self.buffer }.free();
+                result
+            }
+        }
     }
 }
 

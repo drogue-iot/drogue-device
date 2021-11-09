@@ -83,7 +83,7 @@ impl Actor for StdTcpActor {
                             if let Some(_) = self.sockets.remove(handle) {
                                 self.socket_pool.close(*handle);
                             }
-                            TcpResponse::Close
+                            TcpResponse::Close(Ok(()))
                         }
                     };
                     m.set_response(Some(response));

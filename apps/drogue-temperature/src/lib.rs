@@ -13,7 +13,8 @@ use drogue_device::{
     actors::sensors::SensorMonitor,
     clients::http::*,
     domain::{temperature::Celsius, SensorAcquisition},
-    traits::{ip::*, tcp::*},
+    drivers::dns::*,
+    traits::ip::*,
     Actor, Address, Inbox,
 };
 use heapless::String;
@@ -36,9 +37,9 @@ pub enum Command {
     Update(SensorData),
 }
 
-impl<S> FromButtonEvent<Command> for App<S>
+impl<C> FromButtonEvent<Command> for App<C>
 where
-    S: SocketFactory + 'static,
+    C: ConnectionFactory + 'static,
 {
     fn from(event: ButtonEvent) -> Option<Command> {
         match event {
@@ -48,33 +49,30 @@ where
     }
 }
 
-pub struct App<S>
+pub struct App<C>
 where
-    S: SocketFactory + 'static,
+    C: ConnectionFactory + 'static,
 {
-    ip: IpAddress,
-    port: u16,
     host: &'static str,
+    port: u16,
     username: &'static str,
     password: &'static str,
-    socket: PhantomData<&'static S>,
+    socket: PhantomData<&'static C>,
 }
 
-impl<S> App<S>
+impl<C> App<C>
 where
-    S: SocketFactory + 'static,
+    C: ConnectionFactory + 'static,
 {
     pub fn new(
-        ip: IpAddress,
-        port: u16,
         host: &'static str,
+        port: u16,
         username: &'static str,
         password: &'static str,
     ) -> Self {
         Self {
-            ip,
-            port,
             host,
+            port,
             username,
             password,
             socket: PhantomData,
@@ -82,19 +80,19 @@ where
     }
 }
 
-impl<S> Actor for App<S>
+impl<C> Actor for App<C>
 where
-    S: SocketFactory + 'static,
+    C: ConnectionFactory + 'static,
 {
-    type Configuration = S;
+    type Configuration = C;
     #[rustfmt::skip]
-    type Message<'m> where S: 'm = Command;
+    type Message<'m> where C: 'm = Command;
 
     #[rustfmt::skip]
-    type OnMountFuture<'m, M> where S: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M> where C: 'm, M: 'm = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        mut socket_factory: Self::Configuration,
+        mut connection_factory: Self::Configuration,
         _: Address<'static, Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
@@ -114,10 +112,10 @@ where
                             Some(t) => {
                                 info!("Sending temperature measurement");
                                 let mut client = HttpClient::new(
-                                    &mut socket_factory,
-                                    self.ip,
-                                    self.port,
+                                    &mut connection_factory,
+                                    &DNS,
                                     self.host,
+                                    self.port,
                                     self.username,
                                     self.password,
                                 );
@@ -179,17 +177,17 @@ where
     }
 }
 
-pub struct AppAddress<S: SocketFactory + 'static> {
-    address: Address<'static, App<S>>,
+pub struct AppAddress<C: ConnectionFactory + 'static> {
+    address: Address<'static, App<C>>,
 }
 
-impl<S: SocketFactory> From<Address<'static, App<S>>> for AppAddress<S> {
-    fn from(address: Address<'static, App<S>>) -> Self {
+impl<C: ConnectionFactory> From<Address<'static, App<C>>> for AppAddress<C> {
+    fn from(address: Address<'static, App<C>>) -> Self {
         Self { address }
     }
 }
 
-impl<S: SocketFactory> SensorMonitor<Celsius> for AppAddress<S> {
+impl<C: ConnectionFactory> SensorMonitor<Celsius> for AppAddress<C> {
     fn notify(&self, value: SensorAcquisition<Celsius>) {
         // Ignore channel full error
         let _ = self.address.notify(Command::Update(SensorData {
@@ -198,3 +196,11 @@ impl<S: SocketFactory> SensorMonitor<Celsius> for AppAddress<S> {
         }));
     }
 }
+
+static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
+    DnsEntry::new("localhost", IpAddress::new_v4(127, 0, 0, 1)),
+    DnsEntry::new(
+        "http.sandbox.drogue.cloud",
+        IpAddress::new_v4(95, 216, 224, 167),
+    ),
+]);

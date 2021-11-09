@@ -146,8 +146,8 @@ impl<N: Adapter> Actor for AdapterActor<N> {
                             AdapterResponse::Tcp(TcpResponse::Read(driver.read(*handle, buf).await))
                         }
                         AdapterRequest::Close(handle) => {
-                            driver.close(*handle).await;
-                            AdapterResponse::Tcp(TcpResponse::Close)
+                            let r = driver.close(*handle).await;
+                            AdapterResponse::Tcp(TcpResponse::Close(r))
                         }
                     };
                     m.set_response(Some(response));

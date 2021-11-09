@@ -333,9 +333,7 @@ impl<'a> LoraDriver for Rak811Controller<'a> {
         _data: &'m [u8],
         _rx: &'m mut [u8],
     ) -> Self::SendRecvFuture<'m> {
-        async move {
-            todo!()
-        }
+        async move { todo!() }
     }
 }
 

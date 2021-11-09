@@ -36,7 +36,7 @@ pub enum TcpResponse<H> {
     Connect(Result<(), TcpError>),
     Write(Result<usize, TcpError>),
     Read(Result<usize, TcpError>),
-    Close,
+    Close(Result<(), TcpError>),
 }
 
 impl<H> TcpResponse<H> {
@@ -68,9 +68,9 @@ impl<H> TcpResponse<H> {
         }
     }
 
-    pub fn close(self) {
+    pub fn close(self) -> Result<(), TcpError> {
         match self {
-            TcpResponse::Close => (),
+            TcpResponse::Close(result) => result,
             _ => panic!("unexpected response type"),
         }
     }

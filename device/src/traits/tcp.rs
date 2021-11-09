@@ -29,10 +29,10 @@ pub trait TcpSocket {
         Self: 'm;
     fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m>;
 
-    type CloseFuture<'m>: Future<Output = ()>
+    type CloseFuture<'m>: Future<Output = Result<(), TcpError>>
     where
         Self: 'm;
-    fn close<'m>(&'m mut self) -> Self::CloseFuture<'m>;
+    fn close<'m>(self) -> Self::CloseFuture<'m>;
 }
 
 pub trait SocketFactory {
@@ -75,7 +75,7 @@ pub trait TcpStack {
         buf: &'m mut [u8],
     ) -> Self::ReadFuture<'m>;
 
-    type CloseFuture<'m>: Future<Output = ()>
+    type CloseFuture<'m>: Future<Output = Result<(), TcpError>>
     where
         Self: 'm;
     fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m>;
