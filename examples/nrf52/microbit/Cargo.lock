@@ -865,6 +865,7 @@ dependencies = [
  "embassy",
  "embassy-nrf",
  "fixed",
+ "nrf52833-pac",
  "panic-probe",
  "rand_core",
 ]

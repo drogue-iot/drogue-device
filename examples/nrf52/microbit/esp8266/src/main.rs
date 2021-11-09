@@ -16,7 +16,7 @@ use drogue_device::{
     },
     drivers::wifi::esp8266::Esp8266Controller,
     traits::wifi::*,
-    ActorContext, Address, DeviceContext, Package,
+    ActorContext, DeviceContext, Package,
 };
 use embassy::{time::Duration, util::Forever};
 use embassy_nrf::{
@@ -36,13 +36,15 @@ cfg_if::cfg_if! {
     if #[cfg(feature = "tls")] {
         mod rng;
         use rng::*;
-        use drogue_tls::{Aes128GcmSha256, TlsContext};
-        use drogue_device::clients::http::TlsConnectionFactory;
+        use drogue_tls::{Aes128GcmSha256};
+        use drogue_device::actors::net::TlsConnectionFactory;
         use nrf52833_pac as pac;
 
         const HOST: &str = "http.sandbox.drogue.cloud";
         const PORT: u16 = 443;
     } else {
+        use drogue_device::Address;
+
         const HOST: &str = "localhost";
         const PORT: u16 = 8088;
     }
@@ -62,7 +64,7 @@ type ConnectionFactory = TlsConnectionFactory<
     'static,
     AdapterActor<Esp8266Controller<'static>>,
     Aes128GcmSha256,
-    OsRng,
+    Rng,
     16384,
     1,
 >;
@@ -144,7 +146,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             let factory = wifi;
             #[cfg(feature = "tls")]
             let factory =
-                TlsConnectionFactory::new(network, Rng::new(pac::Peripherals::take().unwrap().RNG));
+                TlsConnectionFactory::new(factory, Rng::new(pac::Peripherals::take().unwrap().RNG));
 
             let app = device.app.mount(factory, spawner);
             device.button.mount(app, spawner);

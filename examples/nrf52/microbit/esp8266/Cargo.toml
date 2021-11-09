@@ -23,6 +23,7 @@ drogue-temperature = { path = "../../../../apps/drogue-temperature", features = 
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 fixed = "1.10.0"
+nrf52833-pac = "0.10.1"
 
 embassy = { version = "0.1.0", default-features = false, features = ["defmt"] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
