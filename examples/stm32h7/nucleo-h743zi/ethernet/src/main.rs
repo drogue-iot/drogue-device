@@ -53,9 +53,9 @@ type ConnectionFactory = TlsConnectionFactory<
     <SmolTcpPackage as Package>::Primary,
     Aes128GcmSha256,
     TlsRand,
-    16384,
     1,
 >;
+static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
 
 static STATE: Forever<State<'static, 4, 4>> = Forever::new();
 
@@ -112,7 +112,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     DEVICE
         .mount(|device| async move {
             let net = device.tcp.mount(config, spawner);
-            let factory = TlsConnectionFactory::new(net, TlsRand);
+            let factory = TlsConnectionFactory::new(net, TlsRand, [unsafe { &mut TLS_BUFFER }; 1]);
 
             let app = device.app.mount(factory, spawner);
             app.request(Command::Update(SensorData {

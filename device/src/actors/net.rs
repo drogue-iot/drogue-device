@@ -139,22 +139,22 @@ mod tls {
     use atomic_polyfill::{AtomicBool, Ordering};
     use core::marker::PhantomData;
 
-    pub struct TlsBuffer<const N: usize> {
-        buf: UnsafeCell<[u8; N]>,
+    pub struct TlsBuffer<'a> {
+        buf: UnsafeCell<&'a mut [u8]>,
         free: AtomicBool,
     }
 
-    impl<const N: usize> TlsBuffer<N> {
-        pub const fn new() -> Self {
+    impl<'a> TlsBuffer<'a> {
+        pub fn new(buf: &'a mut [u8]) -> Self {
             Self {
-                buf: UnsafeCell::new([0; N]),
+                buf: UnsafeCell::new(buf),
                 free: AtomicBool::new(true),
             }
         }
     }
 
-    impl<const N: usize> TlsBuffer<N> {
-        pub fn allocate(&self) -> Option<*mut [u8]> {
+    impl<'a> TlsBuffer<'a> {
+        pub fn allocate(&self) -> Option<*mut &'a mut [u8]> {
             if self.free.swap(false, Ordering::SeqCst) {
                 Some(unsafe { &mut *self.buf.get() })
             } else {
@@ -167,14 +167,7 @@ mod tls {
         }
     }
 
-    pub struct TlsConnectionFactory<
-        'a,
-        A,
-        CipherSuite,
-        RNG,
-        const TLS_BUFFER_SIZE: usize,
-        const N: usize,
-    >
+    pub struct TlsConnectionFactory<'a, A, CipherSuite, RNG, const N: usize>
     where
         A: Actor + TcpActor<A> + 'static,
         A::Response: Into<TcpResponse<A::SocketHandle>>,
@@ -182,24 +175,30 @@ mod tls {
         CipherSuite: TlsCipherSuite + 'static,
     {
         rng: RNG,
-        pool: [MaybeUninit<TlsBuffer<TLS_BUFFER_SIZE>>; N],
+        pool: [MaybeUninit<TlsBuffer<'a>>; N],
         network: Address<'a, A>,
         _cipher: PhantomData<&'a CipherSuite>,
     }
 
-    impl<'a, A, CipherSuite, RNG, const TLS_BUFFER_SIZE: usize, const N: usize>
-        TlsConnectionFactory<'a, A, CipherSuite, RNG, TLS_BUFFER_SIZE, N>
+    impl<'a, A, CipherSuite, RNG, const N: usize> TlsConnectionFactory<'a, A, CipherSuite, RNG, N>
     where
         A: Actor + TcpActor<A> + 'static,
         A::Response: Into<TcpResponse<A::SocketHandle>>,
         RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'a,
     {
-        pub fn new(network: Address<'a, A>, rng: RNG) -> Self {
-            let mut pool: [MaybeUninit<TlsBuffer<TLS_BUFFER_SIZE>>; N] =
+        pub fn new<const TLS_BUFFER_SIZE: usize>(
+            network: Address<'a, A>,
+            rng: RNG,
+            buffers: [&'a mut [u8; TLS_BUFFER_SIZE]; N],
+        ) -> Self {
+            let mut pool: [MaybeUninit<TlsBuffer<'_>>; N] =
                 unsafe { MaybeUninit::uninit().assume_init() };
-            for i in 0..N {
-                pool[i].write(TlsBuffer::new());
+
+            let mut i = 0;
+            for buf in buffers {
+                pool[i].write(TlsBuffer::new(buf));
+                i += 1;
             }
             Self {
                 network,
@@ -210,16 +209,15 @@ mod tls {
         }
     }
 
-    impl<'a, A, CipherSuite, RNG, const TLS_BUFFER_SIZE: usize, const N: usize>
-        super::ConnectionFactory
-        for TlsConnectionFactory<'a, A, CipherSuite, RNG, TLS_BUFFER_SIZE, N>
+    impl<'a, A, CipherSuite, RNG, const N: usize> super::ConnectionFactory
+        for TlsConnectionFactory<'a, A, CipherSuite, RNG, N>
     where
         A: Actor + TcpActor<A> + 'static,
         A::Response: Into<TcpResponse<A::SocketHandle>>,
         RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'a,
     {
-        type Connection = TlsNetworkConnection<'a, A, CipherSuite, TLS_BUFFER_SIZE>;
+        type Connection = TlsNetworkConnection<'a, A, CipherSuite>;
         type ConnectFuture<'m>
         where
             'a: 'm,
@@ -276,17 +274,17 @@ mod tls {
         }
     }
 
-    pub struct TlsNetworkConnection<'a, A, CipherSuite, const N: usize>
+    pub struct TlsNetworkConnection<'a, A, CipherSuite>
     where
         A: Actor + TcpActor<A> + 'static,
         A::Response: Into<TcpResponse<A::SocketHandle>>,
         CipherSuite: TlsCipherSuite + 'static,
     {
-        buffer: *const TlsBuffer<N>,
+        buffer: *const TlsBuffer<'a>,
         connection: TlsConnection<'a, Socket<'a, A>, CipherSuite>,
     }
 
-    impl<'a, A, CipherSuite, const N: usize> TlsNetworkConnection<'a, A, CipherSuite, N>
+    impl<'a, A, CipherSuite> TlsNetworkConnection<'a, A, CipherSuite>
     where
         A: Actor + TcpActor<A> + 'static,
         A::Response: Into<TcpResponse<A::SocketHandle>>,
@@ -294,14 +292,13 @@ mod tls {
     {
         pub fn new(
             connection: TlsConnection<'a, Socket<'a, A>, CipherSuite>,
-            buffer: *const TlsBuffer<N>,
+            buffer: *const TlsBuffer<'a>,
         ) -> Self {
             Self { connection, buffer }
         }
     }
 
-    impl<'a, A, CipherSuite, const N: usize> NetworkConnection
-        for TlsNetworkConnection<'a, A, CipherSuite, N>
+    impl<'a, A, CipherSuite> NetworkConnection for TlsNetworkConnection<'a, A, CipherSuite>
     where
         A: Actor + TcpActor<A> + 'static,
         A::Response: Into<TcpResponse<A::SocketHandle>>,

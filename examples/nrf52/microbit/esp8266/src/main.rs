@@ -42,6 +42,7 @@ cfg_if::cfg_if! {
 
         const HOST: &str = "http.sandbox.drogue.cloud";
         const PORT: u16 = 443;
+        static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
     } else {
         use drogue_device::Address;
 
@@ -65,7 +66,6 @@ type ConnectionFactory = TlsConnectionFactory<
     AdapterActor<Esp8266Controller<'static>>,
     Aes128GcmSha256,
     Rng,
-    16384,
     1,
 >;
 
@@ -145,8 +145,11 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
             let factory = wifi;
             #[cfg(feature = "tls")]
-            let factory =
-                TlsConnectionFactory::new(factory, Rng::new(pac::Peripherals::take().unwrap().RNG));
+            let factory = TlsConnectionFactory::new(
+                factory,
+                Rng::new(pac::Peripherals::take().unwrap().RNG),
+                [unsafe { &mut TLS_BUFFER }; 1],
+            );
 
             let app = device.app.mount(factory, spawner);
             device.button.mount(app, spawner);
