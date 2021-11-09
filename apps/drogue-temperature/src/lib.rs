@@ -103,27 +103,26 @@ where
         async move {
             let mut sensor_data: Option<SensorData> = None;
             loop {
-                match inbox.next().await {
-                    Some(mut m) => match m.message() {
-                        Command::Update(t) => {
-                            //trace!("Updating current app temperature measurement: {}", t);
-                            sensor_data.replace(t.clone());
-                        }
-                        Command::Send => match &sensor_data {
-                            Some(t) => {
-                                info!("Sending temperature measurement");
-                                let mut client = HttpClient::new(
-                                    &mut connection_factory,
-                                    &DNS,
-                                    self.host,
-                                    self.port,
-                                    self.username,
-                                    self.password,
-                                );
+                match inbox.next().await.message() {
+                    Command::Update(t) => {
+                        //trace!("Updating current app temperature measurement: {}", t);
+                        sensor_data.replace(t.clone());
+                    }
+                    Command::Send => match &sensor_data {
+                        Some(t) => {
+                            info!("Sending temperature measurement");
+                            let mut client = HttpClient::new(
+                                &mut connection_factory,
+                                &DNS,
+                                self.host,
+                                self.port,
+                                self.username,
+                                self.password,
+                            );
 
-                                let mut tx: String<256> = String::new();
-                                if let Some(loc) = &t.location {
-                                    write!(
+                            let mut tx: String<256> = String::new();
+                            if let Some(loc) = &t.location {
+                                write!(
                                         tx,
                                         "{{\"geoloc\": {{\"lat\": {}, \"lon\": {}}}, \"temp\": {}, \"hum\": {}}}",
                                         loc.lat,
@@ -131,46 +130,44 @@ where
                                         t.data.temperature.raw_value(), t.data.relative_humidity
                                     )
                                     .unwrap();
-                                } else {
-                                    write!(
-                                        tx,
-                                        "{{\"temp\": {}, \"hum\": {}}}",
-                                        t.data.temperature.raw_value(),
-                                        t.data.relative_humidity
-                                    )
-                                    .unwrap();
-                                }
-                                let mut rx_buf = [0; 1024];
-                                let response = client
-                                    .request(
-                                        Request::post()
-                                            .path("/v1/foo")
-                                            .payload(tx.as_bytes())
-                                            .content_type(ContentType::ApplicationJson),
-                                        &mut rx_buf[..],
-                                    )
-                                    .await;
-                                match response {
-                                    Ok(response) => {
-                                        info!("Response status: {:?}", response.status);
-                                        if let Some(payload) = response.payload {
-                                            let s = core::str::from_utf8(payload).unwrap();
-                                            info!("Payload: {}", s);
-                                        } else {
-                                            info!("No response body");
-                                        }
-                                    }
-                                    Err(e) => {
-                                        warn!("Error doing HTTP request: {:?}", e);
+                            } else {
+                                write!(
+                                    tx,
+                                    "{{\"temp\": {}, \"hum\": {}}}",
+                                    t.data.temperature.raw_value(),
+                                    t.data.relative_humidity
+                                )
+                                .unwrap();
+                            }
+                            let mut rx_buf = [0; 1024];
+                            let response = client
+                                .request(
+                                    Request::post()
+                                        .path("/v1/foo")
+                                        .payload(tx.as_bytes())
+                                        .content_type(ContentType::ApplicationJson),
+                                    &mut rx_buf[..],
+                                )
+                                .await;
+                            match response {
+                                Ok(response) => {
+                                    info!("Response status: {:?}", response.status);
+                                    if let Some(payload) = response.payload {
+                                        let s = core::str::from_utf8(payload).unwrap();
+                                        info!("Payload: {}", s);
+                                    } else {
+                                        info!("No response body");
                                     }
                                 }
+                                Err(e) => {
+                                    warn!("Error doing HTTP request: {:?}", e);
+                                }
                             }
-                            None => {
-                                info!("No temperature value found, not sending measurement");
-                            }
-                        },
+                        }
+                        None => {
+                            info!("No temperature value found, not sending measurement");
+                        }
                     },
-                    _ => {}
                 }
             }
         }

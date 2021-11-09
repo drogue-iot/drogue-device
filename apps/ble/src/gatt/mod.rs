@@ -73,23 +73,22 @@ where
         async move {
             loop {
                 loop {
-                    if let Some(mut m) = inbox.next().await {
-                        let conn = m.message();
+                    let mut m = inbox.next().await;
+                    let conn = m.message();
 
-                        handler.on_event(GattEvent::Connected(conn.clone()));
+                    handler.on_event(GattEvent::Connected(conn.clone()));
 
-                        // Run the GATT server on the connection. This returns when the connection gets disconnected.
-                        let res = gatt_server::run(conn, server, |e| {
-                            trace!("GATT write event received");
-                            handler.on_event(GattEvent::Write(conn.clone(), e));
-                        })
-                        .await;
+                    // Run the GATT server on the connection. This returns when the connection gets disconnected.
+                    let res = gatt_server::run(conn, server, |e| {
+                        trace!("GATT write event received");
+                        handler.on_event(GattEvent::Write(conn.clone(), e));
+                    })
+                    .await;
 
-                        handler.on_event(GattEvent::Disconnected(conn.clone()));
+                    handler.on_event(GattEvent::Disconnected(conn.clone()));
 
-                        if let Err(e) = res {
-                            info!("gatt_server exited with error: {:?}", e);
-                        }
+                    if let Err(e) = res {
+                        info!("gatt_server exited with error: {:?}", e);
                     }
                 }
             }

@@ -57,15 +57,12 @@ impl<D: LoraDriver> Actor for App<D> {
             defmt::info!("LoRaWAN network joined");
             let driver = self.driver.as_mut().unwrap();
             loop {
-                match inbox.next().await {
-                    Some(mut m) => match m.message() {
-                        Command::Send => {
-                            defmt::info!("Sending data..");
-                            let result = driver.send(QoS::Confirmed, 1, b"ping").await;
-                            defmt::info!("Data sent: {:?}", result);
-                        }
-                    },
-                    _ => {}
+                match inbox.next().await.message() {
+                    Command::Send => {
+                        defmt::info!("Sending data..");
+                        let result = driver.send(QoS::Confirmed, 1, b"ping").await;
+                        defmt::info!("Data sent: {:?}", result);
+                    }
                 }
             }
         }

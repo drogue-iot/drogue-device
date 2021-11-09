@@ -79,11 +79,9 @@ impl Actor for TemperatureMonitor {
                 pin_mut!(ticker_fut);
 
                 match select(inbox_fut, ticker_fut).await {
-                    Either::Left((r, _)) => {
-                        if let Some(mut m) = r {
-                            let (conn, event) = m.message();
-                            self.handle_event(conn, event);
-                        }
+                    Either::Left((mut m, _)) => {
+                        let (conn, event) = m.message();
+                        self.handle_event(conn, event);
                     }
                     Either::Right((_, _)) => {
                         let value: i8 = temperature_celsius(self.sd).unwrap().to_num();

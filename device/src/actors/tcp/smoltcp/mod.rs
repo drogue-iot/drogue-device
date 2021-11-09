@@ -66,7 +66,7 @@ impl<
             );
         }
         let addr = self.driver.mount((), spawner);
-        defmt::unwrap!(addr.notify(SmolRequest::Initialize));
+        addr.notify(SmolRequest::Initialize).unwrap();
         self.embassy_net.mount((), spawner);
         addr
     }

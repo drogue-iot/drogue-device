@@ -59,31 +59,28 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
     {
         async move {
             loop {
-                if let Some(mut m) = inbox.next().await {
-                    let response = match m.message() {
-                        SmolRequest::Initialize => {
-                            unsafe { self.initialize() };
-                            SmolResponse::Initialized
-                        }
-                        SmolRequest::Open => {
-                            SmolResponse::Tcp(TcpResponse::Open(self.open().await))
-                        }
-                        SmolRequest::Connect(handle, proto, addr) => SmolResponse::Tcp(
-                            TcpResponse::Connect(self.connect(*handle, *proto, *addr).await),
-                        ),
-                        SmolRequest::Write(handle, buf) => {
-                            SmolResponse::Tcp(TcpResponse::Write(self.write(*handle, buf).await))
-                        }
-                        SmolRequest::Read(handle, buf) => {
-                            SmolResponse::Tcp(TcpResponse::Read(self.read(*handle, buf).await))
-                        }
-                        SmolRequest::Close(handle) => {
-                            let r = self.close(*handle).await;
-                            SmolResponse::Tcp(TcpResponse::Close(r))
-                        }
-                    };
-                    m.set_response(Some(response));
-                }
+                let mut m = inbox.next().await;
+                let response = match m.message() {
+                    SmolRequest::Initialize => {
+                        unsafe { self.initialize() };
+                        SmolResponse::Initialized
+                    }
+                    SmolRequest::Open => SmolResponse::Tcp(TcpResponse::Open(self.open().await)),
+                    SmolRequest::Connect(handle, proto, addr) => SmolResponse::Tcp(
+                        TcpResponse::Connect(self.connect(*handle, *proto, *addr).await),
+                    ),
+                    SmolRequest::Write(handle, buf) => {
+                        SmolResponse::Tcp(TcpResponse::Write(self.write(*handle, buf).await))
+                    }
+                    SmolRequest::Read(handle, buf) => {
+                        SmolResponse::Tcp(TcpResponse::Read(self.read(*handle, buf).await))
+                    }
+                    SmolRequest::Close(handle) => {
+                        let r = self.close(*handle).await;
+                        SmolResponse::Tcp(TcpResponse::Close(r))
+                    }
+                };
+                m.set_response(Some(response));
             }
         }
     }

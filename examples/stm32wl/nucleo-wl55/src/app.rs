@@ -140,20 +140,17 @@ where
             self.init_led.off().ok();
             defmt::info!("LoRaWAN network joined");
             loop {
-                match inbox.next().await {
-                    Some(mut m) => match m.message() {
-                        Command::Tick => {
-                            self.tick();
-                        }
-                        Command::Send => {
-                            self.send().await;
-                        }
-                        Command::TickAndSend => {
-                            self.tick();
-                            self.send().await;
-                        }
-                    },
-                    _ => {}
+                match *inbox.next().await.message() {
+                    Command::Tick => {
+                        self.tick();
+                    }
+                    Command::Send => {
+                        self.send().await;
+                    }
+                    Command::TickAndSend => {
+                        self.tick();
+                        self.send().await;
+                    }
                 }
             }
         }

@@ -178,20 +178,18 @@ where
             }
             self.config.init_led.off().ok();
             loop {
-                match inbox.next().await {
-                    Some(mut m) => match m.message() {
-                        Command::Tick => {
-                            self.tick();
-                        }
-                        Command::Send => {
-                            self.send().await;
-                        }
-                        Command::TickAndSend => {
-                            self.tick();
-                            self.send().await;
-                        }
-                    },
-                    _ => {}
+                let mut m = inbox.next().await;
+                match m.message() {
+                    Command::Tick => {
+                        self.tick();
+                    }
+                    Command::Send => {
+                        self.send().await;
+                    }
+                    Command::TickAndSend => {
+                        self.tick();
+                        self.send().await;
+                    }
                 }
             }
         }

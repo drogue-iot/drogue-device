@@ -62,7 +62,7 @@ fn test_device() -> Result<(), anyhow::Error> {
 
     let _p = xshell::pushd(&device)?;
 
-    cmd!("cargo test --all --features 'std wifi+esp8266'").run()?;
+    cmd!("cargo test --all --features 'std wifi+esp8266 wifi+eswifi tls lora tcp+smoltcp'").run()?;
     Ok(())
 }
 
