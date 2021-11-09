@@ -1,6 +1,6 @@
 use core::fmt::{Debug, Display, Formatter};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum IpAddress {
     V4(IpAddressV4),
@@ -12,7 +12,7 @@ impl IpAddress {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct IpAddressV4(u8, u8, u8, u8);
 

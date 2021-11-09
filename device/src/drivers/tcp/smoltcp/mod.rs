@@ -120,11 +120,12 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
     }
 
     #[rustfmt::skip]
-    type CloseFuture<'m> where 'buffer: 'm = impl Future<Output = ()> + 'm;
+    type CloseFuture<'m> where 'buffer: 'm = impl Future<Output = Result<(), TcpError>> + 'm;
 
     fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
         async move {
             self.buffer_pool.unborrow(handle.0);
+            Ok(())
         }
     }
 }

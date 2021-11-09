@@ -28,7 +28,7 @@ cortex-m = "0.7.1"
 
 # embassy = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features=["defmt"] }
 # embassy-stm32 = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features = ["defmt", "stm32l432kc"] }
-drogue-tls = { version = "0.3.0", default-features = false, features = ["async", "defmt"], optional = true}
+drogue-tls = { version = "0.4.0", default-features = false, features = ["async", "defmt"], optional = true}
 # drogue-tls = {path = "../../../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
 cfg-if = "1.0.0"
 

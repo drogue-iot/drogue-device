@@ -78,8 +78,8 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
                             SmolResponse::Tcp(TcpResponse::Read(self.read(*handle, buf).await))
                         }
                         SmolRequest::Close(handle) => {
-                            self.close(*handle).await;
-                            SmolResponse::Tcp(TcpResponse::Close)
+                            let r = self.close(*handle).await;
+                            SmolResponse::Tcp(TcpResponse::Close(r))
                         }
                     };
                     m.set_response(Some(response));

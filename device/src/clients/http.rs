@@ -1,36 +1,40 @@
-use crate::traits::{
-    ip::{IpAddress, IpProtocol, SocketAddress},
-    tcp::{TcpError, TcpSocket},
-};
+use crate::actors::net::*;
+use crate::traits::dns::{DnsError, DnsResolver};
 use core::fmt::{Display, Write};
 use core::{num::ParseIntError, str::Utf8Error};
+
 use heapless::String;
 
-pub struct HttpClient<'a, S>
+pub struct HttpClient<'a, C, D>
 where
-    S: TcpSocket + 'static,
+    C: ConnectionFactory + 'a,
+    D: DnsResolver<1> + 'a,
 {
-    socket: &'a mut S,
-    ip: IpAddress,
+    connection_factory: &'a mut C,
+    dns_resolver: &'a D,
+    host: &'a str,
     port: u16,
     username: &'a str,
     password: &'a str,
 }
 
-impl<'a, S> HttpClient<'a, S>
+impl<'a, C, D> HttpClient<'a, C, D>
 where
-    S: TcpSocket + 'static,
+    C: ConnectionFactory + 'a,
+    D: DnsResolver<1> + 'a,
 {
     pub fn new(
-        socket: &'a mut S,
-        ip: IpAddress,
+        connection_factory: &'a mut C,
+        dns_resolver: &'a D,
+        host: &'a str,
         port: u16,
         username: &'a str,
         password: &'a str,
     ) -> Self {
         Self {
-            socket,
-            ip,
+            connection_factory,
+            dns_resolver,
+            host,
             port,
             username,
             password,
@@ -42,74 +46,73 @@ where
         request: Request<'m>,
         rx_buf: &'m mut [u8],
     ) -> Result<Response<'m>, Error> {
-        match self
-            .socket
-            .connect(IpProtocol::Tcp, SocketAddress::new(self.ip, self.port))
-            .await
-        {
-            Ok(_) => {
-                info!("Connected to {}:{}", self.ip, self.port);
-                let mut combined: String<128> = String::new();
-                write!(combined, "{}:{}", self.username, self.password).unwrap();
-                let mut authz = [0; 256];
-                let authz_len =
-                    base64::encode_config_slice(combined.as_bytes(), base64::STANDARD, &mut authz);
-                let mut data: String<1024> = String::new();
-                write!(
-                    data,
-                    "{} {} HTTP/1.1\r\n",
-                    request.method,
-                    request.path.unwrap_or("/")
-                )
-                .unwrap();
-                write!(data, "Authorization: Basic {}\r\n", unsafe {
-                    core::str::from_utf8_unchecked(&authz[..authz_len])
-                })
-                .unwrap();
-                if let Some(content_type) = request.content_type {
-                    write!(data, "Content-Type: {}\r\n", content_type).unwrap();
-                }
-                if let Some(payload) = request.payload {
-                    write!(data, "Content-Length: {}\r\n\r\n", payload.len()).unwrap();
-                }
-                let result = self.socket.write(&data.as_bytes()[..data.len()]).await;
-                match result {
-                    Ok(_) => match request.payload {
-                        None => {
-                            return self.read_response(rx_buf).await;
+        let ips = self.dns_resolver.resolve(self.host).await?;
+        let ip = ips[0];
+        let mut connection = self
+            .connection_factory
+            .connect(self.host, ip, self.port)
+            .await?;
+
+        info!("Connected to {}:{}", self.host, self.port);
+
+        let mut combined: String<128> = String::new();
+        write!(combined, "{}:{}", self.username, self.password).unwrap();
+        let mut authz = [0; 256];
+        let authz_len =
+            base64::encode_config_slice(combined.as_bytes(), base64::STANDARD, &mut authz);
+        let mut data: String<1024> = String::new();
+        write!(
+            data,
+            "{} {} HTTP/1.1\r\n",
+            request.method,
+            request.path.unwrap_or("/")
+        )
+        .unwrap();
+        write!(data, "Host: {}\r\n", self.host).unwrap();
+        write!(data, "Authorization: Basic {}\r\n", unsafe {
+            core::str::from_utf8_unchecked(&authz[..authz_len])
+        })
+        .unwrap();
+        if let Some(content_type) = request.content_type {
+            write!(data, "Content-Type: {}\r\n", content_type).unwrap();
+        }
+        if let Some(payload) = request.payload {
+            write!(data, "Content-Length: {}\r\n\r\n", payload.len()).unwrap();
+        }
+        let result = connection.write(&data.as_bytes()[..data.len()]).await;
+        let result = match result {
+            Ok(_) => match request.payload {
+                None => self.read_response(&mut connection, rx_buf).await,
+                Some(payload) => {
+                    let result = connection.write(payload).await;
+                    match result {
+                        Ok(_) => self.read_response(&mut connection, rx_buf).await,
+                        Err(e) => {
+                            warn!("Error sending data: {:?}", e);
+                            Err(e.into())
                         }
-                        Some(payload) => {
-                            let result = self.socket.write(payload).await;
-                            match result {
-                                Ok(_) => {
-                                    return self.read_response(rx_buf).await;
-                                }
-                                Err(e) => {
-                                    warn!("Error sending data: {:?}", e);
-                                    Err(e.into())
-                                }
-                            }
-                        }
-                    },
-                    Err(e) => {
-                        warn!("Error sending headers: {:?}", e);
-                        Err(e.into())
                     }
                 }
-            }
+            },
             Err(e) => {
-                warn!("Error connecting to {}:{}: {:?}", self.ip, self.port, e);
+                warn!("Error sending headers: {:?}", e);
                 Err(e.into())
             }
-        }
+        };
+        connection.close().await?;
+        result
     }
 
-    async fn read_response<'m>(&mut self, rx_buf: &'m mut [u8]) -> Result<Response<'m>, Error> {
+    async fn read_response<'m>(
+        &mut self,
+        connection: &mut C::Connection,
+        rx_buf: &'m mut [u8],
+    ) -> Result<Response<'m>, Error> {
         let mut pos = 0;
         let mut buf: [u8; 1024] = [0; 1024];
         let mut header_end = 0;
         while pos < buf.len() {
-            let n = self.socket.read(&mut buf[pos..]).await?;
+            let n = connection.read(&mut buf[pos..]).await?;
 
             /*
             info!(
@@ -166,12 +169,11 @@ where
             rx_buf[..to_copy].copy_from_slice(&buf[header_end..header_end + to_copy]);
 
             let len = if to_copy < to_read {
-                // Fetch rest from socket
+                // Fetch rest from connection
                 let to_read = to_read - to_copy;
                 let mut pos = 0;
                 while pos < to_read {
-                    let n = self
-                        .socket
+                    let n = connection
                         .read(&mut rx_buf[to_copy + pos..to_copy + to_read])
                         .await?;
                     pos += n;
@@ -244,13 +246,20 @@ impl Display for Method {
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Error {
-    Socket(TcpError),
+    Network(NetworkError),
+    Dns(DnsError),
     Parse,
 }
 
-impl From<TcpError> for Error {
-    fn from(e: TcpError) -> Error {
-        Error::Socket(e)
+impl From<NetworkError> for Error {
+    fn from(e: NetworkError) -> Error {
+        Error::Network(e)
+    }
+}
+
+impl From<DnsError> for Error {
+    fn from(e: DnsError) -> Error {
+        Error::Dns(e)
     }
 }
 
@@ -276,7 +285,6 @@ pub struct Response<'a> {
 
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[repr(u32)]
 pub enum Status {
     Ok = 200,
     Created = 201,
@@ -284,7 +292,7 @@ pub enum Status {
     BadRequest = 400,
     Unauthorized = 401,
     NotFound = 404,
-    Unknown(u32) = 0,
+    Unknown = 0,
 }
 
 impl From<u32> for Status {
@@ -296,7 +304,10 @@ impl From<u32> for Status {
             400 => Status::BadRequest,
             401 => Status::Unauthorized,
             404 => Status::NotFound,
-            n => Status::Unknown(n),
+            n => {
+                warn!("Unknown status code: {:?}", n);
+                Status::Unknown
+            }
         }
     }
 }

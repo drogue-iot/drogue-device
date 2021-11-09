@@ -13,28 +13,6 @@ pub enum TcpError {
     SocketClosed,
 }
 
-pub trait TcpSocket {
-    type ConnectFuture<'m>: Future<Output = Result<(), TcpError>>
-    where
-        Self: 'm;
-    fn connect<'m>(&'m mut self, proto: IpProtocol, dst: SocketAddress) -> Self::ConnectFuture<'m>;
-
-    type WriteFuture<'m>: Future<Output = Result<usize, TcpError>>
-    where
-        Self: 'm;
-    fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m>;
-
-    type ReadFuture<'m>: Future<Output = Result<usize, TcpError>>
-    where
-        Self: 'm;
-    fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m>;
-
-    type CloseFuture<'m>: Future<Output = ()>
-    where
-        Self: 'm;
-    fn close<'m>(&'m mut self) -> Self::CloseFuture<'m>;
-}
-
 pub trait TcpStack {
     type SocketHandle: Copy;
 
@@ -67,7 +45,7 @@ pub trait TcpStack {
         buf: &'m mut [u8],
     ) -> Self::ReadFuture<'m>;
 
-    type CloseFuture<'m>: Future<Output = ()>
+    type CloseFuture<'m>: Future<Output = Result<(), TcpError>>
     where
         Self: 'm;
     fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m>;

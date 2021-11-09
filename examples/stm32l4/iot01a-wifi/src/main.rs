@@ -11,14 +11,10 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use drogue_device::{
-    actors::button::*,
-    actors::i2c::*,
-    actors::sensors::hts221::*,
-    actors::socket::*,
-    actors::wifi::*,
-    traits::{ip::*, wifi::*},
-    *,
+    actors::button::*, actors::i2c::*, actors::sensors::hts221::*, actors::wifi::*,
+    traits::wifi::*, *,
 };
+use drogue_temperature::*;
 use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::rcc::{AHBPrescaler, ClockSrc, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv};
 use embassy_stm32::spi::{self, Config as SpiConfig, Spi};
@@ -32,9 +28,6 @@ use embassy_stm32::{
     },
     Config, Peripherals,
 };
-use drogue_temperature::*;
-//use defmt::*;
-//use embedded_hal::digital::v2::{InputPin, OutputPin};
 
 use drogue_device::drivers::wifi::eswifi::EsWifiController;
 
@@ -44,19 +37,15 @@ cfg_if::cfg_if! {
             rng::Rng,
             peripherals::RNG,
         };
-        use drogue_tls::{Aes128GcmSha256, TlsContext};
-        use drogue_device::actors::socket::TlsSocket;
+        use drogue_tls::{Aes128GcmSha256};
+        use drogue_device::actors::net::TlsConnectionFactory;
 
-        //const HOST: &str = "http.sandbox.drogue.cloud";
-        //const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
-        //const PORT: u16 = 443;
+        const HOST: &str = "http.sandbox.drogue.cloud";
+        const PORT: u16 = 443;
+    } else {
+        use drogue_device::Address;
 
         const HOST: &str = "localhost";
-        const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP of local drogue service
-        const PORT: u16 = 8088;
-        static mut TLS_BUFFER: [u8; 16384] = [0u8; 16384];
-    } else {
-        const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP for local network server
         const PORT: u16 = 8088;
     }
 }
@@ -76,25 +65,26 @@ type SpiError = spi::Error;
 type EsWifi = EsWifiController<SPI, CS, RESET, WAKE, READY, SpiError>;
 
 #[cfg(feature = "tls")]
-type AppSocket =
-    TlsSocket<'static, Socket<'static, AdapterActor<EsWifi>>, Rng<RNG>, Aes128GcmSha256>;
+type ConnectionFactory =
+    TlsConnectionFactory<'static, AdapterActor<EsWifi>, Aes128GcmSha256, Rng<RNG>, 16384, 1>;
 
 #[cfg(not(feature = "tls"))]
-type AppSocket = Socket<'static, AdapterActor<EsWifi>>;
+type ConnectionFactory = Address<'static, AdapterActor<EsWifi>>;
 
 type I2cDriver = embassy_stm32::i2c::I2c<'static, I2C2, DMA1_CH4, DMA1_CH5>;
 
 pub struct MyDevice {
     wifi: ActorContext<'static, AdapterActor<EsWifi>>,
-    app: ActorContext<'static, App<AppSocket>, 2>,
-    button: ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App<AppSocket>>>,
+    app: ActorContext<'static, App<ConnectionFactory>, 2>,
+    button:
+        ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App<ConnectionFactory>>>,
     i2c: ActorContext<'static, I2cPeripheral<I2cDriver>>,
     sensor: ActorContext<
         'static,
         Sensor<
             ExtiInput<'static, PD15>,
             Address<'static, I2cPeripheral<I2cDriver>>,
-            AppAddress<AppSocket>,
+            AppAddress<ConnectionFactory>,
         >,
     >,
 }
@@ -183,7 +173,12 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     DEVICE.configure(MyDevice {
         wifi: ActorContext::new(AdapterActor::new()),
-        app: ActorContext::new(App::new(IP, PORT, USERNAME.trim_end(), PASSWORD.trim_end())),
+        app: ActorContext::new(App::new(
+            HOST,
+            PORT,
+            USERNAME.trim_end(),
+            PASSWORD.trim_end(),
+        )),
         button: ActorContext::new(Button::new(button)),
         i2c: ActorContext::new(I2cPeripheral::new(i2c)),
         sensor: ActorContext::new(Sensor::new(sensor_ready)),
@@ -201,14 +196,11 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             .expect("Error joining wifi");
             defmt::info!("WiFi network joined");
 
-            let socket = Socket::new(wifi, wifi.open().await.unwrap());
+            let factory = wifi;
             #[cfg(feature = "tls")]
-            let socket = TlsSocket::wrap(
-                socket,
-                TlsContext::new(rng, unsafe { &mut TLS_BUFFER }).with_server_name(HOST.trim_end()),
-            );
+            let factory = TlsConnectionFactory::new(factory, rng);
 
-            let app = device.app.mount(socket, spawner);
+            let app = device.app.mount(factory, spawner);
             device.button.mount(app, spawner);
             let i2c = device.i2c.mount((), spawner);
             device.sensor.mount((i2c, app.into()), spawner);

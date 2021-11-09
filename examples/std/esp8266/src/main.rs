@@ -6,13 +6,10 @@ mod serial;
 
 use async_io::Async;
 use drogue_device::{
-    actors::{
-        socket::*,
-        wifi::{esp8266::*, AdapterActor},
-    },
+    actors::wifi::{esp8266::*, AdapterActor},
     domain::{temperature::Temperature, SensorAcquisition},
     drivers::wifi::esp8266::*,
-    traits::{ip::*, wifi::*},
+    traits::wifi::*,
     *,
 };
 use drogue_temperature::*;
@@ -29,17 +26,17 @@ const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.passw
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "tls")] {
-        use drogue_tls::{Aes128GcmSha256, TlsContext};
-        use drogue_device::actors::socket::TlsSocket;
         use rand::rngs::OsRng;
+        use drogue_tls::{Aes128GcmSha256};
+        use drogue_device::actors::net::TlsConnectionFactory;
 
         const HOST: &str = "http.sandbox.drogue.cloud";
-        const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
         const PORT: u16 = 443;
-        static mut TLS_BUFFER: [u8; 16384] = [0u8; 16384];
     } else {
-        const IP: IpAddress = IpAddress::new_v4(192, 168, 1, 2); // IP for local network server
-        const PORT: u16 = 12345;
+        use drogue_device::Address;
+
+        const HOST: &str = "localhost";
+        const PORT: u16 = 8088;
     }
 }
 
@@ -48,19 +45,21 @@ type ENABLE = DummyPin;
 type RESET = DummyPin;
 
 #[cfg(feature = "tls")]
-type AppSocket = TlsSocket<
+type ConnectionFactory = TlsConnectionFactory<
     'static,
-    Socket<'static, AdapterActor<Esp8266Controller<'static>>>,
-    OsRng,
+    AdapterActor<Esp8266Controller<'static>>,
     Aes128GcmSha256,
+    OsRng,
+    16384,
+    1,
 >;
 
 #[cfg(not(feature = "tls"))]
-type AppSocket = Socket<'static, AdapterActor<Esp8266Controller<'static>>>;
+type ConnectionFactory = Address<'static, AdapterActor<Esp8266Controller<'static>>>;
 
 pub struct MyDevice {
     wifi: Esp8266Wifi<UART, ENABLE, RESET>,
-    app: ActorContext<'static, App<AppSocket>>,
+    app: ActorContext<'static, App<ConnectionFactory>>,
 }
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 
@@ -79,7 +78,12 @@ async fn main(spawner: embassy::executor::Spawner) {
 
     DEVICE.configure(MyDevice {
         wifi: Esp8266Wifi::new(port, DummyPin {}, DummyPin {}),
-        app: ActorContext::new(App::new(IP, PORT, USERNAME.trim_end(), PASSWORD.trim_end())),
+        app: ActorContext::new(App::new(
+            HOST,
+            PORT,
+            USERNAME.trim_end(),
+            PASSWORD.trim_end(),
+        )),
     });
 
     let app = DEVICE
@@ -93,14 +97,11 @@ async fn main(spawner: embassy::executor::Spawner) {
             .expect("Error joining wifi");
             log::info!("WiFi network joined");
 
-            let socket = Socket::new(wifi, wifi.open().await.unwrap());
+            let factory = wifi;
             #[cfg(feature = "tls")]
-            let socket = TlsSocket::wrap(
-                socket,
-                TlsContext::new(OsRng, unsafe { &mut TLS_BUFFER })
-                    .with_server_name(HOST.trim_end()),
-            );
-            device.app.mount(socket, spawner)
+            let factory = TlsConnectionFactory::new(factory, OsRng);
+
+            device.app.mount(factory, spawner)
         })
         .await;
 
