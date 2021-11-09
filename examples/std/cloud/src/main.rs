@@ -22,7 +22,7 @@ pub struct MyDevice {
     network: ActorContext<'static, StdTcpActor>,
     app: ActorContext<
         'static,
-        App<TlsConnectionFactory<'static, StdTcpActor, Aes128GcmSha256, OsRng, 16384, 1>>,
+        App<TlsConnectionFactory<'static, StdTcpActor, Aes128GcmSha256, OsRng, 1>>,
     >,
 }
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -44,12 +44,14 @@ async fn main(spawner: embassy::executor::Spawner) {
         )),
     });
 
+    static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
     let app = DEVICE
         .mount(|device| async move {
             let network = device.network.mount((), spawner);
-            device
-                .app
-                .mount(TlsConnectionFactory::new(network, OsRng), spawner)
+            device.app.mount(
+                TlsConnectionFactory::new(network, OsRng, [unsafe { &mut TLS_BUFFER }; 1]),
+                spawner,
+            )
         })
         .await;
 
