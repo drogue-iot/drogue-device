@@ -71,7 +71,7 @@ where
         async move {
             loop {
                 match with_timeout(self.refresh_interval, inbox.next()).await {
-                    Ok(Some(mut m)) => match *m.message() {
+                    Ok(mut m) => match *m.message() {
                         MatrixCommand::ApplyFrame(f) => self.matrix.apply(f.to_frame()),
                         MatrixCommand::ApplyText(s, effect, duration) => {
                             self.animation.replace(
@@ -104,7 +104,6 @@ where
                         }
                         self.matrix.render();
                     }
-                    _ => {}
                 }
             }
         }

@@ -68,20 +68,19 @@ where
     {
         async move {
             loop {
-                if let Some(mut m) = inbox.next().await {
-                    let new_state = match *m.message() {
-                        LedMessage::On => true,
-                        LedMessage::Off => false,
-                        LedMessage::State(state) => state,
-                        LedMessage::Toggle => !self.state,
+                let mut m = inbox.next().await;
+                let new_state = match *m.message() {
+                    LedMessage::On => true,
+                    LedMessage::Off => false,
+                    LedMessage::State(state) => state,
+                    LedMessage::Toggle => !self.state,
+                };
+                if self.state != new_state {
+                    self.state = new_state;
+                    match self.state {
+                        true => self.pin.set_high().ok(),
+                        false => self.pin.set_low().ok(),
                     };
-                    if self.state != new_state {
-                        self.state = new_state;
-                        match self.state {
-                            true => self.pin.set_high().ok(),
-                            false => self.pin.set_low().ok(),
-                        };
-                    }
                 }
             }
         }

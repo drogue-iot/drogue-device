@@ -40,56 +40,55 @@ impl Actor for StdTcpActor {
     {
         async move {
             loop {
-                if let Some(mut m) = inbox.next().await {
-                    let response = match m.message() {
-                        TcpRequest::Open => {
-                            let handle = self
-                                .socket_pool
-                                .open()
-                                .await
-                                .map_err(|_| TcpError::OpenError);
-                            TcpResponse::Open(handle)
-                        }
-                        TcpRequest::Connect(handle, _proto, addr) => {
-                            match TcpStream::connect(format!("{}:{}", addr.ip(), addr.port())) {
-                                Ok(stream) => {
-                                    self.sockets.insert(*handle, stream);
-                                    TcpResponse::Connect(Ok(()))
-                                }
-                                _ => TcpResponse::Connect(Err(TcpError::ConnectError)),
+                let mut m = inbox.next().await;
+                let response = match m.message() {
+                    TcpRequest::Open => {
+                        let handle = self
+                            .socket_pool
+                            .open()
+                            .await
+                            .map_err(|_| TcpError::OpenError);
+                        TcpResponse::Open(handle)
+                    }
+                    TcpRequest::Connect(handle, _proto, addr) => {
+                        match TcpStream::connect(format!("{}:{}", addr.ip(), addr.port())) {
+                            Ok(stream) => {
+                                self.sockets.insert(*handle, stream);
+                                TcpResponse::Connect(Ok(()))
                             }
+                            _ => TcpResponse::Connect(Err(TcpError::ConnectError)),
                         }
-                        TcpRequest::Write(handle, buf) => {
-                            if let Some(mut s) = self.sockets.get(handle) {
-                                match s.write(buf) {
-                                    Ok(sz) => TcpResponse::Write(Ok(sz)),
-                                    _ => TcpResponse::Write(Err(TcpError::WriteError)),
-                                }
-                            } else {
-                                TcpResponse::Write(Err(TcpError::WriteError))
+                    }
+                    TcpRequest::Write(handle, buf) => {
+                        if let Some(mut s) = self.sockets.get(handle) {
+                            match s.write(buf) {
+                                Ok(sz) => TcpResponse::Write(Ok(sz)),
+                                _ => TcpResponse::Write(Err(TcpError::WriteError)),
                             }
+                        } else {
+                            TcpResponse::Write(Err(TcpError::WriteError))
                         }
-                        TcpRequest::Read(handle, buf) => {
-                            if let Some(mut s) = self.sockets.get(handle) {
-                                match s.read(buf) {
-                                    Ok(sz) => TcpResponse::Read(Ok(sz)),
-                                    _ => TcpResponse::Read(Err(TcpError::ReadError)),
-                                }
-                            } else {
-                                TcpResponse::Read(Err(TcpError::ReadError))
+                    }
+                    TcpRequest::Read(handle, buf) => {
+                        if let Some(mut s) = self.sockets.get(handle) {
+                            match s.read(buf) {
+                                Ok(sz) => TcpResponse::Read(Ok(sz)),
+                                _ => TcpResponse::Read(Err(TcpError::ReadError)),
                             }
+                        } else {
+                            TcpResponse::Read(Err(TcpError::ReadError))
                         }
-                        TcpRequest::Close(handle) => {
-                            if self.sockets.remove(handle).is_some() {
-                                // Move through both close states
-                                self.socket_pool.close(*handle);
-                                self.socket_pool.close(*handle);
-                            }
-                            TcpResponse::Close(Ok(()))
+                    }
+                    TcpRequest::Close(handle) => {
+                        if self.sockets.remove(handle).is_some() {
+                            // Move through both close states
+                            self.socket_pool.close(*handle);
+                            self.socket_pool.close(*handle);
                         }
-                    };
-                    m.set_response(Some(response));
-                }
+                        TcpResponse::Close(Ok(()))
+                    }
+                };
+                m.set_response(Some(response));
             }
         }
     }

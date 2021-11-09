@@ -37,7 +37,7 @@ mod tests {
             {
                 async move {
                     loop {
-                        let mut message = inbox.next().await.unwrap();
+                        let mut message = inbox.next().await;
                         self.value.fetch_add(message.message().0, Ordering::SeqCst);
                     }
                 }

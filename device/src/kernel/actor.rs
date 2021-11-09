@@ -57,8 +57,10 @@ pub trait Inbox<'a, A>
 where
     A: Actor + 'a,
 {
-    #[rustfmt::skip]
-    type NextFuture<'m>: Future<Output = Option<InboxMessage<'m, A>>> where Self: 'm, 'a: 'm;
+    type NextFuture<'m>: Future<Output = InboxMessage<'m, A>>
+    where
+        Self: 'm,
+        'a: 'm;
 
     /// Retrieve the next message in the inbox. A default value to use as a response must be
     /// provided to ensure a response is always given.
@@ -71,29 +73,39 @@ where
 impl<'a, A: Actor + 'static, const QUEUE_SIZE: usize> Inbox<'a, A>
     for Receiver<'a, ActorMutex, ActorMessage<'a, A>, QUEUE_SIZE>
 {
-    #[rustfmt::skip]
-    type NextFuture<'m> where 'a: 'm, A: 'm = impl Future<Output = Option<InboxMessage<'m, A>>> + 'm;
+    type NextFuture<'m>
+    where
+        'a: 'm,
+        A: 'm,
+    = impl Future<Output = InboxMessage<'m, A>> + 'm;
     fn next<'m>(&'m mut self) -> Self::NextFuture<'m> {
         async move {
-            // Safety: This is OK because 'a > 'm and we're doing this to ensure
-            // processing loop doesn't abuse the 'fake' lifetime while stored on the queue.
-            self.recv().await.map(|m| match m {
-                ActorMessage::Request(message, signal) => unsafe {
-                    // Ensure we don't run destructor of the copied value
-                    let message = core::mem::ManuallyDrop::new(message);
-                    InboxMessage::request(
-                        core::mem::transmute_copy::<A::Message<'a>, A::Message<'m>>(&message),
-                        signal,
-                    )
-                },
-                ActorMessage::Notify(message) => unsafe {
-                    // Ensure we don't run destructor of the copied value
-                    let message = core::mem::ManuallyDrop::new(message);
-                    InboxMessage::notify(
-                        core::mem::transmute_copy::<A::Message<'a>, A::Message<'m>>(&message),
-                    )
-                },
-            })
+            loop {
+                // Safety: This is OK because 'a > 'm and we're doing this to ensure
+                // processing loop doesn't abuse the 'fake' lifetime while stored on the queue.
+                if let Some(m) = self.recv().await {
+                    return match m {
+                        ActorMessage::Request(message, signal) => unsafe {
+                            // Ensure we don't run destructor of the copied value
+                            let message = core::mem::ManuallyDrop::new(message);
+                            InboxMessage::request(
+                                core::mem::transmute_copy::<A::Message<'a>, A::Message<'m>>(
+                                    &message,
+                                ),
+                                signal,
+                            )
+                        },
+                        ActorMessage::Notify(message) => unsafe {
+                            // Ensure we don't run destructor of the copied value
+                            let message = core::mem::ManuallyDrop::new(message);
+                            InboxMessage::notify(core::mem::transmute_copy::<
+                                A::Message<'a>,
+                                A::Message<'m>,
+                            >(&message))
+                        },
+                    };
+                }
+            }
         }
     }
 }
@@ -250,14 +262,17 @@ impl ActorSpawner for Spawner {
 
 /// A context for an actor, providing signal and message queue. The QUEUE_SIZE parameter
 /// is a const generic parameter, and controls how many messages an Actor can handle.
-#[rustfmt::skip]
 pub struct ActorContext<'a, A, const QUEUE_SIZE: usize = 1>
 where
     A: Actor + 'static,
     [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
 {
-
-    task: Task<A::OnMountFuture<'static, Receiver<'static, ActorMutex, ActorMessage<'static, A>, QUEUE_SIZE>>>,
+    task: Task<
+        A::OnMountFuture<
+            'static,
+            Receiver<'static, ActorMutex, ActorMessage<'static, A>, QUEUE_SIZE>,
+        >,
+    >,
     actor: UnsafeCell<A>,
     channel: MessageChannel<'a, ActorMessage<'a, A>, QUEUE_SIZE>,
     // NOTE: This wastes an extra signal because heapless requires at least 2 slots and

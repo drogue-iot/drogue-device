@@ -114,9 +114,8 @@ impl Actor for DummyActor {
     {
         async move {
             loop {
-                if let Some(mut m) = inbox.next().await {
-                    m.set_response(());
-                }
+                let mut m = inbox.next().await;
+                m.set_response(());
             }
         }
     }
@@ -149,7 +148,7 @@ impl Actor for TestHandler {
     {
         async move {
             loop {
-                let mut message = inbox.next().await.unwrap();
+                let mut message = inbox.next().await;
                 self.on_message.signal(*message.message());
             }
         }

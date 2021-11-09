@@ -46,23 +46,22 @@ where
     {
         async move {
             loop {
-                if let Some(mut m) = inbox.next().await {
-                    let response = match m.message() {
-                        I2cRequest::Read(address, buffer) => {
-                            let address: u8 = (*address).into();
-                            self.i2c.read(address, buffer).await
-                        }
-                        I2cRequest::Write(address, bytes) => {
-                            let address: u8 = (*address).into();
-                            self.i2c.write(address, bytes).await
-                        }
-                        I2cRequest::WriteRead(address, bytes, buffer) => {
-                            let address: u8 = (*address).into();
-                            self.i2c.write_read(address, bytes, buffer).await
-                        }
-                    };
-                    m.set_response(Some(response));
-                }
+                let mut m = inbox.next().await;
+                let response = match m.message() {
+                    I2cRequest::Read(address, buffer) => {
+                        let address: u8 = (*address).into();
+                        self.i2c.read(address, buffer).await
+                    }
+                    I2cRequest::Write(address, bytes) => {
+                        let address: u8 = (*address).into();
+                        self.i2c.write(address, bytes).await
+                    }
+                    I2cRequest::WriteRead(address, bytes, buffer) => {
+                        let address: u8 = (*address).into();
+                        self.i2c.write_read(address, bytes, buffer).await
+                    }
+                };
+                m.set_response(Some(response));
             }
         }
     }

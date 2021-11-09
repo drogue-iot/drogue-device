@@ -97,18 +97,17 @@ where
         async move {
             let driver = &mut self.driver;
             loop {
-                if let Some(mut m) = inbox.next().await {
-                    let response = match m.message() {
-                        LoraRequest::Join(mode) => driver.join(*mode).await.map(|_| 0),
-                        LoraRequest::Send(qos, port, buf) => {
-                            driver.send(*qos, *port, buf).await.map(|_| 0)
-                        }
-                        LoraRequest::SendRecv(qos, port, buf, rx) => {
-                            driver.send_recv(*qos, *port, buf, rx).await
-                        }
-                    };
-                    m.set_response(Some(response));
-                }
+                let mut m = inbox.next().await;
+                let response = match m.message() {
+                    LoraRequest::Join(mode) => driver.join(*mode).await.map(|_| 0),
+                    LoraRequest::Send(qos, port, buf) => {
+                        driver.send(*qos, *port, buf).await.map(|_| 0)
+                    }
+                    LoraRequest::SendRecv(qos, port, buf, rx) => {
+                        driver.send_recv(*qos, *port, buf, rx).await
+                    }
+                };
+                m.set_response(Some(response));
             }
         }
     }

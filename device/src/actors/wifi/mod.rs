@@ -128,30 +128,27 @@ impl<N: Adapter> Actor for AdapterActor<N> {
         async move {
             let driver = self.driver.as_mut().unwrap();
             loop {
-                if let Some(mut m) = inbox.next().await {
-                    let response = match m.message() {
-                        AdapterRequest::Join(join) => {
-                            AdapterResponse::Join(driver.join(*join).await)
-                        }
-                        AdapterRequest::Open => {
-                            AdapterResponse::Tcp(TcpResponse::Open(driver.open().await))
-                        }
-                        AdapterRequest::Connect(handle, proto, addr) => AdapterResponse::Tcp(
-                            TcpResponse::Connect(driver.connect(*handle, *proto, *addr).await),
-                        ),
-                        AdapterRequest::Write(handle, buf) => AdapterResponse::Tcp(
-                            TcpResponse::Write(driver.write(*handle, buf).await),
-                        ),
-                        AdapterRequest::Read(handle, buf) => {
-                            AdapterResponse::Tcp(TcpResponse::Read(driver.read(*handle, buf).await))
-                        }
-                        AdapterRequest::Close(handle) => {
-                            let r = driver.close(*handle).await;
-                            AdapterResponse::Tcp(TcpResponse::Close(r))
-                        }
-                    };
-                    m.set_response(Some(response));
-                }
+                let mut m = inbox.next().await;
+                let response = match m.message() {
+                    AdapterRequest::Join(join) => AdapterResponse::Join(driver.join(*join).await),
+                    AdapterRequest::Open => {
+                        AdapterResponse::Tcp(TcpResponse::Open(driver.open().await))
+                    }
+                    AdapterRequest::Connect(handle, proto, addr) => AdapterResponse::Tcp(
+                        TcpResponse::Connect(driver.connect(*handle, *proto, *addr).await),
+                    ),
+                    AdapterRequest::Write(handle, buf) => {
+                        AdapterResponse::Tcp(TcpResponse::Write(driver.write(*handle, buf).await))
+                    }
+                    AdapterRequest::Read(handle, buf) => {
+                        AdapterResponse::Tcp(TcpResponse::Read(driver.read(*handle, buf).await))
+                    }
+                    AdapterRequest::Close(handle) => {
+                        let r = driver.close(*handle).await;
+                        AdapterResponse::Tcp(TcpResponse::Close(r))
+                    }
+                };
+                m.set_response(Some(response));
             }
         }
     }
