@@ -101,21 +101,18 @@ impl Actor for App {
         self.red.replace(config.2);
         async move {
             loop {
-                match inbox.next().await {
-                    Some(_) => match self.color {
-                        None | Some(Color::Red) => {
-                            self.color = Some(Color::Green);
-                        }
-                        Some(Color::Green) => {
-                            self.color = Some(Color::Yellow);
-                        }
-                        Some(Color::Yellow) => {
-                            self.color = Some(Color::Red);
-                        }
-                    },
-                    _ => {}
+                let _ = inbox.next().await;
+                match self.color {
+                    None | Some(Color::Red) => {
+                        self.color = Some(Color::Green);
+                    }
+                    Some(Color::Green) => {
+                        self.color = Some(Color::Yellow);
+                    }
+                    Some(Color::Yellow) => {
+                        self.color = Some(Color::Red);
+                    }
                 }
-
                 self.draw();
             }
         }

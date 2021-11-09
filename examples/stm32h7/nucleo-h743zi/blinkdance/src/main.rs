@@ -129,7 +129,7 @@ impl Actor for App {
         async move {
             loop {
                 match with_timeout(Duration::from_millis(50), inbox.next()).await {
-                    Ok(Some(mut m)) => match m.message() {
+                    Ok(mut m) => match m.message() {
                         Command::StartDancing => {
                             self.all_on();
                             self.dancing = true;
