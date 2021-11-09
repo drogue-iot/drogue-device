@@ -587,6 +587,7 @@ where
     type CloseFuture<'m> where SPI: 'm,  = impl Future<Output = Result<(), TcpError>> + 'm;
     fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
         async move {
+            self.socket_pool.close(handle);
             let mut response = [0u8; 1024];
 
             self.send_string(&command!(8, "P0={}", handle), &mut response)
@@ -599,6 +600,7 @@ where
                 .map_err(|_| TcpError::CloseError)?;
 
             if let Ok((_, CloseResponse::Ok)) = parser::close_response(&response) {
+                self.socket_pool.close(handle);
                 Ok(())
             } else {
                 Err(TcpError::CloseError)

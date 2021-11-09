@@ -80,7 +80,9 @@ impl Actor for StdTcpActor {
                             }
                         }
                         TcpRequest::Close(handle) => {
-                            if let Some(_) = self.sockets.remove(handle) {
+                            if self.sockets.remove(handle).is_some() {
+                                // Move through both close states
+                                self.socket_pool.close(*handle);
                                 self.socket_pool.close(*handle);
                             }
                             TcpResponse::Close(Ok(()))

@@ -616,6 +616,7 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
     type CloseFuture<'m> where 'a: 'm = impl Future<Output = Result<(), TcpError>> + 'm;
     fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
         async move {
+            self.socket_pool.close(handle);
             let command = Command::CloseConnection(handle as usize);
             match self.send(command).await {
                 Ok(AtResponse::Ok) | Ok(AtResponse::UnlinkFail) => {
