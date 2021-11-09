@@ -57,16 +57,11 @@ mod tls {
     use super::Socket;
     use crate::actors::tcp::{TcpActor, TcpResponse};
     use crate::kernel::actor::Actor;
-    use crate::traits::{
-        ip::{IpProtocol, SocketAddress},
-        tcp::{TcpError, TcpSocket},
-    };
     use core::future::Future;
     use drogue_tls::{
         traits::{AsyncRead, AsyncWrite},
-        NoClock, TlsCipherSuite, TlsConfig, TlsConnection, TlsContext, TlsError,
+        TlsError,
     };
-    use rand_core::{CryptoRng, RngCore};
 
     impl<'a, A> AsyncRead for Socket<'a, A>
     where

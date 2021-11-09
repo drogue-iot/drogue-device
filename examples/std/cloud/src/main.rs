@@ -3,8 +3,8 @@
 #![feature(type_alias_impl_trait)]
 
 use drogue_device::{
+    actors::net::*,
     actors::tcp::std::*,
-    clients::http::TlsConnectionFactory,
     domain::{temperature::Temperature, SensorAcquisition},
     *,
 };

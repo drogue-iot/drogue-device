@@ -10,6 +10,7 @@ use core::future::Future;
 use core::marker::PhantomData;
 use drogue_device::{
     actors::button::{ButtonEvent, FromButtonEvent},
+    actors::net::*,
     actors::sensors::SensorMonitor,
     clients::http::*,
     domain::{temperature::Celsius, SensorAcquisition},

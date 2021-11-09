@@ -1,7 +1,7 @@
 use super::socket::*;
 use super::tcp::*;
 use crate::traits::{ip::*, tcp::*};
-use crate::Actor;
+use crate::{Actor, Address};
 use core::future::Future;
 
 /// Trait for network connections
@@ -41,6 +41,38 @@ pub trait NetworkConnection {
     where
         Self: 'm;
     fn close<'m>(self) -> Self::CloseFuture<'m>;
+}
+
+impl<'a, A> ConnectionFactory for Address<'a, A>
+where
+    A: Actor + TcpActor<A> + 'static,
+    A::Response: Into<TcpResponse<A::SocketHandle>>,
+{
+    type Connection = Socket<'a, A>;
+    type ConnectFuture<'m>
+    where
+        'a: 'm,
+        A: 'm,
+    = impl Future<Output = Result<Self::Connection, NetworkError>> + 'm;
+
+    fn connect<'m>(&'m mut self, _: &'m str, ip: IpAddress, port: u16) -> Self::ConnectFuture<'m> {
+        async move {
+            let mut socket = Socket::new(self.clone(), self.open().await.unwrap());
+            match socket
+                .connect(IpProtocol::Tcp, SocketAddress::new(ip, port))
+                .await
+            {
+                Ok(_) => {
+                    trace!("Connection established");
+                    Ok(socket)
+                }
+                Err(e) => {
+                    warn!("Error creating connection: {:?}", e);
+                    Err(NetworkError::Tcp(e))
+                }
+            }
+        }
+    }
 }
 
 impl<'a, A> NetworkConnection for Socket<'a, A>
