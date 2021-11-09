@@ -613,15 +613,16 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
     }
 
     #[rustfmt::skip]
-    type CloseFuture<'m> where 'a: 'm = impl Future<Output = ()> + 'm;
+    type CloseFuture<'m> where 'a: 'm = impl Future<Output = Result<(), TcpError>> + 'm;
     fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
         async move {
             let command = Command::CloseConnection(handle as usize);
             match self.send(command).await {
                 Ok(AtResponse::Ok) | Ok(AtResponse::UnlinkFail) => {
                     self.socket_pool.close(handle);
+                    Ok(())
                 }
-                _ => {}
+                _ => Err(TcpError::CloseError),
             }
         }
     }

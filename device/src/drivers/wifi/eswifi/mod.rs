@@ -584,30 +584,24 @@ where
     }
 
     #[rustfmt::skip]
-    type CloseFuture<'m> where SPI: 'm,  = impl Future<Output = ()> + 'm;
+    type CloseFuture<'m> where SPI: 'm,  = impl Future<Output = Result<(), TcpError>> + 'm;
     fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
         async move {
             let mut response = [0u8; 1024];
 
-            match async {
-                self.send_string(&command!(8, "P0={}", handle), &mut response)
-                    .await
-                    .map_err(|_| TcpError::CloseError)?;
+            self.send_string(&command!(8, "P0={}", handle), &mut response)
+                .await
+                .map_err(|_| TcpError::CloseError)?;
 
-                let response = self
-                    .send_string(&command!(8, "P6=0"), &mut response)
-                    .await
-                    .map_err(|_| TcpError::CloseError)?;
+            let response = self
+                .send_string(&command!(8, "P6=0"), &mut response)
+                .await
+                .map_err(|_| TcpError::CloseError)?;
 
-                if let Ok((_, CloseResponse::Ok)) = parser::close_response(&response) {
-                    Ok(())
-                } else {
-                    Err(TcpError::CloseError)
-                }
-            }
-            .await
-            {
-                _ => {}
+            if let Ok((_, CloseResponse::Ok)) = parser::close_response(&response) {
+                Ok(())
+            } else {
+                Err(TcpError::CloseError)
             }
         }
     }

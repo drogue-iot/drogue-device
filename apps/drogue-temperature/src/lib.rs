@@ -139,7 +139,6 @@ where
                                     )
                                     .unwrap();
                                 }
-                                info!("Sending data: {}", tx);
                                 let mut rx_buf = [0; 1024];
                                 let response = client
                                     .request(
