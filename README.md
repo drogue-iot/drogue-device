@@ -50,7 +50,6 @@ impl Actor for Counter {
 
     /// Drogue Device uses a feature from Nightly Rust called Generic Associated Types (GAT) in order
     /// to support async functions in traits such as Actor.
-    #[rustfmt::skip]
     type OnMountFuture<'a, M> where M: 'a = impl core::future::Future<Output = ()> + 'a;
 
     /// An actor have to implement the on_mount method. on_mount() is invoked when the internals of an actor is ready,
