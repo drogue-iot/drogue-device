@@ -34,7 +34,7 @@ static WORKSPACES: &[&'static str] = &[
     "examples/stm32h7/nucleo-h743zi",
     "examples/wasm/browser",
     "examples/std",
-    "apps/ble",
+    //"apps/ble",
 ];
 
 fn ci() -> Result<(), anyhow::Error> {
