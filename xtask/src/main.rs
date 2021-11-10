@@ -11,7 +11,9 @@ fn main() -> Result<(), anyhow::Error> {
     let args = args.iter().map(|s| &**s).collect::<Vec<_>>();
 
     match &args[..] {
-        ["ci"] => test_ci(),
+        ["ci"] => ci(),
+        ["check"] => check(),
+        ["build"] => build(),
         ["fmt"] => fmt(),
         ["update"] => update(),
         ["docs"] => docs(),
@@ -22,117 +24,113 @@ fn main() -> Result<(), anyhow::Error> {
     }
 }
 
+static WORKSPACES: &[&'static str] = &[
+    "examples/nrf52/microbit",
+    "examples/stm32l0/lora-discovery",
+    "examples/stm32l1/rak811",
+    "examples/stm32l4/iot01a-wifi",
+    "examples/rp/pico",
+    "examples/stm32wl/nucleo-wl55",
+    "examples/stm32h7/nucleo-h743zi",
+    "examples/wasm/browser",
+    "examples/std",
+    "apps/ble",
+];
+
+fn ci() -> Result<(), anyhow::Error> {
+    let _e = xshell::pushenv("CI", "true");
+
+    check()?;
+    build()?;
+    docs()?;
+    Ok(())
+}
+
 fn update() -> Result<(), anyhow::Error> {
     let _p = xshell::pushd(root_dir())?;
     cmd!("cargo update").run()?;
-    let mut ble_dir = root_dir();
-    ble_dir.push("apps");
-    ble_dir.push("ble");
-    do_examples(ble_dir, 1, usize::MAX, &mut update_example)?;
-
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
-    do_examples(examples_dir, 1, usize::MAX, &mut update_example)?;
+    do_examples(examples_dir, &mut update_crate)?;
     Ok(())
 }
 
 fn fmt() -> Result<(), anyhow::Error> {
     let _p = xshell::pushd(root_dir())?;
     cmd!("cargo fmt").run()?;
-    let mut ble_dir = root_dir();
-    ble_dir.push("apps");
-    ble_dir.push("ble");
-    do_examples(ble_dir, 1, usize::MAX, &mut |project_file: PathBuf| {
-        println!("Formatting example {}", project_file.to_str().unwrap_or(""));
-        let _p = xshell::pushd(project_file.parent().unwrap())?;
-        cmd!("cargo fmt").run()?;
-        Ok(())
-    })?;
-
-    let mut examples_dir = root_dir();
-    examples_dir.push("examples");
-    do_examples(examples_dir, 1, usize::MAX, &mut |project_file: PathBuf| {
-        println!("Formatting example {}", project_file.to_str().unwrap_or(""));
-        let _p = xshell::pushd(project_file.parent().unwrap())?;
-        cmd!("cargo fmt").run()?;
-        Ok(())
-    })?;
+    do_crates(&mut fmt_crate)?;
     Ok(())
 }
 
-fn test_ci() -> Result<(), anyhow::Error> {
-    let _e = xshell::pushenv("CI", "true");
+fn check() -> Result<(), anyhow::Error> {
+    let _e = xshell::pushenv("RUSTFLAGS", "-Dwarnings");
+    check_device()?;
+    do_crates(&mut check_crate)?;
+    Ok(())
+}
+
+fn check_device() -> Result<(), anyhow::Error> {
+    let mut device = root_dir();
+    device.push("device");
+    let _p = xshell::pushd(&device)?;
+    cmd!("cargo fmt --check").run()?;
+    cmd!("cargo check --all --features 'std wifi+esp8266 wifi+eswifi lora lora+rak811 tcp+smoltcp tls'").run()?;
+    Ok(())
+}
+
+fn build() -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("RUSTFLAGS", "-Dwarnings");
     test_device()?;
-    let mut examples_dir = root_dir();
-    examples_dir.push("examples");
-
-    //    do_examples(examples_dir, 1, 3, &mut test_example)?;
-    for example in &[
-        "nrf52/microbit",
-        "stm32l0/lora-discovery",
-        "stm32l1/rak811",
-        "stm32l4/iot01a-wifi",
-        "rp/pico",
-        "stm32wl/nucleo-wl55",
-        "stm32h7/nucleo-h743zi",
-        "wasm/browser",
-        "std",
-    ] {
-        let mut example_dir = examples_dir.clone();
-        example_dir.push(example);
-        check_example(example_dir)?;
-    }
+    do_crates(&mut build_crate)?;
     Ok(())
 }
 
 fn test_device() -> Result<(), anyhow::Error> {
     let mut device = root_dir();
     device.push("device");
-
     let _p = xshell::pushd(&device)?;
-
-    cmd!("cargo test --all --features 'std wifi+esp8266'").run()?;
+    cmd!("cargo test --all --features 'std wifi+esp8266 wifi+eswifi lora lora+rak811 tcp+smoltcp tls'").run()?;
     Ok(())
 }
 
-fn do_examples<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
-    current_dir: PathBuf,
-    depth: usize,
-    max_depth: usize,
+fn do_crates<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
     f: &mut F,
 ) -> Result<(), anyhow::Error> {
-    if depth > max_depth {
-        return Ok(());
-    }
-    for entry in fs::read_dir(current_dir)? {
-        let entry = entry?;
-        let path = entry.path();
-
-        if path.ends_with("Cargo.toml") {
-            f(path.clone())?;
-        }
-
-        let file_type = entry.file_type()?;
-        if file_type.is_dir() && !path.ends_with("target") {
-            do_examples(path, depth + 1, max_depth, f)?;
-        }
+    for workspace in WORKSPACES {
+        let mut crate_dir = root_dir();
+        crate_dir.push(workspace);
+        f(crate_dir)?;
     }
 
     Ok(())
 }
 
-fn check_example(project_file: PathBuf) -> Result<(), anyhow::Error> {
-    println!("Building example {}", project_file.to_str().unwrap_or(""));
+fn check_crate(project_file: PathBuf) -> Result<(), anyhow::Error> {
+    println!("Checking {}", project_file.to_str().unwrap_or(""));
+    let _p = xshell::pushd(project_file)?;
+    cmd!("cargo fmt --check").run()?;
+    cmd!("cargo check").run()?;
+    Ok(())
+}
+
+fn build_crate(project_file: PathBuf) -> Result<(), anyhow::Error> {
+    println!("Building {}", project_file.to_str().unwrap_or(""));
     let _p = xshell::pushd(project_file)?;
     cmd!("cargo build --release").run()?;
     Ok(())
 }
 
-fn update_example(project_file: PathBuf) -> Result<(), anyhow::Error> {
-    println!("Updating example {}", project_file.to_str().unwrap_or(""));
+fn update_crate(project_file: PathBuf) -> Result<(), anyhow::Error> {
+    println!("Updating {}", project_file.to_str().unwrap_or(""));
     let _p = xshell::pushd(project_file.parent().unwrap())?;
     cmd!("cargo update").run()?;
+    Ok(())
+}
+
+fn fmt_crate(project_file: PathBuf) -> Result<(), anyhow::Error> {
+    println!("Formatting {}", project_file.to_str().unwrap_or(""));
+    let _p = xshell::pushd(project_file.parent().unwrap())?;
+    cmd!("cargo fmt").run()?;
     Ok(())
 }
 
@@ -157,7 +155,7 @@ fn generate_examples_page() -> Result<(), anyhow::Error> {
         let mut examples_dir = root_dir();
         examples_dir.push("examples");
         let mut entries = Vec::new();
-        do_examples(examples_dir, 1, usize::MAX, &mut |project_file| {
+        do_examples(examples_dir, &mut |project_file| {
             let contents = fs::read_to_string(&project_file).expect("error reading file");
             let t = contents.parse::<toml::Value>().unwrap();
             let relative = project_file.strip_prefix(root_dir())?.parent();
@@ -190,6 +188,26 @@ fn generate_examples_page() -> Result<(), anyhow::Error> {
         entries.sort();
         for entry in entries.iter() {
             writeln!(fh, "{}", entry).unwrap();
+        }
+    }
+    Ok(())
+}
+
+fn do_examples<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
+    current_dir: PathBuf,
+    f: &mut F,
+) -> Result<(), anyhow::Error> {
+    for entry in fs::read_dir(current_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.ends_with("Cargo.toml") {
+            f(path.clone())?;
+        }
+
+        let file_type = entry.file_type()?;
+        if file_type.is_dir() && !path.ends_with("target") {
+            do_examples(path, f)?;
         }
     }
     Ok(())
