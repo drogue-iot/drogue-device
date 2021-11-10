@@ -39,7 +39,7 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
     }
 
     pub(crate) fn initialize(&self) {
-        defmt::info!("initializing socket pool");
+        info!("initializing socket pool");
         unsafe {
             for (rx_buf, tx_buf) in (&mut *self.buffers.get()).iter_mut() {
                 let socket = TcpSocket::new(rx_buf, tx_buf);

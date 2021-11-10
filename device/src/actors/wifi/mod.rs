@@ -43,8 +43,10 @@ impl<'a, A> WifiSupplicant for Address<'a, AdapterActor<A>>
 where
     A: Adapter + 'static,
 {
-    #[rustfmt::skip]
-    type JoinFuture<'m> where 'a: 'm = impl Future<Output = Result<IpAddress, JoinError>> + 'm;
+    type JoinFuture<'m>
+    where
+        'a: 'm,
+    = impl Future<Output = Result<IpAddress, JoinError>> + 'm;
     fn join<'m>(&'m mut self, join: Join<'m>) -> Self::JoinFuture<'m> {
         async move {
             self.request(AdapterRequest::Join(join))
@@ -109,12 +111,17 @@ impl<N: Adapter> AdapterActor<N> {
 impl<N: Adapter> Actor for AdapterActor<N> {
     type Configuration = N;
 
-    #[rustfmt::skip]
-    type Message<'m> where N: 'm = AdapterRequest<'m>;
+    type Message<'m>
+    where
+        N: 'm,
+    = AdapterRequest<'m>;
     type Response = Option<AdapterResponse>;
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where N: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M>
+    where
+        N: 'm,
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         config: Self::Configuration,

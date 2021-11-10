@@ -148,12 +148,18 @@ where
     L3: Led + 'static,
     L4: Led + 'static,
 {
-    #[rustfmt::skip]
     type Configuration = AppConfig<D>;
-    #[rustfmt::skip]
-    type Message<'m> where D: 'm = Command;
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where D: 'm, M: 'm = impl Future<Output = ()> + 'm;
+
+    type Message<'m>
+    where
+        D: 'm,
+    = Command;
+
+    type OnMountFuture<'m, M>
+    where
+        D: 'm,
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
 
     fn on_mount<'m, M>(
         &'m mut self,

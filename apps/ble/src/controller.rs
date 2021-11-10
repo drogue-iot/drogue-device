@@ -45,8 +45,11 @@ impl BleController {
 }
 
 impl Actor for BleController {
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where Self: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M>
+    where
+        Self: 'm,
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Self::Configuration,

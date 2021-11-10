@@ -56,8 +56,10 @@ impl Actor for ExternalActor {
     );
     type Message<'m> = Increment;
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M>
+    where
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         actors: Self::Configuration,
@@ -94,8 +96,10 @@ pub struct InternalActor {
 impl Actor for InternalActor {
     type Message<'m> = Increment;
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M>
+    where
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Self::Configuration,

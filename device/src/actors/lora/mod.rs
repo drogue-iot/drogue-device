@@ -15,8 +15,10 @@ impl<'a, D> LoraDriver for Address<'a, LoraActor<D>>
 where
     D: LoraDriver + 'a,
 {
-    #[rustfmt::skip]
-    type JoinFuture<'m> where 'a: 'm = impl Future<Output = Result<(), LoraError>> + 'm;
+    type JoinFuture<'m>
+    where
+        'a: 'm,
+    = impl Future<Output = Result<(), LoraError>> + 'm;
     fn join<'m>(&'m mut self, mode: JoinMode) -> Self::JoinFuture<'m> {
         async move {
             self.request(LoraRequest::Join(mode))
@@ -27,8 +29,10 @@ where
         }
     }
 
-    #[rustfmt::skip]
-    type SendFuture<'m> where 'a: 'm = impl Future<Output = Result<(), LoraError>> + 'm;
+    type SendFuture<'m>
+    where
+        'a: 'm,
+    = impl Future<Output = Result<(), LoraError>> + 'm;
     fn send<'m>(&'m mut self, qos: QoS, port: Port, data: &'m [u8]) -> Self::SendFuture<'m> {
         async move {
             self.request(LoraRequest::Send(qos, port, data))
@@ -39,8 +43,10 @@ where
         }
     }
 
-    #[rustfmt::skip]
-    type SendRecvFuture<'m> where 'a: 'm = impl Future<Output = Result<usize, LoraError>> + 'm;
+    type SendRecvFuture<'m>
+    where
+        'a: 'm,
+    = impl Future<Output = Result<usize, LoraError>> + 'm;
     fn send_recv<'m>(
         &'m mut self,
         qos: QoS,
@@ -79,12 +85,17 @@ where
 {
     type Configuration = ();
 
-    #[rustfmt::skip]
-    type Message<'m> where D: 'm = LoraRequest<'m>;
+    type Message<'m>
+    where
+        D: 'm,
+    = LoraRequest<'m>;
     type Response = Option<Result<usize, LoraError>>;
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where D: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M>
+    where
+        D: 'm,
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Self::Configuration,

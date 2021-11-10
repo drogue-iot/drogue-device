@@ -27,8 +27,10 @@ impl Actor for StdTcpActor {
     type Message<'m> = TcpRequest<'m, u8>;
     type Response = Option<TcpResponse<u8>>;
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M>
+    where
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Self::Configuration,

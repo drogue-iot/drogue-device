@@ -309,8 +309,10 @@ where
     READY: InputPin + WaitForAnyEdge + 'static,
     E: 'static,
 {
-    #[rustfmt::skip]
-    type JoinFuture<'m> where SPI: 'm = impl Future<Output = Result<IpAddress, JoinError>> + 'm;
+    type JoinFuture<'m>
+    where
+        SPI: 'm,
+    = impl Future<Output = Result<IpAddress, JoinError>> + 'm;
     fn join<'m>(&'m mut self, join_info: Join<'m>) -> Self::JoinFuture<'m> {
         async move {
             match join_info {
@@ -333,8 +335,10 @@ where
 {
     type SocketHandle = u8;
 
-    #[rustfmt::skip]
-    type OpenFuture<'m> where SPI: 'm = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm;
+    type OpenFuture<'m>
+    where
+        SPI: 'm,
+    = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm;
     fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
         async move {
             self.socket_pool
@@ -344,8 +348,10 @@ where
         }
     }
 
-    #[rustfmt::skip]
-    type ConnectFuture<'m> where SPI: 'm = impl Future<Output = Result<(), TcpError>> + 'm;
+    type ConnectFuture<'m>
+    where
+        SPI: 'm,
+    = impl Future<Output = Result<(), TcpError>> + 'm;
     fn connect<'m>(
         &'m mut self,
         handle: Self::SocketHandle,
@@ -397,8 +403,10 @@ where
         }
     }
 
-    #[rustfmt::skip]
-    type WriteFuture<'m> where SPI: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
+    type WriteFuture<'m>
+    where
+        SPI: 'm,
+    = impl Future<Output = Result<usize, TcpError>> + 'm;
     fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
         async move {
             let mut remaining = buf.len();
@@ -486,8 +494,10 @@ where
         }
     }
 
-    #[rustfmt::skip]
-    type ReadFuture<'m> where SPI: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
+    type ReadFuture<'m>
+    where
+        SPI: 'm,
+    = impl Future<Output = Result<usize, TcpError>> + 'm;
     fn read<'m>(
         &'m mut self,
         handle: Self::SocketHandle,
@@ -583,8 +593,10 @@ where
         }
     }
 
-    #[rustfmt::skip]
-    type CloseFuture<'m> where SPI: 'm,  = impl Future<Output = Result<(), TcpError>> + 'm;
+    type CloseFuture<'m>
+    where
+        SPI: 'm,
+    = impl Future<Output = Result<(), TcpError>> + 'm;
     fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
         async move {
             self.socket_pool.close(handle);

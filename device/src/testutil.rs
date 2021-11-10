@@ -101,8 +101,11 @@ impl DummyActor {
 
 impl Actor for DummyActor {
     type Message<'m> = TestMessage;
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
+
+    type OnMountFuture<'m, M>
+    where
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Self::Configuration,
@@ -136,8 +139,11 @@ impl TestHandler {
 impl Actor for TestHandler {
     type Configuration = ();
     type Message<'m> = TestMessage;
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
+
+    type OnMountFuture<'m, M>
+    where
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Self::Configuration,

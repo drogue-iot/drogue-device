@@ -109,11 +109,17 @@ where
     RESET: OutputPin + 'static,
 {
     type Configuration = Esp8266Modem<'a, UART, ENABLE, RESET>;
-    #[rustfmt::skip]
-    type Message<'m> where 'a: 'm = ();
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where 'a: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    type Message<'m>
+    where
+        'a: 'm,
+    = ();
+
+    type OnMountFuture<'m, M>
+    where
+        'a: 'm,
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
 
     fn on_mount<'m, M>(
         &'m mut self,

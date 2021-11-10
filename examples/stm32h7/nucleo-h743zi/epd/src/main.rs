@@ -172,11 +172,12 @@ fn quantize_color(color: Rgb888) -> OctColor {
 impl Actor for App {
     type Configuration = ();
 
-    #[rustfmt::skip]
     type Message<'m> = Command;
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where M: 'm = impl Future<Output=()> + 'm;
+    type OnMountFuture<'m, M>
+    where
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
 
     fn on_mount<'m, M>(
         &'m mut self,

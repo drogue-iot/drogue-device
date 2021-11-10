@@ -32,8 +32,11 @@ where
 
     type Response = Option<Result<(), I::Error>>;
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where Self: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M>
+    where
+        Self: 'm,
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
 
     fn on_mount<'m, M>(
         &'m mut self,
@@ -68,26 +71,40 @@ where
     }
 }
 
-#[rustfmt::skip]
 impl<I: I2c<SevenBitAddress> + 'static> I2c for Address<'static, I2cPeripheral<I>>
 where
     <I as I2c>::Error: Send,
 {
     type Error = I::Error;
 
-    type WriteFuture<'a> where I: 'a = impl Future<Output = Result<(), Self::Error>> + 'a;
-    type ReadFuture<'a> where I: 'a = impl Future<Output = Result<(), Self::Error>> + 'a;
-    type WriteReadFuture<'a> where I: 'a = impl Future<Output = Result<(), Self::Error>> + 'a;
+    type WriteFuture<'a>
+    where
+        I: 'a,
+    = impl Future<Output = Result<(), Self::Error>> + 'a;
+    type ReadFuture<'a>
+    where
+        I: 'a,
+    = impl Future<Output = Result<(), Self::Error>> + 'a;
+    type WriteReadFuture<'a>
+    where
+        I: 'a,
+    = impl Future<Output = Result<(), Self::Error>> + 'a;
 
     fn read<'a>(&'a mut self, address: u8, buffer: &'a mut [u8]) -> Self::ReadFuture<'a> {
         async move {
-            self.request(I2cRequest::Read(address.into(), buffer)).unwrap().await.unwrap()
+            self.request(I2cRequest::Read(address.into(), buffer))
+                .unwrap()
+                .await
+                .unwrap()
         }
     }
 
     fn write<'a>(&'a mut self, address: u8, bytes: &'a [u8]) -> Self::WriteFuture<'a> {
         async move {
-            self.request(I2cRequest::Write(address.into(), bytes)).unwrap().await.unwrap()
+            self.request(I2cRequest::Write(address.into(), bytes))
+                .unwrap()
+                .await
+                .unwrap()
         }
     }
 
@@ -98,8 +115,10 @@ where
         buffer: &'a mut [u8],
     ) -> Self::WriteReadFuture<'a> {
         async move {
-            self.request(I2cRequest::WriteRead(address.into(), bytes, buffer)).unwrap().await.unwrap()
+            self.request(I2cRequest::WriteRead(address.into(), bytes, buffer))
+                .unwrap()
+                .await
+                .unwrap()
         }
     }
-
 }

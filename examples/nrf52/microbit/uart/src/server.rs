@@ -30,8 +30,12 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
     where
         'a: 'm,
     = ();
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where M: 'm, 'a: 'm  = impl Future<Output = ()> + 'm;
+
+    type OnMountFuture<'m, M>
+    where
+        M: 'm,
+        'a: 'm,
+    = impl Future<Output = ()> + 'm;
 
     fn on_mount<'m, M>(
         &'m mut self,

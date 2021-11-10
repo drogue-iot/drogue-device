@@ -54,10 +54,13 @@ impl<P, const ROWS: usize, const COLS: usize, const ANIMATION_BUFFER_SIZE: usize
 where
     P: OutputPin,
 {
-    #[rustfmt::skip]
     type Message<'m> = MatrixCommand<'m, COLS, ROWS>;
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where P: 'm, M: 'm = impl Future<Output = ()> + 'm;
+
+    type OnMountFuture<'m, M>
+    where
+        P: 'm,
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
 
     fn on_mount<'m, M>(
         &'m mut self,

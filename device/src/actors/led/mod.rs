@@ -52,10 +52,16 @@ impl<P> Actor for Led<P>
 where
     P: OutputPin,
 {
-    #[rustfmt::skip]
-    type Message<'m> where Self: 'm = LedMessage;
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where Self: 'm, M: 'm= impl Future<Output = ()> + 'm;
+    type Message<'m>
+    where
+        Self: 'm,
+    = LedMessage;
+
+    type OnMountFuture<'m, M>
+    where
+        Self: 'm,
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
 
     fn on_mount<'m, M>(
         &'m mut self,
