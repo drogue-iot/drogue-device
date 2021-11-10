@@ -65,10 +65,13 @@ where
     D: LoraDriver + 'static,
     LED: Led + 'static,
 {
-    #[rustfmt::skip]
     type Configuration = D;
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where D: 'm, M: 'm = impl Future<Output = ()> + 'm;
+
+    type OnMountFuture<'m, M>
+    where
+        D: 'm,
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         config: Self::Configuration,

@@ -20,8 +20,11 @@ impl<'d> TemperatureMonitor<'d> {
 impl<'d> Actor for TemperatureMonitor<'d> {
     type Configuration = Address<'static, App<ConnectionFactory>>;
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where M: 'm, 'd: 'm = impl core::future::Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M>
+    where
+        M: 'm,
+        'd: 'm,
+    = impl core::future::Future<Output = ()> + 'm;
 
     fn on_mount<'m, M>(
         &'m mut self,

@@ -33,8 +33,11 @@ impl FromButtonEvent<StatisticsCommand> for Statistics {
 impl Actor for Statistics {
     type Configuration = ();
     type Message<'a> = StatisticsCommand;
-    #[rustfmt::skip]
-    type OnMountFuture<'a, M> where M: 'a  = impl Future<Output = ()> + 'a;
+
+    type OnMountFuture<'a, M>
+    where
+        M: 'a,
+    = impl Future<Output = ()> + 'a;
 
     fn on_mount<'m, M>(
         &'m mut self,

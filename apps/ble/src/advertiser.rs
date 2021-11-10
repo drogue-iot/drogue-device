@@ -31,8 +31,11 @@ impl<A: Acceptor> BleAdvertiser<A> {
 impl<A: Acceptor> Actor for BleAdvertiser<A> {
     type Configuration = A;
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where Self: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M>
+    where
+        Self: 'm,
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         mut acceptor: Self::Configuration,

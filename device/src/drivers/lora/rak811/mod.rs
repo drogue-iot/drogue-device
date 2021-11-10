@@ -256,8 +256,10 @@ fn log_unexpected(r: Response) -> Result<(), LoraError> {
 }
 
 impl<'a> LoraDriver for Rak811Controller<'a> {
-    #[rustfmt::skip]
-    type JoinFuture<'m> where 'a: 'm = impl Future<Output = Result<(), LoraError>> + 'm;
+    type JoinFuture<'m>
+    where
+        'a: 'm,
+    = impl Future<Output = Result<(), LoraError>> + 'm;
     fn join<'m>(&'m mut self, mode: JoinMode) -> Self::JoinFuture<'m> {
         async move {
             let mode = match mode {
@@ -302,8 +304,10 @@ impl<'a> LoraDriver for Rak811Controller<'a> {
         }
     }
 
-    #[rustfmt::skip]
-    type SendFuture<'m> where 'a: 'm = impl Future<Output = Result<(), LoraError>> + 'm;
+    type SendFuture<'m>
+    where
+        'a: 'm,
+    = impl Future<Output = Result<(), LoraError>> + 'm;
     fn send<'m>(&'m mut self, qos: QoS, port: Port, data: &'m [u8]) -> Self::SendFuture<'m> {
         async move {
             let response = self.send_command(Command::Send(qos, port, data)).await?;
@@ -324,8 +328,10 @@ impl<'a> LoraDriver for Rak811Controller<'a> {
         }
     }
 
-    #[rustfmt::skip]
-    type SendRecvFuture<'m> where 'a: 'm = impl Future<Output = Result<usize, LoraError>> + 'm;
+    type SendRecvFuture<'m>
+    where
+        'a: 'm,
+    = impl Future<Output = Result<usize, LoraError>> + 'm;
     fn send_recv<'m>(
         &'m mut self,
         _qos: QoS,
@@ -426,11 +432,17 @@ where
     RESET: OutputPin + 'static,
 {
     type Configuration = Rak811Modem<'a, UART, RESET>;
-    #[rustfmt::skip]
-    type Message<'m> where 'a: 'm = ();
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where 'a: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    type Message<'m>
+    where
+        'a: 'm,
+    = ();
+
+    type OnMountFuture<'m, M>
+    where
+        'a: 'm,
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         config: Self::Configuration,

@@ -12,6 +12,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     match &args[..] {
         ["ci"] => test_ci(),
+        ["fmt"] => fmt(),
         ["update"] => update(),
         ["docs"] => docs(),
         _ => {
@@ -24,9 +25,38 @@ fn main() -> Result<(), anyhow::Error> {
 fn update() -> Result<(), anyhow::Error> {
     let _p = xshell::pushd(root_dir())?;
     cmd!("cargo update").run()?;
+    let mut ble_dir = root_dir();
+    ble_dir.push("apps");
+    ble_dir.push("ble");
+    do_examples(ble_dir, 1, usize::MAX, &mut update_example)?;
+
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
     do_examples(examples_dir, 1, usize::MAX, &mut update_example)?;
+    Ok(())
+}
+
+fn fmt() -> Result<(), anyhow::Error> {
+    let _p = xshell::pushd(root_dir())?;
+    cmd!("cargo fmt").run()?;
+    let mut ble_dir = root_dir();
+    ble_dir.push("apps");
+    ble_dir.push("ble");
+    do_examples(ble_dir, 1, usize::MAX, &mut |project_file: PathBuf| {
+        println!("Formatting example {}", project_file.to_str().unwrap_or(""));
+        let _p = xshell::pushd(project_file.parent().unwrap())?;
+        cmd!("cargo fmt").run()?;
+        Ok(())
+    })?;
+
+    let mut examples_dir = root_dir();
+    examples_dir.push("examples");
+    do_examples(examples_dir, 1, usize::MAX, &mut |project_file: PathBuf| {
+        println!("Formatting example {}", project_file.to_str().unwrap_or(""));
+        let _p = xshell::pushd(project_file.parent().unwrap())?;
+        cmd!("cargo fmt").run()?;
+        Ok(())
+    })?;
     Ok(())
 }
 

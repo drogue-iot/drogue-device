@@ -42,8 +42,12 @@ where
 {
     type Configuration = (I, S);
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where Self: 'm, M: 'm, I: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M>
+    where
+        Self: 'm,
+        M: 'm,
+        I: 'm,
+    = impl Future<Output = ()> + 'm;
 
     fn on_mount<'m, M>(
         &'m mut self,

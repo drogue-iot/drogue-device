@@ -40,8 +40,12 @@ impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Messag
     for Button<'a, P, A>
 {
     type Configuration = Address<'a, A>;
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where 'a: 'm, M: 'm = impl Future<Output = ()> + 'm;
+
+    type OnMountFuture<'m, M>
+    where
+        'a: 'm,
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
 
     fn on_mount<'m, M>(
         &'m mut self,

@@ -59,8 +59,11 @@ impl Actor for TemperatureMonitor {
     type Configuration = &'static TemperatureService;
     type Message<'m> = (Connection, TemperatureServiceEvent);
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where Self: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M>
+    where
+        Self: 'm,
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         service: Self::Configuration,

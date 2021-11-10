@@ -58,8 +58,11 @@ where
     R: Radio + 'a,
     RNG: RngCore + 'a,
 {
-    #[rustfmt::skip]
-    type JoinFuture<'m> where 'a: 'm, R: 'm  = impl Future<Output = Result<(), LoraError>> + 'm;
+    type JoinFuture<'m>
+    where
+        'a: 'm,
+        R: 'm,
+    = impl Future<Output = Result<(), LoraError>> + 'm;
     fn join<'m>(&'m mut self, mode: JoinMode) -> Self::JoinFuture<'m> {
         let join_mode = to_lorajoinmode(mode);
         async move {
@@ -71,8 +74,11 @@ where
         }
     }
 
-    #[rustfmt::skip]
-    type SendFuture<'m> where 'a: 'm, R: 'm  = impl Future<Output = Result<(), LoraError>> + 'm;
+    type SendFuture<'m>
+    where
+        'a: 'm,
+        R: 'm,
+    = impl Future<Output = Result<(), LoraError>> + 'm;
     fn send<'m>(&'m mut self, qos: QoS, port: Port, data: &'m [u8]) -> Self::SendFuture<'m> {
         async move {
             self.device
@@ -90,8 +96,11 @@ where
         }
     }
 
-    #[rustfmt::skip]
-    type SendRecvFuture<'m> where 'a: 'm, R: 'm = impl Future<Output = Result<usize, LoraError>> + 'm;
+    type SendRecvFuture<'m>
+    where
+        'a: 'm,
+        R: 'm,
+    = impl Future<Output = Result<usize, LoraError>> + 'm;
     fn send_recv<'m>(
         &'m mut self,
         qos: QoS,

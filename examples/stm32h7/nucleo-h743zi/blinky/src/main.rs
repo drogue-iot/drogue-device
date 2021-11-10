@@ -82,11 +82,12 @@ impl Actor for App {
         Address<'static, Led<LedRedPin>>,
     );
 
-    #[rustfmt::skip]
     type Message<'m> = Command;
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M>
+    where
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         config: Self::Configuration,

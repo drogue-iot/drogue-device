@@ -44,8 +44,10 @@ impl Actor for PingPonger {
     type Configuration = Option<Address<'static, PingPonger>>;
     type Message<'a> = Message;
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where M: 'm = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M>
+    where
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         config: Self::Configuration,

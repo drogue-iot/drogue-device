@@ -86,11 +86,17 @@ where
     C: ConnectionFactory + 'static,
 {
     type Configuration = C;
-    #[rustfmt::skip]
-    type Message<'m> where C: 'm = Command;
 
-    #[rustfmt::skip]
-    type OnMountFuture<'m, M> where C: 'm, M: 'm = impl Future<Output = ()> + 'm;
+    type Message<'m>
+    where
+        C: 'm,
+    = Command;
+
+    type OnMountFuture<'m, M>
+    where
+        C: 'm,
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         mut connection_factory: Self::Configuration,

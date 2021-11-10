@@ -42,8 +42,10 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
 {
     type SocketHandle = SmolSocketHandle;
 
-    #[rustfmt::skip]
-    type OpenFuture<'m> where 'buffer: 'm = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm;
+    type OpenFuture<'m>
+    where
+        'buffer: 'm,
+    = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm;
 
     fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
         async move {
@@ -56,8 +58,10 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
         }
     }
 
-    #[rustfmt::skip]
-    type ConnectFuture<'m> where 'buffer: 'm = impl Future<Output = Result<(), TcpError>> + 'm;
+    type ConnectFuture<'m>
+    where
+        'buffer: 'm,
+    = impl Future<Output = Result<(), TcpError>> + 'm;
 
     fn connect<'m>(
         &'m mut self,
@@ -89,8 +93,10 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
         }
     }
 
-    #[rustfmt::skip]
-    type WriteFuture<'m> where 'buffer: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
+    type WriteFuture<'m>
+    where
+        'buffer: 'm,
+    = impl Future<Output = Result<usize, TcpError>> + 'm;
 
     fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
         async move {
@@ -102,8 +108,10 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
         }
     }
 
-    #[rustfmt::skip]
-    type ReadFuture<'m> where 'buffer: 'm = impl Future<Output = Result<usize, TcpError>> + 'm;
+    type ReadFuture<'m>
+    where
+        'buffer: 'm,
+    = impl Future<Output = Result<usize, TcpError>> + 'm;
 
     fn read<'m>(
         &'m mut self,
@@ -119,8 +127,10 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
         }
     }
 
-    #[rustfmt::skip]
-    type CloseFuture<'m> where 'buffer: 'm = impl Future<Output = Result<(), TcpError>> + 'm;
+    type CloseFuture<'m>
+    where
+        'buffer: 'm,
+    = impl Future<Output = Result<(), TcpError>> + 'm;
 
     fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
         async move {
