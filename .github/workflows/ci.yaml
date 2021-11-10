@@ -37,7 +37,7 @@ jobs:
         run: cargo xtask docs
 
       - name: Verify no changes to source modules
-        run: git diff-index --exit-code HEAD
+        run: git diff --exit-code
 
   matrix:
     runs-on: ubuntu-20.04
