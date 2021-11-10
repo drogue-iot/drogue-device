@@ -25,7 +25,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: target
-          key: ${{ runner.os }}
+          key: ${{ runner.os }}-device
 
       - name: Check
         run: cargo xtask check_device
@@ -86,8 +86,8 @@ jobs:
         id: cache-target
         uses: actions/cache@v2
         with:
-          path: target
-          key: ${{ runner.os }}
+          path: ${{matrix.example}}/target
+          key: ${{ runner.os }}-${{ matrix.example }}
 
       - name: Check
         run: cargo xtask check ${{ matrix.example }}
