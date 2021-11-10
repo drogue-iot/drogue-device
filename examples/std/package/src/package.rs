@@ -71,15 +71,13 @@ impl Actor for ExternalActor {
             log::info!("External started!");
             let (a, b) = actors;
             loop {
-                match inbox.next().await {
-                    Some(mut m) => match m.message() {
-                        m => {
-                            log::info!("Dispatching increment message");
-                            a.notify(*m).unwrap();
-                            b.notify(*m).unwrap();
-                        }
-                    },
-                    _ => {}
+                let mut m = inbox.next().await;
+                match m.message() {
+                    m => {
+                        log::info!("Dispatching increment message");
+                        a.notify(*m).unwrap();
+                        b.notify(*m).unwrap();
+                    }
                 }
             }
         }
@@ -108,14 +106,12 @@ impl Actor for InternalActor {
         async move {
             log::info!("[{}] started!", self.name);
             loop {
-                match inbox.next().await {
-                    Some(mut m) => match m.message() {
-                        Increment => {
-                            self.counter += 1;
-                            log::info!("[{}]: {}", self.name, self.counter);
-                        }
-                    },
-                    _ => {}
+                let mut m = inbox.next().await;
+                match m.message() {
+                    Increment => {
+                        self.counter += 1;
+                        log::info!("[{}]: {}", self.name, self.counter);
+                    }
                 }
             }
         }

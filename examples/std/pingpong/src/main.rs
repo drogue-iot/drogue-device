@@ -67,19 +67,16 @@ impl Actor for PingPonger {
             loop {
                 // Send a ping every 10 seconds
                 match with_timeout(Duration::from_secs(2), inbox.next()).await {
-                    Ok(r) => match r {
-                        Some(mut m) => match *m.message() {
-                            Message::Str(message) => {
-                                log::info!("[{}]: {}", self.0, message);
-                                if let Some(pinger) = pinger {
-                                    pinger.notify(Message::Str(self.1)).unwrap();
-                                }
+                    Ok(mut m) => match *m.message() {
+                        Message::Str(message) => {
+                            log::info!("[{}]: {}", self.0, message);
+                            if let Some(pinger) = pinger {
+                                pinger.notify(Message::Str(self.1)).unwrap();
                             }
-                            Message::Register(p) => {
-                                pinger.replace(p);
-                            }
-                        },
-                        _ => {}
+                        }
+                        Message::Register(p) => {
+                            pinger.replace(p);
+                        }
                     },
                     Err(TimeoutError) => {
                         if let Some(ponger) = config {
