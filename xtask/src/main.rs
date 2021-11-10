@@ -12,19 +12,27 @@ fn main() -> Result<(), anyhow::Error> {
 
     match &args[..] {
         ["ci"] => ci(),
-        ["check"] => check(),
-        ["build"] => build(),
+        ["check_device"] => check_device(),
+        ["test_device"] => test_device(),
+        ["check", example] => check(&[example]),
+        ["build", example] => build(&[example]),
         ["fmt"] => fmt(),
         ["update"] => update(),
         ["docs"] => docs(),
+        ["matrix"] => matrix(),
         _ => {
-            println!("USAGE cargo xtask [ci]");
+            println!("USAGE:");
+            println!("\tcargo xtask ci");
+            println!("\tcargo xtask check examples/nrf52/microbit");
+            println!("\tcargo xtask build examples/nrf52/microbit");
+            println!("\tcargo xtask update");
+            println!("\tcargo xtask docs");
             Ok(())
         }
     }
 }
 
-static WORKSPACES: &[&'static str] = &[
+static WORKSPACES: &[&str] = &[
     "examples/nrf52/microbit",
     "examples/stm32l0/lora-discovery",
     "examples/stm32l1/rak811",
@@ -40,9 +48,19 @@ static WORKSPACES: &[&'static str] = &[
 fn ci() -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("CI", "true");
 
-    check()?;
-    build()?;
+    check_device()?;
+    check(WORKSPACES)?;
+    build(WORKSPACES)?;
     docs()?;
+    Ok(())
+}
+
+fn matrix() -> Result<(), anyhow::Error> {
+    let mut items = Vec::new();
+    for workspace in WORKSPACES {
+        items.push(format!("\"{}\"", workspace));
+    }
+    println!("{}", items.join(","));
     Ok(())
 }
 
@@ -58,14 +76,13 @@ fn update() -> Result<(), anyhow::Error> {
 fn fmt() -> Result<(), anyhow::Error> {
     let _p = xshell::pushd(root_dir())?;
     cmd!("cargo fmt").run()?;
-    do_crates(&mut fmt_crate)?;
+    do_crates(WORKSPACES, &mut fmt_crate)?;
     Ok(())
 }
 
-fn check() -> Result<(), anyhow::Error> {
+fn check(workspaces: &[&str]) -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("RUSTFLAGS", "-Dwarnings");
-    check_device()?;
-    do_crates(&mut check_crate)?;
+    do_crates(workspaces, &mut check_crate)?;
     Ok(())
 }
 
@@ -78,10 +95,9 @@ fn check_device() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn build() -> Result<(), anyhow::Error> {
+fn build(workspaces: &[&str]) -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("RUSTFLAGS", "-Dwarnings");
-    test_device()?;
-    do_crates(&mut build_crate)?;
+    do_crates(workspaces, &mut build_crate)?;
     Ok(())
 }
 
@@ -94,9 +110,10 @@ fn test_device() -> Result<(), anyhow::Error> {
 }
 
 fn do_crates<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
+    workspaces: &[&str],
     f: &mut F,
 ) -> Result<(), anyhow::Error> {
-    for workspace in WORKSPACES {
+    for workspace in workspaces {
         let mut crate_dir = root_dir();
         crate_dir.push(workspace);
         f(crate_dir)?;
