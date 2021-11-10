@@ -17,6 +17,8 @@ jobs:
 
   device:
     runs-on: ubuntu-20.04
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v2
 
@@ -38,13 +40,6 @@ jobs:
 
       - name: Verify no changes to source modules
         run: git diff --exit-code
-
-  matrix:
-    runs-on: ubuntu-20.04
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v2
 
       - id: set-matrix
         run: |
@@ -74,10 +69,11 @@ jobs:
 
 
   examples:
-    needs: matrix
+    needs: device
     runs-on: ubuntu-20.04
     strategy:
-      matrix: ${{fromJson(needs.matrix.outputs.matrix)}}
+      fail-fast: false
+      matrix: ${{fromJson(needs.device.outputs.matrix)}}
 
     steps:
       - uses: actions/checkout@v2
