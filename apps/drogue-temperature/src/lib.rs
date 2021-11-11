@@ -169,7 +169,7 @@ where
                                         }
                                     }
                                     Err(e) => {
-                                        panic!("Error doing HTTP request: {:?}", e);
+                                        warn!("Error doing HTTP request: {:?}", e);
                                     }
                                 }
                             }
