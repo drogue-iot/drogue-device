@@ -18,7 +18,7 @@ use embassy::time::{block_for, Duration, Timer};
 use embassy::traits::gpio::WaitForAnyEdge;
 //use embassy::traits::spi::*;
 use embedded_hal::blocking::spi::*;
-use heapless::{String, Vec};
+use heapless::String;
 
 use parser::{CloseResponse, ConnectResponse, JoinResponse, ReadResponse, WriteResponse};
 
