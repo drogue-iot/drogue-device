@@ -581,7 +581,6 @@ where
                         .map_err(|_| TcpError::ReadError)?;
 
                     if let Ok((_, ReadResponse::Ok(data))) = parser::read_response(&response) {
-                        /*
                         if pos + data.len() > buf.len() {
                             info!(
                                 "Buf len is {}, pos is {}, Len is {}, data len is {}",
@@ -594,12 +593,14 @@ where
                                 "response parsed:  {:?}",
                                 core::str::from_utf8(&data).unwrap()
                             );
+                            warn!("response raw data: {:?}", response);
+                            Err(TcpError::ReadError)
+                        } else {
+                            for (i, b) in data.iter().enumerate() {
+                                buf[pos + i] = *b;
+                            }
+                            Ok(data.len())
                         }
-                        */
-                        for (i, b) in data.iter().enumerate() {
-                            buf[pos + i] = *b;
-                        }
-                        Ok(data.len())
                     } else {
                         /*info!(
                             "ERR: response parsed:  {:?}",
