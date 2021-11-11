@@ -41,10 +41,10 @@ cfg_if::cfg_if! {
         use drogue_tls::{Aes128GcmSha256};
         use drogue_device::actors::net::TlsConnectionFactory;
 
-        //const HOST: &str = "http.sandbox.drogue.cloud";
-        //const PORT: u16 = 443;
-        const HOST: &str = "192.168.1.2";
-        const PORT: u16 = 8088;
+        const HOST: &str = "http.sandbox.drogue.cloud";
+        const PORT: u16 = 443;
+        //const HOST: &str = "192.168.1.2";
+        //const PORT: u16 = 8088;
         static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
     } else {
         use drogue_device::Address;
@@ -203,7 +203,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     defmt::info!("Application initialized. Press 'User' button to send data");
 
     // Adjust interval to your liking
-    let interval = Duration::from_secs(10);
+    let interval = Duration::from_secs(30);
     loop {
         let _ = app.notify(Command::Send);
         Timer::after(interval).await;
