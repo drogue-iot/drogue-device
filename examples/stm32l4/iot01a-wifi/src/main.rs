@@ -126,7 +126,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         NoDma,
         //p.DMA2_CH2,
         //p.DMA2_CH1,
-        Hertz(1_000_000),
+        Hertz(100_000),
         SpiConfig::default(),
     );
 
