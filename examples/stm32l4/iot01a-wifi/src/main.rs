@@ -22,14 +22,16 @@ use embassy_stm32::rcc::{AHBPrescaler, ClockSrc, PLLClkDiv, PLLMul, PLLSource, P
 use embassy_stm32::spi::{self, Config as SpiConfig, Spi};
 use embassy_stm32::time::Hertz;
 use embassy_stm32::{
-    dma::NoDma,
+    //dma::NoDma,
     exti::*,
     gpio::{Input, Level, Output, Pull, Speed},
-    i2c, interrupt,
+    i2c,
+    interrupt,
     peripherals::{
         DMA1_CH4, DMA1_CH5, DMA2_CH1, DMA2_CH2, I2C2, PB13, PC13, PD15, PE0, PE1, PE8, SPI3,
     },
-    Config, Peripherals,
+    Config,
+    Peripherals,
 };
 
 cfg_if::cfg_if! {
@@ -63,7 +65,7 @@ type WAKE = Output<'static, PB13>;
 type RESET = Output<'static, PE8>;
 type CS = Output<'static, PE0>;
 type READY = ExtiInput<'static, PE1>;
-type SPI = Spi<'static, SPI3, NoDma, NoDma>; //DMA2_CH2, DMA2_CH1>;
+type SPI = Spi<'static, SPI3, DMA2_CH2, DMA2_CH1>;
 type SpiError = spi::Error;
 
 type EsWifi = EsWifiController<SPI, CS, RESET, WAKE, READY, SpiError>;
@@ -122,10 +124,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         p.PC10,
         p.PC12,
         p.PC11,
-        NoDma,
-        NoDma,
-        //p.DMA2_CH2,
-        //p.DMA2_CH1,
+        p.DMA2_CH2,
+        p.DMA2_CH1,
         Hertz(100_000),
         SpiConfig::default(),
     );

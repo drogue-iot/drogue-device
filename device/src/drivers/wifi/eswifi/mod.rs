@@ -16,8 +16,8 @@ use core::fmt::Write as FmtWrite;
 use core::future::Future;
 use embassy::time::{block_for, Duration, Timer};
 use embassy::traits::gpio::WaitForAnyEdge;
-//use embassy::traits::spi::*;
-use embedded_hal::blocking::spi::*;
+use embassy::traits::spi::*;
+//use embedded_hal::blocking::spi::*;
 use heapless::String;
 
 use parser::{CloseResponse, ConnectResponse, JoinResponse, ReadResponse, WriteResponse};
@@ -69,7 +69,7 @@ impl<'a, CS: OutputPin + 'a> Drop for Cs<'a, CS> {
 
 pub struct EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
 where
-    SPI: Transfer<u8, Error = E>,
+    SPI: FullDuplex<u8, Error = E>,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
@@ -86,7 +86,7 @@ where
 
 impl<SPI, CS, RESET, WAKEUP, READY, E> EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
 where
-    SPI: Transfer<u8, Error = E>,
+    SPI: FullDuplex<u8, Error = E>,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
@@ -156,7 +156,7 @@ where
                 }
 
                 let mut chunk = [0x0A, 0x0A];
-                self.spi.transfer(&mut chunk).map_err(SPI)?;
+                Self::spi_transfer(&mut self.spi, &mut chunk, &[0x0A, 0x0A]).await?;
 
                 // reverse order going from 16 -> 2*8 bits
                 if chunk[1] != NAK {
@@ -260,7 +260,7 @@ where
 
                 let a = xfer[0];
                 let b = xfer[1];
-                self.spi.transfer(&mut xfer[..]).map_err(SPI)?;
+                Self::spi_transfer(&mut self.spi, &mut xfer[..], &[a, b]).await?;
             }
             /*assert!(command.len() % 2 == 0);
             self.spi.transfer(&mut command[..]).map_err(SPI)?;*/
@@ -268,6 +268,15 @@ where
         //info!("sent! awaiting response");
 
         self.receive(response, 0).await
+    }
+
+    async fn spi_transfer(
+        spi: &mut SPI,
+        rx: &mut [u8],
+        tx: &[u8],
+    ) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
+        spi.read_write(rx, tx).await.map_err(SPI)?;
+        Ok(())
     }
 
     async fn receive<'a>(
@@ -287,7 +296,7 @@ where
             //trace!("Receive pos({}), len({})", pos, response.len());
 
             let mut xfer: [u8; 2] = [0x0A, 0x0A];
-            self.spi.transfer(&mut xfer).map_err(SPI)?;
+            Self::spi_transfer(&mut self.spi, &mut xfer, &[0x0A, 0x0A]).await?;
 
             response[pos] = xfer[1];
             pos += 1;
@@ -305,7 +314,7 @@ where
                 break;
             }
             let mut xfer: [u8; 2] = [0x0A, 0x0A];
-            self.spi.transfer(&mut xfer).map_err(SPI)?;
+            Self::spi_transfer(&mut self.spi, &mut xfer, &[0x0A, 0x0A]).await?;
             count += 1;
         }
         /*
@@ -326,7 +335,7 @@ where
 impl<SPI, CS, RESET, WAKEUP, READY, E> WifiSupplicant
     for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
 where
-    SPI: Transfer<u8, Error = E>,
+    SPI: FullDuplex<u8, Error = E>,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
@@ -350,7 +359,7 @@ where
 impl<SPI, CS, RESET, WAKEUP, READY, E> TcpStack
     for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
 where
-    SPI: Transfer<u8, Error = E>,
+    SPI: FullDuplex<u8, Error = E>,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
@@ -475,8 +484,8 @@ where
                             let a = xfer[0];
                             let b = xfer[1];
 
-                            self.spi
-                                .transfer(&mut xfer)
+                            Self::spi_transfer(&mut self.spi, &mut xfer, &[a, b])
+                                .await
                                 .map_err(|_| TcpError::WriteError)?;
                         }
 
@@ -492,8 +501,8 @@ where
                             let a = xfer[0];
                             let b = xfer[1];
 
-                            self.spi
-                                .transfer(&mut xfer)
+                            Self::spi_transfer(&mut self.spi, &mut xfer, &[a, b])
+                                .await
                                 .map_err(|_| TcpError::WriteError)?;
                         }
                     }
@@ -559,13 +568,13 @@ where
                         let _cs = Cs::new(&mut self.cs).map_err(|_| TcpError::ReadError)?;
 
                         let mut xfer = [b'0', b'R'];
-                        self.spi
-                            .transfer(&mut xfer)
+                        Self::spi_transfer(&mut self.spi, &mut xfer, &[b'0', b'R'])
+                            .await
                             .map_err(|_| TcpError::ReadError)?;
 
                         xfer = [b'\n', b'\r'];
-                        self.spi
-                            .transfer(&mut xfer)
+                        Self::spi_transfer(&mut self.spi, &mut xfer, &[b'\n', b'\r'])
+                            .await
                             .map_err(|_| TcpError::ReadError)?;
                     }
 
@@ -669,7 +678,7 @@ where
 impl<SPI, CS, RESET, WAKEUP, READY, E> Adapter
     for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
 where
-    SPI: Transfer<u8, Error = E>,
+    SPI: FullDuplex<u8, Error = E>,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
