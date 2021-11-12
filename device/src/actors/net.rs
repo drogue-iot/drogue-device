@@ -57,7 +57,7 @@ where
 
     fn connect<'m>(&'m mut self, _: &'m str, ip: IpAddress, port: u16) -> Self::ConnectFuture<'m> {
         async move {
-            info!("Allocate TLS buffer");
+            // info!("Allocate TLS buffer");
             let mut socket = Socket::new(self.clone(), self.open().await.unwrap());
             match socket
                 .connect(IpProtocol::Tcp, SocketAddress::new(ip, port))
@@ -164,7 +164,7 @@ mod tls {
         }
 
         pub fn free(&self) {
-            info!("Freeing TLS buffer");
+            //info!("Freeing TLS buffer");
             self.free.store(true, Ordering::SeqCst);
         }
     }
