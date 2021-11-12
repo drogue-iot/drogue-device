@@ -152,8 +152,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             );
 
             let app = device.app.mount(factory, spawner);
-            let monitor = device.temperature.mount(app, spawner);
-            device.button.mount(monitor, spawner);
+            device.button.mount(app, spawner);
+            device.temperature.mount(app, spawner);
         })
         .await;
     defmt::info!("Application initialized. Press 'A' button to send data");

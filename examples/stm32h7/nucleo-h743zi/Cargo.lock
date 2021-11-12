@@ -531,7 +531,7 @@ dependencies = [
  "embassy-net",
  "embedded-hal",
  "futures",
- "heapless 0.7.7",
+ "heapless 0.7.8",
  "moveslice",
  "nom",
  "rand_core",
@@ -543,7 +543,9 @@ version = "0.1.0"
 dependencies = [
  "defmt",
  "drogue-device",
- "heapless 0.7.7",
+ "heapless 0.7.8",
+ "serde",
+ "serde-json-core",
 ]
 
 [[package]]
@@ -556,7 +558,7 @@ dependencies = [
  "defmt",
  "digest",
  "generic-array 0.14.4",
- "heapless 0.7.7",
+ "heapless 0.7.8",
  "hkdf",
  "hmac",
  "nom",
@@ -606,7 +608,7 @@ dependencies = [
  "embassy-traits",
  "embedded-hal",
  "futures",
- "heapless 0.7.7",
+ "heapless 0.7.8",
  "pin-project",
 ]
 
@@ -643,7 +645,7 @@ dependencies = [
  "embassy",
  "futures",
  "generic-array 0.14.4",
- "heapless 0.7.7",
+ "heapless 0.7.8",
  "managed",
  "smoltcp",
  "stable_deref_trait",
@@ -948,9 +950,9 @@ dependencies = [
 
 [[package]]
 name = "heapless"
-version = "0.7.7"
+version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe65ef062f1af5b1b189842b0bc45bd671c38e1d22c6aa22e6ada03d01026d53"
+checksum = "9c1ad878e07405df82b695089e63d278244344f80e764074d0bdfe99b89460f3"
 dependencies = [
  "atomic-polyfill",
  "defmt",
@@ -1169,7 +1171,7 @@ dependencies = [
  "embedded-graphics-core",
  "embedded-hal",
  "epd-waveshare",
- "heapless 0.7.7",
+ "heapless 0.7.8",
  "panic-probe",
  "tinybmp",
  "void",
@@ -1213,7 +1215,7 @@ dependencies = [
  "embassy-net",
  "embassy-stm32",
  "embedded-hal",
- "heapless 0.7.7",
+ "heapless 0.7.8",
  "panic-probe",
  "rand_core",
  "void",
@@ -1469,6 +1471,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ryu"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "71d301d4193d031abdd79ff7e3dd721168a9572ef3fe51a1517aba235bd8f86e"
+
+[[package]]
 name = "scopeguard"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1514,6 +1522,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f12d06de37cf59146fbdecab66aa99f9fe4f78722e3607577a5375d66bd0c913"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde-json-core"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8014aeea272bca0f0779778d43253f2f3375b414185b30e6ecc4d3e4a9994781"
+dependencies = [
+ "heapless 0.7.8",
+ "ryu",
+ "serde",
 ]
 
 [[package]]
