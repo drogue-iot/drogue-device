@@ -220,6 +220,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             };
             let _ = app.request(Command::Update(data)).unwrap().await;
         }
+        let _ = app.request(Command::Send).unwrap().await;
         Timer::after(interval).await;
     }
 }
