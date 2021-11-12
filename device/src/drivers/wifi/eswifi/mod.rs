@@ -16,8 +16,8 @@ use core::fmt::Write as FmtWrite;
 use core::future::Future;
 use embassy::time::{block_for, Duration, Timer};
 use embassy::traits::gpio::WaitForAnyEdge;
-use embassy::traits::spi::*;
-//use embedded_hal::blocking::spi::*;
+//use embassy::traits::spi::*;
+use embedded_hal::blocking::spi::*;
 use heapless::String;
 
 use parser::{CloseResponse, ConnectResponse, JoinResponse, ReadResponse, WriteResponse};
@@ -69,7 +69,7 @@ impl<'a, CS: OutputPin + 'a> Drop for Cs<'a, CS> {
 
 pub struct EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
 where
-    SPI: FullDuplex<u8, Error = E>,
+    SPI: Transfer<u8, Error = E>,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
@@ -86,7 +86,7 @@ where
 
 impl<SPI, CS, RESET, WAKEUP, READY, E> EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
 where
-    SPI: FullDuplex<u8, Error = E>,
+    SPI: Transfer<u8, Error = E>,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
@@ -273,9 +273,9 @@ where
     async fn spi_transfer(
         spi: &mut SPI,
         rx: &mut [u8],
-        tx: &[u8],
+        _tx: &[u8],
     ) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
-        spi.read_write(rx, tx).await.map_err(SPI)?;
+        spi.transfer(rx).map_err(SPI)?;
         Ok(())
     }
 
@@ -335,7 +335,7 @@ where
 impl<SPI, CS, RESET, WAKEUP, READY, E> WifiSupplicant
     for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
 where
-    SPI: FullDuplex<u8, Error = E>,
+    SPI: Transfer<u8, Error = E>,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
@@ -359,7 +359,7 @@ where
 impl<SPI, CS, RESET, WAKEUP, READY, E> TcpStack
     for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
 where
-    SPI: FullDuplex<u8, Error = E>,
+    SPI: Transfer<u8, Error = E>,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
@@ -678,7 +678,7 @@ where
 impl<SPI, CS, RESET, WAKEUP, READY, E> Adapter
     for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
 where
-    SPI: FullDuplex<u8, Error = E>,
+    SPI: Transfer<u8, Error = E>,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
