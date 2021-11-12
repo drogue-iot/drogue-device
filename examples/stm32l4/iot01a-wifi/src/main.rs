@@ -12,7 +12,7 @@ use panic_probe as _;
 
 use drogue_device::drivers::wifi::eswifi::EsWifiController;
 use drogue_device::{
-    actors::i2c::*, actors::sensors::hts221::*, actors::wifi::*, drivers::button::*,
+    actors::button::*, actors::i2c::*, actors::sensors::hts221::*, actors::wifi::*,
     traits::sensors::temperature::*, traits::wifi::*, *,
 };
 use drogue_temperature::*;
@@ -26,10 +26,11 @@ use embassy_stm32::{
     exti::*,
     gpio::{Input, Level, Output, Pull, Speed},
     i2c, interrupt,
-    peripherals::{DMA1_CH4, DMA1_CH5, DMA2_CH1, DMA2_CH2, I2C2, PB13, PD15, PE0, PE1, PE8, SPI3},
+    peripherals::{
+        DMA1_CH4, DMA1_CH5, DMA2_CH1, DMA2_CH2, I2C2, PB13, PC13, PD15, PE0, PE1, PE8, SPI3,
+    },
     Config, Peripherals,
 };
-use futures::{future::select, pin_mut};
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "tls")] {
@@ -80,6 +81,8 @@ pub struct MyDevice {
     wifi: ActorContext<'static, AdapterActor<EsWifi>>,
     app: ActorContext<'static, App<ConnectionFactory>, 3>,
     i2c: ActorContext<'static, I2cPeripheral<I2cDriver>>,
+    button:
+        ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App<ConnectionFactory>>>,
     sensor: ActorContext<
         'static,
         Sensor<ExtiInput<'static, PD15>, Address<'static, I2cPeripheral<I2cDriver>>>,
@@ -137,7 +140,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     }
 
     let button_pin = Input::new(p.PC13, Pull::Up);
-    let mut button = Button::new(ExtiInput::new(button_pin, p.EXTI13));
+    let button = ExtiInput::new(button_pin, p.EXTI13);
 
     let ready_pin = Input::new(p.PD15, Pull::Down);
     let sensor_ready = ExtiInput::new(ready_pin, p.EXTI15);
@@ -158,6 +161,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     DEVICE.configure(MyDevice {
         wifi: ActorContext::new(AdapterActor::new()),
+        button: ActorContext::new(Button::new(button)),
         app: ActorContext::new(App::new(
             HOST,
             PORT,
@@ -187,6 +191,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             let app = device.app.mount(factory, spawner);
             let i2c = device.i2c.mount((), spawner);
             let sensor = device.sensor.mount(i2c, spawner);
+            device.button.mount(app, spawner);
             (sensor, app)
         })
         .await;
@@ -196,16 +201,14 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     // Adjust interval to your liking
     let interval = Duration::from_secs(30);
     loop {
-        let released = button.wait_released();
-        pin_mut!(released);
-        select(Timer::after(interval), released).await;
         if let Ok(data) = sensor.temperature().await {
             let data = TemperatureData {
                 geoloc: None,
                 temp: Some(data.temperature.raw_value()),
                 hum: Some(data.relative_humidity),
             };
-            let _ = app.request(Command::Send(data)).unwrap().await;
+            let _ = app.request(Command::Update(data)).unwrap().await;
         }
+        Timer::after(interval).await;
     }
 }

@@ -933,7 +933,6 @@ dependencies = [
  "embassy",
  "embassy-stm32",
  "embedded-hal",
- "futures",
  "panic-probe",
 ]
 
