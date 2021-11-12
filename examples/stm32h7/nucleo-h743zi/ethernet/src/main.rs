@@ -115,7 +115,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
             let app = device.app.mount(factory, spawner);
             app.request(Command::Update(TemperatureData {
-                temp: 22.0,
+                temp: Some(22.0),
                 hum: None,
                 geoloc: None,
             }))
