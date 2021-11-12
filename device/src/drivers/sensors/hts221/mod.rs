@@ -33,7 +33,10 @@ impl Hts221 {
     pub async fn initialize<I: I2c<SevenBitAddress>>(
         &mut self,
         i2c: &mut I,
-    ) -> Result<(), Hts221Error<I::Error>> {
+    ) -> Result<(), Hts221Error<I::Error>>
+    where
+        <I as I2c>::Error: Send,
+    {
         Ctrl2::modify(self.address, i2c, |reg| {
             reg.boot();
         })
@@ -70,7 +73,10 @@ impl Hts221 {
     pub async fn read<I: I2c<SevenBitAddress>>(
         &mut self,
         i2c: &mut I,
-    ) -> Result<SensorAcquisition<Celsius>, Hts221Error<I::Error>> {
+    ) -> Result<SensorAcquisition<Celsius>, Hts221Error<I::Error>>
+    where
+        <I as I2c>::Error: Send,
+    {
         if let Some(calibration) = &self.calibration {
             let t_out = Tout::read(self.address, i2c).await? as i16;
             let temperature = calibration.calibrated_temperature(t_out);
@@ -88,7 +94,10 @@ impl Hts221 {
     }
 }
 
-impl<E> From<E> for Hts221Error<E> {
+impl<E> From<E> for Hts221Error<E>
+where
+    E: Send,
+{
     fn from(e: E) -> Hts221Error<E> {
         Hts221Error::I2c(e)
     }

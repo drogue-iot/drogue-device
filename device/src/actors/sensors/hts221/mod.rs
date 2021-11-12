@@ -1,29 +1,28 @@
-use crate::domain::temperature::Celsius;
+use crate::domain::{temperature::Celsius, SensorAcquisition};
 use crate::drivers::sensors::hts221::*;
+use crate::traits::sensors::temperature::*;
 
-use super::SensorMonitor;
 use crate::{Actor, Address, Inbox};
 use core::future::Future;
 use core::marker::PhantomData;
 use embassy::traits::gpio::WaitForAnyEdge;
 use embassy::traits::i2c::*;
+use embedded_hal::digital::v2::InputPin;
 
-pub struct Sensor<P, I, S>
+pub struct Sensor<P, I>
 where
-    P: WaitForAnyEdge + 'static,
+    P: WaitForAnyEdge + InputPin + 'static,
     I: I2c<SevenBitAddress> + 'static,
-    S: SensorMonitor<Celsius> + 'static,
 {
     hts221: Hts221,
-    _data: PhantomData<(&'static I, &'static S)>,
+    _data: PhantomData<&'static I>,
     ready: P,
 }
 
-impl<P, I, S> Sensor<P, I, S>
+impl<P, I> Sensor<P, I>
 where
-    P: WaitForAnyEdge + 'static,
+    P: WaitForAnyEdge + InputPin + 'static,
     I: I2c<SevenBitAddress> + 'static,
-    S: SensorMonitor<Celsius> + 'static,
 {
     pub fn new(ready: P) -> Self {
         Self {
@@ -32,15 +31,26 @@ where
             ready,
         }
     }
+
+    async fn wait_ready(&mut self) {
+        while !self.ready.is_high().ok().unwrap() {
+            self.ready.wait_for_any_edge().await;
+        }
+    }
 }
 
-impl<P, I, S> Actor for Sensor<P, I, S>
+pub struct ReadTemperature;
+
+impl<P, I> Actor for Sensor<P, I>
 where
-    P: WaitForAnyEdge + 'static,
+    P: WaitForAnyEdge + InputPin + 'static,
     I: I2c<SevenBitAddress> + 'static,
-    S: SensorMonitor<Celsius> + 'static,
+    <I as I2c>::Error: Send,
 {
-    type Configuration = (I, S);
+    type Message<'m> = ReadTemperature;
+    type Response = Option<Result<SensorAcquisition<Celsius>, Hts221Error<I::Error>>>;
+
+    type Configuration = I;
 
     type OnMountFuture<'m, M>
     where
@@ -51,21 +61,41 @@ where
 
     fn on_mount<'m, M>(
         &'m mut self,
-        config: Self::Configuration,
+        mut i2c: Self::Configuration,
         _: Address<'static, Self>,
-        _: &'m mut M,
+        inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
-        let (mut i2c, monitor) = config;
         async move {
             self.hts221.initialize(&mut i2c).await.ok();
             loop {
-                self.ready.wait_for_any_edge().await;
-                let data = self.hts221.read(&mut i2c).await.ok().unwrap();
-                monitor.notify(data);
+                if let Some(mut m) = inbox.next().await {
+                    self.wait_ready().await;
+                    let data = self.hts221.read(&mut i2c).await;
+                    m.set_response(Some(data));
+                }
             }
         }
+    }
+}
+
+impl<P, I> TemperatureSensor<Celsius> for Address<'static, Sensor<P, I>>
+where
+    P: WaitForAnyEdge + InputPin + 'static,
+    I: I2c<SevenBitAddress> + 'static,
+    <I as I2c>::Error: Send,
+{
+    type Error = Hts221Error<<I as I2c>::Error>;
+
+    type ReadFuture<'m>
+    where
+        P: 'm,
+        I: 'm,
+    = impl Future<Output = Result<SensorAcquisition<Celsius>, Self::Error>> + 'm;
+
+    fn temperature<'m>(&'m mut self) -> Self::ReadFuture<'m> {
+        async move { self.request(ReadTemperature).unwrap().await.unwrap() }
     }
 }
