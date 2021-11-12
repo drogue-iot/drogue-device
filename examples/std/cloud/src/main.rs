@@ -2,12 +2,7 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use drogue_device::{
-    actors::net::*,
-    actors::tcp::std::*,
-    domain::{temperature::Temperature, SensorAcquisition},
-    *,
-};
+use drogue_device::{actors::net::*, actors::tcp::std::*, *};
 use drogue_temperature::*;
 use drogue_tls::Aes128GcmSha256;
 use embassy::time::{Duration, Timer};
@@ -56,12 +51,10 @@ async fn main(spawner: embassy::executor::Spawner) {
         .await;
 
     loop {
-        app.request(Command::Update(SensorData {
-            data: SensorAcquisition {
-                temperature: Temperature::new(22.0),
-                relative_humidity: 0.0,
-            },
-            location: None,
+        app.request(Command::Update(TemperatureData {
+            temp: Some(22.0),
+            hum: None,
+            geoloc: None,
         }))
         .unwrap()
         .await;

@@ -8,14 +8,17 @@ name = "drogue-temperature"
 description = "Application reporting temperature data to Drogue Cloud"
 version = "0.1.0"
 
+[workspace]
+
 [dependencies]
 drogue-device = { path = "../../device", default-features = false }
 defmt = { version = "0.2", optional = true }
 log = { version = "0.4", optional = true }
 heapless = "0.7"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+serde-json-core = { version = "0.4", default-features = false, features = ["heapless"] }
 
 [features]
-
 defmt-default = [ ]
 defmt-trace = [ ]
 defmt-debug = [ ]

@@ -1,8 +1,6 @@
-use super::{App, Command, ConnectionFactory, SensorData};
-use drogue_device::{
-    domain::{temperature::*, *},
-    Actor, Address, Inbox,
-};
+use super::{App, Command, ConnectionFactory};
+use drogue_device::{Actor, Address, Inbox};
+use drogue_temperature::TemperatureData;
 use embassy::time::{Duration, Timer};
 use embassy_nrf::temp::Temp;
 
@@ -38,13 +36,10 @@ impl<'d> Actor for TemperatureMonitor<'d> {
         async move {
             loop {
                 let t = self.t.read().await;
-                let d = SensorAcquisition {
-                    temperature: Temperature::<Celsius>::new(t.to_num::<f32>()),
-                    relative_humidity: 0.0,
-                };
-                app.request(Command::Update(SensorData {
-                    data: d,
-                    location: None,
+                app.request(Command::Update(TemperatureData {
+                    geoloc: None,
+                    temp: Some(t.to_num::<f32>()),
+                    hum: None,
                 }))
                 .unwrap()
                 .await;

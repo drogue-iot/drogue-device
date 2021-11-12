@@ -11,7 +11,6 @@ use panic_probe as _;
 use drogue_device::{
     actors::net::*,
     actors::{button::*, tcp::smoltcp::SmolTcp},
-    domain::{temperature::Temperature, SensorAcquisition},
     ActorContext, DeviceContext, Package,
 };
 use drogue_temperature::*;
@@ -115,12 +114,10 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             let factory = TlsConnectionFactory::new(net, TlsRand, [unsafe { &mut TLS_BUFFER }; 1]);
 
             let app = device.app.mount(factory, spawner);
-            app.request(Command::Update(SensorData {
-                data: SensorAcquisition {
-                    temperature: Temperature::new(22.0),
-                    relative_humidity: 0.0,
-                },
-                location: None,
+            app.request(Command::Update(TemperatureData {
+                temp: Some(22.0),
+                hum: None,
+                geoloc: None,
             }))
             .unwrap()
             .await;

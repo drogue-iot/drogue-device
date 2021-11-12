@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "device",
-    "apps/drogue-temperature",
     "macros",
     "xtask",
 ]

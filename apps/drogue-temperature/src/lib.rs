@@ -5,49 +5,34 @@
 
 pub(crate) mod fmt;
 
-use core::fmt::Write;
 use core::future::Future;
 use core::marker::PhantomData;
 use drogue_device::{
-    actors::button::{ButtonEvent, FromButtonEvent},
-    actors::net::*,
-    actors::sensors::SensorMonitor,
-    clients::http::*,
-    domain::{temperature::Celsius, SensorAcquisition},
-    drivers::dns::*,
-    traits::ip::*,
-    Actor, Address, Inbox,
+    actors::button::*, actors::net::*, clients::http::*, drivers::dns::*, traits::ip::*, Actor,
+    Address, Inbox,
 };
 use heapless::String;
-//use drogue_device::domain::temperature::Temperature;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct GeoLocation {
-    pub lon: f64,
-    pub lat: f64,
+    pub lon: f32,
+    pub lat: f32,
 }
 
-#[derive(Clone)]
-pub struct SensorData {
-    pub data: SensorAcquisition<Celsius>,
-    pub location: Option<GeoLocation>,
+#[derive(Clone, Serialize, Deserialize)]
+pub struct TemperatureData {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub geoloc: Option<GeoLocation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temp: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hum: Option<f32>,
 }
 
 pub enum Command {
+    Update(TemperatureData),
     Send,
-    Update(SensorData),
-}
-
-impl<C> FromButtonEvent<Command> for App<C>
-where
-    C: ConnectionFactory + 'static,
-{
-    fn from(event: ButtonEvent) -> Option<Command> {
-        match event {
-            ButtonEvent::Pressed => None,
-            ButtonEvent::Released => Some(Command::Send),
-        }
-    }
 }
 
 pub struct App<C>
@@ -107,17 +92,16 @@ where
         M: Inbox<'m, Self> + 'm,
     {
         async move {
-            let mut sensor_data: Option<SensorData> = None;
-            let mut counter = 0;
+            let mut counter: usize = 0;
+            let mut data: Option<TemperatureData> = None;
             loop {
                 match inbox.next().await {
                     Some(mut m) => match m.message() {
-                        Command::Update(t) => {
-                            //trace!("Updating current app temperature measurement: {}", t);
-                            sensor_data.replace(t.clone());
+                        Command::Update(d) => {
+                            data.replace(d.clone());
                         }
-                        Command::Send => match &sensor_data {
-                            Some(t) => {
+                        Command::Send => {
+                            if let Some(sensor_data) = data.as_ref() {
                                 info!("Sending temperature measurement number {}", counter);
                                 counter += 1;
                                 let mut client = HttpClient::new(
@@ -129,25 +113,8 @@ where
                                     self.password,
                                 );
 
-                                let mut tx: String<256> = String::new();
-                                if let Some(loc) = &t.location {
-                                    write!(
-                                        tx,
-                                        "{{\"geoloc\": {{\"lat\": {}, \"lon\": {}}}, \"temp\": {}, \"hum\": {}}}",
-                                        loc.lat,
-                                        loc.lon,
-                                        t.data.temperature.raw_value(), t.data.relative_humidity
-                                    )
-                                    .unwrap();
-                                } else {
-                                    write!(
-                                        tx,
-                                        "{{\"temp\": {}, \"hum\": {}}}",
-                                        t.data.temperature.raw_value(),
-                                        t.data.relative_humidity
-                                    )
-                                    .unwrap();
-                                }
+                                let tx: String<128> =
+                                    serde_json_core::ser::to_string(&sensor_data).unwrap();
                                 let mut rx_buf = [0; 1024];
                                 let response = client
                                     .request(
@@ -172,11 +139,10 @@ where
                                         warn!("Error doing HTTP request: {:?}", e);
                                     }
                                 }
+                            } else {
+                                info!("Not temperature measurement received yet");
                             }
-                            None => {
-                                info!("No temperature value found, not sending measurement");
-                            }
-                        },
+                        }
                     },
                     _ => {}
                 }
@@ -185,23 +151,15 @@ where
     }
 }
 
-pub struct AppAddress<C: ConnectionFactory + 'static> {
-    address: Address<'static, App<C>>,
-}
-
-impl<C: ConnectionFactory> From<Address<'static, App<C>>> for AppAddress<C> {
-    fn from(address: Address<'static, App<C>>) -> Self {
-        Self { address }
-    }
-}
-
-impl<C: ConnectionFactory> SensorMonitor<Celsius> for AppAddress<C> {
-    fn notify(&self, value: SensorAcquisition<Celsius>) {
-        // Ignore channel full error
-        let _ = self.address.notify(Command::Update(SensorData {
-            data: value,
-            location: None,
-        }));
+impl<C> FromButtonEvent<Command> for App<C>
+where
+    C: ConnectionFactory + 'static,
+{
+    fn from(event: ButtonEvent) -> Option<Command> {
+        match event {
+            ButtonEvent::Pressed => None,
+            ButtonEvent::Released => Some(Command::Send),
+        }
     }
 }
 

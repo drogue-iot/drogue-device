@@ -14,7 +14,6 @@ use drogue_device::{
         button::Button,
         wifi::{esp8266::*, AdapterActor},
     },
-    domain::{temperature::Temperature, SensorAcquisition},
     drivers::wifi::esp8266::Esp8266Controller,
     traits::wifi::*,
     ActorContext, DeviceContext, Package,
@@ -137,12 +136,10 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
             let app = device.app.mount(factory, spawner);
             device.button.mount(app, spawner);
-            app.request(Command::Update(SensorData {
-                data: SensorAcquisition {
-                    temperature: Temperature::new(22.0),
-                    relative_humidity: 0.0,
-                },
-                location: None,
+            app.request(Command::Update(TemperatureData {
+                temp: Some(22.0),
+                hum: None,
+                geoloc: None,
             }))
             .unwrap()
             .await;
