@@ -57,6 +57,7 @@ where
 
     fn connect<'m>(&'m mut self, _: &'m str, ip: IpAddress, port: u16) -> Self::ConnectFuture<'m> {
         async move {
+            info!("Allocate TLS buffer");
             let mut socket = Socket::new(self.clone(), self.open().await.unwrap());
             match socket
                 .connect(IpProtocol::Tcp, SocketAddress::new(ip, port))
@@ -133,7 +134,7 @@ mod tls {
     use core::cell::UnsafeCell;
     use core::future::Future;
     use core::mem::MaybeUninit;
-    use drogue_tls::{NoClock, TlsCipherSuite, TlsConfig, TlsConnection, TlsContext};
+    use drogue_tls::{NoClock, TlsCipherSuite, TlsConfig, TlsConnection, TlsContext, TlsError};
     use rand_core::{CryptoRng, RngCore};
 
     use atomic_polyfill::{AtomicBool, Ordering};
@@ -154,7 +155,7 @@ mod tls {
     }
 
     impl<'a> TlsBuffer<'a> {
-        pub fn allocate(&self) -> Option<*mut &'a mut [u8]> {
+        pub fn allocate(&self) -> Option<&'a mut [u8]> {
             if self.free.swap(false, Ordering::SeqCst) {
                 Some(unsafe { &mut *self.buf.get() })
             } else {
@@ -163,6 +164,7 @@ mod tls {
         }
 
         pub fn free(&self) {
+            info!("Freeing TLS buffer");
             self.free.store(true, Ordering::SeqCst);
         }
     }
@@ -241,6 +243,11 @@ mod tls {
                         buffer.replace(buf);
                     }
                 }
+                if buffer.is_none() {
+                    return Err(NetworkError::Tls(TlsError::OutOfMemory));
+                }
+                let buffer = buffer.unwrap();
+                let buffer_ptr = self.pool[idx].as_ptr();
 
                 let mut socket =
                     Socket::new(self.network.clone(), self.network.open().await.unwrap());
@@ -252,21 +259,23 @@ mod tls {
                         trace!("Connection established");
                         let config = TlsConfig::new().with_server_name(host);
                         let mut tls: TlsConnection<'a, Socket<'a, A>, CipherSuite> =
-                            TlsConnection::new(socket, unsafe { &mut *buffer.unwrap() });
+                            TlsConnection::new(socket, buffer);
                         // FIXME: support configuring cert size when verification is supported on ARM Cortex M
                         match tls
                             .open::<RNG, NoClock, 1>(TlsContext::new(&config, &mut self.rng))
                             .await
                         {
-                            Ok(_) => Ok(TlsNetworkConnection::new(tls, self.pool[idx].as_ptr())),
+                            Ok(_) => Ok(TlsNetworkConnection::new(tls, buffer_ptr)),
                             Err(e) => {
                                 warn!("Error creating TLS session: {:?}", e);
+                                unsafe { &*buffer_ptr }.free();
                                 Err(NetworkError::Tls(e))
                             }
                         }
                     }
                     Err(e) => {
                         warn!("Error creating connection: {:?}", e);
+                        unsafe { &*buffer_ptr }.free();
                         Err(NetworkError::Tcp(e))
                     }
                 }

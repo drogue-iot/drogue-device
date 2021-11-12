@@ -10,26 +10,29 @@
 use defmt_rtt as _;
 use panic_probe as _;
 
+use drogue_device::drivers::wifi::eswifi::EsWifiController;
 use drogue_device::{
     actors::button::*, actors::i2c::*, actors::sensors::hts221::*, actors::wifi::*,
     traits::wifi::*, *,
 };
 use drogue_temperature::*;
+use embassy::time::{Duration, Timer};
 use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::rcc::{AHBPrescaler, ClockSrc, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv};
 use embassy_stm32::spi::{self, Config as SpiConfig, Spi};
 use embassy_stm32::time::Hertz;
 use embassy_stm32::{
+    //dma::NoDma,
     exti::*,
     gpio::{Input, Level, Output, Pull, Speed},
-    i2c, interrupt,
+    i2c,
+    interrupt,
     peripherals::{
         DMA1_CH4, DMA1_CH5, DMA2_CH1, DMA2_CH2, I2C2, PB13, PC13, PD15, PE0, PE1, PE8, SPI3,
     },
-    Config, Peripherals,
+    Config,
+    Peripherals,
 };
-
-use drogue_device::drivers::wifi::eswifi::EsWifiController;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "tls")] {
@@ -42,11 +45,13 @@ cfg_if::cfg_if! {
 
         const HOST: &str = "http.sandbox.drogue.cloud";
         const PORT: u16 = 443;
+        //const HOST: &str = "192.168.1.2";
+        //const PORT: u16 = 8088;
         static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
     } else {
         use drogue_device::Address;
 
-        const HOST: &str = "localhost";
+        const HOST: &str = "192.168.1.2";
         const PORT: u16 = 8088;
     }
 }
@@ -76,7 +81,7 @@ type I2cDriver = embassy_stm32::i2c::I2c<'static, I2C2, DMA1_CH4, DMA1_CH5>;
 
 pub struct MyDevice {
     wifi: ActorContext<'static, AdapterActor<EsWifi>>,
-    app: ActorContext<'static, App<ConnectionFactory>, 2>,
+    app: ActorContext<'static, App<ConnectionFactory>, 3>,
     button:
         ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App<ConnectionFactory>>>,
     i2c: ActorContext<'static, I2cPeripheral<I2cDriver>>,
@@ -114,14 +119,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         Dbgmcu::enable_all();
     }
 
-    /*
-    let rcc = Rcc::new(p.RCC);
-    defmt::info!(
-        "Starting up... with system clock: {} Hz",
-        rcc.clocks().sys.0
-    );
-    */
-
     let spi = Spi::new(
         p.SPI3,
         p.PC10,
@@ -129,7 +126,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         p.PC11,
         p.DMA2_CH2,
         p.DMA2_CH1,
-        Hertz(1_000_000),
+        Hertz(100_000),
         SpiConfig::default(),
     );
 
@@ -163,12 +160,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         Hertz(100_000),
     );
 
-    /*
-    let ip = wifi.join_wep(WIFI_SSID, WIFI_PSK).await;
-    defmt::info!("Joined...");
-    defmt::info!("IP {}", ip);
-    */
-
     #[cfg(feature = "tls")]
     let rng = Rng::new(p.RNG);
 
@@ -185,7 +176,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         sensor: ActorContext::new(Sensor::new(sensor_ready)),
     });
 
-    DEVICE
+    let app = DEVICE
         .mount(|device| async move {
             let mut wifi = device.wifi.mount(wifi, spawner);
             defmt::info!("Joining WiFi network...");
@@ -205,7 +196,16 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             device.button.mount(app, spawner);
             let i2c = device.i2c.mount((), spawner);
             device.sensor.mount((i2c, app.into()), spawner);
+            app
         })
         .await;
+
     defmt::info!("Application initialized. Press 'User' button to send data");
+
+    // Adjust interval to your liking
+    let interval = Duration::from_secs(30);
+    loop {
+        let _ = app.notify(Command::Send);
+        Timer::after(interval).await;
+    }
 }

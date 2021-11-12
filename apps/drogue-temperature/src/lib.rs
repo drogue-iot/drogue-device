@@ -108,6 +108,7 @@ where
     {
         async move {
             let mut sensor_data: Option<SensorData> = None;
+            let mut counter = 0;
             loop {
                 match inbox.next().await {
                     Some(mut m) => match m.message() {
@@ -117,7 +118,8 @@ where
                         }
                         Command::Send => match &sensor_data {
                             Some(t) => {
-                                info!("Sending temperature measurement");
+                                info!("Sending temperature measurement number {}", counter);
+                                counter += 1;
                                 let mut client = HttpClient::new(
                                     &mut connection_factory,
                                     &DNS,
@@ -161,9 +163,9 @@ where
                                         info!("Response status: {:?}", response.status);
                                         if let Some(payload) = response.payload {
                                             let s = core::str::from_utf8(payload).unwrap();
-                                            info!("Payload: {}", s);
+                                            trace!("Payload: {}", s);
                                         } else {
-                                            info!("No response body");
+                                            trace!("No response body");
                                         }
                                     }
                                     Err(e) => {

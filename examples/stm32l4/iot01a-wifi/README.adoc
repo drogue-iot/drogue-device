@@ -29,7 +29,7 @@ To authenticate the device to an HTTP service, you must store the username and p
 You can configure the IP constant to point to any HTTP server to receive events, or you can use link:https://github.com/drogue-iot/drogue-cloud/[drogue cloud] locally. For simplicity, start a local HTTP server in python that echoes the HTTP payload back:
 
 ....
-curl -s https://raw.githubusercontent.com/drogue-iot/drogue-device/main/apps/wifi/server.py | python3 
+curl -s https://raw.githubusercontent.com/drogue-iot/drogue-device/main/apps/drogue-temperature/server.py | python3 
 ....
 
 To run the firmware using a given chip:

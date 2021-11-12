@@ -79,21 +79,26 @@ where
         if let Some(payload) = request.payload {
             write!(data, "Content-Length: {}\r\n\r\n", payload.len()).unwrap();
         }
+        trace!("Writing header");
         let result = connection.write(&data.as_bytes()[..data.len()]).await;
         let result = match result {
-            Ok(_) => match request.payload {
-                None => self.read_response(&mut connection, rx_buf).await,
-                Some(payload) => {
-                    let result = connection.write(payload).await;
-                    match result {
-                        Ok(_) => self.read_response(&mut connection, rx_buf).await,
-                        Err(e) => {
-                            warn!("Error sending data: {:?}", e);
-                            Err(e.into())
+            Ok(_) => {
+                trace!("Header written");
+                match request.payload {
+                    None => self.read_response(&mut connection, rx_buf).await,
+                    Some(payload) => {
+                        trace!("Writing data");
+                        let result = connection.write(payload).await;
+                        match result {
+                            Ok(_) => self.read_response(&mut connection, rx_buf).await,
+                            Err(e) => {
+                                warn!("Error sending data: {:?}", e);
+                                Err(e.into())
+                            }
                         }
                     }
                 }
-            },
+            }
             Err(e) => {
                 warn!("Error sending headers: {:?}", e);
                 Err(e.into())
