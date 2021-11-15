@@ -15,12 +15,12 @@ keywords = ["lorawan", "lora", "stm32wl", "stm32wl55", "networking", "iot", "stm
 [dependencies]
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 
-defmt = "0.2.3"
-defmt-rtt = "0.2.0"
-panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+defmt = "0.3"
+defmt-rtt = "0.3"
+panic-probe = { version = "0.3", features = ["print-defmt"] }
 #panic-halt = "0.2"
 
-drogue-device = { path = "../../../device", features = ["lora", "defmt", "defmt-info"], default-features = false }
+drogue-device = { path = "../../../device", features = ["lora", "defmt"], default-features = false }
 cortex-m-rt = ">=0.6.15,<0.8" #"0.7"
 cortex-m = { version = "0.7.3", features = ["inline-asm"] }
 heapless = "0.7"
@@ -30,17 +30,6 @@ rand_core = { version = "0.6", default-features = false }
 embassy = { version = "0.1.0", default-features = false }
 embassy-lora = { version = "0.1.0", default-features = false, features = ["stm32wl"] }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["defmt", "stm32wl55jc_cm4", "time-driver-tim2", "unstable-pac", "subghz"] }
-
-[features]
-default = [
-    "defmt-default",
-]
-defmt-default = []
-defmt-trace = [ ]
-defmt-debug = [ ]
-defmt-info = [ ]
-defmt-warn = [ ]
-defmt-error = [ ]
 
 [profile.release]
 codegen-units = 1
@@ -53,10 +42,10 @@ incremental = false
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "b636acf1150367dabcc28238301b7cd8cc8ca780" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "b636acf1150367dabcc28238301b7cd8cc8ca780" }
-embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "b636acf1150367dabcc28238301b7cd8cc8ca780" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "b636acf1150367dabcc28238301b7cd8cc8ca780" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
 
 #embassy = { path = "../../../../../embassy/embassy" }
 #embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }

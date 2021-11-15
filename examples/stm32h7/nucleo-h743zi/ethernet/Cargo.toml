@@ -10,25 +10,14 @@ resolver = "2"
 description = "STM32 Nucleo-H743 ethernet"
 keywords = ["ethernet", "stm32", "stm32h7", "networking"]
 
-[features]
-default = [
-    "defmt-default",
-]
-defmt-default = []
-defmt-trace = []
-defmt-debug = []
-defmt-info = []
-defmt-warn = []
-defmt-error = []
-
 [dependencies]
-defmt = "0.2"
-defmt-rtt = "0.2"
-panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+defmt = "0.3"
+defmt-rtt = "0.3"
+panic-probe = { version = "0.3", features = ["print-defmt"] }
 
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
-drogue-device = { path = "../../../../device", features = ["defmt", "defmt-trace", "tcp+smoltcp", "tls"], default-features = false }
-drogue-tls = { version = "0.4.0", default-features = false, features = ["async", "defmt"]}
+drogue-device = { path = "../../../../device", features = ["defmt", "tcp+smoltcp", "tls"], default-features = false }
+drogue-tls = { version = "0.5.0", default-features = false, features = ["async", "defmt"]}
 drogue-temperature = { path = "../../../../apps/drogue-temperature", features = ["defmt"]}
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
@@ -38,6 +27,6 @@ critical-section = "0.2.5"
 rand_core = "0.6.3"
 
 embassy = { version = "0.1.0", default-features = false }
-embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32h743zi", "defmt", "defmt-info", "memory-x", "net", "time-driver-tim2"] }
-embassy-net = { version = "0.1.0", default-features = false, features = ["defmt", "defmt-info"] }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32h743zi", "defmt", "memory-x", "net", "time-driver-tim2"] }
+embassy-net = { version = "0.1.0", default-features = false, features = ["defmt"] }
 embassy-macros = { version = "0.1.0" }

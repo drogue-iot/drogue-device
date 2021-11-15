@@ -17,8 +17,8 @@ embassy-hal-common = { version = "0.1.0", default-features = false }
 # LoRa dependencies
 lorawan-device = { git = "https://github.com/ivajloip/rust-lorawan.git", rev = "4bff2e0021103adfbccedcbf49dbcd0474adc4b2", default-features = false, features = ["async"], optional = true }
 lorawan-encoding = { git = "https://github.com/ivajloip/rust-lorawan.git", rev = "4bff2e0021103adfbccedcbf49dbcd0474adc4b2", default-features = false, features = ["default-crypto"], optional = true }
-#lorawan-encoding = { path = "../../../rust-lorawan/encoding", default-features = false, features = ["default-crypto", "defmt", "defmt-trace"], optional = true }
-#lorawan-device = { path = "../../../rust-lorawan/device", default-features = false, optional = true, features = ["defmt-trace", "withdefmt", "async"] }
+#lorawan-encoding = { path = "../../../rust-lorawan/encoding", default-features = false, features = ["default-crypto", "defmt"], optional = true }
+#lorawan-device = { path = "../../../rust-lorawan/device", default-features = false, optional = true, features = ["withdefmt", "async"] }
 
 bit_field = { version = "0.10", optional = true }
 embassy-stm32 = { version = "0.1.0", default-features = false, optional = true }
@@ -31,7 +31,7 @@ nom = { version = "6.1.2", default-features = false, optional = true }
 moveslice = { version = "2.0", optional = true }
 
 # TLS dependency
-drogue-tls = { version = "0.4.0", default-features = false, features = ["async"], optional = true}
+drogue-tls = { version = "0.5.0", default-features = false, features = ["async"], optional = true}
 #drogue-tls = {path = "../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
 rand_core = { version = "0.6.2", default-features = false }
 
@@ -44,7 +44,7 @@ critical-section = "0.2.5"
 
 # Logging alternatives
 log = { version = "0.4", optional = true }
-defmt = { version = "0.2", optional = true }
+defmt = { version = "0.3", optional = true }
 
 # HTTP dependencies
 base64 = { version = "0.13.0", default-features = false }
@@ -68,10 +68,3 @@ time = []
 lora = ["embassy-lora", "lorawan-device", "lorawan-encoding", "embassy/time"]
 wifi = []
 tls = ["drogue-tls"]
-
-defmt-default = [ ]
-defmt-trace = [ ]
-defmt-debug = [ ]
-defmt-info = [ ]
-defmt-warn = [ ]
-defmt-error = [ ]
