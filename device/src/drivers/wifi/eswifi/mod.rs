@@ -598,10 +598,9 @@ where
                                 len,
                                 data.len()
                             );
-                            warn!(
-                                "response parsed:  {:?}",
-                                core::str::from_utf8(&data).unwrap()
-                            );
+                            if let Ok(s) = core::str::from_utf8(&data) {
+                                warn!("response parsed:  {:?}", s);
+                            }
                             warn!("response raw data: {:?}", response);
                             Err(TcpError::ReadError)
                         } else {
