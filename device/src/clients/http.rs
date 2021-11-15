@@ -77,8 +77,14 @@ where
             write!(data, "Content-Type: {}\r\n", content_type).unwrap();
         }
         if let Some(payload) = request.payload {
-            write!(data, "Content-Length: {}\r\n\r\n", payload.len()).unwrap();
+            write!(data, "Content-Length: {}\r\n", payload.len()).unwrap();
         }
+        if let Some(extra_headers) = request.extra_headers {
+            for (header, value) in extra_headers.iter() {
+                write!(data, "{}: {}\r\n", header, value).unwrap();
+            }
+        }
+        write!(data, "\r\n").unwrap();
         trace!("Writing header");
         let result = connection.write(&data.as_bytes()[..data.len()]).await;
         let result = match result {
@@ -205,6 +211,7 @@ pub struct Request<'a> {
     path: Option<&'a str>,
     payload: Option<&'a [u8]>,
     content_type: Option<ContentType>,
+    extra_headers: Option<&'a [(&'a str, &'a str)]>,
 }
 
 impl<'a> Request<'a> {
@@ -214,7 +221,13 @@ impl<'a> Request<'a> {
             path: None,
             content_type: None,
             payload: None,
+            extra_headers: None,
         }
+    }
+
+    pub fn headers(mut self, headers: &'a [(&'a str, &'a str)]) -> Self {
+        self.extra_headers.replace(headers);
+        self
     }
 
     pub fn path(mut self, path: &'a str) -> Self {

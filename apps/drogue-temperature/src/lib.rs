@@ -119,7 +119,8 @@ where
                                 let response = client
                                     .request(
                                         Request::post()
-                                            .path("/v1/foo")
+                                            // Pass on schema
+                                            .path("/v1/foo?data_schema=urn:drogue:iot:temperature")
                                             .payload(tx.as_bytes())
                                             .content_type(ContentType::ApplicationJson),
                                         &mut rx_buf[..],
