@@ -186,7 +186,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b636acf1150367dabcc28238301b7cd8cc8ca780#b636acf1150367dabcc28238301b7cd8cc8ca780"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=c8f3ec3fba47899b123d0a146e8f9b3808ea4601#c8f3ec3fba47899b123d0a146e8f9b3808ea4601"
 dependencies = [
  "atomic-polyfill",
  "cortex-m",
@@ -205,7 +205,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b636acf1150367dabcc28238301b7cd8cc8ca780#b636acf1150367dabcc28238301b7cd8cc8ca780"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=c8f3ec3fba47899b123d0a146e8f9b3808ea4601#c8f3ec3fba47899b123d0a146e8f9b3808ea4601"
 dependencies = [
  "cortex-m",
  "embassy",
@@ -216,7 +216,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b636acf1150367dabcc28238301b7cd8cc8ca780#b636acf1150367dabcc28238301b7cd8cc8ca780"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=c8f3ec3fba47899b123d0a146e8f9b3808ea4601#c8f3ec3fba47899b123d0a146e8f9b3808ea4601"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -227,7 +227,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b636acf1150367dabcc28238301b7cd8cc8ca780#b636acf1150367dabcc28238301b7cd8cc8ca780"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=c8f3ec3fba47899b123d0a146e8f9b3808ea4601#c8f3ec3fba47899b123d0a146e8f9b3808ea4601"
 dependencies = [
  "embedded-hal",
 ]

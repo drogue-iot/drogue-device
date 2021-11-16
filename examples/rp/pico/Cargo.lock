@@ -12,27 +12,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aligned"
-version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a785a543aea40f5e4e2e93bb2655d31bc21bb391fff65697150973e383f16bb"
-dependencies = [
- "as-slice",
-]
-
-[[package]]
-name = "as-slice"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45403b49e3954a4b8428a0ac21a4b7afadccf92bfd96273f1a58cd4812496ae0"
-dependencies = [
- "generic-array 0.12.4",
- "generic-array 0.13.3",
- "generic-array 0.14.4",
- "stable_deref_trait",
-]
-
-[[package]]
 name = "atomic-polyfill"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -82,11 +61,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46afbd2983a5d5a7bd740ccb198caf5b82f45c40c09c0eed36052d91cb92e719"
 
 [[package]]
+name = "bitflags"
+version = "1.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
+
+[[package]]
 name = "blinky"
 version = "0.1.0"
 dependencies = [
  "atomic-polyfill",
- "cortex-m 0.7.3",
+ "cortex-m",
  "cortex-m-rt",
  "defmt",
  "defmt-rtt",
@@ -109,19 +94,6 @@ name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
-
-[[package]]
-name = "cortex-m"
-version = "0.6.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9075300b07c6a56263b9b582c214d0ff037b00d45ec9fde1cc711490c56f1bb9"
-dependencies = [
- "aligned",
- "bare-metal 0.2.5",
- "bitfield",
- "cortex-m 0.7.3",
- "volatile-register",
-]
 
 [[package]]
 name = "cortex-m"
@@ -163,7 +135,7 @@ checksum = "01e191a5a6f6edad9b679777ef6b6c0f2bdd4a333f2ecb8f61c3e28109a03d70"
 dependencies = [
  "bare-metal 1.0.0",
  "cfg-if",
- "cortex-m 0.7.3",
+ "cortex-m",
  "riscv",
 ]
 
@@ -204,21 +176,22 @@ dependencies = [
 
 [[package]]
 name = "defmt"
-version = "0.2.3"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15fe96f5d208164afa70583ff8f062e7697cbbb0b98e5076fbf8ac6da9edff0f"
+checksum = "62fb5df4d2b06a2dbf6ba26b49031f5f45f1aafdfca4b9259719466d362f34a0"
 dependencies = [
+ "bitflags",
  "defmt-macros",
- "semver 1.0.4",
 ]
 
 [[package]]
 name = "defmt-macros"
-version = "0.2.3"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bd2c3949cb76c25f48c363e61b97f05b317efe3c12fa45d54a6599c3949c85e"
+checksum = "dede7fc0d15f4b8e15f3f023aefe6806066d7eb382123981e106fba05b35c5a3"
 dependencies = [
  "defmt-parser",
+ "proc-macro-error",
  "proc-macro2",
  "quote",
  "syn",
@@ -226,17 +199,17 @@ dependencies = [
 
 [[package]]
 name = "defmt-parser"
-version = "0.2.2"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc621c2b4f5f5635e34021c38af2ccb0c1dae38ba11ebee25258de8bb1cee9fe"
+checksum = "8d1ce010e1a51aef925c98f12ed81a4e0e96ce0185a87c33f1b3b9c8f20749c7"
 
 [[package]]
 name = "defmt-rtt"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5dfca43cd6b33d2d9f4db9757101ce1044e9672cd7f412dfcc5c5f772243c3b"
+checksum = "1c3416323cf950205e725113498892fba05a1be3a5be1872c973438cfca0849b"
 dependencies = [
- "cortex-m 0.6.7",
+ "cortex-m",
  "defmt",
 ]
 
@@ -259,10 +232,10 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b636acf1150367dabcc28238301b7cd8cc8ca780#b636acf1150367dabcc28238301b7cd8cc8ca780"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=c8f3ec3fba47899b123d0a146e8f9b3808ea4601#c8f3ec3fba47899b123d0a146e8f9b3808ea4601"
 dependencies = [
  "atomic-polyfill",
- "cortex-m 0.7.3",
+ "cortex-m",
  "critical-section",
  "embassy-macros",
  "embassy-traits",
@@ -275,9 +248,9 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b636acf1150367dabcc28238301b7cd8cc8ca780#b636acf1150367dabcc28238301b7cd8cc8ca780"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=c8f3ec3fba47899b123d0a146e8f9b3808ea4601#c8f3ec3fba47899b123d0a146e8f9b3808ea4601"
 dependencies = [
- "cortex-m 0.7.3",
+ "cortex-m",
  "embassy",
  "num-traits",
  "usb-device",
@@ -286,7 +259,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b636acf1150367dabcc28238301b7cd8cc8ca780#b636acf1150367dabcc28238301b7cd8cc8ca780"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=c8f3ec3fba47899b123d0a146e8f9b3808ea4601#c8f3ec3fba47899b123d0a146e8f9b3808ea4601"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -297,10 +270,10 @@ dependencies = [
 [[package]]
 name = "embassy-rp"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b636acf1150367dabcc28238301b7cd8cc8ca780#b636acf1150367dabcc28238301b7cd8cc8ca780"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=c8f3ec3fba47899b123d0a146e8f9b3808ea4601#c8f3ec3fba47899b123d0a146e8f9b3808ea4601"
 dependencies = [
  "atomic-polyfill",
- "cortex-m 0.7.3",
+ "cortex-m",
  "cortex-m-rt",
  "critical-section",
  "embassy",
@@ -313,7 +286,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=b636acf1150367dabcc28238301b7cd8cc8ca780#b636acf1150367dabcc28238301b7cd8cc8ca780"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=c8f3ec3fba47899b123d0a146e8f9b3808ea4601#c8f3ec3fba47899b123d0a146e8f9b3808ea4601"
 dependencies = [
  "embedded-hal",
 ]
@@ -397,34 +370,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "generic-array"
-version = "0.12.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffdf9f34f1447443d37393cc6c2b8313aebddcd96906caf34e54c68d8e57d7bd"
-dependencies = [
- "typenum",
-]
-
-[[package]]
-name = "generic-array"
-version = "0.13.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f797e67af32588215eaaab8327027ee8e71b9dd0b2b26996aedf20c030fce309"
-dependencies = [
- "typenum",
-]
-
-[[package]]
-name = "generic-array"
-version = "0.14.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "501466ecc8a30d1d3b7fc9229b122b2ce8ed6e9d9223f1138d4babb253e51817"
-dependencies = [
- "typenum",
- "version_check",
-]
-
-[[package]]
 name = "hash32"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -498,11 +443,11 @@ dependencies = [
 
 [[package]]
 name = "panic-probe"
-version = "0.2.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a0fa226f55c70d0d70ad373802f0d65a775478afec75c0f3eee1de5d39057c9"
+checksum = "3ab1f00eac22bd18f8e5cae9555f2820b3a0c166b5b556ee3e203746ea6dcf3a"
 dependencies = [
- "cortex-m 0.7.3",
+ "cortex-m",
  "defmt",
 ]
 
@@ -537,6 +482,30 @@ name = "pin-utils"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
+
+[[package]]
+name = "proc-macro-error"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
+dependencies = [
+ "proc-macro-error-attr",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "version_check",
+]
 
 [[package]]
 name = "proc-macro2"
@@ -606,7 +575,7 @@ version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b6e222c239e9f08d36faf5e2372b4eb0661b3535e3b28942db1e937a9d15f76"
 dependencies = [
- "cortex-m 0.7.3",
+ "cortex-m",
  "cortex-m-rt",
  "vcell",
 ]
@@ -616,7 +585,7 @@ name = "rp2040-pac2"
 version = "0.1.0"
 source = "git+https://github.com/embassy-rs/rp2040-pac2?rev=9ad7223a48a065e612bc7dc7be5bf5bd0b41cfc4#9ad7223a48a065e612bc7dc7be5bf5bd0b41cfc4"
 dependencies = [
- "cortex-m 0.7.3",
+ "cortex-m",
  "cortex-m-rt",
 ]
 
@@ -626,7 +595,7 @@ version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 dependencies = [
- "semver 0.9.0",
+ "semver",
 ]
 
 [[package]]
@@ -643,12 +612,6 @@ checksum = "1d7eb9ef2c18661902cc47e535f9bc51b78acd254da71d375c2f6720d9a40403"
 dependencies = [
  "semver-parser",
 ]
-
-[[package]]
-name = "semver"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "568a8e6258aa33c13358f81fd834adb854c6f7c9468520910a9b1e8fac068012"
 
 [[package]]
 name = "semver-parser"
@@ -687,12 +650,6 @@ dependencies = [
  "quote",
  "unicode-xid",
 ]
-
-[[package]]
-name = "typenum"
-version = "1.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b63708a265f51345575b27fe43f9500ad611579e764c79edbc2037b1121959ec"
 
 [[package]]
 name = "unicode-xid"

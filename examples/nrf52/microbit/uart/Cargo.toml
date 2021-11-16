@@ -10,24 +10,14 @@ description = "BBC micro:bit v2 uart and matrix display"
 keywords = ["uart", "microbit", "nrf", "nrf52", "display"]
 
 [dependencies]
-defmt = "0.2"
-defmt-rtt = "0.2"
-panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+defmt = "0.3"
+defmt-rtt = "0.3"
+panic-probe = { version = "0.3", features = ["print-defmt"] }
 
-drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "defmt-info", "time"] }
+drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "time"] }
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 
 embassy = { version = "0.1.0", default-features = false, features = ["defmt"] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
 
-[features]
-default = [
-    "defmt-default",
-]
-defmt-default = []
-defmt-trace = [ ]
-defmt-debug = [ ]
-defmt-info = [ ]
-defmt-warn = [ ]
-defmt-error = [ ]

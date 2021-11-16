@@ -17,13 +17,13 @@ futures     = { version = "0.3.17", default-features = false, features = ["async
 embassy = { version = "0.1.0", default-features = false, features = ["time"] }
 fixed = "1.5.0"
 
-nrf-softdevice = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "0fcb3135b22ec045ff65e83b74d5241534141a6c", features = ["ble-peripheral", "ble-gatt-server"] }
-nrf-softdevice-s113 = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "0fcb3135b22ec045ff65e83b74d5241534141a6c", optional = true }
+nrf-softdevice = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "ab4d4f9de306e8d3040e2b5d6e05709d72891721", features = ["ble-peripheral", "ble-gatt-server"] }
+nrf-softdevice-s113 = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "ab4d4f9de306e8d3040e2b5d6e05709d72891721", optional = true }
 
 #nrf-softdevice = { version = "0.1.0", path = "../../../../nrf-softdevice/nrf-softdevice", features = ["ble-peripheral", "critical-section-impl", "ble-gatt-server"] }
 #nrf-softdevice-s113 = { version = "0.1.0", path = "../../../../nrf-softdevice/nrf-softdevice-s113", optional = true }
 
-defmt = { version = "0.2", optional = true }
+defmt = { version = "0.3", optional = true }
 log = { version = "0.4", optional = true }
 
 [features]
@@ -31,9 +31,9 @@ s113 = ["nrf-softdevice-s113", "nrf-softdevice/s113"]
 nrf52833 = ["nrf-softdevice/nrf52833"]
 withdefmt = ["nrf-softdevice/defmt"]
 
-defmt-default = [ ]
-defmt-trace = [ ]
-defmt-debug = [ ]
-defmt-info = [ ]
-defmt-warn = [ ]
-defmt-error = [ ]
+[patch.crates-io]
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
+#embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
+#embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
+#embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }

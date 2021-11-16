@@ -10,9 +10,9 @@ description = "BBC micro:bit v2 BLE temperature sensor"
 keywords = ["ble", "bluetooth", "microbit", "nrf", "nrf52", "temperature"]
 
 [dependencies]
-defmt = { version = "0.2" }
-defmt-rtt = { version = "0.2", optional = true }
-panic-probe = { version = "0.2.0", features = ["print-defmt"], optional = true }
+defmt = { version = "0.3" }
+defmt-rtt = { version = "0.3", optional = true }
+panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 panic-reset = "0.1.0"
 
 drogue-device = { path = "../../../../device", default-features = false, features = ["time"] }
@@ -32,18 +32,9 @@ ble = { path = "../../../../apps/ble", features = ["nrf52833", "s113"] }
 default = [
     "defmt-rtt",
     "panic-probe",
-    "defmt-default",
     "drogue-device/defmt",
-    "drogue-device/defmt-info",
     "embassy/defmt",
     "embassy-nrf/defmt",
     "ble/defmt",
-    "ble/defmt-trace",
     "ble/withdefmt",
 ]
-defmt-default = []
-defmt-trace = [ ]
-defmt-debug = [ ]
-defmt-info = [ ]
-defmt-warn = [ ]
-defmt-error = [ ]
