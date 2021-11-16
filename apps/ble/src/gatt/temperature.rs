@@ -33,19 +33,21 @@ impl TemperatureMonitor {
     }
 
     fn handle_event(&mut self, conn: &Connection, event: &TemperatureServiceEvent) {
+
         match event {
-            TemperatureServiceEvent::TemperatureNotificationsEnabled => {
-                self.connections.push(conn.clone()).ok().unwrap();
-                info!("notifications enabled!");
-            }
-            TemperatureServiceEvent::TemperatureNotificationsDisabled => {
-                for i in 0..self.connections.len() {
-                    if self.connections[i].handle() == conn.handle() {
-                        self.connections.swap_remove(i);
-                        break;
+            TemperatureServiceEvent::TemperatureCccdWrite{notifications} => {
+                if *notifications {
+                    self.connections.push(conn.clone()).ok().unwrap();
+                    info!("notifications enabled!");
+                } else {
+                    for i in 0..self.connections.len() {
+                        if self.connections[i].handle() == conn.handle() {
+                            self.connections.swap_remove(i);
+                            break;
+                        }
                     }
+                    info!("notifications disabled!");
                 }
-                info!("notifications disabled!");
             }
             TemperatureServiceEvent::PeriodWrite(period) => {
                 info!("Adjusting measurement interval to {} milliseconds!", period);
