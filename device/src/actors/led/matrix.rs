@@ -94,57 +94,62 @@ where
         M: Inbox<'m, Self> + 'm,
     {
         async move {
-            match with_timeout(self.refresh_interval, inbox.next()).await {
-                Ok(Some(mut m)) => match *m.message() {
-                    MatrixCommand::ApplyAsciiChar(c) => self.matrix.apply(c.to_frame()),
-                    MatrixCommand::ApplyFrame(f) => self.matrix.apply(f.to_frame()),
-                    MatrixCommand::ApplyText(s, effect, duration) => {
-                        let mut animation: Animation<'m, COLS, ROWS> =
-                            Animation::new(AnimationData::Bytes(s.as_bytes()), effect, duration)
-                                .unwrap();
-                        loop {
-                            match animation.next(Instant::now()) {
-                                AnimationState::Apply(f) => {
-                                    self.matrix.apply(f);
+            loop {
+                match with_timeout(self.refresh_interval, inbox.next()).await {
+                    Ok(Some(mut m)) => match *m.message() {
+                        MatrixCommand::ApplyAsciiChar(c) => self.matrix.apply(c.to_frame()),
+                        MatrixCommand::ApplyFrame(f) => self.matrix.apply(f.to_frame()),
+                        MatrixCommand::ApplyText(s, effect, duration) => {
+                            let mut animation: Animation<'_, COLS, ROWS> = Animation::new(
+                                AnimationData::Bytes(s.as_bytes()),
+                                effect,
+                                duration,
+                            )
+                            .unwrap();
+                            loop {
+                                match animation.next(Instant::now()) {
+                                    AnimationState::Apply(f) => {
+                                        self.matrix.apply(f);
+                                    }
+                                    AnimationState::Wait => {}
+                                    AnimationState::Done => {
+                                        break;
+                                    }
                                 }
-                                AnimationState::Wait => {}
-                                AnimationState::Done => {
-                                    break;
-                                }
+                                self.matrix.render();
+                                Timer::after(self.refresh_interval).await;
                             }
-                            self.matrix.render();
-                            Timer::after(self.refresh_interval).await;
                         }
-                    }
-                    MatrixCommand::ApplyAnimation(a, effect, duration) => {
-                        let mut animation =
-                            Animation::new(AnimationData::Frames(a), effect, duration).unwrap();
+                        MatrixCommand::ApplyAnimation(a, effect, duration) => {
+                            let mut animation =
+                                Animation::new(AnimationData::Frames(a), effect, duration).unwrap();
 
-                        loop {
-                            match animation.next(Instant::now()) {
-                                AnimationState::Apply(f) => {
-                                    self.matrix.apply(f);
+                            loop {
+                                match animation.next(Instant::now()) {
+                                    AnimationState::Apply(f) => {
+                                        self.matrix.apply(f);
+                                    }
+                                    AnimationState::Wait => {}
+                                    AnimationState::Done => {
+                                        break;
+                                    }
                                 }
-                                AnimationState::Wait => {}
-                                AnimationState::Done => {
-                                    break;
-                                }
+                                self.matrix.render();
+                                Timer::after(self.refresh_interval).await;
                             }
-                            self.matrix.render();
-                            Timer::after(self.refresh_interval).await;
                         }
-                    }
-                    MatrixCommand::On(x, y) => self.matrix.on(x, y),
-                    MatrixCommand::Off(x, y) => self.matrix.off(x, y),
-                    MatrixCommand::Clear => self.matrix.clear(),
-                    MatrixCommand::Render => {
+                        MatrixCommand::On(x, y) => self.matrix.on(x, y),
+                        MatrixCommand::Off(x, y) => self.matrix.off(x, y),
+                        MatrixCommand::Clear => self.matrix.clear(),
+                        MatrixCommand::Render => {
+                            self.matrix.render();
+                        }
+                    },
+                    Err(TimeoutError) => {
                         self.matrix.render();
                     }
-                },
-                Err(TimeoutError) => {
-                    self.matrix.render();
+                    _ => {}
                 }
-                _ => {}
             }
         }
     }
