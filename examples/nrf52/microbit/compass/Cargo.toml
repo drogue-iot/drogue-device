@@ -1,0 +1,34 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+edition = "2018"
+name = "microbit-compass"
+version = "0.1.0"
+description = "BBC micro:bit v2 compass showing direction in led display"
+keywords = ["compass", "lsm303agr", "microbit", "nrf", "nrf52", "display"]
+
+[dependencies]
+defmt = "0.2"
+defmt-rtt = "0.2"
+panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+
+drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "defmt-info", "time"] }
+cortex-m-rt = "0.6"
+
+embassy = { version = "0.1.0", default-features = false, features = ["defmt"] }
+embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
+
+lsm303agr = "0.2.2"
+
+[features]
+default = [
+    "defmt-default",
+]
+defmt-default = []
+defmt-trace = [ ]
+defmt-debug = [ ]
+defmt-info = [ ]
+defmt-warn = [ ]
+defmt-error = [ ]
