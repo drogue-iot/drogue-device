@@ -9,8 +9,9 @@ use defmt_rtt as _;
 
 use ble::microbit::*;
 use drogue_device::{
-    actors::led::matrix::{AnimationEffect, LedMatrixActor, MatrixCommand},
+    actors::led::matrix::{LedMatrixActor, MatrixCommand},
     drivers::led::matrix::{fonts, LedMatrix},
+    traits::led::TextDisplay,
     ActorContext, Address, DeviceContext, Package,
 };
 use embassy::executor::Spawner;
@@ -28,7 +29,7 @@ use panic_probe as _;
 #[cfg(not(feature = "panic-probe"))]
 use panic_reset as _;
 
-pub type AppMatrix = LedMatrixActor<Output<'static, AnyPin>, 5, 5, 128>;
+pub type AppMatrix = LedMatrixActor<Output<'static, AnyPin>, 5, 5>;
 pub struct LedConnectionState(Address<'static, AppMatrix>);
 
 pub struct MyDevice {
@@ -74,16 +75,9 @@ async fn main(spawner: Spawner, p: Peripherals) {
 
     DEVICE
         .mount(|device| async move {
-            let matrix = device.matrix.mount((), spawner);
+            let mut matrix = device.matrix.mount((), spawner);
 
-            matrix
-                .notify(MatrixCommand::ApplyText(
-                    "Hello, Drogue",
-                    AnimationEffect::Slide,
-                    Duration::from_secs(5),
-                ))
-                .unwrap();
-
+            matrix.scroll("Hello, Drogue").await.unwrap();
             device
                 .ble_service
                 .mount(LedConnectionState(matrix), spawner);
@@ -96,18 +90,17 @@ fn output_pin(pin: AnyPin) -> Output<'static, AnyPin> {
 }
 
 impl ConnectionStateListener for LedConnectionState {
-    fn on_connected(&self) {
-        self.0
-            .notify(MatrixCommand::ApplyFrame(&fonts::CHECK_MARK))
-            .unwrap();
+    type OnConnectedFuture<'m> = impl core::future::Future<Output = ()> + 'm;
+    fn on_connected<'m>(&'m self) -> Self::OnConnectedFuture<'m> {
+        async move {
+            let _ = self.0.notify(MatrixCommand::ApplyFrame(&fonts::CHECK_MARK));
+        }
     }
-    fn on_disconnected(&self) {
-        self.0
-            .notify(MatrixCommand::ApplyText(
-                "Disconnected",
-                AnimationEffect::Slide,
-                Duration::from_secs(6),
-            ))
-            .unwrap()
+
+    type OnDisconnectedFuture<'m> = impl core::future::Future<Output = ()> + 'm;
+    fn on_disconnected<'m>(&'m self) -> Self::OnDisconnectedFuture<'m> {
+        async move {
+            self.0.clone().scroll("Disconnected").await.unwrap();
+        }
     }
 }

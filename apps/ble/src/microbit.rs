@@ -83,8 +83,16 @@ where
 }
 
 pub trait ConnectionStateListener {
-    fn on_connected(&self);
-    fn on_disconnected(&self);
+    type OnConnectedFuture<'m>: core::future::Future<Output = ()>
+    where
+        Self: 'm;
+
+    fn on_connected<'m>(&'m self) -> Self::OnConnectedFuture<'m>;
+
+    type OnDisconnectedFuture<'m>: core::future::Future<Output = ()>
+    where
+        Self: 'm;
+    fn on_disconnected<'m>(&'m self) -> Self::OnDisconnectedFuture<'m>;
 }
 
 struct MicrobitGattHandler<C>
@@ -99,15 +107,21 @@ impl<C> GattEventHandler<MicrobitGattServer> for MicrobitGattHandler<C>
 where
     C: ConnectionStateListener,
 {
-    fn on_event(&mut self, event: GattEvent<MicrobitGattServer>) {
-        match event {
-            GattEvent::Write(connection, e) => {
-                if let MicrobitGattServerEvent::Temperature(e) = e {
-                    self.temperature.notify((connection, e)).ok();
+    type OnEventFuture<'m>
+    where
+        C: 'm,
+    = impl core::future::Future<Output = ()> + 'm;
+    fn on_event<'m>(&'m mut self, event: GattEvent<MicrobitGattServer>) -> Self::OnEventFuture<'m> {
+        async move {
+            match event {
+                GattEvent::Write(connection, e) => {
+                    if let MicrobitGattServerEvent::Temperature(e) = e {
+                        self.temperature.request((connection, e)).unwrap().await;
+                    }
                 }
+                GattEvent::Connected(_) => self.listener.on_connected().await,
+                GattEvent::Disconnected(_) => self.listener.on_disconnected().await,
             }
-            GattEvent::Connected(_) => self.listener.on_connected(),
-            GattEvent::Disconnected(_) => self.listener.on_disconnected(),
         }
     }
 }

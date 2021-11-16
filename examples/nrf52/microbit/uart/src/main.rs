@@ -27,7 +27,7 @@ use embassy_nrf::{
 };
 use panic_probe as _;
 
-pub type AppMatrix = LedMatrixActor<Output<'static, AnyPin>, 5, 5, 128>;
+pub type AppMatrix = LedMatrixActor<Output<'static, AnyPin>, 5, 5>;
 
 pub struct MyDevice {
     button: ActorContext<'static, Button<'static, PortInput<'static, P0_14>, Statistics>>,

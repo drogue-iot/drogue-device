@@ -1,10 +1,7 @@
 use crate::statistics::*;
 use core::future::Future;
-use drogue_device::{actors::led::matrix::*, Actor, Address, Inbox};
-use embassy::{
-    time::Duration,
-    traits::uart::{Read, Write},
-};
+use drogue_device::{traits::led::TextDisplay, Actor, Address, Inbox};
+use embassy::traits::uart::{Read, Write};
 
 use crate::AppMatrix;
 
@@ -46,17 +43,10 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
     where
         M: Inbox<'m, Self> + 'm,
     {
-        let matrix = config.0;
+        let mut matrix = config.0;
         let statistics = config.1;
         async move {
-            matrix
-                .notify(MatrixCommand::ApplyText(
-                    "Hello, World!",
-                    AnimationEffect::Slide,
-                    Duration::from_secs(8),
-                ))
-                .unwrap();
-
+            matrix.scroll("Hello, World!").await.unwrap();
             let mut buf = [0; 128];
             let motd = "Welcome to the Drogue Echo Service\r\n".as_bytes();
             buf[..motd.len()].clone_from_slice(motd);
@@ -66,10 +56,7 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
             loop {
                 let _ = self.uart.read(&mut buf[..1]).await;
                 let _ = self.uart.write(&buf[..1]).await;
-                matrix
-                    .request(MatrixCommand::ApplyFrame(&(buf[0] as char)))
-                    .unwrap()
-                    .await;
+                matrix.putc(buf[0] as char).unwrap();
                 statistics
                     .request(StatisticsCommand::IncrementCharacterCount)
                     .unwrap()
