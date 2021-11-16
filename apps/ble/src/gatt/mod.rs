@@ -33,7 +33,10 @@ pub trait GattEventHandler<S>
 where
     S: Server,
 {
-    fn on_event(&mut self, event: GattEvent<S>);
+    type OnEventFuture<'m>: core::future::Future<Output = ()>
+    where
+        Self: 'm;
+    fn on_event<'m>(&'m mut self, event: GattEvent<S>) -> Self::OnEventFuture<'m>;
 }
 
 impl<S, E> GattServer<S, E>
