@@ -212,7 +212,7 @@ dependencies = [
  "cfg-if",
  "drogue-device",
  "drogue-temperature",
- "drogue-tls 0.4.0",
+ "drogue-tls",
  "embassy",
  "embedded-hal",
  "env_logger",
@@ -370,7 +370,7 @@ dependencies = [
  "atomic-polyfill",
  "base64",
  "critical-section",
- "drogue-tls 0.5.0",
+ "drogue-tls",
  "embassy",
  "embassy-hal-common",
  "embedded-hal",
@@ -395,26 +395,6 @@ dependencies = [
 
 [[package]]
 name = "drogue-tls"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1de76b9ad4290a043ded03f07bc419bc707ba569400b35f0cdd0bb0116324dc7"
-dependencies = [
- "aes-gcm",
- "digest",
- "generic-array",
- "heapless",
- "hkdf",
- "hmac",
- "log",
- "nom",
- "p256",
- "rand_core",
- "sha2",
- "typenum",
-]
-
-[[package]]
-name = "drogue-tls"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d93d1b6a1102b7ccf4968bce39add8d19cc136ee3a0e6187f98c77c018df89c8"
@@ -425,6 +405,7 @@ dependencies = [
  "heapless",
  "hkdf",
  "hmac",
+ "log",
  "nom",
  "p256",
  "rand_core",
@@ -524,7 +505,7 @@ dependencies = [
  "cfg-if",
  "drogue-device",
  "drogue-temperature",
- "drogue-tls 0.4.0",
+ "drogue-tls",
  "embassy",
  "embedded-hal",
  "env_logger",
