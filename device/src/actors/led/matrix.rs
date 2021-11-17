@@ -19,6 +19,23 @@ where
     }
 }
 
+impl<P, const ROWS: usize, const COLS: usize> Address<'static, LedMatrixActor<P, ROWS, COLS>>
+where
+    P: OutputPin + 'static,
+{
+    pub async fn on(&self, x: usize, y: usize) {
+        self.request(MatrixCommand::On(x, y)).unwrap().await;
+    }
+
+    pub async fn off(&self, x: usize, y: usize) {
+        self.request(MatrixCommand::Off(x, y)).unwrap().await;
+    }
+
+    pub async fn clear(&self) {
+        self.request(MatrixCommand::Clear).unwrap().await;
+    }
+}
+
 impl<P, const ROWS: usize, const COLS: usize> TextDisplay
     for Address<'static, LedMatrixActor<P, ROWS, COLS>>
 where
