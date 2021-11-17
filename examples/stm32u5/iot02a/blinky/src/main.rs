@@ -13,7 +13,7 @@ use drogue_device::actors::button::{ButtonEvent, FromButtonEvent};
 use drogue_device::actors::led::{Led, LedMessage};
 use drogue_device::{actors::button::Button, Actor, ActorContext, Address, DeviceContext, Inbox};
 use embassy_stm32::dbgmcu::Dbgmcu;
-use embassy_stm32::peripherals::{PH7, PH6, PE13, PC13};
+use embassy_stm32::peripherals::{PC13, PE13, PH6, PH7};
 use embassy_stm32::{
     exti::ExtiInput,
     gpio::{Input, Level, Output, Pull, Speed},

@@ -40,6 +40,7 @@ static WORKSPACES: &[&str] = &[
     "examples/rp/pico",
     "examples/stm32wl/nucleo-wl55",
     "examples/stm32h7/nucleo-h743zi",
+    "examples/stm32u5/iot02a",
     "examples/wasm/browser",
     "examples/std",
     //"apps/ble",

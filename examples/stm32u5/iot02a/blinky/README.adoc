@@ -1,12 +1,12 @@
-== nucleo-h743zi-blinky drogue-device example
+== stm32u585ai-iot02a-blinky drogue-device example
 
-This example application runs out of the box on the STM32 Nucleo H743ZI development kit.
+This example application runs out of the box on the STM32U585AI-IOT02A development kit.
 
 === Prerequisites
 
 ==== Hardware
 
-* STM32 Nucleo H743ZI development kit.
+* STM32 U585AI-IOT02A development kit.
 * A finger or other stick-like device to push a button.
 
 ==== Software
@@ -31,4 +31,4 @@ cargo run --release -- --probe <VID>:<PID>
 ....
 
 Once flashed, the device will reset and look no different at first. 
-Upon pressing the blue user button, the LEDS will cycle from green to yellow to red and back again.
+Upon pressing the blue user button, the LEDS will cycle from green to blue to red and back again.
