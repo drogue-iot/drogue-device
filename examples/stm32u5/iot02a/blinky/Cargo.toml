@@ -12,8 +12,6 @@ resolver = "2"
 description = "STM32 IoT Discovery board blinky"
 keywords = ["stm32u5", "basic"]
 
-[workspace]
-
 [dependencies]
 
 defmt = "0.3"
@@ -42,17 +40,3 @@ default = [
 tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls"]
 b-u585i-iot02a = ["embassy-stm32/stm32u585ai"]
 
-[patch.crates-io]
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
-embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
-
-
-[profile.release]
-codegen-units = 1
-debug = 2
-debug-assertions = false
-incremental = false
-lto = "fat"
-opt-level = 's'
-overflow-checks = false
