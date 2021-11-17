@@ -183,14 +183,20 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     }
 
     defmt::info!("Calibration complete!");
+    matrix.clear().await;
 
-    let x_center = max_x - min_x.abs();
-    let y_center = max_y - min_y.abs();
+    let x_offset = (min_x + max_x) / 2;
+    let y_offset = (min_y + max_y) / 2;
+
+    let x_scale = 1.0 / (max_x - min_x) as f32;
+    let y_scale = 1.0 / (max_y - min_y) as f32;
 
     defmt::info!(
-        "Calibrated values x-y center({}, {}): x({}, {}), y({}, {}), z({}, {})",
-        x_center,
-        y_center,
+        "Calibrated values (x, y) offset({}, {}), scale({}, {}): x({}, {}), y({}, {}), z({}, {})",
+        x_offset,
+        y_offset,
+        x_scale,
+        y_scale,
         min_x,
         max_x,
         min_y,
@@ -204,8 +210,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         if status.xyz_new_data {
             let data = sensor.mag_data().unwrap();
             // Normalize for within calibrated range
-            let x_sample = ((data.x - x_center) as f32);
-            let y_sample = ((data.y - y_center) as f32);
+            let x_sample = ((data.x - x_offset) as f32) * x_scale;
+            let y_sample = ((data.y - y_offset) as f32) * y_scale;
 
             let x: f32 = -y_sample;
             let y: f32 = x_sample;
@@ -217,6 +223,25 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
                 heading += 360.0;
             }
             defmt::info!("Heading: {}", heading);
+
+            let heading = heading as i32;
+            if heading >= 340 || heading < 25 {
+                direction = Direction::North;
+            } else if heading >= 25 && heading < 70 {
+                direction = Direction::NorthEast;
+            } else if heading >= 70 && heading < 115 {
+                direction = Direction::East;
+            } else if heading >= 115 && heading < 160 {
+                direction = Direction::SouthEast;
+            } else if heading >= 160 && heading < 205 {
+                direction = Direction::South;
+            } else if heading >= 205 && heading < 250 {
+                direction = Direction::SouthWest;
+            } else if heading >= 250 && heading < 295 {
+                direction = Direction::West
+            } else if heading >= 295 && heading < 340 {
+                direction = Direction::NorthWest
+            }
         }
         /*
         direction = match direction {
@@ -229,17 +254,19 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             Direction::West => Direction::NorthWest,
             Direction::NorthWest => Direction::North,
         };
+        */
+        defmt::info!("Direction: {:?}", direction);
 
         matrix
             .request(MatrixCommand::ApplyFrame(&direction))
             .unwrap()
             .await;
-        */
 
-        Timer::after(Duration::from_millis(1000)).await;
+        Timer::after(Duration::from_millis(100)).await;
     }
 }
 
+#[derive(Debug, defmt::Format)]
 pub enum Direction {
     North,
     NorthEast,
@@ -255,44 +282,7 @@ impl ToFrame<5, 5> for Direction {
     fn to_frame(&self) -> Frame<5, 5> {
         match self {
             #[rustfmt::skip]
-            Direction::North => fonts::frame_5x5(&[0b00100, 0b01110, 0b10101, 0b00100, 0b00100]),
-            #[rustfmt::skip]
-            Direction::NorthEast =>
-            {
-                fonts::frame_5x5(&[
-                    0b00111,
-                    0b00011,
-                    0b00101,
-                    0b01000,
-                    0b10000,
-                ])
-            },
-            #[rustfmt::skip]
-            Direction::East =>
-            {
-                fonts::frame_5x5(&[
-                    0b00100,
-                    0b00010,
-                    0b11111,
-                    0b00010,
-                    0b00100,
-                ])
-            },
-            #[rustfmt::skip]
-            Direction::SouthEast =>
-            {
-                fonts::frame_5x5(&[
-                    0b10000,
-                    0b01000,
-                    0b00101,
-                    0b00011,
-                    0b00111,
-                ])
-            },
-
-            #[rustfmt::skip]
-            Direction::South =>
-            {
+            Direction::North => {
                 fonts::frame_5x5(&[
                     0b00100,
                     0b00100,
@@ -302,7 +292,7 @@ impl ToFrame<5, 5> for Direction {
                 ])
             },
             #[rustfmt::skip]
-            Direction::SouthWest =>
+            Direction::NorthEast =>
             {
                 fonts::frame_5x5(&[
                     0b00001,
@@ -313,7 +303,7 @@ impl ToFrame<5, 5> for Direction {
                 ])
             },
             #[rustfmt::skip]
-            Direction::West =>
+            Direction::East =>
             {
                 fonts::frame_5x5(&[
                     0b00100,
@@ -324,7 +314,7 @@ impl ToFrame<5, 5> for Direction {
                 ])
             },
             #[rustfmt::skip]
-            Direction::NorthWest =>
+            Direction::SouthEast =>
             {
                 fonts::frame_5x5(&[
                     0b11100,
@@ -332,6 +322,51 @@ impl ToFrame<5, 5> for Direction {
                     0b10100,
                     0b00010,
                     0b00001,
+                ])
+            },
+
+            #[rustfmt::skip]
+            Direction::South =>
+            {
+                fonts::frame_5x5(&[
+                    0b00100,
+                    0b01110,
+                    0b10101,
+                    0b00100,
+                    0b00100
+                ])
+            },
+            #[rustfmt::skip]
+            Direction::SouthWest =>
+            {
+                fonts::frame_5x5(&[
+                    0b00111,
+                    0b00011,
+                    0b00101,
+                    0b01000,
+                    0b10000,
+                ])
+            },
+            #[rustfmt::skip]
+            Direction::West =>
+            {
+                fonts::frame_5x5(&[
+                    0b00100,
+                    0b00010,
+                    0b11111,
+                    0b00010,
+                    0b00100,
+                ])
+            },
+            #[rustfmt::skip]
+            Direction::NorthWest =>
+            {
+                fonts::frame_5x5(&[
+                    0b10000,
+                    0b01000,
+                    0b00101,
+                    0b00011,
+                    0b00111,
                 ])
             },
         }
