@@ -1,3 +1,4 @@
+pub mod led;
 pub mod temperature;
 
 use core::fmt::{Debug, Formatter};
