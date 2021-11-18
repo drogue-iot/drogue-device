@@ -31,3 +31,6 @@ cfg-if = "1.0.0"
 
 [features]
 tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls"]
+
+[build-dependencies]
+buildutil = { path = "../../../_build" }

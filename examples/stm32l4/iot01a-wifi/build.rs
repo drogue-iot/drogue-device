@@ -9,35 +9,20 @@
 //! new memory settings.
 
 use std::env;
-use std::fs::{self, OpenOptions};
-use std::path::{Path, PathBuf};
-
-fn copy_config(out: &PathBuf, file: &str) {
-    if Path::new(file).exists() {
-        fs::copy(file, out.join(file)).expect("error copying file");
-        println!("cargo:rerun-if-changed={}", file);
-    } else {
-        if env::var_os("CI").is_none() {
-            panic!("Unable to locate config file {}.", file);
-        } else {
-            println!("Skipping missing configuration file when running in CI");
-            let _ = OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(out.join(file));
-        }
-    }
-}
+use std::path::PathBuf;
 
 fn main() {
     let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
 
-    // Copy credentials
-    fs::create_dir_all(out.join("config")).expect("error creating output directory for config");
-    copy_config(&out, "config/wifi.ssid.txt");
-    copy_config(&out, "config/wifi.password.txt");
-    copy_config(&out, "config/http.username.txt");
-    copy_config(&out, "config/http.password.txt");
+    buildutil::configure(
+        &out,
+        &[
+            "wifi-ssid",
+            "wifi-password",
+            "http-username",
+            "http-password",
+        ],
+    );
 
     // By default, Cargo will re-run a build script whenever
     // any file in the project changes. By specifying `memory.x`

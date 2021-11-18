@@ -33,3 +33,6 @@ embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm3
 [features]
 default = []
 tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls"]
+
+[build-dependencies]
+buildutil = { path = "../../../_build" }

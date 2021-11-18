@@ -41,8 +41,8 @@ use heapless::Vec;
 const HOST: &str = "localhost";
 const PORT: u16 = 8088;
 
-const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.username.txt"));
-const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.password.txt"));
+const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-username"));
+const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-password"));
 
 type EthernetDevice = Ethernet<'static, LAN8742A, 4, 4>;
 type SmolTcpPackage = SmolTcp<EthernetDevice, StaticConfigurator, 1, 2, 1024>;

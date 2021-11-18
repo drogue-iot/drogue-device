@@ -25,9 +25,9 @@ use embassy_nrf::{
     uarte, Peripherals,
 };
 
-const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/dev_eui.txt"));
-const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_eui.txt"));
-const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/config/app_key.txt"));
+const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/", "dev-eui"));
+const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/", "app-eui"));
+const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/", "app-key"));
 
 type UART = BufferedUarte<'static, UARTE0, TIMER0>;
 type RESET = Output<'static, P1_02>;
