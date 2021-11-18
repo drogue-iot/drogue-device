@@ -85,9 +85,9 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     loop {
         let direction: Direction = compass.heading().await.into();
-        defmt::info!("Direction: {:?}", direction);
+        defmt::trace!("Direction: {:?}", direction);
         matrix.apply(&direction).await.unwrap();
 
-        Timer::after(Duration::from_millis(100)).await;
+        Timer::after(Duration::from_millis(10)).await;
     }
 }

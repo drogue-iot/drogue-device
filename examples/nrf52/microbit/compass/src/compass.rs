@@ -115,7 +115,7 @@ where
                 }
             }
 
-            defmt::info!("Cursor: ({}, {})", cursor.0, cursor.1);
+            defmt::trace!("Cursor: ({}, {})", cursor.0, cursor.1);
 
             // Sample some data
             let status = self.sensor.mag_status().unwrap();
