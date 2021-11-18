@@ -221,55 +221,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_frame() {
-        let frame: Frame<5, 5> = 'D'.to_frame();
-
-        assert!(frame.is_set(0, 0));
-        assert!(frame.is_set(1, 0));
-        assert!(frame.is_set(2, 0));
-        assert!(!frame.is_set(3, 0));
-        assert!(!frame.is_set(4, 0));
-
-        assert!(frame.is_set(0, 1));
-        assert!(!frame.is_set(1, 1));
-        assert!(!frame.is_set(2, 1));
-        assert!(frame.is_set(3, 1));
-        assert!(!frame.is_set(4, 1));
-
-        assert!(frame.is_set(0, 2));
-        assert!(!frame.is_set(1, 2));
-        assert!(!frame.is_set(2, 2));
-        assert!(frame.is_set(3, 2));
-        assert!(!frame.is_set(4, 2));
-
-        assert!(frame.is_set(0, 3));
-        assert!(!frame.is_set(1, 3));
-        assert!(!frame.is_set(2, 3));
-        assert!(frame.is_set(3, 3));
-        assert!(!frame.is_set(4, 3));
-
-        assert!(frame.is_set(0, 4));
-        assert!(frame.is_set(1, 4));
-        assert!(frame.is_set(2, 4));
-        assert!(!frame.is_set(3, 4));
-        assert!(!frame.is_set(4, 4));
-    }
-
-    #[test]
-    fn bitops() {
-        let f = 0b10000;
-        println!("F shift left: {:#b}", f << 1);
-        println!("F shift right: {:#b}", f >> 1);
-        let s = 0b11111;
-        let t = 0b11111;
-        let d = ((s << 1) & 0b11111) | ((t >> (5 - 1)) & 0b11111);
-        println!("1: {:#b}", (s << 1) & 0b11111);
-        println!("2: {:#b}", (t >> (5 - 1)) & 0b11111);
-        println!("{:#b}", d);
-        assert_eq!(0b11111, d);
-    }
-
-    #[test]
     fn test_bitmap() {
         let mut b: Bitmap = Bitmap::empty(5);
         b.set(0);

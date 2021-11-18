@@ -266,4 +266,44 @@ pub mod fonts {
             [0x0, 0x0, 0xc, 0x83, 0x60],
         ];
     }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_to_frame() {
+            let frame: Frame<5, 5> = 'D'.to_frame();
+
+            assert!(frame.is_set(0, 0));
+            assert!(frame.is_set(1, 0));
+            assert!(frame.is_set(2, 0));
+            assert!(!frame.is_set(3, 0));
+            assert!(!frame.is_set(4, 0));
+
+            assert!(frame.is_set(0, 1));
+            assert!(!frame.is_set(1, 1));
+            assert!(!frame.is_set(2, 1));
+            assert!(frame.is_set(3, 1));
+            assert!(!frame.is_set(4, 1));
+
+            assert!(frame.is_set(0, 2));
+            assert!(!frame.is_set(1, 2));
+            assert!(!frame.is_set(2, 2));
+            assert!(frame.is_set(3, 2));
+            assert!(!frame.is_set(4, 2));
+
+            assert!(frame.is_set(0, 3));
+            assert!(!frame.is_set(1, 3));
+            assert!(!frame.is_set(2, 3));
+            assert!(frame.is_set(3, 3));
+            assert!(!frame.is_set(4, 3));
+
+            assert!(frame.is_set(0, 4));
+            assert!(frame.is_set(1, 4));
+            assert!(frame.is_set(2, 4));
+            assert!(!frame.is_set(3, 4));
+            assert!(!frame.is_set(4, 4));
+        }
+    }
 }
