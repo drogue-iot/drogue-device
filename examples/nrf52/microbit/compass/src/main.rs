@@ -75,8 +75,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     let mut sensor = Lsm303agr::new_with_i2c(twi);
     sensor.init().unwrap();
-    sensor.set_accel_odr(AccelOutputDataRate::Hz100).unwrap();
-    sensor.set_mag_odr(MagOutputDataRate::Hz100).unwrap();
+    sensor.set_accel_odr(AccelOutputDataRate::Hz50).unwrap();
+    sensor.set_mag_odr(MagOutputDataRate::Hz50).unwrap();
     let sensor = sensor.into_mag_continuous().ok().unwrap();
 
     // Use heading offset of 90 which seems accurate during testing
