@@ -28,3 +28,6 @@ futures = { version = "0.3.8", default-features = false, features = ["async-awai
 
 [features]
 tls = ["drogue-tls", "drogue-tls/log"]
+
+[build-dependencies]
+buildutil = { path = "../../_build" }

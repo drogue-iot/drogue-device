@@ -64,3 +64,6 @@ incremental = false
 lto = "fat"
 opt-level = 's'
 overflow-checks = false
+
+[build-dependencies]
+buildutil = { path = "../../_build" }

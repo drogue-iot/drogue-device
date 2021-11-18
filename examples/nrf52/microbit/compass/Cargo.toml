@@ -24,3 +24,6 @@ embedded-hal = { version = "0.2", features = ["unproven"] }
 lsm303agr = "0.2.2"
 micromath = "2.0"
 heapless = "0.7"
+
+[build-dependencies]
+buildutil = { path = "../../../_build" }

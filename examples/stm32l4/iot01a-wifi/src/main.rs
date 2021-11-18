@@ -65,10 +65,10 @@ cfg_if::cfg_if! {
     }
 }
 
-const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.ssid.txt"));
-const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/config/wifi.password.txt"));
-const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.username.txt"));
-const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/config/http.password.txt"));
+const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/", "wifi-ssid"));
+const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/", "wifi-password"));
+const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-username"));
+const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-password"));
 
 type WAKE = Output<'static, PB13>;
 type RESET = Output<'static, PE8>;

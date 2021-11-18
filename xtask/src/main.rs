@@ -219,6 +219,10 @@ fn do_examples<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
         let entry = entry?;
         let path = entry.path();
 
+        if path.ends_with("_build") {
+            continue;
+        }
+
         if path.ends_with("Cargo.toml") {
             f(path.clone())?;
         }
