@@ -158,6 +158,19 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
         defmt::info!("Cursor: ({}, {})", cursor.0, cursor.1);
 
+        // Sample some data
+        let status = sensor.mag_status().unwrap();
+        if status.xyz_new_data {
+            let data = sensor.mag_data().unwrap();
+            max_x = core::cmp::max(max_x, data.x);
+            max_y = core::cmp::max(max_y, data.y);
+            max_z = core::cmp::max(max_z, data.z);
+
+            min_x = core::cmp::min(min_x, data.x);
+            min_y = core::cmp::min(min_y, data.y);
+            min_z = core::cmp::min(min_z, data.z);
+        }
+
         // Update visited state
         for i in 0..PERIMETER_POINTS {
             if cursor.0 == PERIMETER[i].0 && cursor.1 == PERIMETER[i].1 && !visited[i] {
@@ -165,21 +178,12 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
                 if status.xyz_new_data {
                     visited[i] = true;
                     matrix.on(PERIMETER[i].0, PERIMETER[i].1).await;
-
-                    let data = sensor.mag_data().unwrap();
-                    max_x = core::cmp::max(max_x, data.x);
-                    max_y = core::cmp::max(max_y, data.y);
-                    max_z = core::cmp::max(max_z, data.z);
-
-                    min_x = core::cmp::min(min_x, data.x);
-                    min_y = core::cmp::min(min_y, data.y);
-                    min_z = core::cmp::min(min_z, data.z);
                     samples += 1;
                 }
             }
         }
 
-        Timer::after(Duration::from_millis(100)).await;
+        Timer::after(Duration::from_millis(10)).await;
     }
 
     defmt::info!("Calibration complete!");
@@ -218,7 +222,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
             defmt::info!("Coord ({}, {})", x, y);
 
-            let mut heading = (x.atan2(y) * 180.0 / core::f32::consts::PI);
+            let mut heading = (x.atan2(y) * 180.0 / core::f32::consts::PI) + 90.0;
             if heading < 0.0 {
                 heading += 360.0;
             }
