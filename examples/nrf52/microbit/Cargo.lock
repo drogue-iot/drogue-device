@@ -837,6 +837,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "lsm303agr"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aab0b8c3a75dfdebe9f79c738458da139e8111207d176e9fb6b360117432ac4f"
+dependencies = [
+ "embedded-hal",
+ "nb 1.0.0",
+]
+
+[[package]]
 name = "memchr"
 version = "2.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -858,6 +868,23 @@ dependencies = [
  "heapless",
  "panic-probe",
  "panic-reset",
+]
+
+[[package]]
+name = "microbit-compass"
+version = "0.1.0"
+dependencies = [
+ "cortex-m-rt",
+ "defmt",
+ "defmt-rtt",
+ "drogue-device",
+ "embassy",
+ "embassy-nrf",
+ "embedded-hal",
+ "heapless",
+ "lsm303agr",
+ "micromath",
+ "panic-probe",
 ]
 
 [[package]]
@@ -907,6 +934,12 @@ dependencies = [
  "embassy-nrf",
  "panic-probe",
 ]
+
+[[package]]
+name = "micromath"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39617bc909d64b068dcffd0e3e31679195b5576d0c83fadc52690268cc2b2b55"
 
 [[package]]
 name = "moveslice"

@@ -1,21 +1,64 @@
+use crate::domain::led::matrix::*;
 use crate::drivers::led::matrix::*;
 use crate::kernel::{actor::Actor, actor::Address, actor::Inbox};
-use crate::traits::led::TextDisplay;
+use crate::traits::led::{LedMatrix as LedMatrixTrait, TextDisplay, ToFrame};
 use core::future::Future;
 use embassy::time::{with_timeout, Duration, Instant, TimeoutError, Timer};
 use embedded_hal::digital::v2::OutputPin;
 
-pub trait LedMatrixAddress<const ROWS: usize, const COLS: usize> {
-    fn apply(&mut self, frame: &'static dyn ToFrame<COLS, ROWS>);
-}
-
-impl<P, const ROWS: usize, const COLS: usize> LedMatrixAddress<ROWS, COLS>
+impl<P, const ROWS: usize, const COLS: usize> LedMatrixTrait<ROWS, COLS>
     for Address<'static, LedMatrixActor<P, ROWS, COLS>>
 where
     P: OutputPin + 'static,
 {
-    fn apply(&mut self, frame: &'static dyn ToFrame<COLS, ROWS>) {
-        self.notify(MatrixCommand::ApplyFrame(frame)).unwrap();
+    type Error = ();
+
+    type OnFuture<'m>
+    where
+        P: 'm,
+    = impl Future<Output = Result<(), Self::Error>> + 'm;
+    fn on<'m>(&'m mut self, x: usize, y: usize) -> Self::OnFuture<'m> {
+        async move {
+            self.request(MatrixCommand::On(x, y)).map_err(|_| ())?.await;
+            Ok(())
+        }
+    }
+
+    type OffFuture<'m>
+    where
+        P: 'm,
+    = impl Future<Output = Result<(), Self::Error>> + 'm;
+    fn off<'m>(&'m mut self, x: usize, y: usize) -> Self::OffFuture<'m> {
+        async move {
+            self.request(MatrixCommand::Off(x, y))
+                .map_err(|_| ())?
+                .await;
+            Ok(())
+        }
+    }
+
+    type ClearFuture<'m>
+    where
+        P: 'm,
+    = impl Future<Output = Result<(), Self::Error>> + 'm;
+    fn clear<'m>(&'m mut self) -> Self::ClearFuture<'m> {
+        async move {
+            self.request(MatrixCommand::Clear).map_err(|_| ())?.await;
+            Ok(())
+        }
+    }
+
+    type ApplyFuture<'m>
+    where
+        P: 'm,
+    = impl Future<Output = Result<(), Self::Error>> + 'm;
+    fn apply<'m>(&'m mut self, frame: &'m dyn ToFrame<COLS, ROWS>) -> Self::ApplyFuture<'m> {
+        async move {
+            self.request(MatrixCommand::ApplyFrame(frame))
+                .map_err(|_| ())?
+                .await;
+            Ok(())
+        }
     }
 }
 
