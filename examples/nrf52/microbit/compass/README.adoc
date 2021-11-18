@@ -1,0 +1,44 @@
+== microbit-compass drogue-device example
+
+This example application runs out of the box on the BBC micro:bit v2.0. It uses the builtin magnetometer, accellerometer and LED matrix as a compass, where the LED matrix arrow points the direction.
+
+=== Prerequisites
+
+==== Hardware
+
+* BBC micro:bit v2.0
+
+==== Software
+
+To build and flash the example, you need to have
+link:https://rustup.rs/[rustup]. In practice
+you can use whatever tool you want to flash the device, but this guide
+will assume that `probe-run` is used (`cargo install probe-run`).
+
+=== Building
+
+To build the firmware:
+
+....
+cargo build --release
+....
+
+=== Running
+
+Flashing the firmware uses `probe-run` which auto-detects the probe connected to your device. 
+The following command will build and flash the firmware and open the
+debugger console so you can see the console debug output.
+
+....
+cargo run --release
+....
+
+If you’re experiencing problems, try setting the `VID:PID` values to
+that of your probe (you can find that from lsusb once your board is
+powered).
+
+....
+cargo run --release -- --probe <VID>:<PID>
+....
+
+Once running, calibrate the sensor by filling lighting up all the LEDs.

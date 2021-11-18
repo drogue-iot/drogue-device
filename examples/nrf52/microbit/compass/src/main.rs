@@ -67,8 +67,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         })
         .await;
 
-    matrix.scroll("Yo!").await.unwrap();
-
     let config = twim::Config::default();
     let irq = interrupt::take!(SPIM0_SPIS0_TWIM0_TWIS0_SPI0_TWI0);
     let twi = twim::Twim::new(p.TWISPI0, irq, p.P0_16, p.P0_08, config);
@@ -81,6 +79,10 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     // Use heading offset of 90 which seems accurate during testing
     let mut compass = MicrobitCompass::new(sensor, 90);
+    matrix
+        .scroll("Move micro:bit until LEDs are lit")
+        .await
+        .unwrap();
     compass.calibrate(&mut matrix).await;
 
     loop {
