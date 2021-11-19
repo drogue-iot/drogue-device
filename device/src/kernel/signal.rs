@@ -53,6 +53,10 @@ impl<T: Send> SignalSlot<T> {
         self.signal.poll_wait(cx)
     }
 
+    pub async fn wait(&self) -> T {
+        self.signal.wait().await
+    }
+
     pub fn signal(&self, value: T) {
         self.signal.signal(value)
     }
