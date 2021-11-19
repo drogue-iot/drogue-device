@@ -120,12 +120,8 @@ pub trait ActorHandle<'a, A>
 where
     A: Actor + 'static,
 {
-    fn request<'m>(&'a self, message: A::Message<'m>) -> Result<RequestFuture<'a, A>, ActorError>
-    where
-        'a: 'm;
-    fn notify<'m>(&'a self, message: A::Message<'a>) -> Result<(), ActorError>
-    where
-        'a: 'm;
+    fn request<'m>(&'m self, message: A::Message<'m>) -> Result<RequestFuture<'m, A>, ActorError>;
+    fn notify<'m>(&'m self, message: A::Message<'a>) -> Result<(), ActorError>;
 }
 
 impl<'a, A: Actor> Address<'a, A> {
@@ -149,7 +145,7 @@ impl<'a, A: Actor> Address<'a, A> {
     /// Leaving an in-flight request dangling while references have gone out of lifetime
     /// scope will result in a panic.
     #[must_use = "The returned future must be awaited"]
-    pub fn request<'m>(&self, message: A::Message<'m>) -> Result<RequestFuture<'a, A>, ActorError>
+    pub fn request<'m>(&self, message: A::Message<'m>) -> Result<RequestFuture<'m, A>, ActorError>
     where
         'a: 'm,
     {
@@ -158,10 +154,6 @@ impl<'a, A: Actor> Address<'a, A> {
 
     /// Perform an message notification to the actor behind this address. If an error
     /// occurs when enqueueing the message on the destination actor, an error is returned.
-    ///
-    /// # Panics
-    /// While the request message may contain non-static references, the user must
-    /// ensure that the data passed lives as long as the actor.
     pub fn notify<'m>(&self, message: A::Message<'a>) -> Result<(), ActorError> {
         self.state.notify(message)
     }
@@ -269,8 +261,6 @@ where
     >,
     actor: UnsafeCell<A>,
     channel: MessageChannel<'a, ActorMessage<'a, A>, QUEUE_SIZE>,
-    // NOTE: This wastes an extra signal because heapless requires at least 2 slots and
-    // const generic expressions doesn't work in this case.
     signals: UnsafeCell<[SignalSlot<A::Response>; QUEUE_SIZE]>,
 }
 
@@ -282,10 +272,7 @@ where
     /// Perform a request to this actor. The result from processing the request will be provided when the future completes.
     /// The returned future _must_ be awaited before dropped. If it is not
     /// awaited, it will panic.
-    fn request<'m>(&'a self, message: A::Message<'m>) -> Result<RequestFuture<'a, A>, ActorError>
-    where
-        'a: 'm,
-    {
+    fn request<'m>(&'m self, message: A::Message<'m>) -> Result<RequestFuture<'m, A>, ActorError> {
         let signal = self.acquire_signal()?;
         // Safety: This is OK because A::Message is Sized.
         let message = unsafe { core::mem::transmute_copy::<_, A::Message<'a>>(&message) };
@@ -295,12 +282,9 @@ where
         Ok(RequestFuture::new(sig))
     }
 
-    /// Perform a notification on this actor. The returned future _must_ be awaited before dropped. If it is not
-    /// awaited, it will panic.
-    fn notify<'m>(&'a self, message: A::Message<'a>) -> Result<(), ActorError>
-    where
-        'a: 'm,
-    {
+    /// Perform a notification on this actor. The function returns before the message have been processed,
+    /// and the actor message therefore must have a lifetime of the actor.
+    fn notify<'m>(&'m self, message: A::Message<'a>) -> Result<(), ActorError> {
         let message = ActorMessage::Notify(message);
 
         let sent = self.channel.send(message)?;
