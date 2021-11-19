@@ -14,6 +14,8 @@ Drogue device is an open source async, no-alloc framework for embedded devices. 
 
 See the [documentation](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and for some examples.
 
+Got to our [homepage](https://www.drogue.io) to learn more about the Drogue IoT project.
+
 ## What are Actors?
 
 Actors make it convenient to write stateful concurrent systems using message passing. Actors only process one message at a time, and communicate with other actors by sending messages to their addresses. Actors compose easily due to their decoupled nature, making it easier to maintain an expanding code base.
@@ -31,6 +33,7 @@ Drogue device runs on any platform supported by embassy, which at the time of wr
 * STM32
 * Raspberry Pi Pico
 * Linux, Mac OS X or Windows
+* WASM (WebAssembly)
 
 ### Example Actor
 
