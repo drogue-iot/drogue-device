@@ -14,7 +14,7 @@ Drogue device is an open source async, no-alloc framework for embedded devices. 
 
 See the [documentation](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and for some examples.
 
-Got to our [homepage](https://www.drogue.io) to learn more about the Drogue IoT project.
+Go to our [homepage](https://www.drogue.io) to learn more about the Drogue IoT project.
 
 ## What are Actors?
 
