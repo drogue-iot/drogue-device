@@ -7,3 +7,29 @@ with a variant that uses a `esp8266` WiFi module.
 
 All example can be run using `cargo run`, which in some cases require the `probe-run` tool (`cargo
 install probe-run`) to flash the program.
+
+=== Configuration
+
+Any examples requiring user credentials, e.g. WiFi, HTTP, OTAA, will
+expect them in the top-level keys of `~/.drogue/config.toml`.
+
+Credentials for your local WiFi network:
+....
+wifi-ssid = "..."
+wifi-password = "..."
+....
+
+HTTP authentication:
+....
+http-username = "..."
+http-password = "..."
+....
+
+_Over The Air Authentication_ (OTAA) credentials:
+....
+"dev-eui" = "..."
+"app-eui" = "..."
+"app-key" = "..."
+....
+
+These values will be read during compilation and stored in the executable. For any missing keys, empty strings will be used.

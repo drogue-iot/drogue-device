@@ -22,6 +22,13 @@ Make sure you have the correct target architecture supported in rust:
 rustup target add thumbv7em-none-eabihf
 ....
 
+HTTP authentication will come from these entries in `~/.drogue/config.toml`:
+
+....
+http-username = "..."
+http-password = "..."
+....
+
 ==== Running
 
 To run the firmware:

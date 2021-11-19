@@ -11,7 +11,14 @@ This example demonstrates using Drogue Device sending telemetry messages to Drog
 
 === Configuring
 
-To authenticate the device to the cloud service, you must store the username and password in `config/http.username.txt` and `config/http.password.txt`. For Drogue IoT Cloud, the username is stored in this form: `device_id@application`.
+HTTP authentication will come from these entries in `~/.drogue/config.toml`:
+
+....
+http-username = "..."
+http-password = "..."
+....
+
+For Drogue IoT Cloud, the username/password is stored in this form: `device_id@application`.
 
 == Running
 
