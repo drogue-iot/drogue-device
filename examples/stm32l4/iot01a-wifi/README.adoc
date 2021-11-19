@@ -20,9 +20,21 @@ The example can operate using plain TCP, or using TLS by enabling the `tls` feat
 
 === Configuring
 
-To access your local WiFi network, the store the ssid in `config/wifi.ssid.txt` and pre-shared key in `config/wifi.password.txt`.
+Credentials for your local WiFi network will come from these entries in `~/.drogue/config.toml`:
 
-To authenticate the device to an HTTP service, you must store the username and password in `config/http.username.txt` and `config/http.password.txt`. For Drogue IoT Cloud, the username/password is stored in this form: `device_id@application`.
+....
+wifi-ssid = "..."
+wifi-password = "..."
+....
+
+HTTP authentication will come from these entries in `~/.drogue/config.toml`:
+
+....
+http-username = "..."
+http-password = "..."
+....
+
+For Drogue IoT Cloud, the username/password is stored in this form: `device_id@application`.
 
 === Running with plain TCP
 
