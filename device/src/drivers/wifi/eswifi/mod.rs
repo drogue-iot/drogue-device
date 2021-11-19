@@ -120,7 +120,7 @@ where
 
     async fn wait_ready(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
         while self.ready.is_low().map_err(READY)? {
-            self.ready.wait_for_any_edge().await;
+            // self.ready.wait_for_any_edge().await;
         }
         Ok(())
     }
