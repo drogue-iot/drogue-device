@@ -261,8 +261,6 @@ where
     >,
     actor: UnsafeCell<A>,
     channel: MessageChannel<'a, ActorMessage<'a, A>, QUEUE_SIZE>,
-    // NOTE: This wastes an extra signal because heapless requires at least 2 slots and
-    // const generic expressions doesn't work in this case.
     signals: UnsafeCell<[SignalSlot<A::Response>; QUEUE_SIZE]>,
 }
 
