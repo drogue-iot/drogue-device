@@ -13,7 +13,7 @@ pub trait Active<P>
 where
     P: OutputPin,
 {
-    fn set(pin: &mut P, active: bool);
+    fn set(pin: &mut P, active: bool) -> Result<(), P::Error>;
 }
 
 pub struct ActiveHigh;
@@ -23,12 +23,12 @@ impl<P> Active<P> for ActiveHigh
 where
     P: OutputPin,
 {
-    fn set(pin: &mut P, active: bool) {
+    fn set(pin: &mut P, active: bool) -> Result<(), P::Error> {
         pin.set_state(if active {
             PinState::High
         } else {
             PinState::Low
-        });
+        })
     }
 }
 
@@ -36,12 +36,12 @@ impl<P> Active<P> for ActiveLow
 where
     P: OutputPin,
 {
-    fn set(pin: &mut P, active: bool) {
+    fn set(pin: &mut P, active: bool) -> Result<(), P::Error> {
         pin.set_state(if active {
             PinState::Low
         } else {
             PinState::High
-        });
+        })
     }
 }
 
@@ -127,8 +127,14 @@ where
                         LedMessage::Toggle => !self.state,
                     };
                     if self.state != new_state {
-                        self.state = new_state;
-                        ACTIVE::set(&mut self.pin, self.state);
+                        match ACTIVE::set(&mut self.pin, self.state) {
+                            Ok(_) => {
+                                self.state = new_state;
+                            }
+                            Err(_) => {
+                                // ignore, didn't work, don't update state.
+                            }
+                        }
                     }
                 }
             }

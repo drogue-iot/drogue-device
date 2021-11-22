@@ -89,17 +89,17 @@ impl Actor for App {
     type Message<'m> = Command;
 
     type OnMountFuture<'m, M>
-        where
-            M: 'm,
-    = impl Future<Output=()> + 'm;
+    where
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         config: Self::Configuration,
         _: Address<'static, Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
-        where
-            M: Inbox<'m, Self> + 'm,
+    where
+        M: Inbox<'m, Self> + 'm,
     {
         self.green.replace(config.0);
         self.blue.replace(config.1);
@@ -134,8 +134,8 @@ pub enum Command {
 
 impl FromButtonEvent<Command> for App {
     fn from(event: ButtonEvent) -> Option<Command>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         match event {
             ButtonEvent::Pressed => Some(Command::Next),
