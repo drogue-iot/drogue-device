@@ -10,7 +10,7 @@ use panic_probe as _;
 
 use core::future::Future;
 use drogue_device::actors::button::{ButtonEvent, FromButtonEvent};
-use drogue_device::actors::led::{Led, LedMessage};
+use drogue_device::actors::led::{ActiveHigh, ActiveLow, Led, LedMessage};
 use drogue_device::{actors::button::Button, Actor, ActorContext, Address, DeviceContext, Inbox};
 use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::peripherals::{PC13, PE13, PH6, PH7};
@@ -20,9 +20,9 @@ use embassy_stm32::{
     Peripherals,
 };
 
+type LedBluePin = Output<'static, PE13>;
 type LedGreenPin = Output<'static, PH7>;
-type LedBluePin = Output<'static, PH6>;
-type LedRedPin = Output<'static, PE13>;
+type LedRedPin = Output<'static, PH6>;
 
 pub enum Color {
     Green,
@@ -31,9 +31,9 @@ pub enum Color {
 }
 
 pub struct App {
-    green: Option<Address<'static, Led<LedGreenPin>>>,
-    yellow: Option<Address<'static, Led<LedBluePin>>>,
-    red: Option<Address<'static, Led<LedRedPin>>>,
+    green: Option<Address<'static, Led<LedGreenPin, ActiveLow>>>,
+    blue: Option<Address<'static, Led<LedBluePin, ActiveHigh>>>,
+    red: Option<Address<'static, Led<LedRedPin, ActiveLow>>>,
     color: Option<Color>,
 }
 
@@ -41,23 +41,27 @@ impl App {
     fn draw(&self) {
         match self.color {
             None => {
+                defmt::info!("none");
                 self.green.unwrap().notify(LedMessage::Off).ok();
-                self.yellow.unwrap().notify(LedMessage::Off).ok();
+                self.blue.unwrap().notify(LedMessage::Off).ok();
                 self.red.unwrap().notify(LedMessage::Off).ok();
             }
             Some(Color::Green) => {
+                defmt::info!("green");
                 self.green.unwrap().notify(LedMessage::On).ok();
-                self.yellow.unwrap().notify(LedMessage::Off).ok();
+                self.blue.unwrap().notify(LedMessage::Off).ok();
                 self.red.unwrap().notify(LedMessage::Off).ok();
             }
             Some(Color::Blue) => {
+                defmt::info!("blue");
                 self.green.unwrap().notify(LedMessage::Off).ok();
-                self.yellow.unwrap().notify(LedMessage::On).ok();
+                self.blue.unwrap().notify(LedMessage::On).ok();
                 self.red.unwrap().notify(LedMessage::Off).ok();
             }
             Some(Color::Red) => {
+                defmt::info!("red");
                 self.green.unwrap().notify(LedMessage::Off).ok();
-                self.yellow.unwrap().notify(LedMessage::Off).ok();
+                self.blue.unwrap().notify(LedMessage::Off).ok();
                 self.red.unwrap().notify(LedMessage::On).ok();
             }
         }
@@ -69,7 +73,7 @@ impl Default for App {
         Self {
             color: Default::default(),
             green: Default::default(),
-            yellow: Default::default(),
+            blue: Default::default(),
             red: Default::default(),
         }
     }
@@ -77,28 +81,28 @@ impl Default for App {
 
 impl Actor for App {
     type Configuration = (
-        Address<'static, Led<LedGreenPin>>,
-        Address<'static, Led<LedBluePin>>,
-        Address<'static, Led<LedRedPin>>,
+        Address<'static, Led<LedGreenPin, ActiveLow>>,
+        Address<'static, Led<LedBluePin, ActiveHigh>>,
+        Address<'static, Led<LedRedPin, ActiveLow>>,
     );
 
     type Message<'m> = Command;
 
     type OnMountFuture<'m, M>
-    where
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        where
+            M: 'm,
+    = impl Future<Output=()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         config: Self::Configuration,
         _: Address<'static, Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
-    where
-        M: Inbox<'m, Self> + 'm,
+        where
+            M: Inbox<'m, Self> + 'm,
     {
         self.green.replace(config.0);
-        self.yellow.replace(config.1);
+        self.blue.replace(config.1);
         self.red.replace(config.2);
         async move {
             loop {
@@ -130,8 +134,8 @@ pub enum Command {
 
 impl FromButtonEvent<Command> for App {
     fn from(event: ButtonEvent) -> Option<Command>
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         match event {
             ButtonEvent::Pressed => Some(Command::Next),
@@ -142,9 +146,9 @@ impl FromButtonEvent<Command> for App {
 
 pub struct MyDevice {
     app: ActorContext<'static, App>,
-    led_green: ActorContext<'static, Led<LedGreenPin>>,
-    led_blue: ActorContext<'static, Led<LedBluePin>>,
-    led_red: ActorContext<'static, Led<LedRedPin>>,
+    led_red: ActorContext<'static, Led<LedRedPin, ActiveLow>>,
+    led_green: ActorContext<'static, Led<LedGreenPin, ActiveLow>>,
+    led_blue: ActorContext<'static, Led<LedBluePin, ActiveHigh>>,
     button: ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App>>,
 }
 
@@ -161,19 +165,19 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     DEVICE.configure(MyDevice {
         app: ActorContext::new(App::default()),
-        led_green: ActorContext::new(Led::new(Output::new(p.PH7, Level::Low, Speed::Low))),
-        led_blue: ActorContext::new(Led::new(Output::new(p.PH6, Level::Low, Speed::Low))),
-        led_red: ActorContext::new(Led::new(Output::new(p.PE13, Level::Low, Speed::Low))),
+        led_red: ActorContext::new(Led::new(Output::new(p.PH6, Level::High, Speed::Low))),
+        led_green: ActorContext::new(Led::new(Output::new(p.PH7, Level::High, Speed::Low))),
+        led_blue: ActorContext::new(Led::new(Output::new(p.PE13, Level::Low, Speed::Low))),
         button: ActorContext::new(Button::new(button)),
     });
 
     DEVICE
         .mount(|device| async move {
             let green = device.led_green.mount((), spawner);
-            let yellow = device.led_blue.mount((), spawner);
+            let blue = device.led_blue.mount((), spawner);
             let red = device.led_red.mount((), spawner);
 
-            let app = device.app.mount((green, yellow, red), spawner);
+            let app = device.app.mount((green, blue, red), spawner);
             device.button.mount(app, spawner);
             app
         })
