@@ -6,7 +6,44 @@ use crate::{
     kernel::{actor::Actor, actor::Address, actor::Inbox},
 };
 use core::future::Future;
-use embedded_hal::digital::v2::OutputPin;
+use core::marker::PhantomData;
+use embedded_hal::digital::v2::{OutputPin, PinState};
+
+pub trait Active<P>
+where
+    P: OutputPin,
+{
+    fn set(pin: &mut P, active: bool) -> Result<(), P::Error>;
+}
+
+pub struct ActiveHigh;
+pub struct ActiveLow;
+
+impl<P> Active<P> for ActiveHigh
+where
+    P: OutputPin,
+{
+    fn set(pin: &mut P, active: bool) -> Result<(), P::Error> {
+        pin.set_state(if active {
+            PinState::High
+        } else {
+            PinState::Low
+        })
+    }
+}
+
+impl<P> Active<P> for ActiveLow
+where
+    P: OutputPin,
+{
+    fn set(pin: &mut P, active: bool) -> Result<(), P::Error> {
+        pin.set_state(if active {
+            PinState::Low
+        } else {
+            PinState::High
+        })
+    }
+}
 
 #[derive(Clone, Copy)]
 pub enum LedMessage {
@@ -16,9 +53,10 @@ pub enum LedMessage {
     State(bool),
 }
 
-impl<P> FromButtonEvent<LedMessage> for Led<P>
+impl<P, ACTIVE> FromButtonEvent<LedMessage> for Led<P, ACTIVE>
 where
     P: OutputPin,
+    ACTIVE: Active<P>,
 {
     fn from(event: ButtonEvent) -> Option<LedMessage> {
         Some(match event {
@@ -28,29 +66,36 @@ where
     }
 }
 
-pub struct Led<P>
+pub struct Led<P, ACTIVE = ActiveHigh>
 where
     P: OutputPin,
+    ACTIVE: Active<P>,
 {
     pin: P,
-
     state: bool,
+    _active: PhantomData<ACTIVE>,
 }
 
-impl<P> Led<P>
+impl<P, ACTIVE> Led<P, ACTIVE>
 where
     P: OutputPin,
+    ACTIVE: Active<P>,
 {
     pub fn new(pin: P) -> Self {
-        Self { pin, state: false }
+        Self {
+            pin,
+            state: false,
+            _active: PhantomData,
+        }
     }
 }
 
 impl<P> Unpin for Led<P> where P: OutputPin {}
 
-impl<P> Actor for Led<P>
+impl<P, ACTIVE> Actor for Led<P, ACTIVE>
 where
     P: OutputPin,
+    ACTIVE: Active<P>,
 {
     type Message<'m>
     where
@@ -82,11 +127,14 @@ where
                         LedMessage::Toggle => !self.state,
                     };
                     if self.state != new_state {
-                        self.state = new_state;
-                        match self.state {
-                            true => self.pin.set_high().ok(),
-                            false => self.pin.set_low().ok(),
-                        };
+                        match ACTIVE::set(&mut self.pin, self.state) {
+                            Ok(_) => {
+                                self.state = new_state;
+                            }
+                            Err(_) => {
+                                // ignore, didn't work, don't update state.
+                            }
+                        }
                     }
                 }
             }
