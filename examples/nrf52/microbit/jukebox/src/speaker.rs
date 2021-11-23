@@ -1,0 +1,52 @@
+use drogue_device::{domain::led::matrix::Frame, traits::led::LedMatrix};
+
+use embassy::time::{Duration, Timer};
+use embassy_nrf::pwm::*;
+
+pub struct Sample<'a> {
+    notes: &'a [Note],
+}
+
+impl<'a> Sample<'a> {
+    pub const fn new(notes: &'a [Note]) -> Self {
+        Self { notes }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Note(pub u32, pub u32);
+
+pub struct PwmSpeaker<'a, T: Instance, M: LedMatrix<5, 5>> {
+    pwm: SimplePwm<'a, T>,
+    matrix: M,
+}
+
+impl<'a, T: Instance, M: LedMatrix<5, 5>> PwmSpeaker<'a, T, M> {
+    pub fn new(pwm: SimplePwm<'a, T>, matrix: M) -> Self {
+        Self { pwm, matrix }
+    }
+
+    pub async fn play_note(&mut self, note: Note) {
+        if note.0 > 0 {
+            self.pwm.set_prescaler(Prescaler::Div4);
+            self.pwm.set_period(note.0);
+            self.pwm.enable();
+
+            self.pwm.set_duty(0, self.pwm.max_duty() / 2);
+            let _ = self.matrix.apply(&BITMAP).await;
+            Timer::after(Duration::from_millis(note.1 as u64)).await;
+            let _ = self.matrix.clear().await;
+            self.pwm.disable();
+        } else {
+            Timer::after(Duration::from_millis(note.1 as u64)).await;
+        }
+    }
+
+    pub async fn play_sample(&mut self, sample: &Sample<'_>) {
+        for note in sample.notes.iter() {
+            self.play_note(*note).await;
+        }
+    }
+}
+
+pub const BITMAP: &[u8; 5] = &[0b11111, 0b11111, 0b11111, 0b11111, 0b11111];
