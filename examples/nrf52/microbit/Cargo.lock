@@ -961,6 +961,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "microbit-jukebox"
+version = "0.1.0"
+dependencies = [
+ "buildutil",
+ "cortex-m-rt",
+ "defmt",
+ "defmt-rtt",
+ "drogue-device",
+ "embassy",
+ "embassy-nrf",
+ "embedded-hal",
+ "micromath",
+ "panic-probe",
+]
+
+[[package]]
 name = "microbit-rak811"
 version = "0.1.0"
 dependencies = [
