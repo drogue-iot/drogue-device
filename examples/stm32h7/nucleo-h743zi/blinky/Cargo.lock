@@ -769,7 +769,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "546c37ac5d9e56f55e73b677106873d9d9f5190605e41a856503623648488cae"
 
 [[package]]
-name = "nucleo-h743zi_blinky"
+name = "nucleo-h743zi_blinkdance"
 version = "0.1.0"
 dependencies = [
  "cortex-m 0.7.3",
@@ -782,6 +782,7 @@ dependencies = [
  "embedded-hal",
  "heapless 0.6.1",
  "panic-probe",
+ "rand_core",
  "void",
 ]
 

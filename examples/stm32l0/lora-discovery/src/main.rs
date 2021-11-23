@@ -60,7 +60,7 @@ type MyApp = App<Address<'static, LoraActor<Sx127x<'static>>>, Led4, Led2, Led3,
 pub struct MyDevice {
     lora: ActorContext<'static, LoraActor<Sx127x<'static>>>,
 
-    button: ActorContext<'static, Button<'static, ExtiInput<'static, PB2>, MyApp>>,
+    button: ActorContext<'static, Button<ExtiInput<'static, PB2>, ButtonEventDispatcher<MyApp>>>,
     app: ActorContext<'static, MyApp>,
 }
 
@@ -149,7 +149,7 @@ async fn main(spawner: embassy::executor::Spawner, mut p: Peripherals) {
         .mount(|device| async move {
             let lora = device.lora.mount((), spawner);
             let app = device.app.mount(AppConfig { lora }, spawner);
-            device.button.mount(app, spawner);
+            device.button.mount(app.into(), spawner);
         })
         .await;
 }

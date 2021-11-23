@@ -57,7 +57,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let led = LedMatrix::new(rows, cols);
 
     DEVICE.configure(MyDevice {
-        matrix: ActorContext::new(LedMatrixActor::new(Duration::from_millis(1000 / 200), led)),
+        matrix: ActorContext::new(LedMatrixActor::new(led, None)),
     });
 
     let mut matrix = DEVICE

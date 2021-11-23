@@ -1,8 +1,6 @@
 [workspace]
 members = [
     "blinky",
-    "blinkdance",
-    "esp8266",
     "epd",
     "ethernet",
 ]

@@ -9,16 +9,19 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use core::future::Future;
-use drogue_device::actors::button::{ButtonEvent, FromButtonEvent};
+use drogue_device::actors::button::{Button, ButtonEvent, ButtonEventDispatcher, FromButtonEvent};
 use drogue_device::actors::led::{Led, LedMessage};
-use drogue_device::{actors::button::Button, Actor, ActorContext, Address, DeviceContext, Inbox};
+use drogue_device::{Actor, ActorContext, Address, DeviceContext, Inbox};
+use embassy::time::{with_timeout, Duration};
 use embassy_stm32::dbgmcu::Dbgmcu;
-use embassy_stm32::peripherals::{PB0, PB14, PC13, PE1};
+use embassy_stm32::peripherals::{PB0, PB14, PC13, PE1, RNG};
+use embassy_stm32::rng::Rng;
 use embassy_stm32::{
     exti::ExtiInput,
     gpio::{Input, Level, Output, Pull, Speed},
     Peripherals,
 };
+use rand_core::RngCore;
 
 type LedGreenPin = Output<'static, PB0>;
 type LedYellowPin = Output<'static, PE1>;
@@ -30,36 +33,55 @@ pub enum Color {
     Red,
 }
 
+#[derive(Debug)]
+pub enum Command {
+    StartDancing,
+    StopDancing,
+}
+
 pub struct App {
+    address: Option<Address<'static, App>>,
+    rng: Option<Rng<RNG>>,
+    dancing: bool,
     green: Option<Address<'static, Led<LedGreenPin>>>,
     yellow: Option<Address<'static, Led<LedYellowPin>>>,
     red: Option<Address<'static, Led<LedRedPin>>>,
-    color: Option<Color>,
 }
 
 impl App {
-    fn draw(&self) {
-        match self.color {
-            None => {
-                self.green.unwrap().notify(LedMessage::Off).ok();
-                self.yellow.unwrap().notify(LedMessage::Off).ok();
-                self.red.unwrap().notify(LedMessage::Off).ok();
-            }
-            Some(Color::Green) => {
-                self.green.unwrap().notify(LedMessage::On).ok();
-                self.yellow.unwrap().notify(LedMessage::Off).ok();
-                self.red.unwrap().notify(LedMessage::Off).ok();
-            }
-            Some(Color::Yellow) => {
-                self.green.unwrap().notify(LedMessage::Off).ok();
-                self.yellow.unwrap().notify(LedMessage::On).ok();
-                self.red.unwrap().notify(LedMessage::Off).ok();
-            }
-            Some(Color::Red) => {
-                self.green.unwrap().notify(LedMessage::Off).ok();
-                self.yellow.unwrap().notify(LedMessage::Off).ok();
-                self.red.unwrap().notify(LedMessage::On).ok();
-            }
+    fn all_on(&self) {
+        self.green.unwrap().notify(LedMessage::On).unwrap();
+        self.yellow.unwrap().notify(LedMessage::On).unwrap();
+        self.red.unwrap().notify(LedMessage::On).unwrap();
+    }
+
+    fn all_off(&self) {
+        self.green.unwrap().notify(LedMessage::Off).unwrap();
+        self.yellow.unwrap().notify(LedMessage::Off).unwrap();
+        self.red.unwrap().notify(LedMessage::Off).unwrap();
+    }
+
+    fn randomize(&mut self) {
+        let val = self.rng.as_mut().unwrap().next_u32();
+
+        let green = (val & 0b001) != 0;
+        let yellow = (val & 0b010) != 0;
+        let red = (val & 0b100) != 0;
+
+        if green {
+            self.green.unwrap().notify(LedMessage::On).unwrap();
+        } else {
+            self.green.unwrap().notify(LedMessage::Off).unwrap();
+        }
+        if yellow {
+            self.yellow.unwrap().notify(LedMessage::On).unwrap();
+        } else {
+            self.yellow.unwrap().notify(LedMessage::Off).unwrap();
+        }
+        if red {
+            self.red.unwrap().notify(LedMessage::On).unwrap();
+        } else {
+            self.red.unwrap().notify(LedMessage::Off).unwrap();
         }
     }
 }
@@ -67,7 +89,9 @@ impl App {
 impl Default for App {
     fn default() -> Self {
         Self {
-            color: Default::default(),
+            dancing: false,
+            address: Default::default(),
+            rng: Default::default(),
             green: Default::default(),
             yellow: Default::default(),
             red: Default::default(),
@@ -77,6 +101,7 @@ impl Default for App {
 
 impl Actor for App {
     type Configuration = (
+        Rng<RNG>,
         Address<'static, Led<LedGreenPin>>,
         Address<'static, Led<LedYellowPin>>,
         Address<'static, Led<LedRedPin>>,
@@ -91,41 +116,38 @@ impl Actor for App {
     fn on_mount<'m, M>(
         &'m mut self,
         config: Self::Configuration,
-        _: Address<'static, Self>,
+        address: Address<'static, Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<'m, Self> + 'm,
     {
-        self.green.replace(config.0);
-        self.yellow.replace(config.1);
-        self.red.replace(config.2);
+        self.address.replace(address);
+        self.rng.replace(config.0);
+        self.green.replace(config.1);
+        self.yellow.replace(config.2);
+        self.red.replace(config.3);
         async move {
             loop {
-                match inbox.next().await {
-                    Some(_) => match self.color {
-                        None | Some(Color::Red) => {
-                            self.color = Some(Color::Green);
+                match with_timeout(Duration::from_millis(50), inbox.next()).await {
+                    Ok(Some(mut m)) => match m.message() {
+                        Command::StartDancing => {
+                            self.all_on();
+                            self.dancing = true;
                         }
-                        Some(Color::Green) => {
-                            self.color = Some(Color::Yellow);
-                        }
-                        Some(Color::Yellow) => {
-                            self.color = Some(Color::Red);
+                        Command::StopDancing => {
+                            self.dancing = false;
+                            self.all_off();
                         }
                     },
                     _ => {}
                 }
-
-                self.draw();
+                if self.dancing {
+                    self.randomize();
+                }
             }
         }
     }
-}
-
-#[derive(Debug)]
-pub enum Command {
-    Next,
 }
 
 impl FromButtonEvent<Command> for App {
@@ -134,8 +156,8 @@ impl FromButtonEvent<Command> for App {
         Self: Sized,
     {
         match event {
-            ButtonEvent::Pressed => Some(Command::Next),
-            ButtonEvent::Released => None,
+            ButtonEvent::Released => Some(Command::StartDancing),
+            ButtonEvent::Pressed => Some(Command::StopDancing),
         }
     }
 }
@@ -145,7 +167,7 @@ pub struct MyDevice {
     led_green: ActorContext<'static, Led<LedGreenPin>>,
     led_yellow: ActorContext<'static, Led<LedYellowPin>>,
     led_red: ActorContext<'static, Led<LedRedPin>>,
-    button: ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App>>,
+    button: ActorContext<'static, Button<ExtiInput<'static, PC13>, ButtonEventDispatcher<App>>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -167,16 +189,18 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         button: ActorContext::new(Button::new(button)),
     });
 
+    let rng = Rng::new(p.RNG);
+
     DEVICE
         .mount(|device| async move {
             let green = device.led_green.mount((), spawner);
             let yellow = device.led_yellow.mount((), spawner);
             let red = device.led_red.mount((), spawner);
 
-            let app = device.app.mount((green, yellow, red), spawner);
-            device.button.mount(app, spawner);
+            let app = device.app.mount((rng, green, yellow, red), spawner);
+            device.button.mount(app.into(), spawner);
             app
         })
         .await;
-    defmt::info!("Application initialized. Press 'A' button to cycle LEDs");
+    defmt::info!("Application initialized. Press the blue button to cycle LEDs");
 }

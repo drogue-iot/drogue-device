@@ -1,5 +1,6 @@
 use crate::domain::led::matrix::*;
 use crate::traits::led::ToFrame;
+use embassy::time::{block_for, Duration};
 use embedded_hal::digital::v2::OutputPin;
 
 // Led matrix driver supporting up to 32x32 led matrices.
@@ -11,6 +12,7 @@ where
     pin_cols: [P; COLS],
     frame_buffer: Frame<COLS, ROWS>,
     row_p: usize,
+    pub brightness: Brightness,
 }
 
 impl<P, const ROWS: usize, const COLS: usize> LedMatrix<P, ROWS, COLS>
@@ -23,6 +25,7 @@ where
             pin_cols,
             frame_buffer: Frame::empty(),
             row_p: 0,
+            brightness: Default::default(),
         }
     }
 
@@ -54,7 +57,14 @@ where
                 col.set_high().ok();
             }
         }
+
+        // Adjust interval will impact brightness of the LEDs
+        block_for(Duration::from_micros(
+            ((Brightness::MAX - self.brightness.level()) as u64) * 6000 / Brightness::MAX as u64,
+        ));
+
         self.pin_rows[self.row_p].set_high().ok();
+
         self.row_p = (self.row_p + 1) % self.pin_rows.len();
     }
 }

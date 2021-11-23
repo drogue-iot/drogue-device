@@ -1,8 +1,6 @@
+use core::convert::TryFrom;
 use core::future::Future;
-use drogue_device::{
-    actors::button::{ButtonEvent, FromButtonEvent},
-    Actor, Address, Inbox,
-};
+use drogue_device::{actors::button::ButtonEvent, Actor, Address, Inbox};
 
 pub struct Statistics {
     character_counter: u32,
@@ -21,11 +19,12 @@ pub enum StatisticsCommand {
     IncrementCharacterCount,
 }
 
-impl FromButtonEvent<StatisticsCommand> for Statistics {
-    fn from(event: ButtonEvent) -> Option<StatisticsCommand> {
+impl TryFrom<ButtonEvent> for StatisticsCommand {
+    type Error = ();
+    fn try_from(event: ButtonEvent) -> Result<StatisticsCommand, Self::Error> {
         match event {
-            ButtonEvent::Released => Some(StatisticsCommand::PrintStatistics),
-            ButtonEvent::Pressed => None,
+            ButtonEvent::Released => Ok(StatisticsCommand::PrintStatistics),
+            ButtonEvent::Pressed => Err(()),
         }
     }
 }

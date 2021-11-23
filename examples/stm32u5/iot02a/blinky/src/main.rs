@@ -9,9 +9,9 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use core::future::Future;
-use drogue_device::actors::button::{ButtonEvent, FromButtonEvent};
+use drogue_device::actors::button::{Button, ButtonEvent, ButtonEventDispatcher, FromButtonEvent};
 use drogue_device::actors::led::{ActiveHigh, ActiveLow, Led, LedMessage};
-use drogue_device::{actors::button::Button, Actor, ActorContext, Address, DeviceContext, Inbox};
+use drogue_device::{Actor, ActorContext, Address, DeviceContext, Inbox};
 use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::peripherals::{PC13, PE13, PH6, PH7};
 use embassy_stm32::{
@@ -149,7 +149,7 @@ pub struct MyDevice {
     led_red: ActorContext<'static, Led<LedRedPin, ActiveLow>>,
     led_green: ActorContext<'static, Led<LedGreenPin, ActiveLow>>,
     led_blue: ActorContext<'static, Led<LedBluePin, ActiveHigh>>,
-    button: ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App>>,
+    button: ActorContext<'static, Button<ExtiInput<'static, PC13>, ButtonEventDispatcher<App>>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -178,9 +178,9 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             let red = device.led_red.mount((), spawner);
 
             let app = device.app.mount((green, blue, red), spawner);
-            device.button.mount(app, spawner);
+            device.button.mount(app.into(), spawner);
             app
         })
         .await;
-    defmt::info!("Application initialized. Press 'A' button to cycle LEDs");
+    defmt::info!("Application initialized. Press the blue button to cycle LEDs");
 }

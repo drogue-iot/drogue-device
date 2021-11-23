@@ -2,7 +2,7 @@
 pub mod matrix;
 
 use crate::{
-    actors::button::{ButtonEvent, FromButtonEvent},
+    actors::button::{ButtonEvent, ButtonEventHandler},
     kernel::{actor::Actor, actor::Address, actor::Inbox},
 };
 use core::future::Future;
@@ -53,19 +53,6 @@ pub enum LedMessage {
     State(bool),
 }
 
-impl<P, ACTIVE> FromButtonEvent<LedMessage> for Led<P, ACTIVE>
-where
-    P: OutputPin,
-    ACTIVE: Active<P>,
-{
-    fn from(event: ButtonEvent) -> Option<LedMessage> {
-        Some(match event {
-            ButtonEvent::Pressed => LedMessage::On,
-            ButtonEvent::Released => LedMessage::Off,
-        })
-    }
-}
-
 pub struct Led<P, ACTIVE = ActiveHigh>
 where
     P: OutputPin,
@@ -90,7 +77,18 @@ where
     }
 }
 
-impl<P> Unpin for Led<P> where P: OutputPin {}
+impl<P, ACTIVE> ButtonEventHandler for Address<'static, Led<P, ACTIVE>>
+where
+    P: OutputPin,
+    ACTIVE: Active<P>,
+{
+    fn handle(&mut self, event: ButtonEvent) {
+        let _ = match event {
+            ButtonEvent::Pressed => self.notify(LedMessage::On),
+            ButtonEvent::Released => self.notify(LedMessage::Off),
+        };
+    }
+}
 
 impl<P, ACTIVE> Actor for Led<P, ACTIVE>
 where

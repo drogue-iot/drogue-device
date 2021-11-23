@@ -1,4 +1,4 @@
-use crate::actors::button::{ButtonEvent, FromButtonEvent};
+use crate::actors::button::{ButtonEvent, ButtonEventHandler};
 use crate::kernel::{
     actor::{Actor, ActorSpawner, Address, Inbox},
     device::DeviceContext,
@@ -80,11 +80,11 @@ impl<D> Drop for TestContext<D> {
 #[derive(Copy, Clone)]
 pub struct TestMessage(pub u32);
 
-impl FromButtonEvent<TestMessage> for TestHandler {
-    fn from(event: ButtonEvent) -> Option<TestMessage> {
+impl ButtonEventHandler for Address<'static, TestHandler> {
+    fn handle(&mut self, event: ButtonEvent) {
         match event {
-            ButtonEvent::Pressed => Some(TestMessage(0)),
-            ButtonEvent::Released => Some(TestMessage(1)),
+            ButtonEvent::Pressed => self.notify(TestMessage(0)).unwrap(),
+            ButtonEvent::Released => self.notify(TestMessage(1)).unwrap(),
         }
     }
 }

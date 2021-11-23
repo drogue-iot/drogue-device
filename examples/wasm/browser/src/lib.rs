@@ -12,7 +12,7 @@ use embassy::executor::Spawner;
 
 struct MyDevice {
     led: ActorContext<'static, Led<WebLed>>,
-    button: ActorContext<'static, Button<'static, WebButton, Led<WebLed>>>,
+    button: ActorContext<'static, Button<WebButton, Address<'static, Led<WebLed>>>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();

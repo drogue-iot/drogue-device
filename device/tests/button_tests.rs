@@ -12,7 +12,7 @@ mod tests {
     #[allow(dead_code)]
     struct TestDevicePressed {
         handler: ActorContext<'static, TestHandler>,
-        button: ActorContext<'static, Button<'static, TestPin, TestHandler>>,
+        button: ActorContext<'static, Button<TestPin, Address<'static, TestHandler>>>,
     }
 
     #[drogue_test]
@@ -42,7 +42,7 @@ mod tests {
     #[allow(dead_code)]
     struct TestDeviceReleased {
         handler: ActorContext<'static, TestHandler>,
-        button: ActorContext<'static, Button<'static, TestPin, TestHandler>>,
+        button: ActorContext<'static, Button<TestPin, Address<'static, TestHandler>>>,
     }
 
     #[drogue_test]

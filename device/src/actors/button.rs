@@ -3,48 +3,62 @@ use core::future::Future;
 use embassy::traits::gpio::WaitForAnyEdge;
 use embedded_hal::digital::v2::InputPin;
 
+pub enum ButtonEvent {
+    Pressed,
+    Released,
+}
+
+pub struct ButtonEventDispatcher<A: 'static + Actor + FromButtonEvent<A::Message<'static>>> {
+    address: Address<'static, A>,
+}
+
+impl<A: Actor + FromButtonEvent<A::Message<'static>>> ButtonEventHandler
+    for ButtonEventDispatcher<A>
+{
+    fn handle(&mut self, event: ButtonEvent) {
+        if let Some(m) = A::from(event) {
+            let _ = self.address.notify(m);
+        }
+    }
+}
+
+impl<A: Actor + FromButtonEvent<A::Message<'static>>> Into<ButtonEventDispatcher<A>>
+    for Address<'static, A>
+{
+    fn into(self) -> ButtonEventDispatcher<A> {
+        ButtonEventDispatcher { address: self }
+    }
+}
+
+pub struct Button<P: WaitForAnyEdge + InputPin, H: ButtonEventHandler> {
+    pin: P,
+    handler: Option<H>,
+}
+
+impl<P: WaitForAnyEdge + InputPin, H: ButtonEventHandler> Button<P, H> {
+    pub fn new(pin: P) -> Self {
+        Self { pin, handler: None }
+    }
+}
+
+pub trait ButtonEventHandler {
+    fn handle(&mut self, event: ButtonEvent);
+}
+
 pub trait FromButtonEvent<M> {
     fn from(event: ButtonEvent) -> Option<M>
     where
         Self: Sized;
 }
 
-pub enum ButtonEvent {
-    Pressed,
-    Released,
-}
-
-pub struct Button<
-    'a,
-    P: WaitForAnyEdge + InputPin + 'a,
-    A: Actor + FromButtonEvent<A::Message<'a>> + 'static,
-> {
-    pin: P,
-    handler: Option<Address<'a, A>>,
-}
-
-impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Message<'a>> + 'a>
-    Button<'a, P, A>
-{
-    pub fn new(pin: P) -> Self {
-        Self { pin, handler: None }
-    }
-}
-
-impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Message<'a>> + 'a> Unpin
-    for Button<'a, P, A>
-{
-}
-
-impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Message<'a>> + 'a> Actor
-    for Button<'a, P, A>
-{
-    type Configuration = Address<'a, A>;
+impl<P: WaitForAnyEdge + InputPin, H: ButtonEventHandler> Actor for Button<P, H> {
+    type Configuration = H;
 
     type OnMountFuture<'m, M>
     where
-        'a: 'm,
         M: 'm,
+        H: 'm,
+        P: 'm,
     = impl Future<Output = ()> + 'm;
 
     fn on_mount<'m, M>(
@@ -69,11 +83,8 @@ impl<'a, P: WaitForAnyEdge + InputPin + 'a, A: Actor + FromButtonEvent<A::Messag
                     ButtonEvent::Pressed
                 };
 
-                if let Some(handler) = self.handler {
-                    let mut message = A::from(event);
-                    if let Some(m) = message.take() {
-                        let _ = handler.notify(m);
-                    }
+                if let Some(handler) = &mut self.handler {
+                    handler.handle(event);
                 }
             }
         }

@@ -11,7 +11,7 @@ use panic_probe as _;
 
 use drogue_device::{
     actors::{
-        button::Button,
+        button::{Button, ButtonEventDispatcher},
         wifi::{esp8266::*, AdapterActor},
     },
     drivers::wifi::esp8266::Esp8266Controller,
@@ -75,8 +75,10 @@ type ConnectionFactory = Address<'static, AdapterActor<Esp8266Controller<'static
 pub struct MyDevice {
     wifi: Esp8266Wifi<UART, ENABLE, RESET>,
     app: ActorContext<'static, App<ConnectionFactory>>,
-    button:
-        ActorContext<'static, Button<'static, PortInput<'static, P0_14>, App<ConnectionFactory>>>,
+    button: ActorContext<
+        'static,
+        Button<PortInput<'static, P0_14>, ButtonEventDispatcher<App<ConnectionFactory>>>,
+    >,
     temperature: ActorContext<'static, TemperatureMonitor<'static>>,
 }
 
@@ -152,7 +154,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             );
 
             let app = device.app.mount(factory, spawner);
-            device.button.mount(app, spawner);
+            device.button.mount(app.into(), spawner);
             device.temperature.mount(app, spawner);
         })
         .await;

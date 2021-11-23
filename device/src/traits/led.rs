@@ -41,6 +41,9 @@ pub trait LedMatrix<const ROWS: usize, const COLS: usize> {
     where
         Self: 'm;
     fn apply<'m>(&'m mut self, frame: &'m dyn ToFrame<COLS, ROWS>) -> Self::ApplyFuture<'m>;
+
+    fn increase_brightness(&mut self) -> Result<(), Self::Error>;
+    fn decrease_brightness(&mut self) -> Result<(), Self::Error>;
 }
 
 pub trait ToFrame<const XSIZE: usize, const YSIZE: usize>: Sync {

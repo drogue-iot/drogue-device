@@ -1,3 +1,5 @@
+use core::ops::{AddAssign, SubAssign};
+
 /**
  * A 32 bit bitmap based
  *
@@ -213,6 +215,40 @@ impl<const XSIZE: usize, const YSIZE: usize> Frame<XSIZE, YSIZE> {
 impl<const XSIZE: usize, const YSIZE: usize> Default for Frame<XSIZE, YSIZE> {
     fn default() -> Self {
         Frame::empty()
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Brightness(u8);
+
+impl Brightness {
+    pub const MAX: u8 = 10;
+    pub const MIN: u8 = 0;
+
+    pub fn new(level: u8) -> Self {
+        Self(level)
+    }
+
+    pub fn level(&self) -> u8 {
+        self.0
+    }
+}
+
+impl Default for Brightness {
+    fn default() -> Self {
+        Self(5)
+    }
+}
+
+impl AddAssign<u8> for Brightness {
+    fn add_assign(&mut self, rhs: u8) {
+        self.0 += core::cmp::min(Self::MAX - self.0, rhs);
+    }
+}
+
+impl SubAssign<u8> for Brightness {
+    fn sub_assign(&mut self, rhs: u8) {
+        self.0 -= core::cmp::min(self.0, rhs);
     }
 }
 
