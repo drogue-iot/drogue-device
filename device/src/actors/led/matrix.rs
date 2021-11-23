@@ -60,6 +60,16 @@ where
             Ok(())
         }
     }
+
+    fn increase_brightness(&mut self) -> Result<(), Self::Error> {
+        self.notify(MatrixCommand::IncreaseBrightness)
+            .map_err(|_| ())
+    }
+
+    fn decrease_brightness(&mut self) -> Result<(), Self::Error> {
+        self.notify(MatrixCommand::DecreaseBrightness)
+            .map_err(|_| ())
+    }
 }
 
 impl<P, const ROWS: usize, const COLS: usize> TextDisplay
@@ -105,12 +115,12 @@ where
     P: OutputPin + 'static,
 {
     pub fn new(
-        refresh_interval: Duration,
         matrix: LedMatrix<P, ROWS, COLS>,
+        refresh_interval: Option<Duration>,
     ) -> LedMatrixActor<P, ROWS, COLS> {
         Self {
-            refresh_interval,
             matrix,
+            refresh_interval: refresh_interval.unwrap_or(Duration::from_micros(500)),
         }
     }
 }
@@ -184,6 +194,8 @@ where
                         MatrixCommand::On(x, y) => self.matrix.on(x, y),
                         MatrixCommand::Off(x, y) => self.matrix.off(x, y),
                         MatrixCommand::Clear => self.matrix.clear(),
+                        MatrixCommand::IncreaseBrightness => self.matrix.brightness += 1,
+                        MatrixCommand::DecreaseBrightness => self.matrix.brightness -= 1,
                         MatrixCommand::Render => {
                             self.matrix.render();
                         }
@@ -202,6 +214,8 @@ where
 pub enum MatrixCommand<'m, const XSIZE: usize, const YSIZE: usize> {
     On(usize, usize),
     Off(usize, usize),
+    IncreaseBrightness,
+    DecreaseBrightness,
     Clear,
     Render,
     ApplyAsciiChar(char),

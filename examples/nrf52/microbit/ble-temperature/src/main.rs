@@ -15,7 +15,6 @@ use drogue_device::{
     ActorContext, Address, DeviceContext, Package,
 };
 use embassy::executor::Spawner;
-use embassy::time::Duration;
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::{
@@ -70,7 +69,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
 
     DEVICE.configure(MyDevice {
         ble_service: MicrobitBleService::new(),
-        matrix: ActorContext::new(LedMatrixActor::new(Duration::from_millis(1000 / 200), led)),
+        matrix: ActorContext::new(LedMatrixActor::new(led, None)),
     });
 
     DEVICE

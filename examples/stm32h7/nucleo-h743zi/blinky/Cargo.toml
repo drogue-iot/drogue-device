@@ -16,11 +16,12 @@ defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
-drogue-device = { path = "../../../../device", features = ["defmt"], default-features = false }
+drogue-device = { path = "../../../../device", features = ["time", "defmt"], default-features = false }
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 heapless = "0.6"
 void = { version = "1", default-features = false }
+rand_core = { version = "0.6", default-features = false }
 
 embassy = { version = "0.1.0", default-features = false }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32h743zi", "defmt", "memory-x", "time-driver-tim2"] }

@@ -61,8 +61,10 @@ static STATE: Forever<State<'static, 4, 4>> = Forever::new();
 pub struct MyDevice {
     tcp: SmolTcpPackage,
     app: ActorContext<'static, App<ConnectionFactory>, 2>,
-    button:
-        ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App<ConnectionFactory>>>,
+    button: ActorContext<
+        'static,
+        Button<ExtiInput<'static, PC13>, ButtonEventDispatcher<App<ConnectionFactory>>>,
+    >,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -121,7 +123,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             }))
             .unwrap()
             .await;
-            device.button.mount(app, spawner);
+            device.button.mount(app.into(), spawner);
         })
         .await;
     defmt::info!("Application initialized. Press the blue button to send data");

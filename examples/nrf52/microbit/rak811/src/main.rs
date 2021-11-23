@@ -13,7 +13,10 @@ use panic_probe as _;
 
 use core::cell::UnsafeCell;
 use drogue_device::{
-    actors::button::Button, drivers::lora::rak811::*, traits::lora::*, ActorContext, DeviceContext,
+    actors::button::{Button, ButtonEventDispatcher},
+    drivers::lora::rak811::*,
+    traits::lora::*,
+    ActorContext, DeviceContext,
 };
 use embassy::util::Forever;
 use embassy_nrf::{
@@ -38,7 +41,7 @@ pub struct MyDevice {
     app: ActorContext<'static, App<Rak811Controller<'static>>>,
     button: ActorContext<
         'static,
-        Button<'static, PortInput<'static, P0_14>, App<Rak811Controller<'static>>>,
+        Button<PortInput<'static, P0_14>, ButtonEventDispatcher<App<Rak811Controller<'static>>>>,
     >,
 }
 
@@ -102,7 +105,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             device.modem.mount(modem, spawner);
             controller.configure(&config).await.unwrap();
             let app = device.app.mount(controller, spawner);
-            device.button.mount(app, spawner);
+            device.button.mount(app.into(), spawner);
         })
         .await;
 }

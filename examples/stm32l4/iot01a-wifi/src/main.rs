@@ -92,8 +92,10 @@ pub struct MyDevice {
     wifi: ActorContext<'static, AdapterActor<EsWifi>>,
     app: ActorContext<'static, App<ConnectionFactory>, 3>,
     i2c: ActorContext<'static, I2cPeripheral<I2cDriver>>,
-    button:
-        ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App<ConnectionFactory>>>,
+    button: ActorContext<
+        'static,
+        Button<ExtiInput<'static, PC13>, ButtonEventDispatcher<App<ConnectionFactory>>>,
+    >,
     sensor: ActorContext<
         'static,
         Sensor<ExtiInput<'static, PD15>, Address<'static, I2cPeripheral<I2cDriver>>>,
@@ -202,7 +204,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             let app = device.app.mount(factory, spawner);
             let i2c = device.i2c.mount((), spawner);
             let sensor = device.sensor.mount(i2c, spawner);
-            device.button.mount(app, spawner);
+            device.button.mount(app.into(), spawner);
             (sensor, app)
         })
         .await;

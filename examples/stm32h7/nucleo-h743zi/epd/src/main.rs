@@ -10,8 +10,8 @@ use panic_probe as _;
 
 use core::fmt::Write;
 use core::future::Future;
-use drogue_device::actors::button::{ButtonEvent, FromButtonEvent};
-use drogue_device::{actors::button::Button, Actor, ActorContext, Address, DeviceContext, Inbox};
+use drogue_device::actors::button::{Button, ButtonEvent, ButtonEventDispatcher, FromButtonEvent};
+use drogue_device::{Actor, ActorContext, Address, DeviceContext, Inbox};
 use embassy::time::Delay;
 use embassy::traits::rng::Rng;
 use embassy_stm32::dbgmcu::Dbgmcu;
@@ -217,7 +217,7 @@ impl FromButtonEvent<Command> for App {
 
 pub struct MyDevice {
     app: ActorContext<'static, App>,
-    button: ActorContext<'static, Button<'static, ExtiInput<'static, PC13>, App>>,
+    button: ActorContext<'static, Button<ExtiInput<'static, PC13>, ButtonEventDispatcher<App>>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -266,11 +266,11 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     DEVICE
         .mount(|device| async move {
             let app = device.app.mount((), spawner);
-            device.button.mount(app, spawner);
+            device.button.mount(app.into(), spawner);
             app
         })
         .await;
-    defmt::info!("Application initialized. Press 'A' button to draw");
+    defmt::info!("Application initialized. Press the blue button to draw");
 }
 
 #[allow(unused)]
