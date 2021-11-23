@@ -8,15 +8,16 @@
 //! updating `memory.x` ensures a rebuild of the application with the
 //! new memory settings.
 
-use buildutil::{configure, copy_config};
+use buildutil::{configure, copy_file};
 use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    let manifest_dir = &PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
-    let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    configure("dev-eui");
+    configure("app-eui");
+    configure("app-key");
+    copy_file("memory.x");
 
-    configure(&out, &["dev-eui", "app-eui", "app-key"]);
-    copy_config(&out, &manifest_dir, "memory.x");
+    let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
     println!("cargo:rustc-link-search={}", out.display());
 }

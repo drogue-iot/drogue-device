@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 config = "0.11"
+lazy_static = "1"
 
 [workspace]

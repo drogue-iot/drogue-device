@@ -11,3 +11,6 @@
 
 # IntelliJ
 .idea/
+
+# Drogue config
+**/.drogue/

@@ -8,21 +8,13 @@
 //! updating `memory.x` ensures a rebuild of the application with the
 //! new memory settings.
 
-use std::env;
-use std::path::PathBuf;
+use buildutil::configure;
 
 fn main() {
-    let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
-
-    buildutil::configure(
-        &out,
-        &[
-            "wifi-ssid",
-            "wifi-password",
-            "http-username",
-            "http-password",
-        ],
-    );
+    configure("wifi-ssid");
+    configure("wifi-password");
+    configure("http-username");
+    configure("http-password");
 
     // By default, Cargo will re-run a build script whenever
     // any file in the project changes. By specifying `memory.x`

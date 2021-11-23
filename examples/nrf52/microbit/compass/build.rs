@@ -12,9 +12,7 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    let manifest_dir = &PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
+    buildutil::copy_file("memory.x");
     let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
-
-    buildutil::copy_config(&out, &manifest_dir, "memory.x");
     println!("cargo:rustc-link-search={}", out.display());
 }
