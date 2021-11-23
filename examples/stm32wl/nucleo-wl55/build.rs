@@ -8,14 +8,12 @@
 //! updating `memory.x` ensures a rebuild of the application with the
 //! new memory settings.
 
-use std::env;
-use std::path::PathBuf;
+use buildutil::configure;
 
 fn main() {
-    let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
-
-    // Copy credentials
-    buildutil::configure(&out, &["dev-eui", "app-eui", "app-key"]);
+    configure("dev-eui");
+    configure("app-eui");
+    configure("app-key");
 
     // By default, Cargo will re-run a build script whenever
     // any file in the project changes. By specifying `memory.x`
