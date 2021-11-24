@@ -1,6 +1,6 @@
 use drogue_device::traits::led::LedMatrix;
 
-use embassy::time::{Duration, Timer};
+use embassy::time::{Duration, Instant, Timer};
 use embassy_nrf::pwm::*;
 
 pub struct Sample<'a> {
@@ -34,7 +34,13 @@ impl<'a, T: Instance, M: LedMatrix<5, 5>> PwmSpeaker<'a, T, M> {
 
             self.pwm.set_duty(0, self.pwm.max_duty() / 2);
             let _ = self.matrix.apply(&BITMAP).await;
-            Timer::after(Duration::from_millis(note.1 as u64)).await;
+            let _ = self.matrix.max_brightness();
+            let interval = Duration::from_millis(note.1 as u64 / 10);
+            let end = Instant::now() + Duration::from_millis(note.1 as u64);
+            while Instant::now() < end {
+                let _ = self.matrix.decrease_brightness();
+                Timer::after(interval).await;
+            }
             let _ = self.matrix.clear().await;
             self.pwm.disable();
         } else {

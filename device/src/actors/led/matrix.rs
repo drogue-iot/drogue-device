@@ -61,6 +61,14 @@ where
         }
     }
 
+    fn max_brightness(&mut self) -> Result<(), Self::Error> {
+        self.notify(MatrixCommand::MaxBrightness).map_err(|_| ())
+    }
+
+    fn min_brightness(&mut self) -> Result<(), Self::Error> {
+        self.notify(MatrixCommand::MinBrightness).map_err(|_| ())
+    }
+
     fn increase_brightness(&mut self) -> Result<(), Self::Error> {
         self.notify(MatrixCommand::IncreaseBrightness)
             .map_err(|_| ())
@@ -196,6 +204,9 @@ where
                         MatrixCommand::Clear => self.matrix.clear(),
                         MatrixCommand::IncreaseBrightness => self.matrix.brightness += 1,
                         MatrixCommand::DecreaseBrightness => self.matrix.brightness -= 1,
+                        MatrixCommand::MaxBrightness => self.matrix.brightness = Brightness::MAX,
+                        MatrixCommand::MinBrightness => self.matrix.brightness = Brightness::MIN,
+
                         MatrixCommand::Render => {
                             self.matrix.render();
                         }
@@ -216,6 +227,8 @@ pub enum MatrixCommand<'m, const XSIZE: usize, const YSIZE: usize> {
     Off(usize, usize),
     IncreaseBrightness,
     DecreaseBrightness,
+    MaxBrightness,
+    MinBrightness,
     Clear,
     Render,
     ApplyAsciiChar(char),

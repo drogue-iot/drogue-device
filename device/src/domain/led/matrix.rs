@@ -222,8 +222,8 @@ impl<const XSIZE: usize, const YSIZE: usize> Default for Frame<XSIZE, YSIZE> {
 pub struct Brightness(u8);
 
 impl Brightness {
-    pub const MAX: u8 = 10;
-    pub const MIN: u8 = 0;
+    pub const MAX: Brightness = Brightness(10);
+    pub const MIN: Brightness = Brightness(0);
 
     pub fn new(level: u8) -> Self {
         Self(level)
@@ -242,7 +242,7 @@ impl Default for Brightness {
 
 impl AddAssign<u8> for Brightness {
     fn add_assign(&mut self, rhs: u8) {
-        self.0 += core::cmp::min(Self::MAX - self.0, rhs);
+        self.0 += core::cmp::min(Self::MAX.level() - self.0, rhs);
     }
 }
 
