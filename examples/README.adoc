@@ -11,7 +11,15 @@ install probe-run`) to flash the program.
 === Configuration
 
 Any examples requiring user credentials, e.g. WiFi, HTTP, OTAA, will
-expect them in the top-level keys of `~/.drogue/config.toml`.
+expect them in the top-level keys of `.drogue/config.toml`. Similar to
+how
+link:https://doc.rust-lang.org/cargo/reference/config.html#hierarchical-structure[cargo
+configuration works], the build script for each example looks for that
+configuration file in the manifest directory, all of its parent
+directories, and finally in `$HOME/.drogue/config.toml`. If a key is
+specified in multiple config files, the values will be merged, with
+the value in the deeper directory taking precedence over its parents,
+the home directory having the lowest priority.
 
 Credentials for your local WiFi network:
 ....
@@ -32,4 +40,4 @@ _Over The Air Authentication_ (OTAA) credentials:
 "app-key" = "..."
 ....
 
-These values will be read during compilation and stored in the executable. For any missing keys, empty strings will be used.
+These values will be read during compilation and stored in the executable.

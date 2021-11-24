@@ -11,10 +11,10 @@ const CI_ENV_VAR: &str = "CI";
 lazy_static! {
     // Configuration entries are pulled from the CONFIG_FILE found
     // beneath $HOME and the project manifest directory. Additionally,
-    // all the latter's parents will be searched. Precendence is
-    // determined by the order of calls to merge(), i.e. last merge
-    // "wins". The CONFIG_FILE beneath $HOME has the lowest
-    // precendence.
+    // all the latter's parents will be searched. Precedence is
+    // determined by the order of calls to merge(), i.e. the last
+    // merge "wins". The CONFIG_FILE beneath $HOME has the lowest
+    // precedence.
     static ref CONFIG: HashMap<String, String> = {
         let mut config = Config::default();
         let global = PathBuf::from(env::var_os("HOME").unwrap()).join(CONFIG_FILE);
