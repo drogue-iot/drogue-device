@@ -4,7 +4,7 @@ members = [
     "rak811",
     "esp8266",
     "uart",
-    "disco",
+    "jukebox",
     "compass",
 ]
 resolver = "2"
