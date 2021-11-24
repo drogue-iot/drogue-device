@@ -13,6 +13,18 @@ impl<'a> Sample<'a> {
     }
 }
 
+pub enum Pitch {
+    C = 261,
+    D = 293,
+    E = 329,
+    F = 349,
+    G = 391,
+    A = 440,
+    AB = 466,
+    B = 493,
+    C2 = 523,
+}
+
 #[derive(Clone, Copy)]
 pub struct Note(pub u32, pub u32);
 

@@ -67,93 +67,35 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let mut speaker = PwmSpeaker::new(pwm, matrix);
 
     loop {
-        for i in 0..BEAT.len() {
-            speaker.play_sample(&BEAT[i]).await;
+        for i in 0..RIFF.len() {
+            speaker.play_sample(&RIFF[i]).await;
         }
     }
 }
 
-static BEAT: &[Sample<'static>] = &[
-    Sample::new(&[
-        Note(440, 150),
-        Note(0, 100),
-        Note(440, 150),
-        Note(0, 250),
-        Note(440, 300),
-        Note(0, 50),
-        Note(440, 150),
-        Note(0, 800),
-    ]),
-    Sample::new(&[
-        Note(659, 150),
-        Note(0, 100),
-        Note(659, 150),
-        Note(0, 250),
-        Note(659, 300),
-        Note(0, 50),
-        Note(659, 150),
-        Note(0, 800),
-    ]),
-    Sample::new(&[
-        Note(440, 150),
-        Note(0, 100),
-        Note(440, 150),
-        Note(0, 250),
-        Note(440, 300),
-        Note(0, 50),
-        Note(440, 150),
-        Note(0, 800),
-    ]),
-    Sample::new(&[
-        Note(659, 150),
-        Note(0, 100),
-        Note(659, 150),
-        Note(0, 250),
-        Note(659, 300),
-        Note(0, 50),
-        Note(659, 150),
-        Note(0, 800),
-    ]),
-    Sample::new(&[
-        Note(587, 150),
-        Note(0, 100),
-        Note(587, 150),
-        Note(0, 250),
-        Note(587, 300),
-        Note(0, 50),
-        Note(587, 150),
-        Note(0, 800),
-    ]),
-    Sample::new(&[
-        Note(587, 150),
-        Note(0, 100),
-        Note(587, 150),
-        Note(0, 250),
-        Note(587, 300),
-        Note(0, 50),
-        Note(587, 150),
-        Note(0, 300),
-        Note(587, 100),
-        Note(659, 400),
-    ]),
-    Sample::new(&[
-        Note(440, 150),
-        Note(0, 100),
-        Note(440, 150),
-        Note(0, 250),
-        Note(440, 300),
-        Note(0, 50),
-        Note(440, 150),
-        Note(0, 800),
-    ]),
-    Sample::new(&[
-        Note(440, 150),
-        Note(0, 100),
-        Note(440, 150),
-        Note(0, 250),
-        Note(440, 300),
-        Note(0, 50),
-        Note(440, 150),
-        Note(0, 800),
-    ]),
-];
+static RIFF: &[Sample<'static>] = &[Sample::new(&[
+    Note(Pitch::E as u32, 150),
+    Note(0, 150),
+    Note(Pitch::G as u32, 150),
+    Note(0, 150),
+    Note(Pitch::A as u32, 300),
+    Note(0, 150),
+    Note(Pitch::E as u32, 150),
+    Note(0, 150),
+    Note(Pitch::G as u32, 150),
+    Note(0, 150),
+    Note(Pitch::AB as u32, 150),
+    Note(0, 25),
+    Note(Pitch::A as u32, 300),
+    Note(0, 300),
+    Note(Pitch::E as u32, 150),
+    Note(0, 150),
+    Note(Pitch::G as u32, 150),
+    Note(0, 150),
+    Note(Pitch::A as u32, 300),
+    Note(0, 150),
+    Note(Pitch::G as u32, 150),
+    Note(0, 150),
+    Note(Pitch::E as u32, 300),
+    Note(0, 750),
+])];
