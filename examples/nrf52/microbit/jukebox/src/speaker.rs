@@ -13,6 +13,7 @@ impl<'a> Sample<'a> {
     }
 }
 
+#[allow(dead_code)]
 pub enum Pitch {
     C = 261,
     D = 293,
