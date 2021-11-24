@@ -60,7 +60,8 @@ where
 
         // Adjust interval will impact brightness of the LEDs
         block_for(Duration::from_micros(
-            ((Brightness::MAX - self.brightness.level()) as u64) * 6000 / Brightness::MAX as u64,
+            ((Brightness::MAX.level() - self.brightness.level()) as u64) * 6000
+                / Brightness::MAX.level() as u64,
         ));
 
         self.pin_rows[self.row_p].set_high().ok();
