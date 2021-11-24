@@ -1,4 +1,4 @@
-use drogue_device::{domain::led::matrix::Frame, traits::led::LedMatrix};
+use drogue_device::traits::led::LedMatrix;
 
 use embassy::time::{Duration, Timer};
 use embassy_nrf::pwm::*;

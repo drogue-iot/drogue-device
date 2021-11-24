@@ -940,6 +940,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "microbit-disco"
+version = "0.1.0"
+dependencies = [
+ "buildutil",
+ "cortex-m-rt",
+ "defmt",
+ "defmt-rtt",
+ "drogue-device",
+ "embassy",
+ "embassy-nrf",
+ "embedded-hal",
+ "panic-probe",
+]
+
+[[package]]
 name = "microbit-esp8266"
 version = "0.1.0"
 dependencies = [
@@ -958,22 +973,6 @@ dependencies = [
  "nrf52833-pac",
  "panic-probe",
  "rand_core",
-]
-
-[[package]]
-name = "microbit-jukebox"
-version = "0.1.0"
-dependencies = [
- "buildutil",
- "cortex-m-rt",
- "defmt",
- "defmt-rtt",
- "drogue-device",
- "embassy",
- "embassy-nrf",
- "embedded-hal",
- "micromath",
- "panic-probe",
 ]
 
 [[package]]

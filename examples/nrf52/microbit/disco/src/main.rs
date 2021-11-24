@@ -6,19 +6,14 @@
 
 use defmt_rtt as _;
 use drogue_device::{
-    actors::led::matrix::LedMatrixActor,
-    drivers::led::matrix::LedMatrix,
-    traits::led::{LedMatrix as LedMatrixTrait, TextDisplay},
-    ActorContext, DeviceContext,
+    actors::led::matrix::LedMatrixActor, drivers::led::matrix::LedMatrix, ActorContext,
+    DeviceContext,
 };
 
-use embassy::time::{Duration, Instant, Timer};
 use embassy_nrf::{
     gpio::{AnyPin, Level, NoPin, Output, OutputDrive, Pin},
-    interrupt,
-    peripherals::PWM0,
     pwm::*,
-    twim, Peripherals,
+    Peripherals,
 };
 
 use panic_probe as _;
@@ -36,8 +31,6 @@ static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 fn output_pin(pin: AnyPin) -> Output<'static, AnyPin> {
     Output::new(pin, Level::Low, OutputDrive::Standard)
 }
-
-use micromath::F32Ext;
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
