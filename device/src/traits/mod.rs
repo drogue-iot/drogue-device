@@ -1,3 +1,4 @@
+pub mod button;
 pub mod dns;
 pub mod i2c;
 pub mod ip;
