@@ -98,6 +98,8 @@ pub mod clients;
 
 pub mod domain;
 
+pub mod bsp;
+
 #[cfg(feature = "std")]
 pub mod testutil;
 

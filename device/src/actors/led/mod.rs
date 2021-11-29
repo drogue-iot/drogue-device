@@ -1,49 +1,12 @@
 #[cfg(feature = "time")]
 pub mod matrix;
 
+use crate::traits;
 use crate::{
     actors::button::{ButtonEvent, ButtonEventHandler},
     kernel::{actor::Actor, actor::Address, actor::Inbox},
 };
 use core::future::Future;
-use core::marker::PhantomData;
-use embedded_hal::digital::v2::{OutputPin, PinState};
-
-pub trait Active<P>
-where
-    P: OutputPin,
-{
-    fn set(pin: &mut P, active: bool) -> Result<(), P::Error>;
-}
-
-pub struct ActiveHigh;
-pub struct ActiveLow;
-
-impl<P> Active<P> for ActiveHigh
-where
-    P: OutputPin,
-{
-    fn set(pin: &mut P, active: bool) -> Result<(), P::Error> {
-        pin.set_state(if active {
-            PinState::High
-        } else {
-            PinState::Low
-        })
-    }
-}
-
-impl<P> Active<P> for ActiveLow
-where
-    P: OutputPin,
-{
-    fn set(pin: &mut P, active: bool) -> Result<(), P::Error> {
-        pin.set_state(if active {
-            PinState::Low
-        } else {
-            PinState::High
-        })
-    }
-}
 
 #[derive(Clone, Copy)]
 pub enum LedMessage {
@@ -53,34 +16,26 @@ pub enum LedMessage {
     State(bool),
 }
 
-pub struct Led<P, ACTIVE = ActiveHigh>
+pub struct Led<P>
 where
-    P: OutputPin,
-    ACTIVE: Active<P>,
+    P: traits::led::Led,
 {
-    pin: P,
+    led: P,
     state: bool,
-    _active: PhantomData<ACTIVE>,
 }
 
-impl<P, ACTIVE> Led<P, ACTIVE>
+impl<P> Led<P>
 where
-    P: OutputPin,
-    ACTIVE: Active<P>,
+    P: traits::led::Led,
 {
-    pub fn new(pin: P) -> Self {
-        Self {
-            pin,
-            state: false,
-            _active: PhantomData,
-        }
+    pub fn new(led: P) -> Self {
+        Self { led, state: false }
     }
 }
 
-impl<P, ACTIVE> ButtonEventHandler for Address<'static, Led<P, ACTIVE>>
+impl<P> ButtonEventHandler for Address<'static, Led<P>>
 where
-    P: OutputPin,
-    ACTIVE: Active<P>,
+    P: traits::led::Led,
 {
     fn handle(&mut self, event: ButtonEvent) {
         let _ = match event {
@@ -90,10 +45,9 @@ where
     }
 }
 
-impl<P, ACTIVE> Actor for Led<P, ACTIVE>
+impl<P> Actor for Led<P>
 where
-    P: OutputPin,
-    ACTIVE: Active<P>,
+    P: traits::led::Led,
 {
     type Message<'m>
     where
@@ -125,13 +79,14 @@ where
                         LedMessage::Toggle => !self.state,
                     };
                     if self.state != new_state {
-                        match ACTIVE::set(&mut self.pin, self.state) {
+                        match match new_state {
+                            true => self.led.on(),
+                            false => self.led.off(),
+                        } {
                             Ok(_) => {
                                 self.state = new_state;
                             }
-                            Err(_) => {
-                                // ignore, didn't work, don't update state.
-                            }
+                            Err(_) => {}
                         }
                     }
                 }

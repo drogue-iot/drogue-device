@@ -10,7 +10,8 @@ use panic_probe as _;
 
 use core::future::Future;
 use drogue_device::actors::button::{Button, ButtonEvent, ButtonEventDispatcher, FromButtonEvent};
-use drogue_device::actors::led::{Led, LedMessage};
+use drogue_device::actors::led::LedMessage;
+use drogue_device::{actors, drivers};
 use drogue_device::{Actor, ActorContext, Address, DeviceContext, Inbox};
 use embassy::time::{with_timeout, Duration};
 use embassy_stm32::dbgmcu::Dbgmcu;
@@ -26,6 +27,10 @@ use rand_core::RngCore;
 type LedGreenPin = Output<'static, PB0>;
 type LedYellowPin = Output<'static, PE1>;
 type LedRedPin = Output<'static, PB14>;
+
+type LedGreen = drivers::led::Led<LedGreenPin>;
+type LedYellow = drivers::led::Led<LedYellowPin>;
+type LedRed = drivers::led::Led<LedRedPin>;
 
 pub enum Color {
     Green,
@@ -43,9 +48,9 @@ pub struct App {
     address: Option<Address<'static, App>>,
     rng: Option<Rng<RNG>>,
     dancing: bool,
-    green: Option<Address<'static, Led<LedGreenPin>>>,
-    yellow: Option<Address<'static, Led<LedYellowPin>>>,
-    red: Option<Address<'static, Led<LedRedPin>>>,
+    green: Option<Address<'static, actors::led::Led<LedGreen>>>,
+    yellow: Option<Address<'static, actors::led::Led<LedYellow>>>,
+    red: Option<Address<'static, actors::led::Led<LedRed>>>,
 }
 
 impl App {
@@ -102,9 +107,9 @@ impl Default for App {
 impl Actor for App {
     type Configuration = (
         Rng<RNG>,
-        Address<'static, Led<LedGreenPin>>,
-        Address<'static, Led<LedYellowPin>>,
-        Address<'static, Led<LedRedPin>>,
+        Address<'static, actors::led::Led<LedGreen>>,
+        Address<'static, actors::led::Led<LedYellow>>,
+        Address<'static, actors::led::Led<LedRed>>,
     );
 
     type Message<'m> = Command;
@@ -164,9 +169,9 @@ impl FromButtonEvent<Command> for App {
 
 pub struct MyDevice {
     app: ActorContext<'static, App>,
-    led_green: ActorContext<'static, Led<LedGreenPin>>,
-    led_yellow: ActorContext<'static, Led<LedYellowPin>>,
-    led_red: ActorContext<'static, Led<LedRedPin>>,
+    led_green: ActorContext<'static, actors::led::Led<LedGreen>>,
+    led_yellow: ActorContext<'static, actors::led::Led<LedYellow>>,
+    led_red: ActorContext<'static, actors::led::Led<LedRed>>,
     button: ActorContext<'static, Button<ExtiInput<'static, PC13>, ButtonEventDispatcher<App>>>,
 }
 
@@ -183,9 +188,21 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     DEVICE.configure(MyDevice {
         app: ActorContext::new(App::default()),
-        led_green: ActorContext::new(Led::new(Output::new(p.PB0, Level::Low, Speed::Low))),
-        led_yellow: ActorContext::new(Led::new(Output::new(p.PE1, Level::Low, Speed::Low))),
-        led_red: ActorContext::new(Led::new(Output::new(p.PB14, Level::Low, Speed::Low))),
+        led_green: ActorContext::new(actors::led::Led::new(drivers::led::Led::new(Output::new(
+            p.PB0,
+            Level::Low,
+            Speed::Low,
+        )))),
+        led_yellow: ActorContext::new(actors::led::Led::new(drivers::led::Led::new(Output::new(
+            p.PE1,
+            Level::Low,
+            Speed::Low,
+        )))),
+        led_red: ActorContext::new(actors::led::Led::new(drivers::led::Led::new(Output::new(
+            p.PB14,
+            Level::Low,
+            Speed::Low,
+        )))),
         button: ActorContext::new(Button::new(button)),
     });
 

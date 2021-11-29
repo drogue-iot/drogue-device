@@ -4,8 +4,9 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
+use actors::led::LedMessage;
 use defmt_rtt as _;
-use drogue_device::{actors::led::*, ActorContext, DeviceContext};
+use drogue_device::{actors, drivers, ActorContext, DeviceContext};
 use embassy_rp::{
     gpio::{Level, Output},
     peripherals::PIN_25,
@@ -15,7 +16,8 @@ use embassy_rp::{
 use panic_probe as _;
 
 pub struct MyDevice {
-    led: ActorContext<'static, Led<Output<'static, PIN_25>>>,
+    //led: ActorContext<'static, Led<Output<'static, PIN_25>>>,
+    led: ActorContext<'static, actors::led::Led<drivers::led::Led<Output<'static, PIN_25>>>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -23,7 +25,10 @@ static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     DEVICE.configure(MyDevice {
-        led: ActorContext::new(Led::new(Output::new(p.PIN_25, Level::Low))),
+        led: ActorContext::new(actors::led::Led::new(drivers::led::Led::new(Output::new(
+            p.PIN_25,
+            Level::Low,
+        )))),
     });
 
     let led = DEVICE

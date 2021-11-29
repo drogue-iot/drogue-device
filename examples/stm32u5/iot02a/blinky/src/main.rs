@@ -9,8 +9,11 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use core::future::Future;
+use drogue_device::actors;
 use drogue_device::actors::button::{Button, ButtonEvent, ButtonEventDispatcher, FromButtonEvent};
-use drogue_device::actors::led::{ActiveHigh, ActiveLow, Led, LedMessage};
+use drogue_device::actors::led::LedMessage;
+use drogue_device::drivers;
+use drogue_device::drivers::led::{ActiveHigh, ActiveLow};
 use drogue_device::{Actor, ActorContext, Address, DeviceContext, Inbox};
 use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::peripherals::{PC13, PE13, PH6, PH7};
@@ -24,6 +27,10 @@ type LedBluePin = Output<'static, PE13>;
 type LedGreenPin = Output<'static, PH7>;
 type LedRedPin = Output<'static, PH6>;
 
+type LedBlueLed = drivers::led::Led<LedBluePin, ActiveHigh>;
+type LedGreenLed = drivers::led::Led<LedGreenPin, ActiveLow>;
+type LedRedLed = drivers::led::Led<LedRedPin, ActiveLow>;
+
 pub enum Color {
     Green,
     Blue,
@@ -31,9 +38,9 @@ pub enum Color {
 }
 
 pub struct App {
-    green: Option<Address<'static, Led<LedGreenPin, ActiveLow>>>,
-    blue: Option<Address<'static, Led<LedBluePin, ActiveHigh>>>,
-    red: Option<Address<'static, Led<LedRedPin, ActiveLow>>>,
+    green: Option<Address<'static, actors::led::Led<LedGreenLed>>>,
+    blue: Option<Address<'static, actors::led::Led<LedBlueLed>>>,
+    red: Option<Address<'static, actors::led::Led<LedRedLed>>>,
     color: Option<Color>,
 }
 
@@ -81,9 +88,9 @@ impl Default for App {
 
 impl Actor for App {
     type Configuration = (
-        Address<'static, Led<LedGreenPin, ActiveLow>>,
-        Address<'static, Led<LedBluePin, ActiveHigh>>,
-        Address<'static, Led<LedRedPin, ActiveLow>>,
+        Address<'static, actors::led::Led<LedGreenLed>>,
+        Address<'static, actors::led::Led<LedBlueLed>>,
+        Address<'static, actors::led::Led<LedRedLed>>,
     );
 
     type Message<'m> = Command;
@@ -146,9 +153,9 @@ impl FromButtonEvent<Command> for App {
 
 pub struct MyDevice {
     app: ActorContext<'static, App>,
-    led_red: ActorContext<'static, Led<LedRedPin, ActiveLow>>,
-    led_green: ActorContext<'static, Led<LedGreenPin, ActiveLow>>,
-    led_blue: ActorContext<'static, Led<LedBluePin, ActiveHigh>>,
+    led_red: ActorContext<'static, actors::led::Led<LedRedLed>>,
+    led_green: ActorContext<'static, actors::led::Led<LedGreenLed>>,
+    led_blue: ActorContext<'static, actors::led::Led<LedBlueLed>>,
     button: ActorContext<'static, Button<ExtiInput<'static, PC13>, ButtonEventDispatcher<App>>>,
 }
 
@@ -165,9 +172,21 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     DEVICE.configure(MyDevice {
         app: ActorContext::new(App::default()),
-        led_red: ActorContext::new(Led::new(Output::new(p.PH6, Level::High, Speed::Low))),
-        led_green: ActorContext::new(Led::new(Output::new(p.PH7, Level::High, Speed::Low))),
-        led_blue: ActorContext::new(Led::new(Output::new(p.PE13, Level::Low, Speed::Low))),
+        led_red: ActorContext::new(actors::led::Led::new(LedRedLed::new(Output::new(
+            p.PH6,
+            Level::High,
+            Speed::Low,
+        )))),
+        led_green: ActorContext::new(actors::led::Led::new(LedGreenLed::new(Output::new(
+            p.PH7,
+            Level::High,
+            Speed::Low,
+        )))),
+        led_blue: ActorContext::new(actors::led::Led::new(LedBlueLed::new(Output::new(
+            p.PE13,
+            Level::Low,
+            Speed::Low,
+        )))),
         button: ActorContext::new(Button::new(button)),
     });
 

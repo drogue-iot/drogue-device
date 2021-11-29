@@ -1,0 +1,25 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>",
+    "Jens Reimann <jreimann@redhat.com>",
+    "Dejan Bosanac <dbosanac@redhat.com>"
+]
+edition = "2018"
+name = "bsp-blinky-app"
+version = "0.1.0"
+description = "BSP Blinky App"
+keywords = ["bsp"]
+
+[workspace]
+
+
+[dependencies]
+defmt = "0.3"
+drogue-device = { path = "../../../device", default-features = false }
+embassy = { version = "0.1.0", default-features = false, features=["defmt", "time", "time-tick-32768hz"] }
+
+[patch.crates-io]
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
+embassy-macros = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }

@@ -1,56 +1,85 @@
-use embedded_hal::digital::v2::{OutputPin, StatefulOutputPin, ToggleableOutputPin};
+use core::marker::PhantomData;
+use embedded_hal::digital::v2::{OutputPin, PinState};
 
 pub mod matrix;
 
-pub struct Led<P>
+pub struct ActiveHigh;
+pub struct ActiveLow;
+
+pub trait Active<P>
 where
-    P: StatefulOutputPin + ToggleableOutputPin,
+    P: OutputPin,
 {
-    pin: P,
+    fn set(pin: &mut P, active: bool) -> Result<(), P::Error>;
 }
 
-impl<P> Led<P>
+impl<P> Active<P> for ActiveHigh
 where
-    P: StatefulOutputPin + ToggleableOutputPin,
+    P: OutputPin,
 {
-    pub fn new(pin: P) -> Self {
-        Self { pin }
+    fn set(pin: &mut P, active: bool) -> Result<(), P::Error> {
+        pin.set_state(if active {
+            PinState::High
+        } else {
+            PinState::Low
+        })
     }
 }
 
-pub enum LedError<P>
+impl<P> Active<P> for ActiveLow
 where
-    P: StatefulOutputPin + ToggleableOutputPin,
+    P: OutputPin,
 {
-    Stateful(<P as OutputPin>::Error),
-    Toggleable(<P as ToggleableOutputPin>::Error),
+    fn set(pin: &mut P, active: bool) -> Result<(), P::Error> {
+        pin.set_state(if active {
+            PinState::Low
+        } else {
+            PinState::High
+        })
+    }
 }
 
-impl<P> crate::traits::led::Led for Led<P>
+pub struct Led<P, ACTIVE = ActiveHigh>
 where
-    P: StatefulOutputPin + ToggleableOutputPin,
+    P: OutputPin,
+    ACTIVE: Active<P>,
 {
-    type Error = LedError<P>;
+    pin: P,
+    _active: PhantomData<ACTIVE>,
+}
+
+impl<P, ACTIVE> Led<P, ACTIVE>
+where
+    P: OutputPin,
+    ACTIVE: Active<P>,
+{
+    pub fn new(pin: P) -> Self {
+        Self {
+            pin,
+            _active: PhantomData,
+        }
+    }
+}
+
+impl<P, ACTIVE> crate::traits::led::Led for Led<P, ACTIVE>
+where
+    P: OutputPin,
+    ACTIVE: Active<P>,
+{
+    type Error = P::Error;
+
     fn on(&mut self) -> Result<(), Self::Error> {
-        self.pin.set_high().map_err(LedError::Stateful)
+        ACTIVE::set(&mut self.pin, true)
     }
 
     fn off(&mut self) -> Result<(), Self::Error> {
-        self.pin.set_low().map_err(LedError::Stateful)
-    }
-
-    fn toggle(&mut self) -> Result<(), Self::Error> {
-        self.pin.toggle().map_err(LedError::Toggleable)
-    }
-
-    fn state(&self) -> Result<bool, Self::Error> {
-        self.pin.is_set_high().map_err(LedError::Stateful)
+        ACTIVE::set(&mut self.pin, false)
     }
 }
 
 impl<P> From<P> for Led<P>
 where
-    P: StatefulOutputPin + ToggleableOutputPin,
+    P: OutputPin,
 {
     fn from(pin: P) -> Self {
         Self::new(pin)
