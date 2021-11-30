@@ -14,6 +14,7 @@ fn main() -> Result<(), anyhow::Error> {
         ["ci"] => ci(),
         ["check_device"] => check_device(),
         ["test_device"] => test_device(),
+        ["test_examples"] => test_examples(),
         ["check", example] => check(&[example]),
         ["build", example] => build(&[example]),
         ["fmt"] => fmt(),
@@ -102,6 +103,19 @@ fn check_device() -> Result<(), anyhow::Error> {
 fn build(workspaces: &[&str]) -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("RUSTFLAGS", "-Dwarnings");
     do_crates(workspaces, &mut build_crate)?;
+    Ok(())
+}
+
+fn test_examples() -> Result<(), anyhow::Error> {
+    let api = env!("DROGUE_CLOUD_API");
+    let token = env!("DROGUE_CLOUD_ACCESS_TOKEN");
+    let mut tests = root_dir();
+    tests.push("examples");
+    tests.push("tests");
+    let _p = xshell::pushd(&tests)?;
+    let _e = xshell::pushenv("DROGUE_CLOUD_API", api);
+    let _e = xshell::pushenv("DROGUE_CLOUD_ACCESS_TOKEN", token);
+    cmd!("cargo test").run()?;
     Ok(())
 }
 
@@ -240,6 +254,10 @@ fn do_examples<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
     for entry in fs::read_dir(current_dir)? {
         let entry = entry?;
         let path = entry.path();
+
+        if path.ends_with("tests") {
+            continue;
+        }
 
         if path.ends_with("Cargo.toml") {
             f(path.clone())?;

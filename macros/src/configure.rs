@@ -28,6 +28,11 @@ lazy_static! {
                 config.merge(File::from(local)).unwrap();
             }
         }
+
+        // Override using environment variable config
+        if let Some(cfg) = env::var_os("DROGUE_CONFIG") {
+            config.merge(File::from(PathBuf::from(cfg))).unwrap();
+        }
         config.try_into().unwrap_or(HashMap::default())
     };
 }

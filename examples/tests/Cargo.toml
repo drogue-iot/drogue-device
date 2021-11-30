@@ -1,0 +1,18 @@
+[package]
+name = "examples-tests"
+version = "0.1.0"
+edition = "2018"
+authors = [
+    "Bob McWhirter <bmcwhirt@redhat.com>",
+    "Ulf Lilleengen <lulf@redhat.com>"
+]
+
+[workspace]
+
+[dependencies]
+log = "0.4"
+env_logger = "0.8"
+drogue-client = "0.8"
+duct = "0.13"
+uuid = { version = "0.8", features = ["v4"] }
+serde_json = "1.0"
