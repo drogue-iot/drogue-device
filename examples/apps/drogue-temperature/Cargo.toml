@@ -9,8 +9,6 @@ description = "Application reporting temperature data to Drogue Cloud"
 version = "0.1.0"
 keywords = ["ignore"]
 
-[workspace]
-
 [dependencies]
 embassy = { version = "0.1.0", default-features = false, features = ["time"] }
 drogue-device = { path = "../../../device", default-features = false }
@@ -24,8 +22,9 @@ drogue-tls = { version = "0.5.0", default-features = false, features = ["async"]
 rand_core = { version = "0.6.2", default-features = false }
 
 [features]
+default = ["std"]
 tls = ["drogue-tls", "drogue-device/tls"]
-
+std = ["serde-json-core/std", "embassy/std"]
 
 [patch.crates-io]
 embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
