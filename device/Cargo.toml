@@ -70,3 +70,4 @@ wifi = []
 tls = ["drogue-tls"]
 
 "bsp+b_u585i_iot02a" = [ "embassy-stm32" ]
+"bsp+nucleo_h743zi" = [ "embassy-stm32"]
