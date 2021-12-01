@@ -26,7 +26,7 @@ pub struct NucleoH743 {
 impl Board for NucleoH743 {
     type Peripherals = embassy_stm32::Peripherals;
 
-    fn configure(p: Self::Peripherals) -> Self {
+    fn new(p: Self::Peripherals) -> Self {
         Self {
             led_red: Led::new(Output::new(p.PH6, Level::High, Speed::Low)),
             led_green: Led::new(Output::new(p.PB0, Level::High, Speed::Low)),

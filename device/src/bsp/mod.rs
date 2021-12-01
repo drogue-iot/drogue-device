@@ -28,12 +28,12 @@ pub trait App: Sized {
 pub trait Board: Sized {
     type Peripherals;
 
-    fn configure(peripherals: Self::Peripherals) -> Self;
+    fn new(peripherals: Self::Peripherals) -> Self;
 }
 
 // Board configuration for an application, specific to drogue-device
 pub trait AppBoard<A: App>: Board {
-    fn take(self) -> A::Configuration;
+    fn configure(self) -> A::Configuration;
 }
 
 /// Boot the application using the provided board, running through
@@ -44,8 +44,8 @@ pub async fn boot<A: App + 'static, B: AppBoard<A>>(
     peripherals: B::Peripherals,
     spawner: Spawner,
 ) {
-    let board = B::configure(peripherals);
-    let components = board.take();
+    let board = B::new(peripherals);
+    let components = board.configure();
     let device = A::build(components);
 
     ctx.configure(device);

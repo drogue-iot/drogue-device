@@ -11,10 +11,9 @@ use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::Peripherals;
 
 use defmt_rtt as _;
-use drogue_device::bsp::{boot, App, AppBoard};
 use drogue_device::bsp::boards::stm32u5::b_u585i_iot02a::{Iot02a, LedRed, UserButton};
+use drogue_device::bsp::{boot, App, AppBoard};
 use panic_probe as _;
-
 
 // Creates a newtype named `BSP` around the `Iot02a` to avoid
 // orphan rules and apply delegation boilerplate.
@@ -32,7 +31,7 @@ impl BlinkyBoard for BSP {
 
 /// Create the matching configuration given the bound BSP.
 impl AppBoard<BlinkyApp<Self>> for BSP {
-    fn take(self) -> Configuration {
+    fn configure(self) -> Configuration {
         Configuration {
             led: self.0.led_red,
             control_button: self.0.user_button,

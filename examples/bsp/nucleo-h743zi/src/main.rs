@@ -31,7 +31,7 @@ impl BlinkyBoard for BSP {
 
 /// Create the matching configuration given the bound BSP.
 impl AppBoard<BlinkyApp<Self>> for BSP {
-    fn take(self) -> Configuration {
+    fn configure(self) -> Configuration {
         Configuration {
             led: self.0.led_green,
             control_button: self.0.user_button,
