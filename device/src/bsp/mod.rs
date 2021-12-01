@@ -25,7 +25,6 @@ pub trait App: Sized {
 }
 
 /// A board capable of providing an `App` with its required `A::Components`.
-//pub trait Board<A: App<Self>>: Sized {
 pub trait Board: Sized {
     type Peripherals;
 
