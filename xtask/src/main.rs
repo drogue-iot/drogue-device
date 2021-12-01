@@ -41,7 +41,9 @@ static WORKSPACES: &[&str] = &[
     "examples/stm32wl/nucleo-wl55",
     "examples/stm32h7/nucleo-h743zi",
     "examples/stm32u5/iot02a",
-    "examples/wasm/browser",
+    "examples/bsp/iot02a",
+    "examples/bsp/nucleo-h743zi",
+    //"examples/wasm/browser",
     "examples/std",
     //"apps/ble",
 ];

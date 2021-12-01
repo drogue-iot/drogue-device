@@ -1,8 +1,10 @@
 use core::future::Future;
 use core::mem::MaybeUninit;
 use core::sync::atomic::{AtomicBool, Ordering};
+use drogue_device::traits::led::Led;
 use embassy::traits::gpio::WaitForAnyEdge;
 use embassy::util::Signal;
+use embedded_hal::digital::v2::OutputPin;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
@@ -29,6 +31,20 @@ impl embedded_hal::digital::v2::OutputPin for WebLed {
 
     fn set_low(&mut self) -> Result<(), ()> {
         self.pin.set_value(false);
+        Ok(())
+    }
+}
+
+impl Led for WebLed {
+    type Error = ();
+
+    fn on(&mut self) -> Result<(), Self::Error> {
+        self.set_high();
+        Ok(())
+    }
+
+    fn off(&mut self) -> Result<(), Self::Error> {
+        self.set_low();
         Ok(())
     }
 }

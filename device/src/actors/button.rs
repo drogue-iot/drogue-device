@@ -1,12 +1,8 @@
 use crate::kernel::actor::{Actor, Address, Inbox};
+use crate::traits;
 use core::future::Future;
-use embassy::traits::gpio::WaitForAnyEdge;
-use embedded_hal::digital::v2::InputPin;
 
-pub enum ButtonEvent {
-    Pressed,
-    Released,
-}
+pub use crate::traits::button::Event as ButtonEvent;
 
 pub struct ButtonEventDispatcher<A: 'static + Actor + FromButtonEvent<A::Message<'static>>> {
     address: Address<'static, A>,
@@ -30,14 +26,19 @@ impl<A: Actor + FromButtonEvent<A::Message<'static>>> Into<ButtonEventDispatcher
     }
 }
 
-pub struct Button<P: WaitForAnyEdge + InputPin, H: ButtonEventHandler> {
-    pin: P,
+//pub struct Button<P: WaitForAnyEdge + InputPin, H: ButtonEventHandler> {
+pub struct Button<P: traits::button::Button, H: ButtonEventHandler> {
+    inner: P,
     handler: Option<H>,
 }
 
-impl<P: WaitForAnyEdge + InputPin, H: ButtonEventHandler> Button<P, H> {
-    pub fn new(pin: P) -> Self {
-        Self { pin, handler: None }
+//impl<P: WaitForAnyEdge + InputPin, H: ButtonEventHandler> Button<P, H> {
+impl<P: traits::button::Button, H: ButtonEventHandler> Button<P, H> {
+    pub fn new(inner: P) -> Self {
+        Self {
+            inner,
+            handler: None,
+        }
     }
 }
 
@@ -51,7 +52,7 @@ pub trait FromButtonEvent<M> {
         Self: Sized;
 }
 
-impl<P: WaitForAnyEdge + InputPin, H: ButtonEventHandler> Actor for Button<P, H> {
+impl<P: traits::button::Button, H: ButtonEventHandler> Actor for Button<P, H> {
     type Configuration = H;
 
     type OnMountFuture<'m, M>
@@ -74,15 +75,7 @@ impl<P: WaitForAnyEdge + InputPin, H: ButtonEventHandler> Actor for Button<P, H>
         self.handler.replace(config);
         async move {
             loop {
-                self.pin.wait_for_any_edge().await;
-                let event = if self.pin.is_high().ok().unwrap() {
-                    trace!("Button released");
-                    ButtonEvent::Released
-                } else {
-                    trace!("Button pressed");
-                    ButtonEvent::Pressed
-                };
-
+                let event = self.inner.wait_any().await;
                 if let Some(handler) = &mut self.handler {
                     handler.handle(event);
                 }

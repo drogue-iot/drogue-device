@@ -1,3 +1,4 @@
+use crate::traits::button::Event;
 use core::future::Future;
 use embassy::traits::gpio::WaitForAnyEdge;
 use embedded_hal::digital::v2::InputPin;
@@ -18,11 +19,6 @@ impl<P: WaitForAnyEdge + InputPin + 'static> crate::traits::button::Button for B
         Self: 'm,
     = impl Future<Output = ()> + 'm;
 
-    type WaitReleased<'m>
-    where
-        Self: 'm,
-    = impl Future<Output = ()> + 'm;
-
     fn wait_pressed<'m>(&'m mut self) -> Self::WaitPressed<'m>
     where
         Self: 'm,
@@ -37,6 +33,11 @@ impl<P: WaitForAnyEdge + InputPin + 'static> crate::traits::button::Button for B
         }
     }
 
+    type WaitReleased<'m>
+    where
+        Self: 'm,
+    = impl Future<Output = ()> + 'm;
+
     fn wait_released<'m>(&'m mut self) -> Self::WaitReleased<'m>
     where
         Self: 'm,
@@ -47,6 +48,27 @@ impl<P: WaitForAnyEdge + InputPin + 'static> crate::traits::button::Button for B
                 if self.pin.is_high().ok().unwrap() {
                     break;
                 };
+            }
+        }
+    }
+
+    type WaitAny<'m>
+    where
+        Self: 'm,
+    = impl Future<Output = Event> + 'm;
+
+    fn wait_any<'m>(&'m mut self) -> Self::WaitAny<'m>
+    where
+        Self: 'm,
+    {
+        async move {
+            loop {
+                self.pin.wait_for_any_edge().await;
+                if self.pin.is_high().ok().unwrap() {
+                    return Event::Released;
+                } else {
+                    return Event::Pressed;
+                }
             }
         }
     }

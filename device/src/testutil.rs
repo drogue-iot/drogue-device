@@ -77,14 +77,14 @@ impl<D> Drop for TestContext<D> {
 }
 
 /// A test message with an id that can be passed around to verify the system
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct TestMessage(pub u32);
 
 impl ButtonEventHandler for Address<'static, TestHandler> {
     fn handle(&mut self, event: ButtonEvent) {
         match event {
-            ButtonEvent::Pressed => self.notify(TestMessage(0)).unwrap(),
-            ButtonEvent::Released => self.notify(TestMessage(1)).unwrap(),
+            ButtonEvent::Pressed => self.notify(TestMessage(1)).unwrap(),
+            ButtonEvent::Released => self.notify(TestMessage(0)).unwrap(),
         }
     }
 }
