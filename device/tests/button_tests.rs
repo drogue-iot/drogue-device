@@ -63,6 +63,7 @@ mod tests {
             })
             .await;
 
+        println!("start");
         assert!(notified.message().is_none());
         pin.set_high();
         notified.wait_signaled().await;
