@@ -60,8 +60,8 @@ macro_rules! bind_bsp {
         impl $crate::bsp::Board for BSP {
             type Peripherals = <$bsp as $crate::bsp::Board>::Peripherals;
 
-            fn configure(peripherals: Self::Peripherals) -> Self {
-                BSP(<$bsp>::configure(peripherals))
+            fn new(peripherals: Self::Peripherals) -> Self {
+                BSP(<$bsp>::new(peripherals))
             }
         }
     };

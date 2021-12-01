@@ -1,5 +1,5 @@
 use crate::bsp::Board;
-use crate::drivers::led::{ActiveHigh, ActiveLow, Led};
+use crate::drivers::led::{ActiveHigh, Led};
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
 use embassy_stm32::peripherals::{PB0, PB14, PC13, PE1};
@@ -28,7 +28,7 @@ impl Board for NucleoH743 {
 
     fn new(p: Self::Peripherals) -> Self {
         Self {
-            led_red: Led::new(Output::new(p.PH6, Level::High, Speed::Low)),
+            led_red: Led::new(Output::new(p.PB14, Level::High, Speed::Low)),
             led_green: Led::new(Output::new(p.PB0, Level::High, Speed::Low)),
             led_yellow: Led::new(Output::new(p.PE1, Level::High, Speed::Low)),
             user_button: ExtiInput::new(Input::new(p.PC13, Pull::Down), p.EXTI13),
