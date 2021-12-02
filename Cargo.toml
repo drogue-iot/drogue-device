@@ -3,6 +3,7 @@ members = [
     "device",
     "macros",
     "xtask",
+    "apps/blinky",
 ]
 resolver = "2"
 

@@ -120,9 +120,9 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
 name = "az"
-version = "1.1.2"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d6dff4a1892b54d70af377bf7a17064192e822865791d812957f21e3108c325"
+checksum = "f771a5d1f5503f7f4279a30f3643d3421ba149848b89ecaaec0ea2acf04a5ac4"
 
 [[package]]
 name = "bare-metal"
@@ -423,9 +423,9 @@ dependencies = [
 
 [[package]]
 name = "defmt-macros"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dede7fc0d15f4b8e15f3f023aefe6806066d7eb382123981e106fba05b35c5a3"
+checksum = "098396b763a1786b329405f69bc3677e00d45eb4534bc9f31cd23011ee2ba267"
 dependencies = [
  "defmt-parser",
  "proc-macro-error",
@@ -442,9 +442,9 @@ checksum = "8d1ce010e1a51aef925c98f12ed81a4e0e96ce0185a87c33f1b3b9c8f20749c7"
 
 [[package]]
 name = "defmt-rtt"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c3416323cf950205e725113498892fba05a1be3a5be1872c973438cfca0849b"
+checksum = "757110fd3748162dddbea88854529888a7e9e36929058118efe06f9f88d93b64"
 dependencies = [
  "cortex-m 0.7.3",
  "defmt",
@@ -642,9 +642,9 @@ dependencies = [
 
 [[package]]
 name = "fixed"
-version = "1.10.0"
+version = "1.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d333a26ec13a023c6dff4b7584de4d323cfee2e508f5dd2bbee6669e4f7efdf"
+checksum = "80a9a8cb2e34880a498f09367089339bda5e12d6f871640f947850f7113058c0"
 dependencies = [
  "az",
  "bytemuck",
@@ -1331,9 +1331,9 @@ dependencies = [
 
 [[package]]
 name = "ryu"
-version = "1.0.5"
+version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71d301d4193d031abdd79ff7e3dd721168a9572ef3fe51a1517aba235bd8f86e"
+checksum = "3c9613b5a66ab9ba26415184cfc41156594925a9cf3a2057e57f31ff145f6568"
 
 [[package]]
 name = "scopeguard"
@@ -1407,9 +1407,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.71"
+version = "1.0.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "063bf466a64011ac24040a49009724ee60a57da1b437617ceb32e53ad61bfb19"
+checksum = "d0ffa0837f2dfa6fb90868c2b5468cad482e175f7dad97e7421951e663f2b527"
 dependencies = [
  "itoa",
  "ryu",
@@ -1470,9 +1470,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.81"
+version = "1.0.82"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2afee18b8beb5a596ecb4a2dce128c719b4ba399d34126b9e4396e3f9860966"
+checksum = "8daf5dd0bb60cbd4137b1b587d2fc0ae729bc07cf01cd70b36a1ed5ade3b9d59"
 dependencies = [
  "proc-macro2",
  "quote",
