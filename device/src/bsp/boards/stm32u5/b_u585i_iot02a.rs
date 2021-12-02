@@ -1,4 +1,5 @@
 use crate::bsp::Board;
+use crate::drivers::button::Button;
 use crate::drivers::led::{ActiveHigh, ActiveLow, Led};
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
@@ -14,7 +15,7 @@ pub type PinLedRed = Output<'static, PH6>;
 pub type LedRed = Led<PinLedRed, ActiveLow>;
 
 pub type PinUserButton = Input<'static, PC13>;
-pub type UserButton = ExtiInput<'static, PC13>;
+pub type UserButton = Button<ExtiInput<'static, PC13>>;
 
 pub struct Iot02a {
     pub led_blue: LedBlue,
@@ -31,7 +32,7 @@ impl Board for Iot02a {
             led_blue: Led::new(Output::new(p.PE13, Level::High, Speed::Low)),
             led_green: Led::new(Output::new(p.PH7, Level::High, Speed::Low)),
             led_red: Led::new(Output::new(p.PH6, Level::High, Speed::Low)),
-            user_button: ExtiInput::new(Input::new(p.PC13, Pull::Down), p.EXTI13),
+            user_button: Button::new(ExtiInput::new(Input::new(p.PC13, Pull::Down), p.EXTI13)),
         }
     }
 }

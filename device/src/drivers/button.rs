@@ -1,19 +1,64 @@
 use crate::traits::button::Event;
 use core::future::Future;
+use core::marker::PhantomData;
 use embassy::traits::gpio::WaitForAnyEdge;
 use embedded_hal::digital::v2::InputPin;
 
-pub struct Button<P: WaitForAnyEdge + InputPin + 'static> {
-    pin: P,
+pub use crate::drivers::ActiveHigh;
+pub use crate::drivers::ActiveLow;
+
+pub trait Active {
+    fn is_pressed<P: InputPin>(pin: &P) -> Result<bool, P::Error>;
+    fn is_released<P: InputPin>(pin: &P) -> Result<bool, P::Error>;
 }
 
-impl<P: WaitForAnyEdge + InputPin + 'static> Button<P> {
-    pub fn new(pin: P) -> Self {
-        Self { pin }
+impl Active for ActiveHigh {
+    fn is_pressed<P: InputPin>(pin: &P) -> Result<bool, P::Error> {
+        pin.is_high()
+    }
+
+    fn is_released<P: InputPin>(pin: &P) -> Result<bool, P::Error> {
+        pin.is_low()
     }
 }
 
-impl<P: WaitForAnyEdge + InputPin + 'static> crate::traits::button::Button for Button<P> {
+impl Active for ActiveLow {
+    fn is_pressed<P: InputPin>(pin: &P) -> Result<bool, P::Error> {
+        pin.is_low()
+    }
+
+    fn is_released<P: InputPin>(pin: &P) -> Result<bool, P::Error> {
+        pin.is_high()
+    }
+}
+
+pub struct Button<P, ACTIVE = ActiveHigh>
+where
+    P: WaitForAnyEdge + InputPin + 'static,
+    ACTIVE: Active,
+{
+    pin: P,
+    _marker: PhantomData<ACTIVE>,
+}
+
+impl<P, ACTIVE> Button<P, ACTIVE>
+where
+    P: WaitForAnyEdge + InputPin + 'static,
+    ACTIVE: Active,
+{
+    pub fn new(pin: P) -> Self {
+        Self {
+            pin,
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<P, ACTIVE> crate::traits::button::Button for Button<P, ACTIVE>
+where
+    P: WaitForAnyEdge + InputPin + 'static,
+    ACTIVE: Active,
+{
     type WaitPressed<'m>
     where
         Self: 'm,
@@ -26,7 +71,7 @@ impl<P: WaitForAnyEdge + InputPin + 'static> crate::traits::button::Button for B
         async move {
             loop {
                 self.pin.wait_for_any_edge().await;
-                if self.pin.is_low().ok().unwrap() {
+                if ACTIVE::is_pressed(&self.pin).unwrap_or(false) {
                     break;
                 };
             }
@@ -45,7 +90,7 @@ impl<P: WaitForAnyEdge + InputPin + 'static> crate::traits::button::Button for B
         async move {
             loop {
                 self.pin.wait_for_any_edge().await;
-                if self.pin.is_high().ok().unwrap() {
+                if ACTIVE::is_released(&self.pin).unwrap_or(false) {
                     break;
                 };
             }
@@ -64,10 +109,11 @@ impl<P: WaitForAnyEdge + InputPin + 'static> crate::traits::button::Button for B
         async move {
             loop {
                 self.pin.wait_for_any_edge().await;
-                if self.pin.is_high().ok().unwrap() {
-                    return Event::Released;
-                } else {
+                if ACTIVE::is_pressed(&self.pin).unwrap_or(false) {
                     return Event::Pressed;
+                }
+                if ACTIVE::is_released(&self.pin).unwrap_or(false) {
+                    return Event::Released;
                 }
             }
         }

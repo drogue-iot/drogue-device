@@ -1,4 +1,5 @@
 use crate::bsp::Board;
+use crate::drivers::button::Button;
 use crate::drivers::led::{ActiveHigh, Led};
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
@@ -14,7 +15,7 @@ pub type PinLedYellow = Output<'static, PE1>;
 pub type LedYellow = Led<PinLedYellow, ActiveHigh>;
 
 pub type PinUserButton = Input<'static, PC13>;
-pub type UserButton = ExtiInput<'static, PC13>;
+pub type UserButton = Button<ExtiInput<'static, PC13>>;
 
 pub struct NucleoH743 {
     pub led_red: LedRed,
@@ -28,10 +29,10 @@ impl Board for NucleoH743 {
 
     fn new(p: Self::Peripherals) -> Self {
         Self {
-            led_red: Led::new(Output::new(p.PB14, Level::High, Speed::Low)),
-            led_green: Led::new(Output::new(p.PB0, Level::High, Speed::Low)),
-            led_yellow: Led::new(Output::new(p.PE1, Level::High, Speed::Low)),
-            user_button: ExtiInput::new(Input::new(p.PC13, Pull::Down), p.EXTI13),
+            led_red: Led::new(Output::new(p.PB14, Level::Low, Speed::Low)),
+            led_green: Led::new(Output::new(p.PB0, Level::Low, Speed::Low)),
+            led_yellow: Led::new(Output::new(p.PE1, Level::Low, Speed::Low)),
+            user_button: Button::new(ExtiInput::new(Input::new(p.PC13, Pull::Down), p.EXTI13)),
         }
     }
 }
