@@ -11,7 +11,7 @@ use panic_probe as _;
 use drogue_device::{
     actors::net::*,
     actors::{button::*, tcp::smoltcp::SmolTcp},
-    ActorContext, DeviceContext, Package,
+    drogue, ActorContext, DeviceContext, Package,
 };
 use drogue_temperature::*;
 use drogue_tls::Aes128GcmSha256;
@@ -41,8 +41,8 @@ use heapless::Vec;
 const HOST: &str = "localhost";
 const PORT: u16 = 8088;
 
-const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-username"));
-const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-password"));
+const USERNAME: &str = drogue::config!("http-username");
+const PASSWORD: &str = drogue::config!("http-password");
 
 type EthernetDevice = Ethernet<'static, LAN8742A, 4, 4>;
 type SmolTcpPackage = SmolTcp<EthernetDevice, StaticConfigurator, 1, 2, 1024>;

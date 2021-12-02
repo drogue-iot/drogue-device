@@ -16,6 +16,8 @@ quote = "1.0.7"
 #darling = "0.10.2"
 proc-macro2 = "1.0.24"
 cfg-if = "1.0.0"
+config = "0.11"
+lazy_static = "1"
 
 [features]
 std = []

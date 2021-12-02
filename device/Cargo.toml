@@ -49,11 +49,13 @@ defmt = { version = "0.3", optional = true }
 # HTTP dependencies
 base64 = { version = "0.13.0", default-features = false }
 
+# Handy macros, e.g. drogue::config
+drogue-device-macros = { path = "../macros" }
+
 [dev-dependencies]
 embassy = { version = "0.1.0", features = ["std", "time", "time-tick-1mhz"]}
 #embassy = {path = "../../../embassy/embassy", features = ["std", "time", "time-tick-1mhz"]}
 
-drogue-device-macros = { path = "../macros" }
 futures = { version = "0.3", default-features = false, features = ["executor"] }
 arrayvec = { version = "0.6" }
 

@@ -15,6 +15,7 @@ use core::cell::UnsafeCell;
 use drogue_device::{
     actors::button::{Button, ButtonEventDispatcher},
     drivers::lora::rak811::*,
+    drogue,
     traits::lora::*,
     ActorContext, DeviceContext,
 };
@@ -28,9 +29,9 @@ use embassy_nrf::{
     uarte, Peripherals,
 };
 
-const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/", "dev-eui"));
-const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/", "app-eui"));
-const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/", "app-key"));
+const DEV_EUI: &str = drogue::config!("dev-eui");
+const APP_EUI: &str = drogue::config!("app-eui");
+const APP_KEY: &str = drogue::config!("app-key");
 
 type UART = BufferedUarte<'static, UARTE0, TIMER0>;
 type RESET = Output<'static, P1_02>;

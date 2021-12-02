@@ -165,14 +165,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "buildutil"
-version = "0.1.0"
-dependencies = [
- "config",
- "lazy_static",
-]
-
-[[package]]
 name = "bxcan"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -493,6 +485,7 @@ dependencies = [
  "base64",
  "critical-section",
  "defmt",
+ "drogue-device-macros",
  "drogue-tls",
  "embassy",
  "embassy-hal-common",
@@ -502,6 +495,18 @@ dependencies = [
  "moveslice",
  "nom 6.1.2",
  "rand_core",
+]
+
+[[package]]
+name = "drogue-device-macros"
+version = "0.1.0"
+dependencies = [
+ "cfg-if",
+ "config",
+ "lazy_static",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -885,7 +890,6 @@ name = "iot01a-wifi"
 version = "0.1.0"
 dependencies = [
  "atomic-polyfill",
- "buildutil",
  "cfg-if",
  "cortex-m",
  "cortex-m-rt",

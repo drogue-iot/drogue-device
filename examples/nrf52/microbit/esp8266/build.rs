@@ -8,16 +8,12 @@
 //! updating `memory.x` ensures a rebuild of the application with the
 //! new memory settings.
 
-use buildutil::{configure, copy_file};
+use buildutil::copy_file;
 use std::env;
 use std::path::PathBuf;
 
 fn main() {
     let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
-    configure("wifi-ssid");
-    configure("wifi-password");
-    configure("http-username");
-    configure("http-password");
     copy_file("memory.x");
     println!("cargo:rustc-link-search={}", out.display());
 }

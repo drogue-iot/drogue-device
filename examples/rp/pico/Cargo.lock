@@ -93,10 +93,6 @@ dependencies = [
 [[package]]
 name = "buildutil"
 version = "0.1.0"
-dependencies = [
- "config",
- "lazy_static",
-]
 
 [[package]]
 name = "byteorder"
@@ -252,12 +248,25 @@ dependencies = [
  "base64",
  "critical-section",
  "defmt",
+ "drogue-device-macros",
  "embassy",
  "embassy-hal-common",
  "embedded-hal",
  "futures",
  "heapless",
  "rand_core",
+]
+
+[[package]]
+name = "drogue-device-macros"
+version = "0.1.0"
+dependencies = [
+ "cfg-if",
+ "config",
+ "lazy_static",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

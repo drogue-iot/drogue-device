@@ -18,10 +18,10 @@ use futures::io::BufReader;
 use nix::sys::termios;
 use serial::*;
 
-const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/", "wifi-ssid"));
-const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/", "wifi-password"));
-const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-username"));
-const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-password"));
+const WIFI_SSID: &str = drogue::config!("wifi-ssid");
+const WIFI_PSK: &str = drogue::config!("wifi-password");
+const USERNAME: &str = drogue::config!("http-username");
+const PASSWORD: &str = drogue::config!("http-password");
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "tls")] {

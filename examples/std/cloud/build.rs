@@ -8,12 +8,7 @@
 //! updating `memory.x` ensures a rebuild of the application with the
 //! new memory settings.
 
-use buildutil::configure;
-
 fn main() {
-    configure("http-username");
-    configure("http-password");
-
     // By default, Cargo will re-run a build script whenever
     // any file in the project changes. By specifying `memory.x`
     // here, we ensure the build script is only re-run when

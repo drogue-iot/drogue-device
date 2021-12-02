@@ -34,9 +34,9 @@ mod app;
 
 use app::*;
 
-const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/", "dev-eui"));
-const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/", "app-eui"));
-const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/", "app-key"));
+const DEV_EUI: &str = drogue::config!("dev-eui");
+const APP_EUI: &str = drogue::config!("app-eui");
+const APP_KEY: &str = drogue::config!("app-key");
 
 type Led1 = Led<Output<'static, PB15>>;
 type Led2 = Led<Output<'static, PB9>>;

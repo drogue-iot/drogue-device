@@ -103,6 +103,9 @@ pub mod bsp;
 #[cfg(feature = "std")]
 pub mod testutil;
 
+#[doc(hidden)]
+pub use drogue_device_macros::{self as drogue};
+
 #[allow(unused_variables)]
 pub fn print_stack(file: &'static str, line: u32) {
     let _u: u32 = 1;

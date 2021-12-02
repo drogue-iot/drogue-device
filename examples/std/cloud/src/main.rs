@@ -8,8 +8,8 @@ use drogue_tls::Aes128GcmSha256;
 use embassy::time::{Duration, Timer};
 use rand::rngs::OsRng;
 
-const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-username"));
-const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-password"));
+const USERNAME: &str = drogue::config!("http-username");
+const PASSWORD: &str = drogue::config!("http-password");
 const HOST: &str = "http.sandbox.drogue.cloud";
 const PORT: u16 = 443;
 

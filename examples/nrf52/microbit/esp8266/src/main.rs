@@ -15,6 +15,7 @@ use drogue_device::{
         wifi::{esp8266::*, AdapterActor},
     },
     drivers::wifi::esp8266::Esp8266Controller,
+    drogue,
     traits::wifi::*,
     ActorContext, DeviceContext, Package,
 };
@@ -51,10 +52,10 @@ cfg_if::cfg_if! {
     }
 }
 
-const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/", "wifi-ssid"));
-const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/", "wifi-password"));
-const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-username"));
-const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-password"));
+const WIFI_SSID: &str = drogue::config!("wifi-ssid");
+const WIFI_PSK: &str = drogue::config!("wifi-password");
+const USERNAME: &str = drogue::config!("http-username");
+const PASSWORD: &str = drogue::config!("http-password");
 
 type UART = BufferedUarte<'static, UARTE0, TIMER0>;
 type ENABLE = Output<'static, P0_09>;

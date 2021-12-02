@@ -47,6 +47,3 @@ embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = 
 # embassy = { path = "../../../../../embassy/embassy" }
 # embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
 # embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }
-
-[build-dependencies]
-buildutil = { path = "../../_build" }

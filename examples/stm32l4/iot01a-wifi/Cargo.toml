@@ -15,7 +15,6 @@ keywords = ["wifi", "hts221", "stm32l4", "networking", "iot", "stm32", "cloud"]
 [workspace]
 
 [dependencies]
-
 defmt = "0.3"
 defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
@@ -64,6 +63,3 @@ incremental = false
 lto = "fat"
 opt-level = 's'
 overflow-checks = false
-
-[build-dependencies]
-buildutil = { path = "../../_build" }

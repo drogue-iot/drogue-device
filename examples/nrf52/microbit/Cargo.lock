@@ -201,10 +201,6 @@ dependencies = [
 [[package]]
 name = "buildutil"
 version = "0.1.0"
-dependencies = [
- "config",
- "lazy_static",
-]
 
 [[package]]
 name = "bytemuck"
@@ -478,6 +474,7 @@ dependencies = [
  "base64",
  "critical-section",
  "defmt",
+ "drogue-device-macros",
  "drogue-tls",
  "embassy",
  "embassy-hal-common",
@@ -487,6 +484,18 @@ dependencies = [
  "moveslice",
  "nom 6.2.1",
  "rand_core",
+]
+
+[[package]]
+name = "drogue-device-macros"
+version = "0.1.0"
+dependencies = [
+ "cfg-if",
+ "config",
+ "lazy_static",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

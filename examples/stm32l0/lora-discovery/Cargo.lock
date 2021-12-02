@@ -142,14 +142,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
-name = "buildutil"
-version = "0.1.0"
-dependencies = [
- "config",
- "lazy_static",
-]
-
-[[package]]
 name = "bxcan"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -457,6 +449,7 @@ dependencies = [
  "base64",
  "critical-section",
  "defmt",
+ "drogue-device-macros",
  "embassy",
  "embassy-hal-common",
  "embassy-lora",
@@ -466,6 +459,18 @@ dependencies = [
  "lorawan-device",
  "lorawan-encoding",
  "rand_core",
+]
+
+[[package]]
+name = "drogue-device-macros"
+version = "0.1.0"
+dependencies = [
+ "cfg-if",
+ "config",
+ "lazy_static",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -849,7 +854,6 @@ dependencies = [
 name = "lora-discovery"
 version = "0.1.0"
 dependencies = [
- "buildutil",
  "cortex-m",
  "cortex-m-rt",
  "defmt",
