@@ -1,5 +1,5 @@
 use crate::bsp::Board;
-use crate::drivers::led::{matrix::LedMatrix as LedMatrixDriver, ActiveHigh, Led};
+use crate::drivers::led::matrix::LedMatrix as LedMatrixDriver;
 use embassy_nrf::{
     gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},
     gpiote::PortInput,
