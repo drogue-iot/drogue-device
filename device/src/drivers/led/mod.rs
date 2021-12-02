@@ -1,10 +1,10 @@
 use core::marker::PhantomData;
 use embedded_hal::digital::v2::{OutputPin, PinState};
 
-pub mod matrix;
+pub use crate::drivers::ActiveHigh;
+pub use crate::drivers::ActiveLow;
 
-pub struct ActiveHigh;
-pub struct ActiveLow;
+pub mod matrix;
 
 pub trait Active<P>
 where
@@ -53,7 +53,8 @@ where
     P: OutputPin,
     ACTIVE: Active<P>,
 {
-    pub fn new(pin: P) -> Self {
+    pub fn new(mut pin: P) -> Self {
+        ACTIVE::set(&mut pin, false).ok();
         Self {
             pin,
             _active: PhantomData,
