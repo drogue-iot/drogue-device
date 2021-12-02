@@ -199,10 +199,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "buildutil"
-version = "0.1.0"
-
-[[package]]
 name = "bytemuck"
 version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -916,7 +912,6 @@ name = "microbit-ble-temperature"
 version = "0.1.0"
 dependencies = [
  "ble",
- "buildutil",
  "cortex-m 0.7.3",
  "cortex-m-rt",
  "defmt",
@@ -934,7 +929,6 @@ dependencies = [
 name = "microbit-compass"
 version = "0.1.0"
 dependencies = [
- "buildutil",
  "cortex-m-rt",
  "defmt",
  "defmt-rtt",
@@ -952,7 +946,6 @@ dependencies = [
 name = "microbit-disco"
 version = "0.1.0"
 dependencies = [
- "buildutil",
  "cortex-m-rt",
  "defmt",
  "defmt-rtt",
@@ -967,7 +960,6 @@ dependencies = [
 name = "microbit-esp8266"
 version = "0.1.0"
 dependencies = [
- "buildutil",
  "cfg-if",
  "cortex-m 0.7.3",
  "cortex-m-rt",
@@ -988,7 +980,6 @@ dependencies = [
 name = "microbit-rak811"
 version = "0.1.0"
 dependencies = [
- "buildutil",
  "cortex-m 0.7.3",
  "cortex-m-rt",
  "defmt",
@@ -1003,7 +994,6 @@ dependencies = [
 name = "microbit-uart"
 version = "0.1.0"
 dependencies = [
- "buildutil",
  "cortex-m 0.7.3",
  "cortex-m-rt",
  "defmt",
