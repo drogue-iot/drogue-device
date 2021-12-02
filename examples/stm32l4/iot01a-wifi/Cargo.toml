@@ -15,7 +15,6 @@ keywords = ["wifi", "hts221", "stm32l4", "networking", "iot", "stm32", "cloud"]
 [workspace]
 
 [dependencies]
-drogue-device-macros = { path = "../../../macros" }
 defmt = "0.3"
 defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }

@@ -117,7 +117,7 @@ pub fn log_stack(_item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn drogue_config(input: TokenStream) -> TokenStream {
+pub fn config(input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as syn::LitStr);
     let s = input.value();
     let output = configure(&s);

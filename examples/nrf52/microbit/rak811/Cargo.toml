@@ -10,7 +10,6 @@ description = "BBC micro:bit v2 + RAK811 LoRa Adapter with AT command firmware"
 keywords = ["networking", "lora", "lorawan", "rak811", "microbit", "nrf", "nrf52"]
 
 [dependencies]
-drogue-device-macros = { path = "../../../../macros" }
 defmt = "0.3"
 defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }

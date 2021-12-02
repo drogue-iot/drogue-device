@@ -6,7 +6,6 @@
 #![feature(type_alias_impl_trait)]
 
 use defmt_rtt as _;
-use drogue_device_macros::drogue_config;
 use panic_probe as _;
 //use panic_halt as _;
 
@@ -35,9 +34,9 @@ mod app;
 
 use app::*;
 
-const DEV_EUI: &str = drogue_config!("dev-eui");
-const APP_EUI: &str = drogue_config!("app-eui");
-const APP_KEY: &str = drogue_config!("app-key");
+const DEV_EUI: &str = drogue::config!("dev-eui");
+const APP_EUI: &str = drogue::config!("app-eui");
+const APP_KEY: &str = drogue::config!("app-key");
 
 type Led1 = Led<Output<'static, PB15>>;
 type Led2 = Led<Output<'static, PB9>>;

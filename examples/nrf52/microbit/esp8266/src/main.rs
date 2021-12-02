@@ -4,7 +4,6 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use drogue_device_macros::drogue_config;
 use drogue_temperature::*;
 
 use defmt_rtt as _;
@@ -16,6 +15,7 @@ use drogue_device::{
         wifi::{esp8266::*, AdapterActor},
     },
     drivers::wifi::esp8266::Esp8266Controller,
+    drogue,
     traits::wifi::*,
     ActorContext, DeviceContext, Package,
 };
@@ -52,10 +52,10 @@ cfg_if::cfg_if! {
     }
 }
 
-const WIFI_SSID: &str = drogue_config!("wifi-ssid");
-const WIFI_PSK: &str = drogue_config!("wifi-password");
-const USERNAME: &str = drogue_config!("http-username");
-const PASSWORD: &str = drogue_config!("http-password");
+const WIFI_SSID: &str = drogue::config!("wifi-ssid");
+const WIFI_PSK: &str = drogue::config!("wifi-password");
+const USERNAME: &str = drogue::config!("http-username");
+const PASSWORD: &str = drogue::config!("http-password");
 
 type UART = BufferedUarte<'static, UARTE0, TIMER0>;
 type ENABLE = Output<'static, P0_09>;

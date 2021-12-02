@@ -10,7 +10,6 @@ description = "BBC micro:bit v2 + ESP8266 WiFi adapter"
 keywords = ["networking", "wifi", "esp8266", "microbit", "nrf", "nrf52", "cloud"]
 
 [dependencies]
-drogue-device-macros = { path = "../../../../macros" }
 defmt = "0.3"
 defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }

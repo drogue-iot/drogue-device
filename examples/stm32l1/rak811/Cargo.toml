@@ -13,7 +13,6 @@ keywords = ["lorawan", "lora", "stm32l1", "networking", "iot", "stm32", "rak811"
 [workspace]
 
 [dependencies]
-drogue-device-macros = { path = "../../../macros" }
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 defmt = "0.3"
 defmt-rtt = "0.3"
