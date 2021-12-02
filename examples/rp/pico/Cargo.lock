@@ -77,7 +77,6 @@ name = "blinky"
 version = "0.1.0"
 dependencies = [
  "atomic-polyfill",
- "buildutil",
  "cortex-m",
  "cortex-m-rt",
  "defmt",
@@ -89,10 +88,6 @@ dependencies = [
  "panic-probe",
  "rp2040-pac",
 ]
-
-[[package]]
-name = "buildutil"
-version = "0.1.0"
 
 [[package]]
 name = "byteorder"

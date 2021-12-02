@@ -38,6 +38,3 @@ default = [
     "ble/defmt",
     "ble/withdefmt",
 ]
-
-[build-dependencies]
-buildutil = { path = "../../../_build" }
