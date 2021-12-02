@@ -6,19 +6,19 @@ use core::future::Future;
 use core::marker::PhantomData;
 use drogue_device::actors::button::{ButtonEvent, ButtonEventDispatcher, FromButtonEvent};
 use drogue_device::actors::led::LedMessage;
+use drogue_device::bsp::{App, AppBoard};
+use drogue_device::traits;
 use drogue_device::ActorContext;
 use drogue_device::{actors, Actor, Address, Inbox};
-use drogue_device::traits;
-use drogue_device::bsp::{App, AppBoard};
 use embassy::executor::Spawner;
-
 
 /// This trait defines the trait-based capabilities
 /// required by a board and provides associated-types
 /// in order to make referencing them easier with fewer
 /// generics involved in the app itself.
 pub trait BlinkyBoard: AppBoard<BlinkyApp<Self>>
-    where Self: 'static
+where
+    Self: 'static,
 {
     type Led: traits::led::Led;
     type ControlButton: traits::button::Button;
@@ -53,7 +53,6 @@ impl<B: BlinkyBoard> Default for BlinkyApp<B> {
 
 /// Implementation of the `App` template methods for code-organization.
 impl<B: BlinkyBoard> App for BlinkyApp<B> {
-
     // The type of components this app requires.
     type Configuration = BlinkyConfiguration<B>;
 
@@ -93,7 +92,6 @@ pub enum Command {
     TurnOff,
 }
 
-
 /// Typical Actor implementation for an app object.
 /// Dispatches its `Command` messages to turn the
 /// LED on or off.
@@ -106,17 +104,17 @@ impl<B: BlinkyBoard> Actor for BlinkyApp<B> {
     type Message<'m> = Command;
 
     type OnMountFuture<'m, M>
-        where
-            M: 'm,
-    = impl Future<Output=()> + 'm;
+    where
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         config: Self::Configuration,
         _: Address<'static, Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
-        where
-            M: Inbox<'m, Self> + 'm,
+    where
+        M: Inbox<'m, Self> + 'm,
     {
         self.led.replace(config);
         async move {
@@ -144,8 +142,8 @@ impl<B: BlinkyBoard> Actor for BlinkyApp<B> {
 /// ButtonEvent to App command translator.
 impl<B: BlinkyBoard> FromButtonEvent<Command> for BlinkyApp<B> {
     fn from(event: ButtonEvent) -> Option<Command>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         match event {
             ButtonEvent::Pressed => Some(Command::TurnOn),
