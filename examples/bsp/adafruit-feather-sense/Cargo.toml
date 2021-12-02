@@ -1,0 +1,37 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>",
+    "Jens Reimann <jreimann@redhat.com>",
+    "Dejan Bosanac <dbosanac@redhat.com>"
+]
+edition = "2018"
+name = "adafruit-feather-sense-blinky"
+version = "0.1.0"
+description = "BSP example boards"
+keywords = ["bsp"]
+resolver = "2"
+
+[workspace]
+
+[dependencies]
+
+defmt = "0.3"
+defmt-rtt = "0.3"
+panic-probe = { version = "0.3", features = ["print-defmt"] }
+cortex-m-rt = "0.7.0"
+cortex-m = "0.7.1"
+#cfg-if = "1.0.0"
+
+bsp-blinky-app = { path = "../../../apps/blinky" }
+embedded-hal = { version = "0.2.4", features = ["unproven"] }
+
+drogue-device = { path = "../../../device", default-features = false, features = [ "bsp+adafruit_feather_sense" ] }
+embassy = { version = "0.1.0", default-features = false, features=["defmt", "time"] }
+embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52840", "time-driver-rtc1", "gpiote"]}
+
+[patch.crates-io]
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
+embassy-macros = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
