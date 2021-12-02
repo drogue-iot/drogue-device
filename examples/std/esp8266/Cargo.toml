@@ -10,6 +10,7 @@ description = "Example using a USB-to-Serial adapter + ESP8266 adapter"
 keywords = ["std", "wifi", "networking", "cloud"]
 
 [dependencies]
+drogue-device-macros = { path = "../../../macros" }
 log = "0.4"
 env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["log", "std", "wifi+esp8266", "tls"] }
@@ -28,6 +29,3 @@ futures = { version = "0.3.8", default-features = false, features = ["async-awai
 
 [features]
 tls = ["drogue-tls", "drogue-tls/log"]
-
-[build-dependencies]
-buildutil = { path = "../../_build" }

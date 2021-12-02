@@ -178,14 +178,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "buildutil"
-version = "0.1.0"
-dependencies = [
- "config",
- "lazy_static",
-]
-
-[[package]]
 name = "byteorder"
 version = "1.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -223,9 +215,9 @@ name = "cloud"
 version = "0.1.0"
 dependencies = [
  "async-io",
- "buildutil",
  "cfg-if",
  "drogue-device",
+ "drogue-device-macros",
  "drogue-temperature",
  "drogue-tls",
  "embassy",
@@ -414,6 +406,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "drogue-device-macros"
+version = "0.1.0"
+dependencies = [
+ "cfg-if",
+ "config",
+ "lazy_static",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "drogue-temperature"
 version = "0.1.0"
 dependencies = [
@@ -533,9 +537,9 @@ name = "esp8266"
 version = "0.1.0"
 dependencies = [
  "async-io",
- "buildutil",
  "cfg-if",
  "drogue-device",
+ "drogue-device-macros",
  "drogue-temperature",
  "drogue-tls",
  "embassy",

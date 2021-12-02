@@ -15,6 +15,7 @@ use drogue_device::{
     traits::lora::*,
     *,
 };
+use drogue_device_macros::drogue_config;
 use embassy_lora::sx127x::*;
 use embassy_stm32::{
     dbgmcu::Dbgmcu,
@@ -33,9 +34,9 @@ mod app;
 
 use app::*;
 
-const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/", "dev-eui"));
-const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/", "app-eui"));
-const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/", "app-key"));
+const DEV_EUI: &str = drogue_config!("dev-eui");
+const APP_EUI: &str = drogue_config!("app-eui");
+const APP_KEY: &str = drogue_config!("app-key");
 
 pub type Sx127x<'a> = LoraDevice<
     'a,

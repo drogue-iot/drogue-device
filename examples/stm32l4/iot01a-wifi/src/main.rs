@@ -8,6 +8,7 @@
 #![feature(concat_idents)]
 
 use defmt_rtt as _;
+use drogue_device_macros::drogue_config;
 use panic_probe as _;
 
 use drogue_device::drivers::wifi::eswifi::EsWifiController;
@@ -65,10 +66,10 @@ cfg_if::cfg_if! {
     }
 }
 
-const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/", "wifi-ssid"));
-const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/", "wifi-password"));
-const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-username"));
-const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-password"));
+const WIFI_SSID: &str = drogue_config!("wifi-ssid");
+const WIFI_PSK: &str = drogue_config!("wifi-password");
+const USERNAME: &str = drogue_config!("http-username");
+const PASSWORD: &str = drogue_config!("http-password");
 
 type WAKE = Output<'static, PB13>;
 type RESET = Output<'static, PE8>;

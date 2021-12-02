@@ -11,6 +11,7 @@ use drogue_device::{
     traits::wifi::*,
     *,
 };
+use drogue_device_macros::drogue_config;
 use drogue_temperature::*;
 use embassy::io::FromStdIo;
 use embedded_hal::digital::v2::OutputPin;
@@ -18,10 +19,10 @@ use futures::io::BufReader;
 use nix::sys::termios;
 use serial::*;
 
-const WIFI_SSID: &str = include_str!(concat!(env!("OUT_DIR"), "/", "wifi-ssid"));
-const WIFI_PSK: &str = include_str!(concat!(env!("OUT_DIR"), "/", "wifi-password"));
-const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-username"));
-const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-password"));
+const WIFI_SSID: &str = drogue_config!("wifi-ssid");
+const WIFI_PSK: &str = drogue_config!("wifi-password");
+const USERNAME: &str = drogue_config!("http-username");
+const PASSWORD: &str = drogue_config!("http-password");
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "tls")] {

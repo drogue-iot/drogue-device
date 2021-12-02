@@ -10,6 +10,7 @@ use embedded_hal::digital::v2::OutputPin;
 use panic_probe as _;
 
 use drogue_device::{actors::lora::*, drivers::led::*, drivers::lora::*, traits::lora::*, *};
+use drogue_device_macros::drogue_config;
 use embassy::time::Duration;
 use embassy_lora::sx127x::*;
 use embassy_stm32::{
@@ -27,9 +28,9 @@ use embassy_stm32::{
 mod app;
 use app::*;
 
-const DEV_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/", "dev-eui"));
-const APP_EUI: &str = include_str!(concat!(env!("OUT_DIR"), "/", "app-eui"));
-const APP_KEY: &str = include_str!(concat!(env!("OUT_DIR"), "/", "app-key"));
+const DEV_EUI: &str = drogue_config!("dev-eui");
+const APP_EUI: &str = drogue_config!("app-eui");
+const APP_KEY: &str = drogue_config!("app-key");
 
 use embassy::time::Timer;
 use rand::rngs::SmallRng;

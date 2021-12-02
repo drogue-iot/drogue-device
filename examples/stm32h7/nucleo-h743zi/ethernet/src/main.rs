@@ -6,6 +6,7 @@
 #![feature(generic_associated_types)]
 
 use defmt_rtt as _;
+use drogue_device_macros::drogue_config;
 use panic_probe as _;
 
 use drogue_device::{
@@ -41,8 +42,8 @@ use heapless::Vec;
 const HOST: &str = "localhost";
 const PORT: u16 = 8088;
 
-const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-username"));
-const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-password"));
+const USERNAME: &str = drogue_config!("http-username");
+const PASSWORD: &str = drogue_config!("http-password");
 
 type EthernetDevice = Ethernet<'static, LAN8742A, 4, 4>;
 type SmolTcpPackage = SmolTcp<EthernetDevice, StaticConfigurator, 1, 2, 1024>;

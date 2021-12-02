@@ -3,13 +3,14 @@
 #![feature(type_alias_impl_trait)]
 
 use drogue_device::{actors::net::*, actors::tcp::std::*, *};
+use drogue_device_macros::drogue_config;
 use drogue_temperature::*;
 use drogue_tls::Aes128GcmSha256;
 use embassy::time::{Duration, Timer};
 use rand::rngs::OsRng;
 
-const USERNAME: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-username"));
-const PASSWORD: &str = include_str!(concat!(env!("OUT_DIR"), "/", "http-password"));
+const USERNAME: &str = drogue_config!("http-username");
+const PASSWORD: &str = drogue_config!("http-password");
 const HOST: &str = "http.sandbox.drogue.cloud";
 const PORT: u16 = 443;
 

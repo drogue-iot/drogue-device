@@ -2,7 +2,9 @@
 #![feature(proc_macro_diagnostic)]
 
 extern crate proc_macro;
+mod configure;
 
+use configure::configure;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::spanned::Spanned;
@@ -112,4 +114,12 @@ pub fn log_stack(_item: TokenStream) -> TokenStream {
         crate::print_stack(file!(), line!());
     };
     result.into()
+}
+
+#[proc_macro]
+pub fn drogue_config(input: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(input as syn::LitStr);
+    let s = input.value();
+    let output = configure(&s);
+    quote!(#output).into()
 }
