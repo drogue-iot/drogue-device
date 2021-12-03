@@ -26,9 +26,9 @@ pub trait App: Sized {
 
 /// A board capable of providing an `App` with its required `A::Components`.
 pub trait Board: Sized {
-    type Peripherals;
+    type Config;
 
-    fn new(peripherals: Self::Peripherals) -> Self;
+    fn new(config: Self::Config) -> Self;
 }
 
 // Board configuration for an application, specific to drogue-device
@@ -41,10 +41,9 @@ pub trait AppBoard<A: App>: Board {
 /// configuring it and mounting it.
 pub async fn boot<A: App + 'static, B: AppBoard<A>>(
     ctx: &'static DeviceContext<A::Device>,
-    peripherals: B::Peripherals,
+    board: B,
     spawner: Spawner,
 ) {
-    let board = B::new(peripherals);
     let components = board.configure();
     let device = A::build(components);
 
@@ -58,10 +57,10 @@ macro_rules! bind_bsp {
     ($bsp:ty, $app_bsp:ident) => {
         struct $app_bsp($bsp);
         impl $crate::bsp::Board for BSP {
-            type Peripherals = <$bsp as $crate::bsp::Board>::Peripherals;
+            type Config = <$bsp as $crate::bsp::Board>::Config;
 
-            fn new(peripherals: Self::Peripherals) -> Self {
-                BSP(<$bsp>::new(peripherals))
+            fn new(config: Self::Config) -> Self {
+                BSP(<$bsp>::new(config))
             }
         }
     };
@@ -69,11 +68,27 @@ macro_rules! bind_bsp {
 
 #[macro_export]
 macro_rules! boot_bsp {
-    ($app:ident, $app_bsp:ident, $p:ident, $spawner:ident) => {
+    ($app:ident, $app_bsp:ident, $c:ident) => {
         type AppDevice = <$app<$app_bsp> as $crate::bsp::App>::Device;
         static DEVICE: $crate::kernel::device::DeviceContext<AppDevice> = DeviceContext::new();
+        static EXECUTOR: embassy::util::Forever<embassy::executor::Executor> =
+            embassy::util::Forever::new();
 
-        // Boot the board with the imbued app.
-        boot::<$app<$app_bsp>, $app_bsp>(&DEVICE, $p, $spawner).await;
+        #[embassy::task]
+        async fn device_main(
+            spawner: embassy::executor::Spawner,
+            board: $app_bsp,
+            device: &'static DeviceContext<AppDevice>,
+        ) {
+            // Boot the board with the imbued app.
+            boot::<$app<$app_bsp>, $app_bsp>(device, board, spawner).await;
+        }
+
+        let board = $app_bsp::new($c);
+
+        let executor = EXECUTOR.put(embassy::executor::Executor::new());
+        executor.run(|spawner| {
+            spawner.spawn(device_main(spawner, board, &DEVICE)).unwrap();
+        })
     };
 }

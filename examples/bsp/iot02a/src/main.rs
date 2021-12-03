@@ -6,13 +6,13 @@
 #![feature(generic_associated_types)]
 
 use bsp_blinky_app::{BlinkyApp, BlinkyBoard};
+use cortex_m_rt::entry;
 use drogue_device::{bind_bsp, boot_bsp, DeviceContext};
 use embassy_stm32::dbgmcu::Dbgmcu;
-use embassy_stm32::Peripherals;
 
 use defmt_rtt as _;
 use drogue_device::bsp::boards::stm32u5::b_u585i_iot02a::{Iot02a, LedRed, UserButton};
-use drogue_device::bsp::{boot, App, AppBoard};
+use drogue_device::bsp::{boot, App, AppBoard, Board};
 use panic_probe as _;
 
 // Creates a newtype named `BSP` around the `Iot02a` to avoid
@@ -39,11 +39,11 @@ impl AppBoard<BlinkyApp<Self>> for BSP {
     }
 }
 
-#[embassy::main]
-async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
+#[entry]
+fn main() -> ! {
     unsafe {
         Dbgmcu::enable_all();
     }
-
-    boot_bsp!(BlinkyApp, BSP, p, spawner);
+    let config = Default::default();
+    boot_bsp!(BlinkyApp, BSP, config);
 }

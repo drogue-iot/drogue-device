@@ -25,9 +25,10 @@ pub struct Iot02a {
 }
 
 impl Board for Iot02a {
-    type Peripherals = embassy_stm32::Peripherals;
+    type Config = embassy_stm32::Config;
 
-    fn new(p: Self::Peripherals) -> Self {
+    fn new(config: Self::Config) -> Self {
+        let p = embassy_stm32::init(config);
         Self {
             led_blue: Led::new(Output::new(p.PE13, Level::High, Speed::Low)),
             led_green: Led::new(Output::new(p.PH7, Level::High, Speed::Low)),
