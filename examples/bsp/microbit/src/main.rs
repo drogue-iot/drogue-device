@@ -8,7 +8,7 @@
 use bsp_blinky_app::{BlinkyApp, BlinkyBoard};
 use drogue_device::{
     bind_bsp, boot_bsp,
-    drivers::led::{ActiveLow, Led},
+    drivers::led::{ActiveHigh, Led},
     DeviceContext,
 };
 use embassy_nrf::Peripherals;
@@ -29,7 +29,7 @@ type Configuration = <BlinkyApp<BSP> as App>::Configuration;
 /// Define the required associated types for easy reference to avoid
 /// generic explosion for the details of this board to the app.
 impl BlinkyBoard for BSP {
-    type Led = Led<BlinkyLed, ActiveLow>;
+    type Led = Led<BlinkyLed, ActiveHigh>;
     type ControlButton = ButtonA;
 }
 

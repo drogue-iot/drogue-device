@@ -1,5 +1,5 @@
 use crate::bsp::Board;
-use crate::drivers::led::matrix::LedMatrix as LedMatrixDriver;
+use crate::drivers::{button::Button, led::matrix::LedMatrix as LedMatrixDriver, ActiveLow};
 use embassy_nrf::{
     gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},
     gpiote::PortInput,
@@ -8,7 +8,7 @@ use embassy_nrf::{
 
 pub type LedMatrix = LedMatrixDriver<Output<'static, AnyPin>, 5, 5>;
 pub type PinButtonA = Input<'static, P0_14>;
-pub type ButtonA = PortInput<'static, P0_14>;
+pub type ButtonA = Button<PortInput<'static, P0_14>, ActiveLow>;
 
 pub struct Microbit {
     pub led_matrix: LedMatrix,
@@ -38,7 +38,7 @@ impl Board for Microbit {
 
         Self {
             led_matrix: LedMatrixDriver::new(rows, cols),
-            button_a: PortInput::new(Input::new(p.P0_14, Pull::Up)),
+            button_a: Button::new(PortInput::new(Input::new(p.P0_14, Pull::Up))),
         }
     }
 }
