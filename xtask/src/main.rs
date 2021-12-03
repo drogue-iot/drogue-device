@@ -20,6 +20,7 @@ fn main() -> Result<(), anyhow::Error> {
         ["update"] => update(),
         ["docs"] => docs(),
         ["matrix"] => matrix(),
+        ["clean"] => clean(root_dir()),
         _ => {
             println!("USAGE:");
             println!("\tcargo xtask ci");
@@ -27,6 +28,7 @@ fn main() -> Result<(), anyhow::Error> {
             println!("\tcargo xtask build examples/nrf52/microbit");
             println!("\tcargo xtask update");
             println!("\tcargo xtask docs");
+            println!("\tcargo xtask clean");
             Ok(())
         }
     }
@@ -157,6 +159,22 @@ fn fmt_crate(project_file: PathBuf) -> Result<(), anyhow::Error> {
 
 fn docs() -> Result<(), anyhow::Error> {
     generate_examples_page()
+}
+
+fn clean(path: PathBuf) -> Result<(), anyhow::Error> {
+    for entry in fs::read_dir(path)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            if path.ends_with("target") {
+                println!("Removing {}", path.display());
+                fs::remove_dir_all(path)?;
+            } else {
+                clean(path)?;
+            }
+        }
+    }
+    Ok(())
 }
 
 const MAIN_CATEGORIES: [&str; 8] = [
