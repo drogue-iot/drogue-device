@@ -45,6 +45,22 @@ where
         self.frame_buffer = frame;
     }
 
+    pub fn set_row_high(&mut self, row: usize) {
+        self.pin_rows[row].set_high().ok().unwrap();
+    }
+
+    pub fn set_row_low(&mut self, row: usize) {
+        self.pin_rows[row].set_low().ok().unwrap();
+    }
+
+    pub fn set_col_high(&mut self, col: usize) {
+        self.pin_cols[col].set_high().ok().unwrap();
+    }
+
+    pub fn set_col_low(&mut self, col: usize) {
+        self.pin_cols[col].set_low().ok().unwrap();
+    }
+
     pub fn render(&mut self) {
         for row in self.pin_rows.iter_mut() {
             row.set_low().ok();
