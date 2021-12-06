@@ -1,0 +1,2 @@
+* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/apps/ble[Bluetooth Low Energy (BLE) GATT services and actors]
+* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/apps/drogue-temperature[Application reporting temperature data to Drogue Cloud]
