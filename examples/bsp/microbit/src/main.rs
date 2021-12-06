@@ -29,13 +29,13 @@ static DEVICE: DeviceContext<BlinkyDevice<MyBoard>> = DeviceContext::new();
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let board = MyBoard(Microbit::new(p));
-    DEVICE.mount(
-        BlinkyDevice::new(BlinkyConfiguration {
-            led: Led::new(BlinkyLed(board.0.led_matrix)),
-            control_button: board.0.button_a,
-        }),
-        BlinkyDevice::on_mount(spawner),
-    );
+
+    DEVICE.configure(BlinkyDevice::new(BlinkyConfiguration {
+        led: Led::new(BlinkyLed(board.0.led_matrix)),
+        control_button: board.0.button_a,
+    }));
+
+    DEVICE.mount(|device| device.mount(spawner)).await;
 }
 
 pub struct BlinkyLed(LedMatrix);
