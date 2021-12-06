@@ -37,14 +37,12 @@ pub struct BlinkyConfiguration<B: BlinkyBoard> {
 /// or be an `Actor` implementation itself. It just
 /// so happens to be one in this example.
 pub struct BlinkyApp<B: BlinkyBoard + 'static> {
-    led: Option<Address<'static, actors::led::Led<B::Led>>>,
     _marker: PhantomData<B>,
 }
 
 impl<B: BlinkyBoard> Default for BlinkyApp<B> {
     fn default() -> Self {
         Self {
-            led: None,
             _marker: Default::default(),
         }
     }
@@ -101,18 +99,18 @@ impl<B: BlinkyBoard> Actor for BlinkyApp<B> {
     where
         M: Inbox<'m, Self> + 'm,
     {
-        self.led.replace(config);
+        let led = config;
         async move {
             loop {
                 match inbox.next().await {
                     Some(mut msg) => match msg.message() {
                         Command::TurnOn => {
                             defmt::info!("got inbox ON");
-                            self.led.unwrap().notify(LedMessage::On).ok();
+                            led.notify(LedMessage::On).ok();
                         }
                         Command::TurnOff => {
                             defmt::info!("got inbox OFF");
-                            self.led.unwrap().notify(LedMessage::Off).ok();
+                            led.notify(LedMessage::Off).ok();
                         }
                     },
                     None => {
