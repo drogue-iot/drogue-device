@@ -99,6 +99,7 @@ pub mod clients;
 pub mod domain;
 
 pub mod bsp;
+pub use bsp::Board;
 
 #[cfg(feature = "std")]
 pub mod testutil;

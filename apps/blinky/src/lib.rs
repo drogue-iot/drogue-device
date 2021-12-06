@@ -6,7 +6,6 @@ use core::future::Future;
 use core::marker::PhantomData;
 use drogue_device::actors::button::{ButtonEvent, ButtonEventDispatcher, FromButtonEvent};
 use drogue_device::actors::led::LedMessage;
-use drogue_device::bsp::{App, AppBoard};
 use drogue_device::traits;
 use drogue_device::ActorContext;
 use drogue_device::{actors, Actor, Address, Inbox};
@@ -16,7 +15,7 @@ use embassy::executor::Spawner;
 /// required by a board and provides associated-types
 /// in order to make referencing them easier with fewer
 /// generics involved in the app itself.
-pub trait BlinkyBoard: AppBoard<BlinkyApp<Self>>
+pub trait BlinkyBoard
 where
     Self: 'static,
 {
@@ -38,30 +37,21 @@ pub struct BlinkyConfiguration<B: BlinkyBoard> {
 /// or be an `Actor` implementation itself. It just
 /// so happens to be one in this example.
 pub struct BlinkyApp<B: BlinkyBoard + 'static> {
-    led: Option<Address<'static, actors::led::Led<B::Led>>>,
     _marker: PhantomData<B>,
 }
 
 impl<B: BlinkyBoard> Default for BlinkyApp<B> {
     fn default() -> Self {
         Self {
-            led: None,
             _marker: Default::default(),
         }
     }
 }
 
 /// Implementation of the `App` template methods for code-organization.
-impl<B: BlinkyBoard> App for BlinkyApp<B> {
-    // The type of components this app requires.
-    type Configuration = BlinkyConfiguration<B>;
-
-    // The type of device this app is driven by.
-    type Device = BlinkyDevice<B>;
-
-    /// Build a `Device` from a `Board`.
+impl<B: BlinkyBoard> BlinkyDevice<B> {
     /// The `Device` is exactly the typical drogue-device Device.
-    fn build(components: Self::Configuration) -> Self::Device {
+    pub fn new(components: BlinkyConfiguration<B>) -> Self {
         BlinkyDevice {
             app: ActorContext::new(Default::default()),
             led: ActorContext::new(actors::led::Led::new(components.led)),
@@ -69,20 +59,12 @@ impl<B: BlinkyBoard> App for BlinkyApp<B> {
         }
     }
 
-    #[rustfmt::skip]
-    type MountFuture<'m>
-        where
-            Self: 'm = impl Future<Output=()>;
-
-    /// Mount the device.
     /// This is exactly the same operation performed during normal mount cycles
     /// in a non-BSP example.
-    fn mount<'m>(device: &'static Self::Device, spawner: Spawner) -> Self::MountFuture<'m> {
-        async move {
-            let led = device.led.mount((), spawner);
-            let app = device.app.mount(led, spawner);
-            device.button.mount(app.into(), spawner);
-        }
+    pub async fn mount(&'static self, spawner: Spawner) {
+        let led = self.led.mount((), spawner);
+        let app = self.app.mount(led, spawner);
+        self.button.mount(app.into(), spawner);
     }
 }
 
@@ -116,18 +98,18 @@ impl<B: BlinkyBoard> Actor for BlinkyApp<B> {
     where
         M: Inbox<'m, Self> + 'm,
     {
-        self.led.replace(config);
+        let led = config;
         async move {
             loop {
                 match inbox.next().await {
                     Some(mut msg) => match msg.message() {
                         Command::TurnOn => {
                             defmt::info!("got inbox ON");
-                            self.led.unwrap().notify(LedMessage::On).ok();
+                            led.notify(LedMessage::On).ok();
                         }
                         Command::TurnOff => {
                             defmt::info!("got inbox OFF");
-                            self.led.unwrap().notify(LedMessage::Off).ok();
+                            led.notify(LedMessage::Off).ok();
                         }
                     },
                     None => {
