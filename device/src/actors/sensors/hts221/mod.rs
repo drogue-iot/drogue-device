@@ -1,4 +1,7 @@
-use crate::domain::{temperature::Celsius, SensorAcquisition};
+use crate::domain::{
+    temperature::{Celsius, Temperature},
+    SensorAcquisition,
+};
 use crate::drivers::sensors::hts221::*;
 use crate::traits::sensors::temperature::*;
 
@@ -93,9 +96,15 @@ where
     where
         P: 'm,
         I: 'm,
-    = impl Future<Output = Result<SensorAcquisition<Celsius>, Self::Error>> + 'm;
+    = impl Future<Output = Result<Temperature<Celsius>, Self::Error>> + 'm;
 
     fn temperature<'m>(&'m mut self) -> Self::ReadFuture<'m> {
-        async move { self.request(ReadTemperature).unwrap().await.unwrap() }
+        async move {
+            self.request(ReadTemperature)
+                .unwrap()
+                .await
+                .unwrap()
+                .map(|s| s.temperature)
+        }
     }
 }

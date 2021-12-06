@@ -1,4 +1,3 @@
-use crate::bsp::Board;
 use crate::drivers::{button::Button, led::matrix::LedMatrix as LedMatrixDriver, ActiveLow};
 use embassy_nrf::{
     gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},
@@ -15,10 +14,8 @@ pub struct Microbit {
     pub button_a: ButtonA,
 }
 
-impl Board for Microbit {
-    type Peripherals = embassy_nrf::Peripherals;
-
-    fn new(p: Self::Peripherals) -> Self {
+impl Microbit {
+    pub fn new(p: embassy_nrf::Peripherals) -> Self {
         // LED Matrix
         let rows = [
             output_pin(p.P0_21.degrade()),

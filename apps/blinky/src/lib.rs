@@ -6,7 +6,6 @@ use core::future::Future;
 use core::marker::PhantomData;
 use drogue_device::actors::button::{ButtonEvent, ButtonEventDispatcher, FromButtonEvent};
 use drogue_device::actors::led::LedMessage;
-use drogue_device::bsp::{App, AppBoard};
 use drogue_device::traits;
 use drogue_device::ActorContext;
 use drogue_device::{actors, Actor, Address, Inbox};
@@ -16,7 +15,7 @@ use embassy::executor::Spawner;
 /// required by a board and provides associated-types
 /// in order to make referencing them easier with fewer
 /// generics involved in the app itself.
-pub trait BlinkyBoard: AppBoard<BlinkyApp<Self>>
+pub trait BlinkyBoard
 where
     Self: 'static,
 {
@@ -52,16 +51,9 @@ impl<B: BlinkyBoard> Default for BlinkyApp<B> {
 }
 
 /// Implementation of the `App` template methods for code-organization.
-impl<B: BlinkyBoard> App for BlinkyApp<B> {
-    // The type of components this app requires.
-    type Configuration = BlinkyConfiguration<B>;
-
-    // The type of device this app is driven by.
-    type Device = BlinkyDevice<B>;
-
-    /// Build a `Device` from a `Board`.
+impl<B: BlinkyBoard> BlinkyDevice<B> {
     /// The `Device` is exactly the typical drogue-device Device.
-    fn build(components: Self::Configuration) -> Self::Device {
+    pub fn new(components: BlinkyConfiguration<B>) -> Self {
         BlinkyDevice {
             app: ActorContext::new(Default::default()),
             led: ActorContext::new(actors::led::Led::new(components.led)),
@@ -69,20 +61,13 @@ impl<B: BlinkyBoard> App for BlinkyApp<B> {
         }
     }
 
-    #[rustfmt::skip]
-    type MountFuture<'m>
-        where
-            Self: 'm = impl Future<Output=()>;
-
-    /// Mount the device.
     /// This is exactly the same operation performed during normal mount cycles
     /// in a non-BSP example.
-    fn mount<'m>(device: &'static Self::Device, spawner: Spawner) -> Self::MountFuture<'m> {
-        async move {
-            let led = device.led.mount((), spawner);
-            let app = device.app.mount(led, spawner);
-            device.button.mount(app.into(), spawner);
-        }
+    pub async fn mount<'m>(&'static self, spawner: Spawner) -> Address<'static, BlinkyApp<B>> {
+        let led = self.led.mount((), spawner);
+        let app = self.app.mount(led, spawner);
+        self.button.mount(app.into(), spawner);
+        app
     }
 }
 

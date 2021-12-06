@@ -8,8 +8,13 @@ pub(crate) mod fmt;
 use core::future::Future;
 use core::marker::PhantomData;
 use drogue_device::{
+    traits,
+    actors,
     actors::button::*, actors::net::*, clients::http::*, drivers::dns::*, traits::ip::*, Actor,
     Address, Inbox,
+};
+use drogue_device::{
+    bsp::{App, AppBoard},
 };
 use heapless::String;
 use serde::{Deserialize, Serialize};
@@ -35,7 +40,7 @@ pub enum Command {
     Send,
 }
 
-pub struct App<C>
+pub struct TemperatureClient<C>
 where
     C: ConnectionFactory + 'static,
 {
@@ -46,7 +51,7 @@ where
     socket: PhantomData<&'static C>,
 }
 
-impl<C> App<C>
+impl<C> TemperatureClient<C>
 where
     C: ConnectionFactory + 'static,
 {
@@ -66,7 +71,7 @@ where
     }
 }
 
-impl<C> Actor for App<C>
+impl<C> Actor for TemperatureClient<C>
 where
     C: ConnectionFactory + 'static,
 {
@@ -152,7 +157,7 @@ where
     }
 }
 
-impl<C> FromButtonEvent<Command> for App<C>
+impl<C> FromButtonEvent<Command> for TemperatureClient<C>
 where
     C: ConnectionFactory + 'static,
 {
@@ -171,3 +176,57 @@ static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
         IpAddress::new_v4(95, 216, 224, 167),
     ),
 ]);
+
+pub struct TemperatureConfiguration<B: TemperatureBoard> {
+    pub send_button: B::SendButton,
+    pub sensor: ActorContext<'static, B::TemperatureSensor>,
+    pub network: ActorContext<'static, B::Network>
+}
+
+pub trait TemperatureBoard: AppBoard<TemperatureApp<Self>>
+where
+    Self: 'static,
+{
+    type Sensor: traits::sensors::TemperatureSensor<Celsius>;
+    type Network: Actor + TcpActor<Self::Network>;
+    type SendButton: traits::button::Button;
+    type RccConfig;
+}
+
+impl<B: TemperatureBoard> App for TemperatureApp<B> {
+    type Configuration = TemperatureConfiguration<B>;
+    type Device = TemperatureDevice<B>;
+
+    fn build(components: Self::Configuration) -> Self::Device {
+        TemperatureDevice {
+            client: ActorContext::new(HOST, PORT.parse::<u16>.unwrap(), USERNAME, PASSWORD),
+            network: components.network,
+            sensor: components.sensor,
+            button: ActorContext::new(actors::button::Button::new(components.send_button)),
+        }
+    }
+}
+
+
+const USERNAME: &str = drogue::config!("http-username");
+const PASSWORD: &str = drogue::config!("http-password");
+const HOST: &str = drogue::config!("hostname");
+const PORT: &str = drogue::config!("port");
+
+pub struct TemperatureDevice<B: TemperatureBoard + 'static> {
+    client: ActorContext<'static, TemperatureClient<B::ConnectionFactory>, 3>,
+    button: ActorContext
+    button: ActorContext<
+        'static,
+        actors::button::Button<B::SendButton, ButtonEventDispatcher<BlinkyApp<B>>>,
+    >,
+    i2c: ActorContext<'static, I2cPeripheral<I2cDriver>>,
+    button: ActorContext<
+        'static,
+        Button<ExtiInput<'static, PC13>, ButtonEventDispatcher<App<ConnectionFactory>>>,
+    >,
+    sensor: ActorContext<
+        'static,
+        Sensor<ExtiInput<'static, PD15>, Address<'static, I2cPeripheral<I2cDriver>>>,
+    >,
+}
