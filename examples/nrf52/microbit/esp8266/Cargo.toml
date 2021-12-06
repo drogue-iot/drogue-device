@@ -19,7 +19,7 @@ rand_core = { version = "0.6.2", default-features = false }
 drogue-device = { path = "../../../../device", features = ["wifi+esp8266", "defmt"], default-features = false }
 drogue-tls = { version = "0.5.0", default-features = false, features = ["async"], optional = true}
 #drogue-tls = {path = "../../../drogue-tls", default-features = false, optional = true}
-drogue-temperature = { path = "../../../../apps/drogue-temperature", features = ["defmt"] }
+drogue-temperature = { path = "../../../apps/drogue-temperature", features = ["defmt"] }
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 fixed = "1.10.0"
