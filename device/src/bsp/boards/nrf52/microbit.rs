@@ -6,12 +6,17 @@ use embassy_nrf::{
 };
 
 pub type LedMatrix = LedMatrixDriver<Output<'static, AnyPin>, 5, 5>;
+
 pub type PinButtonA = Input<'static, P0_14>;
 pub type ButtonA = Button<PortInput<'static, P0_14>, ActiveLow>;
+
+pub type PinButtonB = Input<'static, P0_23>;
+pub type ButtonB = Button<PortInput<'static, P0_23>, ActiveLow>;
 
 pub struct Microbit {
     pub led_matrix: LedMatrix,
     pub button_a: ButtonA,
+    pub button_b: ButtonB,
 }
 
 impl Microbit {
@@ -36,6 +41,7 @@ impl Microbit {
         Self {
             led_matrix: LedMatrixDriver::new(rows, cols),
             button_a: Button::new(PortInput::new(Input::new(p.P0_14, Pull::Up))),
+            button_b: Button::new(PortInput::new(Input::new(p.P0_23, Pull::Up))),
         }
     }
 }
