@@ -15,8 +15,9 @@ defmt = "0.3"
 defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
+bsp-blinky-app = { path = "../../../apps/blinky" }
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
-drogue-device = { path = "../../../../device", features = ["time", "defmt"], default-features = false }
+drogue-device = { path = "../../../../device", features = ["time", "defmt", "bsp+nucleo_h743zi"], default-features = false }
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 heapless = "0.6"

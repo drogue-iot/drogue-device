@@ -5,177 +5,27 @@
 #![allow(incomplete_features)]
 #![feature(generic_associated_types)]
 
+use bsp_blinky_app::{BlinkyBoard, BlinkyConfiguration, BlinkyDevice};
+use drogue_device::{bind_bsp, Board, DeviceContext};
+use embassy_stm32::dbgmcu::Dbgmcu;
+use embassy_stm32::Peripherals;
+
 use defmt_rtt as _;
+use drogue_device::bsp::boards::stm32h7::nucleo_h743zi::*;
 use panic_probe as _;
 
-use core::future::Future;
-use drogue_device::actors::button::{Button, ButtonEvent, ButtonEventDispatcher, FromButtonEvent};
-use drogue_device::actors::led::LedMessage;
-use drogue_device::{actors, drivers};
-use drogue_device::{Actor, ActorContext, Address, DeviceContext, Inbox};
-use embassy::time::{with_timeout, Duration};
-use embassy_stm32::dbgmcu::Dbgmcu;
-use embassy_stm32::peripherals::{PB0, PB14, PC13, PE1, RNG};
-use embassy_stm32::rng::Rng;
-use embassy_stm32::{
-    exti::ExtiInput,
-    gpio::{Input, Level, Output, Pull, Speed},
-    Peripherals,
-};
-use rand_core::RngCore;
+// Creates a newtype named `BSP` around the `NucleoH743` to avoid
+// orphan rules and apply delegation boilerplate.
+bind_bsp!(NucleoH743, BSP);
 
-type LedGreenPin = Output<'static, PB0>;
-type LedYellowPin = Output<'static, PE1>;
-type LedRedPin = Output<'static, PB14>;
-
-type LedGreen = drivers::led::Led<LedGreenPin>;
-type LedYellow = drivers::led::Led<LedYellowPin>;
-type LedRed = drivers::led::Led<LedRedPin>;
-
-pub enum Color {
-    Green,
-    Yellow,
-    Red,
+/// Define the required associated types for easy reference to avoid
+/// generic explosion for the details of this board to the app.
+impl BlinkyBoard for BSP {
+    type Led = LedGreen;
+    type ControlButton = UserButton;
 }
 
-#[derive(Debug)]
-pub enum Command {
-    StartDancing,
-    StopDancing,
-}
-
-pub struct App {
-    address: Option<Address<'static, App>>,
-    rng: Option<Rng<RNG>>,
-    dancing: bool,
-    green: Option<Address<'static, actors::led::Led<LedGreen>>>,
-    yellow: Option<Address<'static, actors::led::Led<LedYellow>>>,
-    red: Option<Address<'static, actors::led::Led<LedRed>>>,
-}
-
-impl App {
-    fn all_on(&self) {
-        self.green.unwrap().notify(LedMessage::On).unwrap();
-        self.yellow.unwrap().notify(LedMessage::On).unwrap();
-        self.red.unwrap().notify(LedMessage::On).unwrap();
-    }
-
-    fn all_off(&self) {
-        self.green.unwrap().notify(LedMessage::Off).unwrap();
-        self.yellow.unwrap().notify(LedMessage::Off).unwrap();
-        self.red.unwrap().notify(LedMessage::Off).unwrap();
-    }
-
-    fn randomize(&mut self) {
-        let val = self.rng.as_mut().unwrap().next_u32();
-
-        let green = (val & 0b001) != 0;
-        let yellow = (val & 0b010) != 0;
-        let red = (val & 0b100) != 0;
-
-        if green {
-            self.green.unwrap().notify(LedMessage::On).unwrap();
-        } else {
-            self.green.unwrap().notify(LedMessage::Off).unwrap();
-        }
-        if yellow {
-            self.yellow.unwrap().notify(LedMessage::On).unwrap();
-        } else {
-            self.yellow.unwrap().notify(LedMessage::Off).unwrap();
-        }
-        if red {
-            self.red.unwrap().notify(LedMessage::On).unwrap();
-        } else {
-            self.red.unwrap().notify(LedMessage::Off).unwrap();
-        }
-    }
-}
-
-impl Default for App {
-    fn default() -> Self {
-        Self {
-            dancing: false,
-            address: Default::default(),
-            rng: Default::default(),
-            green: Default::default(),
-            yellow: Default::default(),
-            red: Default::default(),
-        }
-    }
-}
-
-impl Actor for App {
-    type Configuration = (
-        Rng<RNG>,
-        Address<'static, actors::led::Led<LedGreen>>,
-        Address<'static, actors::led::Led<LedYellow>>,
-        Address<'static, actors::led::Led<LedRed>>,
-    );
-
-    type Message<'m> = Command;
-
-    type OnMountFuture<'m, M>
-    where
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
-    fn on_mount<'m, M>(
-        &'m mut self,
-        config: Self::Configuration,
-        address: Address<'static, Self>,
-        inbox: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
-    where
-        M: Inbox<'m, Self> + 'm,
-    {
-        self.address.replace(address);
-        self.rng.replace(config.0);
-        self.green.replace(config.1);
-        self.yellow.replace(config.2);
-        self.red.replace(config.3);
-        async move {
-            loop {
-                match with_timeout(Duration::from_millis(50), inbox.next()).await {
-                    Ok(Some(mut m)) => match m.message() {
-                        Command::StartDancing => {
-                            self.all_on();
-                            self.dancing = true;
-                        }
-                        Command::StopDancing => {
-                            self.dancing = false;
-                            self.all_off();
-                        }
-                    },
-                    _ => {}
-                }
-                if self.dancing {
-                    self.randomize();
-                }
-            }
-        }
-    }
-}
-
-impl FromButtonEvent<Command> for App {
-    fn from(event: ButtonEvent) -> Option<Command>
-    where
-        Self: Sized,
-    {
-        match event {
-            ButtonEvent::Released => Some(Command::StartDancing),
-            ButtonEvent::Pressed => Some(Command::StopDancing),
-        }
-    }
-}
-
-pub struct MyDevice {
-    app: ActorContext<'static, App>,
-    led_green: ActorContext<'static, actors::led::Led<LedGreen>>,
-    led_yellow: ActorContext<'static, actors::led::Led<LedYellow>>,
-    led_red: ActorContext<'static, actors::led::Led<LedRed>>,
-    button: ActorContext<'static, Button<ExtiInput<'static, PC13>, ButtonEventDispatcher<App>>>,
-}
-
-static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+static DEVICE: DeviceContext<BlinkyDevice<BSP>> = DeviceContext::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
@@ -183,41 +33,12 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         Dbgmcu::enable_all();
     }
 
-    let button = Input::new(p.PC13, Pull::Down);
-    let button = ExtiInput::new(button, p.EXTI13);
+    let board = BSP::new(p);
 
-    DEVICE.configure(MyDevice {
-        app: ActorContext::new(App::default()),
-        led_green: ActorContext::new(actors::led::Led::new(drivers::led::Led::new(Output::new(
-            p.PB0,
-            Level::Low,
-            Speed::Low,
-        )))),
-        led_yellow: ActorContext::new(actors::led::Led::new(drivers::led::Led::new(Output::new(
-            p.PE1,
-            Level::Low,
-            Speed::Low,
-        )))),
-        led_red: ActorContext::new(actors::led::Led::new(drivers::led::Led::new(Output::new(
-            p.PB14,
-            Level::Low,
-            Speed::Low,
-        )))),
-        button: ActorContext::new(Button::new(button)),
-    });
+    DEVICE.configure(BlinkyDevice::new(BlinkyConfiguration {
+        led: board.0.led_green,
+        control_button: board.0.user_button,
+    }));
 
-    let rng = Rng::new(p.RNG);
-
-    DEVICE
-        .mount(|device| async move {
-            let green = device.led_green.mount((), spawner);
-            let yellow = device.led_yellow.mount((), spawner);
-            let red = device.led_red.mount((), spawner);
-
-            let app = device.app.mount((rng, green, yellow, red), spawner);
-            device.button.mount(app.into(), spawner);
-            app
-        })
-        .await;
-    defmt::info!("Application initialized. Press the blue button to cycle LEDs");
+    DEVICE.mount(|device| device.mount(spawner)).await;
 }

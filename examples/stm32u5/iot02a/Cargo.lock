@@ -165,6 +165,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bsp-blinky-app"
+version = "0.1.0"
+dependencies = [
+ "defmt",
+ "drogue-device",
+ "embassy",
+]
+
+[[package]]
 name = "bxcan"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -489,11 +498,10 @@ dependencies = [
  "drogue-tls",
  "embassy",
  "embassy-hal-common",
+ "embassy-stm32",
  "embedded-hal",
  "futures",
  "heapless",
- "moveslice",
- "nom 6.1.2",
  "rand_core",
 ]
 
@@ -879,6 +887,7 @@ name = "iot02a-blinky"
 version = "0.1.0"
 dependencies = [
  "atomic-polyfill",
+ "bsp-blinky-app",
  "cfg-if",
  "cortex-m",
  "cortex-m-rt",
@@ -961,12 +970,6 @@ checksum = "5aa361d4faea93603064a027415f07bd8e1d5c88c9fbf68bf56a285428fd79ce"
 dependencies = [
  "autocfg",
 ]
-
-[[package]]
-name = "moveslice"
-version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23f6c0f9939049f3f4e606f3c5585c80b099d196f7306603482999ff9377d906"
 
 [[package]]
 name = "nb"

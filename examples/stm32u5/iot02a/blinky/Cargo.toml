@@ -18,11 +18,11 @@ defmt = "0.3"
 defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
-drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "time", "wifi+eswifi"] }
+drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "time", "bsp+b_u585i_iot02a"] }
 cortex-m-rt = "0.7.0"
 cortex-m = "0.7.1"
 
-
+bsp-blinky-app = { path = "../../../apps/blinky" }
 drogue-tls = { version = "0.5.0", default-features = false, features = ["async", "defmt"], optional = true}
 cfg-if = "1.0.0"
 
