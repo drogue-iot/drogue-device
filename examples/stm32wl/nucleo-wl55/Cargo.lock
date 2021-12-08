@@ -441,6 +441,7 @@ dependencies = [
  "embassy",
  "embassy-hal-common",
  "embassy-lora",
+ "embassy-stm32",
  "embedded-hal",
  "futures",
  "heapless",
@@ -802,6 +803,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "lorawan-app"
+version = "0.1.0"
+dependencies = [
+ "defmt",
+ "drogue-device",
+ "embassy",
+ "heapless",
+]
+
+[[package]]
 name = "lorawan-device"
 version = "0.2.0"
 source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=4bff2e0021103adfbccedcbf49dbcd0474adc4b2#4bff2e0021103adfbccedcbf49dbcd0474adc4b2"
@@ -879,6 +890,7 @@ dependencies = [
  "embassy-stm32",
  "embedded-hal",
  "heapless",
+ "lorawan-app",
  "panic-probe",
  "rand_core",
  "void",

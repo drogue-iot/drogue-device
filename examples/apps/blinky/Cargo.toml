@@ -9,7 +9,7 @@ edition = "2018"
 name = "bsp-blinky-app"
 version = "0.1.0"
 description = "BSP Blinky App"
-keywords = ["bsp"]
+keywords = ["ignore"]
 
 [dependencies]
 defmt = "0.3"

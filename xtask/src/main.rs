@@ -207,6 +207,9 @@ fn generate_examples_page() -> Result<(), anyhow::Error> {
                     .unwrap_or("Awesome example");
                 for package_kw in keywords {
                     if let toml::Value::String(s) = package_kw {
+                        if s == "ignore" {
+                            break;
+                        }
                         if s == kw {
                             entries.push(format!(
                             "* link:https://github.com/drogue-iot/drogue-device/tree/main/{}[{}]",

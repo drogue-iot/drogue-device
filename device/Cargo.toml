@@ -35,6 +35,10 @@ moveslice = { version = "2.0", optional = true }
 drogue-tls = { version = "0.5.0", default-features = false, features = ["async"], optional = true}
 #drogue-tls = {path = "../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
 rand_core = { version = "0.6.2", default-features = false }
+rand = { version = "0.8.4", default-features = false, features = ["small_rng"], optional = true }
+
+# If needed
+cortex-m = { version = "0.7", features = ["inline-asm"], optional = true }
 
 # Utilities
 futures = { version = "0.3", default-features = false }
@@ -74,4 +78,7 @@ tls = ["drogue-tls"]
 
 "bsp+b_u585i_iot02a" = [ "embassy-stm32" ]
 "bsp+nucleo_h743zi" = [ "embassy-stm32"]
+"bsp+nucleo_wl55" = [ "embassy-stm32", "embassy-stm32/subghz", "embassy-stm32/unstable-pac" ]
 "bsp+microbit" = [ "embassy-nrf" ]
+"bsp+b_l072z_lrwan1" = [ "embassy-stm32" ]
+"bsp+rak811" = [ "embassy-stm32", "rand", "embassy-stm32/unstable-pac", "cortex-m" ]
