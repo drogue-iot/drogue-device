@@ -7,6 +7,7 @@ edition = "2018"
 name = "drogue-temperature"
 description = "Application reporting temperature data to Drogue Cloud"
 version = "0.1.0"
+keywords = ["ignore"]
 
 [workspace]
 

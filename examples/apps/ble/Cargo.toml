@@ -6,6 +6,7 @@ edition = "2018"
 name = "ble"
 version = "0.1.0"
 description = "Bluetooth Low Energy (BLE) GATT services and actors"
+keywords = ["ignore"]
 
 [workspace]
 

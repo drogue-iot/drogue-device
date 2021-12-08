@@ -453,6 +453,7 @@ dependencies = [
  "embassy",
  "embassy-hal-common",
  "embassy-lora",
+ "embassy-stm32",
  "embedded-hal",
  "futures",
  "heapless 0.7.8",
@@ -864,9 +865,20 @@ dependencies = [
  "embassy-stm32",
  "embedded-hal",
  "heapless 0.6.1",
+ "lorawan-app",
  "panic-probe",
  "rand_core",
  "void",
+]
+
+[[package]]
+name = "lorawan-app"
+version = "0.1.0"
+dependencies = [
+ "defmt",
+ "drogue-device",
+ "embassy",
+ "heapless 0.7.8",
 ]
 
 [[package]]
