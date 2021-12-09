@@ -1,8 +1,19 @@
+use crate::bsp::Board;
 use crate::drivers::{button::Button, led::matrix::LedMatrix as LedMatrixDriver, ActiveLow};
+use crate::{
+    domain::temperature::Celsius,
+    domain::{temperature::Temperature, SensorAcquisition},
+    traits::sensors::temperature::TemperatureSensor,
+};
+use core::future::Future;
 use embassy_nrf::{
     gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},
     gpiote::PortInput,
-    peripherals::P0_14,
+    interrupt,
+    peripherals::{
+        P0_01, P0_09, P0_10, P0_13, P0_14, P0_23, PPI_CH0, PPI_CH1, RNG, TIMER0, UARTE0,
+    },
+    temp::Temp,
 };
 
 pub type LedMatrix = LedMatrixDriver<Output<'static, AnyPin>, 5, 5>;
@@ -17,10 +28,21 @@ pub struct Microbit {
     pub led_matrix: LedMatrix,
     pub button_a: ButtonA,
     pub button_b: ButtonB,
+    pub uarte0: UARTE0,
+    pub timer0: TIMER0,
+    pub p0_01: P0_01,
+    pub p0_09: P0_09,
+    pub p0_10: P0_10,
+    pub p0_13: P0_13,
+    pub ppi_ch0: PPI_CH0,
+    pub ppi_ch1: PPI_CH1,
+    pub temp: TemperatureMonitor,
+    pub rng: RNG,
 }
 
-impl Microbit {
-    pub fn new(p: embassy_nrf::Peripherals) -> Self {
+impl Board for Microbit {
+    type Peripherals = embassy_nrf::Peripherals;
+    fn new(p: embassy_nrf::Peripherals) -> Self {
         // LED Matrix
         let rows = [
             output_pin(p.P0_21.degrade()),
@@ -38,14 +60,58 @@ impl Microbit {
             output_pin(p.P0_30.degrade()),
         ];
 
+        let temp_irq = interrupt::take!(TEMP);
+
         Self {
             led_matrix: LedMatrixDriver::new(rows, cols),
             button_a: Button::new(PortInput::new(Input::new(p.P0_14, Pull::Up))),
             button_b: Button::new(PortInput::new(Input::new(p.P0_23, Pull::Up))),
+            uarte0: p.UARTE0,
+            timer0: p.TIMER0,
+            p0_01: p.P0_01,
+            p0_09: p.P0_09,
+            p0_10: p.P0_10,
+            p0_13: p.P0_13,
+            ppi_ch0: p.PPI_CH0,
+            ppi_ch1: p.PPI_CH1,
+            temp: TemperatureMonitor::new(Temp::new(p.TEMP, temp_irq)),
+            rng: p.RNG,
         }
     }
 }
 
 fn output_pin(pin: AnyPin) -> Output<'static, AnyPin> {
     Output::new(pin, Level::Low, OutputDrive::Standard)
+}
+
+pub struct TemperatureMonitor {
+    t: Temp<'static>,
+}
+
+impl TemperatureMonitor {
+    pub fn new(t: Temp<'static>) -> Self {
+        Self { t }
+    }
+}
+
+impl TemperatureSensor<Celsius> for TemperatureMonitor {
+    type Error = ();
+
+    type CalibrateFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm;
+    fn calibrate<'m>(&'m mut self) -> Self::CalibrateFuture<'m> {
+        async move { Ok(()) }
+    }
+
+    type ReadFuture<'m> =
+        impl Future<Output = Result<SensorAcquisition<Celsius>, Self::Error>> + 'm;
+
+    fn temperature<'m>(&'m mut self) -> Self::ReadFuture<'m> {
+        async move {
+            let t = self.t.read().await;
+            Ok(SensorAcquisition {
+                temperature: Temperature::new(t.to_num::<f32>()),
+                relative_humidity: 0.0,
+            })
+        }
+    }
 }

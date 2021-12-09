@@ -6,13 +6,14 @@ mod serial;
 
 use async_io::Async;
 use drogue_device::{
-    actors::wifi::{esp8266::*, AdapterActor},
-    drivers::wifi::esp8266::*,
+    actors::wifi::{esp8266::*, AdapterRequest},
+    domain::temperature::Celsius,
     traits::wifi::*,
     *,
 };
 use drogue_temperature::*;
 use embassy::io::FromStdIo;
+use embassy::time::Duration;
 use embedded_hal::digital::v2::OutputPin;
 use futures::io::BufReader;
 use nix::sys::termios;
@@ -20,47 +21,46 @@ use serial::*;
 
 const WIFI_SSID: &str = drogue::config!("wifi-ssid");
 const WIFI_PSK: &str = drogue::config!("wifi-password");
-const USERNAME: &str = drogue::config!("http-username");
-const PASSWORD: &str = drogue::config!("http-password");
-
-cfg_if::cfg_if! {
-    if #[cfg(feature = "tls")] {
-        use rand::rngs::OsRng;
-        use drogue_tls::{Aes128GcmSha256};
-        use drogue_device::actors::net::TlsConnectionFactory;
-
-        const HOST: &str = "http.sandbox.drogue.cloud";
-        const PORT: u16 = 443;
-        static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
-    } else {
-        use drogue_device::Address;
-
-        const HOST: &str = "localhost";
-        const PORT: u16 = 8088;
-    }
-}
 
 type UART = FromStdIo<BufReader<Async<SerialPort>>>;
 type ENABLE = DummyPin;
 type RESET = DummyPin;
 
-#[cfg(feature = "tls")]
-type ConnectionFactory = TlsConnectionFactory<
-    'static,
-    AdapterActor<Esp8266Controller<'static>>,
-    Aes128GcmSha256,
-    OsRng,
-    1,
->;
+pub struct StdBoard;
 
-#[cfg(not(feature = "tls"))]
-type ConnectionFactory = Address<'static, AdapterActor<Esp8266Controller<'static>>>;
-
-pub struct MyDevice {
-    wifi: Esp8266Wifi<UART, ENABLE, RESET>,
-    app: ActorContext<'static, App<ConnectionFactory>>,
+impl TemperatureBoard for StdBoard {
+    type NetworkPackage = WifiDriver;
+    type Network = <WifiDriver as Package>::Primary;
+    type TemperatureScale = Celsius;
+    type SensorReadyIndicator = AlwaysReady;
+    type Sensor = FakeSensor;
+    type SendTrigger = TimeTrigger;
+    #[cfg(feature = "tls")]
+    type Rng = rand::rngs::OsRng;
 }
-static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+
+pub struct WifiDriver(Esp8266Wifi<UART, ENABLE, RESET>);
+
+impl Package for WifiDriver {
+    type Configuration = <Esp8266Wifi<UART, ENABLE, RESET> as Package>::Configuration;
+    type Primary = <Esp8266Wifi<UART, ENABLE, RESET> as Package>::Primary;
+
+    fn mount<S: ActorSpawner>(
+        &'static self,
+        config: Self::Configuration,
+        spawner: S,
+    ) -> Address<Self::Primary> {
+        let wifi = self.0.mount(config, spawner);
+        wifi.notify(AdapterRequest::Join(Join::Wpa {
+            ssid: WIFI_SSID.trim_end(),
+            password: WIFI_PSK.trim_end(),
+        }))
+        .unwrap();
+        wifi
+    }
+}
+
+static DEVICE: DeviceContext<TemperatureDevice<StdBoard>> = DeviceContext::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner) {
@@ -75,44 +75,20 @@ async fn main(spawner: embassy::executor::Spawner) {
     let port = BufReader::new(port);
     let port = FromStdIo::new(port);
 
-    DEVICE.configure(MyDevice {
-        wifi: Esp8266Wifi::new(port, DummyPin {}, DummyPin {}),
-        app: ActorContext::new(App::new(
-            HOST,
-            PORT,
-            USERNAME.trim_end(),
-            PASSWORD.trim_end(),
-        )),
-    });
+    DEVICE.configure(TemperatureDevice::new(TemperatureBoardConfig {
+        network: WifiDriver(Esp8266Wifi::new(port, DummyPin {}, DummyPin {})),
+        send_trigger: TimeTrigger(Duration::from_secs(10)),
+        sensor: FakeSensor(22.0),
+        sensor_ready: AlwaysReady,
+    }));
 
-    let app = DEVICE
-        .mount(|device| async move {
-            let mut wifi = device.wifi.mount((), spawner);
-            wifi.join(Join::Wpa {
-                ssid: WIFI_SSID.trim_end(),
-                password: WIFI_PSK.trim_end(),
-            })
-            .await
-            .expect("Error joining wifi");
-            log::info!("WiFi network joined");
-
-            let factory = wifi;
-            #[cfg(feature = "tls")]
-            let factory =
-                TlsConnectionFactory::new(factory, OsRng, [unsafe { &mut TLS_BUFFER }; 1]);
-
-            device.app.mount(factory, spawner)
-        })
+    #[cfg(feature = "tls")]
+    DEVICE
+        .mount(|device| device.mount(spawner, (), rand::rngs::OsRng))
         .await;
 
-    app.request(Command::Update(TemperatureData {
-        temp: Some(22.0),
-        hum: None,
-        geoloc: None,
-    }))
-    .unwrap()
-    .await;
-    app.request(Command::Send).unwrap().await;
+    #[cfg(not(feature = "tls"))]
+    DEVICE.mount(|device| device.mount(spawner, ())).await;
 }
 
 pub struct DummyPin {}

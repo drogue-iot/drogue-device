@@ -42,9 +42,9 @@ embedded-hal = { version = "0.2.4", features = ["unproven"] }
 default = [
     "b-l4s5i-iot01a",
 ]
-tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls"]
-b-l4s5i-iot01a = ["embassy-stm32/stm32l4s5vi"]
-b-l475e-iot01a = ["embassy-stm32/stm32l475vg"]
+tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls", "drogue-temperature/tls"]
+b-l4s5i-iot01a = ["embassy-stm32/stm32l4s5vi", "drogue-device/bsp+b_l4s5i_iot01a"]
+b-l475e-iot01a = ["embassy-stm32/stm32l475vg", "drogue-device/bsp+b_l475e_iot01a"]
 
 [patch.crates-io]
 embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }

@@ -5,7 +5,7 @@ use core::marker::PhantomData;
 use core::ops::{Add, Div, Sub};
 
 /// Trait representing a temperature scale.
-pub trait TemperatureScale {
+pub trait TemperatureScale: Send {
     const LETTER: char;
 }
 

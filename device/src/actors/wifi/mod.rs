@@ -58,7 +58,7 @@ where
     }
 }
 
-impl<N: Adapter> TcpActor<AdapterActor<N>> for AdapterActor<N> {
+impl<N: Adapter> TcpActor for AdapterActor<N> {
     type SocketHandle = u8;
 
     fn open<'m>() -> AdapterRequest<'m> {
@@ -79,6 +79,13 @@ impl<N: Adapter> TcpActor<AdapterActor<N>> for AdapterActor<N> {
     }
     fn close<'m>(handle: Self::SocketHandle) -> AdapterRequest<'m> {
         AdapterRequest::Close(handle)
+    }
+
+    fn into_response(response: Self::Response) -> Option<TcpResponse<u8>> {
+        match response {
+            Some(AdapterResponse::Tcp(r)) => Some(r),
+            _ => None,
+        }
     }
 }
 

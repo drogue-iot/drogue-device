@@ -13,21 +13,19 @@ use crate::{
 };
 
 // Trait that defines the mapping from API to request and response to result.
-pub trait TcpActor<A>
-where
-    A: Actor,
-    A::Response: Into<TcpResponse<Self::SocketHandle>>,
-{
+pub trait TcpActor: Actor {
     type SocketHandle: Copy;
-    fn open<'m>() -> A::Message<'m>;
+    fn open<'m>() -> Self::Message<'m>;
     fn connect<'m>(
         handle: Self::SocketHandle,
         proto: IpProtocol,
         dst: SocketAddress,
-    ) -> A::Message<'m>;
-    fn write<'m>(handle: Self::SocketHandle, buf: &'m [u8]) -> A::Message<'m>;
-    fn read<'m>(handle: Self::SocketHandle, buf: &'m mut [u8]) -> A::Message<'m>;
-    fn close<'m>(handle: Self::SocketHandle) -> A::Message<'m>;
+    ) -> Self::Message<'m>;
+    fn write<'m>(handle: Self::SocketHandle, buf: &'m [u8]) -> Self::Message<'m>;
+    fn read<'m>(handle: Self::SocketHandle, buf: &'m mut [u8]) -> Self::Message<'m>;
+    fn close<'m>(handle: Self::SocketHandle) -> Self::Message<'m>;
+
+    fn into_response(response: Self::Response) -> Option<TcpResponse<Self::SocketHandle>>;
 }
 
 // Response type that TcpActors must be able to produce form their Response message.
@@ -86,11 +84,12 @@ pub enum TcpRequest<'m, H> {
 
 impl<'a, T> Address<'a, T>
 where
-    T: Actor + TcpActor<T> + 'a,
-    T::Response: Into<TcpResponse<T::SocketHandle>>,
+    T: TcpActor + 'a,
 {
     pub async fn open(&self) -> Result<T::SocketHandle, TcpError> {
         let m = T::open();
-        Address::request(self, m).unwrap().await.into().open()
+        T::into_response(Address::request(self, m).unwrap().await)
+            .unwrap()
+            .open()
     }
 }

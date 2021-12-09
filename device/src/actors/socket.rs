@@ -1,6 +1,6 @@
-use super::tcp::{TcpActor, TcpResponse};
+use super::tcp::TcpActor;
 use crate::{
-    kernel::actor::{Actor, Address},
+    kernel::actor::Address,
     traits::{
         ip::{IpProtocol, SocketAddress},
         tcp::TcpError,
@@ -11,8 +11,7 @@ use crate::{
 #[derive(Clone, Copy)]
 pub struct Socket<'a, A>
 where
-    A: Actor + TcpActor<A> + 'static,
-    A::Response: Into<TcpResponse<A::SocketHandle>>,
+    A: TcpActor + 'static,
 {
     address: Address<'a, A>,
     handle: A::SocketHandle,
@@ -20,8 +19,7 @@ where
 
 impl<'a, A> Socket<'a, A>
 where
-    A: Actor + TcpActor<A> + 'static,
-    A::Response: Into<TcpResponse<A::SocketHandle>>,
+    A: TcpActor + 'static,
 {
     pub fn new(address: Address<'a, A>, handle: A::SocketHandle) -> Socket<'a, A> {
         Self { address, handle }
@@ -33,30 +31,37 @@ where
         dst: SocketAddress,
     ) -> Result<(), TcpError> {
         let m = A::connect(self.handle, proto, dst);
-        self.address.request(m).unwrap().await.into().connect()
+        A::into_response(self.address.request(m).unwrap().await)
+            .unwrap()
+            .connect()
     }
 
     pub async fn write<'m>(&'m mut self, buf: &'m [u8]) -> Result<usize, TcpError> {
         let m = A::write(self.handle, buf);
-        self.address.request(m).unwrap().await.into().write()
+        A::into_response(self.address.request(m).unwrap().await)
+            .unwrap()
+            .write()
     }
 
     pub async fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Result<usize, TcpError> {
         let m = A::read(self.handle, buf);
-        self.address.request(m).unwrap().await.into().read()
+        A::into_response(self.address.request(m).unwrap().await)
+            .unwrap()
+            .read()
     }
 
     pub async fn close<'m>(self) -> Result<(), TcpError> {
         let m = A::close(self.handle);
-        self.address.request(m).unwrap().await.into().close()
+        A::into_response(self.address.request(m).unwrap().await)
+            .unwrap()
+            .close()
     }
 }
 
 #[cfg(feature = "tls")]
 mod tls {
     use super::Socket;
-    use crate::actors::tcp::{TcpActor, TcpResponse};
-    use crate::kernel::actor::Actor;
+    use crate::actors::tcp::TcpActor;
     use core::future::Future;
     use drogue_tls::{
         traits::{AsyncRead, AsyncWrite},
@@ -65,8 +70,7 @@ mod tls {
 
     impl<'a, A> AsyncRead for Socket<'a, A>
     where
-        A: Actor + TcpActor<A> + 'static,
-        A::Response: Into<TcpResponse<A::SocketHandle>>,
+        A: TcpActor + 'static,
     {
         type ReadFuture<'m>
         where
@@ -83,8 +87,7 @@ mod tls {
 
     impl<'a, A> AsyncWrite for Socket<'a, A>
     where
-        A: Actor + TcpActor<A> + 'static,
-        A::Response: Into<TcpResponse<A::SocketHandle>>,
+        A: TcpActor + 'static,
     {
         type WriteFuture<'m>
         where

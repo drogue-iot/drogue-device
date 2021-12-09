@@ -1,4 +1,5 @@
-use super::actor::{Actor, ActorSpawner, Address};
+use super::actor::{Actor, ActorContext, ActorSpawner, Address};
+use super::signal::SignalSlot;
 
 /// The package trait provides a way to bundle one or more actors and
 /// additional state in a package that can be used by other components.
@@ -19,4 +20,19 @@ pub trait Package {
         config: Self::Configuration,
         spawner: S,
     ) -> Address<Self::Primary>;
+}
+
+impl<A: Actor + 'static, const QUEUE_SIZE: usize> Package for ActorContext<'static, A, QUEUE_SIZE>
+where
+    [SignalSlot<<A as Actor>::Response>; QUEUE_SIZE]: Default,
+{
+    type Primary = A;
+    type Configuration = A::Configuration;
+    fn mount<S: ActorSpawner>(
+        &'static self,
+        config: Self::Configuration,
+        spawner: S,
+    ) -> Address<Self::Primary> {
+        self.mount(config, spawner)
+    }
 }

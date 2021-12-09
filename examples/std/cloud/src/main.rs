@@ -2,25 +2,24 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use drogue_device::{actors::net::*, actors::tcp::std::*, *};
+use drogue_device::{actors::tcp::std::*, domain::temperature::Celsius, *};
 use drogue_temperature::*;
-use drogue_tls::Aes128GcmSha256;
-use embassy::time::{Duration, Timer};
+use embassy::time::Duration;
 use rand::rngs::OsRng;
 
-const USERNAME: &str = drogue::config!("http-username");
-const PASSWORD: &str = drogue::config!("http-password");
-const HOST: &str = "http.sandbox.drogue.cloud";
-const PORT: u16 = 443;
+pub struct StdBoard;
 
-pub struct MyDevice {
-    network: ActorContext<'static, StdTcpActor>,
-    app: ActorContext<
-        'static,
-        App<TlsConnectionFactory<'static, StdTcpActor, Aes128GcmSha256, OsRng, 1>>,
-    >,
+impl TemperatureBoard for StdBoard {
+    type NetworkPackage = ActorContext<'static, StdTcpActor>;
+    type Network = StdTcpActor;
+    type TemperatureScale = Celsius;
+    type SensorReadyIndicator = AlwaysReady;
+    type Sensor = FakeSensor;
+    type SendTrigger = TimeTrigger;
+    type Rng = OsRng;
 }
-static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+
+static DEVICE: DeviceContext<TemperatureDevice<StdBoard>> = DeviceContext::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner) {
@@ -29,37 +28,14 @@ async fn main(spawner: embassy::executor::Spawner) {
         .format_timestamp_nanos()
         .init();
 
-    DEVICE.configure(MyDevice {
+    DEVICE.configure(TemperatureDevice::new(TemperatureBoardConfig {
         network: ActorContext::new(StdTcpActor::new()),
-        app: ActorContext::new(App::new(
-            HOST,
-            PORT,
-            USERNAME.trim_end(),
-            PASSWORD.trim_end(),
-        )),
-    });
+        send_trigger: TimeTrigger(Duration::from_secs(10)),
+        sensor: FakeSensor(22.0),
+        sensor_ready: AlwaysReady,
+    }));
 
-    static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
-    let app = DEVICE
-        .mount(|device| async move {
-            let network = device.network.mount((), spawner);
-            device.app.mount(
-                TlsConnectionFactory::new(network, OsRng, [unsafe { &mut TLS_BUFFER }; 1]),
-                spawner,
-            )
-        })
+    DEVICE
+        .mount(|device| device.mount(spawner, (), OsRng))
         .await;
-
-    loop {
-        app.request(Command::Update(TemperatureData {
-            temp: Some(22.0),
-            hum: None,
-            geoloc: None,
-        }))
-        .unwrap()
-        .await;
-
-        app.request(Command::Send).unwrap().await;
-        Timer::after(Duration::from_secs(5)).await;
-    }
 }
