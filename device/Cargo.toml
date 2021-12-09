@@ -77,6 +77,8 @@ wifi = []
 tls = ["drogue-tls"]
 
 "bsp+b_u585i_iot02a" = [ "embassy-stm32" ]
+"bsp+b_l4s5i_iot01a" = [ "embassy-stm32" ]
+"bsp+b_l475e_iot01a" = [ "embassy-stm32" ]
 "bsp+nucleo_h743zi" = [ "embassy-stm32"]
 "bsp+nucleo_wl55" = [ "embassy-stm32", "embassy-stm32/subghz", "embassy-stm32/unstable-pac" ]
 "bsp+microbit" = [ "embassy-nrf" ]

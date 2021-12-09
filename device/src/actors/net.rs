@@ -1,7 +1,7 @@
 use super::socket::*;
 use super::tcp::*;
 use crate::traits::{ip::*, tcp::*};
-use crate::{Actor, Address};
+use crate::Address;
 use core::future::Future;
 
 /// Trait for network connections
@@ -45,8 +45,7 @@ pub trait NetworkConnection {
 
 impl<'a, A> ConnectionFactory for Address<'a, A>
 where
-    A: Actor + TcpActor<A> + 'static,
-    A::Response: Into<TcpResponse<A::SocketHandle>>,
+    A: TcpActor + 'static,
 {
     type Connection = Socket<'a, A>;
     type ConnectFuture<'m>
@@ -78,8 +77,7 @@ where
 
 impl<'a, A> NetworkConnection for Socket<'a, A>
 where
-    A: Actor + TcpActor<A> + 'static,
-    A::Response: Into<TcpResponse<A::SocketHandle>>,
+    A: TcpActor + 'static,
 {
     type WriteFuture<'m>
     where
@@ -124,11 +122,7 @@ pub use tls::*;
 mod tls {
     use super::NetworkConnection;
     use super::NetworkError;
-    use crate::actors::{
-        socket::*,
-        tcp::{TcpActor, TcpResponse},
-    };
-    use crate::kernel::actor::Actor;
+    use crate::actors::{socket::*, tcp::TcpActor};
     use crate::traits::ip::{IpAddress, IpProtocol, SocketAddress};
     use crate::Address;
     use core::cell::UnsafeCell;
@@ -171,8 +165,7 @@ mod tls {
 
     pub struct TlsConnectionFactory<'a, A, CipherSuite, RNG, const N: usize>
     where
-        A: Actor + TcpActor<A> + 'static,
-        A::Response: Into<TcpResponse<A::SocketHandle>>,
+        A: TcpActor + 'static,
         RNG: CryptoRng + RngCore + 'a,
         CipherSuite: TlsCipherSuite + 'static,
     {
@@ -184,8 +177,7 @@ mod tls {
 
     impl<'a, A, CipherSuite, RNG, const N: usize> TlsConnectionFactory<'a, A, CipherSuite, RNG, N>
     where
-        A: Actor + TcpActor<A> + 'static,
-        A::Response: Into<TcpResponse<A::SocketHandle>>,
+        A: TcpActor + 'static,
         RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'a,
     {
@@ -214,8 +206,7 @@ mod tls {
     impl<'a, A, CipherSuite, RNG, const N: usize> super::ConnectionFactory
         for TlsConnectionFactory<'a, A, CipherSuite, RNG, N>
     where
-        A: Actor + TcpActor<A> + 'static,
-        A::Response: Into<TcpResponse<A::SocketHandle>>,
+        A: TcpActor + 'static,
         RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'a,
     {
@@ -285,8 +276,7 @@ mod tls {
 
     pub struct TlsNetworkConnection<'a, A, CipherSuite>
     where
-        A: Actor + TcpActor<A> + 'static,
-        A::Response: Into<TcpResponse<A::SocketHandle>>,
+        A: TcpActor + 'static,
         CipherSuite: TlsCipherSuite + 'static,
     {
         buffer: *const TlsBuffer<'a>,
@@ -295,8 +285,7 @@ mod tls {
 
     impl<'a, A, CipherSuite> TlsNetworkConnection<'a, A, CipherSuite>
     where
-        A: Actor + TcpActor<A> + 'static,
-        A::Response: Into<TcpResponse<A::SocketHandle>>,
+        A: TcpActor + 'static,
         CipherSuite: TlsCipherSuite + 'a,
     {
         pub fn new(
@@ -309,8 +298,7 @@ mod tls {
 
     impl<'a, A, CipherSuite> NetworkConnection for TlsNetworkConnection<'a, A, CipherSuite>
     where
-        A: Actor + TcpActor<A> + 'static,
-        A::Response: Into<TcpResponse<A::SocketHandle>>,
+        A: TcpActor + 'static,
         CipherSuite: TlsCipherSuite + 'a,
     {
         type WriteFuture<'m>

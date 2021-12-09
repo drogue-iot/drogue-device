@@ -97,7 +97,7 @@ impl Actor for StdTcpActor {
     }
 }
 
-impl TcpActor<StdTcpActor> for StdTcpActor {
+impl TcpActor for StdTcpActor {
     type SocketHandle = u8;
 
     fn open<'m>() -> TcpRequest<'m, u8> {
@@ -119,13 +119,8 @@ impl TcpActor<StdTcpActor> for StdTcpActor {
     fn close<'m>(handle: Self::SocketHandle) -> TcpRequest<'m, u8> {
         TcpRequest::Close(handle)
     }
-}
 
-impl Into<TcpResponse<u8>> for Option<TcpResponse<u8>> {
-    fn into(self) -> TcpResponse<u8> {
-        match self {
-            Some(r) => r,
-            _ => panic!("cannot convert response to tcp response"),
-        }
+    fn into_response(response: Self::Response) -> Option<TcpResponse<u8>> {
+        response
     }
 }

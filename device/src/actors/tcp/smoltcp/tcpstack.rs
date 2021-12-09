@@ -30,15 +30,6 @@ impl SmolResponse {
     }
 }
 
-impl Into<TcpResponse<SmolSocketHandle>> for Option<SmolResponse> {
-    fn into(self) -> TcpResponse<SmolSocketHandle> {
-        match self {
-            Some(SmolResponse::Tcp(r)) => r,
-            _ => panic!("cannot convert response to tcp response"),
-        }
-    }
-}
-
 impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usize> Actor
     for SmolTcpStack<'buffer, POOL_SIZE, BACKLOG, BUF_SIZE>
 {
@@ -94,8 +85,7 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
     }
 }
 
-impl<'a, 'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usize>
-    TcpActor<SmolTcpStack<'buffer, POOL_SIZE, BACKLOG, BUF_SIZE>>
+impl<'a, 'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usize> TcpActor
     for SmolTcpStack<'buffer, POOL_SIZE, BACKLOG, BUF_SIZE>
 {
     type SocketHandle = SmolSocketHandle;
@@ -118,6 +108,13 @@ impl<'a, 'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: 
     }
     fn close<'m>(handle: Self::SocketHandle) -> SmolRequest<'m> {
         SmolRequest::Close(handle)
+    }
+
+    fn into_response(response: Self::Response) -> Option<TcpResponse<Self::SocketHandle>> {
+        match response {
+            Some(SmolResponse::Tcp(r)) => Some(r),
+            _ => None,
+        }
     }
 }
 

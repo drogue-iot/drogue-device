@@ -422,8 +422,12 @@ name = "drogue-temperature"
 version = "0.1.0"
 dependencies = [
  "drogue-device",
+ "drogue-tls",
+ "embassy",
+ "embedded-hal",
  "heapless",
  "log",
+ "rand_core",
  "serde 1.0.130",
  "serde-json-core",
 ]

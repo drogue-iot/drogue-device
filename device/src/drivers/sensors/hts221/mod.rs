@@ -1,6 +1,7 @@
 mod register;
 use crate::domain::{temperature::Celsius, SensorAcquisition};
-use crate::traits::i2c::I2cAddress;
+use crate::traits::{i2c::I2cAddress, sensors::temperature::TemperatureSensor};
+use core::future::Future;
 use embassy::traits::i2c::*;
 use register::calibration::*;
 use register::ctrl1::{BlockDataUpdate, Ctrl1, OutputDataRate};
@@ -17,71 +18,69 @@ pub enum Hts221Error<E> {
     NotCalibrated,
 }
 
-pub struct Hts221 {
+pub struct Hts221<I>
+where
+    I: I2c<SevenBitAddress> + 'static,
+    <I as I2c>::Error: Send,
+{
+    i2c: I,
     address: I2cAddress,
     calibration: Option<Calibration>,
 }
 
-impl Hts221 {
-    pub fn new() -> Self {
+impl<I> Hts221<I>
+where
+    I: I2c<SevenBitAddress> + 'static,
+    <I as I2c>::Error: Send,
+{
+    pub fn new(i2c: I) -> Self {
         Self {
+            i2c,
             address: I2cAddress::new(ADDR),
             calibration: None,
         }
     }
 
-    pub async fn initialize<I: I2c<SevenBitAddress>>(
-        &mut self,
-        i2c: &mut I,
-    ) -> Result<(), Hts221Error<I::Error>>
-    where
-        <I as I2c>::Error: Send,
-    {
-        Ctrl2::modify(self.address, i2c, |reg| {
+    pub async fn initialize(&mut self) -> Result<(), Hts221Error<I::Error>> {
+        Ctrl2::modify(self.address, &mut self.i2c, |reg| {
             reg.boot();
         })
         .await?;
 
-        Ctrl1::modify(self.address, i2c, |reg| {
+        Ctrl1::modify(self.address, &mut self.i2c, |reg| {
             reg.power_active()
                 .output_data_rate(OutputDataRate::Hz1)
                 .block_data_update(BlockDataUpdate::MsbLsbReading);
         })
         .await?;
 
-        Ctrl3::modify(self.address, i2c, |reg| {
+        Ctrl3::modify(self.address, &mut self.i2c, |reg| {
             reg.enable(true);
         })
         .await?;
 
         loop {
             // Ensure status is emptied
-            if let Ok(status) = Status::read(self.address, i2c).await {
+            if let Ok(status) = Status::read(self.address, &mut self.i2c).await {
                 if !status.any_available() {
                     break;
                 }
             }
-            Hout::read(self.address, i2c).await?;
-            Tout::read(self.address, i2c).await?;
+            Hout::read(self.address, &mut self.i2c).await?;
+            Tout::read(self.address, &mut self.i2c).await?;
         }
 
         self.calibration
-            .replace(Calibration::read(self.address, i2c).await?);
+            .replace(Calibration::read(self.address, &mut self.i2c).await?);
         Ok(())
     }
 
-    pub async fn read<I: I2c<SevenBitAddress>>(
-        &mut self,
-        i2c: &mut I,
-    ) -> Result<SensorAcquisition<Celsius>, Hts221Error<I::Error>>
-    where
-        <I as I2c>::Error: Send,
-    {
+    pub async fn read(&mut self) -> Result<SensorAcquisition<Celsius>, Hts221Error<I::Error>> {
         if let Some(calibration) = &self.calibration {
-            let t_out = Tout::read(self.address, i2c).await? as i16;
+            let t_out = Tout::read(self.address, &mut self.i2c).await? as i16;
             let temperature = calibration.calibrated_temperature(t_out);
 
-            let h_out = Hout::read(self.address, i2c).await?;
+            let h_out = Hout::read(self.address, &mut self.i2c).await?;
             let relative_humidity = calibration.calibrated_humidity(h_out);
 
             Ok(SensorAcquisition {
@@ -91,6 +90,32 @@ impl Hts221 {
         } else {
             Err(Hts221Error::NotCalibrated)
         }
+    }
+}
+
+impl<I> TemperatureSensor<Celsius> for Hts221<I>
+where
+    I: I2c<SevenBitAddress> + 'static,
+    <I as I2c>::Error: Send,
+{
+    type Error = Hts221Error<<I as I2c>::Error>;
+
+    type CalibrateFuture<'m>
+    where
+        I: 'm,
+    = impl Future<Output = Result<(), Self::Error>> + 'm;
+
+    fn calibrate<'m>(&'m mut self) -> Self::CalibrateFuture<'m> {
+        self.initialize()
+    }
+
+    type ReadFuture<'m>
+    where
+        I: 'm,
+    = impl Future<Output = Result<SensorAcquisition<Celsius>, Self::Error>> + 'm;
+
+    fn temperature<'m>(&'m mut self) -> Self::ReadFuture<'m> {
+        self.read()
     }
 }
 

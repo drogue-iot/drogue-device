@@ -489,6 +489,7 @@ dependencies = [
  "drogue-tls",
  "embassy",
  "embassy-hal-common",
+ "embassy-stm32",
  "embedded-hal",
  "futures",
  "heapless",
@@ -515,7 +516,11 @@ version = "0.1.0"
 dependencies = [
  "defmt",
  "drogue-device",
+ "drogue-tls",
+ "embassy",
+ "embedded-hal",
  "heapless",
+ "rand_core",
  "serde 1.0.130",
  "serde-json-core",
 ]

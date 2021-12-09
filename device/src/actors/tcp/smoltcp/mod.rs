@@ -17,7 +17,7 @@ pub struct SmolTcp<
 > {
     driver: ActorContext<'static, SmolTcpStack<'static, POOL_SIZE, BACKLOG, BUF_SIZE>, 4>,
     embassy_net: ActorContext<'static, EmbassyNetTask, 1>,
-    config: UnsafeCell<Option<CONFIG>>,
+    config: UnsafeCell<CONFIG>,
     resources: UnsafeCell<StackResources<1, 2, 8>>,
     device: UnsafeCell<DEVICE>,
 }
@@ -30,11 +30,11 @@ impl<
         const BUF_SIZE: usize,
     > SmolTcp<DEVICE, CONFIG, POOL_SIZE, BACKLOG, BUF_SIZE>
 {
-    pub fn new(device: DEVICE) -> Self {
+    pub fn new(device: DEVICE, config: CONFIG) -> Self {
         Self {
             driver: ActorContext::new(SmolTcpStack::new()),
             embassy_net: ActorContext::new(EmbassyNetTask),
-            config: UnsafeCell::new(None),
+            config: UnsafeCell::new(config),
             resources: UnsafeCell::new(StackResources::new()),
             device: UnsafeCell::new(device),
         }
@@ -50,18 +50,17 @@ impl<
     > Package for SmolTcp<DEVICE, CONFIG, POOL_SIZE, BACKLOG, BUF_SIZE>
 {
     type Primary = SmolTcpStack<'static, POOL_SIZE, BACKLOG, BUF_SIZE>;
-    type Configuration = CONFIG;
+    type Configuration = ();
 
     fn mount<S: ActorSpawner>(
         &'static self,
-        config: Self::Configuration,
+        _: Self::Configuration,
         spawner: S,
     ) -> Address<Self::Primary> {
         unsafe {
-            (&mut *self.config.get()).replace(config);
             embassy_net::init(
                 &mut *self.device.get(),
-                (&mut *self.config.get()).as_mut().unwrap(),
+                &mut *self.config.get(),
                 &mut *self.resources.get(),
             );
         }

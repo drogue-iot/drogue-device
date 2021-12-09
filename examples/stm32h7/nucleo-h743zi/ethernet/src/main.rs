@@ -9,65 +9,40 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use drogue_device::{
-    actors::net::*,
-    actors::{button::*, tcp::smoltcp::SmolTcp},
-    drogue, ActorContext, DeviceContext, Package,
+    actors::tcp::smoltcp::SmolTcp,
+    bind_bsp,
+    bsp::{boards::stm32h7::nucleo_h743zi::*, Board},
+    domain::temperature::Celsius,
+    DeviceContext, Package,
 };
 use drogue_temperature::*;
-use drogue_tls::Aes128GcmSha256;
-use embassy::util::Forever;
 use embassy_net::StaticConfigurator;
 use embassy_net::{Config as NetConfig, Ipv4Address, Ipv4Cidr};
 use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::eth::lan8742a::LAN8742A;
-use embassy_stm32::interrupt;
 use embassy_stm32::peripherals::RNG;
 use embassy_stm32::rng::Rng;
-use embassy_stm32::{
-    eth::{Ethernet, State},
-    Peripherals,
-};
-use embassy_stm32::{
-    exti::ExtiInput,
-    gpio::{Input, Pull},
-    peripherals::PC13,
-};
+use embassy_stm32::{eth::Ethernet, Peripherals};
 use heapless::Vec;
-
-//const HOST: &str = "http.sandbox.drogue.cloud";
-//const IP: IpAddress = IpAddress::new_v4(95, 216, 224, 167); // IP resolved for "http.sandbox.drogue.cloud"
-//const PORT: u16 = 443;
-
-const HOST: &str = "localhost";
-const PORT: u16 = 8088;
-
-const USERNAME: &str = drogue::config!("http-username");
-const PASSWORD: &str = drogue::config!("http-password");
 
 type EthernetDevice = Ethernet<'static, LAN8742A, 4, 4>;
 type SmolTcpPackage = SmolTcp<EthernetDevice, StaticConfigurator, 1, 2, 1024>;
 
-type ConnectionFactory = TlsConnectionFactory<
-    'static,
-    <SmolTcpPackage as Package>::Primary,
-    Aes128GcmSha256,
-    TlsRand,
-    1,
->;
-static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
+// Creates a newtype named `BSP` around the `NucleoH743` to avoid
+// orphan rules and apply delegation boilerplate.
+bind_bsp!(NucleoH743, BSP);
 
-static STATE: Forever<State<'static, 4, 4>> = Forever::new();
-
-pub struct MyDevice {
-    tcp: SmolTcpPackage,
-    app: ActorContext<'static, App<ConnectionFactory>, 2>,
-    button: ActorContext<
-        'static,
-        Button<ExtiInput<'static, PC13>, ButtonEventDispatcher<App<ConnectionFactory>>>,
-    >,
+impl TemperatureBoard for BSP {
+    type NetworkPackage = SmolTcpPackage;
+    type Network = <SmolTcpPackage as Package>::Primary;
+    type TemperatureScale = Celsius;
+    type SensorReadyIndicator = AlwaysReady;
+    type Sensor = FakeSensor;
+    type SendTrigger = UserButton;
+    type Rng = TlsRand;
 }
 
-static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+static DEVICE: DeviceContext<TemperatureDevice<BSP>> = DeviceContext::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
@@ -75,34 +50,11 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         Dbgmcu::enable_all();
     }
 
-    let rng = Rng::new(p.RNG);
+    let board = NucleoH743::new(p);
+
     unsafe {
-        RNG_INST.replace(rng);
+        RNG_INST.replace(board.rng);
     }
-
-    let eth_int = interrupt::take!(ETH);
-    let mac_addr = [0x10; 6];
-    let state = STATE.put(State::new());
-    let eth = unsafe {
-        Ethernet::new(
-            state, p.ETH, eth_int, p.PA1, p.PA2, p.PC1, p.PA7, p.PC4, p.PC5, p.PG13, p.PB13,
-            p.PG11, LAN8742A, mac_addr, 0,
-        )
-    };
-
-    let button = Input::new(p.PC13, Pull::Down);
-    let button = ExtiInput::new(button, p.EXTI13);
-
-    DEVICE.configure(MyDevice {
-        tcp: SmolTcpPackage::new(eth),
-        app: ActorContext::new(App::new(
-            HOST,
-            PORT,
-            USERNAME.trim_end(),
-            PASSWORD.trim_end(),
-        )),
-        button: ActorContext::new(Button::new(button)),
-    });
 
     let config = StaticConfigurator::new(NetConfig {
         address: Ipv4Cidr::new(Ipv4Address::new(192, 168, 0, 111), 24),
@@ -110,21 +62,15 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         gateway: Some(Ipv4Address::new(192, 168, 0, 1)),
     });
 
-    DEVICE
-        .mount(|device| async move {
-            let net = device.tcp.mount(config, spawner);
-            let factory = TlsConnectionFactory::new(net, TlsRand, [unsafe { &mut TLS_BUFFER }; 1]);
+    DEVICE.configure(TemperatureDevice::new(TemperatureBoardConfig {
+        network: SmolTcpPackage::new(board.eth, config),
+        send_trigger: board.user_button,
+        sensor: FakeSensor(22.0),
+        sensor_ready: AlwaysReady,
+    }));
 
-            let app = device.app.mount(factory, spawner);
-            app.request(Command::Update(TemperatureData {
-                temp: Some(22.0),
-                hum: None,
-                geoloc: None,
-            }))
-            .unwrap()
-            .await;
-            device.button.mount(app.into(), spawner);
-        })
+    DEVICE
+        .mount(|device| device.mount(spawner, (), TlsRand))
         .await;
     defmt::info!("Application initialized. Press the blue button to send data");
 }
