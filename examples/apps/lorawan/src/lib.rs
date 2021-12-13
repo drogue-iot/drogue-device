@@ -69,29 +69,39 @@ pub struct LoraDevice<B>
 where
     B: LoraBoard + 'static,
 {
-    driver: ActorContext<'static, actors::lora::LoraActor<B::Driver>>,
-    trigger: ActorContext<'static, AppTrigger<B>>,
-    app: ActorContext<'static, App<B>>,
+    driver: ActorContext<actors::lora::LoraActor<B::Driver>>,
+    trigger: ActorContext<AppTrigger<B>>,
+    app: ActorContext<App<B>>,
 }
 
 impl<B> LoraDevice<B>
 where
     B: LoraBoard + 'static,
 {
-    pub fn new(config: LoraDeviceConfig<B>) -> Self {
+    pub fn new() -> Self {
         Self {
-            driver: ActorContext::new(actors::lora::LoraActor::new(config.driver)),
-            trigger: ActorContext::new(AppTrigger {
-                trigger: config.send_trigger,
-            }),
-            app: ActorContext::new(App::new(config.join_led, config.tx_led, config.command_led)),
+            driver: ActorContext::new(),
+            trigger: ActorContext::new(),
+            app: ActorContext::new(),
         }
     }
 
-    pub async fn mount(&'static self, spawner: Spawner) {
-        let driver = self.driver.mount((), spawner);
-        let app = self.app.mount(driver, spawner);
-        self.trigger.mount(app, spawner);
+    pub async fn mount(&'static self, spawner: Spawner, config: LoraDeviceConfig<B>) {
+        let driver = self
+            .driver
+            .mount(spawner, actors::lora::LoraActor::new(config.driver));
+        let app = self.app.mount(
+            spawner,
+            App::new(config.join_led, config.tx_led, config.command_led, driver),
+        );
+
+        self.trigger.mount(
+            spawner,
+            AppTrigger {
+                trigger: config.send_trigger,
+                app,
+            },
+        );
     }
 }
 
@@ -103,6 +113,7 @@ where
     join_led: Option<B::JoinLed>,
     tx_led: Option<B::TxLed>,
     command_led: Option<B::CommandLed>,
+    driver: Address<actors::lora::LoraActor<B::Driver>>,
 }
 
 impl<B> App<B>
@@ -113,12 +124,14 @@ where
         join_led: Option<B::JoinLed>,
         tx_led: Option<B::TxLed>,
         command_led: Option<B::CommandLed>,
+        driver: Address<actors::lora::LoraActor<B::Driver>>,
     ) -> Self {
         Self {
             join_led,
             tx_led,
             command_led,
             counter: 0,
+            driver,
         }
     }
 
@@ -127,7 +140,7 @@ where
         defmt::info!("Ticked: {}", self.counter);
     }
 
-    async fn send<D: LoraDriver>(&mut self, driver: &mut D) {
+    async fn send(&mut self) {
         defmt::info!("Sending message...");
         self.tx_led.as_mut().map(|l| l.on().ok());
 
@@ -137,7 +150,7 @@ where
         let tx = tx.into_bytes();
 
         let mut rx = [0; 64];
-        let result = driver.send_recv(QoS::Confirmed, 1, &tx, &mut rx).await;
+        let result = self.driver.send_recv(QoS::Confirmed, 1, &tx, &mut rx).await;
 
         match result {
             Ok(rx_len) => {
@@ -178,8 +191,6 @@ impl<B> Actor for App<B>
 where
     B: LoraBoard + 'static,
 {
-    type Configuration = Address<'static, actors::lora::LoraActor<B::Driver>>;
-
     type Message<'m>
     where
         B: 'm,
@@ -193,15 +204,13 @@ where
 
     fn on_mount<'m, M>(
         &'m mut self,
-        config: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
-            let mut driver = config;
             let join_mode = JoinMode::OTAA {
                 dev_eui: DEV_EUI.trim_end().into(),
                 app_eui: APP_EUI.trim_end().into(),
@@ -209,7 +218,7 @@ where
             };
             self.join_led.as_mut().map(|l| l.on().ok());
             defmt::info!("Joining LoRaWAN network");
-            driver
+            self.driver
                 .join(join_mode)
                 .await
                 .expect("error joining lora network");
@@ -222,11 +231,11 @@ where
                             self.tick();
                         }
                         Command::Send => {
-                            self.send(&mut driver).await;
+                            self.send().await;
                         }
                         Command::TickAndSend => {
                             self.tick();
-                            self.send(&mut driver).await;
+                            self.send().await;
                         }
                     },
                     _ => {}
@@ -241,14 +250,13 @@ where
     B: LoraBoard + 'static,
 {
     trigger: B::SendTrigger,
+    app: Address<App<B>>,
 }
 
 impl<B> Actor for AppTrigger<B>
 where
     B: LoraBoard + 'static,
 {
-    type Configuration = Address<'static, App<B>>;
-
     type OnMountFuture<'m, M>
     where
         Self: 'm,
@@ -256,20 +264,14 @@ where
         M: 'm,
     = impl Future<Output = ()> + 'm;
 
-    fn on_mount<'m, M>(
-        &'m mut self,
-        config: Self::Configuration,
-        _: Address<'static, Self>,
-        _: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
-        let app = config;
         async move {
             loop {
                 self.trigger.wait().await;
-                let _ = app.request(Command::TickAndSend).unwrap().await;
+                let _ = self.app.request(Command::TickAndSend).unwrap().await;
             }
         }
     }

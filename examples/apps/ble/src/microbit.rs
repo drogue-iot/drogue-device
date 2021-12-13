@@ -1,7 +1,7 @@
 use super::*;
 use drogue_device::{ActorContext, ActorSpawner, Address, Package};
 use heapless::Vec;
-use nrf_softdevice::ble::gatt_server;
+use nrf_softdevice::{ble::gatt_server, Softdevice};
 
 type Gatt<C> = GattServer<MicrobitGattServer, MicrobitGattHandler<C>>;
 
@@ -9,11 +9,12 @@ pub struct MicrobitBleService<C>
 where
     C: ConnectionStateListener + 'static,
 {
+    sd: &'static Softdevice,
     server: MicrobitGattServer,
-    controller: ActorContext<'static, BleController>,
-    advertiser: ActorContext<'static, BleAdvertiser<Address<'static, Gatt<C>>>>,
-    gatt: ActorContext<'static, Gatt<C>>,
-    monitor: ActorContext<'static, TemperatureMonitor>,
+    controller: ActorContext<BleController>,
+    advertiser: ActorContext<BleAdvertiser<Address<Gatt<C>>>>,
+    gatt: ActorContext<Gatt<C>>,
+    monitor: ActorContext<TemperatureMonitor>,
 }
 
 #[nrf_softdevice::gatt_server]
@@ -27,8 +28,7 @@ where
     C: ConnectionStateListener,
 {
     pub fn new() -> Self {
-        let (controller, sd) = BleController::new("Drogue IoT micro:bit v2.0");
-
+        let sd = BleController::new_sd("Drogue IoT micro:bit v2.0");
         let server: MicrobitGattServer = gatt_server::register(sd).unwrap();
 
         server
@@ -49,11 +49,12 @@ where
             .unwrap();
 
         Self {
+            sd,
             server,
-            controller: ActorContext::new(controller),
-            advertiser: ActorContext::new(BleAdvertiser::new(sd, "Drogue Low Energy")),
-            gatt: ActorContext::new(GattServer::new()),
-            monitor: ActorContext::new(TemperatureMonitor::new(sd)),
+            controller: ActorContext::new(),
+            advertiser: ActorContext::new(),
+            gatt: ActorContext::new(),
+            monitor: ActorContext::new(),
         }
     }
 }
@@ -70,14 +71,22 @@ where
         listener: Self::Configuration,
         spawner: S,
     ) -> Address<Self::Primary> {
-        let controller = self.controller.mount((), spawner);
-        let monitor = self.monitor.mount(&self.server.temperature, spawner);
+        let controller = self.controller.mount(spawner, BleController::new(self.sd));
+        let monitor = self.monitor.mount(
+            spawner,
+            TemperatureMonitor::new(self.sd, &self.server.temperature),
+        );
         let handler = MicrobitGattHandler {
             temperature: monitor,
             listener,
         };
-        let acceptor = self.gatt.mount((&self.server, handler), spawner);
-        self.advertiser.mount(acceptor, spawner);
+        let acceptor = self
+            .gatt
+            .mount(spawner, GattServer::new(&self.server, handler));
+        self.advertiser.mount(
+            spawner,
+            BleAdvertiser::new(self.sd, "Drogue Low Energy", acceptor),
+        );
         controller
     }
 }
@@ -99,7 +108,7 @@ struct MicrobitGattHandler<C>
 where
     C: ConnectionStateListener,
 {
-    pub temperature: Address<'static, TemperatureMonitor>,
+    pub temperature: Address<TemperatureMonitor>,
     pub listener: C,
 }
 

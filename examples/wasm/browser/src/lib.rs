@@ -5,17 +5,13 @@
 
 use drogue_device::{
     actors::{button::*, led::*},
+    drivers::led::Led as LedDriver,
     *,
 };
 use drogue_wasm::*;
 use embassy::executor::Spawner;
 
-struct MyDevice {
-    led: ActorContext<'static, Led<WebLed>>,
-    button: ActorContext<'static, Button<WebButton, Address<'static, Led<WebLed>>>>,
-}
-
-static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+type AppLed = LedDriver<WebLed>;
 
 // Called when the wasm module is instantiated
 #[embassy::main]
@@ -39,18 +35,15 @@ async fn main(spawner: Spawner) {
         });
     }
 
-    let button = WebButton::new(unsafe { &INPUT1 });
-    let led = WebLed::new(unsafe { &OUTPUT1 });
+    static BUTTON: ActorContext<Button<WebButton, Address<Led<AppLed>>>> = ActorContext::new();
+    static LED: ActorContext<Led<AppLed>> = ActorContext::new();
 
-    DEVICE.configure(MyDevice {
-        led: ActorContext::new(Led::new(led)),
-        button: ActorContext::new(Button::new(button)),
-    });
-
-    DEVICE
-        .mount(|device| async move {
-            let led = device.led.mount((), spawner);
-            device.button.mount(led, spawner);
-        })
-        .await;
+    let led = LED.mount(
+        spawner,
+        Led::new(LedDriver::new(WebLed::new(unsafe { &OUTPUT1 }))),
+    );
+    BUTTON.mount(
+        spawner,
+        Button::new(WebButton::new(unsafe { &INPUT1 }), led),
+    );
 }

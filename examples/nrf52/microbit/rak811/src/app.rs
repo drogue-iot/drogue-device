@@ -19,23 +19,16 @@ impl<D: LoraDriver> FromButtonEvent<Command> for App<D> {
 
 pub struct App<D: LoraDriver> {
     join_mode: JoinMode,
-    driver: Option<D>,
+    driver: D,
 }
 
 impl<D: LoraDriver> App<D> {
-    pub fn new(join_mode: JoinMode) -> Self {
-        Self {
-            join_mode,
-            driver: None,
-        }
+    pub fn new(join_mode: JoinMode, driver: D) -> Self {
+        Self { join_mode, driver }
     }
 }
 
-impl<D: LoraDriver> Unpin for App<D> {}
-
 impl<D: LoraDriver> Actor for App<D> {
-    type Configuration = D;
-
     type Message<'m>
     where
         D: 'm,
@@ -48,26 +41,22 @@ impl<D: LoraDriver> Actor for App<D> {
     = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        config: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
-        self.driver.replace(config);
         async move {
-            let driver = self.driver.as_mut().unwrap();
             defmt::info!("Joining LoRaWAN network");
-            driver.join(self.join_mode).await.unwrap();
+            self.driver.join(self.join_mode).await.unwrap();
             defmt::info!("LoRaWAN network joined");
-            let driver = self.driver.as_mut().unwrap();
             loop {
                 match inbox.next().await {
                     Some(mut m) => match m.message() {
                         Command::Send => {
                             defmt::info!("Sending data..");
-                            let result = driver.send(QoS::Confirmed, 1, b"ping").await;
+                            let result = self.driver.send(QoS::Confirmed, 1, b"ping").await;
                             defmt::info!("Data sent: {:?}", result);
                         }
                     },

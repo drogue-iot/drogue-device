@@ -11,8 +11,8 @@ mod tests {
 
     #[allow(dead_code)]
     struct TestDevicePressed {
-        handler: ActorContext<'static, TestHandler>,
-        button: ActorContext<'static, Button<TestPin, Address<'static, TestHandler>>>,
+        handler: ActorContext<TestHandler>,
+        button: ActorContext<Button<TestPin, Address<TestHandler>>>,
     }
 
     #[drogue_test]
@@ -22,14 +22,14 @@ mod tests {
         let notified = context.signal();
 
         context.configure(TestDevicePressed {
-            handler: ActorContext::new(TestHandler::new(notified)),
-            button: ActorContext::new(Button::new(pin)),
+            handler: ActorContext::new(),
+            button: ActorContext::new(),
         });
 
         context
             .mount(|device| async move {
-                let handler_addr = device.handler.mount((), spawner);
-                device.button.mount(handler_addr, spawner);
+                let handler_addr = device.handler.mount(spawner, TestHandler::new(notified));
+                device.button.mount(spawner, Button::new(pin, handler_addr));
             })
             .await;
 
@@ -41,8 +41,8 @@ mod tests {
 
     #[allow(dead_code)]
     struct TestDeviceReleased {
-        handler: ActorContext<'static, TestHandler>,
-        button: ActorContext<'static, Button<TestPin, Address<'static, TestHandler>>>,
+        handler: ActorContext<TestHandler>,
+        button: ActorContext<Button<TestPin, Address<TestHandler>>>,
     }
 
     #[drogue_test]
@@ -52,14 +52,14 @@ mod tests {
         let notified = context.signal();
 
         context.configure(TestDeviceReleased {
-            handler: ActorContext::new(TestHandler::new(notified)),
-            button: ActorContext::new(Button::new(pin)),
+            handler: ActorContext::new(),
+            button: ActorContext::new(),
         });
 
         context
             .mount(|device| async move {
-                let handler_addr = device.handler.mount((), spawner);
-                device.button.mount(handler_addr, spawner);
+                let handler_addr = device.handler.mount(spawner, TestHandler::new(notified));
+                device.button.mount(spawner, Button::new(pin, handler_addr));
             })
             .await;
 

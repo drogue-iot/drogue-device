@@ -6,23 +6,18 @@ use drogue_device::*;
 /// The external actor dispatches work to the internal actor,
 /// which performs the actual work.
 pub struct MyPackage {
-    a: ActorContext<'static, InternalActor>,
-    b: ActorContext<'static, InternalActor>,
-    external: ActorContext<'static, ExternalActor>,
+    a: ActorContext<InternalActor>,
+    b: ActorContext<InternalActor>,
+    external: ActorContext<ExternalActor>,
 }
 
 impl MyPackage {
     pub fn new() -> Self {
         Self {
-            a: ActorContext::new(InternalActor {
-                name: "a",
-                counter: 0,
-            }),
-            b: ActorContext::new(InternalActor {
-                name: "b",
-                counter: 0,
-            }),
-            external: ActorContext::new(ExternalActor),
+            a: ActorContext::new(),
+
+            b: ActorContext::new(),
+            external: ActorContext::new(),
         }
     }
 }
@@ -37,9 +32,21 @@ impl Package for MyPackage {
         _: Self::Configuration,
         spawner: S,
     ) -> Address<Self::Primary> {
-        let a = self.a.mount((), spawner);
-        let b = self.b.mount((), spawner);
-        self.external.mount((a, b), spawner)
+        let a = self.a.mount(
+            spawner,
+            InternalActor {
+                name: "a",
+                counter: 0,
+            },
+        );
+        let b = self.b.mount(
+            spawner,
+            InternalActor {
+                name: "b",
+                counter: 0,
+            },
+        );
+        self.external.mount(spawner, ExternalActor(a, b))
     }
 }
 
@@ -47,13 +54,9 @@ impl Package for MyPackage {
 pub struct Increment;
 
 /// The external actor dispatches work to the internal actors
-pub struct ExternalActor;
+pub struct ExternalActor(Address<InternalActor>, Address<InternalActor>);
 
 impl Actor for ExternalActor {
-    type Configuration = (
-        Address<'static, InternalActor>,
-        Address<'static, InternalActor>,
-    );
     type Message<'m> = Increment;
 
     type OnMountFuture<'m, M>
@@ -62,16 +65,15 @@ impl Actor for ExternalActor {
     = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        actors: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
             log::info!("External started!");
-            let (a, b) = actors;
+            let (a, b) = (self.0, self.1);
             loop {
                 match inbox.next().await {
                     Some(mut m) => match m.message() {
@@ -102,12 +104,11 @@ impl Actor for InternalActor {
     = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
             log::info!("[{}] started!", self.name);

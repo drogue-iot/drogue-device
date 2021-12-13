@@ -12,38 +12,27 @@ pub trait Acceptor {
 pub struct BleAdvertiser<A: Acceptor + 'static> {
     sd: &'static Softdevice,
     name: &'static str,
-    _marker: core::marker::PhantomData<&'static A>,
+    acceptor: A,
 }
 
 impl<A: Acceptor> BleAdvertiser<A> {
-    pub fn new(sd: &'static Softdevice, name: &'static str) -> Self {
+    pub fn new(sd: &'static Softdevice, name: &'static str, acceptor: A) -> Self {
         // Max bytes we have in advertisement packet
         assert!(name.len() < 22);
 
-        Self {
-            sd,
-            name,
-            _marker: core::marker::PhantomData,
-        }
+        Self { sd, name, acceptor }
     }
 }
 
 impl<A: Acceptor> Actor for BleAdvertiser<A> {
-    type Configuration = A;
-
     type OnMountFuture<'m, M>
     where
         Self: 'm,
         M: 'm,
     = impl Future<Output = ()> + 'm;
-    fn on_mount<'m, M>(
-        &'m mut self,
-        mut acceptor: Self::Configuration,
-        _: Address<'static, Self>,
-        _: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         let mut adv_data: Vec<u8, 31> = Vec::new();
         #[rustfmt::skip]
@@ -76,7 +65,7 @@ impl<A: Acceptor> Actor for BleAdvertiser<A> {
 
                 info!("connection established: {}", conn.handle());
 
-                acceptor.accept(conn).ok().unwrap();
+                self.acceptor.accept(conn).ok().unwrap();
             }
         }
     }

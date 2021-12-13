@@ -3,7 +3,6 @@
 #![feature(type_alias_impl_trait)]
 
 use core::future::Future;
-use core::marker::PhantomData;
 use drogue_device::actors::button::{ButtonEvent, ButtonEventDispatcher, FromButtonEvent};
 use drogue_device::actors::led::LedMessage;
 use drogue_device::traits;
@@ -37,34 +36,37 @@ pub struct BlinkyConfiguration<B: BlinkyBoard> {
 /// or be an `Actor` implementation itself. It just
 /// so happens to be one in this example.
 pub struct BlinkyApp<B: BlinkyBoard + 'static> {
-    _marker: PhantomData<B>,
+    led: Address<actors::led::Led<B::Led>>,
 }
 
-impl<B: BlinkyBoard> Default for BlinkyApp<B> {
-    fn default() -> Self {
-        Self {
-            _marker: Default::default(),
-        }
+impl<B: BlinkyBoard> BlinkyApp<B> {
+    fn new(led: Address<actors::led::Led<B::Led>>) -> Self {
+        Self { led }
     }
 }
 
 /// Implementation of the `App` template methods for code-organization.
 impl<B: BlinkyBoard> BlinkyDevice<B> {
     /// The `Device` is exactly the typical drogue-device Device.
-    pub fn new(components: BlinkyConfiguration<B>) -> Self {
+    pub fn new() -> Self {
         BlinkyDevice {
-            app: ActorContext::new(Default::default()),
-            led: ActorContext::new(actors::led::Led::new(components.led)),
-            button: ActorContext::new(actors::button::Button::new(components.control_button)),
+            app: ActorContext::new(),
+            led: ActorContext::new(),
+            button: ActorContext::new(),
         }
     }
 
     /// This is exactly the same operation performed during normal mount cycles
     /// in a non-BSP example.
-    pub async fn mount(&'static self, spawner: Spawner) {
-        let led = self.led.mount((), spawner);
-        let app = self.app.mount(led, spawner);
-        self.button.mount(app.into(), spawner);
+    pub async fn mount(&'static self, spawner: Spawner, components: BlinkyConfiguration<B>) {
+        let led = self
+            .led
+            .mount(spawner, actors::led::Led::new(components.led));
+        let app = self.app.mount(spawner, BlinkyApp::new(led));
+        self.button.mount(
+            spawner,
+            actors::button::Button::new(components.control_button, app.into()),
+        );
     }
 }
 
@@ -81,8 +83,6 @@ pub enum Command {
 /// These commands are ultimately triggered by a Button actor
 /// wrapping the `Button`-traited component.
 impl<B: BlinkyBoard> Actor for BlinkyApp<B> {
-    type Configuration = Address<'static, actors::led::Led<B::Led>>;
-
     type Message<'m> = Command;
 
     type OnMountFuture<'m, M>
@@ -91,25 +91,23 @@ impl<B: BlinkyBoard> Actor for BlinkyApp<B> {
     = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        config: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
-        let led = config;
         async move {
             loop {
                 match inbox.next().await {
                     Some(mut msg) => match msg.message() {
                         Command::TurnOn => {
                             defmt::info!("got inbox ON");
-                            led.notify(LedMessage::On).ok();
+                            self.led.notify(LedMessage::On).ok();
                         }
                         Command::TurnOff => {
                             defmt::info!("got inbox OFF");
-                            led.notify(LedMessage::Off).ok();
+                            self.led.notify(LedMessage::Off).ok();
                         }
                     },
                     None => {
@@ -137,10 +135,8 @@ impl<B: BlinkyBoard> FromButtonEvent<Command> for BlinkyApp<B> {
 /// The ultimate drogue-device Device, per usual.
 /// Defined using the type-aliases for the app-specific board.
 pub struct BlinkyDevice<B: BlinkyBoard + 'static> {
-    app: ActorContext<'static, BlinkyApp<B>>,
-    led: ActorContext<'static, actors::led::Led<B::Led>>,
-    button: ActorContext<
-        'static,
-        actors::button::Button<B::ControlButton, ButtonEventDispatcher<BlinkyApp<B>>>,
-    >,
+    app: ActorContext<BlinkyApp<B>>,
+    led: ActorContext<actors::led::Led<B::Led>>,
+    button:
+        ActorContext<actors::button::Button<B::ControlButton, ButtonEventDispatcher<BlinkyApp<B>>>>,
 }

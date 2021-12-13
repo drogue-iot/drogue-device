@@ -29,8 +29,8 @@ where
 {
     driver: UnsafeCell<Esp8266Driver>,
     state: RefCell<Option<State<UART, ENABLE, RESET>>>,
-    wifi: ActorContext<'static, AdapterActor<Esp8266Controller<'static>>, 4>,
-    modem: ActorContext<'static, ModemActor<'static, UART, ENABLE, RESET>>,
+    wifi: ActorContext<AdapterActor<Esp8266Controller<'static>>, 4>,
+    modem: ActorContext<ModemActor<'static, UART, ENABLE, RESET>>,
 }
 
 impl<UART, ENABLE, RESET> Esp8266Wifi<UART, ENABLE, RESET>
@@ -43,8 +43,8 @@ where
         Self {
             driver: UnsafeCell::new(Esp8266Driver::new()),
             state: RefCell::new(Some(State::New(uart, enable, reset))),
-            wifi: ActorContext::new(AdapterActor::new()),
-            modem: ActorContext::new(ModemActor::new()),
+            wifi: ActorContext::new(),
+            modem: ActorContext::new(),
         }
     }
 }
@@ -65,8 +65,8 @@ where
         if let Some(State::New(uart, enable, reset)) = self.state.borrow_mut().take() {
             let (controller, modem) =
                 unsafe { &mut *self.driver.get() }.initialize(uart, enable, reset);
-            self.modem.mount(modem, spawner);
-            self.wifi.mount(controller, spawner)
+            self.modem.mount(spawner, ModemActor::new(modem));
+            self.wifi.mount(spawner, AdapterActor::new(controller))
         } else {
             panic!("Attempted to mount package twice!")
         }
@@ -80,7 +80,7 @@ where
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
 {
-    modem: Option<Esp8266Modem<'a, UART, ENABLE, RESET>>,
+    modem: Esp8266Modem<'a, UART, ENABLE, RESET>,
 }
 
 impl<'a, UART, ENABLE, RESET> ModemActor<'a, UART, ENABLE, RESET>
@@ -89,8 +89,8 @@ where
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
 {
-    pub fn new() -> Self {
-        Self { modem: None }
+    pub fn new(modem: Esp8266Modem<'a, UART, ENABLE, RESET>) -> Self {
+        Self { modem }
     }
 }
 
@@ -108,8 +108,6 @@ where
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
 {
-    type Configuration = Esp8266Modem<'a, UART, ENABLE, RESET>;
-
     type Message<'m>
     where
         'a: 'm,
@@ -121,18 +119,12 @@ where
         M: 'm,
     = impl Future<Output = ()> + 'm;
 
-    fn on_mount<'m, M>(
-        &'m mut self,
-        config: Self::Configuration,
-        _: Address<'static, Self>,
-        _: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
-        self.modem.replace(config);
         async move {
-            self.modem.as_mut().unwrap().run().await;
+            self.modem.run().await;
         }
     }
 }

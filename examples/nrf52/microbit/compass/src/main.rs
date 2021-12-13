@@ -7,69 +7,34 @@
 use defmt_rtt as _;
 use drogue_device::{
     actors::led::matrix::LedMatrixActor,
-    drivers::led::matrix::LedMatrix,
+    bsp::boards::nrf52::microbit::*,
     traits::led::{LedMatrix as LedMatrixTrait, TextDisplay},
-    ActorContext, DeviceContext,
+    ActorContext, Board,
 };
 
 use embassy::time::{Duration, Timer};
 use embassy_nrf::{
-    gpio::{AnyPin, Level, Output, OutputDrive, Pin},
+    gpio::{AnyPin, Output},
     interrupt, twim, Peripherals,
 };
+use lsm303agr::{AccelOutputDataRate, Lsm303agr, MagOutputDataRate};
 
 mod compass;
 use compass::*;
 
 use panic_probe as _;
 
-pub type AppMatrix = LedMatrixActor<Output<'static, AnyPin>, 5, 5>;
-
-pub struct MyDevice {
-    matrix: ActorContext<'static, AppMatrix>,
-}
-use lsm303agr::{AccelOutputDataRate, Lsm303agr, MagOutputDataRate};
-
-static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
-
-fn output_pin(pin: AnyPin) -> Output<'static, AnyPin> {
-    Output::new(pin, Level::Low, OutputDrive::Standard)
-}
+static LED_MATRIX: ActorContext<LedMatrixActor<Output<'static, AnyPin>, 5, 5>> =
+    ActorContext::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
-    // LED Matrix
-    let rows = [
-        output_pin(p.P0_21.degrade()),
-        output_pin(p.P0_22.degrade()),
-        output_pin(p.P0_15.degrade()),
-        output_pin(p.P0_24.degrade()),
-        output_pin(p.P0_19.degrade()),
-    ];
-
-    let cols = [
-        output_pin(p.P0_28.degrade()),
-        output_pin(p.P0_11.degrade()),
-        output_pin(p.P0_31.degrade()),
-        output_pin(p.P1_05.degrade()),
-        output_pin(p.P0_30.degrade()),
-    ];
-    let led = LedMatrix::new(rows, cols);
-
-    DEVICE.configure(MyDevice {
-        matrix: ActorContext::new(LedMatrixActor::new(led, None)),
-    });
-
-    let mut matrix = DEVICE
-        .mount(|device| async move {
-            let matrix = device.matrix.mount((), spawner);
-            matrix
-        })
-        .await;
+    let board = Microbit::new(p);
+    let mut matrix = LED_MATRIX.mount(spawner, LedMatrixActor::new(board.led_matrix, None));
 
     let config = twim::Config::default();
     let irq = interrupt::take!(SPIM0_SPIS0_TWIM0_TWIS0_SPI0_TWI0);
-    let twi = twim::Twim::new(p.TWISPI0, irq, p.P0_16, p.P0_08, config);
+    let twi = twim::Twim::new(board.twispi0, irq, board.p0_16, board.p0_08, config);
 
     let mut sensor = Lsm303agr::new_with_i2c(twi);
     sensor.init().unwrap();

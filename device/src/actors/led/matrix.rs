@@ -7,7 +7,7 @@ use embassy::time::{with_timeout, Duration, Instant, TimeoutError, Timer};
 use embedded_hal::digital::v2::OutputPin;
 
 impl<P, const ROWS: usize, const COLS: usize> LedMatrixTrait<ROWS, COLS>
-    for Address<'static, LedMatrixActor<P, ROWS, COLS>>
+    for Address<LedMatrixActor<P, ROWS, COLS>>
 where
     P: OutputPin + 'static,
 {
@@ -80,8 +80,7 @@ where
     }
 }
 
-impl<P, const ROWS: usize, const COLS: usize> TextDisplay
-    for Address<'static, LedMatrixActor<P, ROWS, COLS>>
+impl<P, const ROWS: usize, const COLS: usize> TextDisplay for Address<LedMatrixActor<P, ROWS, COLS>>
 where
     P: OutputPin + 'static,
 {
@@ -147,12 +146,11 @@ where
 
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
             loop {

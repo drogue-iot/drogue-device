@@ -14,7 +14,7 @@ defmt = "0.3"
 defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
-drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "time"] }
+drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "time", "bsp+microbit"] }
 cortex-m-rt = "0.6"
 
 embassy = { version = "0.1.0", default-features = false, features = ["defmt"] }

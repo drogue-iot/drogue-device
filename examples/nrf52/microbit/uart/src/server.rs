@@ -5,48 +5,34 @@ use embassy::traits::uart::{Read, Write};
 
 use crate::AppMatrix;
 
-pub struct EchoServer<'a, U: Write + Read + 'a> {
+pub struct EchoServer<U: Write + Read + 'static> {
     uart: U,
-    _data: core::marker::PhantomData<&'a U>,
+    matrix: Address<AppMatrix>,
+    statistics: Address<Statistics>,
 }
 
-impl<'a, U: Write + Read + 'a> Unpin for EchoServer<'a, U> {}
-
-impl<'a, U: Write + Read + 'a> EchoServer<'a, U> {
-    pub fn new(uart: U) -> Self {
+impl<U: Write + Read + 'static> EchoServer<U> {
+    pub fn new(uart: U, matrix: Address<AppMatrix>, statistics: Address<Statistics>) -> Self {
         Self {
             uart,
-            _data: core::marker::PhantomData,
+            matrix,
+            statistics,
         }
     }
 }
 
-impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
-    type Configuration = (Address<'a, AppMatrix>, Address<'a, Statistics>);
-    type Message<'m>
-    where
-        'a: 'm,
-    = ();
-
+impl<U: Write + Read + 'static> Actor for EchoServer<U> {
     type OnMountFuture<'m, M>
     where
         M: 'm,
-        'a: 'm,
     = impl Future<Output = ()> + 'm;
 
-    fn on_mount<'m, M>(
-        &'m mut self,
-        config: Self::Configuration,
-        _: Address<'static, Self>,
-        _: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
-        let mut matrix = config.0;
-        let statistics = config.1;
         async move {
-            matrix.scroll("Hello, World!").await.unwrap();
+            self.matrix.scroll("Hello, World!").await.unwrap();
             let mut buf = [0; 128];
             let motd = "Welcome to the Drogue Echo Service\r\n".as_bytes();
             buf[..motd.len()].clone_from_slice(motd);
@@ -56,8 +42,8 @@ impl<'a, U: Write + Read + 'a> Actor for EchoServer<'a, U> {
             loop {
                 let _ = self.uart.read(&mut buf[..1]).await;
                 let _ = self.uart.write(&buf[..1]).await;
-                matrix.putc(buf[0] as char).unwrap();
-                statistics
+                self.matrix.putc(buf[0] as char).unwrap();
+                self.statistics
                     .request(StatisticsCommand::IncrementCharacterCount)
                     .unwrap()
                     .await;

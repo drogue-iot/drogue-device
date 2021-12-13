@@ -5,7 +5,7 @@ use core::future::Future;
 pub use crate::traits::button::Event as ButtonEvent;
 
 pub struct ButtonEventDispatcher<A: 'static + Actor + FromButtonEvent<A::Message<'static>>> {
-    address: Address<'static, A>,
+    address: Address<A>,
 }
 
 impl<A: Actor + FromButtonEvent<A::Message<'static>>> ButtonEventHandler
@@ -19,7 +19,7 @@ impl<A: Actor + FromButtonEvent<A::Message<'static>>> ButtonEventHandler
 }
 
 impl<A: Actor + FromButtonEvent<A::Message<'static>>> Into<ButtonEventDispatcher<A>>
-    for Address<'static, A>
+    for Address<A>
 {
     fn into(self) -> ButtonEventDispatcher<A> {
         ButtonEventDispatcher { address: self }
@@ -29,16 +29,13 @@ impl<A: Actor + FromButtonEvent<A::Message<'static>>> Into<ButtonEventDispatcher
 //pub struct Button<P: WaitForAnyEdge + InputPin, H: ButtonEventHandler> {
 pub struct Button<P: traits::button::Button, H: ButtonEventHandler> {
     inner: P,
-    handler: Option<H>,
+    handler: H,
 }
 
 //impl<P: WaitForAnyEdge + InputPin, H: ButtonEventHandler> Button<P, H> {
 impl<P: traits::button::Button, H: ButtonEventHandler> Button<P, H> {
-    pub fn new(inner: P) -> Self {
-        Self {
-            inner,
-            handler: None,
-        }
+    pub fn new(inner: P, handler: H) -> Self {
+        Self { inner, handler }
     }
 }
 
@@ -53,8 +50,6 @@ pub trait FromButtonEvent<M> {
 }
 
 impl<P: traits::button::Button, H: ButtonEventHandler> Actor for Button<P, H> {
-    type Configuration = H;
-
     type OnMountFuture<'m, M>
     where
         M: 'm,
@@ -62,23 +57,15 @@ impl<P: traits::button::Button, H: ButtonEventHandler> Actor for Button<P, H> {
         P: 'm,
     = impl Future<Output = ()> + 'm;
 
-    fn on_mount<'m, M>(
-        &'m mut self,
-        config: Self::Configuration,
-        _: Address<'static, Self>,
-        _: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
         Self: 'm,
     {
-        self.handler.replace(config);
         async move {
             loop {
                 let event = self.inner.wait_any().await;
-                if let Some(handler) = &mut self.handler {
-                    handler.handle(event);
-                }
+                self.handler.handle(event);
             }
         }
     }

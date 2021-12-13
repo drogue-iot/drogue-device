@@ -82,7 +82,7 @@ pub enum TcpRequest<'m, H> {
     Close(H),
 }
 
-impl<'a, T> Address<'a, T>
+impl<'a, T> Address<T>
 where
     T: TcpActor + 'a,
 {

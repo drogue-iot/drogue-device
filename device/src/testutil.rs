@@ -80,7 +80,7 @@ impl<D> Drop for TestContext<D> {
 #[derive(Copy, Clone, Debug)]
 pub struct TestMessage(pub u32);
 
-impl ButtonEventHandler for Address<'static, TestHandler> {
+impl ButtonEventHandler for Address<TestHandler> {
     fn handle(&mut self, event: ButtonEvent) {
         match event {
             ButtonEvent::Pressed => self.notify(TestMessage(1)).unwrap(),
@@ -108,12 +108,11 @@ impl Actor for DummyActor {
     = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
             loop {
@@ -137,7 +136,6 @@ impl TestHandler {
 }
 
 impl Actor for TestHandler {
-    type Configuration = ();
     type Message<'m> = TestMessage;
 
     type OnMountFuture<'m, M>
@@ -146,12 +144,11 @@ impl Actor for TestHandler {
     = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
             loop {

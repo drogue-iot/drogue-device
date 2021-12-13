@@ -20,7 +20,6 @@ mod tests {
 
         pub struct Add(u32);
         impl Actor for MyActor {
-            type Configuration = ();
             type Message<'a> = Add;
 
             type OnMountFuture<'m, M>
@@ -30,12 +29,11 @@ mod tests {
 
             fn on_mount<'m, M>(
                 &'m mut self,
-                _: Self::Configuration,
-                _: Address<'static, Self>,
+                _: Address<Self>,
                 inbox: &'m mut M,
             ) -> Self::OnMountFuture<'m, M>
             where
-                M: Inbox<'m, Self> + 'm,
+                M: Inbox<Self> + 'm,
             {
                 async move {
                     loop {
@@ -46,23 +44,16 @@ mod tests {
             }
         }
 
-        struct MyDevice {
-            a: ActorContext<'static, MyActor>,
-        }
-
         #[embassy::main]
         async fn main(spawner: Spawner) {
-            static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+            static ACTOR: ActorContext<MyActor> = ActorContext::new();
 
-            DEVICE.configure(MyDevice {
-                a: ActorContext::new(MyActor {
+            let a_addr = ACTOR.mount(
+                spawner,
+                MyActor {
                     value: &INITIALIZED,
-                }),
-            });
-
-            let a_addr = DEVICE
-                .mount(|device| async move { device.a.mount((), spawner) })
-                .await;
+                },
+            );
 
             a_addr.request(Add(10)).unwrap().await;
         }

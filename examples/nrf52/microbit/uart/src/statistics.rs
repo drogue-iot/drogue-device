@@ -30,7 +30,6 @@ impl TryFrom<ButtonEvent> for StatisticsCommand {
 }
 
 impl Actor for Statistics {
-    type Configuration = ();
     type Message<'a> = StatisticsCommand;
 
     type OnMountFuture<'a, M>
@@ -40,12 +39,11 @@ impl Actor for Statistics {
 
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
             loop {

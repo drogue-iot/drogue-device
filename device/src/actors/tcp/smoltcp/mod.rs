@@ -15,8 +15,8 @@ pub struct SmolTcp<
     const BACKLOG: usize,
     const BUF_SIZE: usize,
 > {
-    driver: ActorContext<'static, SmolTcpStack<'static, POOL_SIZE, BACKLOG, BUF_SIZE>, 4>,
-    embassy_net: ActorContext<'static, EmbassyNetTask, 1>,
+    driver: ActorContext<SmolTcpStack<'static, POOL_SIZE, BACKLOG, BUF_SIZE>, 4>,
+    embassy_net: ActorContext<EmbassyNetTask, 1>,
     config: UnsafeCell<CONFIG>,
     resources: UnsafeCell<StackResources<1, 2, 8>>,
     device: UnsafeCell<DEVICE>,
@@ -32,8 +32,8 @@ impl<
 {
     pub fn new(device: DEVICE, config: CONFIG) -> Self {
         Self {
-            driver: ActorContext::new(SmolTcpStack::new()),
-            embassy_net: ActorContext::new(EmbassyNetTask),
+            driver: ActorContext::new(),
+            embassy_net: ActorContext::new(),
             config: UnsafeCell::new(config),
             resources: UnsafeCell::new(StackResources::new()),
             device: UnsafeCell::new(device),
@@ -64,9 +64,9 @@ impl<
                 &mut *self.resources.get(),
             );
         }
-        let addr = self.driver.mount((), spawner);
+        let addr = self.driver.mount(spawner, SmolTcpStack::new());
         unwrap!(addr.notify(SmolRequest::Initialize));
-        self.embassy_net.mount((), spawner);
+        self.embassy_net.mount(spawner, EmbassyNetTask);
         addr
     }
 }

@@ -43,14 +43,13 @@ pub trait NetworkConnection {
     fn close<'m>(self) -> Self::CloseFuture<'m>;
 }
 
-impl<'a, A> ConnectionFactory for Address<'a, A>
+impl<A> ConnectionFactory for Address<A>
 where
     A: TcpActor + 'static,
 {
-    type Connection = Socket<'a, A>;
+    type Connection = Socket<A>;
     type ConnectFuture<'m>
     where
-        'a: 'm,
         A: 'm,
     = impl Future<Output = Result<Self::Connection, NetworkError>> + 'm;
 
@@ -75,13 +74,12 @@ where
     }
 }
 
-impl<'a, A> NetworkConnection for Socket<'a, A>
+impl<A> NetworkConnection for Socket<A>
 where
     A: TcpActor + 'static,
 {
     type WriteFuture<'m>
     where
-        'a: 'm,
         A: 'm,
     = impl Future<Output = Result<usize, NetworkError>> + 'm;
     fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
@@ -94,7 +92,6 @@ where
 
     type ReadFuture<'m>
     where
-        'a: 'm,
         A: 'm,
     = impl Future<Output = Result<usize, NetworkError>> + 'm;
     fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m> {
@@ -107,7 +104,6 @@ where
 
     type CloseFuture<'m>
     where
-        'a: 'm,
         A: 'm,
     = impl Future<Output = Result<(), NetworkError>> + 'm;
     fn close<'m>(self) -> Self::CloseFuture<'m> {
@@ -171,7 +167,7 @@ mod tls {
     {
         rng: RNG,
         pool: [MaybeUninit<TlsBuffer<'a>>; N],
-        network: Address<'a, A>,
+        network: Address<A>,
         _cipher: PhantomData<&'a CipherSuite>,
     }
 
@@ -182,7 +178,7 @@ mod tls {
         CipherSuite: TlsCipherSuite + 'a,
     {
         pub fn new<const TLS_BUFFER_SIZE: usize>(
-            network: Address<'a, A>,
+            network: Address<A>,
             rng: RNG,
             buffers: [&'a mut [u8; TLS_BUFFER_SIZE]; N],
         ) -> Self {
@@ -249,7 +245,7 @@ mod tls {
                     Ok(_) => {
                         trace!("Connection established");
                         let config = TlsConfig::new().with_server_name(host);
-                        let mut tls: TlsConnection<'a, Socket<'a, A>, CipherSuite> =
+                        let mut tls: TlsConnection<'a, Socket<A>, CipherSuite> =
                             TlsConnection::new(socket, buffer);
                         // FIXME: support configuring cert size when verification is supported on ARM Cortex M
                         match tls
@@ -280,7 +276,7 @@ mod tls {
         CipherSuite: TlsCipherSuite + 'static,
     {
         buffer: *const TlsBuffer<'a>,
-        connection: TlsConnection<'a, Socket<'a, A>, CipherSuite>,
+        connection: TlsConnection<'a, Socket<A>, CipherSuite>,
     }
 
     impl<'a, A, CipherSuite> TlsNetworkConnection<'a, A, CipherSuite>
@@ -289,7 +285,7 @@ mod tls {
         CipherSuite: TlsCipherSuite + 'a,
     {
         pub fn new(
-            connection: TlsConnection<'a, Socket<'a, A>, CipherSuite>,
+            connection: TlsConnection<'a, Socket<A>, CipherSuite>,
             buffer: *const TlsBuffer<'a>,
         ) -> Self {
             Self { connection, buffer }
