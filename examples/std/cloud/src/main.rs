@@ -10,7 +10,7 @@ use rand::rngs::OsRng;
 pub struct StdBoard;
 
 impl TemperatureBoard for StdBoard {
-    type NetworkPackage = ActorContext<'static, StdTcpActor>;
+    type NetworkPackage = ActorContext<StdTcpActor>;
     type Network = StdTcpActor;
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
@@ -28,14 +28,19 @@ async fn main(spawner: embassy::executor::Spawner) {
         .format_timestamp_nanos()
         .init();
 
-    DEVICE.configure(TemperatureDevice::new(TemperatureBoardConfig {
-        network: ActorContext::new(StdTcpActor::new()),
-        send_trigger: TimeTrigger(Duration::from_secs(10)),
-        sensor: FakeSensor(22.0),
-        sensor_ready: AlwaysReady,
-    }));
-
+    DEVICE.configure(TemperatureDevice::new(ActorContext::new()));
     DEVICE
-        .mount(|device| device.mount(spawner, (), OsRng))
+        .mount(|device| {
+            device.mount(
+                spawner,
+                OsRng,
+                TemperatureBoardConfig {
+                    send_trigger: TimeTrigger(Duration::from_secs(10)),
+                    sensor: FakeSensor(22.0),
+                    sensor_ready: AlwaysReady,
+                    network_config: StdTcpActor::new(),
+                },
+            )
+        })
         .await;
 }

@@ -5,6 +5,7 @@
 #![feature(generic_associated_types)]
 #![feature(associated_type_defaults)]
 #![feature(const_generics_defaults)]
+#![feature(const_fn_trait_bound)]
 //! An async, no-alloc actor framework for embedded devices.
 //!
 //! See [the book](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and running some examples.
@@ -44,11 +45,11 @@
 //!     fn on_mount<'m, M>(
 //!         &'m mut self,
 //!         _: Self::Configuration,
-//!         _: Address<'static, Self>,
+//!         _: Address<Self>,
 //!         inbox: &'m mut M,
 //!     ) -> Self::OnMountFuture<'m, M>
 //!         where
-//!             M: Inbox<'m, Self> + 'm {
+//!             M: Inbox<Self> + 'm {
 //!         async move {
 //!             loop {
 //!                 inbox.process(|m| {
@@ -60,7 +61,7 @@
 //! }
 //!
 //! pub struct MyDevice {
-//!     a: ActorContext<'static, MyActor>,
+//!     a: ActorContext<MyActor>,
 //! }
 //!
 //! static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();

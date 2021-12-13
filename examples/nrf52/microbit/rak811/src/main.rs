@@ -14,18 +14,18 @@ use panic_probe as _;
 use core::cell::UnsafeCell;
 use drogue_device::{
     actors::button::{Button, ButtonEventDispatcher},
+    bsp::boards::nrf52::microbit::*,
     drivers::lora::rak811::*,
     drogue,
     traits::lora::*,
-    ActorContext, DeviceContext,
+    ActorContext, Board, DeviceContext,
 };
 use embassy::util::Forever;
 use embassy_nrf::{
     buffered_uarte::{BufferedUarte, State},
-    gpio::{Input, Level, NoPin, Output, OutputDrive, Pull},
-    gpiote::PortInput,
+    gpio::{Level, NoPin, Output, OutputDrive},
     interrupt,
-    peripherals::{P0_14, P1_02, TIMER0, UARTE0},
+    peripherals::{P1_02, TIMER0, UARTE0},
     uarte, Peripherals,
 };
 
@@ -38,19 +38,16 @@ type RESET = Output<'static, P1_02>;
 
 pub struct MyDevice {
     driver: UnsafeCell<Rak811Driver>,
-    modem: ActorContext<'static, Rak811ModemActor<'static, UART, RESET>>,
-    app: ActorContext<'static, App<Rak811Controller<'static>>>,
-    button: ActorContext<
-        'static,
-        Button<PortInput<'static, P0_14>, ButtonEventDispatcher<App<Rak811Controller<'static>>>>,
-    >,
+    modem: ActorContext<Rak811ModemActor<'static, UART, RESET>>,
+    app: ActorContext<App<Rak811Controller<'static>>>,
+    button: ActorContext<Button<ButtonA, ButtonEventDispatcher<App<Rak811Controller<'static>>>>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
-    let button_port = PortInput::new(Input::new(p.P0_14, Pull::Up));
+    let board = Microbit::new(p);
 
     let mut config = uarte::Config::default();
     config.parity = uarte::Parity::EXCLUDED;
@@ -65,13 +62,13 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         let state = STATE.put(State::new());
         BufferedUarte::new(
             state,
-            p.UARTE0,
-            p.TIMER0,
-            p.PPI_CH0,
-            p.PPI_CH1,
+            board.uarte0,
+            board.timer0,
+            board.ppi_ch0,
+            board.ppi_ch1,
             irq,
-            p.P0_13,
-            p.P0_01,
+            board.p0_13,
+            board.p0_01,
             NoPin,
             NoPin,
             config,
@@ -80,7 +77,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         )
     };
 
-    let reset_pin = Output::new(p.P1_02, Level::High, OutputDrive::Standard);
+    let reset_pin = Output::new(board.p1_02, Level::High, OutputDrive::Standard);
 
     let join_mode = JoinMode::OTAA {
         dev_eui: DEV_EUI.trim_end().into(),
@@ -94,19 +91,22 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     DEVICE.configure(MyDevice {
         driver: UnsafeCell::new(Rak811Driver::new()),
-        modem: ActorContext::new(Rak811ModemActor::new()),
-        app: ActorContext::new(App::new(join_mode)),
-        button: ActorContext::new(Button::new(button_port)),
+        modem: ActorContext::new(),
+        app: ActorContext::new(),
+        button: ActorContext::new(),
     });
 
+    let button_a = board.button_a;
     DEVICE
         .mount(|device| async move {
             let (mut controller, modem) =
                 unsafe { &mut *device.driver.get() }.initialize(u, reset_pin);
-            device.modem.mount(modem, spawner);
+            device.modem.mount(spawner, Rak811ModemActor::new(modem));
             controller.configure(&config).await.unwrap();
-            let app = device.app.mount(controller, spawner);
-            device.button.mount(app.into(), spawner);
+            let app = device.app.mount(spawner, App::new(join_mode, controller));
+            device
+                .button
+                .mount(spawner, Button::new(button_a, app.into()));
         })
         .await;
 }

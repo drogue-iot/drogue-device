@@ -170,8 +170,6 @@ fn quantize_color(color: Rgb888) -> OctColor {
 }
 
 impl Actor for App {
-    type Configuration = ();
-
     type Message<'m> = Command;
 
     type OnMountFuture<'m, M>
@@ -181,12 +179,11 @@ impl Actor for App {
 
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
             loop {
@@ -216,8 +213,8 @@ impl FromButtonEvent<Command> for App {
 }
 
 pub struct MyDevice {
-    app: ActorContext<'static, App>,
-    button: ActorContext<'static, Button<ExtiInput<'static, PC13>, ButtonEventDispatcher<App>>>,
+    app: ActorContext<App>,
+    button: ActorContext<Button<ExtiInput<'static, PC13>, ButtonEventDispatcher<App>>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -259,14 +256,16 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let rng = Random::new(p.RNG);
 
     DEVICE.configure(MyDevice {
-        app: ActorContext::new(App::new(spi, epd, rng)),
-        button: ActorContext::new(Button::new(button)),
+        app: ActorContext::new(),
+        button: ActorContext::new(),
     });
 
     DEVICE
         .mount(|device| async move {
-            let app = device.app.mount((), spawner);
-            device.button.mount(app.into(), spawner);
+            let app = device.app.mount(spawner, App::new(spi, epd, rng));
+            device
+                .button
+                .mount(spawner, Button::new(button, app.into()));
             app
         })
         .await;

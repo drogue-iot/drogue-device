@@ -9,19 +9,19 @@ use crate::{
 
 /// A Socket type for connecting to a network endpoint + sending and receiving data.
 #[derive(Clone, Copy)]
-pub struct Socket<'a, A>
+pub struct Socket<A>
 where
     A: TcpActor + 'static,
 {
-    address: Address<'a, A>,
+    address: Address<A>,
     handle: A::SocketHandle,
 }
 
-impl<'a, A> Socket<'a, A>
+impl<A> Socket<A>
 where
     A: TcpActor + 'static,
 {
-    pub fn new(address: Address<'a, A>, handle: A::SocketHandle) -> Socket<'a, A> {
+    pub fn new(address: Address<A>, handle: A::SocketHandle) -> Socket<A> {
         Self { address, handle }
     }
 
@@ -68,7 +68,7 @@ mod tls {
         TlsError,
     };
 
-    impl<'a, A> AsyncRead for Socket<'a, A>
+    impl<A> AsyncRead for Socket<A>
     where
         A: TcpActor + 'static,
     {
@@ -85,7 +85,7 @@ mod tls {
         }
     }
 
-    impl<'a, A> AsyncWrite for Socket<'a, A>
+    impl<A> AsyncWrite for Socket<A>
     where
         A: TcpActor + 'static,
     {

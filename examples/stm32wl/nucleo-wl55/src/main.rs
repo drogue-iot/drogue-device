@@ -48,12 +48,13 @@ async fn main(spawner: Spawner, p: Peripherals) {
     static mut RADIO_BUF: [u8; 256] = [0; 256];
     let lora = unsafe { Device::new(&config, board.radio, board.rng, &mut RADIO_BUF).unwrap() };
 
-    DEVICE.configure(LoraDevice::new(LoraDeviceConfig {
+    let config = LoraDeviceConfig {
         join_led: Some(board.led_blue),
         tx_led: Some(board.led_green),
         command_led: Some(board.led_yellow),
         send_trigger: board.user_button,
         driver: lora,
-    }));
-    DEVICE.mount(|device| device.mount(spawner)).await;
+    };
+    DEVICE.configure(LoraDevice::new());
+    DEVICE.mount(|device| device.mount(spawner, config)).await;
 }

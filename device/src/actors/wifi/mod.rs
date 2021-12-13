@@ -39,14 +39,11 @@ impl Into<TcpResponse<u8>> for Option<AdapterResponse> {
 
 pub trait Adapter: WifiSupplicant + TcpStack<SocketHandle = u8> {}
 
-impl<'a, A> WifiSupplicant for Address<'a, AdapterActor<A>>
+impl<A> WifiSupplicant for Address<AdapterActor<A>>
 where
     A: Adapter + 'static,
 {
-    type JoinFuture<'m>
-    where
-        'a: 'm,
-    = impl Future<Output = Result<IpAddress, JoinError>> + 'm;
+    type JoinFuture<'m> = impl Future<Output = Result<IpAddress, JoinError>> + 'm;
     fn join<'m>(&'m mut self, join: Join<'m>) -> Self::JoinFuture<'m> {
         async move {
             self.request(AdapterRequest::Join(join))
@@ -106,18 +103,16 @@ impl AdapterResponse {
 }
 
 pub struct AdapterActor<N: Adapter> {
-    driver: Option<N>,
+    driver: N,
 }
 
 impl<N: Adapter> AdapterActor<N> {
-    pub fn new() -> Self {
-        Self { driver: None }
+    pub fn new(driver: N) -> Self {
+        Self { driver }
     }
 }
 
 impl<N: Adapter> Actor for AdapterActor<N> {
-    type Configuration = N;
-
     type Message<'m>
     where
         N: 'm,
@@ -131,36 +126,33 @@ impl<N: Adapter> Actor for AdapterActor<N> {
     = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        config: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
-        self.driver.replace(config);
         async move {
-            let driver = self.driver.as_mut().unwrap();
             loop {
                 if let Some(mut m) = inbox.next().await {
                     let response = match m.message() {
                         AdapterRequest::Join(join) => {
-                            AdapterResponse::Join(driver.join(*join).await)
+                            AdapterResponse::Join(self.driver.join(*join).await)
                         }
                         AdapterRequest::Open => {
-                            AdapterResponse::Tcp(TcpResponse::Open(driver.open().await))
+                            AdapterResponse::Tcp(TcpResponse::Open(self.driver.open().await))
                         }
                         AdapterRequest::Connect(handle, proto, addr) => AdapterResponse::Tcp(
-                            TcpResponse::Connect(driver.connect(*handle, *proto, *addr).await),
+                            TcpResponse::Connect(self.driver.connect(*handle, *proto, *addr).await),
                         ),
                         AdapterRequest::Write(handle, buf) => AdapterResponse::Tcp(
-                            TcpResponse::Write(driver.write(*handle, buf).await),
+                            TcpResponse::Write(self.driver.write(*handle, buf).await),
                         ),
-                        AdapterRequest::Read(handle, buf) => {
-                            AdapterResponse::Tcp(TcpResponse::Read(driver.read(*handle, buf).await))
-                        }
+                        AdapterRequest::Read(handle, buf) => AdapterResponse::Tcp(
+                            TcpResponse::Read(self.driver.read(*handle, buf).await),
+                        ),
                         AdapterRequest::Close(handle) => {
-                            let r = driver.close(*handle).await;
+                            let r = self.driver.close(*handle).await;
                             AdapterResponse::Tcp(TcpResponse::Close(r))
                         }
                     };

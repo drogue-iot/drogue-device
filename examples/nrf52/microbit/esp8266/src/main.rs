@@ -102,15 +102,19 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let enable_pin = Output::new(board.p0_09, Level::Low, OutputDrive::Standard);
     let reset_pin = Output::new(board.p0_10, Level::Low, OutputDrive::Standard);
 
-    DEVICE.configure(TemperatureDevice::new(TemperatureBoardConfig {
-        network: WifiDriver(Esp8266Wifi::new(u, enable_pin, reset_pin)),
+    let config = TemperatureBoardConfig {
         send_trigger: board.button_a,
         sensor: board.temp,
         sensor_ready: AlwaysReady,
         #[cfg(feature = "tls")]
         rng: Rng::new(board.rng),
-    }));
+        network_config: (),
+    };
 
-    DEVICE.mount(|device| device.mount(spawner, ())).await;
+    DEVICE.configure(TemperatureDevice::new(WifiDriver(Esp8266Wifi::new(
+        u, enable_pin, reset_pin,
+    ))));
+
+    DEVICE.mount(|device| device.mount(spawner, config)).await;
     defmt::info!("Application initialized. Press 'A' button to send data");
 }

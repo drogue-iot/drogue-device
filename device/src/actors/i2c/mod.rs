@@ -40,12 +40,11 @@ where
 
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
             loop {
@@ -71,7 +70,7 @@ where
     }
 }
 
-impl<I: I2c<SevenBitAddress> + 'static> I2c for Address<'static, I2cPeripheral<I>>
+impl<I: I2c<SevenBitAddress> + 'static> I2c for Address<I2cPeripheral<I>>
 where
     <I as I2c>::Error: Send,
 {

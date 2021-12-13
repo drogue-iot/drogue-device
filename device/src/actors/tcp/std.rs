@@ -22,8 +22,13 @@ impl StdTcpActor {
     }
 }
 
+impl Default for StdTcpActor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Actor for StdTcpActor {
-    type Configuration = ();
     type Message<'m> = TcpRequest<'m, u8>;
     type Response = Option<TcpResponse<u8>>;
 
@@ -33,12 +38,11 @@ impl Actor for StdTcpActor {
     = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
             loop {

@@ -11,14 +11,11 @@ pub enum LoraRequest<'m> {
     SendRecv(QoS, Port, &'m [u8], &'m mut [u8]),
 }
 
-impl<'a, D> LoraDriver for Address<'a, LoraActor<D>>
+impl<D> LoraDriver for Address<LoraActor<D>>
 where
-    D: LoraDriver + 'a,
+    D: LoraDriver + 'static,
 {
-    type JoinFuture<'m>
-    where
-        'a: 'm,
-    = impl Future<Output = Result<(), LoraError>> + 'm;
+    type JoinFuture<'m> = impl Future<Output = Result<(), LoraError>> + 'm;
     fn join<'m>(&'m mut self, mode: JoinMode) -> Self::JoinFuture<'m> {
         async move {
             self.request(LoraRequest::Join(mode))
@@ -29,10 +26,7 @@ where
         }
     }
 
-    type SendFuture<'m>
-    where
-        'a: 'm,
-    = impl Future<Output = Result<(), LoraError>> + 'm;
+    type SendFuture<'m> = impl Future<Output = Result<(), LoraError>> + 'm;
     fn send<'m>(&'m mut self, qos: QoS, port: Port, data: &'m [u8]) -> Self::SendFuture<'m> {
         async move {
             self.request(LoraRequest::Send(qos, port, data))
@@ -43,10 +37,7 @@ where
         }
     }
 
-    type SendRecvFuture<'m>
-    where
-        'a: 'm,
-    = impl Future<Output = Result<usize, LoraError>> + 'm;
+    type SendRecvFuture<'m> = impl Future<Output = Result<usize, LoraError>> + 'm;
     fn send_recv<'m>(
         &'m mut self,
         qos: QoS,
@@ -83,8 +74,6 @@ impl<D> Actor for LoraActor<D>
 where
     D: LoraDriver + 'static,
 {
-    type Configuration = ();
-
     type Message<'m>
     where
         D: 'm,
@@ -98,12 +87,11 @@ where
     = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
             let driver = &mut self.driver;

@@ -6,7 +6,6 @@
 pub(crate) mod fmt;
 
 use core::future::Future;
-use core::marker::PhantomData;
 use drogue_device::{
     actors::sensors::Temperature,
     actors::tcp::TcpActor,
@@ -62,8 +61,20 @@ where
     port: u16,
     username: &'static str,
     password: &'static str,
-    socket: PhantomData<&'static B>,
+    connection_factory: ConnectionFactory<B>,
 }
+
+#[cfg(feature = "tls")]
+type ConnectionFactory<B> = TlsConnectionFactory<
+    'static,
+    <B as TemperatureBoard>::Network,
+    Aes128GcmSha256,
+    <B as TemperatureBoard>::Rng,
+    1,
+>;
+
+#[cfg(not(feature = "tls"))]
+type ConnectionFactory<B> = Address<<B as TemperatureBoard>::Network>;
 
 impl<B> App<B>
 where
@@ -74,13 +85,14 @@ where
         port: u16,
         username: &'static str,
         password: &'static str,
+        connection_factory: ConnectionFactory<B>,
     ) -> Self {
         Self {
             host,
             port,
             username,
             password,
-            socket: PhantomData,
+            connection_factory,
         }
     }
 }
@@ -89,12 +101,6 @@ impl<B> Actor for App<B>
 where
     B: TemperatureBoard + 'static,
 {
-    #[cfg(feature = "tls")]
-    type Configuration = TlsConnectionFactory<'static, B::Network, Aes128GcmSha256, B::Rng, 1>;
-
-    #[cfg(not(feature = "tls"))]
-    type Configuration = Address<'static, B::Network>;
-
     type Message<'m>
     where
         B: 'm,
@@ -107,12 +113,11 @@ where
     = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        mut connection_factory: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
             let mut counter: usize = 0;
@@ -128,7 +133,7 @@ where
                                 info!("Sending temperature measurement number {}", counter);
                                 counter += 1;
                                 let mut client = HttpClient::new(
-                                    &mut connection_factory,
+                                    &mut self.connection_factory,
                                     &DNS,
                                     self.host,
                                     self.port,
@@ -206,39 +211,31 @@ where
     B: TemperatureBoard + 'static,
 {
     network: B::NetworkPackage,
-    app: ActorContext<'static, App<B>, 3>,
-    trigger: ActorContext<'static, AppTrigger<B>>,
-    sensor:
-        ActorContext<'static, Temperature<B::SensorReadyIndicator, B::Sensor, B::TemperatureScale>>,
+    app: ActorContext<App<B>, 3>,
+    trigger: ActorContext<AppTrigger<B>>,
+    sensor: ActorContext<Temperature<B::SensorReadyIndicator, B::Sensor, B::TemperatureScale>>,
 }
 
 pub struct TemperatureBoardConfig<B>
 where
     B: TemperatureBoard + 'static,
 {
-    pub network: B::NetworkPackage,
     pub sensor: B::Sensor,
     pub sensor_ready: B::SensorReadyIndicator,
     pub send_trigger: B::SendTrigger,
+    pub network_config: <B::NetworkPackage as Package>::Configuration,
 }
 
 impl<B> TemperatureDevice<B>
 where
     B: TemperatureBoard + 'static,
 {
-    pub fn new(config: TemperatureBoardConfig<B>) -> Self {
+    pub fn new(network: B::NetworkPackage) -> Self {
         Self {
-            network: config.network,
-            sensor: ActorContext::new(Temperature::new(config.sensor_ready, config.sensor)),
-            trigger: ActorContext::new(AppTrigger {
-                trigger: config.send_trigger,
-            }),
-            app: ActorContext::new(App::new(
-                HOST,
-                PORT.parse::<u16>().unwrap(),
-                USERNAME.trim_end(),
-                PASSWORD.trim_end(),
-            )),
+            network,
+            sensor: ActorContext::new(),
+            trigger: ActorContext::new(),
+            app: ActorContext::new(),
         }
     }
 
@@ -246,28 +243,54 @@ where
     pub async fn mount(
         &'static self,
         spawner: Spawner,
-        config: <B::NetworkPackage as Package>::Configuration,
         rng: B::Rng,
+        config: TemperatureBoardConfig<B>,
     ) {
         static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
 
-        let network = self.network.mount(config, spawner);
+        let network = self.network.mount(config.network_config, spawner);
         let network = TlsConnectionFactory::new(network, rng, [unsafe { &mut TLS_BUFFER }; 1]);
-        let app = self.app.mount(network, spawner);
-        let sensor = self.sensor.mount((), spawner);
-        self.trigger.mount((sensor, app.into()), spawner);
+        let app = self.app.mount(
+            spawner,
+            App::new(
+                HOST,
+                PORT.parse::<u16>().unwrap(),
+                USERNAME.trim_end(),
+                PASSWORD.trim_end(),
+                network,
+            ),
+        );
+        let sensor = self.sensor.mount(
+            spawner,
+            Temperature::new(config.sensor_ready, config.sensor),
+        );
+        self.trigger.mount(
+            spawner,
+            AppTrigger::new(config.send_trigger, sensor, app.into()),
+        );
     }
 
     #[cfg(not(feature = "tls"))]
-    pub async fn mount(
-        &'static self,
-        spawner: Spawner,
-        config: <B::NetworkPackage as Package>::Configuration,
-    ) {
-        let network = self.network.mount(config, spawner);
-        let app = self.app.mount(network, spawner);
-        let sensor = self.sensor.mount((), spawner);
-        self.trigger.mount((sensor, app.into()), spawner);
+    pub async fn mount(&'static self, spawner: Spawner, config: TemperatureBoardConfig<B>) {
+        let network = self.network.mount(config.network_config, spawner);
+        let app = self.app.mount(
+            spawner,
+            App::new(
+                HOST,
+                PORT.parse::<u16>().unwrap(),
+                USERNAME.trim_end(),
+                PASSWORD.trim_end(),
+                network,
+            ),
+        );
+        let sensor = self.sensor.mount(
+            spawner,
+            Temperature::new(config.sensor_ready, config.sensor),
+        );
+        self.trigger.mount(
+            spawner,
+            AppTrigger::new(config.send_trigger, sensor, app.into()),
+        );
     }
 }
 
@@ -276,17 +299,31 @@ where
     B: TemperatureBoard + 'static,
 {
     trigger: B::SendTrigger,
+    sensor: Address<Temperature<B::SensorReadyIndicator, B::Sensor, B::TemperatureScale>>,
+    app: Address<App<B>>,
+}
+
+impl<B> AppTrigger<B>
+where
+    B: TemperatureBoard + 'static,
+{
+    pub fn new(
+        trigger: B::SendTrigger,
+        sensor: Address<Temperature<B::SensorReadyIndicator, B::Sensor, B::TemperatureScale>>,
+        app: Address<App<B>>,
+    ) -> Self {
+        Self {
+            trigger,
+            sensor,
+            app,
+        }
+    }
 }
 
 impl<B> Actor for AppTrigger<B>
 where
     B: TemperatureBoard + 'static,
 {
-    type Configuration = (
-        Address<'static, Temperature<B::SensorReadyIndicator, B::Sensor, B::TemperatureScale>>,
-        Address<'static, App<B>>,
-    );
-
     type OnMountFuture<'m, M>
     where
         Self: 'm,
@@ -294,28 +331,22 @@ where
         M: 'm,
     = impl Future<Output = ()> + 'm;
 
-    fn on_mount<'m, M>(
-        &'m mut self,
-        config: Self::Configuration,
-        _: Address<'static, Self>,
-        _: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
-        let (mut sensor, app) = config;
         async move {
             loop {
                 self.trigger.wait().await;
-                if let Ok(data) = sensor.temperature().await {
+                if let Ok(data) = self.sensor.temperature().await {
                     let data = TemperatureData {
                         geoloc: None,
                         temp: Some(data.temperature.raw_value()),
                         hum: Some(data.relative_humidity),
                     };
-                    let _ = app.request(Command::Update(data)).unwrap().await;
+                    let _ = self.app.request(Command::Update(data)).unwrap().await;
                 }
-                let _ = app.request(Command::Send).unwrap().await;
+                let _ = self.app.request(Command::Send).unwrap().await;
             }
         }
     }

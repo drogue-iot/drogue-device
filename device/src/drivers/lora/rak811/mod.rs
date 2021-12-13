@@ -406,7 +406,7 @@ where
     UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
     RESET: OutputPin + 'static,
 {
-    modem: Option<Rak811Modem<'a, UART, RESET>>,
+    modem: Rak811Modem<'a, UART, RESET>,
 }
 
 impl<'a, UART, RESET> Rak811ModemActor<'a, UART, RESET>
@@ -414,8 +414,8 @@ where
     UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
     RESET: OutputPin + 'static,
 {
-    pub fn new() -> Self {
-        Self { modem: None }
+    pub fn new(modem: Rak811Modem<'a, UART, RESET>) -> Self {
+        Self { modem }
     }
 }
 
@@ -431,8 +431,6 @@ where
     UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
     RESET: OutputPin + 'static,
 {
-    type Configuration = Rak811Modem<'a, UART, RESET>;
-
     type Message<'m>
     where
         'a: 'm,
@@ -443,19 +441,13 @@ where
         'a: 'm,
         M: 'm,
     = impl Future<Output = ()> + 'm;
-    fn on_mount<'m, M>(
-        &'m mut self,
-        config: Self::Configuration,
-        _: Address<'static, Self>,
-        _: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
-        self.modem.replace(config);
         async move {
             loop {
-                self.modem.as_mut().unwrap().run().await;
+                self.modem.run().await;
             }
         }
     }

@@ -33,7 +33,7 @@ where
     }
 }
 
-impl<P> ButtonEventHandler for Address<'static, Led<P>>
+impl<P> ButtonEventHandler for Address<Led<P>>
 where
     P: traits::led::Led,
 {
@@ -62,12 +62,11 @@ where
 
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
             loop {

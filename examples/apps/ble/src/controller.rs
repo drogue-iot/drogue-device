@@ -8,7 +8,7 @@ pub struct BleController {
 }
 
 impl BleController {
-    pub fn new(device_name: &'static str) -> (Self, &'static Softdevice) {
+    pub fn new_sd(device_name: &'static str) -> &'static Softdevice {
         let config = nrf_softdevice::Config {
             clock: Some(raw::nrf_clock_lf_cfg_t {
                 source: raw::NRF_CLOCK_LF_SRC_RC as u8,
@@ -40,7 +40,11 @@ impl BleController {
             ..Default::default()
         };
         let sd = Softdevice::enable(&config);
-        (Self { sd }, sd)
+        sd
+    }
+
+    pub fn new(sd: &'static Softdevice) -> Self {
+        Self { sd }
     }
 }
 
@@ -50,14 +54,9 @@ impl Actor for BleController {
         Self: 'm,
         M: 'm,
     = impl Future<Output = ()> + 'm;
-    fn on_mount<'m, M>(
-        &'m mut self,
-        _: Self::Configuration,
-        _: Address<'static, Self>,
-        _: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
             self.sd.run().await;

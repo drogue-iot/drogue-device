@@ -10,15 +10,16 @@ use defmt_rtt as _;
 use ble::microbit::*;
 use drogue_device::{
     actors::led::matrix::{LedMatrixActor, MatrixCommand},
-    drivers::led::matrix::{fonts, LedMatrix},
+    bsp::boards::nrf52::microbit::*,
+    drivers::led::matrix::fonts,
     traits::led::TextDisplay,
-    ActorContext, Address, DeviceContext, Package,
+    ActorContext, Address, Board, DeviceContext, Package,
 };
 use embassy::executor::Spawner;
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::{
-    gpio::{AnyPin, Level, Output, OutputDrive, Pin},
+    gpio::{AnyPin, Output},
     Peripherals,
 };
 
@@ -29,11 +30,11 @@ use panic_probe as _;
 use panic_reset as _;
 
 pub type AppMatrix = LedMatrixActor<Output<'static, AnyPin>, 5, 5>;
-pub struct LedConnectionState(Address<'static, AppMatrix>);
+pub struct LedConnectionState(Address<AppMatrix>);
 
 pub struct MyDevice {
     ble_service: MicrobitBleService<LedConnectionState>,
-    matrix: ActorContext<'static, AppMatrix>,
+    matrix: ActorContext<AppMatrix>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -48,44 +49,23 @@ fn config() -> Config {
 
 #[embassy::main(config = "config()")]
 async fn main(spawner: Spawner, p: Peripherals) {
-    // LED Matrix
-    let rows = [
-        output_pin(p.P0_21.degrade()),
-        output_pin(p.P0_22.degrade()),
-        output_pin(p.P0_15.degrade()),
-        output_pin(p.P0_24.degrade()),
-        output_pin(p.P0_19.degrade()),
-    ];
-
-    let cols = [
-        output_pin(p.P0_28.degrade()),
-        output_pin(p.P0_11.degrade()),
-        output_pin(p.P0_31.degrade()),
-        output_pin(p.P1_05.degrade()),
-        output_pin(p.P0_30.degrade()),
-    ];
-
-    let led = LedMatrix::new(rows, cols);
-
+    let board = Microbit::new(p);
     DEVICE.configure(MyDevice {
         ble_service: MicrobitBleService::new(),
-        matrix: ActorContext::new(LedMatrixActor::new(led, None)),
+        matrix: ActorContext::new(),
     });
 
     DEVICE
         .mount(|device| async move {
-            let mut matrix = device.matrix.mount((), spawner);
-
+            let mut matrix = device
+                .matrix
+                .mount(spawner, LedMatrixActor::new(board.led_matrix, None));
             matrix.scroll("Hello, Drogue").await.unwrap();
             device
                 .ble_service
                 .mount(LedConnectionState(matrix), spawner);
         })
         .await;
-}
-
-fn output_pin(pin: AnyPin) -> Output<'static, AnyPin> {
-    Output::new(pin, Level::Low, OutputDrive::Standard)
 }
 
 impl ConnectionStateListener for LedConnectionState {

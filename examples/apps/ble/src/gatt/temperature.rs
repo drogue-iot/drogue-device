@@ -21,21 +21,22 @@ pub struct TemperatureMonitor {
     sd: &'static Softdevice,
     ticker: Ticker,
     connections: Vec<Connection, 2>,
+    service: &'static TemperatureService,
 }
 
 impl TemperatureMonitor {
-    pub fn new(sd: &'static Softdevice) -> Self {
+    pub fn new(sd: &'static Softdevice, service: &'static TemperatureService) -> Self {
         Self {
             sd,
             ticker: Ticker::every(Duration::from_secs(10)),
             connections: Vec::new(),
+            service,
         }
     }
 
     fn handle_event(&mut self, conn: &Connection, event: &TemperatureServiceEvent) {
-
         match event {
-            TemperatureServiceEvent::TemperatureCccdWrite{notifications} => {
+            TemperatureServiceEvent::TemperatureCccdWrite { notifications } => {
                 if *notifications {
                     self.connections.push(conn.clone()).ok().unwrap();
                     info!("notifications enabled!");
@@ -58,7 +59,6 @@ impl TemperatureMonitor {
 }
 
 impl Actor for TemperatureMonitor {
-    type Configuration = &'static TemperatureService;
     type Message<'m> = (Connection, TemperatureServiceEvent);
 
     type OnMountFuture<'m, M>
@@ -68,12 +68,11 @@ impl Actor for TemperatureMonitor {
     = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        service: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
             loop {
@@ -94,9 +93,9 @@ impl Actor for TemperatureMonitor {
                         let value: i8 = temperature_celsius(self.sd).unwrap().to_num();
                         trace!("Measured temperature: {}℃", value);
 
-                        service.temperature_set(value).unwrap();
+                        self.service.temperature_set(value).unwrap();
                         for c in self.connections.iter() {
-                            service.temperature_notify(&c, value).unwrap();
+                            self.service.temperature_notify(&c, value).unwrap();
                         }
                     }
                 }

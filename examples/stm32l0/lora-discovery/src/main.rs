@@ -37,7 +37,6 @@ async fn main(spawner: Spawner, p: Peripherals) {
     }
 
     let board = LoraDiscovery::new(p);
-
     let config = LoraConfig::new()
         .region(LoraRegion::EU868)
         .lora_mode(LoraMode::WAN)
@@ -46,14 +45,13 @@ async fn main(spawner: Spawner, p: Peripherals) {
     defmt::info!("Configuring with config {:?}", config);
 
     static mut RADIO_BUF: [u8; 256] = [0; 256];
-    let lora = unsafe { Device::new(&config, board.radio, board.rng, &mut RADIO_BUF).unwrap() };
-
-    DEVICE.configure(LoraDevice::new(LoraDeviceConfig {
+    let config = LoraDeviceConfig {
         join_led: Some(board.led_red),
         tx_led: Some(board.led_green),
         command_led: Some(board.led_yellow),
         send_trigger: board.user_button,
-        driver: lora,
-    }));
-    DEVICE.mount(|device| device.mount(spawner)).await;
+        driver: unsafe { Device::new(&config, board.radio, board.rng, &mut RADIO_BUF).unwrap() },
+    };
+    DEVICE.configure(LoraDevice::new());
+    DEVICE.mount(|device| device.mount(spawner, config)).await;
 }

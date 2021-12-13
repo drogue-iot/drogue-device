@@ -28,7 +28,7 @@ const WIFI_PSK: &str = drogue::config!("wifi-password");
 bind_bsp!(Iot01a, BSP);
 
 impl TemperatureBoard for BSP {
-    type NetworkPackage = ActorContext<'static, AdapterActor<EsWifi>>;
+    type NetworkPackage = ActorContext<AdapterActor<EsWifi>>;
     type Network = AdapterActor<EsWifi>;
     type TemperatureScale = Celsius;
     type SendTrigger = UserButton;
@@ -62,23 +62,24 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     .expect("Error joining wifi");
     defmt::info!("WiFi network joined");
 
-    DEVICE.configure(TemperatureDevice::new(TemperatureBoardConfig {
-        network: ActorContext::new(AdapterActor::new()),
+    DEVICE.configure(TemperatureDevice::new(ActorContext::new()));
+    let config = TemperatureBoardConfig {
         send_trigger: board.user_button,
         sensor_ready: board.hts221_ready,
         sensor: Hts221::new(board.i2c2),
-    }));
+        network_config: AdapterActor::new(wifi),
+    };
 
     #[cfg(feature = "tls")]
     {
         let rng = board.rng;
         DEVICE
-            .mount(|device| device.mount(spawner, wifi, rng))
+            .mount(|device| device.mount(spawner, rng, config))
             .await;
     }
 
     #[cfg(not(feature = "tls"))]
-    DEVICE.mount(|device| device.mount(spawner, wifi)).await;
+    DEVICE.mount(|device| device.mount(spawner, config)).await;
 
     defmt::info!("Application initialized. Press 'User' button to send data");
 }

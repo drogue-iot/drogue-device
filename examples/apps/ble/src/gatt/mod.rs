@@ -16,8 +16,8 @@ where
     S: Server + 'static,
     E: GattEventHandler<S> + 'static,
 {
-    _m1: core::marker::PhantomData<&'static S>,
-    _m2: core::marker::PhantomData<&'static E>,
+    server: &'static S,
+    handler: E,
 }
 
 pub enum GattEvent<S>
@@ -44,11 +44,8 @@ where
     S: Server,
     E: GattEventHandler<S>,
 {
-    pub fn new() -> Self {
-        Self {
-            _m1: core::marker::PhantomData,
-            _m2: core::marker::PhantomData,
-        }
+    pub fn new(server: &'static S, handler: E) -> Self {
+        Self { server, handler }
     }
 }
 
@@ -59,8 +56,6 @@ where
 {
     type Message<'m> = Connection;
 
-    type Configuration = (&'static S, E);
-
     type OnMountFuture<'m, M>
     where
         Self: 'm,
@@ -68,30 +63,28 @@ where
     = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        configuration: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
-        let (server, mut handler) = configuration;
         async move {
             loop {
                 loop {
                     if let Some(mut m) = inbox.next().await {
                         let conn = m.message();
 
-                        handler.on_event(GattEvent::Connected(conn.clone()));
+                        self.handler.on_event(GattEvent::Connected(conn.clone()));
 
                         // Run the GATT server on the connection. This returns when the connection gets disconnected.
-                        let res = gatt_server::run(conn, server, |e| {
+                        let res = gatt_server::run(conn, self.server, |e| {
                             trace!("GATT write event received");
-                            handler.on_event(GattEvent::Write(conn.clone(), e));
+                            self.handler.on_event(GattEvent::Write(conn.clone(), e));
                         })
                         .await;
 
-                        handler.on_event(GattEvent::Disconnected(conn.clone()));
+                        self.handler.on_event(GattEvent::Disconnected(conn.clone()));
 
                         if let Err(e) = res {
                             info!("gatt_server exited with error: {:?}", e);
@@ -103,7 +96,7 @@ where
     }
 }
 
-impl<S, E> super::advertiser::Acceptor for Address<'static, GattServer<S, E>>
+impl<S, E> super::advertiser::Acceptor for Address<GattServer<S, E>>
 where
     S: Server,
     E: GattEventHandler<S>,

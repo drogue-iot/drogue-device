@@ -62,12 +62,11 @@ where
 
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm,
+        M: Inbox<Self> + 'm,
     {
         async move {
             let _ = self.sensor.calibrate().await;
@@ -82,7 +81,7 @@ where
     }
 }
 
-impl<P, T, C> TemperatureSensor<C> for Address<'static, Temperature<P, T, C>>
+impl<P, T, C> TemperatureSensor<C> for Address<Temperature<P, T, C>>
 where
     P: WaitForAnyEdge + InputPin + 'static,
     T: TemperatureSensor<C> + 'static,
