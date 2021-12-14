@@ -7,6 +7,9 @@
 use defmt_rtt as _;
 use panic_probe as _;
 
+mod rng;
+use rng::*;
+
 use drogue_device::{actors::wifi::esp8266::*, drogue, traits::wifi::*, DeviceContext, Package};
 use drogue_device::{
     actors::wifi::*,
@@ -61,7 +64,6 @@ impl TemperatureBoard for BSP {
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = TemperatureMonitor;
     type SendTrigger = ButtonA;
-    #[cfg(feature = "tls")]
     type Rng = Rng;
 }
 
@@ -106,15 +108,18 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         send_trigger: board.button_a,
         sensor: board.temp,
         sensor_ready: AlwaysReady,
-        #[cfg(feature = "tls")]
-        rng: Rng::new(board.rng),
         network_config: (),
     };
 
-    DEVICE.configure(TemperatureDevice::new(WifiDriver(Esp8266Wifi::new(
-        u, enable_pin, reset_pin,
-    ))));
-
-    DEVICE.mount(|device| device.mount(spawner, config)).await;
+    DEVICE
+        .configure(TemperatureDevice::new(WifiDriver(Esp8266Wifi::new(
+            u, enable_pin, reset_pin,
+        ))))
+        .mount(
+            spawner,
+            Rng::new(nrf52833_pac::Peripherals::take().unwrap().RNG),
+            config,
+        )
+        .await;
     defmt::info!("Application initialized. Press 'A' button to send data");
 }

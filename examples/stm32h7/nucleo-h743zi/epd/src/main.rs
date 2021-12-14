@@ -255,20 +255,14 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     let rng = Random::new(p.RNG);
 
-    DEVICE.configure(MyDevice {
+    let device = DEVICE.configure(MyDevice {
         app: ActorContext::new(),
         button: ActorContext::new(),
     });
-
-    DEVICE
-        .mount(|device| async move {
-            let app = device.app.mount(spawner, App::new(spi, epd, rng));
-            device
-                .button
-                .mount(spawner, Button::new(button, app.into()));
-            app
-        })
-        .await;
+    let app = device.app.mount(spawner, App::new(spi, epd, rng));
+    device
+        .button
+        .mount(spawner, Button::new(button, app.into()));
     defmt::info!("Application initialized. Press the blue button to draw");
 }
 

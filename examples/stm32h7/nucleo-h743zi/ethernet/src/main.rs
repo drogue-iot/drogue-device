@@ -62,18 +62,20 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         gateway: Some(Ipv4Address::new(192, 168, 0, 1)),
     });
 
-    DEVICE.configure(TemperatureDevice::new(SmolTcpPackage::new(
-        board.eth, config,
-    )));
-    let config = TemperatureBoardConfig {
-        send_trigger: board.user_button,
-        sensor: FakeSensor(22.0),
-        sensor_ready: AlwaysReady,
-        network_config: (),
-    };
-
     DEVICE
-        .mount(|device| device.mount(spawner, TlsRand, config))
+        .configure(TemperatureDevice::new(SmolTcpPackage::new(
+            board.eth, config,
+        )))
+        .mount(
+            spawner,
+            TlsRand,
+            TemperatureBoardConfig {
+                send_trigger: board.user_button,
+                sensor: FakeSensor(22.0),
+                sensor_ready: AlwaysReady,
+                network_config: (),
+            },
+        )
         .await;
     defmt::info!("Application initialized. Press the blue button to send data");
 }

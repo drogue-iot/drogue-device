@@ -47,8 +47,8 @@ impl<D> TestContext<D> {
     }
 
     /// Configure context with a device
-    pub fn configure(&mut self, device: D) {
-        self.device.configure(device);
+    pub fn configure(&mut self, device: D) -> &'static D {
+        self.device.configure(device)
     }
 
     /// Create a test pin that can be used in tests
@@ -59,14 +59,6 @@ impl<D> TestContext<D> {
     /// Create a signal that can be used in tests
     pub fn signal(&mut self) -> &'static TestSignal {
         self.runner.signal()
-    }
-
-    /// Mount the device, running the provided callback function.
-    pub async fn mount<FUT: Future<Output = R>, F: FnOnce(&'static D) -> FUT, R>(
-        &mut self,
-        f: F,
-    ) -> R {
-        self.device.mount(f).await
     }
 }
 
