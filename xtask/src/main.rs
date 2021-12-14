@@ -151,8 +151,8 @@ fn build(workspaces: &[&str], batch: bool) -> Result<(), anyhow::Error> {
 }
 
 fn test_examples() -> Result<(), anyhow::Error> {
-    let api = env!("DROGUE_CLOUD_API");
-    let token = env!("DROGUE_CLOUD_ACCESS_TOKEN");
+    let api = env::var_os("DROGUE_CLOUD_API").unwrap();
+    let token = env::var_os("DROGUE_CLOUD_ACCESS_TOKEN").unwrap();
     let mut tests = root_dir();
     tests.push("examples");
     tests.push("tests");
