@@ -504,6 +504,7 @@ dependencies = [
  "embassy",
  "embedded-hal",
  "heapless",
+ "rand_core",
  "serde 1.0.130",
  "serde-json-core",
 ]

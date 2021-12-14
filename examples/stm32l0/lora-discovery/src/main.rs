@@ -52,6 +52,9 @@ async fn main(spawner: Spawner, p: Peripherals) {
         send_trigger: board.user_button,
         driver: unsafe { Device::new(&config, board.radio, board.rng, &mut RADIO_BUF).unwrap() },
     };
-    DEVICE.configure(LoraDevice::new());
-    DEVICE.mount(|device| device.mount(spawner, config)).await;
+
+    DEVICE
+        .configure(LoraDevice::new())
+        .mount(spawner, config)
+        .await;
 }

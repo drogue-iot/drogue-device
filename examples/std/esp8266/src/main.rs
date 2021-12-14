@@ -35,7 +35,6 @@ impl TemperatureBoard for StdBoard {
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = FakeSensor;
     type SendTrigger = TimeTrigger;
-    #[cfg(feature = "tls")]
     type Rng = rand::rngs::OsRng;
 }
 
@@ -75,25 +74,23 @@ async fn main(spawner: embassy::executor::Spawner) {
     let port = BufReader::new(port);
     let port = FromStdIo::new(port);
 
-    DEVICE.configure(TemperatureDevice::new(WifiDriver(Esp8266Wifi::new(
-        port,
-        DummyPin {},
-        DummyPin {},
-    ))));
-    let config = TemperatureBoardConfig {
-        send_trigger: TimeTrigger(Duration::from_secs(10)),
-        sensor: FakeSensor(22.0),
-        sensor_ready: AlwaysReady,
-        network_config: (),
-    };
-
-    #[cfg(feature = "tls")]
     DEVICE
-        .mount(|device| device.mount(spawner, rand::rngs::OsRng, config))
+        .configure(TemperatureDevice::new(WifiDriver(Esp8266Wifi::new(
+            port,
+            DummyPin {},
+            DummyPin {},
+        ))))
+        .mount(
+            spawner,
+            rand::rngs::OsRng,
+            TemperatureBoardConfig {
+                send_trigger: TimeTrigger(Duration::from_secs(10)),
+                sensor: FakeSensor(22.0),
+                sensor_ready: AlwaysReady,
+                network_config: (),
+            },
+        )
         .await;
-
-    #[cfg(not(feature = "tls"))]
-    DEVICE.mount(|device| device.mount(spawner, config)).await;
 }
 
 pub struct DummyPin {}

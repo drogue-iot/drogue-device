@@ -50,22 +50,19 @@ fn config() -> Config {
 #[embassy::main(config = "config()")]
 async fn main(spawner: Spawner, p: Peripherals) {
     let board = Microbit::new(p);
-    DEVICE.configure(MyDevice {
+
+    let device = DEVICE.configure(MyDevice {
         ble_service: MicrobitBleService::new(),
         matrix: ActorContext::new(),
     });
 
-    DEVICE
-        .mount(|device| async move {
-            let mut matrix = device
-                .matrix
-                .mount(spawner, LedMatrixActor::new(board.led_matrix, None));
-            matrix.scroll("Hello, Drogue").await.unwrap();
-            device
-                .ble_service
-                .mount(LedConnectionState(matrix), spawner);
-        })
-        .await;
+    let mut matrix = device
+        .matrix
+        .mount(spawner, LedMatrixActor::new(board.led_matrix, None));
+    matrix.scroll("Hello, Drogue").await.unwrap();
+    device
+        .ble_service
+        .mount(LedConnectionState(matrix), spawner);
 }
 
 impl ConnectionStateListener for LedConnectionState {

@@ -21,17 +21,12 @@ mod tests {
         let pin = context.pin(true);
         let notified = context.signal();
 
-        context.configure(TestDevicePressed {
+        let device = context.configure(TestDevicePressed {
             handler: ActorContext::new(),
             button: ActorContext::new(),
         });
-
-        context
-            .mount(|device| async move {
-                let handler_addr = device.handler.mount(spawner, TestHandler::new(notified));
-                device.button.mount(spawner, Button::new(pin, handler_addr));
-            })
-            .await;
+        let handler_addr = device.handler.mount(spawner, TestHandler::new(notified));
+        device.button.mount(spawner, Button::new(pin, handler_addr));
 
         assert!(notified.message().is_none());
         pin.set_low();
@@ -51,17 +46,13 @@ mod tests {
         let pin = context.pin(false);
         let notified = context.signal();
 
-        context.configure(TestDeviceReleased {
+        let device = context.configure(TestDeviceReleased {
             handler: ActorContext::new(),
             button: ActorContext::new(),
         });
 
-        context
-            .mount(|device| async move {
-                let handler_addr = device.handler.mount(spawner, TestHandler::new(notified));
-                device.button.mount(spawner, Button::new(pin, handler_addr));
-            })
-            .await;
+        let handler_addr = device.handler.mount(spawner, TestHandler::new(notified));
+        device.button.mount(spawner, Button::new(pin, handler_addr));
 
         println!("start");
         assert!(notified.message().is_none());

@@ -28,19 +28,17 @@ async fn main(spawner: embassy::executor::Spawner) {
         .format_timestamp_nanos()
         .init();
 
-    DEVICE.configure(TemperatureDevice::new(ActorContext::new()));
     DEVICE
-        .mount(|device| {
-            device.mount(
-                spawner,
-                OsRng,
-                TemperatureBoardConfig {
-                    send_trigger: TimeTrigger(Duration::from_secs(10)),
-                    sensor: FakeSensor(22.0),
-                    sensor_ready: AlwaysReady,
-                    network_config: StdTcpActor::new(),
-                },
-            )
-        })
+        .configure(TemperatureDevice::new(ActorContext::new()))
+        .mount(
+            spawner,
+            OsRng,
+            TemperatureBoardConfig {
+                send_trigger: TimeTrigger(Duration::from_secs(10)),
+                sensor: FakeSensor(22.0),
+                sensor_ready: AlwaysReady,
+                network_config: StdTcpActor::new(),
+            },
+        )
         .await;
 }

@@ -195,7 +195,6 @@ pub trait TemperatureBoard {
     type Sensor: TemperatureSensor<Self::TemperatureScale>;
     type SensorReadyIndicator: WaitForAnyEdge + InputPin;
     type SendTrigger: SendTrigger;
-    #[cfg(feature = "tls")]
     type Rng: rand_core::RngCore + rand_core::CryptoRng;
 }
 
@@ -239,40 +238,19 @@ where
         }
     }
 
-    #[cfg(feature = "tls")]
     pub async fn mount(
         &'static self,
         spawner: Spawner,
-        rng: B::Rng,
+        _rng: B::Rng,
         config: TemperatureBoardConfig<B>,
     ) {
-        static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
-
         let network = self.network.mount(config.network_config, spawner);
-        let network = TlsConnectionFactory::new(network, rng, [unsafe { &mut TLS_BUFFER }; 1]);
-        let app = self.app.mount(
-            spawner,
-            App::new(
-                HOST,
-                PORT.parse::<u16>().unwrap(),
-                USERNAME.trim_end(),
-                PASSWORD.trim_end(),
-                network,
-            ),
-        );
-        let sensor = self.sensor.mount(
-            spawner,
-            Temperature::new(config.sensor_ready, config.sensor),
-        );
-        self.trigger.mount(
-            spawner,
-            AppTrigger::new(config.send_trigger, sensor, app.into()),
-        );
-    }
+        #[cfg(feature = "tls")]
+        let network = {
+            static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
+            TlsConnectionFactory::new(network, _rng, [unsafe { &mut TLS_BUFFER }; 1])
+        };
 
-    #[cfg(not(feature = "tls"))]
-    pub async fn mount(&'static self, spawner: Spawner, config: TemperatureBoardConfig<B>) {
-        let network = self.network.mount(config.network_config, spawner);
         let app = self.app.mount(
             spawner,
             App::new(

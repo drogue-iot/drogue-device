@@ -21,13 +21,12 @@ async fn main(spawner: embassy::executor::Spawner) {
         .format_timestamp_nanos()
         .init();
 
-    DEVICE.configure(MyDevice {
-        package: MyPackage::new(),
-    });
-
     let package = DEVICE
-        .mount(|device| async move { device.package.mount((), spawner) })
-        .await;
+        .configure(MyDevice {
+            package: MyPackage::new(),
+        })
+        .package
+        .mount((), spawner);
 
     // Dispatch increment messages to the package every 2 seconds
     loop {

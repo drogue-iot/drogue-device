@@ -55,6 +55,8 @@ async fn main(spawner: Spawner, p: Peripherals) {
         send_trigger: TimeTrigger(Duration::from_secs(60)),
         driver: lora,
     };
-    DEVICE.configure(LoraDevice::new());
-    DEVICE.mount(|device| device.mount(spawner, config)).await;
+    DEVICE
+        .configure(LoraDevice::new())
+        .mount(spawner, config)
+        .await;
 }

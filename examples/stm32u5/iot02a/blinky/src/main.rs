@@ -35,11 +35,12 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     let board = BSP::new(p);
 
-    DEVICE.configure(BlinkyDevice::new());
     let config = BlinkyConfiguration {
         led: board.0.led_red,
         control_button: board.0.user_button,
     };
-
-    DEVICE.mount(|device| device.mount(spawner, config)).await;
+    DEVICE
+        .configure(BlinkyDevice::new())
+        .mount(spawner, config)
+        .await;
 }

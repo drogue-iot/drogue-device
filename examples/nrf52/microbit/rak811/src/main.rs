@@ -89,24 +89,18 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         .region(LoraRegion::EU868)
         .lora_mode(LoraMode::WAN);
 
-    DEVICE.configure(MyDevice {
+    let device = DEVICE.configure(MyDevice {
         driver: UnsafeCell::new(Rak811Driver::new()),
         modem: ActorContext::new(),
         app: ActorContext::new(),
         button: ActorContext::new(),
     });
 
-    let button_a = board.button_a;
-    DEVICE
-        .mount(|device| async move {
-            let (mut controller, modem) =
-                unsafe { &mut *device.driver.get() }.initialize(u, reset_pin);
-            device.modem.mount(spawner, Rak811ModemActor::new(modem));
-            controller.configure(&config).await.unwrap();
-            let app = device.app.mount(spawner, App::new(join_mode, controller));
-            device
-                .button
-                .mount(spawner, Button::new(button_a, app.into()));
-        })
-        .await;
+    let (mut controller, modem) = unsafe { &mut *device.driver.get() }.initialize(u, reset_pin);
+    device.modem.mount(spawner, Rak811ModemActor::new(modem));
+    controller.configure(&config).await.unwrap();
+    let app = device.app.mount(spawner, App::new(join_mode, controller));
+    device
+        .button
+        .mount(spawner, Button::new(board.button_a, app.into()));
 }

@@ -34,7 +34,6 @@ impl TemperatureBoard for BSP {
     type SendTrigger = UserButton;
     type Sensor = Hts221<I2c2>;
     type SensorReadyIndicator = Hts221Ready;
-    #[cfg(feature = "tls")]
     type Rng = Rng;
 }
 
@@ -62,24 +61,14 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     .expect("Error joining wifi");
     defmt::info!("WiFi network joined");
 
-    DEVICE.configure(TemperatureDevice::new(ActorContext::new()));
+    let device = DEVICE.configure(TemperatureDevice::new(ActorContext::new()));
     let config = TemperatureBoardConfig {
         send_trigger: board.user_button,
         sensor_ready: board.hts221_ready,
         sensor: Hts221::new(board.i2c2),
         network_config: AdapterActor::new(wifi),
     };
-
-    #[cfg(feature = "tls")]
-    {
-        let rng = board.rng;
-        DEVICE
-            .mount(|device| device.mount(spawner, rng, config))
-            .await;
-    }
-
-    #[cfg(not(feature = "tls"))]
-    DEVICE.mount(|device| device.mount(spawner, config)).await;
+    device.mount(spawner, board.rng, config).await;
 
     defmt::info!("Application initialized. Press 'User' button to send data");
 }
