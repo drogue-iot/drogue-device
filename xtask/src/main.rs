@@ -159,7 +159,7 @@ fn test_examples() -> Result<(), anyhow::Error> {
     let _p = xshell::pushd(&tests)?;
     let _e = xshell::pushenv("DROGUE_CLOUD_API", api);
     let _e = xshell::pushenv("DROGUE_CLOUD_ACCESS_TOKEN", token);
-    cmd!("cargo test").run()?;
+    cmd!("cargo test -- --nocapture").run()?;
     Ok(())
 }
 
