@@ -59,17 +59,15 @@ impl Actor for Counter {
     /// and the actor can begin to receive messages from an inbox.
     ///
     /// The following arguments are provided:
-    /// * The actor configuration
     /// * The address to 'self'
     /// * An inbox from which the actor can receive messages
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Self::Configuration,
-        _: Address<'static, Self>,
+        _: Address<Self>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<'m, Self> + 'm
+        M: Inbox<Self> + 'm
     {
         async move {
             loop {
@@ -82,27 +80,17 @@ impl Actor for Counter {
     }
 }
 
-/// A struct holding the Actors for the application.
-pub struct MyDevice {
-    counter: ActorContext<'static, Counter>,
-}
-
-/// A static reference to this device holding the device state.
-static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
-
 /// The entry point of the application is using the embassy runtime.
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner) {
 
-    /// Configuring the device will initialize the global state.
-    DEVICE.configure(MyDevice {
-        counter: ActorContext::new(Counter{count: 0}),
-    });
+    /// Actor state must be static for embassy
+    static COUNTER: ActorContext<Counter> = ActorContext::new();
 
-    /// Mounting the device will spawn embassy tasks for every actor.
-    let addr = DEVICE.mount(|device| {
-        device.a.mount((), spawner)
-    }).await;
+    /// Mounting the Actor will spawn an embassy task
+    let addr = COUNTER.mount(spawner, Counter {
+        count: 0
+    });
 
     /// The actor address may be used in any embassy task to communicate with the actor.
     addr.request(Increment).unwrap().await;
@@ -141,9 +129,9 @@ cargo xtask update
   * `device/src/traits` - traits provided by drogue that can be used in actors or directly, such as WiFi or LoRa
   * `device/src/drivers` - drivers that implement traits for a one or more peripherals
   * `device/src/actors` - common actors that can be used in applications
+  * `device/src/bsp` - board support packages for boards commonly used in drogue device 
 * `macros` - macros used by drogue-device and application code
 * `examples` - examples for different platforms and boards
-* `apps` - applications that are portable across different platforms and boards
 
 
 ## Contributing

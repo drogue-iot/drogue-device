@@ -103,6 +103,28 @@ where
         }
     }
 
+    type ScrollWithSpeedFuture<'m>
+    where
+        P: 'm,
+    = impl Future<Output = Result<(), Self::Error>> + 'm;
+
+    fn scroll_with_speed<'m>(
+        &'m mut self,
+        text: &'m str,
+        speed: Duration,
+    ) -> Self::ScrollWithSpeedFuture<'m> {
+        async move {
+            self.request(MatrixCommand::ApplyText(
+                text,
+                AnimationEffect::Slide,
+                speed,
+            ))
+            .unwrap()
+            .await;
+            Ok(())
+        }
+    }
+
     fn putc(&mut self, c: char) -> Result<(), Self::Error> {
         let _ = self.notify(MatrixCommand::ApplyAsciiChar(c));
         Ok(())

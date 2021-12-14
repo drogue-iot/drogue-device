@@ -2,7 +2,7 @@
 
 Drogue device is an open source async, no-alloc actor framework for embedded devices. With drogue device, you can write safe, composable and connected embedded applications.
 
-To learn more about drogue device, see the xref:concepts.adoc[concepts] section.
+To learn more about drogue device, see the xref:concepts.adoc[introduction] section.
 
 == Built for safety
 

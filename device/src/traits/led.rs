@@ -14,6 +14,16 @@ pub trait TextDisplay {
         Self: 'm;
     fn scroll<'m>(&'m mut self, text: &'m str) -> Self::ScrollFuture<'m>;
 
+    type ScrollWithSpeedFuture<'m>: core::future::Future<Output = Result<(), Self::Error>>
+    where
+        Self: 'm;
+
+    fn scroll_with_speed<'m>(
+        &'m mut self,
+        text: &'m str,
+        speed: embassy::time::Duration,
+    ) -> Self::ScrollWithSpeedFuture<'m>;
+
     fn putc(&mut self, c: char) -> Result<(), Self::Error>;
 }
 
