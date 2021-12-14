@@ -67,28 +67,28 @@ jobs:
   #        echo $matrix | jq .
   #        echo $matrix | json2yaml
 
-  examples:
-    needs: device
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix: ${{fromJson(needs.device.outputs.matrix)}}
+  #examples:
+  #  needs: device
+  #  runs-on: ubuntu-20.04
+  #  strategy:
+  #    fail-fast: false
+  #    matrix: ${{fromJson(needs.device.outputs.matrix)}}
 
-    steps:
-      - uses: actions/checkout@v2
+  #  steps:
+  #    - uses: actions/checkout@v2
 
-      - name: cache
-        id: cache-target
-        uses: actions/cache@v2
-        with:
-          path: ${{matrix.example}}/target
-          key: ${{ runner.os }}-${{ matrix.example }}
+  #    - name: cache
+  #      id: cache-target
+  #      uses: actions/cache@v2
+  #      with:
+  #        path: ${{matrix.example}}/target
+  #        key: ${{ runner.os }}-${{ matrix.example }}
 
-      - name: Check
-        run: cargo xtask check ${{ matrix.example }}
+  #    - name: Check
+  #      run: cargo xtask check ${{ matrix.example }}
 
-      - name: Build
-        run: cargo xtask build ${{ matrix.example }}
+  #    - name: Build
+  #      run: cargo xtask build ${{ matrix.example }}
 
 
   test-examples:
