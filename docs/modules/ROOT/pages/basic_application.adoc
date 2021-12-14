@@ -77,7 +77,7 @@ Having the boilerplate out of the way, we can now focus on our application. The 
 
 The game logic is implemented here:
 
-[source,rust]
+[source,rust,indent=0]
 ----
 include::example$basic/src/main.rs[lines="58..102"]
 ----
