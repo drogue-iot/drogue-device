@@ -90,6 +90,8 @@ jobs:
   #      run: cargo xtask build ${{ matrix.example }}
   test-examples:
     needs: device
+    # Allow this job to fail
+    continue-on-error: true
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
