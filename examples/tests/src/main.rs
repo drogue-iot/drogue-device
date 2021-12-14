@@ -9,7 +9,7 @@ mod tests {
     fn test_std_cloud() {
         let app = setup();
         let a = app.clone();
-        let result = panic_catch_after(std::time::Duration::from_secs(30), move || {
+        let result = panic_catch_after(std::time::Duration::from_secs(120), move || {
             let e = std::thread::spawn(move || {
                 run_example("std/cloud", std::time::Duration::from_secs(20));
             });
