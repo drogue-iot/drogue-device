@@ -6,7 +6,7 @@
 #![feature(associated_type_defaults)]
 #![feature(const_generics_defaults)]
 #![feature(const_fn_trait_bound)]
-//! An async, no-alloc actor framework for embedded devices.
+//! Drogue Device is an open source async, no-alloc framework for embedded devices. It integrates with [embassy](https://github.com/embassy-rs/embassy), the embedded async project.
 //!
 //! See [the book](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and running some examples.
 //!
@@ -23,58 +23,67 @@
 //! #![allow(incomplete_features)]
 //! #![feature(generic_associated_types)]
 //! #![feature(type_alias_impl_trait)]
+//! #![feature(const_generics_defaults)]
+//! #![feature(const_fn_trait_bound)]
 //!
-//! use drogue_device::*;
+//! # use drogue_device::*;
 //!
-//! pub struct MyActor {
-//!     name: &'static str,
+//! /// A Counter that we wish to create an Actor for.
+//! pub struct Counter {
+//!     count: u32,
 //! }
 //!
-//! pub struct SayHello<'m>(&'m str);
+//! // The message our actor will handle.
+//! pub struct Increment;
 //!
-//! impl MyActor {
-//!     pub fn new(name: &'static str) -> Self {
-//!         Self { name }
-//!     }
-//! }
+//! /// An Actor implements the Actor trait.
+//! impl Actor for Counter {
+//!     /// The Message associated type is the message types that the Actor can receive.
+//!     type Message<'a> = Increment;
 //!
-//! impl Actor for MyActor {
-//!     type Message<'a> = SayHello<'a>;
-//!     type OnMountFuture<'a> = impl core::future::Future<Output = ()> + 'a;
+//!     /// Drogue Device uses a feature from Nightly Rust called Generic Associated Types (GAT) in order
+//!     /// to support async functions in traits such as Actor.
+//!     type OnMountFuture<'a, M> where M: 'a = impl core::future::Future<Output = ()> + 'a;
 //!
+//!     /// An actor have to implement the on_mount method. on_mount() is invoked when the internals of an actor is ready,
+//!     /// and the actor can begin to receive messages from an inbox.
+//!     ///
+//!     /// The following arguments are provided:
+//!     /// * The address to 'self'
+//!     /// * An inbox from which the actor can receive messages
 //!     fn on_mount<'m, M>(
 //!         &'m mut self,
-//!         _: Self::Configuration,
 //!         _: Address<Self>,
 //!         inbox: &'m mut M,
 //!     ) -> Self::OnMountFuture<'m, M>
-//!         where
-//!             M: Inbox<Self> + 'm {
+//!     where
+//!         M: Inbox<Self> + 'm
+//!     {
 //!         async move {
 //!             loop {
-//!                 inbox.process(|m| {
-//!                     println!("[{}] Hello {}", self.name, m.0);
-//!                  });
-//!              }
-//!          }
-//!      }
+//!                 // Await the next message and increment the counter
+//!                 if let Some(m) = inbox.next().await {
+//!                     self.count += 1;
+//!                 }
+//!             }
+//!         }
+//!     }
 //! }
 //!
-//! pub struct MyDevice {
-//!     a: ActorContext<MyActor>,
-//! }
-//!
-//! static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
-//!
+//! /// The entry point of the application is using the embassy runtime.
 //! #[embassy::main]
 //! async fn main(spawner: embassy::executor::Spawner) {
-//!     DEVICE.configure(MyDevice {
-//!         a: ActorContext::new(MyActor::new("a")),
+//!
+//!     /// Actor state must be static for embassy
+//!     static COUNTER: ActorContext<Counter> = ActorContext::new();
+//!
+//!     /// Mounting the Actor will spawn an embassy task
+//!     let addr = COUNTER.mount(spawner, Counter {
+//!         count: 0
 //!     });
-//!     let a_addr = DEVICE.mount(|device| {
-//!         device.a.mount((), spawner)
-//!     }).await;
-//!     a_addr.request(SayHello("World")).await;
+//!
+//!     /// The actor address may be used in any embassy task to communicate with the actor.
+//!     addr.request(Increment).unwrap().await;
 //! }
 //!```
 //!

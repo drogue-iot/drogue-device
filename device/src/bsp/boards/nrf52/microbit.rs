@@ -1,3 +1,4 @@
+use crate::actors::led::matrix::LedMatrixActor as MatrixActor;
 use crate::bsp::Board;
 use crate::drivers::{button::Button, led::matrix::LedMatrix as LedMatrixDriver, ActiveLow};
 use crate::{
@@ -18,6 +19,7 @@ use embassy_nrf::{
 };
 
 pub type LedMatrix = LedMatrixDriver<Output<'static, AnyPin>, 5, 5>;
+pub type LedMatrixActor = MatrixActor<Output<'static, AnyPin>, 5, 5>;
 
 pub type PinButtonA = Input<'static, P0_14>;
 pub type ButtonA = Button<PortInput<'static, P0_14>, ActiveLow>;

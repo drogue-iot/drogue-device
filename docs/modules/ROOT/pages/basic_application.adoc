@@ -1,0 +1,115 @@
+= A basic Drogue Device application
+
+So you've got one of the xref:examples.adoc[examples] running, but what now? Let's go through a simple application for the BBC:microbit to understand it better.
+
+The application is a simple game: As a cursor traverses the LED matrix, use the button to toggle the 'set' state of each individual LED. Once all LEDs are lit, you win!
+
+== Main
+
+The full example can be found link:https://github.com/drogue-iot/drogue-device/tree/main/docs/modules/ROOT/examples/basic[here].
+
+=== Rust Nightly
+
+The first thing you'll notice is a few declarations stating that the application requires some nightly features:
+
+[source,rust]
+----
+include::example$basic/src/main.rs[lines="1..5"]
+----
+
+=== Dealing with errors
+
+Then, what follows are some declarations on how to deal with panics and faults. During development, a good practice is to rely on `defmt-rtt` and `panic-probe` to print diagnostics to the terminal:
+
+[source,rust]
+----
+include::example$basic/src/main.rs[lines="7..8"]
+----
+
+=== Defining actors
+
+Lets define the basic game first. We'll model the game as an actor named `Game`, and it will drive the entire game logic and interact with the LED matrix and the 'A' button on the micro:bit board.
+
+Luckily, Drogue Device already have actors for buttons and LED matrices, so we only need to create the `Game` actor.
+
+Lets start with the types:
+
+[source,rust]
+----
+include::example$basic/src/main.rs[lines="26..35"]
+----
+
+The `Game` type holds on to the `Address` of the led matrix actor. The `Address` type is a handle that you can use to send messages to an `Actor`. In addition, we define the `GameMessage` message that our actor will expect to be notified
+of whenever the button is pressed.
+
+We can now have our `Game` type implement the `Actor` trait:
+
+[source,rust]
+----
+include::example$basic/src/main.rs[lines="43..57"]
+----
+
+The `Message` of an `Actor` defines the messages that our actor expects to handle. Next, the `OnMountFuture` associated type needs to be defined.
+
+NOTE: Why do you have to define the `OnMountFuture` type? The rust compiler cannot automatically infer the size of the `on_mount` entry point, and needs some assistance in knowing what to do. This is only temporary until Rust supports basic async traits, so for now we'll have to live with it.
+
+We can now define the main actor logic in the `on_mount` implementation. The type signature of this method needs to match the lifetimes of the `OnMountFuture` for the Rust compiler to cope with it.
+
+The `on_mount` entry point is called only once, and should contain the Actor main loop. The actor is handed an address to itself. This can be useful if you need to register the `Actor` with other actors or types. The `Address` type can be copied, so it's easy to pass around.
+
+The `Inbox` parameter is a handle that the actor can use to wait for incoming messages.
+
+
+==== Game logic
+
+Having the boilerplate out of the way, we can now focus on our application. The game logic can be described as follows:
+
+.Game logic
+. Define a set of coordinates in a 5x5 matrix
+. Initialize cursor at (0, 0)
+. Initialize coordinates as not being visited
+. While not all coordinates visited
+.. Lit the LED at the cursor coordinate
+.. Wait for a GameMessage to arrive within a timeout
+.. If a GameMessage::Toggle arrived, toggle the visited status at the cursor coordinate
+.. Unlit the LED at the cursor coordinate, if not visited
+.. Update cursor
+
+The game logic is implemented here:
+
+[source,rust]
+----
+include::example$basic/src/main.rs[lines="58..102"]
+----
+
+NOTE: The `async move` keywords are used to tell the compiler to generate a future based on the code block within. Again this is something that will be hidden once Rust support async traits.
+
+You can see the use of the `self.matrix` which of type `Address`. The `on` method under the hood sends a message to a `LedMatrixActor` for toggling the LED at a given coordinate. The `inbox.next()` is an async funtion that completes when an event have been received.
+
+The `Timer` type can be used to asynchronously wait for an event. Finally, the `futures` `select` function can be used to "race" two async functions for completion.
+
+=== Application main
+
+With the game logic defined, we can now wire our three actors together in the application main:
+
+[source,rust]
+----
+include::example$basic/src/main.rs[lines="107..-1"]
+----
+
+The main entry point is defined using the `#[embassy::main]` macro. The entry point is also required to take a `Spawner` and a `Peripherals` argument.
+
+The `Spawner` is the way the main application spawns tasks and actors. The `Peripherals` type holds all peripherals that the application may use.
+
+For some boards, Drogue Device provide a Board Support Package (BSP) that helps locating peripherals for a given board. You can also access all peripherals using
+the `Peripherals` type. The board simply helps setting them up and giving them a name that maps to your particular board. In our case, we can use the
+`Microbit` board.
+
+Finally, we create a static `ActorContext` instance for each of the actors in our system: LED_MATRIX, GAME, and BUTTON_A. The `ActorContext` must be
+static, as this is a requirement for spawning tasks in Embassy.
+
+The Actors are started when they are `mounted`. When mounted, an `Address` handle of that actor is returned, and can be used as a parameter to other actors, or directly in the main function.
+
+=== Summary
+
+We've gone through a basic application written for the BBC micro:bit. We've created our own `Actor` instance to drive the game logic, and wired it together with two other actors already defined by Drogue Device, which was simple due to the composability of actors.

@@ -26,6 +26,23 @@ impl<A: Actor + FromButtonEvent<A::Message<'static>>> Into<ButtonEventDispatcher
     }
 }
 
+pub struct ButtonPressed<A>(pub Address<A>, pub A::Message<'static>)
+where
+    A: Actor + 'static,
+    A::Message<'static>: Clone;
+
+impl<A> ButtonEventHandler for ButtonPressed<A>
+where
+    A: Actor + 'static,
+    A::Message<'static>: Clone,
+{
+    fn handle(&mut self, event: ButtonEvent) {
+        if let ButtonEvent::Pressed = event {
+            let _ = self.0.notify(self.1.clone());
+        }
+    }
+}
+
 //pub struct Button<P: WaitForAnyEdge + InputPin, H: ButtonEventHandler> {
 pub struct Button<P: traits::button::Button, H: ButtonEventHandler> {
     inner: P,
