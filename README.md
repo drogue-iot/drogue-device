@@ -5,9 +5,10 @@
 [![docs.rs](https://docs.rs/drogue-device/badge.svg)](https://docs.rs/drogue-device)
 [![Matrix](https://img.shields.io/matrix/drogue-iot:matrix.org)](https://matrix.to/#/#drogue-iot:matrix.org)
 
-Drogue device is an open source async, no-alloc framework for embedded devices. It integrates with [embassy](https://github.com/embassy-rs/embassy), the embedded async project. 
+Drogue device is a framework for embedded devices.
 
 * Built using [rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.
+* Integrates with [embassy](https://github.com/embassy-rs/embassy), the embedded async project. 
 * Actor-based programming model for writing safe and composable applications.
 * Offers built-in drivers for internet connectivity, such as WiFi and LoRaWAN.
 * All software is licensed under the Apache 2.0 open source license.

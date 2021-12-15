@@ -1,18 +1,27 @@
 = Drogue Device
 
-Drogue device is an open source async, no-alloc actor framework for embedded devices. With drogue device, you can write safe, composable and connected embedded applications.
+Drogue Device is a framework for writing safe and efficient applications on microcontroller type of systems.
 
-To learn more about drogue device, see the xref:concepts.adoc[introduction] section.
+== Robustness
 
-== Built for safety
+In a world without memory management or operating system it is more important than ever to avoid memory corruption and undefined behavior. Drogue Device is built using [Rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.
 
-Drogue device is built using https://www.rust-lang.org[rust], an efficient, memory safe and thread safe programming language.
+== Efficiency
 
-== Built for Internet of Things
+Embedded systems must make efficient uses of the resources available. At the same time, having a programming model that fits embedded devices is important. Drogue Device integrates with [embassy](https://github.com/embassy-rs/embassy), the embedded async project, to deliver a fast and small runtime that
+also provides a great programming experience.
 
-Drogue device offers built-in drivers for internet connectivity, such as WiFi and LoRaWAN.
+== Composition
 
-== Open source
+Code reuse and composition should be first class in embedded software! Drogue Device provides an Actor-based programming model for writing composable applications. With actors, you can transparently share access to peripherals, reuse application logic and compose other actors to build new functionality.
 
-Drogue IoT is all about an open source IoT ecosystem. All software is licensed under the Apache 2.0 open source license.
+== IoT Ready
 
+Many developers just want to have drivers and functionality ready to be used so they can focus on their application. Drogue Device provides out of the box drivers, actors and examples for WiFi, LoRaWAN, BLE combined with different sensors, while still allowing you to consume
+third party drivers.
+
+Drogue Device also provides out of the box examples reporting sensor data to xref:drogue-cloud::index.adoc[Drogue Cloud].
+
+== Open Source
+
+All software is licensed under the Apache 2.0 open source license, no contributor agreement required.
