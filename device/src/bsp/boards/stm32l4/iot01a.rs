@@ -116,7 +116,7 @@ impl Board for Iot01a {
         Self {
             led_blue: Led::new(Output::new(p.PA5, Level::High, Speed::Low)),
             led_green: Led::new(Output::new(p.PB14, Level::High, Speed::Low)),
-            user_button: Button::new(ExtiInput::new(Input::new(p.PC13, Pull::Down), p.EXTI13)),
+            user_button: Button::new(ExtiInput::new(Input::new(p.PC13, Pull::Up), p.EXTI13)),
             i2c2,
             hts221_ready,
             rng,

@@ -32,13 +32,15 @@ use drogue_tls::Aes128GcmSha256;
 #[cfg(feature = "tls")]
 use drogue_device::actors::net::TlsConnectionFactory;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct GeoLocation {
     pub lon: f32,
     pub lat: f32,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TemperatureData {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub geoloc: Option<GeoLocation>,
@@ -316,12 +318,14 @@ where
         async move {
             loop {
                 self.trigger.wait().await;
+                trace!("Trigger activated! Requesting sensor data");
                 if let Ok(data) = self.sensor.temperature().await {
                     let data = TemperatureData {
                         geoloc: None,
                         temp: Some(data.temperature.raw_value()),
                         hum: Some(data.relative_humidity),
                     };
+                    trace!("Updating temperature data: {:?}", data);
                     let _ = self.app.request(Command::Update(data)).unwrap().await;
                 }
                 let _ = self.app.request(Command::Send).unwrap().await;
