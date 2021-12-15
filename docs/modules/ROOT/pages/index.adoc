@@ -4,11 +4,11 @@ Drogue Device is a framework for writing safe and efficient applications on micr
 
 == Robustness
 
-In a world without memory management or operating system it is more important than ever to avoid memory corruption and undefined behavior. Drogue Device is built using [Rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.
+In a world without memory management or operating system it is more important than ever to avoid memory corruption and undefined behavior. Drogue Device is built using link:https://www.rust-lang.org[Rust], an efficient, memory safe and thread safe programming language.
 
 == Efficiency
 
-Embedded systems must make efficient uses of the resources available. At the same time, having a programming model that fits embedded devices is important. Drogue Device integrates with [embassy](https://github.com/embassy-rs/embassy), the embedded async project, to deliver a fast and small runtime that
+Embedded systems must make efficient uses of the resources available. At the same time, having a programming model that fits embedded devices is important. Drogue Device integrates with link:https://github.com/embassy-rs/embassy[embassy], the embedded async project, to deliver a fast and small runtime that
 also provides a great programming experience.
 
 == Composition
