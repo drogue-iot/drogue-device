@@ -11,11 +11,12 @@ fn main() -> Result<(), anyhow::Error> {
     let args = args.iter().map(|s| &**s).collect::<Vec<_>>();
 
     match &args[..] {
-        ["ci"] => ci(),
+        ["ci"] => ci(false),
+        ["ci_batch"] => ci(true),
         ["check_device"] => check_device(),
         ["test_device"] => test_device(),
-        ["check", example] => check(&[example]),
-        ["build", example] => build(&[example]),
+        ["check", example] => check(&[example], false),
+        ["build", example] => build(&[example], false),
         ["fmt"] => fmt(),
         ["update"] => update(),
         ["docs"] => docs(),
@@ -49,12 +50,12 @@ static WORKSPACES: &[&str] = &[
     //"apps/ble",
 ];
 
-fn ci() -> Result<(), anyhow::Error> {
+fn ci(batch: bool) -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("CI", "true");
 
     check_device()?;
-    check(WORKSPACES)?;
-    build(WORKSPACES)?;
+    check(WORKSPACES, batch)?;
+    build(WORKSPACES, batch)?;
     docs()?;
     Ok(())
 }
@@ -84,9 +85,45 @@ fn fmt() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn check(workspaces: &[&str]) -> Result<(), anyhow::Error> {
+fn generate_batch_command(workspaces: &[&str], cmd: &str) -> Result<xshell::Cmd, anyhow::Error> {
+    let mut crate_target: Vec<(String, Option<String>)> = Vec::new();
+    do_crates(workspaces, &mut |project_dir| {
+        let config_file = project_dir.join(".cargo").join("config.toml");
+        if config_file.exists() {
+            let contents = fs::read_to_string(&config_file).expect("error reading file");
+            let t = contents.parse::<toml::Value>().unwrap();
+            if let Some(build) = t.get("build") {
+                let target = if let Some(toml::Value::String(target)) = build.get("target") {
+                    Some(target.clone())
+                } else {
+                    None
+                };
+                crate_target.push((
+                    project_dir.join("Cargo.toml").to_str().unwrap().to_string(),
+                    target,
+                ));
+            }
+        }
+        Ok(())
+    })?;
+    let mut c = xshell::Cmd::new("cargo");
+    c = c.arg("batch");
+    for (ws, target) in crate_target.iter() {
+        c = c.arg("---").arg(cmd).arg("--manifest-path").arg(ws);
+        if let Some(target) = target {
+            c = c.arg("--target").arg(target);
+        }
+    }
+    Ok(c)
+}
+
+fn check(workspaces: &[&str], batch: bool) -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("RUSTFLAGS", "-Dwarnings");
-    do_crates(workspaces, &mut check_crate)?;
+    if batch {
+        generate_batch_command(workspaces, "check")?.run()?;
+    } else {
+        do_crates(workspaces, &mut check_crate)?;
+    }
     Ok(())
 }
 
@@ -99,9 +136,13 @@ fn check_device() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn build(workspaces: &[&str]) -> Result<(), anyhow::Error> {
+fn build(workspaces: &[&str], batch: bool) -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("RUSTFLAGS", "-Dwarnings");
-    do_crates(workspaces, &mut build_crate)?;
+    if batch {
+        generate_batch_command(workspaces, "build")?.run()?;
+    } else {
+        do_crates(workspaces, &mut build_crate)?;
+    }
     Ok(())
 }
 
