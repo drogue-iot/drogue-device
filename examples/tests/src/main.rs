@@ -14,20 +14,17 @@ mod tests {
                 run_example("std/cloud", std::time::Duration::from_secs(20));
             });
 
-            let h = std::thread::spawn(move || receive_message(&a));
+            let result = receive_message(&a);
 
-            let r = h.join();
             let e = e.join();
-
-            let r = r.unwrap();
             let _ = e.unwrap();
-            r
+            result
         });
 
         teardown(app);
 
         if let Ok(output) = result {
-            println!("V: {}", output);
+            println!("V: {:?}", output);
         } else {
             assert!(false);
         }
@@ -64,13 +61,15 @@ mod tests {
         cmd!("drg", "delete", "app", &app).run().unwrap();
     }
 
-    fn receive_message(app: &str) -> Value {
+    fn receive_message(app: &str) -> Option<Value> {
         let mut result: Option<Value> = None;
         for _ in 0..10 {
             let output = cmd!("drg", "stream", &app, "-n", "1")
                 .stdout_capture()
                 .stderr_to_stdout()
                 .read();
+
+            println!("OUTPUT: {:?}", output);
 
             if let Ok(output) = output {
                 match serde_json::from_str(&output) {
@@ -85,7 +84,7 @@ mod tests {
             }
             std::thread::sleep(Duration::from_secs(1));
         }
-        result.unwrap()
+        result
     }
 
     fn config_file() -> PathBuf {
