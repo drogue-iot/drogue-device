@@ -29,11 +29,11 @@ jobs:
           path: target
           key: ${{ runner.os }}-device
 
-      - name: Check
-        run: cargo xtask check_device
-
-      - name: Test
-        run: cargo xtask test_device
+      - name: Build and test
+        run: |
+          curl -L -o /usr/local/bin/cargo-batch https://github.com/embassy-rs/cargo-batch/releases/download/batch-0.1.0/cargo-batch
+          chmod +x /usr/local/bin/cargo-batch
+          cargo xtask ci_batch
 
       - name: Documentation
         run: cargo xtask docs
@@ -41,16 +41,16 @@ jobs:
       - name: Verify no changes to source modules
         run: git diff --exit-code
 
-      - id: set-matrix
-        run: |
-          matrix=$((
-            echo '{ "example" : ['
-            cargo xtask matrix
-            echo "]}"
-          ) | jq -c .)
-          echo $matrix
-          echo $matrix | jq .
-          echo "::set-output name=matrix::$matrix"
+#      - id: set-matrix
+#        run: |
+#          matrix=$((
+#            echo '{ "example" : ['
+#            cargo xtask matrix
+#            echo "]}"
+#          ) | jq -c .)
+#          echo $matrix
+#          echo $matrix | jq .
+#          echo "::set-output name=matrix::$matrix"
 
   #check-matrix:
   #  runs-on: ubuntu-20.04
@@ -68,25 +68,25 @@ jobs:
   #        echo $matrix | json2yaml
 
 
-  examples:
-    needs: device
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix: ${{fromJson(needs.device.outputs.matrix)}}
+  #examples:
+  #  needs: device
+  #  runs-on: ubuntu-20.04
+  #  strategy:
+  #    fail-fast: false
+  #    matrix: ${{fromJson(needs.device.outputs.matrix)}}
 
-    steps:
-      - uses: actions/checkout@v2
+  #  steps:
+  #    - uses: actions/checkout@v2
 
-      - name: cache
-        id: cache-target
-        uses: actions/cache@v2
-        with:
-          path: ${{matrix.example}}/target
-          key: ${{ runner.os }}-${{ matrix.example }}
+  #    - name: cache
+  #      id: cache-target
+  #      uses: actions/cache@v2
+  #      with:
+  #        path: ${{matrix.example}}/target
+  #        key: ${{ runner.os }}-${{ matrix.example }}
 
-      - name: Check
-        run: cargo xtask check ${{ matrix.example }}
+  #    - name: Check
+  #      run: cargo xtask check ${{ matrix.example }}
 
-      - name: Build
-        run: cargo xtask build ${{ matrix.example }}
+  #    - name: Build
+  #      run: cargo xtask build ${{ matrix.example }}
