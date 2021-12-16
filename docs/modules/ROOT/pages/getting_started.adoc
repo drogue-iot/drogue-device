@@ -13,6 +13,7 @@ Drogue Device supports many microcontroller families, but the easiest ways to ge
 
 === nRF kits
 
+* link:https://microbit.org/[BBC micro:bit v2]
 * link:https://www.nordicsemi.com/Products/Development-hardware/nrf52-dk[nRF52 DK]
 * link:https://www.nordicsemi.com/Products/Development-hardware/nRF9160-DK[nRF9160 DK]
 
