@@ -86,6 +86,12 @@ where
     }
 }
 
+impl<const XSIZE: usize, const YSIZE: usize> ToFrame<XSIZE, YSIZE> for Frame<XSIZE, YSIZE> {
+    fn to_frame(&self) -> Frame<XSIZE, YSIZE> {
+        *self
+    }
+}
+
 pub mod fonts {
     use super::*;
 
