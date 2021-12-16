@@ -25,6 +25,8 @@ embassy-nrf = { version = "0.1.0", default-features = false, optional = true }
 embassy-lora = { version = "0.1.0", default-features = false, optional = true }
 embassy-net = { version = "0.1.0", default-features = false, optional = true, features= ["tcp", "medium-ethernet", "pool-16" ]}
 #embassy-stm32 = {path = "../../../embassy/embassy-stm32", default-features = false, optional = true }
+nrf-softdevice = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "6e196a3c48857aba00ff400e4e31e730faab20b1", features = ["ble-peripheral", "ble-central", "ble-gatt-server", "s140", "nrf52840"], optional=true }
+nrf-softdevice-s140 = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "6e196a3c48857aba00ff400e4e31e730faab20b1", optional=true }
 
 # Wifi Dependencies
 nom = { version = "6.1.2", default-features = false, optional = true }
@@ -41,7 +43,7 @@ cortex-m = { version = "0.7", features = ["inline-asm"], optional = true }
 
 # Utilities
 futures = { version = "0.3", default-features = false }
-heapless = "0.7"
+heapless = { version = "0.7", features = ["defmt-impl"] }
 embedded-hal = { version = "0.2", features = ["unproven"] }
 atomic-polyfill = "0.1"
 critical-section = "0.2.5"
@@ -55,6 +57,14 @@ base64 = { version = "0.13.0", default-features = false }
 
 # Handy macros, e.g. drogue::config
 drogue-device-macros = { path = "../macros" }
+
+# BLE-Mesh
+p256 = { version = "0.10.0", default-features = false, optional=true }
+cmac = { version = "0.6.0", default-features = false, optional=true }
+aes = { version = "0.7", default-features = false, optional = true }
+ccm = { version = "0.4.4", default-features = false, optional = true }
+serde = { version = "1.0", default-features = false, optional = true}
+postcard = { version = "0.7.2", optional=true }
 
 [dev-dependencies]
 embassy = { version = "0.1.0", features = ["std", "time", "time-tick-1mhz"]}
@@ -74,6 +84,25 @@ time = []
 lora = ["embassy-lora", "lorawan-device", "lorawan-encoding", "embassy/time"]
 wifi = []
 tls = ["drogue-tls"]
+ble = []
+"ble+nrf52840" = [
+    "ble",
+    "nrf-softdevice",
+    "nrf-softdevice/ble-peripheral",
+    "nrf-softdevice/ble-central",
+    "nrf-softdevice/s140",
+    "nrf-softdevice/nrf52840",
+    "nrf-softdevice-s140",
+    "p256",
+    "p256/arithmetic",
+    "p256/ecdh",
+    "cmac",
+    "aes",
+    "ccm",
+    "ccm/heapless",
+    "serde",
+    "postcard"
+]
 
 "bsp+b_u585i_iot02a" = [ "embassy-stm32" ]
 "bsp+b_l4s5i_iot01a" = [ "embassy-stm32" ]
