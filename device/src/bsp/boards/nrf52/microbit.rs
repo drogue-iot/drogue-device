@@ -132,16 +132,6 @@ impl TemperatureSensor<Celsius> for TemperatureMonitor {
     }
 }
 
-pub struct Sample<'a> {
-    notes: &'a [Note],
-}
-
-impl<'a> Sample<'a> {
-    pub const fn new(notes: &'a [Note]) -> Self {
-        Self { notes }
-    }
-}
-
 #[allow(dead_code)]
 pub enum Pitch {
     C = 261,
@@ -158,18 +148,20 @@ pub enum Pitch {
 #[derive(Clone, Copy)]
 pub struct Note(pub u32, pub u32);
 
-pub struct PwmSpeaker<'a, T: Instance> {
-    pwm: SimplePwm<'a, T>,
+pub struct PwmSpeaker<'a, T: pwm::Instance> {
+    pwm: pwm::SimplePwm<'a, T>,
 }
 
-impl<'a, T: Instance> PwmSpeaker<'a, T> {
-    pub fn new(pwm: SimplePwm<'a, T>) -> Self {
+impl<'a, T: pwm::Instance> PwmSpeaker<'a, T> {
+    pub fn new(pwm: pwm::SimplePwm<'a, T>) -> Self {
         Self { pwm }
     }
 
+    #[cfg(feature = "time")]
     pub async fn play_note(&mut self, note: Note) {
+        use embassy::time::{Duration, Timer};
         if note.0 > 0 {
-            self.pwm.set_prescaler(Prescaler::Div4);
+            self.pwm.set_prescaler(pwm::Prescaler::Div4);
             self.pwm.set_period(note.0);
             self.pwm.enable();
 
@@ -178,12 +170,6 @@ impl<'a, T: Instance> PwmSpeaker<'a, T> {
             self.pwm.disable();
         } else {
             Timer::after(Duration::from_millis(note.1 as u64)).await;
-        }
-    }
-
-    pub async fn play_sample(&mut self, sample: &Sample<'_>) {
-        for note in sample.notes.iter() {
-            self.play_note(*note).await;
         }
     }
 }

@@ -6,19 +6,17 @@
 
 use defmt_rtt as _;
 use drogue_device::{
-    actors::led::matrix::LedMatrixActor, bsp::boards::nrf52::microbit::*, ActorContext, Board,
+    bsp::boards::nrf52::microbit::*, traits::led::LedMatrix, Actor, ActorContext, Address, Board,
+    Inbox,
 };
 
-use embassy_nrf::{
-    gpio::{AnyPin, NoPin, Output},
-    pwm::*,
-    Peripherals,
-};
+use embassy_nrf::{gpio::NoPin, pwm::*, Peripherals};
+
+use core::future::Future;
+use embassy::time::{Duration, Instant, Timer};
+use futures::future::join;
 
 use panic_probe as _;
-
-mod speaker;
-use speaker::*;
 
 static LED_MATRIX: ActorContext<LedMatrixActor> = ActorContext::new();
 static DISCO: ActorContext<Disco> = ActorContext::new();
@@ -27,20 +25,70 @@ static DISCO: ActorContext<Disco> = ActorContext::new();
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let board = Microbit::new(p);
     let matrix = LED_MATRIX.mount(spawner, LedMatrixActor::new(board.led_matrix, None));
-    let disco = DISCO.mount(spawner, matrix);
+    let disco = DISCO.mount(spawner, Disco::new(matrix));
+
     let pwm = SimplePwm::new(board.pwm0, board.p0_00, NoPin, NoPin, NoPin);
     let mut speaker = PwmSpeaker::new(pwm);
 
     loop {
         for i in 0..RIFF.len() {
-            if RIFF[0].0 > 0 {
-                join(diso.blink(), speaker.play_sample(&RIFF[i])).await;
+            join(disco.request(RIFF[i]).unwrap(), speaker.play_note(RIFF[i])).await;
+        }
+    }
+}
+
+pub struct Disco {
+    display: Address<LedMatrixActor>,
+}
+
+impl Disco {
+    pub fn new(display: Address<LedMatrixActor>) -> Self {
+        Self { display }
+    }
+}
+
+impl Actor for Disco {
+    type Message<'m> = Note;
+
+    type OnMountFuture<'m, M>
+    where
+        M: 'm,
+        Self: 'm,
+    = impl Future<Output = ()> + 'm;
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Address<Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
+    where
+        M: Inbox<Self> + 'm,
+    {
+        async move {
+            loop {
+                if let Some(mut m) = inbox.next().await {
+                    let note = *m.message();
+                    if note.0 > 0 {
+                        let _ = self.display.apply(&BITMAP).await;
+                        let _ = self.display.max_brightness();
+                        let interval = Duration::from_millis(note.1 as u64 / 10);
+                        let end = Instant::now() + Duration::from_millis(note.1 as u64);
+                        while Instant::now() < end {
+                            let _ = self.display.decrease_brightness();
+                            Timer::after(interval).await;
+                        }
+                        let _ = self.display.clear().await;
+                    } else {
+                        Timer::after(Duration::from_millis(note.1 as u64)).await;
+                    }
+                }
             }
         }
     }
 }
 
-static RIFF: &[Sample<'static>] = &[Sample::new(&[
+pub const BITMAP: &[u8; 5] = &[0b11111, 0b11111, 0b11111, 0b11111, 0b11111];
+
+static RIFF: &[Note] = &[
     Note(Pitch::E as u32, 150),
     Note(0, 150),
     Note(Pitch::G as u32, 150),
@@ -65,4 +113,4 @@ static RIFF: &[Sample<'static>] = &[Sample::new(&[
     Note(0, 150),
     Note(Pitch::E as u32, 300),
     Note(0, 750),
-])];
+];
