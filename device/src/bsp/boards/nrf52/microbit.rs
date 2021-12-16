@@ -15,6 +15,7 @@ use embassy_nrf::{
         P0_00, P0_01, P0_08, P0_09, P0_10, P0_13, P0_14, P0_16, P0_23, P1_02, PPI_CH0, PPI_CH1,
         PWM0, RNG, TIMER0, TWISPI0, UARTE0,
     },
+    pwm,
     temp::Temp,
 };
 
@@ -127,6 +128,62 @@ impl TemperatureSensor<Celsius> for TemperatureMonitor {
                 temperature: Temperature::new(t.to_num::<f32>()),
                 relative_humidity: 0.0,
             })
+        }
+    }
+}
+
+pub struct Sample<'a> {
+    notes: &'a [Note],
+}
+
+impl<'a> Sample<'a> {
+    pub const fn new(notes: &'a [Note]) -> Self {
+        Self { notes }
+    }
+}
+
+#[allow(dead_code)]
+pub enum Pitch {
+    C = 261,
+    D = 293,
+    E = 329,
+    F = 349,
+    G = 391,
+    A = 440,
+    AB = 466,
+    B = 493,
+    C2 = 523,
+}
+
+#[derive(Clone, Copy)]
+pub struct Note(pub u32, pub u32);
+
+pub struct PwmSpeaker<'a, T: Instance> {
+    pwm: SimplePwm<'a, T>,
+}
+
+impl<'a, T: Instance> PwmSpeaker<'a, T> {
+    pub fn new(pwm: SimplePwm<'a, T>) -> Self {
+        Self { pwm }
+    }
+
+    pub async fn play_note(&mut self, note: Note) {
+        if note.0 > 0 {
+            self.pwm.set_prescaler(Prescaler::Div4);
+            self.pwm.set_period(note.0);
+            self.pwm.enable();
+
+            self.pwm.set_duty(0, self.pwm.max_duty() / 2);
+            Timer::after(Duration::from_millis(note.1 as u64)).await;
+            self.pwm.disable();
+        } else {
+            Timer::after(Duration::from_millis(note.1 as u64)).await;
+        }
+    }
+
+    pub async fn play_sample(&mut self, sample: &Sample<'_>) {
+        for note in sample.notes.iter() {
+            self.play_note(*note).await;
         }
     }
 }

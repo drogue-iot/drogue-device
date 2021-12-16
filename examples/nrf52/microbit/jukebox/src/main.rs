@@ -20,19 +20,22 @@ use panic_probe as _;
 mod speaker;
 use speaker::*;
 
-static LED_MATRIX: ActorContext<LedMatrixActor<Output<'static, AnyPin>, 5, 5>> =
-    ActorContext::new();
+static LED_MATRIX: ActorContext<LedMatrixActor> = ActorContext::new();
+static DISCO: ActorContext<Disco> = ActorContext::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let board = Microbit::new(p);
     let matrix = LED_MATRIX.mount(spawner, LedMatrixActor::new(board.led_matrix, None));
+    let disco = DISCO.mount(spawner, matrix);
     let pwm = SimplePwm::new(board.pwm0, board.p0_00, NoPin, NoPin, NoPin);
-    let mut speaker = PwmSpeaker::new(pwm, matrix);
+    let mut speaker = PwmSpeaker::new(pwm);
 
     loop {
         for i in 0..RIFF.len() {
-            speaker.play_sample(&RIFF[i]).await;
+            if RIFF[0].0 > 0 {
+                join(diso.blink(), speaker.play_sample(&RIFF[i])).await;
+            }
         }
     }
 }
