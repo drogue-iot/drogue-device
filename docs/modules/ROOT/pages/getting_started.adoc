@@ -9,7 +9,7 @@ If you don't have any supported board, don't worry: you can also run drogue-devi
 
 == Getting a board with examples
 
-Drogue Device supports many microcontroller families, but the easiest ways to get started is if you have one of the more common development kits.
+Drogue Device supports many microcontroller families, but the easiest ways to get started is if you have one of the more common development kits that there are examples for already.
 
 === nRF kits
 
@@ -24,6 +24,7 @@ Drogue Device supports many microcontroller families, but the easiest ways to ge
 * link:https://www.st.com/en/evaluation-tools/b-l072z-lrwan1.html[STM32L0 Discovery kit LoRa, Sigfox, low-power wireless]
 * link:https://www.st.com/en/evaluation-tools/nucleo-wl55jc.html[STM32 Nucleo-64 development board with STM32WL55JCI MCU]
 * link:https://www.st.com/en/evaluation-tools/b-u585i-iot02a.html[Discovery kit for IoT node with STM32U5 series]
+* link:https://store.rakwireless.com/apps/omega-search/?options%5Bprefix%5D=last&q=rak811[RAK811 based LoRa boards]
 
 === RP2040 kits
 
