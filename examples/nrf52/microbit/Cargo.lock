@@ -957,6 +957,7 @@ dependencies = [
  "embassy",
  "embassy-nrf",
  "embedded-hal",
+ "futures",
  "panic-probe",
 ]
 
