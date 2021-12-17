@@ -67,7 +67,7 @@ impl Actor for Disco {
             loop {
                 if let Some(mut m) = inbox.next().await {
                     let note = *m.message();
-                    if note.0 > 0 {
+                    if note.0 != Pitch::Silent {
                         let _ = self.display.apply(&BITMAP).await;
                         let _ = self.display.max_brightness();
                         let interval = Duration::from_millis(note.1 as u64 / 10);
