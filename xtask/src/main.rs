@@ -15,6 +15,7 @@ fn main() -> Result<(), anyhow::Error> {
         ["ci_batch"] => ci(true),
         ["check_device"] => check_device(),
         ["test_device"] => test_device(),
+        ["test_examples"] => test_examples(),
         ["check", example] => check(&[example]),
         ["build", example] => build(&[example], false),
         ["fmt"] => fmt(),
@@ -53,7 +54,7 @@ static WORKSPACES: &[&str] = &[
 fn ci(batch: bool) -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("CI", "true");
 
-    check_device()?;
+    test_device()?;
     check(WORKSPACES)?;
     build(WORKSPACES, batch)?;
     docs()?;
@@ -149,10 +150,24 @@ fn build(workspaces: &[&str], batch: bool) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+fn test_examples() -> Result<(), anyhow::Error> {
+    let api = env::var_os("DROGUE_CLOUD_API").unwrap();
+    let token = env::var_os("DROGUE_CLOUD_ACCESS_TOKEN").unwrap();
+    let mut tests = root_dir();
+    tests.push("examples");
+    tests.push("tests");
+    let _p = xshell::pushd(&tests)?;
+    let _e = xshell::pushenv("DROGUE_CLOUD_API", api);
+    let _e = xshell::pushenv("DROGUE_CLOUD_ACCESS_TOKEN", token);
+    cmd!("cargo test -- --nocapture").run()?;
+    Ok(())
+}
+
 fn test_device() -> Result<(), anyhow::Error> {
     let mut device = root_dir();
     device.push("device");
     let _p = xshell::pushd(&device)?;
+    cmd!("cargo fmt --check").run()?;
     cmd!("cargo test --all --features 'std wifi+esp8266 wifi+eswifi lora lora+rak811 tcp+smoltcp tls'").run()?;
     Ok(())
 }
@@ -283,6 +298,10 @@ fn do_examples<F: FnMut(PathBuf) -> Result<(), anyhow::Error>>(
     for entry in fs::read_dir(current_dir)? {
         let entry = entry?;
         let path = entry.path();
+
+        if path.ends_with("tests") {
+            continue;
+        }
 
         if path.ends_with("Cargo.toml") {
             f(path.clone())?;

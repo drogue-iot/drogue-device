@@ -2,23 +2,17 @@ name: CI
 
 on:
   push:
-    # Run on the main branch
-    branches:
-      - main
-    # Releases are tags named 'v<version>', and must have the "major.minor.micro", for example: "0.1.0".
-    # Release candidates are tagged as `v<version>-rc<num>`, for example: "0.1.0-rc1".
-    tags:
-      - "v*"
-  # Also on PRs, just be careful not to publish anything
+    branches: [staging, trying, main]
   pull_request:
+    branches: [main]
 
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
 
   device:
     runs-on: ubuntu-20.04
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v2
 
@@ -90,3 +84,25 @@ jobs:
 
   #    - name: Build
   #      run: cargo xtask build ${{ matrix.example }}
+  test-examples:
+    # Allow this job to fail
+    continue-on-error: true
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: cache
+        id: cache-target
+        uses: actions/cache@v2
+        with:
+          path: target
+          key: ${{ runner.os }}-tests
+
+      - name: Install drg tool
+        run: cargo install --git https://github.com/drogue-iot/drg.git
+
+      - name: Check
+        run: cargo xtask test_examples
+        env:
+          DROGUE_CLOUD_API: ${{secrets.DROGUE_CLOUD_API}}
+          DROGUE_CLOUD_ACCESS_TOKEN: ${{secrets.DROGUE_CLOUD_ACCESS_TOKEN}}

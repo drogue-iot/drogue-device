@@ -309,6 +309,7 @@ pub enum Status {
     Accepted = 202,
     BadRequest = 400,
     Unauthorized = 401,
+    Forbidden = 403,
     NotFound = 404,
     Unknown = 0,
 }
@@ -321,6 +322,7 @@ impl From<u32> for Status {
             202 => Status::Accepted,
             400 => Status::BadRequest,
             401 => Status::Unauthorized,
+            403 => Status::Forbidden,
             404 => Status::NotFound,
             n => {
                 warn!("Unknown status code: {:?}", n);
