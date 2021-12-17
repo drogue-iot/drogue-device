@@ -133,6 +133,7 @@ impl TemperatureSensor<Celsius> for TemperatureMonitor {
 }
 
 #[allow(dead_code)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Pitch {
     C = 261,
     D = 293,
@@ -143,10 +144,11 @@ pub enum Pitch {
     AB = 466,
     B = 493,
     C2 = 523,
+    Silent = 0,
 }
 
 #[derive(Clone, Copy)]
-pub struct Note(pub u32, pub u32);
+pub struct Note(pub Pitch, pub u32);
 
 pub struct PwmSpeaker<'a, T: pwm::Instance> {
     pwm: pwm::SimplePwm<'a, T>,
@@ -160,9 +162,9 @@ impl<'a, T: pwm::Instance> PwmSpeaker<'a, T> {
     #[cfg(feature = "time")]
     pub async fn play_note(&mut self, note: Note) {
         use embassy::time::{Duration, Timer};
-        if note.0 > 0 {
+        if note.0 != Pitch::Silent {
             self.pwm.set_prescaler(pwm::Prescaler::Div4);
-            self.pwm.set_period(note.0);
+            self.pwm.set_period(note.0 as u32);
             self.pwm.enable();
 
             self.pwm.set_duty(0, self.pwm.max_duty() / 2);

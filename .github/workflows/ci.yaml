@@ -10,8 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-
-  device:
+  build:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -35,55 +34,6 @@ jobs:
       - name: Verify no changes to source modules
         run: git diff --exit-code
 
-#      - id: set-matrix
-#        run: |
-#          matrix=$((
-#            echo '{ "example" : ['
-#            cargo xtask matrix
-#            echo "]}"
-#          ) | jq -c .)
-#          echo $matrix
-#          echo $matrix | jq .
-#          echo "::set-output name=matrix::$matrix"
-
-  #check-matrix:
-  #  runs-on: ubuntu-20.04
-  #  needs: matrix
-  #  steps:
-  #    - name: Install json2yaml
-  #      run: |
-  #        sudo npm install -g json2yaml
-
-  #    - name: Check matrix definition
-  #      run: |
-  #        matrix='${{ needs.matrix.outputs.matrix }}'
-  #        echo $matrix
-  #        echo $matrix | jq .
-  #        echo $matrix | json2yaml
-
-
-  #examples:
-  #  needs: device
-  #  runs-on: ubuntu-20.04
-  #  strategy:
-  #    fail-fast: false
-  #    matrix: ${{fromJson(needs.device.outputs.matrix)}}
-
-  #  steps:
-  #    - uses: actions/checkout@v2
-
-  #    - name: cache
-  #      id: cache-target
-  #      uses: actions/cache@v2
-  #      with:
-  #        path: ${{matrix.example}}/target
-  #        key: ${{ runner.os }}-${{ matrix.example }}
-
-  #    - name: Check
-  #      run: cargo xtask check ${{ matrix.example }}
-
-  #    - name: Build
-  #      run: cargo xtask build ${{ matrix.example }}
   test-examples:
     # Allow this job to fail
     continue-on-error: true
