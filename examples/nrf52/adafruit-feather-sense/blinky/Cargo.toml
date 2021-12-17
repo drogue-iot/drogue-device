@@ -12,8 +12,6 @@ description = "Adafruit Feather nRF52840 Sense blinky"
 keywords = ["adafruit", "feather", "nrf", "nrf52", "blinky"]
 resolver = "2"
 
-[workspace]
-
 [dependencies]
 
 defmt = "0.3"
@@ -29,9 +27,3 @@ embedded-hal = { version = "0.2.4", features = ["unproven"] }
 drogue-device = { path = "../../../../device", default-features = false, features = [ "bsp+adafruit_feather_nrf52840_sense" ] }
 embassy = { version = "0.1.0", default-features = false, features=["defmt", "time"] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52840", "time-driver-rtc1", "gpiote"]}
-
-[patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
-embassy-macros = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }

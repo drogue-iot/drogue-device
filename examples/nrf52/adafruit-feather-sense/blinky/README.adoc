@@ -1,0 +1,34 @@
+== Adafruit Feather nRF52840 Sense
+
+This example application runs out of the box on the Adafruit Feather nRF52840 Sense
+
+=== Prerequisites
+
+==== Hardware
+
+* link:https://www.adafruit.com/product/4516[Adafruit Feather nRF52840 Sense]
+
+==== Software
+
+* link:https://rustup.rs/[rustup] to build the code
+* link:https://github.com/jacobrosenthal/hf2-rs/tree/master/hf2-cli[hf2-cli] to convert binary to uf2 bootloader format
+
+=== Building
+
+To build the firmware:
+
+....
+cargo build --release
+....
+
+=== Flashing
+
+Flashing the firmware uses the hf2-cli tool with the built-in bootloader.
+
+First, power up the board and press the reset button twice quickly. This should put turn the board into a USB mass storage device that will be attached to your computer.
+
+To flash the device, run:
+
+....
+cargo run --release
+....

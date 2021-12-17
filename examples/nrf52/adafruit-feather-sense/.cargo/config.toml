@@ -1,5 +1,5 @@
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
-runner = "probe-run --chip nrf52840_xxAA --connect-under-reset"
+runner = "hf2 elf"
 
 rustflags = [
   "-C", "link-arg=--nmagic",
