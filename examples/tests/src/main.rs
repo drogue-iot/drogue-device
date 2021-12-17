@@ -11,7 +11,7 @@ mod tests {
         let a = app.clone();
         let result = panic_catch_after(std::time::Duration::from_secs(300), move || {
             let e = std::thread::spawn(move || {
-                run_example("std/cloud", std::time::Duration::from_secs(90));
+                run_example("std/cloud", std::time::Duration::from_secs(60));
             });
 
             let result = receive_message(&a);
@@ -33,7 +33,7 @@ mod tests {
                 output["datacontenttype"].as_str().unwrap(),
                 "application/json"
             );
-            assert_eq!(output["data"]["temp"].as_i64().unwrap(), 22);
+            assert_eq!(output["data"]["temp"].as_f64().unwrap() as i64, 22);
         } else {
             assert!(false);
         }
