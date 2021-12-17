@@ -4,6 +4,7 @@
 [![crates.io](https://img.shields.io/crates/v/drogue-device.svg)](https://crates.io/crates/drogue-device)
 [![docs.rs](https://docs.rs/drogue-device/badge.svg)](https://docs.rs/drogue-device)
 [![Matrix](https://img.shields.io/matrix/drogue-iot:matrix.org)](https://matrix.to/#/#drogue-iot:matrix.org)
+[![Bors enabled](https://bors.tech/images/badge_small.svg)](https://app.bors.tech/repositories/40676)
 
 Drogue device is a framework for embedded devices.
 
