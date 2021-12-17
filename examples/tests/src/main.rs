@@ -9,9 +9,9 @@ mod tests {
     fn test_std_cloud() {
         let app = setup();
         let a = app.clone();
-        let result = panic_catch_after(std::time::Duration::from_secs(120), move || {
+        let result = panic_catch_after(std::time::Duration::from_secs(40), move || {
             let e = std::thread::spawn(move || {
-                run_example("std/cloud", std::time::Duration::from_secs(20));
+                run_example("std/cloud", std::time::Duration::from_secs(30));
             });
 
             let result = receive_message(&a);
@@ -23,7 +23,7 @@ mod tests {
 
         teardown(app);
 
-        if let Ok(output) = result {
+        if let Ok(Some(output)) = result {
             println!("V: {:?}", output);
         } else {
             assert!(false);
@@ -139,6 +139,7 @@ mod tests {
                 }
             }
         }
+        println!("Killing example");
         let _ = c.kill();
     }
 
