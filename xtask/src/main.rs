@@ -54,7 +54,7 @@ static WORKSPACES: &[&str] = &[
 fn ci(batch: bool) -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("CI", "true");
 
-    check_device()?;
+    test_device()?;
     check(WORKSPACES)?;
     build(WORKSPACES, batch)?;
     docs()?;
@@ -167,6 +167,7 @@ fn test_device() -> Result<(), anyhow::Error> {
     let mut device = root_dir();
     device.push("device");
     let _p = xshell::pushd(&device)?;
+    cmd!("cargo fmt --check").run()?;
     cmd!("cargo test --all --features 'std wifi+esp8266 wifi+eswifi lora lora+rak811 tcp+smoltcp tls'").run()?;
     Ok(())
 }
