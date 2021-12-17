@@ -9,9 +9,9 @@ mod tests {
     fn test_std_cloud() {
         let app = setup();
         let a = app.clone();
-        let result = panic_catch_after(std::time::Duration::from_secs(40), move || {
+        let result = panic_catch_after(std::time::Duration::from_secs(120), move || {
             let e = std::thread::spawn(move || {
-                run_example("std/cloud", std::time::Duration::from_secs(30));
+                run_example("std/cloud", std::time::Duration::from_secs(90));
             });
 
             let result = receive_message(&a);
@@ -21,10 +21,17 @@ mod tests {
             result
         });
 
-        teardown(app);
+        teardown(&app);
 
         if let Ok(Some(output)) = result {
             println!("V: {:?}", output);
+            assert_eq!(output["application"].as_str().unwrap(), app);
+            assert_eq!(output["device"].as_str().unwrap(), "device1");
+            assert_eq!(
+                output["datacontenttype"].as_str().unwrap(),
+                "application/json"
+            );
+            assert_eq!(output["data"]["temp"].as_i64().unwrap(), 22);
         } else {
             assert!(false);
         }
@@ -57,8 +64,8 @@ mod tests {
         app
     }
 
-    fn teardown(app: String) {
-        cmd!("drg", "delete", "app", &app).run().unwrap();
+    fn teardown(app: &str) {
+        cmd!("drg", "delete", "app", app).run().unwrap();
     }
 
     fn receive_message(app: &str) -> Option<Value> {
