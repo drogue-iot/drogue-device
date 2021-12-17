@@ -134,7 +134,6 @@ mod tests {
         while Instant::now() < end {
             match c.try_wait() {
                 Ok(None) => {
-                    println!("Wait a little longer");
                     std::thread::sleep(Duration::from_secs(1));
                 }
                 Ok(Some(o)) => {
