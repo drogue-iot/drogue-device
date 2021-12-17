@@ -2,16 +2,12 @@ name: CI
 
 on:
   push:
-    # Run on the main branch
-    branches:
-      - main
-    # Releases are tags named 'v<version>', and must have the "major.minor.micro", for example: "0.1.0".
-    # Release candidates are tagged as `v<version>-rc<num>`, for example: "0.1.0-rc1".
-    tags:
-      - "v*"
-  # Also on PRs, just be careful not to publish anything
+    branches: [staging, trying, main]
   pull_request:
+    branches: [main]
 
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
 
