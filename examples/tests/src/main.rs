@@ -9,14 +9,16 @@ mod tests {
     fn test_std_cloud() {
         let app = setup();
         let a = app.clone();
-        let result = panic_catch_after(std::time::Duration::from_secs(180), move || {
+        let result = panic_catch_after(std::time::Duration::from_secs(300), move || {
             let e = std::thread::spawn(move || {
                 run_example("std/cloud", std::time::Duration::from_secs(90));
             });
 
             let result = receive_message(&a);
 
+            println!("Joining example thread");
             let e = e.join();
+            println!("Example thread joined");
             let _ = e.unwrap();
             result
         });
@@ -82,7 +84,7 @@ mod tests {
                 match serde_json::from_str(&output) {
                     Ok(value) => {
                         result = Some(value);
-                        break;
+                        return result;
                     }
                     Err(e) => {
                         println!("error parsing test output as JSON '{}': {:?}", &output, e);
@@ -91,6 +93,7 @@ mod tests {
             }
             std::thread::sleep(Duration::from_secs(1));
         }
+        println!("Receive message completed successfully");
         result
     }
 
@@ -134,6 +137,7 @@ mod tests {
         while Instant::now() < end {
             match c.try_wait() {
                 Ok(None) => {
+                    println!("Wait a little longer");
                     std::thread::sleep(Duration::from_secs(1));
                 }
                 Ok(Some(o)) => {
