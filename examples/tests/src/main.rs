@@ -72,26 +72,23 @@ mod tests {
 
     fn receive_message(app: &str) -> Option<Value> {
         let mut result: Option<Value> = None;
-        for _ in 0..10 {
-            let output = cmd!("drg", "stream", &app, "-n", "1")
-                .stdout_capture()
-                .stderr_to_stdout()
-                .read();
+        let output = cmd!("drg", "stream", &app, "-n", "1")
+            .stdout_capture()
+            .stderr_to_stdout()
+            .read();
 
-            println!("OUTPUT: {:?}", output);
+        println!("OUTPUT: {:?}", output);
 
-            if let Ok(output) = output {
-                match serde_json::from_str(&output) {
-                    Ok(value) => {
-                        result = Some(value);
-                        return result;
-                    }
-                    Err(e) => {
-                        println!("error parsing test output as JSON '{}': {:?}", &output, e);
-                    }
+        if let Ok(output) = output {
+            match serde_json::from_str(&output) {
+                Ok(value) => {
+                    result = Some(value);
+                    return result;
+                }
+                Err(e) => {
+                    println!("error parsing test output as JSON '{}': {:?}", &output, e);
                 }
             }
-            std::thread::sleep(Duration::from_secs(1));
         }
         println!("Receive message completed successfully");
         result
