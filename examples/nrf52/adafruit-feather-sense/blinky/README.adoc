@@ -11,7 +11,9 @@ This example application runs out of the box on the Adafruit Feather nRF52840 Se
 ==== Software
 
 * link:https://rustup.rs/[rustup] to build the code
-* link:https://github.com/jacobrosenthal/hf2-rs/tree/master/hf2-cli[hf2-cli] to convert binary to uf2 bootloader format
+* link:https://github.com/microsoft/uf2[uf2conv.py]
+
+For the `uf2conf.py`, make sure you have the `utils/` folder in `$PATH`.
 
 === Building
 
@@ -23,12 +25,14 @@ cargo build --release
 
 === Flashing
 
-Flashing the firmware uses the hf2-cli tool with the built-in bootloader.
+Flashing the firmware uses the uf2conf.py tool with the built-in bootloader.
 
 First, power up the board and press the reset button twice quickly. This should put turn the board into a USB mass storage device that will be attached to your computer.
 
 To flash the device, run:
 
 ....
-cargo run --release
+MEDIA=/Volumes/SOMETHINGFEATHER cargo run --release
 ....
+
+Where you replace MEDIA with the drive your feather attaches to.
