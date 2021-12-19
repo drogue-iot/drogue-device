@@ -1,0 +1,8 @@
+#!/bin/bash
+if [ -z "$MEDIA" ]; then
+    echo "Must set MEDIA to mass storage device"
+    exit 1
+fi
+set -eux
+cargo objcopy --release -- -O binary firmware.bin
+uf2conv.py -f 0xada52840 -b 0x26000 -c firmware.bin -o $MEDIA/NEW.UF2

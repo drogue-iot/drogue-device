@@ -1,5 +1,5 @@
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
-runner = "hf2 elf"
+runner = "./fruitrunner"
 
 rustflags = [
   "-C", "link-arg=--nmagic",

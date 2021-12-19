@@ -26,8 +26,19 @@ impl BlinkyBoard for BSP {
 }
 
 static DEVICE: DeviceContext<BlinkyDevice<BSP>> = DeviceContext::new();
+//
+// Application must run at a lower priority than softdevice
+use embassy_nrf::config::Config;
+use embassy_nrf::interrupt::Priority;
 
-#[embassy::main]
+fn config() -> Config {
+    let mut config = embassy_nrf::config::Config::default();
+    config.gpiote_interrupt_priority = Priority::P2;
+    config.time_interrupt_priority = Priority::P2;
+    config
+}
+
+#[embassy::main(config = "config()")]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let board = BSP::new(p);
 

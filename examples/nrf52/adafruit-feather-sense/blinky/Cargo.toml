@@ -27,3 +27,6 @@ embedded-hal = { version = "0.2.4", features = ["unproven"] }
 drogue-device = { path = "../../../../device", default-features = false, features = [ "bsp+adafruit_feather_nrf52840_sense" ] }
 embassy = { version = "0.1.0", default-features = false, features=["defmt", "time"] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52840", "time-driver-rtc1", "gpiote"]}
+
+nrf-softdevice = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "ab4d4f9de306e8d3040e2b5d6e05709d72891721", features = ["ble-central", "ble-peripheral", "ble-gatt-server", "nrf52840", "s140"] }
+nrf-softdevice-s140 = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "ab4d4f9de306e8d3040e2b5d6e05709d72891721" }
