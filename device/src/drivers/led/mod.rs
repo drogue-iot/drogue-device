@@ -18,11 +18,7 @@ where
     P: OutputPin,
 {
     fn set(pin: &mut P, active: bool) -> Result<(), P::Error> {
-        pin.set_state(if active {
-            PinState::High
-        } else {
-            PinState::Low
-        })
+        pin.set_state(PinState::from(active))
     }
 }
 
@@ -31,11 +27,7 @@ where
     P: OutputPin,
 {
     fn set(pin: &mut P, active: bool) -> Result<(), P::Error> {
-        pin.set_state(if active {
-            PinState::Low
-        } else {
-            PinState::High
-        })
+        pin.set_state(!PinState::from(active))
     }
 }
 
@@ -84,5 +76,56 @@ where
 {
     fn from(pin: P) -> Self {
         Self::new(pin)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_active_high() {
+        let mut pin = TestOutputPin::new();
+        ActiveHigh::set(&mut pin, true).unwrap();
+        assert!(pin.state == PinState::High);
+
+        ActiveHigh::set(&mut pin, false).unwrap();
+        assert!(pin.state == PinState::Low);
+    }
+
+    #[test]
+    fn test_active_low() {
+        let mut pin = TestOutputPin::new();
+        ActiveLow::set(&mut pin, true).unwrap();
+        assert!(pin.state == PinState::Low);
+
+        ActiveLow::set(&mut pin, false).unwrap();
+        assert!(pin.state == PinState::High);
+    }
+
+    struct TestOutputPin {
+        state: PinState,
+    }
+
+    impl OutputPin for TestOutputPin {
+        type Error = ();
+        fn set_high(&mut self) -> Result<(), Self::Error> {
+            Ok(())
+        }
+        fn set_low(&mut self) -> Result<(), Self::Error> {
+            Ok(())
+        }
+        fn set_state(&mut self, s: PinState) -> Result<(), Self::Error> {
+            self.state = s;
+            Ok(())
+        }
+    }
+
+    impl TestOutputPin {
+        fn new() -> Self {
+            Self {
+                state: PinState::High,
+            }
+        }
     }
 }
