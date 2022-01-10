@@ -45,7 +45,7 @@
 //!     /// to support async functions in traits such as Actor.
 //!     type OnMountFuture<'a, M> where M: 'a = impl core::future::Future<Output = ()> + 'a;
 //!
-//!     /// An actor have to implement the on_mount method. on_mount() is invoked when the internals of an actor is ready,
+//!     /// An actor has to implement the on_mount method. on_mount() is invoked when the internals of an actor is ready,
 //!     /// and the actor can begin to receive messages from an inbox.
 //!     ///
 //!     /// The following arguments are provided:
@@ -77,12 +77,12 @@
 //!     /// Actor state must be static for embassy
 //!     static COUNTER: ActorContext<Counter> = ActorContext::new();
 //!
-//!     /// Mounting the Actor will spawn an embassy task
+//!     // Mounting the Actor will spawn an embassy task
 //!     let addr = COUNTER.mount(spawner, Counter {
 //!         count: 0
 //!     });
 //!
-//!     /// The actor address may be used in any embassy task to communicate with the actor.
+//!     // The actor address may be used in any embassy task to communicate with the actor.
 //!     addr.request(Increment).unwrap().await;
 //! }
 //!```
