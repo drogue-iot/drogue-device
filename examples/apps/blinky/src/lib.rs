@@ -25,7 +25,7 @@ where
 /// These are the trait-based components required by the app.
 /// Members must be public so they can be slurped off.
 /// Types should reference the associated types defined
-// by the board trait above.
+/// by the board trait above.
 pub struct BlinkyConfiguration<B: BlinkyBoard> {
     pub led: B::Led,
     pub control_button: B::ControlButton,
