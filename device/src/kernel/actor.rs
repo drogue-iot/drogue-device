@@ -39,8 +39,8 @@ pub trait Actor: Sized {
         Self: 'm,
         M: 'm;
 
-    /// Called when an actor is mounted (activated). The actor will be provided with its expected
-    /// configuration, and address to itself, and an inbox used to receive incoming messages.
+    /// Called when an actor is mounted (activated). The actor will be provided with the
+    /// address to itself, and an inbox used to receive incoming messages.
     fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<Self> + 'm;
