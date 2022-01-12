@@ -1,3 +1,5 @@
+//! Board Support Packages (BSP).
+
 pub mod boards;
 
 /// A board capable of creating itself using peripherals.
