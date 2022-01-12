@@ -9,7 +9,6 @@ use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
 use embassy_stm32::interrupt;
 use embassy_stm32::pac;
 use embassy_stm32::peripherals::{PA0, PB11, PB15, PB9, RNG};
-use embassy_stm32::rcc::Rcc;
 use embassy_stm32::subghz::*;
 
 pub type PinLedBlue = Output<'static, PB15>;
@@ -33,14 +32,15 @@ pub struct NucleoWl55 {
     pub led_yellow: LedYellow,
     pub user_button: UserButton,
     pub rng: Rng,
-    pub rcc: Rcc<'static>,
     pub radio: Radio,
 }
 
 impl NucleoWl55 {
-    pub fn config() -> embassy_stm32::Config {
+    pub fn config(enable_debug: bool) -> embassy_stm32::Config {
         let mut config = embassy_stm32::Config::default();
-        config.rcc = config.rcc.clock_src(embassy_stm32::rcc::ClockSrc::HSI16);
+        config.rcc.mux = embassy_stm32::rcc::ClockSrc::HSI16;
+        config.rcc.enable_lsi = true;
+        config.enable_debug_during_sleep = enable_debug;
         config
     }
 }
@@ -48,9 +48,7 @@ impl NucleoWl55 {
 impl Board for NucleoWl55 {
     type Peripherals = embassy_stm32::Peripherals;
     fn new(p: Self::Peripherals) -> Self {
-        let mut rcc = Rcc::new(p.RCC);
         unsafe {
-            rcc.enable_lsi();
             pac::RCC.ccipr().modify(|w| {
                 w.set_rngsel(0b01);
             });
@@ -79,7 +77,6 @@ impl Board for NucleoWl55 {
             led_green,
             led_yellow,
             user_button,
-            rcc,
             rng,
             radio,
         }
