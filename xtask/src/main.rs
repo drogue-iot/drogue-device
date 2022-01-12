@@ -137,7 +137,7 @@ fn check_device() -> Result<(), anyhow::Error> {
     device.push("device");
     let _p = xshell::pushd(&device)?;
     cmd!("cargo fmt --check").run()?;
-    cmd!("cargo check --all --features 'std wifi+esp8266 wifi+eswifi lora lora+rak811 tcp+smoltcp tls'").run()?;
+    cmd!("cargo check --all --features 'std wifi+esp8266 wifi+eswifi tcp+smoltcp tls'").run()?;
     Ok(())
 }
 
@@ -169,7 +169,7 @@ fn test_device() -> Result<(), anyhow::Error> {
     device.push("device");
     let _p = xshell::pushd(&device)?;
     cmd!("cargo fmt --check").run()?;
-    cmd!("cargo test --all --features 'std wifi+esp8266 wifi+eswifi lora lora+rak811 tcp+smoltcp tls'").run()?;
+    cmd!("cargo test --all --features 'std wifi+esp8266 wifi+eswifi tcp+smoltcp tls'").run()?;
     Ok(())
 }
 

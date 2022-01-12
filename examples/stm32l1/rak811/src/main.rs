@@ -16,7 +16,7 @@ use drogue_device::{
 };
 use embassy::executor::Spawner;
 use embassy::time::Duration;
-use embassy_stm32::{dbgmcu::Dbgmcu, Peripherals};
+use embassy_stm32::Peripherals;
 use lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig, TimeTrigger};
 
 bind_bsp!(Rak811, BSP);
@@ -33,10 +33,6 @@ impl LoraBoard for BSP {
 
 #[embassy::main(config = "Rak811::config()")]
 async fn main(spawner: Spawner, p: Peripherals) {
-    unsafe {
-        Dbgmcu::enable_all();
-    }
-
     let board = Rak811::new(p);
 
     let config = LoraConfig::new()
@@ -47,7 +43,16 @@ async fn main(spawner: Spawner, p: Peripherals) {
     defmt::info!("Configuring with config {:?}", config);
 
     static mut RADIO_BUF: [u8; 256] = [0; 256];
-    let lora = unsafe { Device::new(&config, board.radio, board.rng, &mut RADIO_BUF).unwrap() };
+    let radio = Radio::new(
+        board.spi1,
+        board.radio_cs,
+        board.radio_reset,
+        board.radio_ready,
+        board.radio_switch,
+    )
+    .await
+    .unwrap();
+    let lora = unsafe { Device::new(&config, radio, board.rng, &mut RADIO_BUF).unwrap() };
     let config = LoraDeviceConfig {
         join_led: Some(board.led_red),
         tx_led: None,

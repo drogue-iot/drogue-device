@@ -9,6 +9,7 @@ use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
 use embassy_stm32::interrupt;
 use embassy_stm32::peripherals::{PB0, PB14, PC13, PE1, RNG};
 use embassy_stm32::rng::Rng as HalRng;
+use embassy_stm32::Config;
 
 pub type PinLedRed = Output<'static, PB14>;
 pub type LedRed = Led<PinLedRed, ActiveHigh>;
@@ -33,6 +34,14 @@ pub struct NucleoH743 {
     pub user_button: UserButton,
     pub eth: EthernetDevice,
     pub rng: Rng,
+}
+
+impl NucleoH743 {
+    pub fn config(enable_debug: bool) -> Config {
+        let mut config = Config::default();
+        config.enable_debug_during_sleep = enable_debug;
+        config
+    }
 }
 
 impl Board for NucleoH743 {

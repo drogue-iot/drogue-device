@@ -30,7 +30,7 @@ rand_core = { version = "0.6", default-features = false }
 
 embassy = { version = "0.1.0", default-features = false }
 embassy-lora = { version = "0.1.0", default-features = false, features = ["stm32wl"] }
-embassy-stm32 = { version = "0.1.0", default-features = false, features = ["defmt", "stm32wl55jc_cm4", "time-driver-tim2", "unstable-pac", "subghz"] }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["defmt", "stm32wl55jc-cm4", "time-driver-tim2", "unstable-pac", "subghz"] }
 
 [profile.release]
 codegen-units = 1
@@ -43,11 +43,9 @@ incremental = false
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
-embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "e7668a86bd118ae8c4eb3e695130d7cac90c1dfe" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "e7668a86bd118ae8c4eb3e695130d7cac90c1dfe" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "e7668a86bd118ae8c4eb3e695130d7cac90c1dfe" }
 
 #embassy = { path = "../../../../../embassy/embassy" }
 #embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
-#embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }

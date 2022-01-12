@@ -37,10 +37,8 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
-embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "c8f3ec3fba47899b123d0a146e8f9b3808ea4601" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "e7668a86bd118ae8c4eb3e695130d7cac90c1dfe" }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "e7668a86bd118ae8c4eb3e695130d7cac90c1dfe" }
 
 #embassy = { path = "../../../../../embassy/embassy" }
 #embassy-rp = { path = "../../../../../embassy/embassy-rp" }
-#embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }

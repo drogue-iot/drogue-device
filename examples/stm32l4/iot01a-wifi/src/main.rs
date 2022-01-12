@@ -19,7 +19,6 @@ use drogue_device::{
     *,
 };
 use drogue_temperature::*;
-use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::Peripherals;
 
 const WIFI_SSID: &str = drogue::config!("wifi-ssid");
@@ -39,12 +38,8 @@ impl TemperatureBoard for BSP {
 
 static DEVICE: DeviceContext<TemperatureDevice<BSP>> = DeviceContext::new();
 
-#[embassy::main(config = "Iot01a::config()")]
+#[embassy::main(config = "Iot01a::config(true)")]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
-    unsafe {
-        Dbgmcu::enable_all();
-    }
-
     let board = Iot01a::new(p);
     let mut wifi = board.wifi;
     match wifi.start().await {

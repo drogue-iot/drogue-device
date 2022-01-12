@@ -18,7 +18,6 @@ use drogue_device::{
 use drogue_temperature::*;
 use embassy_net::StaticConfigurator;
 use embassy_net::{Config as NetConfig, Ipv4Address, Ipv4Cidr};
-use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::eth::lan8742a::LAN8742A;
 use embassy_stm32::peripherals::RNG;
 use embassy_stm32::rng::Rng;
@@ -46,10 +45,6 @@ static DEVICE: DeviceContext<TemperatureDevice<BSP>> = DeviceContext::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
-    unsafe {
-        Dbgmcu::enable_all();
-    }
-
     let board = NucleoH743::new(p);
 
     unsafe {

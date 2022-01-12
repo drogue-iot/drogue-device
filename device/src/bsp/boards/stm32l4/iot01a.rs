@@ -51,18 +51,17 @@ pub struct Iot01a {
 }
 
 impl Iot01a {
-    pub fn config() -> Config {
+    pub fn config(enable_debug: bool) -> Config {
         let mut config = Config::default();
-        config.rcc = config
-            .rcc
-            .clock_src(ClockSrc::PLL(
-                PLLSource::HSI16,
-                PLLClkDiv::Div2,
-                PLLSrcDiv::Div1,
-                PLLMul::Mul10,
-                Some(PLLClkDiv::Div2),
-            ))
-            .ahb_pre(AHBPrescaler::Div8);
+        config.rcc.mux = ClockSrc::PLL(
+            PLLSource::HSI16,
+            PLLClkDiv::Div2,
+            PLLSrcDiv::Div1,
+            PLLMul::Mul10,
+            Some(PLLClkDiv::Div2),
+        );
+        config.rcc.ahb_pre = AHBPrescaler::Div8;
+        config.enable_debug_during_sleep = enable_debug;
         config
     }
 }

@@ -7,7 +7,6 @@
 
 use bsp_blinky_app::{BlinkyBoard, BlinkyConfiguration, BlinkyDevice};
 use drogue_device::{bind_bsp, Board, DeviceContext};
-use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::Peripherals;
 
 use defmt_rtt as _;
@@ -29,10 +28,6 @@ static DEVICE: DeviceContext<BlinkyDevice<BSP>> = DeviceContext::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
-    unsafe {
-        Dbgmcu::enable_all();
-    }
-
     let board = BSP::new(p);
 
     let config = BlinkyConfiguration {

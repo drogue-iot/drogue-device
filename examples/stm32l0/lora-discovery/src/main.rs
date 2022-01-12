@@ -15,7 +15,7 @@ use drogue_device::{
     *,
 };
 use embassy::executor::Spawner;
-use embassy_stm32::{dbgmcu::Dbgmcu, Peripherals};
+use embassy_stm32::Peripherals;
 use lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig};
 
 bind_bsp!(LoraDiscovery, BSP);
@@ -32,10 +32,6 @@ impl LoraBoard for BSP {
 
 #[embassy::main(config = "LoraDiscovery::config()")]
 async fn main(spawner: Spawner, p: Peripherals) {
-    unsafe {
-        Dbgmcu::enable_all();
-    }
-
     let board = LoraDiscovery::new(p);
     let config = LoraConfig::new()
         .region(LoraRegion::EU868)
@@ -45,12 +41,23 @@ async fn main(spawner: Spawner, p: Peripherals) {
     defmt::info!("Configuring with config {:?}", config);
 
     static mut RADIO_BUF: [u8; 256] = [0; 256];
+
+    let radio = Radio::new(
+        board.spi1,
+        board.radio_cs,
+        board.radio_reset,
+        board.radio_ready,
+        DummySwitch,
+    )
+    .await
+    .unwrap();
+
     let config = LoraDeviceConfig {
         join_led: Some(board.led_red),
         tx_led: Some(board.led_green),
         command_led: Some(board.led_yellow),
         send_trigger: board.user_button,
-        driver: unsafe { Device::new(&config, board.radio, board.rng, &mut RADIO_BUF).unwrap() },
+        driver: unsafe { Device::new(&config, radio, board.rng, &mut RADIO_BUF).unwrap() },
     };
 
     DEVICE

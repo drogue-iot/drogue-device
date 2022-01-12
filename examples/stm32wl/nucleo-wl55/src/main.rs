@@ -15,7 +15,7 @@ use drogue_device::{
     *,
 };
 use embassy::executor::Spawner;
-use embassy_stm32::{dbgmcu::Dbgmcu, Peripherals};
+use embassy_stm32::Peripherals;
 use lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig};
 
 bind_bsp!(NucleoWl55, BSP);
@@ -30,12 +30,8 @@ impl LoraBoard for BSP {
     type Driver = Device<'static, Radio, Rng>;
 }
 
-#[embassy::main(config = "NucleoWl55::config()")]
+#[embassy::main(config = "NucleoWl55::config(true)")]
 async fn main(spawner: Spawner, p: Peripherals) {
-    unsafe {
-        Dbgmcu::enable_all();
-    }
-
     let board = NucleoWl55::new(p);
 
     let config = LoraConfig::new()

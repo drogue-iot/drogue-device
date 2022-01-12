@@ -14,7 +14,6 @@ use drogue_device::actors::button::{Button, ButtonEvent, ButtonEventDispatcher, 
 use drogue_device::{Actor, ActorContext, Address, DeviceContext, Inbox};
 use embassy::time::Delay;
 use embassy::traits::rng::Rng;
-use embassy_stm32::dbgmcu::Dbgmcu;
 use embassy_stm32::dma::NoDma;
 use embassy_stm32::peripherals::*;
 use embassy_stm32::rng::Rng as Random;
@@ -221,10 +220,6 @@ static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
 
 #[embassy::main(config = "config()")]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
-    unsafe {
-        Dbgmcu::enable_all();
-    }
-
     let button = Input::new(p.PC13, Pull::Down);
     let button = ExtiInput::new(button, p.EXTI13);
 
@@ -271,6 +266,6 @@ pub fn config() -> Config {
     let mut config = Config::default();
     config.rcc.sys_ck = Some(400.mhz().into());
     config.rcc.pll1.q_ck = Some(100.mhz().into());
-    config.rcc.enable_dma1 = true;
+    config.enable_debug_during_sleep = true;
     config
 }

@@ -9,7 +9,6 @@ use crate::{
 use core::future::Future;
 use embassy_nrf::{
     gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},
-    gpiote::PortInput,
     interrupt,
     peripherals::{
         P0_00, P0_01, P0_08, P0_09, P0_10, P0_13, P0_14, P0_16, P0_23, P1_02, PPI_CH0, PPI_CH1,
@@ -23,10 +22,10 @@ pub type LedMatrix = LedMatrixDriver<Output<'static, AnyPin>, 5, 5>;
 pub type LedMatrixActor = MatrixActor<Output<'static, AnyPin>, 5, 5>;
 
 pub type PinButtonA = Input<'static, P0_14>;
-pub type ButtonA = Button<PortInput<'static, P0_14>, ActiveLow>;
+pub type ButtonA = Button<Input<'static, P0_14>, ActiveLow>;
 
 pub type PinButtonB = Input<'static, P0_23>;
-pub type ButtonB = Button<PortInput<'static, P0_23>, ActiveLow>;
+pub type ButtonB = Button<Input<'static, P0_23>, ActiveLow>;
 
 pub struct Microbit {
     pub led_matrix: LedMatrix,
@@ -74,8 +73,8 @@ impl Board for Microbit {
 
         Self {
             led_matrix: LedMatrixDriver::new(rows, cols),
-            button_a: Button::new(PortInput::new(Input::new(p.P0_14, Pull::Up))),
-            button_b: Button::new(PortInput::new(Input::new(p.P0_23, Pull::Up))),
+            button_a: Button::new(Input::new(p.P0_14, Pull::Up)),
+            button_b: Button::new(Input::new(p.P0_23, Pull::Up)),
             uarte0: p.UARTE0,
             timer0: p.TIMER0,
             p0_00: p.P0_00,

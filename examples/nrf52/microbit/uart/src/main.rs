@@ -50,17 +50,15 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let board = Microbit::new(p);
 
     let irq = interrupt::take!(UARTE0_UART0);
-    let uarte = unsafe {
-        uarte::Uarte::new(
-            board.uarte0,
-            irq,
-            board.p0_13,
-            board.p0_01,
-            NoPin,
-            NoPin,
-            config,
-        )
-    };
+    let uarte = uarte::Uarte::new(
+        board.uarte0,
+        irq,
+        board.p0_13,
+        board.p0_01,
+        NoPin,
+        NoPin,
+        config,
+    );
 
     static DEVICE: Forever<MyDevice> = Forever::new();
     let device = DEVICE.put(Default::default());
