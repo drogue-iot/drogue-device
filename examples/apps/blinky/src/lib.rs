@@ -59,13 +59,13 @@ impl<B: BlinkyBoard> BlinkyDevice<B> {
     /// This is exactly the same operation performed during normal mount cycles
     /// in a non-BSP example.
     pub async fn mount(&'static self, spawner: Spawner, components: BlinkyConfiguration<B>) {
-        let led = self
+        let led_address = self
             .led
             .mount(spawner, actors::led::Led::new(components.led));
-        let app = self.app.mount(spawner, BlinkyApp::new(led));
+        let app_address = self.app.mount(spawner, BlinkyApp::new(led_address));
         self.button.mount(
             spawner,
-            actors::button::Button::new(components.control_button, app.into()),
+            actors::button::Button::new(components.control_button, app_address.into()),
         );
     }
 }
