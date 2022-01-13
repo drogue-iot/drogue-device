@@ -43,9 +43,9 @@ incremental = false
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "e7668a86bd118ae8c4eb3e695130d7cac90c1dfe" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "e7668a86bd118ae8c4eb3e695130d7cac90c1dfe" }
-embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "e7668a86bd118ae8c4eb3e695130d7cac90c1dfe" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "0d67ceb066f7b6d3b0163eaa3688b0499439a21c" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "0d67ceb066f7b6d3b0163eaa3688b0499439a21c" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "0d67ceb066f7b6d3b0163eaa3688b0499439a21c" }
 
 #embassy = { path = "../../../../../embassy/embassy" }
 #embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }

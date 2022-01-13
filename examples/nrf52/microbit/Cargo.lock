@@ -535,7 +535,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=e7668a86bd118ae8c4eb3e695130d7cac90c1dfe#e7668a86bd118ae8c4eb3e695130d7cac90c1dfe"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
 dependencies = [
  "atomic-polyfill",
  "cfg-if",
@@ -553,7 +553,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=e7668a86bd118ae8c4eb3e695130d7cac90c1dfe#e7668a86bd118ae8c4eb3e695130d7cac90c1dfe"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
 dependencies = [
  "cortex-m 0.7.4",
  "embassy",
@@ -564,7 +564,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=e7668a86bd118ae8c4eb3e695130d7cac90c1dfe#e7668a86bd118ae8c4eb3e695130d7cac90c1dfe"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
 dependencies = [
  "darling 0.13.1",
  "proc-macro2",
@@ -575,7 +575,7 @@ dependencies = [
 [[package]]
 name = "embassy-nrf"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=e7668a86bd118ae8c4eb3e695130d7cac90c1dfe#e7668a86bd118ae8c4eb3e695130d7cac90c1dfe"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
 dependencies = [
  "cfg-if",
  "cortex-m 0.7.4",
@@ -599,7 +599,7 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=e7668a86bd118ae8c4eb3e695130d7cac90c1dfe#e7668a86bd118ae8c4eb3e695130d7cac90c1dfe"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
 dependencies = [
  "embedded-hal",
  "nb 1.0.0",
