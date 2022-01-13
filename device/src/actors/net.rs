@@ -67,6 +67,7 @@ where
                 }
                 Err(e) => {
                     warn!("Error creating connection: {:?}", e);
+                    socket.close().await.map_err(|e| NetworkError::Tcp(e))?;
                     Err(NetworkError::Tcp(e))
                 }
             }
