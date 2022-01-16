@@ -58,23 +58,38 @@ where
 impl<N: Adapter> TcpActor for AdapterActor<N> {
     type SocketHandle = u8;
 
-    fn open<'m>() -> AdapterRequest<'m> {
+    fn open<'m>() -> AdapterRequest<'m>
+    where
+        N: 'm,
+    {
         AdapterRequest::Open
     }
     fn connect<'m>(
         handle: Self::SocketHandle,
         proto: IpProtocol,
         dst: SocketAddress,
-    ) -> AdapterRequest<'m> {
+    ) -> AdapterRequest<'m>
+    where
+        N: 'm,
+    {
         AdapterRequest::Connect(handle, proto, dst)
     }
-    fn write<'m>(handle: Self::SocketHandle, buf: &'m [u8]) -> AdapterRequest<'m> {
+    fn write<'m>(handle: Self::SocketHandle, buf: &'m [u8]) -> AdapterRequest<'m>
+    where
+        N: 'm,
+    {
         AdapterRequest::Write(handle, buf)
     }
-    fn read<'m>(handle: Self::SocketHandle, buf: &'m mut [u8]) -> AdapterRequest<'m> {
+    fn read<'m>(handle: Self::SocketHandle, buf: &'m mut [u8]) -> AdapterRequest<'m>
+    where
+        N: 'm,
+    {
         AdapterRequest::Read(handle, buf)
     }
-    fn close<'m>(handle: Self::SocketHandle) -> AdapterRequest<'m> {
+    fn close<'m>(handle: Self::SocketHandle) -> AdapterRequest<'m>
+    where
+        N: 'm,
+    {
         AdapterRequest::Close(handle)
     }
 

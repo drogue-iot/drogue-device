@@ -1052,7 +1052,7 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=ab4d4f9de306e8d3040e2b5d6e05709d72891721#ab4d4f9de306e8d3040e2b5d6e05709d72891721"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=f81a201211d63a994528e69b1c5a224be9b53f85#f81a201211d63a994528e69b1c5a224be9b53f85"
 dependencies = [
  "cortex-m 0.7.4",
  "cortex-m-rt",
@@ -1060,6 +1060,7 @@ dependencies = [
  "defmt",
  "embassy",
  "fixed",
+ "futures",
  "heapless",
  "nrf-softdevice-macro",
  "nrf-softdevice-s113",
@@ -1070,7 +1071,7 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice-macro"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=ab4d4f9de306e8d3040e2b5d6e05709d72891721#ab4d4f9de306e8d3040e2b5d6e05709d72891721"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=f81a201211d63a994528e69b1c5a224be9b53f85#f81a201211d63a994528e69b1c5a224be9b53f85"
 dependencies = [
  "Inflector",
  "darling 0.10.2",
@@ -1083,7 +1084,7 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice-s113"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=ab4d4f9de306e8d3040e2b5d6e05709d72891721#ab4d4f9de306e8d3040e2b5d6e05709d72891721"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=f81a201211d63a994528e69b1c5a224be9b53f85#f81a201211d63a994528e69b1c5a224be9b53f85"
 
 [[package]]
 name = "nrf-usbd"
@@ -1415,9 +1416,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.74"
+version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee2bb9cd061c5865d345bb02ca49fcef1391741b672b54a0bf7b679badec3142"
+checksum = "c059c05b48c5c0067d4b4b2b4f0732dd65feb52daf7e0ea09cd87e7dadc1af79"
 dependencies = [
  "itoa",
  "ryu",
@@ -1580,6 +1581,6 @@ dependencies = [
 
 [[package]]
 name = "zeroize"
-version = "1.4.3"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d68d9dcec5f9b43a30d38c49f91dfedfaac384cb8f085faca366c26207dd1619"
+checksum = "cc222aec311c323c717f56060324f32b82da1ce1dd81d9a09aa6a9030bfe08db"

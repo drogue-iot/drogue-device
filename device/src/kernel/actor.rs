@@ -433,7 +433,7 @@ where
 
 impl<'m, A> Drop for InboxMessage<'m, A>
 where
-    A: Actor + 'm,
+    A: Actor + 'static,
 {
     fn drop(&mut self) {
         if let Some(signal) = self.signal {

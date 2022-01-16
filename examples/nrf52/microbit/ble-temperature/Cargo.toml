@@ -20,7 +20,7 @@ drogue-device = { path = "../../../../device", default-features = false, feature
 embassy = { version = "0.1.0", default-features = false, features = [] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "gpiote", "time-driver-rtc1"]}
 
-cortex-m        = { version = "0.7.2" }
+cortex-m        = { version = "0.7" }
 cortex-m-rt = "0.6"
 heapless = "0.7"
 futures     = { version = "0.3.17", default-features = false, features = ["async-await"] }

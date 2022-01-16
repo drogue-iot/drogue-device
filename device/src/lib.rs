@@ -4,7 +4,6 @@
 #![feature(type_alias_impl_trait)]
 #![feature(generic_associated_types)]
 #![feature(associated_type_defaults)]
-#![feature(const_generics_defaults)]
 #![feature(const_fn_trait_bound)]
 //! Drogue Device is an open source async, no-alloc framework for embedded devices. It integrates with [embassy](https://github.com/embassy-rs/embassy), the embedded async project.
 //!
@@ -23,7 +22,6 @@
 //! #![allow(incomplete_features)]
 //! #![feature(generic_associated_types)]
 //! #![feature(type_alias_impl_trait)]
-//! #![feature(const_generics_defaults)]
 //! #![feature(const_fn_trait_bound)]
 //!
 //! # use drogue_device::*;

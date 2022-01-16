@@ -114,10 +114,16 @@ impl TcpActor for StdTcpActor {
     ) -> TcpRequest<'m, u8> {
         TcpRequest::Connect(handle, proto, dst)
     }
-    fn write<'m>(handle: Self::SocketHandle, buf: &'m [u8]) -> TcpRequest<'m, u8> {
+    fn write<'m>(handle: Self::SocketHandle, buf: &'m [u8]) -> TcpRequest<'m, u8>
+    where
+        Self: 'm,
+    {
         TcpRequest::Write(handle, buf)
     }
-    fn read<'m>(handle: Self::SocketHandle, buf: &'m mut [u8]) -> TcpRequest<'m, u8> {
+    fn read<'m>(handle: Self::SocketHandle, buf: &'m mut [u8]) -> TcpRequest<'m, u8>
+    where
+        Self: 'm,
+    {
         TcpRequest::Read(handle, buf)
     }
     fn close<'m>(handle: Self::SocketHandle) -> TcpRequest<'m, u8> {
