@@ -15,15 +15,25 @@ use crate::{
 // Trait that defines the mapping from API to request and response to result.
 pub trait TcpActor: Actor {
     type SocketHandle: Copy;
-    fn open<'m>() -> Self::Message<'m>;
+    fn open<'m>() -> Self::Message<'m>
+    where
+        Self: 'm;
     fn connect<'m>(
         handle: Self::SocketHandle,
         proto: IpProtocol,
         dst: SocketAddress,
-    ) -> Self::Message<'m>;
-    fn write<'m>(handle: Self::SocketHandle, buf: &'m [u8]) -> Self::Message<'m>;
-    fn read<'m>(handle: Self::SocketHandle, buf: &'m mut [u8]) -> Self::Message<'m>;
-    fn close<'m>(handle: Self::SocketHandle) -> Self::Message<'m>;
+    ) -> Self::Message<'m>
+    where
+        Self: 'm;
+    fn write<'m>(handle: Self::SocketHandle, buf: &'m [u8]) -> Self::Message<'m>
+    where
+        Self: 'm;
+    fn read<'m>(handle: Self::SocketHandle, buf: &'m mut [u8]) -> Self::Message<'m>
+    where
+        Self: 'm;
+    fn close<'m>(handle: Self::SocketHandle) -> Self::Message<'m>
+    where
+        Self: 'm;
 
     fn into_response(response: Self::Response) -> Option<TcpResponse<Self::SocketHandle>>;
 }

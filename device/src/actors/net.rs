@@ -37,9 +37,7 @@ pub trait NetworkConnection {
         Self: 'm;
     fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m>;
 
-    type CloseFuture<'m>: Future<Output = Result<(), NetworkError>>
-    where
-        Self: 'm;
+    type CloseFuture<'m>: Future<Output = Result<(), NetworkError>>;
     fn close<'m>(self) -> Self::CloseFuture<'m>;
 }
 
@@ -328,12 +326,7 @@ mod tls {
             }
         }
 
-        type CloseFuture<'m>
-        where
-            'a: 'm,
-            A: 'm,
-            CipherSuite: 'm,
-        = impl Future<Output = Result<(), NetworkError>> + 'm;
+        type CloseFuture<'m> = impl Future<Output = Result<(), NetworkError>>;
         fn close<'m>(self) -> Self::CloseFuture<'m> {
             async move {
                 let result = match self.connection.close().await {

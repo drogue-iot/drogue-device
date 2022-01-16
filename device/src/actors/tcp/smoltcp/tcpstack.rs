@@ -99,10 +99,16 @@ impl<'a, 'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: 
     ) -> SmolRequest<'m> {
         SmolRequest::Connect(handle, proto, dst)
     }
-    fn write<'m>(handle: Self::SocketHandle, buf: &'m [u8]) -> SmolRequest<'m> {
+    fn write<'m>(handle: Self::SocketHandle, buf: &'m [u8]) -> SmolRequest<'m>
+    where
+        Self: 'm,
+    {
         SmolRequest::Write(handle, buf)
     }
-    fn read<'m>(handle: Self::SocketHandle, buf: &'m mut [u8]) -> SmolRequest<'m> {
+    fn read<'m>(handle: Self::SocketHandle, buf: &'m mut [u8]) -> SmolRequest<'m>
+    where
+        Self: 'm,
+    {
         SmolRequest::Read(handle, buf)
     }
     fn close<'m>(handle: Self::SocketHandle) -> SmolRequest<'m> {
