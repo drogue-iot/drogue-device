@@ -49,6 +49,7 @@ impl Rak811 {
 
 impl Board for Rak811 {
     type Peripherals = embassy_stm32::Peripherals;
+    type BoardConfig = ();
     fn new(p: Self::Peripherals) -> Self {
         unsafe {
             let rcc = pac::RCC;

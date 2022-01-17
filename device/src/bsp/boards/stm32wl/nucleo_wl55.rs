@@ -47,6 +47,7 @@ impl NucleoWl55 {
 
 impl Board for NucleoWl55 {
     type Peripherals = embassy_stm32::Peripherals;
+    type BoardConfig = ();
     fn new(p: Self::Peripherals) -> Self {
         unsafe {
             pac::RCC.ccipr().modify(|w| {

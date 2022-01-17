@@ -21,6 +21,7 @@ pub struct AdafruitFeatherSense {
 
 impl Board for AdafruitFeatherSense {
     type Peripherals = embassy_nrf::Peripherals;
+    type BoardConfig = ();
 
     fn new(p: Self::Peripherals) -> Self {
         Self {

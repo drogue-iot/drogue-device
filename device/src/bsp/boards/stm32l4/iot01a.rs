@@ -68,6 +68,7 @@ impl Iot01a {
 
 impl Board for Iot01a {
     type Peripherals = embassy_stm32::Peripherals;
+    type BoardConfig = ();
 
     fn new(p: Self::Peripherals) -> Self {
         let i2c2_irq = interrupt::take!(I2C2_EV);

@@ -51,6 +51,7 @@ pub struct Microbit {
 
 impl Board for Microbit {
     type Peripherals = embassy_nrf::Peripherals;
+    type BoardConfig = ();
     fn new(p: embassy_nrf::Peripherals) -> Self {
         // LED Matrix
         let rows = [
