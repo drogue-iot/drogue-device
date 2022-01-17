@@ -26,6 +26,7 @@ pub struct Iot02a {
 
 impl Board for Iot02a {
     type Peripherals = embassy_stm32::Peripherals;
+    type BoardConfig = ();
 
     fn new(p: Self::Peripherals) -> Self {
         Self {

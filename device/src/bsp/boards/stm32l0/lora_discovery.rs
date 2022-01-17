@@ -63,6 +63,7 @@ impl LoraDiscovery {
 
 impl Board for LoraDiscovery {
     type Peripherals = embassy_stm32::Peripherals;
+    type BoardConfig = ();
 
     fn new(p: Self::Peripherals) -> Self {
         // SPI for sx127x

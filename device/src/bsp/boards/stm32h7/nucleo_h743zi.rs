@@ -46,6 +46,7 @@ impl NucleoH743 {
 
 impl Board for NucleoH743 {
     type Peripherals = embassy_stm32::Peripherals;
+    type BoardConfig = ();
 
     fn new(p: Self::Peripherals) -> Self {
         static ETH_STATE: Forever<State<'static, 4, 4>> = Forever::new();
