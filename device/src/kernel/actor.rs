@@ -335,6 +335,11 @@ where
         let future = actor.on_mount(address, inbox);
         (address, future)
     }
+
+    /// Retrieve the address handle for this actor
+    pub fn address(&'static self) -> Address<A> {
+        Address::new(self)
+    }
 }
 
 pub struct RequestFuture<'a, A: Actor + 'static> {
