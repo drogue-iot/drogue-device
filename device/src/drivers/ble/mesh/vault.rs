@@ -155,6 +155,15 @@ pub struct StorageVault<'s, S: GeneralStorage + KeyStorage> {
     storage: &'s S,
 }
 
+impl<'s, S: GeneralStorage + KeyStorage> StorageVault<'s, S> {
+    pub(crate) fn new(storage: &'s S) -> Self {
+        Self {
+            storage
+        }
+    }
+}
+
+
 impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
     fn uuid(&self) -> Uuid {
         self.storage.uuid()

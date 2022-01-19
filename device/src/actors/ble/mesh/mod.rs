@@ -13,30 +13,32 @@ use embassy::channel::mpsc::{self, Channel};
 use futures::{join, pin_mut};
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
+use crate::drivers::ble::mesh::configuration_manager::ConfigurationManager;
+use crate::drivers::ble::mesh::storage::Storage;
 
-pub struct MeshNode<T, V, R>
+pub struct MeshNode<T, S, R>
 where
-    T: Transport + 'static,
-    V: Vault + 'static,
-    R: RngCore + CryptoRng + 'static,
+    T: Transport,
+    S: Storage,
+    R: RngCore + CryptoRng,
 {
     capabilities: Option<Capabilities>,
     transport: T,
-    vault: Option<V>,
+    storage: Option<S>,
     rng: Option<R>,
 }
 
-impl<T, V, R> MeshNode<T, V, R>
+impl<T, S, R> MeshNode<T, S, R>
 where
-    T: Transport + 'static,
-    V: Vault + 'static,
-    R: RngCore + CryptoRng + 'static,
+    T: Transport,
+    S: Storage,
+    R: RngCore + CryptoRng,
 {
-    pub fn new(capabilities: Capabilities, transport: T, vault: V, rng: R) -> Self {
+    pub fn new(capabilities: Capabilities, transport: T, storage: S, rng: R) -> Self {
         Self {
             capabilities: Some(capabilities),
             transport,
-            vault: Some(vault),
+            storage: Some(storage),
             rng: Some(rng),
         }
     }
@@ -126,10 +128,10 @@ where
     }
 }
 
-impl<T, V, R> Actor for MeshNode<T, V, R>
+impl<T, S, R> Actor for MeshNode<T, S, R>
 where
     T: Transport + 'static,
-    V: Vault + 'static,
+    S: Storage + 'static,
     R: RngCore + CryptoRng + 'static,
 {
     type Message<'m> = Vec<u8, 384>;
@@ -157,11 +159,13 @@ where
             let rx = TransportReceiver::new(receiver);
             let handler = TransportHandler::new(&self.transport, sender);
 
+            let configuration_manager = ConfigurationManager::new(self.storage.take().unwrap());
+
             let mut node = Node::new(
                 self.capabilities.take().unwrap(),
                 tx,
                 rx,
-                self.vault.take().unwrap(),
+                configuration_manager,
                 self.rng.take().unwrap(),
             );
 
@@ -172,6 +176,8 @@ where
             pin_mut!(handler_fut);
 
             join!(node_fut, handler_fut);
+
+            defmt::info!("shutting down");
         }
     }
 }

@@ -13,7 +13,7 @@ use drogue_device::drivers::ble::mesh::provisioning::{
     Algorithms, Capabilities, InputOOBActions, OOBSize, OutputOOBActions, PublicKeyType,
     StaticOOBType,
 };
-use drogue_device::drivers::ble::mesh::transport::nrf52::{Nrf52BleMeshTransport, SoftdeviceRng};
+use drogue_device::drivers::ble::mesh::transport::nrf52::{Nrf52BleMeshTransport, SoftdeviceRng, SoftdeviceStorage};
 use drogue_device::drivers::ble::mesh::transport::Transport;
 use drogue_device::drivers::ble::mesh::vault::InMemoryVault;
 use drogue_device::drivers::ble::mesh::configuration_manager::ConfigurationManager;
@@ -32,7 +32,7 @@ use panic_probe as _;
 pub struct MyDevice {
     led: ActorContext<actors::led::Led<drivers::led::Led<Output<'static, AnyPin>>>>,
     ble_transport: ActorContext<Nrf52BleMeshTransportActor>,
-    mesh: ActorContext<MeshNode<Nrf52BleMeshTransport, InMemoryVault, SoftdeviceRng>>,
+    mesh: ActorContext<MeshNode<Nrf52BleMeshTransport, SoftdeviceStorage, SoftdeviceRng>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -58,8 +58,6 @@ async fn main(spawner: Spawner, p: Peripherals) {
     let transport = Nrf52BleMeshTransport::new("Drogue IoT BLE Mesh");
     let mut rng = transport.rng();
     let storage = transport.storage( unsafe { &__storage as * const u8 as usize} );
-    let configuration_manager = ConfigurationManager::new(storage);
-    let vault = InMemoryVault::new(NODE_UUID, &mut rng);
 
     let capabilities = Capabilities {
         number_of_elements: 1,
@@ -78,6 +76,6 @@ async fn main(spawner: Spawner, p: Peripherals) {
         mesh: ActorContext::new(),
     });
     device.ble_transport.mount(spawner, transport.actor());
-    let mesh_node = MeshNode::new(capabilities, transport, vault, rng);
+    let mesh_node = MeshNode::new(capabilities, transport, storage, rng);
     device.mesh.mount(spawner, mesh_node);
 }
