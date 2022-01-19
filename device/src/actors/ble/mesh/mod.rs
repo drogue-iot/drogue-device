@@ -8,7 +8,6 @@ use crate::drivers::ble::mesh::vault::Vault;
 use crate::{Actor, Address, Inbox};
 use core::cell::RefCell;
 use core::future::Future;
-use core::marker::PhantomData;
 use embassy::blocking_mutex::kind::CriticalSection;
 use embassy::channel::mpsc::{self, Channel};
 use futures::{join, pin_mut};
@@ -98,7 +97,8 @@ where
     T: Transport + 't,
 {
     fn handle(&self, message: Vec<u8, 384>) {
-        self.sender.try_send(message);
+        // BLE loses messages anyhow, so if this fails, just ignore.
+        self.sender.try_send(message).ok();
     }
 }
 
@@ -141,7 +141,7 @@ where
     fn on_mount<'m, M>(
         &'m mut self,
         _: Address<Self>,
-        inbox: &'m mut M,
+        _: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<Self> + 'm,
@@ -154,8 +154,8 @@ where
             let mut channel = Channel::new();
             let (sender, receiver) = mpsc::split(&mut channel);
 
-            let mut rx = TransportReceiver::new(receiver);
-            let mut handler = TransportHandler::new(&self.transport, sender);
+            let rx = TransportReceiver::new(receiver);
+            let handler = TransportHandler::new(&self.transport, sender);
 
             let mut node = Node::new(
                 self.capabilities.take().unwrap(),

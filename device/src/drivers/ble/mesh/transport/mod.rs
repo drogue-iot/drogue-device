@@ -2,7 +2,6 @@
 pub mod nrf52;
 
 use core::future::Future;
-use heapless::Vec;
 
 pub trait Handler: Sized {
     fn handle(&self, message: heapless::Vec<u8, 384>);

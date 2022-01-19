@@ -16,6 +16,7 @@ use drogue_device::drivers::ble::mesh::provisioning::{
 use drogue_device::drivers::ble::mesh::transport::nrf52::{Nrf52BleMeshTransport, SoftdeviceRng};
 use drogue_device::drivers::ble::mesh::transport::Transport;
 use drogue_device::drivers::ble::mesh::vault::InMemoryVault;
+use drogue_device::drivers::ble::mesh::configuration_manager::ConfigurationManager;
 use drogue_device::{actors, drivers, ActorContext, DeviceContext, Package};
 use embassy::executor::Spawner;
 use embassy_nrf::config::Config;
@@ -56,6 +57,8 @@ extern "C" {
 async fn main(spawner: Spawner, p: Peripherals) {
     let transport = Nrf52BleMeshTransport::new("Drogue IoT BLE Mesh");
     let mut rng = transport.rng();
+    let storage = transport.storage( unsafe { &__storage as * const u8 as usize} );
+    let configuration_manager = ConfigurationManager::new(storage);
     let vault = InMemoryVault::new(NODE_UUID, &mut rng);
 
     let capabilities = Capabilities {

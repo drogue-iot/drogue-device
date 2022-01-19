@@ -11,23 +11,24 @@ use crate::drivers::ble::mesh::provisioning::{
     Capabilities, Confirmation, ProvisioningData, ProvisioningPDU, PublicKey, Random,
 };
 use aes::Aes128;
-use cmac::crypto_mac::{InvalidKeyLength, Output};
+use cmac::crypto_mac::Output;
 use cmac::Cmac;
 use core::convert::TryFrom;
 use core::future::Future;
 use heapless::Vec;
-use p256::ecdh::SharedSecret;
 use p256::elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
 use p256::EncodedPoint;
 
 pub trait ProvisionableContext: MeshContext {
     fn rng_fill(&self, dest: &mut [u8]);
 
+    /*
     type PeerPublicKeyFuture<'m>: Future<Output = Result<Option<p256::PublicKey>, DeviceError>>
     where
         Self: 'm;
 
     fn peer_public_key<'m>(&'m self) -> Self::PeerPublicKeyFuture<'m>;
+     */
 
     type SetPeerPublicKeyFuture<'m>: Future<Output = Result<(), DeviceError>>
     where
@@ -42,7 +43,7 @@ pub trait ProvisionableContext: MeshContext {
         Self: 'm;
 
     fn set_provisioning_data<'m>(
-        &self,
+        &'m self,
         data: &'m ProvisioningData,
     ) -> Self::SetProvisioningDataFuture<'m>;
 
@@ -134,7 +135,7 @@ impl Provisionable {
 
                 defmt::info!("PK 1");
 
-                ctx.set_peer_public_key(peer_pk).await;
+                ctx.set_peer_public_key(peer_pk).await?;
                 defmt::info!("PK 2");
                 let pk = ctx.public_key()?;
                 let xy = pk.to_encoded_point(false);
@@ -201,7 +202,7 @@ impl Provisionable {
                     Ok(_) => {
                         let provisioning_data = ProvisioningData::parse(&data.encrypted)?;
                         defmt::debug!("** provisioning_data {}", provisioning_data);
-                        ctx.set_provisioning_data(&provisioning_data).await;
+                        ctx.set_provisioning_data(&provisioning_data).await?;
                     }
                     Err(_) => {
                         defmt::info!("decryption error!");

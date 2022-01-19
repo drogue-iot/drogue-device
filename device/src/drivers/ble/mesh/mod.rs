@@ -17,5 +17,6 @@ pub mod status;
 pub mod storage;
 pub mod transport;
 pub mod vault;
+pub mod configuration_manager;
 
 pub struct InsufficientBuffer;

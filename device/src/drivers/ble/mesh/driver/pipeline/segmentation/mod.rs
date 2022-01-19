@@ -1,15 +1,8 @@
 use self::inbound::InboundSegments;
 use self::outbound::OutboundSegments;
-use crate::drivers::ble::mesh::bearer::advertising::PDU;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::generic_provisioning::{
-    GenericProvisioningPDU, TransactionContinuation, TransactionStart,
-};
+use crate::drivers::ble::mesh::generic_provisioning::GenericProvisioningPDU;
 use crate::drivers::ble::mesh::provisioning::ProvisioningPDU;
-use crate::drivers::ble::mesh::InsufficientBuffer;
-use core::future::Future;
-use core::sync::atomic::{AtomicBool, Ordering};
-use heapless::Vec;
 
 mod inbound;
 pub(crate) mod outbound;
@@ -74,7 +67,7 @@ impl Segmentation {
         }
     }
 
-    pub async fn process_outbound(&mut self, pdu: ProvisioningPDU) -> OutboundSegments {
+    pub async fn process_outbound(&mut self, pdu: ProvisioningPDU) -> Result<OutboundSegments, DeviceError> {
         OutboundSegments::new(pdu)
     }
 }

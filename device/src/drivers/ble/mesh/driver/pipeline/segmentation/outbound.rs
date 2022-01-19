@@ -4,6 +4,7 @@ use crate::drivers::ble::mesh::generic_provisioning::{
 };
 use crate::drivers::ble::mesh::provisioning::ProvisioningPDU;
 use heapless::Vec;
+use crate::drivers::ble::mesh::driver::DeviceError;
 
 const TRANSACTION_START_MTU: usize = 20;
 const TRANSACTION_CONTINUATION_MTU: usize = 23;
@@ -15,17 +16,17 @@ pub struct OutboundSegments {
 }
 
 impl OutboundSegments {
-    pub fn new(pdu: ProvisioningPDU) -> Self {
+    pub fn new(pdu: ProvisioningPDU) -> Result<Self, DeviceError> {
         let mut data = Vec::new();
-        pdu.emit(&mut data);
+        pdu.emit(&mut data)?;
         let fcs = fcs(&data);
         let num_segments = Self::num_chunks(&data);
 
-        Self {
+        Ok(Self {
             pdu: data,
             num_segments,
             fcs: fcs,
-        }
+        })
     }
 
     pub fn iter(&self) -> OutboundSegmentsIter {
