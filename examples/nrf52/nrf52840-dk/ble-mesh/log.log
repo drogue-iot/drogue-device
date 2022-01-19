@@ -1,0 +1,278 @@
+[2021-Dec-15 10:00:58] [ info] --------------------------------------------------------------------------------
+[2021-Dec-15 10:00:58] [ info] nrfjprog -e --log 
+[2021-Dec-15 10:00:58] [ info] nrfjprog version 10.15.1 external
+[2021-Dec-15 10:00:58] [ info] --------------------------------------------------------------------------------
+[2021-Dec-15 10:00:58] [ info] Load library at /Applications/Nordic Semiconductor/lib/libnrfjprogdll.dylib.
+[2021-Dec-15 10:00:58] [ info] Library loaded, loading member functions.
+[2021-Dec-15 10:00:58] [ info] Member functions succesfully loaded.
+[2021-Dec-15 10:00:58] [debug] [ Client] - open
+[2021-Dec-15 10:00:58] [debug] [ Client] - start
+[2021-Dec-15 10:00:58] [ info] [ Client] - stdout: Jlinkarm nRF Worker ready. Handling sequence 329eea9a-e7e1-42f9-ac9d-4a1f3d3a03d8.
+[2021-Dec-15 10:00:58] [trace] [ Client] - Command open executed for 5 milliseconds with result 0
+[2021-Dec-15 10:00:58] [debug] [ Client] - enum_emu_snr
+[2021-Dec-15 10:00:58] [trace] [ Client] - Command enum_emu_con_info executed for 1 milliseconds with result 0
+[2021-Dec-15 10:00:58] [debug] [ Client] - connect_to_emu_with_snr
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - Logger sink registered in Segger backend logger
+[2021-Dec-15 10:00:58] [debug] [  JLink] - Logger sink registered in JLink logger
+[2021-Dec-15 10:00:58] [debug] [  nRFXX] - open
+[2021-Dec-15 10:00:58] [debug] [  nRFXX] - just_check_family
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - open_dll
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - No J-Link DLL path was provided. Attempting to auto detect.
+[2021-Dec-15 10:00:58] [ info] [SeggerBackend] - Load library at /Applications/SEGGER/JLink/libjlinkarm.dylib.
+[2021-Dec-15 10:00:58] [ info] [SeggerBackend] - Library loaded, loading member functions.
+[2021-Dec-15 10:00:58] [ info] [SeggerBackend] - Member functions succesfully loaded.
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - dll_version
+[2021-Dec-15 10:00:58] [ info] [SeggerBackend] - Segger dll version 6.80.c loaded.
+[2021-Dec-15 10:00:58] [trace] [ Worker] - Command open executed for 3 milliseconds with result 0
+[2021-Dec-15 10:00:58] [debug] [  nRFXX] - enum_emu_con_info
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - enum_emu_con_info
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:00:58] [trace] [ Worker] - Command enum_emu_con_info executed for 1 milliseconds with result 0
+[2021-Dec-15 10:00:58] [debug] [  nRFXX] - connect_to_emu_with_snr
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - connect_to_emu_with_snr
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - ---just_enum_emu_snr
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - ---just_get_num_emus
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - ---just_connect_to_emu_with_snr
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - ---just_connect_to_emu_without_snr
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - Segger logging enabled.
+[2021-Dec-15 10:00:58] [warning] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [warning] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [warning] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [trace] [  JLink] -    ***** Error: 
+[2021-Dec-15 10:00:58] [trace] [  JLink] - Cannot connect to J-Link
+[2021-Dec-15 10:00:58] [trace] [  JLink] - - 0.003ms returns 0x00  
+[2021-Dec-15 10:00:58] [trace] [  JLink] - JLINK_OpenEx(...)  
+[2021-Dec-15 10:00:58] [warning] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [warning] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [warning] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [trace] [  JLink] - - 4.110ms returns "Failed to open DLL"  
+[2021-Dec-15 10:00:58] [error] [SeggerBackend] - JLinkARM.dll Open returned error 'Failed to open DLL'
+[2021-Dec-15 10:00:58] [trace] [  JLink] - JLINK_OpenEx(...)  
+[2021-Dec-15 10:00:58] [warning] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [trace] [ Client] - Command connect_to_emu_with_snr executed for 18 milliseconds with result -102
+[2021-Dec-15 10:00:58] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [warning] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [warning] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:00:58] [trace] [  JLink] - - 4.396ms returns "Failed to open DLL"  
+[2021-Dec-15 10:00:58] [error] [SeggerBackend] - JLinkARM.dll Open returned error 'Failed to open DLL'
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:00:58] [trace] [  JLink] - JLINK_IsOpen()  
+[2021-Dec-15 10:00:58] [trace] [  JLink] - - 0.004ms returns 0x00  
+[2021-Dec-15 10:00:58] [trace] [ Worker] - Command connect_to_emu_with_snr executed for 18 milliseconds with result -102
+[2021-Dec-15 10:00:58] [debug] [  nRFXX] - close
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:00:58] [trace] [  JLink] - JLINK_IsOpen()  
+[2021-Dec-15 10:00:58] [trace] [  JLink] - - 0.029ms returns 0x00  
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - close
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - disconnect_from_emu
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:00:58] [trace] [  JLink] - JLINK_IsOpen()  
+[2021-Dec-15 10:00:58] [trace] [  JLink] - - 0.002ms returns 0x00  
+[2021-Dec-15 10:00:58] [debug] [SeggerBackend] - Segger Backend closed.
+[2021-Dec-15 10:00:58] [debug] [  nRFXX] - nRF family DLL closed
+[2021-Dec-15 10:00:58] [trace] [ Client] - Command close executed for 23 milliseconds with result 0
+[2021-Dec-15 10:00:58] [debug] [ Client] - terminate
+[2021-Dec-15 10:00:58] [trace] [ Client] - Command terminate executed for 0 milliseconds with result 0
+[2021-Dec-15 10:00:58] [trace] [ Worker] - Command close executed for 23 milliseconds with result 0
+[2021-Dec-15 10:00:58] [trace] [ Worker] - Command terminate executed for 0 milliseconds with result 0
+[2021-Dec-15 10:00:58] [trace] [ Worker] - Executed 5 commands for 45 milliseconds
+[2021-Dec-15 10:00:58] [debug] [ Client] - Worker process exited with code: 0
+[2021-Dec-15 10:00:58] [debug] [ Client] - Worker process exited with code: 0
+[2021-Dec-15 10:00:58] [debug] [ Client] - Tried to wait on already ended process: wait error: No child processes
+[2021-Dec-15 10:00:58] [debug] [ Client] - Child process terminated with result 0
+[2021-Dec-15 10:00:58] [trace] [ Client] - Executed 5 commands for 47 milliseconds
+[2021-Dec-15 10:00:58] [debug] [ Client] - terminate
+[2021-Dec-15 10:19:56] [ info] --------------------------------------------------------------------------------
+[2021-Dec-15 10:19:56] [ info] nrfjprog -e --log 
+[2021-Dec-15 10:19:56] [ info] nrfjprog version 10.15.1 external
+[2021-Dec-15 10:19:56] [ info] --------------------------------------------------------------------------------
+[2021-Dec-15 10:19:56] [ info] Load library at /Applications/Nordic Semiconductor/lib/libnrfjprogdll.dylib.
+[2021-Dec-15 10:19:56] [ info] Library loaded, loading member functions.
+[2021-Dec-15 10:19:56] [ info] Member functions succesfully loaded.
+[2021-Dec-15 10:19:56] [debug] [ Client] - open
+[2021-Dec-15 10:19:56] [debug] [ Client] - start
+[2021-Dec-15 10:19:56] [ info] [ Client] - stdout: Jlinkarm nRF Worker ready. Handling sequence e9dcadbc-7743-421f-be13-f44c821663c4.
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - Logger sink registered in Segger backend logger
+[2021-Dec-15 10:19:56] [debug] [  JLink] - Logger sink registered in JLink logger
+[2021-Dec-15 10:19:56] [debug] [  nRFXX] - open
+[2021-Dec-15 10:19:56] [debug] [  nRFXX] - just_check_family
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - open_dll
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - No J-Link DLL path was provided. Attempting to auto detect.
+[2021-Dec-15 10:19:56] [ info] [SeggerBackend] - Load library at /Applications/SEGGER/JLink/libjlinkarm.7.58.2.dylib.
+[2021-Dec-15 10:19:56] [trace] [ Client] - Command open executed for 314 milliseconds with result 0
+[2021-Dec-15 10:19:56] [debug] [ Client] - enum_emu_snr
+[2021-Dec-15 10:19:56] [trace] [ Client] - Command enum_emu_con_info executed for 1 milliseconds with result 0
+[2021-Dec-15 10:19:56] [debug] [ Client] - connect_to_emu_with_snr
+[2021-Dec-15 10:19:56] [ info] [SeggerBackend] - Library loaded, loading member functions.
+[2021-Dec-15 10:19:56] [ info] [SeggerBackend] - Member functions succesfully loaded.
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - dll_version
+[2021-Dec-15 10:19:56] [ info] [SeggerBackend] - Segger dll version 7.58.b loaded.
+[2021-Dec-15 10:19:56] [trace] [ Worker] - Command open executed for 304 milliseconds with result 0
+[2021-Dec-15 10:19:56] [debug] [  nRFXX] - enum_emu_con_info
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - enum_emu_con_info
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:19:56] [trace] [ Worker] - Command enum_emu_con_info executed for 1 milliseconds with result 0
+[2021-Dec-15 10:19:56] [debug] [  nRFXX] - connect_to_emu_with_snr
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - connect_to_emu_with_snr
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - ---just_enum_emu_snr
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - ---just_get_num_emus
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - ---just_connect_to_emu_with_snr
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - ---just_connect_to_emu_without_snr
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - Segger logging enabled.
+[2021-Dec-15 10:19:56] [trace] [ Client] - Command connect_to_emu_with_snr executed for 36 milliseconds with result -102
+[2021-Dec-15 10:19:56] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:19:56] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:19:56] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:19:56] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:19:56] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:19:56] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:19:56] [trace] [  JLink] -    ***** Error: 
+[2021-Dec-15 10:19:56] [trace] [  JLink] - Cannot connect to J-Link
+[2021-Dec-15 10:19:56] [trace] [  JLink] - - 7.709ms returns "Cannot connect to J-Link"  
+[2021-Dec-15 10:19:56] [trace] [  JLink] - JLINK_HasError()  
+[2021-Dec-15 10:19:56] [error] [SeggerBackend] - JLinkARM.dll Open returned error 'Cannot connect to J-Link'
+[2021-Dec-15 10:19:56] [trace] [  JLink] - JLINK_OpenEx(...)  
+[2021-Dec-15 10:19:56] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:19:56] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:19:56] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:19:56] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:19:56] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:19:56] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:19:56] [trace] [  JLink] - - 4.253ms returns "Failed to open DLL"  
+[2021-Dec-15 10:19:56] [trace] [  JLink] - JLINK_HasError()  
+[2021-Dec-15 10:19:56] [error] [SeggerBackend] - JLinkARM.dll Open returned error 'Failed to open DLL'
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:19:56] [trace] [  JLink] - JLINK_IsOpen()  
+[2021-Dec-15 10:19:56] [trace] [  JLink] - - 0.003ms returns 0x00  
+[2021-Dec-15 10:19:56] [trace] [  JLink] - JLINK_HasError()  
+[2021-Dec-15 10:19:56] [trace] [ Worker] - Command connect_to_emu_with_snr executed for 36 milliseconds with result -102
+[2021-Dec-15 10:19:56] [debug] [  nRFXX] - close
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:19:56] [trace] [  JLink] - JLINK_IsOpen()  
+[2021-Dec-15 10:19:56] [trace] [  JLink] - - 0.005ms returns 0x00  
+[2021-Dec-15 10:19:56] [trace] [  JLink] - JLINK_HasError()  
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - close
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - disconnect_from_emu
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:19:56] [trace] [  JLink] - JLINK_IsOpen()  
+[2021-Dec-15 10:19:56] [trace] [  JLink] - - 0.002ms returns 0x00  
+[2021-Dec-15 10:19:56] [trace] [  JLink] - JLINK_HasError()  
+[2021-Dec-15 10:19:56] [debug] [SeggerBackend] - Segger Backend closed.
+[2021-Dec-15 10:19:56] [debug] [  nRFXX] - nRF family DLL closed
+[2021-Dec-15 10:19:56] [trace] [ Client] - Command close executed for 14 milliseconds with result 0
+[2021-Dec-15 10:19:56] [debug] [ Client] - terminate
+[2021-Dec-15 10:19:56] [trace] [ Client] - Command terminate executed for 0 milliseconds with result 0
+[2021-Dec-15 10:19:56] [trace] [ Worker] - Command close executed for 14 milliseconds with result 0
+[2021-Dec-15 10:19:56] [trace] [ Worker] - Command terminate executed for 0 milliseconds with result 0
+[2021-Dec-15 10:19:56] [trace] [ Worker] - Executed 5 commands for 355 milliseconds
+[2021-Dec-15 10:19:56] [debug] [ Client] - Worker process exited with code: 0
+[2021-Dec-15 10:19:56] [debug] [ Client] - Worker process exited with code: 0
+[2021-Dec-15 10:19:56] [debug] [ Client] - Tried to wait on already ended process: wait error: No child processes
+[2021-Dec-15 10:19:56] [debug] [ Client] - Child process terminated with result 0
+[2021-Dec-15 10:19:56] [trace] [ Client] - Executed 5 commands for 365 milliseconds
+[2021-Dec-15 10:19:56] [debug] [ Client] - terminate
+[2021-Dec-15 10:20:44] [ info] --------------------------------------------------------------------------------
+[2021-Dec-15 10:20:44] [ info] nrfjprog -e --log 
+[2021-Dec-15 10:20:44] [ info] nrfjprog version 10.15.1 external
+[2021-Dec-15 10:20:44] [ info] --------------------------------------------------------------------------------
+[2021-Dec-15 10:20:44] [ info] Load library at /Applications/Nordic Semiconductor/lib/libnrfjprogdll.dylib.
+[2021-Dec-15 10:20:44] [ info] Library loaded, loading member functions.
+[2021-Dec-15 10:20:44] [ info] Member functions succesfully loaded.
+[2021-Dec-15 10:20:44] [debug] [ Client] - open
+[2021-Dec-15 10:20:44] [debug] [ Client] - start
+[2021-Dec-15 10:20:44] [ info] [ Client] - stdout: Jlinkarm nRF Worker ready. Handling sequence 7bdff500-01e6-453b-9cd2-6e2587285239.
+[2021-Dec-15 10:20:44] [trace] [ Client] - Command open executed for 6 milliseconds with result 0
+[2021-Dec-15 10:20:44] [debug] [ Client] - enum_emu_snr
+[2021-Dec-15 10:20:44] [trace] [ Client] - Command enum_emu_con_info executed for 1 milliseconds with result 0
+[2021-Dec-15 10:20:44] [debug] [ Client] - connect_to_emu_with_snr
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - Logger sink registered in Segger backend logger
+[2021-Dec-15 10:20:44] [debug] [  JLink] - Logger sink registered in JLink logger
+[2021-Dec-15 10:20:44] [debug] [  nRFXX] - open
+[2021-Dec-15 10:20:44] [debug] [  nRFXX] - just_check_family
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - open_dll
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - No J-Link DLL path was provided. Attempting to auto detect.
+[2021-Dec-15 10:20:44] [ info] [SeggerBackend] - Load library at /Applications/SEGGER/JLink/libjlinkarm.7.58.2.dylib.
+[2021-Dec-15 10:20:44] [ info] [SeggerBackend] - Library loaded, loading member functions.
+[2021-Dec-15 10:20:44] [ info] [SeggerBackend] - Member functions succesfully loaded.
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - dll_version
+[2021-Dec-15 10:20:44] [ info] [SeggerBackend] - Segger dll version 7.58.b loaded.
+[2021-Dec-15 10:20:44] [trace] [ Worker] - Command open executed for 3 milliseconds with result 0
+[2021-Dec-15 10:20:44] [debug] [  nRFXX] - enum_emu_con_info
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - enum_emu_con_info
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:20:44] [trace] [ Worker] - Command enum_emu_con_info executed for 1 milliseconds with result 0
+[2021-Dec-15 10:20:44] [debug] [  nRFXX] - connect_to_emu_with_snr
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - connect_to_emu_with_snr
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - ---just_enum_emu_snr
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - ---just_get_num_emus
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - ---just_connect_to_emu_with_snr
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - ---just_connect_to_emu_without_snr
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - Segger logging enabled.
+[2021-Dec-15 10:20:44] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:20:44] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:20:44] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:20:44] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:20:44] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:20:44] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:20:44] [trace] [  JLink] -    ***** Error: 
+[2021-Dec-15 10:20:44] [trace] [  JLink] - Cannot connect to J-Link
+[2021-Dec-15 10:20:44] [trace] [  JLink] - - 7.393ms returns "Cannot connect to J-Link"  
+[2021-Dec-15 10:20:44] [trace] [  JLink] - JLINK_HasError()  
+[2021-Dec-15 10:20:44] [error] [SeggerBackend] - JLinkARM.dll Open returned error 'Cannot connect to J-Link'
+[2021-Dec-15 10:20:44] [trace] [  JLink] - JLINK_OpenEx(...)  
+[2021-Dec-15 10:20:44] [trace] [ Client] - Command connect_to_emu_with_snr executed for 38 milliseconds with result -102
+[2021-Dec-15 10:20:44] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:20:44] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:20:44] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:20:44] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:20:44] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:20:44] [trace] [  JLink] - Out of sync , resynchronizing...
+[2021-Dec-15 10:20:44] [trace] [  JLink] - - 4.330ms returns "Failed to open DLL"  
+[2021-Dec-15 10:20:44] [trace] [  JLink] - JLINK_HasError()  
+[2021-Dec-15 10:20:44] [error] [SeggerBackend] - JLinkARM.dll Open returned error 'Failed to open DLL'
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:20:44] [trace] [  JLink] - JLINK_IsOpen()  
+[2021-Dec-15 10:20:44] [trace] [  JLink] - - 0.003ms returns 0x00  
+[2021-Dec-15 10:20:44] [trace] [  JLink] - JLINK_HasError()  
+[2021-Dec-15 10:20:44] [trace] [ Worker] - Command connect_to_emu_with_snr executed for 38 milliseconds with result -102
+[2021-Dec-15 10:20:44] [debug] [  nRFXX] - close
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:20:44] [trace] [  JLink] - JLINK_IsOpen()  
+[2021-Dec-15 10:20:44] [trace] [  JLink] - - 0.006ms returns 0x00  
+[2021-Dec-15 10:20:44] [trace] [  JLink] - JLINK_HasError()  
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - close
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - disconnect_from_emu
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - is_connected_to_emu
+[2021-Dec-15 10:20:44] [trace] [  JLink] - JLINK_IsOpen()  
+[2021-Dec-15 10:20:44] [trace] [  JLink] - - 0.002ms returns 0x00  
+[2021-Dec-15 10:20:44] [trace] [  JLink] - JLINK_HasError()  
+[2021-Dec-15 10:20:44] [debug] [SeggerBackend] - Segger Backend closed.
+[2021-Dec-15 10:20:44] [debug] [  nRFXX] - nRF family DLL closed
+[2021-Dec-15 10:20:44] [trace] [ Client] - Command close executed for 24 milliseconds with result 0
+[2021-Dec-15 10:20:44] [debug] [ Client] - terminate
+[2021-Dec-15 10:20:44] [trace] [ Client] - Command terminate executed for 0 milliseconds with result 0
+[2021-Dec-15 10:20:44] [trace] [ Worker] - Command close executed for 24 milliseconds with result 0
+[2021-Dec-15 10:20:44] [trace] [ Worker] - Command terminate executed for 0 milliseconds with result 0
+[2021-Dec-15 10:20:44] [trace] [ Worker] - Executed 5 commands for 66 milliseconds
+[2021-Dec-15 10:20:44] [debug] [ Client] - Child process terminated with result 0
+[2021-Dec-15 10:20:44] [debug] [ Client] - Worker process exited with code: 0
+[2021-Dec-15 10:20:44] [debug] [ Client] - Worker process exited with code: 0
+[2021-Dec-15 10:20:44] [trace] [ Client] - Executed 5 commands for 69 milliseconds
+[2021-Dec-15 10:20:44] [debug] [ Client] - terminate

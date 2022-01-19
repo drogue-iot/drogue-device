@@ -528,6 +528,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e476c64197665c3725621f0ac3f9e5209aa5e889e02a08b1daf5f16dc5fd952"
 dependencies = [
  "atomic-polyfill",
+ "defmt",
  "hash32",
  "spin",
  "stable_deref_trait",

@@ -1,1 +1,2 @@
 * link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/ble-temperature[BBC micro:bit v2 BLE temperature sensor]
+* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/nrf52840-dk/ble-mesh[nrf52840-dk BLE Mesh example]
