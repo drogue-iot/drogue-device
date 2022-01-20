@@ -15,7 +15,6 @@ use drogue_device::drivers::ble::mesh::provisioning::{
 };
 use drogue_device::drivers::ble::mesh::transport::nrf52::{Nrf52BleMeshTransport, SoftdeviceRng, SoftdeviceStorage};
 use drogue_device::drivers::ble::mesh::transport::Transport;
-use drogue_device::drivers::ble::mesh::vault::InMemoryVault;
 use drogue_device::drivers::ble::mesh::configuration_manager::ConfigurationManager;
 use drogue_device::{actors, drivers, ActorContext, DeviceContext, Package};
 use embassy::executor::Spawner;
@@ -24,9 +23,7 @@ use embassy_nrf::{
     gpio::{AnyPin, Output},
     Peripherals,
 };
-//use embassy_nrf::interrupt;
 use embassy_nrf::interrupt::Priority;
-//use nrf_softdevice::Softdevice as _;
 use panic_probe as _;
 
 pub struct MyDevice {
@@ -44,10 +41,6 @@ fn config() -> Config {
     config.time_interrupt_priority = Priority::P2;
     config
 }
-
-const NODE_UUID: Uuid = Uuid([
-    0xBE, 0xEF, 0xBE, 0xEF, 0xBE, 0xEF, 0xBE, 0xEF, 0xBE, 0xEF, 0xBE, 0xEF, 0xBE, 0xEF, 0xBE, 0xEF,
-]);
 
 extern "C" {
     static __storage: u8;
@@ -77,5 +70,6 @@ async fn main(spawner: Spawner, p: Peripherals) {
     });
     device.ble_transport.mount(spawner, transport.actor());
     let mesh_node = MeshNode::new(capabilities, transport, storage, rng);
+    //let mesh_node = MeshNode::new(capabilities, transport, storage, rng).force_reset();;
     device.mesh.mount(spawner, mesh_node);
 }

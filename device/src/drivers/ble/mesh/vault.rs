@@ -76,81 +76,6 @@ pub trait Vault {
     ) -> Self::SetProvisioningDataFuture<'m>;
 }
 
-pub struct InMemoryVault {
-    uuid: Uuid,
-    secret_key: SecretKey,
-    peer_public_key: Option<PublicKey>,
-    //
-    shared_secret: Option<SharedSecret>,
-}
-
-impl InMemoryVault {
-    pub fn new<R: RngCore + CryptoRng>(uuid: Uuid, rng: &mut R) -> Self {
-        let secret_key = SecretKey::random(rng);
-
-        Self {
-            uuid,
-            secret_key,
-            peer_public_key: None,
-            //
-            shared_secret: None,
-        }
-    }
-}
-
-impl Vault for InMemoryVault {
-    fn uuid(&self) -> Uuid {
-        self.uuid
-    }
-
-    type SetPeerPublicKeyFuture<'m>
-    where
-        Self: 'm,
-    = impl Future<Output = Result<(), DeviceError>>;
-
-    fn set_peer_public_key<'m>(&'m mut self, pk: PublicKey) -> Self::SetPeerPublicKeyFuture<'m> {
-        async move {
-            self.peer_public_key.replace(pk);
-            self.shared_secret.replace(diffie_hellman(
-                self.secret_key.to_nonzero_scalar(),
-                pk.as_affine(),
-            ));
-            Ok(())
-        }
-    }
-
-    fn public_key(&self) -> Result<PublicKey, DeviceError> {
-        Ok(self.secret_key.public_key())
-    }
-
-    fn n_k1(&self, salt: &[u8], p: &[u8]) -> Result<Output<Cmac<Aes128>>, DeviceError> {
-        crypto::k1(
-            self.shared_secret
-                .as_ref()
-                .ok_or(DeviceError::KeyInitialization)?
-                .as_bytes(),
-            salt,
-            p,
-        )
-        .map_err(|_| DeviceError::CryptoError)
-    }
-
-    type SetProvisioningDataFuture<'m>
-    where
-        Self: 'm,
-    = impl Future<Output = Result<(), DeviceError>>;
-
-    fn set_provisioning_data<'m>(
-        &'m mut self,
-        data: &'m ProvisioningData,
-    ) -> Self::SetProvisioningDataFuture<'m> {
-        async move {
-            defmt::info!("PROVISIONED");
-            Ok(())
-        }
-    }
-}
-
 pub struct StorageVault<'s, S: GeneralStorage + KeyStorage> {
     storage: &'s S,
 }
@@ -162,7 +87,6 @@ impl<'s, S: GeneralStorage + KeyStorage> StorageVault<'s, S> {
         }
     }
 }
-
 
 impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
     fn uuid(&self) -> Uuid {

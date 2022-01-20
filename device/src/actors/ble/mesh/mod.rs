@@ -1,8 +1,10 @@
 pub mod transport;
 
+use crate::drivers::ble::mesh::configuration_manager::ConfigurationManager;
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
+use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::transport::{Handler, Transport};
 use crate::drivers::ble::mesh::vault::Vault;
 use crate::{Actor, Address, Inbox};
@@ -13,8 +15,6 @@ use embassy::channel::mpsc::{self, Channel};
 use futures::{join, pin_mut};
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
-use crate::drivers::ble::mesh::configuration_manager::ConfigurationManager;
-use crate::drivers::ble::mesh::storage::Storage;
 
 pub struct MeshNode<T, S, R>
 where
@@ -22,6 +22,7 @@ where
     S: Storage,
     R: RngCore + CryptoRng,
 {
+    force_reset: bool,
     capabilities: Option<Capabilities>,
     transport: T,
     storage: Option<S>,
@@ -36,10 +37,18 @@ where
 {
     pub fn new(capabilities: Capabilities, transport: T, storage: S, rng: R) -> Self {
         Self {
+            force_reset: false,
             capabilities: Some(capabilities),
             transport,
             storage: Some(storage),
             rng: Some(rng),
+        }
+    }
+
+    pub fn force_reset(self) -> Self {
+        Self {
+            force_reset: true,
+            ..self
         }
     }
 }
@@ -140,11 +149,7 @@ where
         M: 'm,
     = impl Future<Output = ()> + 'm;
 
-    fn on_mount<'m, M>(
-        &'m mut self,
-        _: Address<Self>,
-        _: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<Self> + 'm,
     {
@@ -159,7 +164,8 @@ where
             let rx = TransportReceiver::new(receiver);
             let handler = TransportHandler::new(&self.transport, sender);
 
-            let configuration_manager = ConfigurationManager::new(self.storage.take().unwrap());
+            let configuration_manager =
+                ConfigurationManager::new(self.storage.take().unwrap(), self.force_reset);
 
             let mut node = Node::new(
                 self.capabilities.take().unwrap(),

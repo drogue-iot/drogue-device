@@ -1,23 +1,20 @@
+use crate::drivers::ble::mesh::device::Uuid;
+use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::provisioning::{IVUpdateFlag, KeyRefreshFlag, ProvisioningData};
 use crate::drivers::ble::mesh::storage::{Payload, Storage};
 use core::cell::RefCell;
 use core::convert::TryInto;
 use defmt::Format;
 use futures::future::Future;
 use p256::ecdh::SharedSecret;
-use p256::elliptic_curve::sec1::FromEncodedPoint;
-use p256::{AffinePoint, EncodedPoint, PublicKey, SecretKey};
-use p256::elliptic_curve::AffineXCoordinate;
-use p256::elliptic_curve::generic_array::{
-    GenericArray,
-    typenum::consts::U32,
-};
+use p256::elliptic_curve::generic_array::{typenum::consts::U32, GenericArray};
 use p256::elliptic_curve::group::GroupEncoding;
+use p256::elliptic_curve::sec1::FromEncodedPoint;
+use p256::elliptic_curve::AffineXCoordinate;
+use p256::{AffinePoint, EncodedPoint, PublicKey, SecretKey};
 use postcard::{from_bytes, to_slice};
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
-use crate::drivers::ble::mesh::device::Uuid;
-use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::provisioning::{IVUpdateFlag, KeyRefreshFlag, ProvisioningData};
 
 #[derive(Serialize, Deserialize, Copy, Clone, Default, Format)]
 pub struct Configuration {
@@ -30,6 +27,7 @@ impl Configuration {
         let mut changed = false;
 
         if self.uuid.is_none() {
+            defmt::info!("generate UUID");
             let mut uuid = [0; 16];
             rng.fill_bytes(&mut uuid);
             self.uuid.replace(uuid);
@@ -37,6 +35,7 @@ impl Configuration {
         }
 
         if let Ok(None) = self.keys.private_key() {
+            defmt::info!("generate private key");
             let secret_key = SecretKey::random(rng);
             self.keys.set_private_key(&Some(secret_key));
             changed = true;
@@ -97,7 +96,10 @@ impl Keys {
     }
 
     pub(crate) fn public_key(&self) -> Result<PublicKey, DeviceError> {
-        Ok(self.private_key()?.ok_or(DeviceError::KeyInitialization)?.public_key())
+        Ok(self
+            .private_key()?
+            .ok_or(DeviceError::KeyInitialization)?
+            .public_key())
     }
 
     pub(crate) fn shared_secret(&self) -> Result<Option<SharedSecret>, DeviceError> {
@@ -131,7 +133,7 @@ impl Keys {
         self.network
     }
 
-    pub(crate) fn set_network(&mut self, network: &Network) -> Result<(),()> {
+    pub(crate) fn set_network(&mut self, network: &Network) -> Result<(), ()> {
         self.network.replace(*network);
         Ok(())
     }
@@ -154,6 +156,7 @@ pub trait KeyStorage {
 pub struct ConfigurationManager<S: Storage> {
     storage: RefCell<S>,
     config: RefCell<Configuration>,
+    force_reset: bool,
 }
 
 impl<S: Storage> GeneralStorage for ConfigurationManager<S> {
@@ -180,27 +183,43 @@ impl<S: Storage> KeyStorage for ConfigurationManager<S> {
 }
 
 impl<S: Storage> ConfigurationManager<S> {
-    pub fn new(storage: S) -> Self {
+    pub fn new(storage: S, force_reset: bool) -> Self {
         Self {
             storage: RefCell::new(storage),
             config: RefCell::new(Default::default()),
+            force_reset,
         }
     }
 
-    pub(crate) async fn initialize<R: RngCore + CryptoRng>(&mut self, rng: &mut R) -> Result<(), DeviceError> {
-        let payload = self.storage.borrow_mut().retrieve().await.map_err(|_|DeviceError::StorageInitialization)?;
-        match payload {
-            None => Err(DeviceError::StorageInitialization),
-            Some(payload) => {
-                let mut config: Configuration = from_bytes(&payload.payload).map_err(|_| DeviceError::Serialization)?;
-                if config.validate(rng) {
-                    // we initialized some things that we should stuff away.
-                    self.store(&config).await?;
-                } else {
-                    self.config.replace(config);
+    pub(crate) async fn initialize<R: RngCore + CryptoRng>(
+        &mut self,
+        rng: &mut R,
+    ) -> Result<(), DeviceError> {
+        if self.force_reset {
+            let mut config = Configuration::default();
+            config.validate(rng);
+            self.store(&config).await
+        } else {
+            let payload = self
+                .storage
+                .borrow_mut()
+                .retrieve()
+                .await
+                .map_err(|_| DeviceError::StorageInitialization)?;
+            match payload {
+                None => Err(DeviceError::StorageInitialization),
+                Some(payload) => {
+                    let mut config: Configuration =
+                        from_bytes(&payload.payload).map_err(|_| DeviceError::Serialization)?;
+                    if config.validate(rng) {
+                        // we initialized some things that we should stuff away.
+                        self.store(&config).await?;
+                    } else {
+                        self.config.replace(config);
+                    }
+                    defmt::info!("Load {}", &*self.config.borrow());
+                    Ok(())
                 }
-                defmt::info!("Load {}", &*self.config.borrow());
-                Ok(())
             }
         }
     }
@@ -214,7 +233,11 @@ impl<S: Storage> ConfigurationManager<S> {
         let mut payload = [0; 512];
         to_slice(config, &mut payload)?;
         let payload = Payload { payload };
-        self.storage.borrow_mut().store(&payload).await.map_err(|_|DeviceError::Storage)?;
+        self.storage
+            .borrow_mut()
+            .store(&payload)
+            .await
+            .map_err(|_| DeviceError::Storage)?;
         self.config.replace(*config);
         Ok(())
     }
