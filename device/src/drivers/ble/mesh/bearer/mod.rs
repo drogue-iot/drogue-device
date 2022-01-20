@@ -7,7 +7,7 @@ pub trait Handler: Sized {
     fn handle(&self, message: heapless::Vec<u8, 384>);
 }
 
-pub trait Transport {
+pub trait Bearer {
     // TODO return a "stop receiving" control handle
     type ReceiveFuture<'m, H>: Future<Output = ()>
     where

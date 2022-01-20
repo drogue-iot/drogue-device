@@ -1,14 +1,20 @@
-use aes::{Aes128, NewBlockCipher};
+use aes::{Aes128, BlockEncrypt, NewBlockCipher};
 use ccm::aead::generic_array::GenericArray;
-use ccm::aead::NewAead;
+use ccm::aead::{AeadMutInPlace, Buffer, NewAead};
 use ccm::aead::{AeadInPlace, Error};
 use ccm::consts::U13;
+use ccm::consts::U4;
 use ccm::consts::U8;
 use ccm::Ccm;
 use cmac::crypto_mac::{InvalidKeyLength, Output};
 use cmac::{Cmac, Mac, NewMac};
 use core::convert::TryInto;
+use core::iter::FromIterator;
+use aes::cipher::Block;
 use heapless::Vec;
+use crate::drivers::ble::mesh::pdu::lower::SzMic;
+
+pub mod nonce;
 
 const ZERO: [u8; 16] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
@@ -64,10 +70,58 @@ pub fn k2(n: &[u8], p: &[u8]) -> Result<(u8, [u8; 16], [u8; 16]), InvalidKeyLeng
     ))
 }
 
-type AesCcm = Ccm<Aes128, U8, U13>;
-
-pub fn aes_ccm_decrypt(key: &[u8], nonce: &[u8], data: &mut [u8], mic: &[u8]) -> Result<(), Error> {
+pub fn e(key: &[u8], mut data: [u8;16])  -> Result<[u8;16], InvalidKeyLength>{
     let key = GenericArray::<u8, <Aes128 as NewBlockCipher>::KeySize>::from_slice(key);
-    let ccm = AesCcm::new(&key);
-    ccm.decrypt_in_place_detached(nonce.into(), &[], data, mic.into())
+    let mut cipher = Aes128::new_from_slice(key).map_err(|_|InvalidKeyLength)?;
+
+    let mut cipher_block = Block::<Aes128>::from_mut_slice(&mut data);
+    cipher.encrypt_block( &mut cipher_block);
+    Ok(data)
 }
+
+type AesCcm32bitMac = Ccm<Aes128, U4, U13>;
+type AesCcm64bitMac = Ccm<Aes128, U8, U13>;
+
+pub fn aes_ccm_decrypt_detached(key: &[u8], nonce: &[u8], data: &mut [u8], mic: &[u8]) -> Result<(), Error> {
+    let key = GenericArray::<u8, <Aes128 as NewBlockCipher>::KeySize>::from_slice(key);
+    match mic.len() {
+        4 => {
+            let ccm = AesCcm32bitMac::new(&key);
+            ccm.decrypt_in_place_detached(nonce.into(), &[], data, mic.into())
+        }
+        8 => {
+            let ccm = AesCcm64bitMac::new(&key);
+            ccm.decrypt_in_place_detached(nonce.into(), &[], data, mic.into())
+        }
+        _ => {
+            Err(Error)
+        }
+    }
+}
+
+
+pub fn aes_ccm_encrypt_detached(key: &[u8], nonce: &[u8], data: &mut [u8], mic: &mut [u8]) -> Result<(), Error> {
+    let key = GenericArray::<u8, <Aes128 as NewBlockCipher>::KeySize>::from_slice(key);
+    match mic.len() {
+        4 => {
+            let ccm = AesCcm32bitMac::new(&key);
+            let tag = ccm.encrypt_in_place_detached(nonce.into(), &[], data)?;
+            for (i,b) in mic.iter_mut().enumerate() {
+                *b = tag[i];
+            }
+            Ok(())
+        }
+        8 => {
+            let ccm = AesCcm64bitMac::new(&key);
+            let tag = ccm.encrypt_in_place_detached(nonce.into(), &[], data)?;
+            for (i,b) in mic.iter_mut().enumerate() {
+                *b = tag[i];
+            }
+            Ok(())
+        }
+        _ => {
+            Err(Error)
+        }
+    }
+}
+

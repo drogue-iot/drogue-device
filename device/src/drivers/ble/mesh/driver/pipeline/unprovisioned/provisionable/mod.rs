@@ -2,10 +2,10 @@ mod auth_value;
 mod transcript;
 
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
-use crate::drivers::ble::mesh::driver::pipeline::provisionable::auth_value::{
+use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::auth_value::{
     determine_auth_value, AuthValue,
 };
-use crate::drivers::ble::mesh::driver::pipeline::provisionable::transcript::Transcript;
+use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::transcript::Transcript;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::{
     Capabilities, Confirmation, ProvisioningData, ProvisioningPDU, PublicKey, Random,
@@ -19,16 +19,8 @@ use heapless::Vec;
 use p256::elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
 use p256::EncodedPoint;
 
-pub trait ProvisionableContext: MeshContext {
+pub trait UnprovisionedContext: MeshContext {
     fn rng_fill(&self, dest: &mut [u8]);
-
-    /*
-    type PeerPublicKeyFuture<'m>: Future<Output = Result<Option<p256::PublicKey>, DeviceError>>
-    where
-        Self: 'm;
-
-    fn peer_public_key<'m>(&'m self) -> Self::PeerPublicKeyFuture<'m>;
-     */
 
     type SetPeerPublicKeyFuture<'m>: Future<Output = Result<(), DeviceError>>
     where
@@ -44,6 +36,7 @@ pub trait ProvisionableContext: MeshContext {
 
     fn set_provisioning_data<'m>(
         &'m self,
+        provisioning_salt: &'m [u8],
         data: &'m ProvisioningData,
     ) -> Self::SetProvisioningDataFuture<'m>;
 
@@ -93,7 +86,7 @@ impl Provisionable {
         self.random_provisioner.take();
     }
 
-    pub async fn process_inbound<C: ProvisionableContext>(
+    pub async fn process_inbound<C: UnprovisionedContext>(
         &mut self,
         ctx: &C,
         pdu: ProvisioningPDU,
@@ -202,7 +195,7 @@ impl Provisionable {
                     Ok(_) => {
                         let provisioning_data = ProvisioningData::parse(&data.encrypted)?;
                         defmt::debug!("** provisioning_data {}", provisioning_data);
-                        ctx.set_provisioning_data(&provisioning_data).await?;
+                        ctx.set_provisioning_data(&provisioning_salt, &provisioning_data).await?;
                     }
                     Err(_) => {
                         defmt::info!("decryption error!");
@@ -215,7 +208,7 @@ impl Provisionable {
         }
     }
 
-    fn confirmation_device<C: ProvisionableContext>(
+    fn confirmation_device<C: UnprovisionedContext>(
         &self,
         ctx: &C,
     ) -> Result<Confirmation, DeviceError> {

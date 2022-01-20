@@ -1,17 +1,9 @@
-use crate::drivers::ble::mesh::transport::nrf52::Nrf52BleMeshTransport;
+use crate::drivers::ble::mesh::bearer::nrf52::Nrf52BleMeshFacilities;
 use crate::{Actor, Address, Inbox};
 use core::future::Future;
 use nrf_softdevice::Softdevice;
 
-impl Nrf52BleMeshTransport {
-    pub fn actor(&self) -> Nrf52BleMeshTransportActor {
-        Nrf52BleMeshTransportActor(self.sd)
-    }
-}
-
-pub struct Nrf52BleMeshTransportActor(&'static Softdevice);
-
-impl Actor for Nrf52BleMeshTransportActor {
+impl Actor for Nrf52BleMeshFacilities {
     type Message<'m> = ();
     type OnMountFuture<'m, M>
     where
@@ -25,7 +17,7 @@ impl Actor for Nrf52BleMeshTransportActor {
     {
         async move {
             defmt::info!("start SD");
-            self.0.run().await;
+            self.sd.run().await;
             defmt::info!("SD finished?");
         }
     }

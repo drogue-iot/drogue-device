@@ -1,9 +1,9 @@
-use crate::drivers::ble::mesh::bearer::advertising::PDU;
+use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
-use crate::drivers::ble::mesh::driver::pipeline::segmentation::outbound::{
+use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::segmentation::outbound::{
     OutboundSegments, OutboundSegmentsIter,
 };
-use crate::drivers::ble::mesh::driver::pipeline::segmentation::Segmentation;
+use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::segmentation::Segmentation;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::generic_provisioning::{
     GenericProvisioningPDU, ProvisioningBearerControl, Reason,
@@ -52,7 +52,7 @@ impl ProvisioningBearer {
     pub async fn process_inbound<C: MeshContext>(
         &mut self,
         ctx: &C,
-        pdu: PDU,
+        pdu: AdvertisingPDU,
     ) -> Result<Option<BearerMessage>, DeviceError> {
         match pdu.pdu {
             GenericProvisioningPDU::ProvisioningBearerControl(pbc) => {
@@ -64,7 +64,7 @@ impl ProvisioningBearer {
                                     .replace(pdu.transaction_number);
                                 self.link_id.replace(pdu.link_id);
 
-                                ctx.transmit_pdu(PDU {
+                                ctx.transmit_advertising_pdu(AdvertisingPDU {
                                     link_id: pdu.link_id,
                                     transaction_number: 0,
                                     pdu: GenericProvisioningPDU::ProvisioningBearerControl(
@@ -76,7 +76,7 @@ impl ProvisioningBearer {
                             } else if let Some(link_id) = self.link_id {
                                 if link_id == pdu.link_id {
                                     // just keep LinkAck'ing it.
-                                    ctx.transmit_pdu(PDU {
+                                    ctx.transmit_advertising_pdu(AdvertisingPDU {
                                         link_id: pdu.link_id,
                                         transaction_number: 0,
                                         pdu: GenericProvisioningPDU::ProvisioningBearerControl(
@@ -168,7 +168,7 @@ impl ProvisioningBearer {
     ) -> Result<(), DeviceError> {
         if let Some(acked) = self.acked_inbound_transaction_number {
             if acked >= transaction_number {
-                ctx.transmit_pdu(PDU {
+                ctx.transmit_advertising_pdu(AdvertisingPDU {
                     link_id: self.link_id.ok_or(DeviceError::InvalidLink)?,
                     transaction_number,
                     pdu: GenericProvisioningPDU::TransactionAck,
@@ -186,7 +186,7 @@ impl ProvisioningBearer {
         ) {
             // TODO dry up this repetition
             (Some(current), Some(last_ack)) if current > last_ack => {
-                ctx.transmit_pdu(PDU {
+                ctx.transmit_advertising_pdu(AdvertisingPDU {
                     link_id: self.link_id.ok_or(DeviceError::InvalidLink)?,
                     transaction_number: current,
                     pdu: GenericProvisioningPDU::TransactionAck,
@@ -197,7 +197,7 @@ impl ProvisioningBearer {
                 Ok(true)
             }
             (Some(current), None) => {
-                ctx.transmit_pdu(PDU {
+                ctx.transmit_advertising_pdu(AdvertisingPDU {
                     link_id: self.link_id.ok_or(DeviceError::InvalidLink)?,
                     transaction_number: current,
                     pdu: GenericProvisioningPDU::TransactionAck,
@@ -214,7 +214,7 @@ impl ProvisioningBearer {
     pub async fn try_retransmit<C: MeshContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
         if let Some(outbound) = &self.outbound_pdu {
             for pdu in outbound.iter() {
-                ctx.transmit_pdu(pdu).await?
+                ctx.transmit_advertising_pdu(pdu).await?
             }
         }
         Ok(())
@@ -223,7 +223,7 @@ impl ProvisioningBearer {
     pub async fn process_outbound(
         &mut self,
         pdu: ProvisioningPDU,
-    ) -> Result<impl Iterator<Item = PDU> + '_, DeviceError> {
+    ) -> Result<impl Iterator<Item =AdvertisingPDU> + '_, DeviceError> {
         let segments = self.segmentation.process_outbound(pdu).await?;
 
         let transaction_number = self.outbound_transaction_number;
@@ -272,13 +272,13 @@ impl<'i> OutboundPDUIter<'i> {
 }
 
 impl<'i> Iterator for OutboundPDUIter<'i> {
-    type Item = PDU;
+    type Item = AdvertisingPDU;
 
     fn next(&mut self) -> Option<Self::Item> {
         let inner = self.inner.next();
         match inner {
             None => None,
-            Some(pdu) => Some(PDU {
+            Some(pdu) => Some(AdvertisingPDU {
                 link_id: self.link_id,
                 transaction_number: self.transaction_number,
                 pdu,

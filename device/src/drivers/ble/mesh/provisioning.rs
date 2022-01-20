@@ -3,6 +3,7 @@ use core::convert::TryInto;
 use defmt::{Format, Formatter};
 use heapless::Vec;
 use serde::{Deserialize, Serialize};
+use crate::drivers::ble::mesh::pdu::ParseError;
 
 #[derive(Format)]
 pub enum ProvisioningPDU {
@@ -16,14 +17,6 @@ pub enum ProvisioningPDU {
     Data(Data),
     Complete,
     Failed(Failed),
-}
-
-#[derive(Format)]
-pub enum ParseError {
-    InvalidPDUFormat,
-    InvalidValue,
-    InvalidLength,
-    InsufficientBuffer,
 }
 
 #[derive(Format)]
