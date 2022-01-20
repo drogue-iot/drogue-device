@@ -1,4 +1,5 @@
 use crate::drivers::ble::mesh::driver::pipeline::segmentation::fcs;
+use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::generic_provisioning::{
     GenericProvisioningPDU, TransactionContinuation, TransactionStart,
 };
@@ -15,17 +16,17 @@ pub struct OutboundSegments {
 }
 
 impl OutboundSegments {
-    pub fn new(pdu: ProvisioningPDU) -> Self {
+    pub fn new(pdu: ProvisioningPDU) -> Result<Self, DeviceError> {
         let mut data = Vec::new();
-        pdu.emit(&mut data);
+        pdu.emit(&mut data)?;
         let fcs = fcs(&data);
         let num_segments = Self::num_chunks(&data);
 
-        Self {
+        Ok(Self {
             pdu: data,
             num_segments,
             fcs: fcs,
-        }
+        })
     }
 
     pub fn iter(&self) -> OutboundSegmentsIter {

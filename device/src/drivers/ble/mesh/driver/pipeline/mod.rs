@@ -8,8 +8,7 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioning_bearer::{
 };
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::generic_provisioning::Reason;
-use crate::drivers::ble::mesh::provisioning::{Capabilities, ProvisioningPDU};
-use heapless::Vec;
+use crate::drivers::ble::mesh::provisioning::Capabilities;
 
 pub mod mesh;
 pub mod provisionable;

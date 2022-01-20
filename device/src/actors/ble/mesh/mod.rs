@@ -1,44 +1,54 @@
 pub mod transport;
 
+use crate::drivers::ble::mesh::configuration_manager::ConfigurationManager;
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
+use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::transport::{Handler, Transport};
 use crate::drivers::ble::mesh::vault::Vault;
 use crate::{Actor, Address, Inbox};
 use core::cell::RefCell;
 use core::future::Future;
-use core::marker::PhantomData;
 use embassy::blocking_mutex::kind::CriticalSection;
 use embassy::channel::mpsc::{self, Channel};
 use futures::{join, pin_mut};
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
 
-pub struct MeshNode<T, V, R>
+pub struct MeshNode<T, S, R>
 where
-    T: Transport + 'static,
-    V: Vault + 'static,
-    R: RngCore + CryptoRng + 'static,
+    T: Transport,
+    S: Storage,
+    R: RngCore + CryptoRng,
 {
+    force_reset: bool,
     capabilities: Option<Capabilities>,
     transport: T,
-    vault: Option<V>,
+    storage: Option<S>,
     rng: Option<R>,
 }
 
-impl<T, V, R> MeshNode<T, V, R>
+impl<T, S, R> MeshNode<T, S, R>
 where
-    T: Transport + 'static,
-    V: Vault + 'static,
-    R: RngCore + CryptoRng + 'static,
+    T: Transport,
+    S: Storage,
+    R: RngCore + CryptoRng,
 {
-    pub fn new(capabilities: Capabilities, transport: T, vault: V, rng: R) -> Self {
+    pub fn new(capabilities: Capabilities, transport: T, storage: S, rng: R) -> Self {
         Self {
+            force_reset: false,
             capabilities: Some(capabilities),
             transport,
-            vault: Some(vault),
+            storage: Some(storage),
             rng: Some(rng),
+        }
+    }
+
+    pub fn force_reset(self) -> Self {
+        Self {
+            force_reset: true,
+            ..self
         }
     }
 }
@@ -98,7 +108,8 @@ where
     T: Transport + 't,
 {
     fn handle(&self, message: Vec<u8, 384>) {
-        self.sender.try_send(message);
+        // BLE loses messages anyhow, so if this fails, just ignore.
+        self.sender.try_send(message).ok();
     }
 }
 
@@ -126,10 +137,10 @@ where
     }
 }
 
-impl<T, V, R> Actor for MeshNode<T, V, R>
+impl<T, S, R> Actor for MeshNode<T, S, R>
 where
     T: Transport + 'static,
-    V: Vault + 'static,
+    S: Storage + 'static,
     R: RngCore + CryptoRng + 'static,
 {
     type Message<'m> = Vec<u8, 384>;
@@ -138,11 +149,7 @@ where
         M: 'm,
     = impl Future<Output = ()> + 'm;
 
-    fn on_mount<'m, M>(
-        &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<Self> + 'm,
     {
@@ -154,14 +161,17 @@ where
             let mut channel = Channel::new();
             let (sender, receiver) = mpsc::split(&mut channel);
 
-            let mut rx = TransportReceiver::new(receiver);
-            let mut handler = TransportHandler::new(&self.transport, sender);
+            let rx = TransportReceiver::new(receiver);
+            let handler = TransportHandler::new(&self.transport, sender);
+
+            let configuration_manager =
+                ConfigurationManager::new(self.storage.take().unwrap(), self.force_reset);
 
             let mut node = Node::new(
                 self.capabilities.take().unwrap(),
                 tx,
                 rx,
-                self.vault.take().unwrap(),
+                configuration_manager,
                 self.rng.take().unwrap(),
             );
 
@@ -172,6 +182,8 @@ where
             pin_mut!(handler_fut);
 
             join!(node_fut, handler_fut);
+
+            defmt::info!("shutting down");
         }
     }
 }

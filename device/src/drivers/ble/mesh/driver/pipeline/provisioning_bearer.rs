@@ -9,10 +9,8 @@ use crate::drivers::ble::mesh::generic_provisioning::{
     GenericProvisioningPDU, ProvisioningBearerControl, Reason,
 };
 use crate::drivers::ble::mesh::provisioning::ProvisioningPDU;
-use core::future::Future;
 use core::iter::Iterator;
 use defmt::Format;
-use heapless::Vec;
 
 pub struct ProvisioningBearer {
     segmentation: Segmentation,
@@ -73,7 +71,7 @@ impl ProvisioningBearer {
                                         ProvisioningBearerControl::LinkAck,
                                     ),
                                 })
-                                .await;
+                                .await?;
                                 Ok(None)
                             } else if let Some(link_id) = self.link_id {
                                 if link_id == pdu.link_id {
@@ -85,7 +83,7 @@ impl ProvisioningBearer {
                                             ProvisioningBearerControl::LinkAck,
                                         ),
                                     })
-                                    .await;
+                                    .await?;
                                     Ok(None)
                                 } else {
                                     Err(DeviceError::InvalidLink)
@@ -170,13 +168,12 @@ impl ProvisioningBearer {
     ) -> Result<(), DeviceError> {
         if let Some(acked) = self.acked_inbound_transaction_number {
             if acked >= transaction_number {
-                defmt::info!("re-ack transaction");
                 ctx.transmit_pdu(PDU {
                     link_id: self.link_id.ok_or(DeviceError::InvalidLink)?,
                     transaction_number,
                     pdu: GenericProvisioningPDU::TransactionAck,
                 })
-                .await;
+                .await?;
             }
         }
         Ok(())
@@ -189,7 +186,6 @@ impl ProvisioningBearer {
         ) {
             // TODO dry up this repetition
             (Some(current), Some(last_ack)) if current > last_ack => {
-                defmt::info!("xmit first ACK for {}", current);
                 ctx.transmit_pdu(PDU {
                     link_id: self.link_id.ok_or(DeviceError::InvalidLink)?,
                     transaction_number: current,
@@ -201,7 +197,6 @@ impl ProvisioningBearer {
                 Ok(true)
             }
             (Some(current), None) => {
-                defmt::info!("xmit first ACK for {}", current);
                 ctx.transmit_pdu(PDU {
                     link_id: self.link_id.ok_or(DeviceError::InvalidLink)?,
                     transaction_number: current,
@@ -218,7 +213,6 @@ impl ProvisioningBearer {
 
     pub async fn try_retransmit<C: MeshContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
         if let Some(outbound) = &self.outbound_pdu {
-            defmt::info!("retransmit because they didn't hear us the first time");
             for pdu in outbound.iter() {
                 ctx.transmit_pdu(pdu).await?
             }
@@ -230,7 +224,7 @@ impl ProvisioningBearer {
         &mut self,
         pdu: ProvisioningPDU,
     ) -> Result<impl Iterator<Item = PDU> + '_, DeviceError> {
-        let segments = self.segmentation.process_outbound(pdu).await;
+        let segments = self.segmentation.process_outbound(pdu).await?;
 
         let transaction_number = self.outbound_transaction_number;
         self.outbound_transaction_number = self.outbound_transaction_number + 1;

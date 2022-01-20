@@ -2,6 +2,7 @@ use crate::drivers::ble::mesh::provisioning::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use cmac::crypto_mac::InvalidKeyLength;
 use defmt::Format;
+use postcard::Error;
 
 pub mod node;
 mod pipeline;
@@ -9,6 +10,7 @@ mod pipeline;
 #[derive(Format)]
 pub enum DeviceError {
     CryptoError,
+    Storage,
     StorageInitialization,
     KeyInitialization,
     InvalidPacket,
@@ -21,6 +23,7 @@ pub enum DeviceError {
     NoSharedSecret,
     ParseError(ParseError),
     TransmitError,
+    Serialization,
 }
 
 impl From<InvalidKeyLength> for DeviceError {
@@ -38,5 +41,11 @@ impl From<ParseError> for DeviceError {
 impl From<InsufficientBuffer> for DeviceError {
     fn from(_: InsufficientBuffer) -> Self {
         DeviceError::InsufficientBuffer
+    }
+}
+
+impl From<postcard::Error> for DeviceError {
+    fn from(_: Error) -> Self {
+        DeviceError::Serialization
     }
 }

@@ -9,7 +9,6 @@ use core::ptr::slice_from_raw_parts;
 use embassy::traits::flash::Flash;
 use heapless::Vec;
 use nrf_softdevice::ble::central::ScanConfig;
-use nrf_softdevice::ble::peripheral::AdvertiseError;
 use nrf_softdevice::ble::{central, peripheral};
 use nrf_softdevice::{random_bytes, raw, Softdevice};
 use rand_core::{CryptoRng, Error, RngCore};
@@ -64,16 +63,15 @@ impl Nrf52BleMeshTransport {
         SoftdeviceRng { sd: self.sd }
     }
 
-    /*
     pub fn storage(&self, address: usize) -> SoftdeviceStorage {
         SoftdeviceStorage {
             address,
             flash: nrf_softdevice::Flash::take(self.sd),
         }
     }
-     */
 }
 
+#[derive(Copy, Clone)]
 pub struct SoftdeviceRng {
     sd: &'static Softdevice,
 }
@@ -109,7 +107,6 @@ impl RngCore for SoftdeviceRng {
 
 impl CryptoRng for SoftdeviceRng {}
 
-/*
 pub struct SoftdeviceStorage {
     address: usize,
     flash: nrf_softdevice::Flash,
@@ -123,12 +120,11 @@ impl Storage for SoftdeviceStorage {
 
     fn store<'m>(&'m mut self, keys: &'m Payload) -> Self::StoreFuture<'m> {
         async move {
-            defmt::info!("store 1 @ {:x}", self.address);
             self.flash.erase(self.address).await.map_err(|_| ())?;
-            defmt::info!("store 2");
-            let result = self.flash.write(self.address, &keys.payload).await;
-            defmt::info!("store 3 {}", result);
-            Ok(())
+            self.flash
+                .write(self.address, &keys.payload)
+                .await
+                .map_err(|_| ())
         }
     }
 
@@ -139,19 +135,15 @@ impl Storage for SoftdeviceStorage {
 
     fn retrieve<'m>(&'m mut self) -> Self::RetrieveFuture<'m> {
         async move {
-            defmt::info!("retrieve 1");
             let mut payload = [0; 512];
-            defmt::info!("retrieve 2");
             self.flash
                 .read(self.address, &mut payload)
                 .await
                 .map_err(|_| ())?;
-            defmt::info!("retrieve 3");
             Ok(Some(Payload { payload }))
         }
     }
 }
- */
 
 impl Transport for Nrf52BleMeshTransport {
     type TransmitFuture<'m> = impl Future<Output = ()> + 'm;
@@ -161,7 +153,7 @@ impl Transport for Nrf52BleMeshTransport {
             peripheral::NonconnectableAdvertisement::NonscannableUndirected { adv_data: message };
 
         async move {
-            let result = peripheral::advertise(
+            peripheral::advertise(
                 self.sd,
                 adv,
                 &peripheral::Config {
