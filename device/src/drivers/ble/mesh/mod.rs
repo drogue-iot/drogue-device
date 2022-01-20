@@ -6,6 +6,7 @@ pub mod address;
 pub mod app;
 pub mod beacon;
 pub mod bearer;
+pub mod configuration_manager;
 pub mod control;
 pub mod crypto;
 pub mod device;
@@ -17,6 +18,5 @@ pub mod status;
 pub mod storage;
 pub mod transport;
 pub mod vault;
-pub mod configuration_manager;
 
 pub struct InsufficientBuffer;

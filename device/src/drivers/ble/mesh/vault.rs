@@ -16,7 +16,6 @@ use crate::drivers::ble::mesh::provisioning::ProvisioningData;
 use crate::drivers::ble::mesh::storage::Storage;
 
 pub trait Vault {
-
     fn uuid(&self) -> Uuid;
 
     type SetPeerPublicKeyFuture<'m>: Future<Output = Result<(), DeviceError>>
@@ -82,9 +81,7 @@ pub struct StorageVault<'s, S: GeneralStorage + KeyStorage> {
 
 impl<'s, S: GeneralStorage + KeyStorage> StorageVault<'s, S> {
     pub(crate) fn new(storage: &'s S) -> Self {
-        Self {
-            storage
-        }
+        Self { storage }
     }
 }
 

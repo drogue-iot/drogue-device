@@ -1,10 +1,10 @@
 use crate::drivers::ble::mesh::driver::pipeline::segmentation::fcs;
+use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::generic_provisioning::{
     GenericProvisioningPDU, TransactionContinuation, TransactionStart,
 };
 use crate::drivers::ble::mesh::provisioning::ProvisioningPDU;
 use heapless::Vec;
-use crate::drivers::ble::mesh::driver::DeviceError;
 
 const TRANSACTION_START_MTU: usize = 20;
 const TRANSACTION_CONTINUATION_MTU: usize = 23;

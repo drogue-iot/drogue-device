@@ -121,7 +121,10 @@ impl Storage for SoftdeviceStorage {
     fn store<'m>(&'m mut self, keys: &'m Payload) -> Self::StoreFuture<'m> {
         async move {
             self.flash.erase(self.address).await.map_err(|_| ())?;
-            self.flash.write(self.address, &keys.payload).await.map_err(|_|())
+            self.flash
+                .write(self.address, &keys.payload)
+                .await
+                .map_err(|_| ())
         }
     }
 

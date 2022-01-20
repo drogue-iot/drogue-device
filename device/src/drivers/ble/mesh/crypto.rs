@@ -34,7 +34,7 @@ pub fn k2(n: &[u8], p: &[u8]) -> Result<(u8, [u8; 16], [u8; 16]), InvalidKeyLeng
 
     let mut input: Vec<u8, 64> = Vec::new();
     input.extend_from_slice(p).map_err(|_| InvalidKeyLength)?;
-    input.push(0x01).map_err(|_|InvalidKeyLength)?;
+    input.push(0x01).map_err(|_| InvalidKeyLength)?;
     let t1 = &aes_cmac(t, &input)?.into_bytes();
 
     let nid = t1[15] & 0x7F;
@@ -43,7 +43,7 @@ pub fn k2(n: &[u8], p: &[u8]) -> Result<(u8, [u8; 16], [u8; 16]), InvalidKeyLeng
     input.truncate(0);
     input.extend_from_slice(&t1).map_err(|_| InvalidKeyLength)?;
     input.extend_from_slice(p).map_err(|_| InvalidKeyLength)?;
-    input.push(0x02).map_err(|_|InvalidKeyLength)?;
+    input.push(0x02).map_err(|_| InvalidKeyLength)?;
 
     let t2 = aes_cmac(t, &input)?.into_bytes();
 
@@ -52,7 +52,7 @@ pub fn k2(n: &[u8], p: &[u8]) -> Result<(u8, [u8; 16], [u8; 16]), InvalidKeyLeng
     input.truncate(0);
     input.extend_from_slice(&t2).map_err(|_| InvalidKeyLength)?;
     input.extend_from_slice(p).map_err(|_| InvalidKeyLength)?;
-    input.push(0x03).map_err(|_|InvalidKeyLength)?;
+    input.push(0x03).map_err(|_| InvalidKeyLength)?;
 
     let t3 = aes_cmac(t, &input)?.into_bytes();
     let privacy_key = t3;
@@ -66,12 +66,7 @@ pub fn k2(n: &[u8], p: &[u8]) -> Result<(u8, [u8; 16], [u8; 16]), InvalidKeyLeng
 
 type AesCcm = Ccm<Aes128, U8, U13>;
 
-pub fn aes_ccm_decrypt(
-    key: &[u8],
-    nonce: &[u8],
-    data: &mut [u8],
-    mic: &[u8],
-) -> Result<(), Error> {
+pub fn aes_ccm_decrypt(key: &[u8], nonce: &[u8], data: &mut [u8], mic: &[u8]) -> Result<(), Error> {
     let key = GenericArray::<u8, <Aes128 as NewBlockCipher>::KeySize>::from_slice(key);
     let ccm = AesCcm::new(&key);
     ccm.decrypt_in_place_detached(nonce.into(), &[], data, mic.into())

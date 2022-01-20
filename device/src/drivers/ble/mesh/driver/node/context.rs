@@ -1,12 +1,14 @@
 use crate::drivers::ble::mesh::bearer::advertising::PDU;
+use crate::drivers::ble::mesh::crypto;
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisionable::ProvisionableContext;
 use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::crypto;
 use crate::drivers::ble::mesh::provisioning::ProvisioningData;
+use crate::drivers::ble::mesh::storage::Storage;
+use crate::drivers::ble::mesh::vault::Vault;
 use aes::Aes128;
 use cmac::crypto_mac::Output;
 use cmac::Cmac;
@@ -14,8 +16,6 @@ use core::future::Future;
 use heapless::Vec;
 use p256::PublicKey;
 use rand_core::{CryptoRng, RngCore};
-use crate::drivers::ble::mesh::storage::Storage;
-use crate::drivers::ble::mesh::vault::Vault;
 
 impl<TX, RX, S, R> ProvisionableContext for Node<TX, RX, S, R>
 where
@@ -50,9 +50,7 @@ where
         &'m self,
         data: &'m ProvisioningData,
     ) -> Self::SetProvisioningDataFuture<'m> {
-        async move {
-            self.vault().set_provisioning_data(data).await
-        }
+        async move { self.vault().set_provisioning_data(data).await }
     }
 
     fn aes_cmac(&self, key: &[u8], input: &[u8]) -> Result<Output<Cmac<Aes128>>, DeviceError> {
@@ -60,7 +58,7 @@ where
     }
 
     fn s1(&self, input: &[u8]) -> Result<Output<Cmac<Aes128>>, DeviceError> {
-        crypto::s1(input).map_err(|_|DeviceError::InvalidKeyLength)
+        crypto::s1(input).map_err(|_| DeviceError::InvalidKeyLength)
     }
 
     fn prsk(&self, salt: &[u8]) -> Result<Output<Cmac<Aes128>>, DeviceError> {
@@ -82,7 +80,7 @@ where
         data: &mut [u8],
         mic: &[u8],
     ) -> Result<(), DeviceError> {
-        crypto::aes_ccm_decrypt(key, nonce, data, mic).map_err(|_|DeviceError::CryptoError)
+        crypto::aes_ccm_decrypt(key, nonce, data, mic).map_err(|_| DeviceError::CryptoError)
     }
 
     fn rng_u8(&self) -> u8 {

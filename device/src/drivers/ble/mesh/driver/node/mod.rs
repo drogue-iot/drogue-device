@@ -1,6 +1,8 @@
+use crate::drivers::ble::mesh::configuration_manager::ConfigurationManager;
 use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
+use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::vault::{StorageVault, Vault};
 use crate::drivers::ble::mesh::MESH_BEACON;
 use core::cell::RefCell;
@@ -10,8 +12,6 @@ use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
-use crate::drivers::ble::mesh::configuration_manager::ConfigurationManager;
-use crate::drivers::ble::mesh::storage::Storage;
 
 mod context;
 
@@ -110,12 +110,10 @@ where
         }
     }
 
-    async fn transmit_unprovisioned_beacon(&self) -> Result<(), DeviceError>{
+    async fn transmit_unprovisioned_beacon(&self) -> Result<(), DeviceError> {
         let mut adv_data: Vec<u8, 31> = Vec::new();
         adv_data.extend_from_slice(&[20, MESH_BEACON, 0x00]).ok();
-        adv_data
-            .extend_from_slice(&self.vault().uuid().0)
-            .ok();
+        adv_data.extend_from_slice(&self.vault().uuid().0).ok();
         adv_data.extend_from_slice(&[0xa0, 0x40]).ok();
 
         self.transmitter.transmit_bytes(&*adv_data).await
@@ -153,9 +151,12 @@ where
         Ok(None)
     }
 
-    pub async fn run(&mut self) -> Result<(), ()>{
+    pub async fn run(&mut self) -> Result<(), ()> {
         // stop right now if we can't initialize our configuration manager.
-        self.configuration_manager.initialize(&mut *self.rng.borrow_mut()).await.map_err(|_|())?;
+        self.configuration_manager
+            .initialize(&mut *self.rng.borrow_mut())
+            .await
+            .map_err(|_| ())?;
 
         loop {
             if let Ok(Some(next_state)) = match self.state {
