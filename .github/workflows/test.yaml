@@ -1,0 +1,30 @@
+name: Test
+
+on:
+  push:
+    branches: [staging, trying, main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  examples:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: cache
+        id: cache-target
+        uses: actions/cache@v2
+        with:
+          path: target
+          key: ${{ runner.os }}-tests
+
+      - name: Install drg tool
+        run: cargo install --git https://github.com/drogue-iot/drg.git
+
+      - name: Check
+        run: cargo xtask test_examples
+        env:
+          DROGUE_CLOUD_API: ${{secrets.DROGUE_CLOUD_API}}
+          DROGUE_CLOUD_ACCESS_TOKEN: ${{secrets.DROGUE_CLOUD_ACCESS_TOKEN}}
