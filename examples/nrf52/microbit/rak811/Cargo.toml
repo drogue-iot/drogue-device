@@ -14,7 +14,7 @@ defmt = "0.3"
 defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
-drogue-device = { path = "../../../../device", features = ["defmt", "lora+rak811", "bsp+microbit"], default-features = false }
+drogue-device = { path = "../../../../device", features = ["defmt", "lora+rak811", "bsp+microbit", "time"], default-features = false }
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 

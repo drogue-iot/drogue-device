@@ -7,9 +7,10 @@ use crate::{
     traits::sensors::temperature::TemperatureSensor,
 };
 use core::future::Future;
+#[cfg(feature = "bsp+microbit+temp")]
+use embassy_nrf::interrupt;
 use embassy_nrf::{
     gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},
-    interrupt,
     peripherals::{
         P0_00, P0_01, P0_08, P0_09, P0_10, P0_13, P0_14, P0_16, P0_23, P1_02, PPI_CH0, PPI_CH1,
         PWM0, RNG, TIMER0, TWISPI0, UARTE0,
@@ -45,6 +46,7 @@ pub struct Microbit {
     pub pwm0: PWM0,
     pub ppi_ch0: PPI_CH0,
     pub ppi_ch1: PPI_CH1,
+    #[cfg(feature = "bsp+microbit+temp")]
     pub temp: TemperatureMonitor,
     pub rng: RNG,
 }
@@ -70,6 +72,7 @@ impl Board for Microbit {
             output_pin(p.P0_30.degrade()),
         ];
 
+        #[cfg(feature = "bsp+microbit+temp")]
         let temp_irq = interrupt::take!(TEMP);
 
         Self {
@@ -90,6 +93,7 @@ impl Board for Microbit {
             ppi_ch1: p.PPI_CH1,
             twispi0: p.TWISPI0,
             pwm0: p.PWM0,
+            #[cfg(feature = "bsp+microbit+temp")]
             temp: TemperatureMonitor::new(Temp::new(p.TEMP, temp_irq)),
             rng: p.RNG,
         }

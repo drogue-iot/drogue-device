@@ -16,7 +16,7 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 
 rand_core = { version = "0.6.2", default-features = false }
 
-drogue-device = { path = "../../../../device", features = ["bsp+microbit", "wifi+esp8266", "defmt"], default-features = false }
+drogue-device = { path = "../../../../device", features = ["bsp+microbit+temp", "wifi+esp8266", "defmt", "time"], default-features = false }
 drogue-tls = { version = "0.5.0", default-features = false, features = ["async"], optional = true}
 #drogue-tls = {path = "../../../drogue-tls", default-features = false, optional = true}
 drogue-temperature = { path = "../../../apps/drogue-temperature", features = ["defmt"], default-features = false }
