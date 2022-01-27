@@ -60,7 +60,7 @@ mod tests {
         );
 
         cmd!("drg", "create", "app", &app).run().unwrap();
-        cmd!("drg", "create", "device", "--app", &app, device, "--spec", spec)
+        cmd!("drg", "create", "device", "--application", &app, device, "--spec", spec)
             .run()
             .unwrap();
         app
