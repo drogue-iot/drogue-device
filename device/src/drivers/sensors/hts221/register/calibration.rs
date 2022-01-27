@@ -1,6 +1,6 @@
 use crate::domain::temperature::{Celsius, Temperature};
 use crate::traits::i2c::I2cAddress;
-use embassy::traits::i2c::*;
+use embedded_hal_async::i2c::*;
 
 // 16-byte block of calibration at 0x30 with high bit for auto-increment
 const CALIBRATION_16: u8 = 0xB0;

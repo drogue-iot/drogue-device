@@ -1,6 +1,6 @@
 use core::future::Future;
-use embassy::traits::gpio::WaitForAnyEdge;
 use embedded_hal::digital::v2::InputPin;
+use embedded_hal_async::digital::Wait;
 
 pub enum Event {
     Pressed,
@@ -33,7 +33,7 @@ pub trait Button {
         Self: 'm;
 }
 
-impl<P: InputPin + WaitForAnyEdge> Button for P {
+impl<P: InputPin + Wait> Button for P {
     type WaitPressed<'m>
     where
         Self: 'm,
@@ -45,7 +45,7 @@ impl<P: InputPin + WaitForAnyEdge> Button for P {
     {
         async move {
             loop {
-                self.wait_for_any_edge().await;
+                self.wait_for_any_edge().await.unwrap();
                 if self.is_low().ok().unwrap() {
                     break;
                 }
@@ -64,7 +64,7 @@ impl<P: InputPin + WaitForAnyEdge> Button for P {
     {
         async move {
             loop {
-                self.wait_for_any_edge().await;
+                self.wait_for_any_edge().await.unwrap();
                 if self.is_low().ok().unwrap() {
                     break;
                 }
@@ -83,7 +83,7 @@ impl<P: InputPin + WaitForAnyEdge> Button for P {
     {
         async move {
             loop {
-                self.wait_for_any_edge().await;
+                self.wait_for_any_edge().await.unwrap();
                 if self.is_low().ok().unwrap() {
                     return Event::Released;
                 } else {

@@ -47,8 +47,8 @@ b-l4s5i-iot01a = ["embassy-stm32/stm32l4s5vi", "drogue-device/bsp+b_l4s5i_iot01a
 b-l475e-iot01a = ["embassy-stm32/stm32l475vg", "drogue-device/bsp+b_l475e_iot01a"]
 
 [patch.crates-io]
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "0d67ceb066f7b6d3b0163eaa3688b0499439a21c" }
-embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "0d67ceb066f7b6d3b0163eaa3688b0499439a21c" }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
+embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
 
 #embassy = { path = "../../../../../embassy/embassy" }
 #embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }

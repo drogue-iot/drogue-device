@@ -2,7 +2,7 @@ mod register;
 use crate::domain::{temperature::Celsius, SensorAcquisition};
 use crate::traits::{i2c::I2cAddress, sensors::temperature::TemperatureSensor};
 use core::future::Future;
-use embassy::traits::i2c::*;
+use embedded_hal_async::i2c::*;
 use register::calibration::*;
 use register::ctrl1::{BlockDataUpdate, Ctrl1, OutputDataRate};
 use register::ctrl2::Ctrl2;
@@ -21,7 +21,7 @@ pub enum Hts221Error<E> {
 pub struct Hts221<I>
 where
     I: I2c<SevenBitAddress> + 'static,
-    <I as I2c>::Error: Send,
+    <I as ErrorType>::Error: Send,
 {
     i2c: I,
     address: I2cAddress,
@@ -31,7 +31,7 @@ where
 impl<I> Hts221<I>
 where
     I: I2c<SevenBitAddress> + 'static,
-    <I as I2c>::Error: Send,
+    <I as ErrorType>::Error: Send,
 {
     pub fn new(i2c: I) -> Self {
         Self {
@@ -96,9 +96,9 @@ where
 impl<I> TemperatureSensor<Celsius> for Hts221<I>
 where
     I: I2c<SevenBitAddress> + 'static,
-    <I as I2c>::Error: Send,
+    <I as ErrorType>::Error: Send,
 {
-    type Error = Hts221Error<<I as I2c>::Error>;
+    type Error = Hts221Error<<I as ErrorType>::Error>;
 
     type CalibrateFuture<'m>
     where

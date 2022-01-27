@@ -21,8 +21,8 @@ use drogue_device::{
     Actor, ActorContext, Address, Inbox, Package,
 };
 use embassy::executor::Spawner;
-use embassy::traits::gpio::WaitForAnyEdge;
 use embedded_hal::digital::v2::InputPin;
+use embedded_hal_async::digital::Wait;
 use heapless::String;
 use serde::{Deserialize, Serialize};
 
@@ -195,7 +195,7 @@ pub trait TemperatureBoard {
     type Network: TcpActor;
     type TemperatureScale: TemperatureScale;
     type Sensor: TemperatureSensor<Self::TemperatureScale>;
-    type SensorReadyIndicator: WaitForAnyEdge + InputPin;
+    type SensorReadyIndicator: Wait + InputPin;
     type SendTrigger: SendTrigger;
     type Rng: rand_core::RngCore + rand_core::CryptoRng;
 }
@@ -358,11 +358,56 @@ impl SendTrigger for TimeTrigger {
     }
 }
 
+use core::convert::Infallible;
 pub struct AlwaysReady;
-impl WaitForAnyEdge for AlwaysReady {
-    type Future<'m> = impl Future<Output = ()> + 'm;
-    fn wait_for_any_edge<'m>(&'m mut self) -> Self::Future<'m> {
-        async move {}
+impl embedded_hal_1::digital::ErrorType for AlwaysReady {
+    type Error = Infallible;
+}
+
+impl Wait for AlwaysReady {
+    type WaitForHighFuture<'a>
+    where
+        Self: 'a,
+    = impl Future<Output = Result<(), Self::Error>> + 'a;
+
+    fn wait_for_high<'a>(&'a mut self) -> Self::WaitForHighFuture<'a> {
+        async move { Ok(()) }
+    }
+
+    type WaitForLowFuture<'a>
+    where
+        Self: 'a,
+    = impl Future<Output = Result<(), Self::Error>> + 'a;
+
+    fn wait_for_low<'a>(&'a mut self) -> Self::WaitForLowFuture<'a> {
+        async move { Ok(()) }
+    }
+
+    type WaitForRisingEdgeFuture<'a>
+    where
+        Self: 'a,
+    = impl Future<Output = Result<(), Self::Error>> + 'a;
+
+    fn wait_for_rising_edge<'a>(&'a mut self) -> Self::WaitForRisingEdgeFuture<'a> {
+        async move { Ok(()) }
+    }
+
+    type WaitForFallingEdgeFuture<'a>
+    where
+        Self: 'a,
+    = impl Future<Output = Result<(), Self::Error>> + 'a;
+
+    fn wait_for_falling_edge<'a>(&'a mut self) -> Self::WaitForFallingEdgeFuture<'a> {
+        async move { Ok(()) }
+    }
+
+    type WaitForAnyEdgeFuture<'a>
+    where
+        Self: 'a,
+    = impl Future<Output = Result<(), Self::Error>> + 'a;
+
+    fn wait_for_any_edge<'a>(&'a mut self) -> Self::WaitForAnyEdgeFuture<'a> {
+        async move { Ok(()) }
     }
 }
 

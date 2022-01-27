@@ -1,5 +1,5 @@
 use crate::traits::i2c::I2cAddress;
-use embassy::traits::i2c::*;
+use embedded_hal_async::i2c::*;
 
 const CTRL_REG3: u8 = 0x22;
 

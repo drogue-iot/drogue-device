@@ -10,8 +10,8 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use core::task::{Context, Poll};
 use embassy::channel::signal::Signal;
 use embassy::executor::{raw, raw::TaskStorage as Task, SpawnError, Spawner};
-use embassy::traits::gpio::WaitForAnyEdge;
 use embedded_hal::digital::v2::InputPin;
+use embedded_hal_async::digital::Wait;
 use std::cell::UnsafeCell;
 use std::marker::PhantomData;
 use std::vec::Vec;
@@ -209,16 +209,43 @@ pub struct SignalFuture<'m> {
 }
 
 impl<'m> Future for SignalFuture<'m> {
-    type Output = ();
+    type Output = Result<(), Infallible>;
     fn poll(self: core::pin::Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let result = self.signal.poll_wait(cx);
-        result
+        if let Poll::Ready(r) = result {
+            Poll::Ready(Ok(r))
+        } else {
+            Poll::Pending
+        }
     }
 }
 
-impl WaitForAnyEdge for TestPin {
-    type Future<'m> = SignalFuture<'m>;
-    fn wait_for_any_edge<'m>(&'m mut self) -> Self::Future<'m> {
+use core::convert::Infallible;
+impl embedded_hal_1::digital::ErrorType for TestPin {
+    type Error = Infallible;
+}
+
+impl Wait for TestPin {
+    type WaitForHighFuture<'m> = SignalFuture<'m>;
+    fn wait_for_high<'m>(&'m mut self) -> Self::WaitForHighFuture<'m> {
+        self.inner.wait_changed()
+    }
+
+    type WaitForLowFuture<'m> = SignalFuture<'m>;
+    fn wait_for_low<'m>(&'m mut self) -> Self::WaitForLowFuture<'m> {
+        self.inner.wait_changed()
+    }
+    type WaitForRisingEdgeFuture<'m> = SignalFuture<'m>;
+    fn wait_for_rising_edge<'m>(&'m mut self) -> Self::WaitForRisingEdgeFuture<'m> {
+        self.inner.wait_changed()
+    }
+    type WaitForFallingEdgeFuture<'m> = SignalFuture<'m>;
+    fn wait_for_falling_edge<'m>(&'m mut self) -> Self::WaitForFallingEdgeFuture<'m> {
+        self.inner.wait_changed()
+    }
+
+    type WaitForAnyEdgeFuture<'m> = SignalFuture<'m>;
+    fn wait_for_any_edge<'m>(&'m mut self) -> Self::WaitForAnyEdgeFuture<'m> {
         self.inner.wait_changed()
     }
 }

@@ -120,7 +120,7 @@ checksum = "37ff967e867ca14eba0c34ac25cd71ea98c678e741e3915d923999bb2fe7c826"
 dependencies = [
  "bare-metal 0.2.5",
  "bitfield",
- "embedded-hal",
+ "embedded-hal 0.2.6",
  "volatile-register",
 ]
 
@@ -242,7 +242,9 @@ dependencies = [
  "drogue-device-macros",
  "embassy",
  "embassy-nrf",
- "embedded-hal",
+ "embedded-hal 0.2.6",
+ "embedded-hal 1.0.0-alpha.6",
+ "embedded-hal-async",
  "futures",
  "heapless",
  "rand_core",
@@ -263,7 +265,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d76cd5ceaf5140c48ef97180beae156c0c0e07c8#d76cd5ceaf5140c48ef97180beae156c0c0e07c8"
 dependencies = [
  "atomic-polyfill",
  "cfg-if",
@@ -272,7 +274,7 @@ dependencies = [
  "defmt",
  "embassy-macros",
  "embassy-traits",
- "embedded-hal",
+ "embedded-hal 0.2.6",
  "futures",
  "heapless",
  "pin-project",
@@ -281,7 +283,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d76cd5ceaf5140c48ef97180beae156c0c0e07c8#d76cd5ceaf5140c48ef97180beae156c0c0e07c8"
 dependencies = [
  "cortex-m",
  "embassy",
@@ -292,7 +294,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d76cd5ceaf5140c48ef97180beae156c0c0e07c8#d76cd5ceaf5140c48ef97180beae156c0c0e07c8"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -303,7 +305,7 @@ dependencies = [
 [[package]]
 name = "embassy-nrf"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d76cd5ceaf5140c48ef97180beae156c0c0e07c8#d76cd5ceaf5140c48ef97180beae156c0c0e07c8"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -313,7 +315,9 @@ dependencies = [
  "embassy-hal-common",
  "embassy-macros",
  "embedded-dma",
- "embedded-hal",
+ "embedded-hal 0.2.6",
+ "embedded-hal 1.0.0-alpha.6",
+ "embedded-hal-async",
  "embedded-storage",
  "fixed",
  "futures",
@@ -326,9 +330,11 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d76cd5ceaf5140c48ef97180beae156c0c0e07c8#d76cd5ceaf5140c48ef97180beae156c0c0e07c8"
 dependencies = [
- "embedded-hal",
+ "embedded-hal 0.2.6",
+ "embedded-hal 1.0.0-alpha.6",
+ "embedded-hal-async",
  "nb 1.0.0",
 ]
 
@@ -349,6 +355,22 @@ checksum = "e36cfb62ff156596c892272f3015ef952fe1525e85261fa3a7f327bd6b384ab9"
 dependencies = [
  "nb 0.1.3",
  "void",
+]
+
+[[package]]
+name = "embedded-hal"
+version = "1.0.0-alpha.6"
+source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy#1fa64a1d2f9cc1a1ae632dbfcc4064a9f6504a3f"
+dependencies = [
+ "nb 1.0.0",
+]
+
+[[package]]
+name = "embedded-hal-async"
+version = "0.0.1"
+source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy#1fa64a1d2f9cc1a1ae632dbfcc4064a9f6504a3f"
+dependencies = [
+ "embedded-hal 1.0.0-alpha.6",
 ]
 
 [[package]]

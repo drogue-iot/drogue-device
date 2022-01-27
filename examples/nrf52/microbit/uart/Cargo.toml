@@ -20,3 +20,4 @@ cortex-m = { version = "0.7", features = ["inline-asm"] }
 
 embassy = { version = "0.1.0", default-features = false, features = ["defmt"] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
+embedded-hal-async = { version = "0.0.1", git = "https://github.com/embassy-rs/embedded-hal", branch = "embassy"}
