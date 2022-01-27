@@ -44,9 +44,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.52"
+version = "1.0.53"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84450d0b4a8bd1ba4144ce8ce718fbc5d071358b1e5384bace6536b3d1f2d5b3"
+checksum = "94a45b455c14666b85fc40a019e8ab9eb75e3a124e05494f5397122bc9eb06e0"
 
 [[package]]
 name = "arrayvec"
@@ -187,7 +187,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "regex",
- "serde 1.0.133",
+ "serde 1.0.136",
  "serde_yaml",
  "svd-parser",
  "thiserror",
@@ -204,9 +204,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "3.0.7"
+version = "3.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12e8611f9ae4e068fa3e56931fded356ff745e70987ff76924a6e0ab1c8ef2e3"
+checksum = "08799f92c961c7a1cf0cc398a9073da99e21ce388b46372c37f3191f2f3eed3e"
 dependencies = [
  "atty",
  "bitflags",
@@ -221,9 +221,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "3.0.6"
+version = "3.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "517358c28fcef6607bf6f76108e02afad7e82297d132a6b846dcc1fc3efcd153"
+checksum = "0fd2078197a22f338bd4fbf7d6387eb6f0d6a3c69e6cbc09f5c93e97321fd92a"
 dependencies = [
  "heck",
  "proc-macro-error",
@@ -251,7 +251,7 @@ dependencies = [
  "lazy_static",
  "nom",
  "rust-ini",
- "serde 1.0.133",
+ "serde 1.0.136",
  "serde-hjson",
  "serde_json",
  "toml",
@@ -266,7 +266,7 @@ checksum = "37ff967e867ca14eba0c34ac25cd71ea98c678e741e3915d923999bb2fe7c826"
 dependencies = [
  "bare-metal 0.2.5",
  "bitfield",
- "embedded-hal",
+ "embedded-hal 0.2.6",
  "volatile-register",
 ]
 
@@ -452,9 +452,11 @@ dependencies = [
  "embassy",
  "embassy-lora",
  "embassy-stm32",
- "embedded-hal",
+ "embedded-hal 0.2.6",
+ "embedded-hal 1.0.0-alpha.6",
+ "embedded-hal-async",
  "futures",
- "heapless 0.7.9",
+ "heapless 0.7.10",
  "lorawan-device",
  "lorawan-encoding",
  "rand_core",
@@ -481,7 +483,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d76cd5ceaf5140c48ef97180beae156c0c0e07c8#d76cd5ceaf5140c48ef97180beae156c0c0e07c8"
 dependencies = [
  "atomic-polyfill",
  "cfg-if",
@@ -489,16 +491,16 @@ dependencies = [
  "critical-section",
  "embassy-macros",
  "embassy-traits",
- "embedded-hal",
+ "embedded-hal 0.2.6",
  "futures",
- "heapless 0.7.9",
+ "heapless 0.7.10",
  "pin-project",
 ]
 
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d76cd5ceaf5140c48ef97180beae156c0c0e07c8#d76cd5ceaf5140c48ef97180beae156c0c0e07c8"
 dependencies = [
  "cortex-m",
  "embassy",
@@ -509,12 +511,13 @@ dependencies = [
 [[package]]
 name = "embassy-lora"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d76cd5ceaf5140c48ef97180beae156c0c0e07c8#d76cd5ceaf5140c48ef97180beae156c0c0e07c8"
 dependencies = [
  "bit_field",
  "embassy",
  "embassy-hal-common",
- "embedded-hal",
+ "embedded-hal 0.2.6",
+ "embedded-hal-async",
  "futures",
  "lorawan-device",
  "lorawan-encoding",
@@ -523,7 +526,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d76cd5ceaf5140c48ef97180beae156c0c0e07c8#d76cd5ceaf5140c48ef97180beae156c0c0e07c8"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -534,7 +537,7 @@ dependencies = [
 [[package]]
 name = "embassy-stm32"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d76cd5ceaf5140c48ef97180beae156c0c0e07c8#d76cd5ceaf5140c48ef97180beae156c0c0e07c8"
 dependencies = [
  "atomic-polyfill",
  "bare-metal 1.0.0",
@@ -546,8 +549,9 @@ dependencies = [
  "embassy",
  "embassy-hal-common",
  "embassy-macros",
- "embassy-traits",
- "embedded-hal",
+ "embedded-hal 0.2.6",
+ "embedded-hal 1.0.0-alpha.6",
+ "embedded-hal-async",
  "futures",
  "nb 1.0.0",
  "rand_core",
@@ -559,9 +563,11 @@ dependencies = [
 [[package]]
 name = "embassy-traits"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d76cd5ceaf5140c48ef97180beae156c0c0e07c8#d76cd5ceaf5140c48ef97180beae156c0c0e07c8"
 dependencies = [
- "embedded-hal",
+ "embedded-hal 0.2.6",
+ "embedded-hal 1.0.0-alpha.6",
+ "embedded-hal-async",
  "nb 1.0.0",
 ]
 
@@ -573,6 +579,22 @@ checksum = "e36cfb62ff156596c892272f3015ef952fe1525e85261fa3a7f327bd6b384ab9"
 dependencies = [
  "nb 0.1.3",
  "void",
+]
+
+[[package]]
+name = "embedded-hal"
+version = "1.0.0-alpha.6"
+source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy#1fa64a1d2f9cc1a1ae632dbfcc4064a9f6504a3f"
+dependencies = [
+ "nb 1.0.0",
+]
+
+[[package]]
+name = "embedded-hal-async"
+version = "0.0.1"
+source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy#1fa64a1d2f9cc1a1ae632dbfcc4064a9f6504a3f"
+dependencies = [
+ "embedded-hal 1.0.0-alpha.6",
 ]
 
 [[package]]
@@ -733,9 +755,9 @@ dependencies = [
 
 [[package]]
 name = "heapless"
-version = "0.7.9"
+version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e476c64197665c3725621f0ac3f9e5209aa5e889e02a08b1daf5f16dc5fd952"
+checksum = "d076121838e03f862871315477528debffdb7462fb229216ecef91b1a3eb31eb"
 dependencies = [
  "atomic-polyfill",
  "defmt",
@@ -814,9 +836,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.112"
+version = "0.2.114"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b03d17f364a3a042d5e5d46b053bbbf82c92c9430c592dd4c064dc6ee997125"
+checksum = "b0005d08a8f7b65fb8073cb697aa0b12b631ed251ce73d862ce50eeb52ce3b50"
 
 [[package]]
 name = "linked-hash-map"
@@ -854,7 +876,7 @@ dependencies = [
  "embassy",
  "embassy-lora",
  "embassy-stm32",
- "embedded-hal",
+ "embedded-hal 0.2.6",
  "heapless 0.6.1",
  "lorawan-app",
  "panic-probe",
@@ -869,7 +891,7 @@ dependencies = [
  "defmt",
  "drogue-device",
  "embassy",
- "heapless 0.7.9",
+ "heapless 0.7.10",
 ]
 
 [[package]]
@@ -880,7 +902,7 @@ dependencies = [
  "as-slice 0.2.1",
  "futures",
  "generic-array 0.14.5",
- "heapless 0.7.9",
+ "heapless 0.7.10",
  "lorawan-encoding",
  "rand_core",
 ]
@@ -1062,9 +1084,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.14"
+version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47aa80447ce4daf1717500037052af176af5d38cc3e571d9ec1c7353fc10c87d"
+checksum = "864d3e96a899863136fc6e99f3d7cae289dafe43bf2c5ac19b70df7210c0a145"
 dependencies = [
  "proc-macro2",
 ]
@@ -1215,9 +1237,9 @@ checksum = "9dad3f759919b92c3068c696c15c3d17238234498bbdcc80f2c469606f948ac8"
 
 [[package]]
 name = "serde"
-version = "1.0.133"
+version = "1.0.136"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97565067517b60e2d1ea8b268e59ce036de907ac523ad83a0475da04e818989a"
+checksum = "ce31e24b01e1e524df96f1c2fdd054405f8d7376249a5110886fb4b658484789"
 dependencies = [
  "serde_derive",
 ]
@@ -1236,9 +1258,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.133"
+version = "1.0.136"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed201699328568d8d08208fdd080e3ff594e6c422e438b6705905da01005d537"
+checksum = "08597e7152fcd306f41838ed3e37be9eaeed2b61c42e2117266a554fab4662f9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1247,13 +1269,13 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.75"
+version = "1.0.78"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c059c05b48c5c0067d4b4b2b4f0732dd65feb52daf7e0ea09cd87e7dadc1af79"
+checksum = "d23c1ba4cf0efd44be32017709280b32d1cea5c3f1275c3b6d9e8bc54f758085"
 dependencies = [
  "itoa",
  "ryu",
- "serde 1.0.133",
+ "serde 1.0.136",
 ]
 
 [[package]]
@@ -1264,7 +1286,7 @@ checksum = "a4a521f2940385c165a24ee286aa8599633d162077a54bdcae2a6fd5a7bfa7a0"
 dependencies = [
  "indexmap",
  "ryu",
- "serde 1.0.133",
+ "serde 1.0.136",
  "yaml-rust",
 ]
 
@@ -1292,7 +1314,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "stm32-metapac"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d76cd5ceaf5140c48ef97180beae156c0c0e07c8#d76cd5ceaf5140c48ef97180beae156c0c0e07c8"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
@@ -1303,12 +1325,12 @@ dependencies = [
 [[package]]
 name = "stm32-metapac-gen"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=0d67ceb066f7b6d3b0163eaa3688b0499439a21c#0d67ceb066f7b6d3b0163eaa3688b0499439a21c"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=d76cd5ceaf5140c48ef97180beae156c0c0e07c8#d76cd5ceaf5140c48ef97180beae156c0c0e07c8"
 dependencies = [
  "chiptool",
  "proc-macro2",
  "regex",
- "serde 1.0.133",
+ "serde 1.0.136",
  "serde_yaml",
 ]
 
@@ -1340,9 +1362,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.85"
+version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a684ac3dcd8913827e18cd09a68384ee66c1de24157e3c556c9ab16d85695fb7"
+checksum = "8a65b3f4ffa0092e9887669db0eae07941f023991ab58ea44da8fe8e2d511c6b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1390,7 +1412,7 @@ version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a31142970826733df8241ef35dc040ef98c679ab14d7c3e54d827099b3acecaa"
 dependencies = [
- "serde 1.0.133",
+ "serde 1.0.136",
 ]
 
 [[package]]

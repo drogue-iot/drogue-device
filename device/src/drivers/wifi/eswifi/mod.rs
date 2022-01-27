@@ -2,8 +2,8 @@ mod parser;
 
 use crate::drivers::common::socket_pool::SocketPool;
 
-use embedded_hal::digital::v2::InputPin;
 use embedded_hal::digital::v2::OutputPin;
+use embedded_hal_1::digital::blocking::InputPin;
 
 use crate::actors::wifi::Adapter;
 use crate::traits::{
@@ -15,7 +15,7 @@ use crate::traits::{
 use core::fmt::Write as FmtWrite;
 use core::future::Future;
 use embassy::time::{block_for, Duration, Timer};
-use embassy::traits::gpio::WaitForAnyEdge;
+use embedded_hal_async::digital::Wait;
 //use embassy::traits::spi::*;
 use embedded_hal::blocking::spi::*;
 use heapless::String;
@@ -73,7 +73,7 @@ where
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
-    READY: InputPin + WaitForAnyEdge + 'static,
+    READY: InputPin + Wait + 'static,
     E: 'static,
 {
     spi: SPI,
@@ -90,7 +90,7 @@ where
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
-    READY: InputPin + WaitForAnyEdge + 'static,
+    READY: InputPin + Wait + 'static,
     E: 'static,
 {
     pub fn new(spi: SPI, cs: CS, reset: RESET, wakeup: WAKEUP, ready: READY) -> Self {
@@ -129,7 +129,7 @@ where
         &mut self,
     ) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
         while self.ready.is_high().map_err(READY)? {
-            self.ready.wait_for_any_edge().await;
+            self.ready.wait_for_any_edge().await.unwrap();
         }
         Ok(())
     }
@@ -339,7 +339,7 @@ where
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
-    READY: InputPin + WaitForAnyEdge + 'static,
+    READY: InputPin + Wait + 'static,
     E: 'static,
 {
     type JoinFuture<'m>
@@ -363,7 +363,7 @@ where
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
-    READY: InputPin + WaitForAnyEdge + 'static,
+    READY: InputPin + Wait + 'static,
     E: 'static,
 {
     type SocketHandle = u8;
@@ -681,7 +681,8 @@ where
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
-    READY: InputPin + WaitForAnyEdge + 'static,
+    READY: InputPin + Wait + 'static,
+    READY: InputPin + Wait + 'static,
     E: 'static,
 {
 }

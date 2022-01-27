@@ -2,12 +2,12 @@ use crate::domain::{temperature::TemperatureScale, SensorAcquisition};
 use crate::traits::sensors::temperature::TemperatureSensor;
 use crate::{Actor, Address, Inbox};
 use core::future::Future;
-use embassy::traits::gpio::WaitForAnyEdge;
 use embedded_hal::digital::v2::InputPin;
+use embedded_hal_async::digital::Wait;
 
 pub struct Temperature<P, T, C>
 where
-    P: WaitForAnyEdge + InputPin + 'static,
+    P: Wait + InputPin + 'static,
     T: TemperatureSensor<C> + 'static,
     C: TemperatureScale + 'static,
 {
@@ -18,7 +18,7 @@ where
 
 impl<P, T, C> Temperature<P, T, C>
 where
-    P: WaitForAnyEdge + InputPin + 'static,
+    P: Wait + InputPin + 'static,
     T: TemperatureSensor<C> + 'static,
     C: TemperatureScale + 'static,
 {
@@ -32,7 +32,7 @@ where
 
     async fn wait_ready(&mut self) {
         while !self.ready.is_high().ok().unwrap() {
-            self.ready.wait_for_any_edge().await;
+            self.ready.wait_for_any_edge().await.unwrap();
         }
     }
 }
@@ -44,7 +44,7 @@ pub enum Command {
 
 impl<P, T, C> Actor for Temperature<P, T, C>
 where
-    P: WaitForAnyEdge + InputPin + 'static,
+    P: Wait + InputPin + 'static,
     T: TemperatureSensor<C> + 'static,
     C: TemperatureScale + 'static,
 {
@@ -83,7 +83,7 @@ where
 
 impl<P, T, C> TemperatureSensor<C> for Address<Temperature<P, T, C>>
 where
-    P: WaitForAnyEdge + InputPin + 'static,
+    P: Wait + InputPin + 'static,
     T: TemperatureSensor<C> + 'static,
     C: TemperatureScale + 'static,
 {

@@ -1,7 +1,7 @@
 use crate::statistics::*;
 use core::future::Future;
 use drogue_device::{traits::led::TextDisplay, Actor, Address, Inbox};
-use embassy::traits::uart::{Read, Write};
+use embedded_hal_async::serial::{Read, Write};
 
 use crate::AppMatrix;
 

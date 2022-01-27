@@ -1,5 +1,5 @@
 use crate::traits::i2c::I2cAddress;
-use embassy::traits::i2c::*;
+use embedded_hal_async::i2c::*;
 
 // auto-increment variant of 2 bytes
 const T_OUT: u8 = 0xAA;

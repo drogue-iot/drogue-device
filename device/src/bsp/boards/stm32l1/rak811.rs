@@ -10,7 +10,6 @@ use embassy_stm32::peripherals::{
 };
 use embassy_stm32::spi;
 use embassy_stm32::time::U32Ext;
-use embedded_hal::digital::v2::OutputPin;
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
 
@@ -137,14 +136,14 @@ pub struct RAKSwitch {
 
 impl RadioSwitch for RAKSwitch {
     fn set_rx(&mut self) {
-        self.crf1_pa.set_low().unwrap();
-        self.crf2_hf.set_low().unwrap();
-        self.crf3_rx.set_high().unwrap();
+        self.crf1_pa.set_low();
+        self.crf2_hf.set_low();
+        self.crf3_rx.set_high();
     }
 
     fn set_tx(&mut self) {
-        self.crf1_pa.set_high().unwrap();
-        self.crf2_hf.set_low().unwrap();
-        self.crf3_rx.set_low().unwrap();
+        self.crf1_pa.set_high();
+        self.crf2_hf.set_low();
+        self.crf3_rx.set_low();
     }
 }

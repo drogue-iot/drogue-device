@@ -1,8 +1,8 @@
 use crate::traits::button::Event;
 use core::future::Future;
 use core::marker::PhantomData;
-use embassy::traits::gpio::WaitForAnyEdge;
 use embedded_hal::digital::v2::InputPin;
+use embedded_hal_async::digital::Wait;
 
 pub use crate::drivers::ActiveHigh;
 pub use crate::drivers::ActiveLow;
@@ -34,7 +34,7 @@ impl Active for ActiveLow {
 
 pub struct Button<P, ACTIVE = ActiveHigh>
 where
-    P: WaitForAnyEdge + InputPin + 'static,
+    P: Wait + InputPin + 'static,
     ACTIVE: Active,
 {
     pin: P,
@@ -43,7 +43,7 @@ where
 
 impl<P, ACTIVE> Button<P, ACTIVE>
 where
-    P: WaitForAnyEdge + InputPin + 'static,
+    P: Wait + InputPin + 'static,
     ACTIVE: Active,
 {
     pub fn new(pin: P) -> Self {
@@ -56,7 +56,7 @@ where
 
 impl<P, ACTIVE> crate::traits::button::Button for Button<P, ACTIVE>
 where
-    P: WaitForAnyEdge + InputPin + 'static,
+    P: Wait + InputPin + 'static,
     ACTIVE: Active,
 {
     type WaitPressed<'m>
@@ -70,7 +70,7 @@ where
     {
         async move {
             loop {
-                self.pin.wait_for_any_edge().await;
+                self.pin.wait_for_any_edge().await.unwrap();
                 if ACTIVE::is_pressed(&self.pin).unwrap_or(false) {
                     break;
                 };
@@ -89,7 +89,7 @@ where
     {
         async move {
             loop {
-                self.pin.wait_for_any_edge().await;
+                self.pin.wait_for_any_edge().await.unwrap();
                 if ACTIVE::is_released(&self.pin).unwrap_or(false) {
                     break;
                 };
@@ -108,7 +108,7 @@ where
     {
         async move {
             loop {
-                self.pin.wait_for_any_edge().await;
+                self.pin.wait_for_any_edge().await.unwrap();
                 if ACTIVE::is_pressed(&self.pin).unwrap_or(false) {
                     return Event::Pressed;
                 }

@@ -20,6 +20,8 @@ serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde-json-core = { version = "0.4", default-features = false, features = ["heapless"] }
 drogue-tls = { version = "0.5.0", default-features = false, features = ["async"], optional = true}
 rand_core = { version = "0.6.2", default-features = false }
+embedded-hal-async = { version = "0.0.1", git = "https://github.com/embassy-rs/embedded-hal", branch = "embassy"}
+embedded-hal-1 = { package = "embedded-hal", version = "1.0.0-alpha.6", git = "https://github.com/embassy-rs/embedded-hal", branch = "embassy"}
 
 [features]
 default = ["std"]

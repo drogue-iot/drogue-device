@@ -43,13 +43,13 @@ where
     }
 }
 
-//pub struct Button<P: WaitForAnyEdge + InputPin, H: ButtonEventHandler> {
+//pub struct Button<P: Wait + InputPin, H: ButtonEventHandler> {
 pub struct Button<P: traits::button::Button, H: ButtonEventHandler> {
     inner: P,
     handler: H,
 }
 
-//impl<P: WaitForAnyEdge + InputPin, H: ButtonEventHandler> Button<P, H> {
+//impl<P: Wait + InputPin, H: ButtonEventHandler> Button<P, H> {
 impl<P: traits::button::Button, H: ButtonEventHandler> Button<P, H> {
     pub fn new(inner: P, handler: H) -> Self {
         Self { inner, handler }

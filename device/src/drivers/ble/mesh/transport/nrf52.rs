@@ -6,7 +6,6 @@ use core::future::Future;
 use core::mem;
 use core::num::NonZeroU32;
 use core::ptr::slice_from_raw_parts;
-use embassy::traits::flash::Flash;
 use heapless::Vec;
 use nrf_softdevice::ble::central::ScanConfig;
 use nrf_softdevice::ble::{central, peripheral};
