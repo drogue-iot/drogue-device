@@ -60,9 +60,18 @@ mod tests {
         );
 
         cmd!("drg", "create", "app", &app).run().unwrap();
-        cmd!("drg", "create", "device", "--application", &app, device, "--spec", spec)
-            .run()
-            .unwrap();
+        cmd!(
+            "drg",
+            "create",
+            "device",
+            "--application",
+            &app,
+            device,
+            "--spec",
+            spec
+        )
+        .run()
+        .unwrap();
         app
     }
 
@@ -72,7 +81,7 @@ mod tests {
 
     fn receive_message(app: &str) -> Option<Value> {
         let mut result: Option<Value> = None;
-        let output = cmd!("drg", "stream", &app, "-n", "1")
+        let output = cmd!("drg", "stream", "-a", &app, "-n", "1")
             .stdout_capture()
             .stderr_to_stdout()
             .read();
