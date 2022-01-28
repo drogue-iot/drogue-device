@@ -6,7 +6,6 @@ use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::transport::{Handler, Transport};
-use crate::drivers::ble::mesh::vault::Vault;
 use crate::{Actor, Address, Inbox};
 use core::cell::RefCell;
 use core::future::Future;
@@ -181,7 +180,7 @@ where
             pin_mut!(node_fut);
             pin_mut!(handler_fut);
 
-            join!(node_fut, handler_fut);
+            let _ = join!(node_fut, handler_fut);
 
             defmt::info!("shutting down");
         }

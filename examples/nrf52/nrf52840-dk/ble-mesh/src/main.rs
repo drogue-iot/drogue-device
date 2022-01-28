@@ -8,25 +8,25 @@
 use defmt_rtt as _;
 use drogue_device::actors::ble::mesh::transport::nrf52::Nrf52BleMeshTransportActor;
 use drogue_device::actors::ble::mesh::MeshNode;
-use drogue_device::drivers::ble::mesh::device::Uuid;
 use drogue_device::drivers::ble::mesh::provisioning::{
     Algorithms, Capabilities, InputOOBActions, OOBSize, OutputOOBActions, PublicKeyType,
     StaticOOBType,
 };
-use drogue_device::drivers::ble::mesh::transport::nrf52::{Nrf52BleMeshTransport, SoftdeviceRng, SoftdeviceStorage};
-use drogue_device::drivers::ble::mesh::transport::Transport;
-use drogue_device::drivers::ble::mesh::configuration_manager::ConfigurationManager;
-use drogue_device::{actors, drivers, ActorContext, DeviceContext, Package};
+use drogue_device::drivers::ble::mesh::transport::nrf52::{
+    Nrf52BleMeshTransport, SoftdeviceRng, SoftdeviceStorage,
+};
+use drogue_device::{actors, drivers, ActorContext, DeviceContext};
 use embassy::executor::Spawner;
 use embassy_nrf::config::Config;
+use embassy_nrf::interrupt::Priority;
 use embassy_nrf::{
     gpio::{AnyPin, Output},
     Peripherals,
 };
-use embassy_nrf::interrupt::Priority;
 use panic_probe as _;
 
 pub struct MyDevice {
+    #[allow(dead_code)]
     led: ActorContext<actors::led::Led<drivers::led::Led<Output<'static, AnyPin>>>>,
     ble_transport: ActorContext<Nrf52BleMeshTransportActor>,
     mesh: ActorContext<MeshNode<Nrf52BleMeshTransport, SoftdeviceStorage, SoftdeviceRng>>,
@@ -47,10 +47,10 @@ extern "C" {
 }
 
 #[embassy::main(config = "config()")]
-async fn main(spawner: Spawner, p: Peripherals) {
+async fn main(spawner: Spawner, _p: Peripherals) {
     let transport = Nrf52BleMeshTransport::new("Drogue IoT BLE Mesh");
-    let mut rng = transport.rng();
-    let storage = transport.storage( unsafe { &__storage as * const u8 as usize} );
+    let rng = transport.rng();
+    let storage = transport.storage(unsafe { &__storage as *const u8 as usize });
 
     let capabilities = Capabilities {
         number_of_elements: 1,

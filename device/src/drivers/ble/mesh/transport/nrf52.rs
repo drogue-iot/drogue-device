@@ -1,11 +1,11 @@
-use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::storage::{Payload, Storage};
 use crate::drivers::ble::mesh::transport::{Handler, Transport};
-use crate::drivers::ble::mesh::{MESH_BEACON, MESH_MESSAGE, PB_ADV};
+use crate::drivers::ble::mesh::{MESH_MESSAGE, PB_ADV};
 use core::future::Future;
 use core::mem;
 use core::num::NonZeroU32;
 use core::ptr::slice_from_raw_parts;
+use embassy::traits::flash::Flash;
 use heapless::Vec;
 use nrf_softdevice::ble::central::ScanConfig;
 use nrf_softdevice::ble::{central, peripheral};

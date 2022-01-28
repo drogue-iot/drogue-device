@@ -5,15 +5,12 @@ use crate::drivers::ble::mesh::crypto;
 use aes::Aes128;
 use cmac::crypto_mac::Output;
 use cmac::Cmac;
-use p256::ecdh::SharedSecret;
 use p256::elliptic_curve::ecdh::diffie_hellman;
-use p256::{PublicKey, SecretKey};
-use rand_core::{CryptoRng, RngCore};
+use p256::PublicKey;
 
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::ProvisioningData;
-use crate::drivers::ble::mesh::storage::Storage;
 
 pub trait Vault {
     fn uuid(&self) -> Uuid;
@@ -100,7 +97,7 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
             let mut keys = self.storage.retrieve();
             let secret_key = keys.private_key()?.ok_or(DeviceError::KeyInitialization)?;
             let shared_secret = diffie_hellman(secret_key.to_nonzero_scalar(), pk.as_affine());
-            keys.set_shared_secret(Some(shared_secret));
+            let _ = keys.set_shared_secret(Some(shared_secret));
             self.storage.store(keys).await
         }
     }
@@ -147,7 +144,7 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
                 privacy_key,
             };
             let mut keys = self.storage.retrieve();
-            keys.set_network(&update);
+            let _ = keys.set_network(&update);
             self.storage.store(keys).await
         }
     }
