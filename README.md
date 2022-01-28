@@ -1,6 +1,7 @@
 # Drogue Device
 
-[![CI](https://github.com/drogue-iot/drogue-device/actions/workflows/ci.yaml/badge.svg)](https://github.com/drogue-iot/drogue-device/actions/workflows/ci.yaml)
+[![CI Build](https://github.com/drogue-iot/drogue-device/actions/workflows/build.yaml/badge.svg)](https://github.com/drogue-iot/drogue-device/actions/workflows/build.yaml)
+[![CI Test](https://github.com/drogue-iot/drogue-device/actions/workflows/test.yaml/badge.svg)](https://github.com/drogue-iot/drogue-device/actions/workflows/test.yaml)
 [![crates.io](https://img.shields.io/crates/v/drogue-device.svg)](https://crates.io/crates/drogue-device)
 [![docs.rs](https://docs.rs/drogue-device/badge.svg)](https://docs.rs/drogue-device)
 [![Matrix](https://img.shields.io/matrix/drogue-iot:matrix.org)](https://matrix.to/#/#drogue-iot:matrix.org)
