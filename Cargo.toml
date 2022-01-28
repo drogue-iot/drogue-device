@@ -14,6 +14,7 @@ embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76c
 embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
 embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
 embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
+embassy-traits = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
 
 # embassy = { path = "../../../../../embassy/embassy" }
 # embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
