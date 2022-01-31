@@ -1,4 +1,4 @@
-use crate::drivers::ble::mesh::provisioning::ParseError;
+use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use cmac::crypto_mac::InvalidKeyLength;
 use defmt::Format;
@@ -24,6 +24,9 @@ pub enum DeviceError {
     ParseError(ParseError),
     TransmitError,
     Serialization,
+    InvalidSrcAddress,
+    InvalidState,
+    NotProvisioned,
 }
 
 impl From<InvalidKeyLength> for DeviceError {

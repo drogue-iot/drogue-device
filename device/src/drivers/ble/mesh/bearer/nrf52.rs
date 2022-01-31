@@ -1,5 +1,5 @@
+use crate::drivers::ble::mesh::bearer::{Bearer, Handler};
 use crate::drivers::ble::mesh::storage::{Payload, Storage};
-use crate::drivers::ble::mesh::transport::{Handler, Transport};
 use crate::drivers::ble::mesh::{MESH_MESSAGE, PB_ADV};
 use core::future::Future;
 use core::mem;
@@ -12,11 +12,11 @@ use nrf_softdevice::ble::{central, peripheral};
 use nrf_softdevice::{random_bytes, raw, Softdevice};
 use rand_core::{CryptoRng, Error, RngCore};
 
-pub struct Nrf52BleMeshTransport {
+pub struct Nrf52BleMeshFacilities {
     pub(crate) sd: &'static Softdevice,
 }
 
-impl Nrf52BleMeshTransport {
+impl Nrf52BleMeshFacilities {
     pub fn new(device_name: &'static str) -> Self {
         Self {
             sd: Self::new_sd(device_name),
@@ -56,6 +56,10 @@ impl Nrf52BleMeshTransport {
         };
         let sd = Softdevice::enable(&config);
         sd
+    }
+
+    pub fn bearer(&self) -> SoftdeviceAdvertisingBearer {
+        SoftdeviceAdvertisingBearer { sd: self.sd }
     }
 
     pub fn rng(&self) -> SoftdeviceRng {
@@ -144,7 +148,11 @@ impl Storage for SoftdeviceStorage {
     }
 }
 
-impl Transport for Nrf52BleMeshTransport {
+pub struct SoftdeviceAdvertisingBearer {
+    sd: &'static Softdevice,
+}
+
+impl Bearer for SoftdeviceAdvertisingBearer {
     type TransmitFuture<'m> = impl Future<Output = ()> + 'm;
 
     fn transmit<'m>(&'m self, message: &'m [u8]) -> Self::TransmitFuture<'m> {

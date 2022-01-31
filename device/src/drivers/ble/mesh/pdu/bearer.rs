@@ -7,7 +7,7 @@ pub mod advertising {
     use heapless::Vec;
 
     #[derive(Format)]
-    pub struct PDU {
+    pub struct AdvertisingPDU {
         pub link_id: u32,
         pub transaction_number: u8,
         pub pdu: GenericProvisioningPDU,
@@ -19,8 +19,8 @@ pub mod advertising {
         Generic(GenericProvisioningError),
     }
 
-    impl PDU {
-        pub fn parse(data: &[u8]) -> Result<PDU, PBAdvError> {
+    impl AdvertisingPDU {
+        pub fn parse(data: &[u8]) -> Result<AdvertisingPDU, PBAdvError> {
             if data.len() >= 8 {
                 if data[1] != PB_ADV {
                     Err(PBAdvError::InvalidSize)
@@ -30,7 +30,7 @@ pub mod advertising {
 
                     let pdu = GenericProvisioningPDU::parse(&data[7..])
                         .map_err(|e| PBAdvError::Generic(e))?;
-                    Ok(PDU {
+                    Ok(AdvertisingPDU {
                         link_id,
                         transaction_number,
                         pdu,

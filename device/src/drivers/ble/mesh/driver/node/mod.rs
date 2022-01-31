@@ -148,6 +148,11 @@ where
     }
 
     async fn loop_provisioned(&mut self) -> Result<Option<State>, DeviceError> {
+        let msg = self.receiver.receive_bytes().await?;
+        self.pipeline
+            .borrow_mut()
+            .process_inbound(self, &*msg)
+            .await?;
         Ok(None)
     }
 

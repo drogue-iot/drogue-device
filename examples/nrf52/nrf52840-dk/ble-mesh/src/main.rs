@@ -6,14 +6,13 @@
 
 #[cfg(feature = "defmt-rtt")]
 use defmt_rtt as _;
-use drogue_device::actors::ble::mesh::transport::nrf52::Nrf52BleMeshTransportActor;
 use drogue_device::actors::ble::mesh::MeshNode;
+use drogue_device::drivers::ble::mesh::bearer::nrf52::{
+    Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceRng, SoftdeviceStorage,
+};
 use drogue_device::drivers::ble::mesh::provisioning::{
     Algorithms, Capabilities, InputOOBActions, OOBSize, OutputOOBActions, PublicKeyType,
     StaticOOBType,
-};
-use drogue_device::drivers::ble::mesh::transport::nrf52::{
-    Nrf52BleMeshTransport, SoftdeviceRng, SoftdeviceStorage,
 };
 use drogue_device::{actors, drivers, ActorContext, DeviceContext};
 use embassy::executor::Spawner;
@@ -28,8 +27,8 @@ use panic_probe as _;
 pub struct MyDevice {
     #[allow(dead_code)]
     led: ActorContext<actors::led::Led<drivers::led::Led<Output<'static, AnyPin>>>>,
-    ble_transport: ActorContext<Nrf52BleMeshTransportActor>,
-    mesh: ActorContext<MeshNode<Nrf52BleMeshTransport, SoftdeviceStorage, SoftdeviceRng>>,
+    facilities: ActorContext<Nrf52BleMeshFacilities>,
+    mesh: ActorContext<MeshNode<SoftdeviceAdvertisingBearer, SoftdeviceStorage, SoftdeviceRng>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -48,9 +47,10 @@ extern "C" {
 
 #[embassy::main(config = "config()")]
 async fn main(spawner: Spawner, _p: Peripherals) {
-    let transport = Nrf52BleMeshTransport::new("Drogue IoT BLE Mesh");
-    let rng = transport.rng();
-    let storage = transport.storage(unsafe { &__storage as *const u8 as usize });
+    let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BLE Mesh");
+    let bearer = facilities.bearer();
+    let rng = facilities.rng();
+    let storage = facilities.storage(unsafe { &__storage as *const u8 as usize });
 
     let capabilities = Capabilities {
         number_of_elements: 1,
@@ -65,11 +65,11 @@ async fn main(spawner: Spawner, _p: Peripherals) {
 
     let device = DEVICE.configure(MyDevice {
         led: ActorContext::new(),
-        ble_transport: ActorContext::new(),
+        facilities: ActorContext::new(),
         mesh: ActorContext::new(),
     });
-    device.ble_transport.mount(spawner, transport.actor());
-    let mesh_node = MeshNode::new(capabilities, transport, storage, rng);
-    //let mesh_node = MeshNode::new(capabilities, transport, storage, rng).force_reset();;
+    device.facilities.mount(spawner, facilities);
+    let mesh_node = MeshNode::new(capabilities, bearer, storage, rng);
+    //let mesh_node = MeshNode::new(capabilities, bearer, storage, rng).force_reset();;
     device.mesh.mount(spawner, mesh_node);
 }

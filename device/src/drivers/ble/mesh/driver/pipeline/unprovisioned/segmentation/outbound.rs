@@ -1,4 +1,4 @@
-use crate::drivers::ble::mesh::driver::pipeline::segmentation::fcs;
+use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::segmentation::fcs;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::generic_provisioning::{
     GenericProvisioningPDU, TransactionContinuation, TransactionStart,

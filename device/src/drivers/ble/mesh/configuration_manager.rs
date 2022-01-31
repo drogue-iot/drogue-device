@@ -1,11 +1,12 @@
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::provisioning::{IVUpdateFlag, KeyRefreshFlag};
+use crate::drivers::ble::mesh::provisioning::IVUpdateFlag;
 use crate::drivers::ble::mesh::storage::{Payload, Storage};
 use core::cell::RefCell;
 use core::convert::TryInto;
 use defmt::Format;
 use futures::future::Future;
+use heapless::Vec;
 use p256::ecdh::SharedSecret;
 use p256::elliptic_curve::generic_array::{typenum::consts::U32, GenericArray};
 use p256::{PublicKey, SecretKey};
@@ -13,7 +14,7 @@ use postcard::{from_bytes, to_slice};
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Copy, Clone, Default, Format)]
+#[derive(Serialize, Deserialize, Clone, Default, Format)]
 pub struct Configuration {
     uuid: Option<[u8; 16]>,
     keys: Keys,
@@ -42,27 +43,42 @@ impl Configuration {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Default, Format)]
+#[derive(Serialize, Deserialize, Clone, Default, Format)]
 pub struct Keys {
     random: Option<[u8; 16]>,
     private_key: Option<[u8; 32]>,
     shared_secret: Option<[u8; 32]>,
-    network: Option<Network>,
+    provisioning_salt: Option<[u8; 16]>,
+    network: Option<NetworkInfo>,
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Default, Format)]
-pub struct Network {
+#[derive(Serialize, Deserialize, Clone, Default, Format)]
+pub struct NetworkInfo {
+    /*
     pub(crate) network_key: [u8; 16],
     pub(crate) key_index: u16,
     pub(crate) key_refresh_flag: KeyRefreshFlag,
+     */
+    pub(crate) network_keys: Vec<NetworkKey, 10>,
     pub(crate) iv_update_flag: IVUpdateFlag,
     pub(crate) iv_index: u32,
     pub(crate) unicast_address: u16,
     // derived attributes
+    //pub(crate) nid: u8,
+    //pub(crate) encryption_key: [u8; 16],
+    //pub(crate) privacy_key: [u8; 16],
+}
+
+#[derive(Serialize, Deserialize, Copy, Clone, Default, Format)]
+pub struct NetworkKey {
+    pub(crate) network_key: [u8; 16],
+    pub(crate) key_index: u16,
     pub(crate) nid: u8,
     pub(crate) encryption_key: [u8; 16],
     pub(crate) privacy_key: [u8; 16],
 }
+
+impl NetworkInfo {}
 
 impl Keys {
     pub(crate) fn private_key(&self) -> Result<Option<SecretKey>, DeviceError> {
@@ -126,13 +142,24 @@ impl Keys {
         Ok(())
     }
 
-    pub(crate) fn network(&self) -> Option<Network> {
-        self.network
+    pub(crate) fn network(&self) -> &Option<NetworkInfo> {
+        &self.network
     }
 
-    pub(crate) fn set_network(&mut self, network: &Network) -> Result<(), ()> {
-        self.network.replace(*network);
+    pub(crate) fn set_network(&mut self, network: &NetworkInfo) {
+        self.network.replace(network.clone());
+    }
+
+    pub(crate) fn set_provisioning_salt(
+        &mut self,
+        provisioning_salt: [u8; 16],
+    ) -> Result<(), DeviceError> {
+        self.provisioning_salt.replace(provisioning_salt);
         Ok(())
+    }
+
+    pub(crate) fn provisioning_salt(&self) -> Result<Option<[u8; 16]>, DeviceError> {
+        Ok(self.provisioning_salt)
     }
 }
 
@@ -171,11 +198,12 @@ impl<S: Storage> KeyStorage for ConfigurationManager<S> {
     fn store<'m>(&'m self, keys: Keys) -> Self::StoreFuture<'m> {
         let mut update = self.config.borrow().clone();
         update.keys = keys;
+        defmt::info!("STORE {}", update);
         async move { self.store(&update).await }
     }
 
     fn retrieve<'m>(&'m self) -> Keys {
-        self.config.borrow().keys
+        self.config.borrow().keys.clone()
     }
 }
 
@@ -193,10 +221,12 @@ impl<S: Storage> ConfigurationManager<S> {
         rng: &mut R,
     ) -> Result<(), DeviceError> {
         if self.force_reset {
+            defmt::info!("force reset");
             let mut config = Configuration::default();
             config.validate(rng);
             self.store(&config).await
         } else {
+            defmt::info!("load config");
             let payload = self
                 .storage
                 .borrow_mut()
@@ -222,7 +252,7 @@ impl<S: Storage> ConfigurationManager<S> {
     }
 
     fn retrieve(&self) -> Configuration {
-        *self.config.borrow()
+        self.config.borrow().clone()
     }
 
     async fn store(&self, config: &Configuration) -> Result<(), DeviceError> {
@@ -235,7 +265,7 @@ impl<S: Storage> ConfigurationManager<S> {
             .store(&payload)
             .await
             .map_err(|_| DeviceError::Storage)?;
-        self.config.replace(*config);
+        self.config.replace(config.clone());
         Ok(())
     }
 }

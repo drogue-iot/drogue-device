@@ -1,49 +1,231 @@
-== BBB Micro:bit BLE Temperature
+=== nRF 52840 Bluetooth Mesh Example
 
-This example application runs out of the box on the BBC micro:bit v2.0. It starts a BLE (Bluetooth Low Energy) temperature
-service identical to the default application provided on the micro:bit, but based on link:https://github.com/embassy-rs/embassy[embassy], link:https://github.com/embassy-rs/nrf-softdevice[nrf-softdevice], and link:https://github.com/drogue-iot/drogue-device[drogue-device].
+=== Raspberry Pi with Bluetooth
 
-=== Prerequisites
+At least the Raspbian distro I have already includes enough kernel mods to let the PB-ADV
+mesh work.
 
-==== Hardware
+Most of this is based upon the details from the [Bluetooth Site](https://www.bluetooth.com/wp-content/uploads/2020/04/Developer-Study-Guide-How-to-Deploy-BlueZ-on-a-Raspberry-Pi-Board-as-a-Bluetooth-Mesh-Provisioner.pdf)
 
-* BBC micro:bit v2.0
-* Mobile Phone with BLE
+==== First manually stop the existing `bluetoothd`
 
-==== Software
+As root
 
-* link:https://rustup.rs/[rustup] - To compile the example with the correct toolchain.
-* link:https://crates.io/crates/probe-rs-cli[probe-rs-cli] - To flash the BLE protocol stack from Nordic Semiconductor.
-* link:https://crates.io/crates/probe-run[probe-run] - To run the example.
-
-In practice you can use whatever tool you want to flash the device, but this guide will assume that `probe-rs-cli` is used to flash the BLE firmware, and `probe-run` to run the application.
-
-You can install both `probe-rs-cli` and `probe-run` using Cargo:
-
-```rust
-cargo install probe-rs-cli probe-run
+```
+# service bluetooth stop
 ```
 
-On the phone, you need a BLE client. This example have been tested with the link:https://www.nordicsemi.com/Products/Development-tools/nrf-connect-for-mobile[nRF Connect] app, which supports both iPhone and Android.
+Then start the PB-ADV-based mesh.
 
-=== Flashing the BLE stack
-
-Download the link:https://www.nordicsemi.com/Products/Development-software/S113[Nordic nRF SoftDevice] firmware for the BLE protocol stack.
-
-Unzip the downloaded artifact and locate the file `s113_nrf52_7.3.0_softdevice.hex`, which is the firmware we're going to flash.
-
-To flash the device (make sure it is connected) run:
-
-```rust
-probe-rs-cli download s113_nrf52_7.3.0_softdevice.hex --chip nRF52833_xxAA --format Hex
+```
+# /usr/libexec/bluetooth/bluetooth-meshd -nd --debug
 ```
 
-=== Running the example
+This will leave the process running in the foreground to help with debugging, etc.
 
-To run the example, first run the device:
+=== Secondly, on the Pi, use `mesh-cfg-client`
 
-```rust
-cargo run --release
+This can be done as non-root regular user.
+
+```
+$ mesh-cfgclient
 ```
 
-This will start the application, and you should quickly see the 'Drogue Low Energy' application in the nRF Connect application. You can now connect to it and read the temperature values from the 'Temperature' characteristic.
+It will probably complain about a missing `config_db.json`.
+
+If so, create that file under `$HOME/.config/meshcfg/config_db.json`.
+
+Mine looks like this currently, and isn't a terrible place to begin.
+
+```
+pi@raspberrypi:~$ cat .config/meshcfg/config_db.json
+{
+  "token":"805639fed2ca3af9",
+  "uuid":"ada7d7630ec04e4f6a7f322759f564e1",
+  "name":"Mesh Config Client Network",
+  "nodes":[
+    {
+      "uuid":"867e496dc9a197ee2fb1f6bc2f95c9b6",
+      "elements":[
+        {
+          "index":0,
+          "location":"0000",
+          "models":[
+          ]
+        }
+      ],
+      "netKeys":[
+        {
+          "index":0
+        }
+      ],
+      "appKeys":[
+      ],
+      "unicastAddress":"0001"
+    },
+    {
+      "uuid":"066187e34a19b375f1a02a1e934db15a",
+      "elements":[
+        {
+          "index":0,
+          "location":"0000",
+          "models":[
+          ]
+        }
+      ],
+      "netKeys":[
+        {
+          "index":0
+        }
+      ],
+      "appKeys":[
+      ],
+      "unicastAddress":"00d9"
+    }
+  ],
+  "netKeys":[
+    {
+      "index":0,
+      "phase":0
+    }
+  ],
+  "appKeys":[
+    {
+      "boundNetKey":0,
+      "index":0
+    }
+  ],
+  "blacklistedAddresses":[
+    {
+      "ivIndex":0,
+      "addresses":[
+        "00aa",
+        "00ab",
+        "00ac",
+        "00ad",
+        "00ae",
+        "00af",
+        "00b0",
+        "00b1",
+        "00b2",
+        "00b3",
+        "00b4",
+        "00b5",
+        "00b6",
+        "00b7",
+        "00b8",
+        "00b9",
+        "00ba",
+        "00bb",
+        "00bc",
+        "00bd",
+        "00be",
+        "00bf",
+        "00c0",
+        "00c1",
+        "00c2",
+        "00c3",
+        "00c4",
+        "00c5",
+        "00c6",
+        "00c7",
+        "00c8",
+        "00c9",
+        "00ca",
+        "00cb",
+        "00cc",
+        "00cd",
+        "00ce",
+        "00cf",
+        "00d0",
+        "00d1",
+        "00d2",
+        "00d3",
+        "00d4",
+        "00d5",
+        "00d6",
+        "00d7",
+        "00d8"
+      ]
+    }
+  ],
+  "ivIndex":0,
+  "low":"00aa",
+  "high":"7fff",
+  "groups":[
+  ]
+}
+```
+
+=== On the board
+
+Flash this example onto an nRF 52840
+
+`DEFMT_LOG=trace cargo run --release`
+
+=== Provision!
+
+==== On the pi, running mesh-cfgclient:
+
+```
+[mesh-cfgclient]# discover-unprovisioned on
+Unprovisioned scan started
+```
+
+Wait for it to discover your nRF broadcasting the "please provision me" packets.
+
+When you see the UUID, provision it
+
+```
+[mesh-cfgclient]# provision 066187E34A19B375F1A02A1E934DB15A
+```
+
+Replacing the UUID with the actual UUID you saw during the discovery.
+
+If all goes well, you should see it assigning addresses and other happiness.
+
+=== Do Stuff
+
+Right now, nothing you can really do other than taking note of the primary unicast address
+it assigned to your board, and then:
+
+```
+[mesh-cfgclient]# menu config
+[mesh-cfgclient]# target 00d9
+Configuring node 00d9
+[config: Target = 00d9]# beacon-get
+```
+
+Which should *hopefully* report back a `0x01` for the beacon-status.
+
+If the packet gets lost, you'll see a `no response` type of output.
+
+This is where we are currently.
+
+=== What might go wrong
+
+If the packet goes lost, no retransmits of config stuff happens (yet) so just keep repeating it until you
+a response if you've successfully provisioned.
+
+If the board complains about nRF Softdevice interrupts being disabled for too long, that's because of the
+debug output using too much critical sections. You can reduce the log level or just try again.
+
+If you want to start back from scratch, alter the `main.rs` to use the `.force_reset()` line (once) which will
+factory-reset the board.
+
+On the pi side, after `menu config` and setting the `target` to the board:
+
+```
+[config: Target = 00d9]# node-reset
+```
+
+This will remove it from the DB.
+
+You can then `back` and do the `discover-unprovisioned on` and the `provision $UUID` bits again.
+
+
+
+
+
+
+

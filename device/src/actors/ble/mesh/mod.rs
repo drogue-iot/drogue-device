@@ -1,11 +1,11 @@
-pub mod transport;
+pub mod bearer;
 
+use crate::drivers::ble::mesh::bearer::{Bearer, Handler};
 use crate::drivers::ble::mesh::configuration_manager::ConfigurationManager;
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
-use crate::drivers::ble::mesh::transport::{Handler, Transport};
 use crate::{Actor, Address, Inbox};
 use core::cell::RefCell;
 use core::future::Future;
@@ -15,26 +15,26 @@ use futures::{join, pin_mut};
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
 
-pub struct MeshNode<T, S, R>
+pub struct MeshNode<B, S, R>
 where
-    T: Transport,
+    B: Bearer,
     S: Storage,
     R: RngCore + CryptoRng,
 {
     force_reset: bool,
     capabilities: Option<Capabilities>,
-    transport: T,
+    transport: B,
     storage: Option<S>,
     rng: Option<R>,
 }
 
-impl<T, S, R> MeshNode<T, S, R>
+impl<B, S, R> MeshNode<B, S, R>
 where
-    T: Transport,
+    B: Bearer,
     S: Storage,
     R: RngCore + CryptoRng,
 {
-    pub fn new(capabilities: Capabilities, transport: T, storage: S, rng: R) -> Self {
+    pub fn new(capabilities: Capabilities, transport: B, storage: S, rng: R) -> Self {
         Self {
             force_reset: false,
             capabilities: Some(capabilities),
@@ -52,11 +52,11 @@ where
     }
 }
 
-struct TransportReceiver<'c> {
+struct BearerReceiver<'c> {
     receiver: RefCell<mpsc::Receiver<'c, CriticalSection, Vec<u8, 384>, 6>>,
 }
 
-impl<'c> TransportReceiver<'c> {
+impl<'c> BearerReceiver<'c> {
     fn new(receiver: mpsc::Receiver<'c, CriticalSection, Vec<u8, 384>, 6>) -> Self {
         Self {
             receiver: RefCell::new(receiver),
@@ -64,7 +64,7 @@ impl<'c> TransportReceiver<'c> {
     }
 }
 
-impl<'c> Receiver for TransportReceiver<'c> {
+impl<'c> Receiver for BearerReceiver<'c> {
     type ReceiveFuture<'m>
     where
         Self: 'm,
@@ -81,19 +81,19 @@ impl<'c> Receiver for TransportReceiver<'c> {
     }
 }
 
-struct TransportHandler<'t, 'c, T>
+struct BearerHandler<'t, 'c, B>
 where
-    T: Transport + 't,
+    B: Bearer + 't,
 {
-    transport: &'t T,
+    transport: &'t B,
     sender: mpsc::Sender<'c, CriticalSection, Vec<u8, 384>, 6>,
 }
 
-impl<'t, 'c, T> TransportHandler<'t, 'c, T>
+impl<'t, 'c, B> BearerHandler<'t, 'c, B>
 where
-    T: Transport + 't,
+    B: Bearer + 't,
 {
-    fn new(transport: &'t T, sender: mpsc::Sender<'c, CriticalSection, Vec<u8, 384>, 6>) -> Self {
+    fn new(transport: &'t B, sender: mpsc::Sender<'c, CriticalSection, Vec<u8, 384>, 6>) -> Self {
         Self { transport, sender }
     }
 
@@ -102,9 +102,9 @@ where
     }
 }
 
-impl<'t, 'c, T> Handler for TransportHandler<'t, 'c, T>
+impl<'t, 'c, B> Handler for BearerHandler<'t, 'c, B>
 where
-    T: Transport + 't,
+    B: Bearer + 't,
 {
     fn handle(&self, message: Vec<u8, 384>) {
         // BLE loses messages anyhow, so if this fails, just ignore.
@@ -112,16 +112,16 @@ where
     }
 }
 
-struct TransportTransmitter<'t, T>
+struct BearerTransmitter<'t, B>
 where
-    T: Transport + 't,
+    B: Bearer + 't,
 {
-    transport: &'t T,
+    transport: &'t B,
 }
 
-impl<'t, T> Transmitter for TransportTransmitter<'t, T>
+impl<'t, B> Transmitter for BearerTransmitter<'t, B>
 where
-    T: Transport + 't,
+    B: Bearer + 't,
 {
     type TransmitFuture<'m>
     where
@@ -136,9 +136,9 @@ where
     }
 }
 
-impl<T, S, R> Actor for MeshNode<T, S, R>
+impl<B, S, R> Actor for MeshNode<B, S, R>
 where
-    T: Transport + 'static,
+    B: Bearer + 'static,
     S: Storage + 'static,
     R: RngCore + CryptoRng + 'static,
 {
@@ -153,15 +153,15 @@ where
         M: Inbox<Self> + 'm,
     {
         async move {
-            let tx = TransportTransmitter {
+            let tx = BearerTransmitter {
                 transport: &self.transport,
             };
 
             let mut channel = Channel::new();
             let (sender, receiver) = mpsc::split(&mut channel);
 
-            let rx = TransportReceiver::new(receiver);
-            let handler = TransportHandler::new(&self.transport, sender);
+            let rx = BearerReceiver::new(receiver);
+            let handler = BearerHandler::new(&self.transport, sender);
 
             let configuration_manager =
                 ConfigurationManager::new(self.storage.take().unwrap(), self.force_reset);

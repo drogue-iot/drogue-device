@@ -1,6 +1,9 @@
+use core::convert::TryInto;
 use core::future::Future;
 
-use crate::drivers::ble::mesh::configuration_manager::{GeneralStorage, KeyStorage, Network};
+use crate::drivers::ble::mesh::configuration_manager::{
+    GeneralStorage, KeyStorage, NetworkInfo, NetworkKey,
+};
 use crate::drivers::ble::mesh::crypto;
 use aes::Aes128;
 use cmac::crypto_mac::Output;
@@ -8,9 +11,12 @@ use cmac::Cmac;
 use p256::elliptic_curve::ecdh::diffie_hellman;
 use p256::PublicKey;
 
+use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
+use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::ProvisioningData;
+use heapless::Vec;
 
 pub trait Vault {
     fn uuid(&self) -> Uuid;
@@ -49,6 +55,10 @@ pub trait Vault {
         self.n_k1(salt, b"prck")
     }
 
+    fn prdk(&self, salt: &[u8]) -> Result<Output<Cmac<Aes128>>, DeviceError> {
+        self.n_k1(salt, b"prdk")
+    }
+
     fn k2(n: &[u8], p: &[u8]) -> Result<(u8, [u8; 16], [u8; 16]), DeviceError> {
         crypto::k2(n, p).map_err(|_| DeviceError::CryptoError)
     }
@@ -59,7 +69,8 @@ pub trait Vault {
         data: &mut [u8],
         mic: &[u8],
     ) -> Result<(), DeviceError> {
-        crypto::aes_ccm_decrypt(key, nonce, data, mic).map_err(|_| DeviceError::CryptoError)
+        crypto::aes_ccm_decrypt_detached(key, nonce, data, mic)
+            .map_err(|_| DeviceError::CryptoError)
     }
 
     type SetProvisioningDataFuture<'m>: Future<Output = Result<(), DeviceError>>
@@ -68,8 +79,31 @@ pub trait Vault {
 
     fn set_provisioning_data<'m>(
         &'m mut self,
+        provisioning_salt: &'m [u8],
         data: &'m ProvisioningData,
     ) -> Self::SetProvisioningDataFuture<'m>;
+
+    fn iv_index(&self) -> Option<u32>;
+
+    fn network_keys(&self, nid: u8) -> Vec<NetworkKey, 10>;
+
+    fn is_local_unicast(&self, addr: &Address) -> bool;
+
+    fn decrypt_device_key(
+        &self,
+        nonce: DeviceNonce,
+        bytes: &mut [u8],
+        mic: &[u8],
+    ) -> Result<(), DeviceError>;
+
+    fn encrypt_device_key(
+        &self,
+        nonce: DeviceNonce,
+        bytes: &mut [u8],
+        mic: &mut [u8],
+    ) -> Result<(), DeviceError>;
+
+    fn primary_unicast_address(&self) -> Option<UnicastAddress>;
 }
 
 pub struct StorageVault<'s, S: GeneralStorage + KeyStorage> {
@@ -126,26 +160,128 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
 
     fn set_provisioning_data<'m>(
         &'m mut self,
+        provisioning_salt: &'m [u8],
         data: &'m ProvisioningData,
     ) -> Self::SetProvisioningDataFuture<'m> {
         async move {
             let (nid, encryption_key, privacy_key) = crypto::k2(&data.network_key, &[0x00])
                 .map_err(|_| DeviceError::KeyInitialization)?;
 
-            let update = Network {
+            let network_key = NetworkKey {
                 network_key: data.network_key,
                 key_index: data.key_index,
-                key_refresh_flag: data.key_refresh_flag,
-                iv_update_flag: data.iv_update_flag,
-                iv_index: data.iv_index,
-                unicast_address: data.unicast_address,
                 nid,
                 encryption_key,
                 privacy_key,
             };
+
+            let mut network_keys = Vec::new();
+            network_keys
+                .push(network_key)
+                .map_err(|_| DeviceError::InsufficientBuffer)?;
+
+            let update = NetworkInfo {
+                network_keys: network_keys,
+                iv_update_flag: data.iv_update_flag,
+                iv_index: data.iv_index,
+                unicast_address: data.unicast_address,
+            };
+
             let mut keys = self.storage.retrieve();
-            let _ = keys.set_network(&update);
+            keys.set_network(&update);
+            defmt::info!("set provisioning salt {}", provisioning_salt.len());
+            keys.set_provisioning_salt(
+                provisioning_salt
+                    .try_into()
+                    .map_err(|_| DeviceError::InsufficientBuffer)?,
+            )?;
+            defmt::info!("DONE set provisioning salt {}", provisioning_salt.len());
             self.storage.store(keys).await
+        }
+    }
+
+    fn iv_index(&self) -> Option<u32> {
+        if let Some(network) = self.storage.retrieve().network() {
+            Some(network.iv_index)
+        } else {
+            None
+        }
+    }
+
+    fn network_keys(&self, nid: u8) -> Vec<NetworkKey, 10> {
+        if let Some(network) = self.storage.retrieve().network() {
+            network
+                .network_keys
+                .iter()
+                .filter(|e| e.nid == nid)
+                .map(|e| e.clone())
+                .collect()
+        } else {
+            Vec::new()
+        }
+    }
+
+    fn is_local_unicast(&self, addr: &Address) -> bool {
+        match addr {
+            Address::Unicast(inner) => {
+                if let Some(network) = self.storage.retrieve().network() {
+                    let addr_bytes = network.unicast_address.to_be_bytes();
+                    let addr = UnicastAddress::parse([addr_bytes[0], addr_bytes[1]]);
+                    if let Ok(addr) = addr {
+                        *inner == addr
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
+    }
+
+    fn decrypt_device_key(
+        &self,
+        nonce: DeviceNonce,
+        bytes: &mut [u8],
+        mic: &[u8],
+    ) -> Result<(), DeviceError> {
+        let keys = self.storage.retrieve();
+        if let Some(salt) = keys.provisioning_salt()? {
+            let device_key = self.prdk(&salt)?;
+            crypto::aes_ccm_decrypt_detached(
+                &*device_key.into_bytes(),
+                &nonce.into_bytes(),
+                bytes,
+                mic,
+            )
+            .map_err(|_| DeviceError::CryptoError)
+        } else {
+            Err(DeviceError::CryptoError)
+        }
+    }
+
+    fn encrypt_device_key(
+        &self,
+        nonce: DeviceNonce,
+        bytes: &mut [u8],
+        mic: &mut [u8],
+    ) -> Result<(), DeviceError> {
+        let keys = self.storage.retrieve();
+        if let Some(salt) = keys.provisioning_salt()? {
+            let device_key = self.prdk(&salt)?.into_bytes();
+            crypto::aes_ccm_encrypt_detached(&*device_key, &nonce.into_bytes(), bytes, mic)
+                .map_err(|_| DeviceError::CryptoError)
+        } else {
+            Err(DeviceError::CryptoError)
+        }
+    }
+
+    fn primary_unicast_address(&self) -> Option<UnicastAddress> {
+        if let Some(network) = self.storage.retrieve().network() {
+            network.unicast_address.try_into().ok()
+        } else {
+            None
         }
     }
 }

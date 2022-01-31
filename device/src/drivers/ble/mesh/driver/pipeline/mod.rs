@@ -1,9 +1,15 @@
 use crate::drivers::ble::mesh::driver::node::State;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::{Mesh, MeshData};
-use crate::drivers::ble::mesh::driver::pipeline::provisionable::{
-    Provisionable, ProvisionableContext,
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::Access;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::Lower;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::Authentication;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::Relay;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::Upper;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::ProvisionedContext;
+use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::{
+    Provisionable, UnprovisionedContext,
 };
-use crate::drivers::ble::mesh::driver::pipeline::provisioning_bearer::{
+use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisioning_bearer::{
     BearerMessage, ProvisioningBearer,
 };
 use crate::drivers::ble::mesh::driver::DeviceError;
@@ -11,16 +17,22 @@ use crate::drivers::ble::mesh::generic_provisioning::Reason;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 
 pub mod mesh;
-pub mod provisionable;
-pub mod provisioning_bearer;
-pub mod segmentation;
+pub mod provisioned;
+pub mod unprovisioned;
 
-pub trait PipelineContext: ProvisionableContext {}
+pub trait PipelineContext: UnprovisionedContext + ProvisionedContext {}
 
 pub struct Pipeline {
     mesh: Mesh,
+    // unprovisioned pipeline
     provisioning_bearer: ProvisioningBearer,
     provisionable: Provisionable,
+    // provisioned pipeline
+    authentication: Authentication,
+    relay: Relay,
+    lower: Lower,
+    upper: Upper,
+    access: Access,
 }
 
 impl Pipeline {
@@ -29,6 +41,12 @@ impl Pipeline {
             mesh: Default::default(),
             provisioning_bearer: Default::default(),
             provisionable: Provisionable::new(capabilities),
+            //
+            authentication: Default::default(),
+            relay: Default::default(),
+            lower: Default::default(),
+            upper: Default::default(),
+            access: Default::default(),
         }
     }
 
@@ -75,6 +93,52 @@ impl Pipeline {
                     } else {
                         Ok(None)
                     }
+                }
+                MeshData::Network(pdu) => {
+                    defmt::info!("* {}", pdu);
+                    if let Some(pdu) = self.authentication.process_inbound(ctx, pdu).await? {
+                        defmt::info!("authenticated inbound -> {}", pdu);
+                        // Relaying is independent from processing it locally
+                        if let Some(_outbound) = self.relay.process_inbound(ctx, &pdu).await? {
+                            // todo: send out any relayable outbounds.
+                        }
+
+                        if let Some(pdu) = self.lower.process_inbound(ctx, pdu).await? {
+                            defmt::info!("upper inbound --> {}", pdu);
+                            if let Some(message) = self.upper.process_inbound(ctx, pdu).await? {
+                                defmt::info!("inbound ----> {}", message);
+                                if let Some(response) =
+                                    self.access.process_inbound(ctx, message).await?
+                                {
+                                    defmt::info!("outbound --> {}", response);
+                                    // send it back outbound, finally.
+                                    if let Some(response) =
+                                        self.upper.process_outbound(ctx, response).await?
+                                    {
+                                        defmt::info!("outbound upper --> {}", response);
+                                        if let Some(response) =
+                                            self.lower.process_outbound(ctx, response).await?
+                                        {
+                                            defmt::info!("outbound lower --> {}", response);
+                                            if let Some(response) = self
+                                                .authentication
+                                                .process_outbound(ctx, response)
+                                                .await?
+                                            {
+                                                defmt::info!("network --> {}", response);
+
+                                                //for _ in 1..10 {
+                                                let result = ctx.transmit_mesh_pdu(&response).await;
+                                                defmt::info!("status {}", result);
+                                                //}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Ok(None)
                 }
             }
         } else {

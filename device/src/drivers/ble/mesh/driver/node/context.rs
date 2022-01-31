@@ -1,14 +1,24 @@
-use crate::drivers::ble::mesh::bearer::advertising::PDU;
-use crate::drivers::ble::mesh::crypto;
+use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
+use crate::drivers::ble::mesh::configuration_manager::NetworkKey;
+use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
-use crate::drivers::ble::mesh::driver::pipeline::provisionable::ProvisionableContext;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessContext;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::LowerContext;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::RelayContext;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::UpperContext;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::ProvisionedContext;
+use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::UnprovisionedContext;
 use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
+use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use crate::drivers::ble::mesh::provisioning::ProvisioningData;
 use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::vault::Vault;
+use crate::drivers::ble::mesh::{crypto, MESH_MESSAGE};
 use aes::Aes128;
 use cmac::crypto_mac::Output;
 use cmac::Cmac;
@@ -17,7 +27,11 @@ use heapless::Vec;
 use p256::PublicKey;
 use rand_core::{CryptoRng, RngCore};
 
-impl<TX, RX, S, R> ProvisionableContext for Node<TX, RX, S, R>
+// ------------------------------------------------------------------------
+// Unprovisioned pipeline context
+// ------------------------------------------------------------------------
+
+impl<TX, RX, S, R> UnprovisionedContext for Node<TX, RX, S, R>
 where
     TX: Transmitter,
     RX: Receiver,
@@ -48,9 +62,14 @@ where
 
     fn set_provisioning_data<'m>(
         &'m self,
+        provisioning_salt: &'m [u8],
         data: &'m ProvisioningData,
     ) -> Self::SetProvisioningDataFuture<'m> {
-        async move { self.vault().set_provisioning_data(data).await }
+        async move {
+            self.vault()
+                .set_provisioning_data(provisioning_salt, data)
+                .await
+        }
     }
 
     fn aes_cmac(&self, key: &[u8], input: &[u8]) -> Result<Output<Cmac<Aes128>>, DeviceError> {
@@ -80,7 +99,8 @@ where
         data: &mut [u8],
         mic: &[u8],
     ) -> Result<(), DeviceError> {
-        crypto::aes_ccm_decrypt(key, nonce, data, mic).map_err(|_| DeviceError::CryptoError)
+        crypto::aes_ccm_decrypt_detached(key, nonce, data, mic)
+            .map_err(|_| DeviceError::CryptoError)
     }
 
     fn rng_u8(&self) -> u8 {
@@ -103,18 +123,133 @@ where
         self.vault().uuid()
     }
 
-    type TransmitFuture<'m>
+    type TransmitAdvertisingFuture<'m>
     where
         Self: 'm,
     = impl Future<Output = Result<(), DeviceError>>;
 
-    fn transmit_pdu<'m>(&'m self, pdu: PDU) -> Self::TransmitFuture<'m> {
+    fn transmit_advertising_pdu<'m>(
+        &'m self,
+        pdu: AdvertisingPDU,
+    ) -> Self::TransmitAdvertisingFuture<'m> {
         async move {
             let mut bytes = Vec::<u8, 64>::new();
             pdu.emit(&mut bytes)
                 .map_err(|_| DeviceError::InsufficientBuffer)?;
             self.transmitter.transmit_bytes(&*bytes).await
         }
+    }
+
+    type TransmitMeshFuture<'m>
+    where
+        Self: 'm,
+    = impl Future<Output = Result<(), DeviceError>>;
+
+    fn transmit_mesh_pdu<'m>(
+        &'m self,
+        pdu: &'m ObfuscatedAndEncryptedNetworkPDU,
+    ) -> Self::TransmitMeshFuture<'m> {
+        async move {
+            let mut bytes = Vec::<u8, 64>::new();
+            bytes
+                .push(0x00)
+                .map_err(|_| DeviceError::InsufficientBuffer)?; // length placeholder
+            bytes
+                .push(MESH_MESSAGE)
+                .map_err(|_| DeviceError::InsufficientBuffer)?;
+            pdu.emit(&mut bytes)
+                .map_err(|_| DeviceError::InsufficientBuffer)?;
+            bytes[0] = bytes.len() as u8 - 1;
+            self.transmitter.transmit_bytes(&*bytes).await
+        }
+    }
+}
+
+// ------------------------------------------------------------------------
+// Provisioned pipeline context
+// ------------------------------------------------------------------------
+
+impl<TX, RX, S, R> ProvisionedContext for Node<TX, RX, S, R>
+where
+    R: CryptoRng + RngCore,
+    RX: Receiver,
+    S: Storage,
+    TX: Transmitter,
+{
+}
+
+impl<TX, RX, S, R> RelayContext for Node<TX, RX, S, R>
+where
+    R: CryptoRng + RngCore,
+    RX: Receiver,
+    S: Storage,
+    TX: Transmitter,
+{
+    fn is_local_unicast(&self, address: &Address) -> bool {
+        self.vault().is_local_unicast(address)
+    }
+}
+
+impl<TX, RX, S, R> AuthenticationContext for Node<TX, RX, S, R>
+where
+    R: CryptoRng + RngCore,
+    RX: Receiver,
+    S: Storage,
+    TX: Transmitter,
+{
+    fn iv_index(&self) -> Option<u32> {
+        self.vault().iv_index()
+    }
+
+    fn network_keys(&self, nid: u8) -> Vec<NetworkKey, 10> {
+        self.vault().network_keys(nid)
+    }
+}
+
+impl<TX, RX, S, R> LowerContext for Node<TX, RX, S, R>
+where
+    R: CryptoRng + RngCore,
+    RX: Receiver,
+    S: Storage,
+    TX: Transmitter,
+{
+    fn decrypt_device_key(
+        &self,
+        nonce: DeviceNonce,
+        bytes: &mut [u8],
+        mic: &[u8],
+    ) -> Result<(), DeviceError> {
+        self.vault().decrypt_device_key(nonce, bytes, mic)
+    }
+
+    fn encrypt_device_key(
+        &self,
+        nonce: DeviceNonce,
+        bytes: &mut [u8],
+        mic: &mut [u8],
+    ) -> Result<(), DeviceError> {
+        self.vault().encrypt_device_key(nonce, bytes, mic)
+    }
+}
+
+impl<TX, RX, S, R> UpperContext for Node<TX, RX, S, R>
+where
+    R: CryptoRng + RngCore,
+    RX: Receiver,
+    S: Storage,
+    TX: Transmitter,
+{
+}
+
+impl<TX, RX, S, R> AccessContext for Node<TX, RX, S, R>
+where
+    R: CryptoRng + RngCore,
+    RX: Receiver,
+    S: Storage,
+    TX: Transmitter,
+{
+    fn primary_unicast_address(&self) -> Option<UnicastAddress> {
+        self.vault().primary_unicast_address()
     }
 }
 
