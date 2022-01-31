@@ -21,7 +21,7 @@ jobs:
           key: ${{ runner.os }}-tests
 
       - name: Install drg tool
-        run: cargo install --git https://github.com/drogue-iot/drg.git
+        run: cargo install drg --version 0.8.1-alpha1
 
       - name: Check
         run: cargo xtask test_examples
