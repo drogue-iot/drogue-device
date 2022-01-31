@@ -1,4 +1,3 @@
-use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::LowerContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;

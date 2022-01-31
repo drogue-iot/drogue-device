@@ -1,7 +1,6 @@
 use crate::drivers::ble::mesh::bearer::nrf52::Nrf52BleMeshFacilities;
 use crate::{Actor, Address, Inbox};
 use core::future::Future;
-use nrf_softdevice::Softdevice;
 
 impl Actor for Nrf52BleMeshFacilities {
     type Message<'m> = ();

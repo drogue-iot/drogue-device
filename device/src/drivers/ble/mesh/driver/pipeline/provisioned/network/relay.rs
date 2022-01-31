@@ -1,9 +1,7 @@
 use crate::drivers::ble::mesh::address::Address;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::network_message_cache::NetworkMessageCache;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::pdu::network::{
-    CleartextNetworkPDU, ObfuscatedAndEncryptedNetworkPDU,
-};
+use crate::drivers::ble::mesh::pdu::network::CleartextNetworkPDU;
 
 pub trait RelayContext {
     fn is_local_unicast(&self, address: &Address) -> bool;
@@ -25,7 +23,7 @@ impl Relay {
     pub async fn process_inbound<C: RelayContext>(
         &mut self,
         ctx: &C,
-        mut pdu: &CleartextNetworkPDU,
+        pdu: &CleartextNetworkPDU,
     ) -> Result<Option<CleartextNetworkPDU>, DeviceError> {
         if !ctx.is_local_unicast(&pdu.dst) {
             if pdu.ttl >= 2 && !self.cache.has_seen(pdu) {

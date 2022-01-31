@@ -6,7 +6,6 @@ use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
-use crate::drivers::ble::mesh::vault::Vault;
 use crate::{Actor, Address, Inbox};
 use core::cell::RefCell;
 use core::future::Future;

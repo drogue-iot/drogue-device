@@ -10,13 +10,11 @@ use drogue_device::actors::ble::mesh::MeshNode;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
     Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceRng, SoftdeviceStorage,
 };
-use drogue_device::drivers::ble::mesh::bearer::Bearer;
-use drogue_device::drivers::ble::mesh::configuration_manager::ConfigurationManager;
 use drogue_device::drivers::ble::mesh::provisioning::{
     Algorithms, Capabilities, InputOOBActions, OOBSize, OutputOOBActions, PublicKeyType,
     StaticOOBType,
 };
-use drogue_device::{actors, drivers, ActorContext, DeviceContext, Package};
+use drogue_device::{actors, drivers, ActorContext, DeviceContext};
 use embassy::executor::Spawner;
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
@@ -48,10 +46,10 @@ extern "C" {
 }
 
 #[embassy::main(config = "config()")]
-async fn main(spawner: Spawner, p: Peripherals) {
+async fn main(spawner: Spawner, _p: Peripherals) {
     let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BLE Mesh");
     let bearer = facilities.bearer();
-    let mut rng = facilities.rng();
+    let rng = facilities.rng();
     let storage = facilities.storage(unsafe { &__storage as *const u8 as usize });
 
     let capabilities = Capabilities {

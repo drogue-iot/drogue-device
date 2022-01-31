@@ -19,6 +19,7 @@ pub struct AccessMessage {
     pub(crate) payload: AccessPayload,
 }
 
+#[allow(unused)]
 impl AccessMessage {
     pub fn opcode(&self) -> Opcode {
         match &self.payload {
@@ -51,6 +52,7 @@ pub enum AccessPayload {
     Health(Health),
 }
 
+#[allow(unused)]
 impl AccessPayload {
     pub fn parse(data: &[u8]) -> Result<Self, ParseError> {
         let (opcode, parameters) = Opcode::split(data).ok_or(ParseError::InvalidPDUFormat)?;
@@ -102,6 +104,7 @@ pub enum Config {
     VendorModel(VendorModel),
 }
 
+#[allow(unused)]
 impl Config {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -160,6 +163,7 @@ pub enum AppKey {
     Update,
 }
 
+#[allow(unused)]
 impl AppKey {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -183,6 +187,7 @@ pub enum Beacon {
     Status(bool),
 }
 
+#[allow(unused)]
 impl Beacon {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -220,6 +225,7 @@ pub enum CompositionData {
     Status,
 }
 
+#[allow(unused)]
 impl CompositionData {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -239,6 +245,7 @@ pub enum DefaultTTL {
     Status,
 }
 
+#[allow(unused)]
 impl DefaultTTL {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -260,6 +267,7 @@ pub enum Friend {
     Status,
 }
 
+#[allow(unused)]
 impl Friend {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -280,6 +288,7 @@ pub enum GATTProxy {
     Status,
 }
 
+#[allow(unused)]
 impl GATTProxy {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -300,6 +309,7 @@ pub enum HeartbeatPublication {
     Status,
 }
 
+#[allow(unused)]
 impl HeartbeatPublication {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -320,6 +330,7 @@ pub enum HeartbeatSubscription {
     Status,
 }
 
+#[allow(unused)]
 impl HeartbeatSubscription {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -340,6 +351,7 @@ pub enum KeyRefreshPhase {
     Status,
 }
 
+#[allow(unused)]
 impl KeyRefreshPhase {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -359,6 +371,7 @@ pub enum LowPowerNodePollTimeout {
     Status,
 }
 
+#[allow(unused)]
 impl LowPowerNodePollTimeout {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -378,6 +391,7 @@ pub enum Model {
     Subscription(ModelSubscription),
 }
 
+#[allow(unused)]
 impl Model {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -398,6 +412,7 @@ pub enum ModelApp {
     Unbind,
 }
 
+#[allow(unused)]
 impl ModelApp {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -418,6 +433,7 @@ pub enum ModelPublication {
     VirtualAddressSet,
 }
 
+#[allow(unused)]
 impl ModelPublication {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -443,6 +459,7 @@ pub enum ModelSubscription {
     VirtualAddressOverwrite,
 }
 
+#[allow(unused)]
 impl ModelSubscription {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -471,6 +488,7 @@ pub enum NetKey {
     Update,
 }
 
+#[allow(unused)]
 impl NetKey {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -494,6 +512,7 @@ pub enum NetworkTransmit {
     Status,
 }
 
+#[allow(unused)]
 impl NetworkTransmit {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -514,6 +533,7 @@ pub enum NodeIdentity {
     Status,
 }
 
+#[allow(unused)]
 impl NodeIdentity {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -533,6 +553,7 @@ pub enum NodeReset {
     Status,
 }
 
+#[allow(unused)]
 impl NodeReset {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -568,6 +589,7 @@ pub enum Relay {
     Status,
 }
 
+#[allow(unused)]
 impl Relay {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -595,6 +617,7 @@ pub enum SIGModel {
     Subscription(SIGModelSubscription),
 }
 
+#[allow(unused)]
 impl SIGModel {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -613,6 +636,7 @@ pub enum SIGModelApp {
     List,
 }
 
+#[allow(unused)]
 impl SIGModelApp {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -631,6 +655,7 @@ pub enum SIGModelSubscription {
     List,
 }
 
+#[allow(unused)]
 impl SIGModelSubscription {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -649,6 +674,7 @@ pub enum VendorModel {
     Susbcription(VendorModelSubscription),
 }
 
+#[allow(unused)]
 impl VendorModel {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -667,6 +693,7 @@ pub enum VendorModelApp {
     List,
 }
 
+#[allow(unused)]
 impl VendorModelApp {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -685,6 +712,7 @@ pub enum VendorModelSubscription {
     List,
 }
 
+#[allow(unused)]
 impl VendorModelSubscription {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -705,6 +733,7 @@ pub enum Health {
     Period(Period),
 }
 
+#[allow(unused)]
 impl Health {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -727,6 +756,7 @@ pub enum Attention {
     SetUnacknowledged,
 }
 
+#[allow(unused)]
 impl Attention {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -750,6 +780,7 @@ pub enum Fault {
     TestUnacknowledged,
 }
 
+#[allow(unused)]
 impl Fault {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -774,6 +805,7 @@ pub enum Period {
     Status,
 }
 
+#[allow(unused)]
 impl Period {
     pub fn opcode(&self) -> Opcode {
         match self {
@@ -795,6 +827,7 @@ pub enum Opcode {
     ThreeOctet(u8, u8, u8),
 }
 
+#[allow(unused)]
 impl Format for Opcode {
     fn format(&self, fmt: Formatter) {
         match self {
@@ -817,7 +850,7 @@ impl Opcode {
             Opcode::OneOctet(a) if data.len() >= 1 && data[0] == *a => true,
             Opcode::TwoOctet(a, b) if data.len() >= 2 && data[0] == *a && data[1] == *b => true,
             Opcode::ThreeOctet(a, b, c)
-                if data.len() >= 3 && data[0] == *a && data[1] == *b && data[2] == *b =>
+                if data.len() >= 3 && data[0] == *a && data[1] == *b && data[2] == *c =>
             {
                 true
             }

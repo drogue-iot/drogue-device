@@ -99,7 +99,9 @@ impl Pipeline {
                     if let Some(pdu) = self.authentication.process_inbound(ctx, pdu).await? {
                         defmt::info!("authenticated inbound -> {}", pdu);
                         // Relaying is independent from processing it locally
-                        if let Some(outbound) = self.relay.process_inbound(ctx, &pdu).await? {}
+                        if let Some(_outbound) = self.relay.process_inbound(ctx, &pdu).await? {
+                            // todo: send out any relayable outbounds.
+                        }
 
                         if let Some(pdu) = self.lower.process_inbound(ctx, pdu).await? {
                             defmt::info!("upper inbound --> {}", pdu);

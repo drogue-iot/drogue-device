@@ -9,7 +9,7 @@ impl Default for NetworkMessageCache {
 }
 
 impl NetworkMessageCache {
-    pub fn has_seen(&mut self, pdu: &CleartextNetworkPDU) -> bool {
+    pub fn has_seen(&mut self, _pdu: &CleartextNetworkPDU) -> bool {
         todo!()
     }
 }

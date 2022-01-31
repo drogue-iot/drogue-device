@@ -1,9 +1,7 @@
-use crate::drivers::ble::mesh::pdu::lower::SzMic;
 use aes::cipher::Block;
 use aes::{Aes128, BlockEncrypt, NewBlockCipher};
 use ccm::aead::generic_array::GenericArray;
-use ccm::aead::{AeadInPlace, Error};
-use ccm::aead::{AeadMutInPlace, Buffer, NewAead};
+use ccm::aead::{AeadInPlace, Error, NewAead};
 use ccm::consts::U13;
 use ccm::consts::U4;
 use ccm::consts::U8;
@@ -11,7 +9,6 @@ use ccm::Ccm;
 use cmac::crypto_mac::{InvalidKeyLength, Output};
 use cmac::{Cmac, Mac, NewMac};
 use core::convert::TryInto;
-use core::iter::FromIterator;
 use heapless::Vec;
 
 pub mod nonce;
@@ -72,7 +69,7 @@ pub fn k2(n: &[u8], p: &[u8]) -> Result<(u8, [u8; 16], [u8; 16]), InvalidKeyLeng
 
 pub fn e(key: &[u8], mut data: [u8; 16]) -> Result<[u8; 16], InvalidKeyLength> {
     let key = GenericArray::<u8, <Aes128 as NewBlockCipher>::KeySize>::from_slice(key);
-    let mut cipher = Aes128::new_from_slice(key).map_err(|_| InvalidKeyLength)?;
+    let cipher = Aes128::new_from_slice(key).map_err(|_| InvalidKeyLength)?;
 
     let mut cipher_block = Block::<Aes128>::from_mut_slice(&mut data);
     cipher.encrypt_block(&mut cipher_block);

@@ -152,7 +152,7 @@ where
         self.pipeline
             .borrow_mut()
             .process_inbound(self, &*msg)
-            .await;
+            .await?;
         Ok(None)
     }
 

@@ -1,7 +1,6 @@
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
-use crate::drivers::ble::mesh::pdu::{access, upper};
 
 use heapless::Vec;
 
@@ -18,12 +17,12 @@ impl Default for Upper {
 impl Upper {
     pub async fn process_inbound<C: UpperContext>(
         &mut self,
-        ctx: &C,
+        _ctx: &C,
         pdu: UpperPDU,
     ) -> Result<Option<AccessMessage>, DeviceError> {
         // todo: split access and control handling, wrap with an enum, I guess.
         match pdu {
-            UpperPDU::Control(control) => {
+            UpperPDU::Control(_control) => {
                 todo!()
             }
             UpperPDU::Access(access) => {
@@ -37,7 +36,7 @@ impl Upper {
 
     pub async fn process_outbound<C: UpperContext>(
         &mut self,
-        ctx: &C,
+        _ctx: &C,
         message: AccessMessage,
     ) -> Result<Option<UpperPDU>, DeviceError> {
         // todo: split access and control handling, wrap with an enum, I guess.

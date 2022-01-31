@@ -1,8 +1,7 @@
 use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::beacon::Beacon;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload, Config, Health};
-use futures::TryFutureExt;
+use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 
 pub mod beacon;
 

@@ -1,8 +1,6 @@
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
-use crate::drivers::ble::mesh::pdu::upper::UpperPDU;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
-use core::convert::TryInto;
 use defmt::Format;
 use heapless::Vec;
 
@@ -138,6 +136,7 @@ pub struct LowerControl {
 }
 
 impl LowerControl {
+    #[allow(unused)]
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
         todo!()
     }

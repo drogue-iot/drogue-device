@@ -3,10 +3,7 @@ use crate::drivers::ble::mesh::pdu::lower::{
     LowerAccess, LowerAccessMessage, LowerControlMessage, LowerPDU,
 };
 use crate::drivers::ble::mesh::pdu::network::CleartextNetworkPDU;
-use crate::drivers::ble::mesh::pdu::{lower, network, upper};
 use ccm::aead::Buffer;
-use cmac::NewMac;
-use core::convert::TryInto;
 
 use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
@@ -103,7 +100,7 @@ impl Lower {
     ) -> Result<Option<CleartextNetworkPDU>, DeviceError> {
         // todo: work with segmented
         match pdu {
-            UpperPDU::Control(control) => Ok(None),
+            UpperPDU::Control(_control) => Ok(None),
             UpperPDU::Access(access) => {
                 defmt::info!("*** ENCRYPT out {:x}", access.payload);
                 let mut payload = Vec::from_slice(&access.payload)
@@ -128,7 +125,7 @@ impl Lower {
 
                     let mut check: Vec<u8, 15> = Vec::new();
                     check.extend_from_slice(&payload).ok();
-                    ctx.decrypt_device_key(nonce, &mut check, &trans_mic);
+                    ctx.decrypt_device_key(nonce, &mut check, &trans_mic)?;
                     defmt::info!("****** CHECK {:x}", check);
 
                     payload
@@ -143,7 +140,7 @@ impl Lower {
                     seq,
                     src: access.src,
                     dst: access.dst,
-                    transport_pdu: lower::LowerPDU::Access(LowerAccess {
+                    transport_pdu: LowerPDU::Access(LowerAccess {
                         akf: false,
                         aid: 0,
                         message: LowerAccessMessage::Unsegmented(payload),

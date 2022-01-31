@@ -1,6 +1,6 @@
 use crate::drivers::ble::mesh::bearer::{Bearer, Handler};
 use crate::drivers::ble::mesh::storage::{Payload, Storage};
-use crate::drivers::ble::mesh::{MESH_BEACON, MESH_MESSAGE, PB_ADV};
+use crate::drivers::ble::mesh::{MESH_MESSAGE, PB_ADV};
 use core::future::Future;
 use core::mem;
 use core::num::NonZeroU32;

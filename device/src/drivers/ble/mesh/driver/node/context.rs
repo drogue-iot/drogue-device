@@ -1,5 +1,5 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
-use crate::drivers::ble::mesh::configuration_manager::{KeyStorage, NetworkKey};
+use crate::drivers::ble::mesh::configuration_manager::NetworkKey;
 use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
@@ -7,7 +7,7 @@ use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::LowerContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::{
-    AuthenticationContext, AuthenticationOutput,
+    AuthenticationContext,
 };
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::RelayContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::UpperContext;
@@ -153,8 +153,8 @@ where
     ) -> Self::TransmitMeshFuture<'m> {
         async move {
             let mut bytes = Vec::<u8, 64>::new();
-            bytes.push(0x00); // length placeholder
-            bytes.push(MESH_MESSAGE);
+            bytes.push(0x00).map_err(|_|DeviceError::InsufficientBuffer)?; // length placeholder
+            bytes.push(MESH_MESSAGE).map_err(|_|DeviceError::InsufficientBuffer)?;
             pdu.emit(&mut bytes)
                 .map_err(|_| DeviceError::InsufficientBuffer)?;
             bytes[0] = bytes.len() as u8 - 1;

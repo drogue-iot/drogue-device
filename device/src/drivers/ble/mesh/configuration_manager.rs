@@ -1,9 +1,6 @@
-use crate::drivers::ble::mesh::crypto::aes_ccm_decrypt_detached;
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::pdu::network;
-use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
-use crate::drivers::ble::mesh::provisioning::{IVUpdateFlag, KeyRefreshFlag};
+use crate::drivers::ble::mesh::provisioning::IVUpdateFlag;
 use crate::drivers::ble::mesh::storage::{Payload, Storage};
 use core::cell::RefCell;
 use core::convert::TryInto;
@@ -82,11 +79,6 @@ pub struct NetworkKey {
 }
 
 impl NetworkInfo {
-    pub fn authenticate(&self, pdu: &ObfuscatedAndEncryptedNetworkPDU) -> bool {
-        defmt::info!("try to authenticate with network info {}", self);
-        //let result = aes_ccm_decrypt(&self.network_key, nonce, &*pdu.encrypted_and_mic);
-        false
-    }
 }
 
 impl Keys {
@@ -155,9 +147,8 @@ impl Keys {
         &self.network
     }
 
-    pub(crate) fn set_network(&mut self, network: &NetworkInfo) -> Result<(), ()> {
+    pub(crate) fn set_network(&mut self, network: &NetworkInfo) {
         self.network.replace(network.clone());
-        Ok(())
     }
 
     pub(crate) fn set_provisioning_salt(

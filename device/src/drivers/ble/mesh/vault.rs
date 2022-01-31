@@ -16,7 +16,6 @@ use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::ProvisioningData;
-use crate::drivers::ble::mesh::storage::Storage;
 use heapless::Vec;
 
 pub trait Vault {
@@ -177,7 +176,7 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
             };
 
             let mut network_keys = Vec::new();
-            network_keys.push(network_key);
+            network_keys.push(network_key).map_err(|_|DeviceError::InsufficientBuffer)?;
 
             let update = NetworkInfo {
                 network_keys: network_keys,
@@ -193,7 +192,7 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
                 provisioning_salt
                     .try_into()
                     .map_err(|_| DeviceError::InsufficientBuffer)?,
-            );
+            )?;
             defmt::info!("DONE set provisioning salt {}", provisioning_salt.len());
             self.storage.store(keys).await
         }
