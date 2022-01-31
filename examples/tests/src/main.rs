@@ -25,6 +25,7 @@ mod tests {
 
         teardown(&app);
 
+        println!("OUTPUT: {:?}", result);
         if let Ok(Some(output)) = result {
             println!("V: {:?}", output);
             assert_eq!(output["application"].as_str().unwrap(), app);
