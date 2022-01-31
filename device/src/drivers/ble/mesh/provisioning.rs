@@ -1,9 +1,9 @@
+use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use core::convert::TryInto;
 use defmt::{Format, Formatter};
 use heapless::Vec;
 use serde::{Deserialize, Serialize};
-use crate::drivers::ble::mesh::pdu::ParseError;
 
 #[derive(Format)]
 pub enum ProvisioningPDU {

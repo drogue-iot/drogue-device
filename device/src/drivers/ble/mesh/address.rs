@@ -10,12 +10,12 @@ pub enum Address {
 }
 
 impl Address {
-    pub fn as_bytes(&self) -> [u8;2] {
+    pub fn as_bytes(&self) -> [u8; 2] {
         match self {
-            Address::Unassigned => { [0,0]}
+            Address::Unassigned => [0, 0],
             Address::Unicast(inner) => inner.as_bytes(),
             Address::Virtual(inner) => inner.as_bytes(),
-            Address::Group(inner) =>inner.as_bytes(),
+            Address::Group(inner) => inner.as_bytes(),
         }
     }
 }
@@ -27,8 +27,8 @@ pub struct InvalidAddress;
 pub struct UnicastAddress([u8; 2]);
 
 impl UnicastAddress {
-    pub fn as_bytes(&self) -> [u8;2] {
-        [ self.0[0], self.0[1] ]
+    pub fn as_bytes(&self) -> [u8; 2] {
+        [self.0[0], self.0[1]]
     }
 }
 
@@ -37,7 +37,7 @@ impl TryInto<UnicastAddress> for u16 {
 
     fn try_into(self) -> Result<UnicastAddress, Self::Error> {
         let bytes = self.to_be_bytes();
-        UnicastAddress::parse( [ bytes[0], bytes[1] ] )
+        UnicastAddress::parse([bytes[0], bytes[1]])
     }
 }
 
@@ -45,8 +45,8 @@ impl TryInto<UnicastAddress> for u16 {
 pub struct VirtualAddress([u8; 2]);
 
 impl VirtualAddress {
-    pub fn as_bytes(&self) -> [u8;2] {
-        [ self.0[0], self.0[1] ]
+    pub fn as_bytes(&self) -> [u8; 2] {
+        [self.0[0], self.0[1]]
     }
 }
 
@@ -54,8 +54,8 @@ impl VirtualAddress {
 pub struct GroupAddress([u8; 2]);
 
 impl GroupAddress {
-    pub fn as_bytes(&self) -> [u8;2] {
-        [ self.0[0], self.0[1] ]
+    pub fn as_bytes(&self) -> [u8; 2] {
+        [self.0[0], self.0[1]]
     }
 }
 
@@ -74,7 +74,7 @@ impl UnicastAddress {
 }
 
 impl VirtualAddress {
-    pub fn is_virtual_address(data: &[u8;2]) -> bool {
+    pub fn is_virtual_address(data: &[u8; 2]) -> bool {
         data[0] & 0b11000000 == 0b10000000
     }
 

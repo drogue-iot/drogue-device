@@ -1,5 +1,5 @@
+use crate::drivers::ble::mesh::bearer::{Bearer, Handler};
 use crate::drivers::ble::mesh::storage::{Payload, Storage};
-use crate::drivers::ble::mesh::bearer::{Handler, Bearer};
 use crate::drivers::ble::mesh::{MESH_BEACON, MESH_MESSAGE, PB_ADV};
 use core::future::Future;
 use core::mem;
@@ -59,7 +59,7 @@ impl Nrf52BleMeshFacilities {
     }
 
     pub fn bearer(&self) -> SoftdeviceAdvertisingBearer {
-        SoftdeviceAdvertisingBearer{ sd: self.sd }
+        SoftdeviceAdvertisingBearer { sd: self.sd }
     }
 
     pub fn rng(&self) -> SoftdeviceRng {
@@ -149,7 +149,7 @@ impl Storage for SoftdeviceStorage {
 }
 
 pub struct SoftdeviceAdvertisingBearer {
-    sd: &'static Softdevice
+    sd: &'static Softdevice,
 }
 
 impl Bearer for SoftdeviceAdvertisingBearer {

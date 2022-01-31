@@ -5,6 +5,7 @@ pub const MESH_BEACON: u8 = 0x2B;
 pub mod address;
 pub mod app;
 pub mod beacon;
+pub mod bearer;
 pub mod configuration_manager;
 pub mod crypto;
 pub mod device;
@@ -14,7 +15,6 @@ pub mod pdu;
 pub mod provisioning;
 pub mod status;
 pub mod storage;
-pub mod bearer;
 pub mod vault;
 
 pub struct InsufficientBuffer;

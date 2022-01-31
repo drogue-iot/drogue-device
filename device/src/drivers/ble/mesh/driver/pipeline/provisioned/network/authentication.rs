@@ -122,7 +122,9 @@ impl Authentication {
                 let mut mic = [0; 4];
 
                 let mut encrypted_and_mic = Vec::new();
-                encrypted_and_mic.extend_from_slice(&pdu.dst.as_bytes()).map_err(|_|DeviceError::InsufficientBuffer)?;
+                encrypted_and_mic
+                    .extend_from_slice(&pdu.dst.as_bytes())
+                    .map_err(|_| DeviceError::InsufficientBuffer)?;
                 pdu.transport_pdu.emit(&mut encrypted_and_mic)?;
 
                 aes_ccm_encrypt_detached(
@@ -130,10 +132,13 @@ impl Authentication {
                     &nonce.into_bytes(),
                     &mut encrypted_and_mic,
                     &mut mic,
-                ).map_err(|_| DeviceError::CryptoError)?;
+                )
+                .map_err(|_| DeviceError::CryptoError)?;
                 defmt::info!("encrypted: {:x}", encrypted_and_mic);
                 defmt::info!("mic: {:x}", mic);
-                encrypted_and_mic.extend_from_slice(&mic).map_err(|_| DeviceError::InsufficientBuffer)?;
+                encrypted_and_mic
+                    .extend_from_slice(&mic)
+                    .map_err(|_| DeviceError::InsufficientBuffer)?;
 
                 let privacy_plaintext = Self::privacy_plaintext(iv_index, &encrypted_and_mic);
 
@@ -154,14 +159,12 @@ impl Authentication {
 
                 let obfuscated = Self::xor(pecb, unobfuscated);
 
-                Ok(Some(
-                    ObfuscatedAndEncryptedNetworkPDU {
-                        ivi: pdu.ivi,
-                        nid: pdu.nid,
-                        obfuscated,
-                        encrypted_and_mic,
-                    }
-                ))
+                Ok(Some(ObfuscatedAndEncryptedNetworkPDU {
+                    ivi: pdu.ivi,
+                    nid: pdu.nid,
+                    obfuscated,
+                    encrypted_and_mic,
+                }))
             }
         } else {
             Err(DeviceError::NotProvisioned)

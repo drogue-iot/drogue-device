@@ -1,21 +1,21 @@
+use crate::drivers::ble::mesh::crypto::aes_ccm_decrypt_detached;
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::pdu::network;
+use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use crate::drivers::ble::mesh::provisioning::{IVUpdateFlag, KeyRefreshFlag};
 use crate::drivers::ble::mesh::storage::{Payload, Storage};
 use core::cell::RefCell;
 use core::convert::TryInto;
 use defmt::Format;
 use futures::future::Future;
+use heapless::Vec;
 use p256::ecdh::SharedSecret;
 use p256::elliptic_curve::generic_array::{typenum::consts::U32, GenericArray};
 use p256::{PublicKey, SecretKey};
 use postcard::{from_bytes, to_slice};
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
-use crate::drivers::ble::mesh::crypto::aes_ccm_decrypt_detached;
-use crate::drivers::ble::mesh::pdu::network;
-use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
-use heapless::Vec;
 
 #[derive(Serialize, Deserialize, Clone, Default, Format)]
 pub struct Configuration {
@@ -160,12 +160,15 @@ impl Keys {
         Ok(())
     }
 
-    pub(crate) fn set_provisioning_salt(&mut self, provisioning_salt: [u8;16]) -> Result<(), DeviceError> {
-        self.provisioning_salt.replace( provisioning_salt );
+    pub(crate) fn set_provisioning_salt(
+        &mut self,
+        provisioning_salt: [u8; 16],
+    ) -> Result<(), DeviceError> {
+        self.provisioning_salt.replace(provisioning_salt);
         Ok(())
     }
 
-    pub(crate) fn provisioning_salt(&self) -> Result<Option<[u8;16]>, DeviceError> {
+    pub(crate) fn provisioning_salt(&self) -> Result<Option<[u8; 16]>, DeviceError> {
         Ok(self.provisioning_salt)
     }
 }

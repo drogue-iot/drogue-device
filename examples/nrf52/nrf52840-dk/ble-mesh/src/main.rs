@@ -7,13 +7,15 @@
 #[cfg(feature = "defmt-rtt")]
 use defmt_rtt as _;
 use drogue_device::actors::ble::mesh::MeshNode;
+use drogue_device::drivers::ble::mesh::bearer::nrf52::{
+    Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceRng, SoftdeviceStorage,
+};
+use drogue_device::drivers::ble::mesh::bearer::Bearer;
+use drogue_device::drivers::ble::mesh::configuration_manager::ConfigurationManager;
 use drogue_device::drivers::ble::mesh::provisioning::{
     Algorithms, Capabilities, InputOOBActions, OOBSize, OutputOOBActions, PublicKeyType,
     StaticOOBType,
 };
-use drogue_device::drivers::ble::mesh::bearer::nrf52::{Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceRng, SoftdeviceStorage};
-use drogue_device::drivers::ble::mesh::bearer::Bearer;
-use drogue_device::drivers::ble::mesh::configuration_manager::ConfigurationManager;
 use drogue_device::{actors, drivers, ActorContext, DeviceContext, Package};
 use embassy::executor::Spawner;
 use embassy_nrf::config::Config;
@@ -50,7 +52,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
     let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BLE Mesh");
     let bearer = facilities.bearer();
     let mut rng = facilities.rng();
-    let storage = facilities.storage( unsafe { &__storage as * const u8 as usize} );
+    let storage = facilities.storage(unsafe { &__storage as *const u8 as usize });
 
     let capabilities = Capabilities {
         number_of_elements: 1,

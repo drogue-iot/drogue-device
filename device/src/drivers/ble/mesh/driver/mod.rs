@@ -1,8 +1,8 @@
+use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use cmac::crypto_mac::InvalidKeyLength;
 use defmt::Format;
 use postcard::Error;
-use crate::drivers::ble::mesh::pdu::ParseError;
 
 pub mod node;
 mod pipeline;

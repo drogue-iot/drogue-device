@@ -1,11 +1,11 @@
-use core::convert::TryInto;
-use defmt::Format;
-use heapless::Vec;
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::configuration_manager::NetworkKey;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::ParseError;
+use core::convert::TryInto;
+use defmt::Format;
+use heapless::Vec;
 
 #[derive(Format)]
 pub enum UpperPDU {
@@ -15,7 +15,7 @@ pub enum UpperPDU {
 
 #[derive(Format)]
 pub struct UpperControl {
-    data: Vec<u8,256>,
+    data: Vec<u8, 256>,
 }
 
 #[derive(Format)]
@@ -36,7 +36,7 @@ impl TryInto<AccessMessage> for UpperPDU {
     fn try_into(self) -> Result<AccessMessage, Self::Error> {
         match self {
             UpperPDU::Control(_) => Err(ParseError::InvalidPDUFormat),
-            UpperPDU::Access(inner) => AccessMessage::parse(&inner)
+            UpperPDU::Access(inner) => AccessMessage::parse(&inner),
         }
     }
 }

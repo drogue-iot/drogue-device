@@ -12,19 +12,19 @@ use p256::elliptic_curve::ecdh::diffie_hellman;
 use p256::PublicKey;
 
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
+use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::ProvisioningData;
 use crate::drivers::ble::mesh::storage::Storage;
 use heapless::Vec;
-use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 
 pub trait Vault {
     fn uuid(&self) -> Uuid;
 
-    type SetPeerPublicKeyFuture<'m>: Future<Output = Result<(), DeviceError> >
+    type SetPeerPublicKeyFuture<'m>: Future<Output = Result<(), DeviceError>>
     where
-    Self: 'm;
+        Self: 'm;
 
     fn set_peer_public_key<'m>(&'m mut self, pk: PublicKey) -> Self::SetPeerPublicKeyFuture<'m>;
 
@@ -74,9 +74,9 @@ pub trait Vault {
             .map_err(|_| DeviceError::CryptoError)
     }
 
-    type SetProvisioningDataFuture<'m>: Future<Output = Result<(), DeviceError> >
+    type SetProvisioningDataFuture<'m>: Future<Output = Result<(), DeviceError>>
     where
-    Self: 'm;
+        Self: 'm;
 
     fn set_provisioning_data<'m>(
         &'m mut self,
@@ -90,9 +90,19 @@ pub trait Vault {
 
     fn is_local_unicast(&self, addr: &Address) -> bool;
 
-    fn decrypt_device_key(&self, nonce: DeviceNonce, bytes: &mut [u8], mic: &[u8]) -> Result<(), DeviceError>;
+    fn decrypt_device_key(
+        &self,
+        nonce: DeviceNonce,
+        bytes: &mut [u8],
+        mic: &[u8],
+    ) -> Result<(), DeviceError>;
 
-    fn encrypt_device_key(&self, nonce: DeviceNonce, bytes: &mut [u8], mic: &mut [u8]) -> Result<(), DeviceError>;
+    fn encrypt_device_key(
+        &self,
+        nonce: DeviceNonce,
+        bytes: &mut [u8],
+        mic: &mut [u8],
+    ) -> Result<(), DeviceError>;
 
     fn primary_unicast_address(&self) -> Option<UnicastAddress>;
 }
@@ -113,9 +123,9 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
     }
 
     type SetPeerPublicKeyFuture<'m>
-        where
-            Self: 'm,
-    = impl Future<Output=Result<(), DeviceError>>;
+    where
+        Self: 'm,
+    = impl Future<Output = Result<(), DeviceError>>;
 
     fn set_peer_public_key<'m>(&'m mut self, pk: PublicKey) -> Self::SetPeerPublicKeyFuture<'m> {
         async move {
@@ -141,13 +151,13 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
             salt,
             p,
         )
-            .map_err(|_| DeviceError::CryptoError)
+        .map_err(|_| DeviceError::CryptoError)
     }
 
     type SetProvisioningDataFuture<'m>
-        where
-            Self: 'm,
-    = impl Future<Output=Result<(), DeviceError>>;
+    where
+        Self: 'm,
+    = impl Future<Output = Result<(), DeviceError>>;
 
     fn set_provisioning_data<'m>(
         &'m mut self,
@@ -168,7 +178,6 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
 
             let mut network_keys = Vec::new();
             network_keys.push(network_key);
-
 
             let update = NetworkInfo {
                 network_keys: network_keys,
@@ -230,18 +239,33 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
         }
     }
 
-    fn decrypt_device_key(&self, nonce: DeviceNonce, bytes: &mut [u8], mic: &[u8]) -> Result<(), DeviceError> {
+    fn decrypt_device_key(
+        &self,
+        nonce: DeviceNonce,
+        bytes: &mut [u8],
+        mic: &[u8],
+    ) -> Result<(), DeviceError> {
         let keys = self.storage.retrieve();
         if let Some(salt) = keys.provisioning_salt()? {
             let device_key = self.prdk(&salt)?;
-            crypto::aes_ccm_decrypt_detached(&*device_key.into_bytes(), &nonce.into_bytes(), bytes, mic)
-                .map_err(|_| DeviceError::CryptoError)
+            crypto::aes_ccm_decrypt_detached(
+                &*device_key.into_bytes(),
+                &nonce.into_bytes(),
+                bytes,
+                mic,
+            )
+            .map_err(|_| DeviceError::CryptoError)
         } else {
             Err(DeviceError::CryptoError)
         }
     }
 
-    fn encrypt_device_key(&self, nonce: DeviceNonce, bytes: &mut [u8], mic: &mut [u8]) -> Result<(), DeviceError> {
+    fn encrypt_device_key(
+        &self,
+        nonce: DeviceNonce,
+        bytes: &mut [u8],
+        mic: &mut [u8],
+    ) -> Result<(), DeviceError> {
         let keys = self.storage.retrieve();
         if let Some(salt) = keys.provisioning_salt()? {
             let device_key = self.prdk(&salt)?.into_bytes();

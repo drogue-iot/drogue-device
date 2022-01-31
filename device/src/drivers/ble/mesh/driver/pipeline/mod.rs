@@ -1,5 +1,11 @@
 use crate::drivers::ble::mesh::driver::node::State;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::{Mesh, MeshData};
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::Access;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::Lower;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::Authentication;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::Relay;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::Upper;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::ProvisionedContext;
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::{
     Provisionable, UnprovisionedContext,
 };
@@ -7,12 +13,6 @@ use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisioning_bea
     BearerMessage, ProvisioningBearer,
 };
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::Access;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::Lower;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::Authentication;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::Relay;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::ProvisionedContext;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::Upper;
 use crate::drivers::ble::mesh::generic_provisioning::Reason;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 
@@ -99,27 +99,35 @@ impl Pipeline {
                     if let Some(pdu) = self.authentication.process_inbound(ctx, pdu).await? {
                         defmt::info!("authenticated inbound -> {}", pdu);
                         // Relaying is independent from processing it locally
-                        if let Some(outbound) = self.relay.process_inbound(ctx, &pdu).await? {
-
-                        }
+                        if let Some(outbound) = self.relay.process_inbound(ctx, &pdu).await? {}
 
                         if let Some(pdu) = self.lower.process_inbound(ctx, pdu).await? {
                             defmt::info!("upper inbound --> {}", pdu);
                             if let Some(message) = self.upper.process_inbound(ctx, pdu).await? {
                                 defmt::info!("inbound ----> {}", message);
-                                if let Some(response) = self.access.process_inbound(ctx, message).await? {
+                                if let Some(response) =
+                                    self.access.process_inbound(ctx, message).await?
+                                {
                                     defmt::info!("outbound --> {}", response);
                                     // send it back outbound, finally.
-                                    if let Some(response) = self.upper.process_outbound(ctx, response).await? {
+                                    if let Some(response) =
+                                        self.upper.process_outbound(ctx, response).await?
+                                    {
                                         defmt::info!("outbound upper --> {}", response);
-                                        if let Some(response) = self.lower.process_outbound(ctx, response).await? {
+                                        if let Some(response) =
+                                            self.lower.process_outbound(ctx, response).await?
+                                        {
                                             defmt::info!("outbound lower --> {}", response);
-                                            if let Some(response) = self.authentication.process_outbound(ctx, response).await? {
+                                            if let Some(response) = self
+                                                .authentication
+                                                .process_outbound(ctx, response)
+                                                .await?
+                                            {
                                                 defmt::info!("network --> {}", response);
 
                                                 //for _ in 1..10 {
-                                                    let result = ctx.transmit_mesh_pdu(&response).await;
-                                                    defmt::info!("status {}", result);
+                                                let result = ctx.transmit_mesh_pdu(&response).await;
+                                                defmt::info!("status {}", result);
                                                 //}
                                             }
                                         }

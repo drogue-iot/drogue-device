@@ -1,11 +1,11 @@
-use crate::drivers::ble::mesh::pdu::ParseError;
-use crate::drivers::ble::mesh::InsufficientBuffer;
-use defmt::{Format, Formatter};
-use heapless::Vec;
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::configuration_manager::NetworkKey;
 use crate::drivers::ble::mesh::pdu::upper::UpperAccess;
+use crate::drivers::ble::mesh::pdu::ParseError;
+use crate::drivers::ble::mesh::InsufficientBuffer;
+use defmt::{Format, Formatter};
+use heapless::Vec;
 
 #[derive(Format)]
 pub struct AccessMessage {
@@ -28,18 +28,16 @@ impl AccessMessage {
     }
 
     pub fn parse(access: &UpperAccess) -> Result<Self, ParseError> {
-        Ok(
-            Self{
-                network_key: access.network_key,
-                ivi: access.ivi,
-                nid: access.nid,
-                akf: access.akf,
-                aid: access.aid,
-                src: access.src,
-                dst: access.dst,
-                payload: AccessPayload::parse(&access.payload)?
-            }
-        )
+        Ok(Self {
+            network_key: access.network_key,
+            ivi: access.ivi,
+            nid: access.nid,
+            akf: access.akf,
+            aid: access.aid,
+            src: access.src,
+            dst: access.dst,
+            payload: AccessPayload::parse(&access.payload)?,
+        })
     }
 
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
@@ -858,16 +856,16 @@ impl Opcode {
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
         match self {
             Opcode::OneOctet(a) => {
-                xmit.push(*a).map_err(|_|InsufficientBuffer)?;
+                xmit.push(*a).map_err(|_| InsufficientBuffer)?;
             }
             Opcode::TwoOctet(a, b) => {
-                xmit.push(*a).map_err(|_|InsufficientBuffer)?;
-                xmit.push(*b).map_err(|_|InsufficientBuffer)?;
+                xmit.push(*a).map_err(|_| InsufficientBuffer)?;
+                xmit.push(*b).map_err(|_| InsufficientBuffer)?;
             }
             Opcode::ThreeOctet(a, b, c) => {
-                xmit.push(*a).map_err(|_|InsufficientBuffer)?;
-                xmit.push(*b).map_err(|_|InsufficientBuffer)?;
-                xmit.push(*c).map_err(|_|InsufficientBuffer)?;
+                xmit.push(*a).map_err(|_| InsufficientBuffer)?;
+                xmit.push(*b).map_err(|_| InsufficientBuffer)?;
+                xmit.push(*c).map_err(|_| InsufficientBuffer)?;
             }
         }
         Ok(())

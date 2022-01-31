@@ -1,6 +1,6 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::configuration_manager::{KeyStorage, NetworkKey};
-use crate::drivers::ble::mesh::{crypto, MESH_MESSAGE};
+use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
@@ -20,6 +20,7 @@ use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use crate::drivers::ble::mesh::provisioning::ProvisioningData;
 use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::vault::Vault;
+use crate::drivers::ble::mesh::{crypto, MESH_MESSAGE};
 use aes::Aes128;
 use cmac::crypto_mac::Output;
 use cmac::Cmac;
@@ -27,7 +28,6 @@ use core::future::Future;
 use heapless::Vec;
 use p256::PublicKey;
 use rand_core::{CryptoRng, RngCore};
-use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 
 // ------------------------------------------------------------------------
 // Unprovisioned pipeline context
@@ -67,7 +67,11 @@ where
         provisioning_salt: &'m [u8],
         data: &'m ProvisioningData,
     ) -> Self::SetProvisioningDataFuture<'m> {
-        async move { self.vault().set_provisioning_data(provisioning_salt, data).await }
+        async move {
+            self.vault()
+                .set_provisioning_data(provisioning_salt, data)
+                .await
+        }
     }
 
     fn aes_cmac(&self, key: &[u8], input: &[u8]) -> Result<Output<Cmac<Aes128>>, DeviceError> {
@@ -126,7 +130,10 @@ where
         Self: 'm,
     = impl Future<Output = Result<(), DeviceError>>;
 
-    fn transmit_advertising_pdu<'m>(&'m self, pdu: AdvertisingPDU) -> Self::TransmitAdvertisingFuture<'m> {
+    fn transmit_advertising_pdu<'m>(
+        &'m self,
+        pdu: AdvertisingPDU,
+    ) -> Self::TransmitAdvertisingFuture<'m> {
         async move {
             let mut bytes = Vec::<u8, 64>::new();
             pdu.emit(&mut bytes)
@@ -136,22 +143,24 @@ where
     }
 
     type TransmitMeshFuture<'m>
-        where
-            Self: 'm,
+    where
+        Self: 'm,
     = impl Future<Output = Result<(), DeviceError>>;
 
-    fn transmit_mesh_pdu<'m>(&'m self, pdu: &'m ObfuscatedAndEncryptedNetworkPDU) -> Self::TransmitMeshFuture<'m> {
+    fn transmit_mesh_pdu<'m>(
+        &'m self,
+        pdu: &'m ObfuscatedAndEncryptedNetworkPDU,
+    ) -> Self::TransmitMeshFuture<'m> {
         async move {
             let mut bytes = Vec::<u8, 64>::new();
             bytes.push(0x00); // length placeholder
-            bytes.push( MESH_MESSAGE );
+            bytes.push(MESH_MESSAGE);
             pdu.emit(&mut bytes)
                 .map_err(|_| DeviceError::InsufficientBuffer)?;
             bytes[0] = bytes.len() as u8 - 1;
             self.transmitter.transmit_bytes(&*bytes).await
         }
     }
-
 }
 
 // ------------------------------------------------------------------------
@@ -202,11 +211,21 @@ where
     S: Storage,
     TX: Transmitter,
 {
-    fn decrypt_device_key(&self, nonce: DeviceNonce, bytes: &mut [u8], mic: &[u8]) -> Result<(), DeviceError> {
+    fn decrypt_device_key(
+        &self,
+        nonce: DeviceNonce,
+        bytes: &mut [u8],
+        mic: &[u8],
+    ) -> Result<(), DeviceError> {
         self.vault().decrypt_device_key(nonce, bytes, mic)
     }
 
-    fn encrypt_device_key(&self, nonce: DeviceNonce, bytes: &mut [u8], mic: &mut [u8]) -> Result<(), DeviceError> {
+    fn encrypt_device_key(
+        &self,
+        nonce: DeviceNonce,
+        bytes: &mut [u8],
+        mic: &mut [u8],
+    ) -> Result<(), DeviceError> {
         self.vault().encrypt_device_key(nonce, bytes, mic)
     }
 }

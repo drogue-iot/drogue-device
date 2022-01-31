@@ -1,10 +1,10 @@
 use defmt::Format;
 
 pub mod access;
-pub mod network;
-pub mod lower;
-pub mod upper;
 pub mod bearer;
+pub mod lower;
+pub mod network;
+pub mod upper;
 
 #[derive(Format)]
 pub enum ParseError {

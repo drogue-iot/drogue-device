@@ -1,4 +1,3 @@
-use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::segmentation::outbound::{
     OutboundSegments, OutboundSegmentsIter,
@@ -8,6 +7,7 @@ use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::generic_provisioning::{
     GenericProvisioningPDU, ProvisioningBearerControl, Reason,
 };
+use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::provisioning::ProvisioningPDU;
 use core::iter::Iterator;
 use defmt::Format;
@@ -223,7 +223,7 @@ impl ProvisioningBearer {
     pub async fn process_outbound(
         &mut self,
         pdu: ProvisioningPDU,
-    ) -> Result<impl Iterator<Item =AdvertisingPDU> + '_, DeviceError> {
+    ) -> Result<impl Iterator<Item = AdvertisingPDU> + '_, DeviceError> {
         let segments = self.segmentation.process_outbound(pdu).await?;
 
         let transaction_number = self.outbound_transaction_number;
