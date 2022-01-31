@@ -1,10 +1,10 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::configuration_manager::NetworkKey;
+use crate::drivers::ble::mesh::pdu::lower::LowerPDU;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use defmt::Format;
 use heapless::Vec;
-use crate::drivers::ble::mesh::pdu::lower::LowerPDU;
 
 pub enum NetworkPDU {
     ObfuscatedAndEncrypted(ObfuscatedAndEncryptedNetworkPDU),
@@ -68,5 +68,4 @@ pub struct CleartextNetworkPDU {
     pub(crate) transport_pdu: LowerPDU,
 }
 
-impl CleartextNetworkPDU {
-}
+impl CleartextNetworkPDU {}

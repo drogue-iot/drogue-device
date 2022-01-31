@@ -176,7 +176,9 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
             };
 
             let mut network_keys = Vec::new();
-            network_keys.push(network_key).map_err(|_|DeviceError::InsufficientBuffer)?;
+            network_keys
+                .push(network_key)
+                .map_err(|_| DeviceError::InsufficientBuffer)?;
 
             let update = NetworkInfo {
                 network_keys: network_keys,

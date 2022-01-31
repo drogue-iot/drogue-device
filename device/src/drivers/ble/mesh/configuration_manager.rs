@@ -78,8 +78,7 @@ pub struct NetworkKey {
     pub(crate) privacy_key: [u8; 16],
 }
 
-impl NetworkInfo {
-}
+impl NetworkInfo {}
 
 impl Keys {
     pub(crate) fn private_key(&self) -> Result<Option<SecretKey>, DeviceError> {
