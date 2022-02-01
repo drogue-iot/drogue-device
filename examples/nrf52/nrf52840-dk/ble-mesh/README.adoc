@@ -2,10 +2,15 @@
 
 === Raspberry Pi with Bluetooth
 
-At least the Raspbian distro I have already includes enough kernel mods to let the PB-ADV
-mesh work.
+The "bullseye" Raspbian distro should include enough kernel mods to
+let the PB-ADV mesh work, but you'll need to install the `bluez-meshd`
+package:
 
-Most of this is based upon the details from the [Bluetooth Site](https://www.bluetooth.com/wp-content/uploads/2020/04/Developer-Study-Guide-How-to-Deploy-BlueZ-on-a-Raspberry-Pi-Board-as-a-Bluetooth-Mesh-Provisioner.pdf)
+```
+$ sudo apt-get install bluez-meshd -y
+```
+
+Most of this is based upon the details from the link:https://www.bluetooth.com/wp-content/uploads/2020/04/Developer-Study-Guide-How-to-Deploy-BlueZ-on-a-Raspberry-Pi-Board-as-a-Bluetooth-Mesh-Provisioner.pdf[Bluetooth Site]
 
 ==== First manually stop the existing `bluetoothd`
 
@@ -23,7 +28,7 @@ Then start the PB-ADV-based mesh.
 
 This will leave the process running in the foreground to help with debugging, etc.
 
-=== Secondly, on the Pi, use `mesh-cfg-client`
+=== Secondly, on the Pi, use `mesh-cfgclient`
 
 This can be done as non-root regular user.
 
@@ -31,130 +36,19 @@ This can be done as non-root regular user.
 $ mesh-cfgclient
 ```
 
-It will probably complain about a missing `config_db.json`.
-
-If so, create that file under `$HOME/.config/meshcfg/config_db.json`.
-
-Mine looks like this currently, and isn't a terrible place to begin.
+The first time, it will complain about a missing
+`config_db.json`. Create one using the `create` command:
 
 ```
-pi@raspberrypi:~$ cat .config/meshcfg/config_db.json
-{
-  "token":"805639fed2ca3af9",
-  "uuid":"ada7d7630ec04e4f6a7f322759f564e1",
-  "name":"Mesh Config Client Network",
-  "nodes":[
-    {
-      "uuid":"867e496dc9a197ee2fb1f6bc2f95c9b6",
-      "elements":[
-        {
-          "index":0,
-          "location":"0000",
-          "models":[
-          ]
-        }
-      ],
-      "netKeys":[
-        {
-          "index":0
-        }
-      ],
-      "appKeys":[
-      ],
-      "unicastAddress":"0001"
-    },
-    {
-      "uuid":"066187e34a19b375f1a02a1e934db15a",
-      "elements":[
-        {
-          "index":0,
-          "location":"0000",
-          "models":[
-          ]
-        }
-      ],
-      "netKeys":[
-        {
-          "index":0
-        }
-      ],
-      "appKeys":[
-      ],
-      "unicastAddress":"00d9"
-    }
-  ],
-  "netKeys":[
-    {
-      "index":0,
-      "phase":0
-    }
-  ],
-  "appKeys":[
-    {
-      "boundNetKey":0,
-      "index":0
-    }
-  ],
-  "blacklistedAddresses":[
-    {
-      "ivIndex":0,
-      "addresses":[
-        "00aa",
-        "00ab",
-        "00ac",
-        "00ad",
-        "00ae",
-        "00af",
-        "00b0",
-        "00b1",
-        "00b2",
-        "00b3",
-        "00b4",
-        "00b5",
-        "00b6",
-        "00b7",
-        "00b8",
-        "00b9",
-        "00ba",
-        "00bb",
-        "00bc",
-        "00bd",
-        "00be",
-        "00bf",
-        "00c0",
-        "00c1",
-        "00c2",
-        "00c3",
-        "00c4",
-        "00c5",
-        "00c6",
-        "00c7",
-        "00c8",
-        "00c9",
-        "00ca",
-        "00cb",
-        "00cc",
-        "00cd",
-        "00ce",
-        "00cf",
-        "00d0",
-        "00d1",
-        "00d2",
-        "00d3",
-        "00d4",
-        "00d5",
-        "00d6",
-        "00d7",
-        "00d8"
-      ]
-    }
-  ],
-  "ivIndex":0,
-  "low":"00aa",
-  "high":"7fff",
-  "groups":[
-  ]
-}
+pi@raspberrypi:~ $ mesh-cfgclient
+
+Warning: config file "/home/pi/.config/meshcfg/config_db.json" not found
+Proxy added: org.bluez.mesh.Network1 (/org/bluez/mesh)
+[mesh-cfgclient]# create
+Created new node with token 176b9238fa48857c
+Proxy added: org.bluez.mesh.Node1 (/org/bluez/mesh/node326d83779e8ccbaf254d4b604dfec674)
+Proxy added: org.bluez.mesh.Management1 (/org/bluez/mesh/node326d83779e8ccbaf254d4b604dfec674)
+Attached with path /org/bluez/mesh/node326d83779e8ccbaf254d4b604dfec674
 ```
 
 === On the board
@@ -162,6 +56,18 @@ pi@raspberrypi:~$ cat .config/meshcfg/config_db.json
 Flash this example onto an nRF 52840
 
 `DEFMT_LOG=trace cargo run --release`
+
+==== If that fails...
+
+If you get an error mentioning a more recent version of `probe-run`...
+
+`cargo install probe-run`
+
+...for which, on linux, you may need `libudev`...
+
+`sudo dnf install rust-libudev-devel`
+
+If the app quits after a few seconds, try link:https://github.com/embassy-rs/nrf-softdevice#running-examples[flashing the softdevice].
 
 === Provision!
 
