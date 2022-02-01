@@ -298,16 +298,7 @@ where
 
     /// Mount the underlying actor and initialize the channel.
     pub fn mount<S: ActorSpawner>(&'static self, spawner: S, actor: A) -> Address<A> {
-        // Setup message channel
-        self.channel.initialize();
-
-        // Setup signal handlers
-        self.signals.initialize();
-
-        let actor = self.actor.put(actor);
-        let inbox = self.channel.inbox();
-        let address = Address::new(self);
-        let future = actor.on_mount(address, inbox);
+        let (address, future) = self.initialize(actor);
         let task = &self.task;
         // TODO: Map to error?
         spawner.spawn(task, future).unwrap();
