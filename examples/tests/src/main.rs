@@ -25,6 +25,7 @@ mod tests {
 
         teardown(&app);
 
+        println!("OUTPUT: {:?}", result);
         if let Ok(Some(output)) = result {
             println!("V: {:?}", output);
             assert_eq!(output["application"].as_str().unwrap(), app);
@@ -60,6 +61,53 @@ mod tests {
         );
 
         cmd!("drg", "create", "app", &app).run().unwrap();
+        let mut retries = 10;
+        let mut kafka_ready = false;
+        let mut ready = false;
+        while retries > 0 && !kafka_ready && !ready {
+            let output = cmd!("drg", "get", "app", &app)
+                .stdout_capture()
+                .stderr_to_stdout()
+                .read();
+            if let Ok(output) = output {
+                match serde_json::from_str::<serde_json::Value>(&output) {
+                    Ok(value) => {
+                        if let Some(status) = value.get("status") {
+                            if let Some(conditions) = status.get("conditions") {
+                                if let Some(conditions) = conditions.as_array() {
+                                    for condition in conditions {
+                                        if condition["type"] == "KafkaReady"
+                                            && condition["status"] == "True"
+                                        {
+                                            kafka_ready = true;
+                                        }
+                                        if condition["type"] == "Ready"
+                                            && condition["status"] == "True"
+                                        {
+                                            ready = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        println!(
+                            "error parsing application output as JSON '{:?}': {:?}",
+                            &output, e
+                        );
+                    }
+                }
+            }
+            std::thread::sleep(Duration::from_secs(10));
+            retries -= 1;
+        }
+        if !ready || !kafka_ready {
+            teardown(&app);
+        }
+        assert!(ready, "Application not ready within timeout");
+        assert!(kafka_ready, "Kafka topic not ready within timeout");
+
         cmd!(
             "drg",
             "create",
