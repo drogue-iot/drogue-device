@@ -12,6 +12,7 @@ use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
+use crate::drivers::ble::mesh::driver::primary_element::configuration_server::ConfigurationServerState;
 
 mod context;
 
@@ -49,6 +50,9 @@ where
     configuration_manager: ConfigurationManager<S>,
     rng: RefCell<R>,
     pipeline: RefCell<Pipeline>,
+    //
+    // primary element bits
+    pub(crate) configuration_server_state: ConfigurationServerState,
 }
 
 impl<TX, RX, S, R> Node<TX, RX, S, R>
@@ -72,6 +76,8 @@ where
             configuration_manager,
             rng: RefCell::new(rng),
             pipeline: RefCell::new(Pipeline::new(capabilities)),
+            //
+            configuration_server_state: ConfigurationServerState::new(),
         }
     }
 

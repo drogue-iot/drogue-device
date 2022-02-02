@@ -905,6 +905,7 @@ impl Opcode {
     }
 }
 
+#[macro_export]
 macro_rules! opcode {
     ($name:ident $o1:expr) => {
         pub const $name: Opcode = Opcode::OneOctet($o1);

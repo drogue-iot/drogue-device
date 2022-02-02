@@ -6,6 +6,7 @@ use postcard::Error;
 
 pub mod node;
 mod pipeline;
+mod primary_element;
 
 #[derive(Format)]
 pub enum DeviceError {

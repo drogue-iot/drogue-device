@@ -16,5 +16,7 @@ pub mod provisioning;
 pub mod status;
 pub mod storage;
 pub mod vault;
+pub mod model;
+pub mod element;
 
 pub struct InsufficientBuffer;

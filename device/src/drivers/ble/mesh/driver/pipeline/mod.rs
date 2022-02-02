@@ -107,6 +107,7 @@ impl Pipeline {
                             defmt::info!("upper inbound --> {}", pdu);
                             if let Some(message) = self.upper.process_inbound(ctx, pdu).await? {
                                 defmt::info!("inbound ----> {}", message);
+                                /*
                                 if let Some(response) =
                                     self.access.process_inbound(ctx, message).await?
                                 {
@@ -135,6 +136,7 @@ impl Pipeline {
                                         }
                                     }
                                 }
+                                 */
                             }
                         }
                     }
