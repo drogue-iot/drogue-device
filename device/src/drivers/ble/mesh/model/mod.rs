@@ -48,8 +48,8 @@ pub trait Model {
     type MESSAGE: Message;
 
     fn parse(&self, opcode: Opcode, parameters: &[u8]) -> Result<Option<Self::MESSAGE>, ParseError>;
-    fn connect(&mut self, sink: Sink<Self::MESSAGE>);
-    fn handle(&mut self, message: &Self::MESSAGE) -> Result<(), HandlerError>;
+    //fn connect(&mut self, sink: Sink<Self::MESSAGE>);
+    //fn handle(&mut self, message: &Self::MESSAGE) -> Result<(), HandlerError>;
 }
 
 pub trait State {

@@ -7,27 +7,72 @@ use crate::drivers::ble::mesh::vault::{StorageVault, Vault};
 use crate::drivers::ble::mesh::MESH_BEACON;
 use core::cell::RefCell;
 use core::future::Future;
+use core::cell::UnsafeCell;
+use embassy::blocking_mutex::kind::Noop;
+use embassy::blocking_mutex::NoopMutex;
+use embassy::channel::mpsc;
+use embassy::channel::mpsc::{Sender as ChannelSender, Receiver as ChannelReceiver, Channel};
 use embassy::time::{Duration, Ticker};
 use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
+use heapless::spsc::Queue;
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
-use crate::drivers::ble::mesh::driver::primary_element::configuration_server::ConfigurationServerState;
+use crate::drivers::ble::mesh::driver::elements::Elements;
+use crate::drivers::ble::mesh::pdu::access::Opcode;
 
 mod context;
 
 pub trait Transmitter {
-    type TransmitFuture<'m>: Future<Output = Result<(), DeviceError>>
+    type TransmitFuture<'m>: Future<Output = Result<(), DeviceError> >
     where
-        Self: 'm;
+    Self: 'm;
     fn transmit_bytes<'m>(&'m self, bytes: &'m [u8]) -> Self::TransmitFuture<'m>;
 }
 
 pub trait Receiver {
-    type ReceiveFuture<'m>: Future<Output = Result<Vec<u8, 384>, DeviceError>>
+    type ReceiveFuture<'m>: Future<Output = Result<Vec<u8, 384 >, DeviceError> >
     where
-        Self: 'm;
+    Self: 'm;
     fn receive_bytes<'m>(&'m self) -> Self::ReceiveFuture<'m>;
+}
+
+pub struct OutboundAccessMessage {
+    bytes: Vec<u8, 384>,
+}
+
+pub(crate) struct OutboundChannel<'a> {
+    channel: UnsafeCell<Option<Channel<Noop, OutboundAccessMessage, 10>>>,
+    sender: UnsafeCell<Option<ChannelSender<'a, Noop, OutboundAccessMessage, 10>>>,
+    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, OutboundAccessMessage, 10>>>,
+}
+
+impl<'a> OutboundChannel<'a> {
+    fn new() -> Self {
+        Self {
+            channel: UnsafeCell::new(None),
+            sender: UnsafeCell::new(None),
+            receiver: UnsafeCell::new(None),
+        }
+    }
+
+    async fn send(&self, message: OutboundAccessMessage) {
+        unsafe {
+            if let Some(sender) = &*self.sender.get() {
+                sender.send(message).await;
+            }
+        }
+    }
+
+    async fn next(&self) -> Option<OutboundAccessMessage> {
+        unsafe {
+            if let Some(receiver) = &mut *self.receiver.get() {
+                receiver.recv().await
+            } else {
+                None
+            }
+        }
+    }
 }
 
 pub enum State {
@@ -37,11 +82,11 @@ pub enum State {
 }
 
 pub struct Node<TX, RX, S, R>
-where
-    TX: Transmitter,
-    RX: Receiver,
-    S: Storage,
-    R: RngCore + CryptoRng,
+    where
+        TX: Transmitter,
+        RX: Receiver,
+        S: Storage,
+        R: RngCore + CryptoRng,
 {
     state: State,
     //
@@ -51,16 +96,16 @@ where
     rng: RefCell<R>,
     pipeline: RefCell<Pipeline>,
     //
-    // primary element bits
-    pub(crate) configuration_server_state: ConfigurationServerState,
+    pub(crate) elements: Elements,
+    pub(crate) outbound: OutboundChannel<'static>,
 }
 
 impl<TX, RX, S, R> Node<TX, RX, S, R>
-where
-    TX: Transmitter,
-    RX: Receiver,
-    S: Storage,
-    R: RngCore + CryptoRng,
+    where
+        TX: Transmitter,
+        RX: Receiver,
+        S: Storage,
+        R: RngCore + CryptoRng,
 {
     pub fn new(
         capabilities: Capabilities,
@@ -77,7 +122,8 @@ where
             rng: RefCell::new(rng),
             pipeline: RefCell::new(Pipeline::new(capabilities)),
             //
-            configuration_server_state: ConfigurationServerState::new(),
+            elements: Elements::new(),
+            outbound: OutboundChannel::new(),
         }
     }
 
@@ -136,10 +182,10 @@ where
         let result = select(receive_fut, ticker_fut).await;
 
         match result {
-            Either::Left((Ok(msg), _)) => {
+            Either::Left((Ok(inbound), _)) => {
                 self.pipeline
                     .borrow_mut()
-                    .process_inbound(self, &*msg)
+                    .process_inbound(self, &*inbound)
                     .await
             }
             Either::Right((_, _)) => {
@@ -154,12 +200,30 @@ where
     }
 
     async fn loop_provisioned(&mut self) -> Result<Option<State>, DeviceError> {
-        let msg = self.receiver.receive_bytes().await?;
-        self.pipeline
-            .borrow_mut()
-            .process_inbound(self, &*msg)
-            .await?;
-        Ok(None)
+        let receive_fut = self.receiver.receive_bytes();
+        let outbound_fut = self.outbound.next();
+
+        pin_mut!(receive_fut);
+        pin_mut!(outbound_fut);
+
+        let result = select(receive_fut, outbound_fut).await;
+        match result {
+            Either::Left((Ok(inbound), _)) => {
+                self.pipeline
+                    .borrow_mut()
+                    .process_inbound(self, &*inbound)
+                    .await
+            }
+            Either::Right((Some(outbound), _)) => {
+                //self.pipeline.borrow_mut().try_retransmit(self).await?;
+                // process outbound.
+                Ok(None)
+            }
+            _ => {
+                Ok(None)
+            }
+        }
+        //Ok(None)
     }
 
     pub async fn run(&mut self) -> Result<(), ()> {
@@ -168,6 +232,9 @@ where
             .initialize(&mut *self.rng.borrow_mut())
             .await
             .map_err(|_| ())?;
+
+        let mut outbound = Channel::<Noop, OutboundAccessMessage, 10>::new();
+
 
         loop {
             if let Ok(Some(next_state)) = match self.state {

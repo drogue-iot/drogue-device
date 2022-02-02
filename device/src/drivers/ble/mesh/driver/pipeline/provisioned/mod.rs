@@ -4,10 +4,10 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentic
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::RelayContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::UpperContext;
 
-pub mod access;
 pub mod lower;
 pub mod network;
 pub mod upper;
+pub mod access;
 
 pub trait ProvisionedContext:
     AuthenticationContext + RelayContext + LowerContext + UpperContext + AccessContext

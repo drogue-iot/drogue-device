@@ -1,8 +1,13 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
-use crate::drivers::ble::mesh::configuration_manager::NetworkKey;
+use crate::drivers::ble::mesh::configuration_manager::{
+    ConfigurationManager, KeyStorage, NetworkKey, PrimaryElementModels, PrimaryElementStorage,
+};
 use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::device::Uuid;
-use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
+use crate::drivers::ble::mesh::driver::elements::{
+    ElementContext, PrimaryElement, PrimaryElementContext,
+};
+use crate::drivers::ble::mesh::driver::node::{Node, OutboundAccessMessage, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::LowerContext;
@@ -13,6 +18,8 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::ProvisionedContext
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::UnprovisionedContext;
 use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::model::Message;
+use crate::drivers::ble::mesh::pdu::access::AccessPayload;
 use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use crate::drivers::ble::mesh::provisioning::ProvisioningData;
@@ -248,8 +255,13 @@ where
     S: Storage,
     TX: Transmitter,
 {
-    fn primary_unicast_address(&self) -> Option<UnicastAddress> {
-        self.vault().primary_unicast_address()
+    type DispatchFuture<'m>
+    where
+        Self: 'm,
+    = impl Future<Output = Result<(), DeviceError>> + 'm;
+
+    fn dispatch_access<'m>(&'m self, message: &'m AccessPayload) -> Self::DispatchFuture<'m> {
+        async move { self.elements.dispatch(self, message).await }
     }
 }
 
@@ -260,4 +272,47 @@ where
     S: Storage,
     R: RngCore + CryptoRng,
 {
+}
+
+impl<TX, RX, S, R> ElementContext for Node<TX, RX, S, R>
+where
+    R: CryptoRng + RngCore,
+    RX: Receiver,
+    S: Storage,
+    TX: Transmitter,
+{
+    type TransmitFuture<'m>
+    where
+        Self: 'm,
+    = impl Future<Output = Result<(), DeviceError>> + 'm;
+
+    fn transmit_bytes<'m>(&'m self, message: Vec<u8, 384>) -> Self::TransmitFuture<'m> {
+        async move {
+            self.outbound
+                .send(OutboundAccessMessage { bytes: message })
+                .await;
+            Ok(())
+        }
+    }
+}
+
+impl<TX, RX, S, R> PrimaryElementContext for Node<TX, RX, S, R>
+where
+    TX: Transmitter,
+    RX: Receiver,
+    S: Storage,
+    R: RngCore + CryptoRng,
+{
+    fn retrieve(&self) -> PrimaryElementModels {
+        PrimaryElementStorage::retrieve(&self.configuration_manager)
+    }
+
+    type StoreFuture<'m>
+    where
+        Self: 'm,
+    = impl Future<Output = Result<(), DeviceError>> + 'm;
+
+    fn store<'m>(&'m self, update: PrimaryElementModels) -> Self::StoreFuture<'m> {
+        PrimaryElementStorage::store(&self.configuration_manager, update)
+    }
 }

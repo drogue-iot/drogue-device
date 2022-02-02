@@ -22,10 +22,11 @@ pub struct AccessMessage {
 #[allow(unused)]
 impl AccessMessage {
     pub fn opcode(&self) -> Opcode {
-        match &self.payload {
-            AccessPayload::Config(inner) => inner.opcode(),
-            AccessPayload::Health(inner) => inner.opcode(),
-        }
+        self.payload.opcode
+    }
+
+    pub fn parameters(&self) -> &[u8] {
+        &self.payload.parameters
     }
 
     pub fn parse(access: &UpperAccess) -> Result<Self, ParseError> {
@@ -47,38 +48,24 @@ impl AccessMessage {
 }
 
 #[derive(Format)]
-pub enum AccessPayload {
-    Config(Config),
-    Health(Health),
+pub struct AccessPayload {
+    pub opcode: Opcode,
+    pub parameters: Vec<u8,384>,
 }
 
 #[allow(unused)]
 impl AccessPayload {
     pub fn parse(data: &[u8]) -> Result<Self, ParseError> {
         let (opcode, parameters) = Opcode::split(data).ok_or(ParseError::InvalidPDUFormat)?;
-        defmt::info!("OPCODE {}", opcode);
-        match opcode {
-            CONFIG_NODE_RESET => Ok(Self::Config(Config::NodeReset(NodeReset::parse_reset(
-                parameters,
-            )?))),
-            CONFIG_NODE_RESET_STATUS => Ok(Self::Config(Config::NodeReset(
-                NodeReset::parse_status(parameters)?,
-            ))),
-            CONFIG_RELAY_GET => Ok(Self::Config(Config::Relay(Relay::parse_get(parameters)?))),
-            CONFIG_BEACON_GET => Ok(Self::Config(Config::Beacon(Beacon::parse_get(parameters)?))),
-            _ => {
-                let same = CONFIG_BEACON_GET == opcode;
-                defmt::info!("same? {} {} {}", same, CONFIG_BEACON_GET, opcode);
-                Err(ParseError::InvalidValue)
-            }
-        }
+        Ok( Self {
+            opcode,
+            parameters: Vec::from_slice(parameters).map_err(|_|ParseError::InsufficientBuffer)?,
+        })
     }
 
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        match self {
-            AccessPayload::Config(inner) => inner.emit(xmit),
-            AccessPayload::Health(inner) => inner.emit(xmit),
-        }
+        self.opcode.emit(xmit)?;
+        xmit.extend_from_slice(&self.parameters).map_err(|_|InsufficientBuffer)
     }
 }
 
@@ -820,7 +807,7 @@ impl Period {
     }
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Opcode {
     OneOctet(u8),
     TwoOctet(u8, u8),

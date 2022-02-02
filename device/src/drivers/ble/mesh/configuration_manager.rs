@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 pub struct Configuration {
     uuid: Option<[u8; 16]>,
     keys: Keys,
+    primary: PrimaryElementModels,
 }
 
 impl Configuration {
@@ -177,6 +178,16 @@ pub trait KeyStorage {
     fn retrieve<'m>(&'m self) -> Keys;
 }
 
+pub trait PrimaryElementStorage {
+    type StoreFuture<'m>: Future<Output = Result<(), DeviceError>>
+    where
+    Self: 'm;
+
+    fn store<'m>(&'m self, element: PrimaryElementModels) -> Self::StoreFuture<'m>;
+
+    fn retrieve(&self) -> PrimaryElementModels;
+}
+
 pub struct ConfigurationManager<S: Storage> {
     storage: RefCell<S>,
     config: RefCell<Configuration>,
@@ -204,6 +215,24 @@ impl<S: Storage> KeyStorage for ConfigurationManager<S> {
 
     fn retrieve<'m>(&'m self) -> Keys {
         self.config.borrow().keys.clone()
+    }
+}
+
+impl<S: Storage> PrimaryElementStorage for ConfigurationManager<S> {
+    type StoreFuture<'m>
+        where
+            Self: 'm,
+    = impl Future<Output = Result<(), DeviceError>>;
+
+    fn store<'m>(&'m self, primary: PrimaryElementModels) -> Self::StoreFuture<'m> {
+        let mut update = self.config.borrow().clone();
+        update.primary = primary;
+        defmt::info!("STORE {}", update);
+        async move { self.store(&update).await }
+    }
+
+    fn retrieve(&self) -> PrimaryElementModels {
+        self.config.borrow().primary.clone()
     }
 }
 
@@ -267,5 +296,24 @@ impl<S: Storage> ConfigurationManager<S> {
             .map_err(|_| DeviceError::Storage)?;
         self.config.replace(config.clone());
         Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Default, Format)]
+pub struct PrimaryElementModels {
+    pub(crate) configuration: ConfigurationModel,
+}
+
+
+#[derive(Serialize, Deserialize, Clone, Format)]
+pub struct ConfigurationModel {
+    pub(crate) secure_beacon: bool,
+}
+
+impl Default for ConfigurationModel {
+    fn default() -> Self {
+        Self {
+            secure_beacon: true,
+        }
     }
 }

@@ -26,23 +26,15 @@ impl Message for ConfigurationMessage {
     }
 }
 
-pub trait BeaconHandler {
-    fn set(&mut self, val: bool);
-    fn get(&self) -> bool;
+pub struct ConfigurationServer;
+
+impl Default for ConfigurationServer {
+    fn default() -> Self {
+        Self
+    }
 }
 
-pub trait ConfigurationServerHandler {
-    type BEACON: BeaconHandler;
-    fn beacon(&self) -> &Self::BEACON;
-    fn beacon_mut(&mut self) -> &mut Self::BEACON;
-}
-
-pub struct ConfigurationServer<T: ConfigurationServerHandler> {
-    sink: Option<Sink<ConfigurationMessage>>,
-    handler: T,
-}
-
-impl<T: ConfigurationServerHandler> Model for ConfigurationServer<T> {
+impl Model for ConfigurationServer {
     const IDENTIFIER: ModelIdentifier =
         ModelIdentifier::Foundation(FoundationIdentifier::Configuration);
     type MESSAGE = ConfigurationMessage;
@@ -55,30 +47,6 @@ impl<T: ConfigurationServerHandler> Model for ConfigurationServer<T> {
             CONFIG_BEACON_SET => Ok(None),
             _ => Ok(None),
         }
-    }
-
-    fn connect(&mut self, sink: Sink<Self::MESSAGE>) {
-        self.sink.replace(sink);
-    }
-
-    fn handle(&mut self, message: &Self::MESSAGE) -> Result<(), HandlerError> {
-        match message {
-            ConfigurationMessage::Beacon(BeaconMessage::Get) => {
-                let response = self.handler.beacon().get();
-
-                self.sink
-                    .as_mut()
-                    .ok_or(HandlerError::NotConnected)?
-                    .transmit(ConfigurationMessage::Beacon(BeaconMessage::Status(
-                        response,
-                    )));
-            }
-            ConfigurationMessage::Beacon(BeaconMessage::Set(val)) => {
-                self.handler.beacon_mut().set(*val);
-            }
-            _ => return Err(HandlerError::Unhandled),
-        }
-        Ok(())
     }
 }
 

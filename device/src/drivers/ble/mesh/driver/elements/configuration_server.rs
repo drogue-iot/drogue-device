@@ -1,14 +1,9 @@
 use rand_core::{CryptoRng, RngCore};
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
-use crate::drivers::ble::mesh::model::foundation::configuration::{BeaconHandler, ConfigurationServerHandler};
 use crate::drivers::ble::mesh::storage::Storage;
 
-impl<TX, RX, S, R> ConfigurationServerHandler for Node<TX, RX, S, R>
-    where
-        TX: Transmitter,
-        RX: Receiver,
-        S: Storage,
-        R: RngCore + CryptoRng,
+/*
+impl ConfigurationServerHandler for ConfigurationServerState
 {
     type BEACON = BeaconState;
 
@@ -55,3 +50,4 @@ impl BeaconHandler for BeaconState {
         self.val
     }
 }
+ */

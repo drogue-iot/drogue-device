@@ -1,6 +1,5 @@
 use crate::drivers::ble::mesh::driver::node::State;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::{Mesh, MeshData};
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::Access;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::Lower;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::Authentication;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::Relay;
@@ -32,7 +31,6 @@ pub struct Pipeline {
     relay: Relay,
     lower: Lower,
     upper: Upper,
-    access: Access,
 }
 
 impl Pipeline {
@@ -46,7 +44,6 @@ impl Pipeline {
             relay: Default::default(),
             lower: Default::default(),
             upper: Default::default(),
-            access: Default::default(),
         }
     }
 
@@ -107,6 +104,7 @@ impl Pipeline {
                             defmt::info!("upper inbound --> {}", pdu);
                             if let Some(message) = self.upper.process_inbound(ctx, pdu).await? {
                                 defmt::info!("inbound ----> {}", message);
+                                ctx.dispatch_access( &message.payload ).await;
                                 /*
                                 if let Some(response) =
                                     self.access.process_inbound(ctx, message).await?
