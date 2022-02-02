@@ -1,6 +1,5 @@
 use crate::drivers::ble::mesh::driver::node::State;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::{Mesh, MeshData};
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::Access;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::Lower;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::Authentication;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::Relay;
@@ -14,6 +13,7 @@ use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisioning_bea
 };
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::generic_provisioning::Reason;
+use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 
 pub mod mesh;
@@ -32,7 +32,6 @@ pub struct Pipeline {
     relay: Relay,
     lower: Lower,
     upper: Upper,
-    access: Access,
 }
 
 impl Pipeline {
@@ -46,7 +45,6 @@ impl Pipeline {
             relay: Default::default(),
             lower: Default::default(),
             upper: Default::default(),
-            access: Default::default(),
         }
     }
 
@@ -107,34 +105,7 @@ impl Pipeline {
                             defmt::info!("upper inbound --> {}", pdu);
                             if let Some(message) = self.upper.process_inbound(ctx, pdu).await? {
                                 defmt::info!("inbound ----> {}", message);
-                                if let Some(response) =
-                                    self.access.process_inbound(ctx, message).await?
-                                {
-                                    defmt::info!("outbound --> {}", response);
-                                    // send it back outbound, finally.
-                                    if let Some(response) =
-                                        self.upper.process_outbound(ctx, response).await?
-                                    {
-                                        defmt::info!("outbound upper --> {}", response);
-                                        if let Some(response) =
-                                            self.lower.process_outbound(ctx, response).await?
-                                        {
-                                            defmt::info!("outbound lower --> {}", response);
-                                            if let Some(response) = self
-                                                .authentication
-                                                .process_outbound(ctx, response)
-                                                .await?
-                                            {
-                                                defmt::info!("network --> {}", response);
-
-                                                //for _ in 1..10 {
-                                                let result = ctx.transmit_mesh_pdu(&response).await;
-                                                defmt::info!("status {}", result);
-                                                //}
-                                            }
-                                        }
-                                    }
-                                }
+                                ctx.dispatch_access(&message).await?;
                             }
                         }
                     }
@@ -144,6 +115,31 @@ impl Pipeline {
         } else {
             Ok(None)
         }
+    }
+
+    pub async fn process_outbound<C: PipelineContext>(
+        &mut self,
+        ctx: &C,
+        message: AccessMessage,
+    ) -> Result<(), DeviceError> {
+        defmt::info!("outbound --> {}", message);
+        // send it back outbound, finally.
+        if let Some(message) = self.upper.process_outbound(ctx, message.into()).await? {
+            defmt::info!("outbound upper --> {}", message);
+            if let Some(message) = self.lower.process_outbound(ctx, message).await? {
+                defmt::info!("outbound lower --> {}", message);
+                if let Some(message) = self.authentication.process_outbound(ctx, message).await? {
+                    defmt::info!("network --> {}", message);
+
+                    //for _ in 1..10 {
+                    let result = ctx.transmit_mesh_pdu(&message).await;
+                    defmt::info!("status {}", result);
+                    //}
+                }
+            }
+        }
+
+        Ok(())
     }
 
     pub async fn try_retransmit<C: PipelineContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {

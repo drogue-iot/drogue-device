@@ -1,36 +1,11 @@
-use crate::drivers::ble::mesh::address::UnicastAddress;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::beacon::Beacon;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
-
-pub mod beacon;
+use core::future::Future;
 
 pub trait AccessContext {
-    fn primary_unicast_address(&self) -> Option<UnicastAddress>;
-}
+    type DispatchFuture<'m>: Future<Output = Result<(), DeviceError>> + 'm
+    where
+        Self: 'm;
 
-pub struct Access {
-    beacon: Beacon,
-}
-
-impl Default for Access {
-    fn default() -> Self {
-        Self {
-            beacon: Default::default(),
-        }
-    }
-}
-
-impl Access {
-    pub async fn process_inbound<C: AccessContext>(
-        &mut self,
-        ctx: &C,
-        message: AccessMessage,
-    ) -> Result<Option<AccessMessage>, DeviceError> {
-        Ok(self
-            .beacon
-            .process_inbound(ctx, &message)
-            .await?
-            .or_else(|| None))
-    }
+    fn dispatch_access<'m>(&'m self, message: &'m AccessMessage) -> Self::DispatchFuture<'m>;
 }

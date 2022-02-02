@@ -1,6 +1,9 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::configuration_manager::NetworkKey;
+use crate::drivers::ble::mesh::driver::elements::ElementContext;
+use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::model::Message;
 use crate::drivers::ble::mesh::pdu::upper::UpperAccess;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
@@ -22,10 +25,11 @@ pub struct AccessMessage {
 #[allow(unused)]
 impl AccessMessage {
     pub fn opcode(&self) -> Opcode {
-        match &self.payload {
-            AccessPayload::Config(inner) => inner.opcode(),
-            AccessPayload::Health(inner) => inner.opcode(),
-        }
+        self.payload.opcode
+    }
+
+    pub fn parameters(&self) -> &[u8] {
+        &self.payload.parameters
     }
 
     pub fn parse(access: &UpperAccess) -> Result<Self, ParseError> {
@@ -44,41 +48,52 @@ impl AccessMessage {
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
         self.payload.emit(xmit)
     }
+
+    pub fn create_response<C: ElementContext, M: Message>(
+        &self,
+        ctx: &C,
+        response: M,
+    ) -> Result<AccessMessage, DeviceError> {
+        let mut parameters = Vec::new();
+        response
+            .emit_parameters(&mut parameters)
+            .map_err(|_| InsufficientBuffer)?;
+        Ok(AccessMessage {
+            network_key: self.network_key,
+            ivi: self.ivi,
+            nid: self.nid,
+            akf: self.akf,
+            aid: self.aid,
+            src: ctx.address().ok_or(DeviceError::NotProvisioned)?,
+            dst: self.src.into(),
+            payload: AccessPayload {
+                opcode: response.opcode(),
+                parameters,
+            },
+        })
+    }
 }
 
 #[derive(Format)]
-pub enum AccessPayload {
-    Config(Config),
-    Health(Health),
+pub struct AccessPayload {
+    pub opcode: Opcode,
+    pub parameters: Vec<u8, 384>,
 }
 
 #[allow(unused)]
 impl AccessPayload {
     pub fn parse(data: &[u8]) -> Result<Self, ParseError> {
         let (opcode, parameters) = Opcode::split(data).ok_or(ParseError::InvalidPDUFormat)?;
-        defmt::info!("OPCODE {}", opcode);
-        match opcode {
-            CONFIG_NODE_RESET => Ok(Self::Config(Config::NodeReset(NodeReset::parse_reset(
-                parameters,
-            )?))),
-            CONFIG_NODE_RESET_STATUS => Ok(Self::Config(Config::NodeReset(
-                NodeReset::parse_status(parameters)?,
-            ))),
-            CONFIG_RELAY_GET => Ok(Self::Config(Config::Relay(Relay::parse_get(parameters)?))),
-            CONFIG_BEACON_GET => Ok(Self::Config(Config::Beacon(Beacon::parse_get(parameters)?))),
-            _ => {
-                let same = CONFIG_BEACON_GET == opcode;
-                defmt::info!("same? {} {} {}", same, CONFIG_BEACON_GET, opcode);
-                Err(ParseError::InvalidValue)
-            }
-        }
+        Ok(Self {
+            opcode,
+            parameters: Vec::from_slice(parameters).map_err(|_| ParseError::InsufficientBuffer)?,
+        })
     }
 
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        match self {
-            AccessPayload::Config(inner) => inner.emit(xmit),
-            AccessPayload::Health(inner) => inner.emit(xmit),
-        }
+        self.opcode.emit(xmit)?;
+        xmit.extend_from_slice(&self.parameters)
+            .map_err(|_| InsufficientBuffer)
     }
 }
 
@@ -820,7 +835,7 @@ impl Period {
     }
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Opcode {
     OneOctet(u8),
     TwoOctet(u8, u8),
@@ -905,6 +920,7 @@ impl Opcode {
     }
 }
 
+#[macro_export]
 macro_rules! opcode {
     ($name:ident $o1:expr) => {
         pub const $name: Opcode = Opcode::OneOctet($o1);
