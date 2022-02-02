@@ -288,6 +288,7 @@ where
 
     fn transmit_bytes<'m>(&'m self, message: Vec<u8, 384>) -> Self::TransmitFuture<'m> {
         async move {
+            defmt::info!("TRANSMIT OUTBOUND!");
             self.outbound
                 .send(OutboundAccessMessage { bytes: message })
                 .await;

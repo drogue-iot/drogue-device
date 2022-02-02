@@ -56,6 +56,13 @@ impl<'a> OutboundChannel<'a> {
         }
     }
 
+    fn init(&self) {
+        unsafe { &mut *self.channel.get() }.replace(Channel::new());
+        let (sender, receiver) = mpsc::split(unsafe { &mut *self.channel.get() }.as_mut().unwrap());
+        unsafe { &mut *self.sender.get() }.replace(sender);
+        unsafe { &mut *self.receiver.get() }.replace(receiver);
+    }
+
     async fn send(&self, message: OutboundAccessMessage) {
         unsafe {
             if let Some(sender) = &*self.sender.get() {
@@ -200,6 +207,7 @@ impl<TX, RX, S, R> Node<TX, RX, S, R>
     }
 
     async fn loop_provisioned(&mut self) -> Result<Option<State>, DeviceError> {
+        defmt::info!("loop provisioned");
         let receive_fut = self.receiver.receive_bytes();
         let outbound_fut = self.outbound.next();
 
@@ -220,6 +228,7 @@ impl<TX, RX, S, R> Node<TX, RX, S, R>
                 Ok(None)
             }
             _ => {
+                defmt::info!("none?");
                 Ok(None)
             }
         }
@@ -233,8 +242,7 @@ impl<TX, RX, S, R> Node<TX, RX, S, R>
             .await
             .map_err(|_| ())?;
 
-        let mut outbound = Channel::<Noop, OutboundAccessMessage, 10>::new();
-
+        self.outbound.init();
 
         loop {
             if let Ok(Some(next_state)) = match self.state {
