@@ -41,7 +41,6 @@ pub fn k2(n: &[u8], p: &[u8]) -> Result<(u8, [u8; 16], [u8; 16]), InvalidKeyLeng
     let t1 = &aes_cmac(t, &input)?.into_bytes();
 
     let nid = t1[15] & 0x7F;
-    defmt::info!("NID {:x}", nid);
 
     input.truncate(0);
     input.extend_from_slice(&t1).map_err(|_| InvalidKeyLength)?;

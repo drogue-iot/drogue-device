@@ -9,6 +9,7 @@ use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
 use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
 use heapless::Vec;
+use core::future::Future;
 
 pub trait LowerContext: AuthenticationContext {
     fn decrypt_device_key(
@@ -23,15 +24,19 @@ pub trait LowerContext: AuthenticationContext {
         bytes: &mut [u8],
         mic: &mut [u8],
     ) -> Result<(), DeviceError>;
+
+    type NextSequenceFuture<'m>: Future<Output = Result<u32, DeviceError>> + 'm
+    where
+        Self: 'm;
+
+    fn next_sequence<'m>(&'m self) -> Self::NextSequenceFuture<'m>;
 }
 
-pub struct Lower {
-    sequence: u32,
-}
+pub struct Lower {}
 
 impl Default for Lower {
     fn default() -> Self {
-        Self { sequence: 0 }
+        Self {}
     }
 }
 
@@ -75,18 +80,15 @@ impl Lower {
                         })))
                     }
                     LowerAccessMessage::Segmented { .. } => {
-                        defmt::info!("segmented access");
                         todo!()
                     }
                 }
             }
             LowerPDU::Control(control) => match control.message {
                 LowerControlMessage::Unsegmented { .. } => {
-                    defmt::info!("unsegmented control");
                     todo!()
                 }
                 LowerControlMessage::Segmented { .. } => {
-                    defmt::info!("segmented control");
                     todo!()
                 }
             },
@@ -102,12 +104,10 @@ impl Lower {
         match pdu {
             UpperPDU::Control(_control) => Ok(None),
             UpperPDU::Access(access) => {
-                defmt::info!("*** ENCRYPT out {:x}", access.payload);
                 let mut payload = Vec::from_slice(&access.payload)
                     .map_err(|_| DeviceError::InsufficientBuffer)?;
 
-                let seq = self.sequence;
-                self.sequence = self.sequence + 1;
+                let seq = ctx.next_sequence().await?;
 
                 if access.akf {
                     // encrypt with application key
@@ -126,7 +126,6 @@ impl Lower {
                     let mut check: Vec<u8, 15> = Vec::new();
                     check.extend_from_slice(&payload).ok();
                     ctx.decrypt_device_key(nonce, &mut check, &trans_mic)?;
-                    defmt::info!("****** CHECK {:x}", check);
 
                     payload
                         .extend_from_slice(&trans_mic)

@@ -93,7 +93,6 @@ impl Provisionable {
     ) -> Result<Option<ProvisioningPDU>, DeviceError> {
         match pdu {
             ProvisioningPDU::Invite(invite) => {
-                defmt::trace!(">> Invite");
                 self.transcript.add_invite(&invite)?;
                 self.transcript.add_capabilities(&self.capabilities)?;
                 Ok(Some(ProvisioningPDU::Capabilities(
@@ -102,7 +101,6 @@ impl Provisionable {
             }
             ProvisioningPDU::Capabilities(_) => Ok(None),
             ProvisioningPDU::Start(start) => {
-                defmt::trace!(">> Start");
                 self.transcript.add_start(&start)?;
                 let auth_value = determine_auth_value(ctx, &start)?;
                 // TODO actually let the device/app/thingy know what it is so that it can blink/flash/accept input
@@ -110,12 +108,9 @@ impl Provisionable {
                 Ok(None)
             }
             ProvisioningPDU::PublicKey(public_key) => {
-                defmt::trace!(">> PublicKey");
                 self.transcript.add_pubkey_provisioner(&public_key)?;
                 let peer_pk_x = public_key.x;
                 let peer_pk_y = public_key.y;
-                defmt::trace!(">>   x = {:x}", &peer_pk_x[0..]);
-                defmt::trace!(">>   y = {:x}", &peer_pk_y[0..]);
 
                 // TODO remove unwrap
                 let peer_pk =
@@ -126,33 +121,23 @@ impl Provisionable {
                     ))
                     .unwrap();
 
-                defmt::info!("PK 1");
-
                 ctx.set_peer_public_key(peer_pk).await?;
-                defmt::info!("PK 2");
                 let pk = ctx.public_key()?;
                 let xy = pk.to_encoded_point(false);
                 let x = xy.x().unwrap();
                 let y = xy.y().unwrap();
-                defmt::info!("PK 3");
                 let pk = PublicKey {
                     x: <[u8; 32]>::try_from(x.as_slice())
                         .map_err(|_| DeviceError::InsufficientBuffer)?,
                     y: <[u8; 32]>::try_from(y.as_slice())
                         .map_err(|_| DeviceError::InsufficientBuffer)?,
                 };
-                defmt::info!("PK 5");
                 self.transcript.add_pubkey_device(&pk)?;
-                defmt::info!("PK 6");
-                defmt::trace!("<< PublicKey");
-                defmt::trace!("<<   x = {:x}", &pk.x);
-                defmt::trace!("<<   y = {:x}", &pk.y);
                 Ok(Some(ProvisioningPDU::PublicKey(pk)))
             }
             ProvisioningPDU::InputComplete => Ok(None),
-            ProvisioningPDU::Confirmation(confirmation) => {
-                defmt::trace!(">> Confirmation");
-                defmt::trace!(">>   {}", confirmation);
+            ProvisioningPDU::Confirmation(_confirmation) => {
+                // todo verify the confirmation from the provisioner.
                 let mut random_device = [0; 16];
                 ctx.rng_fill(&mut random_device);
                 self.random_device.replace(random_device);
@@ -160,17 +145,12 @@ impl Provisionable {
                 Ok(Some(ProvisioningPDU::Confirmation(confirmation_device)))
             }
             ProvisioningPDU::Random(random) => {
-                defmt::trace!(">> Random");
-                defmt::trace!(">>   {}", random);
                 self.random_provisioner.replace(random.random);
                 Ok(Some(ProvisioningPDU::Random(Random {
                     random: self.random_device.ok_or(DeviceError::CryptoError)?,
                 })))
             }
             ProvisioningPDU::Data(mut data) => {
-                defmt::trace!(">> Data");
-                defmt::trace!(">>   {}", data);
-
                 let mut provisioning_salt = [0; 48];
                 provisioning_salt[0..16]
                     .copy_from_slice(&self.transcript.confirmation_salt()?.into_bytes());
@@ -182,9 +162,6 @@ impl Provisionable {
                 let session_key = &ctx.prsk(&provisioning_salt)?.into_bytes()[0..];
                 let session_nonce = &ctx.prsn(&provisioning_salt)?.into_bytes()[3..];
 
-                defmt::trace!("** session_key {:x}", session_key);
-                defmt::trace!("** session_nonce {:x}", session_nonce);
-
                 let result = ctx.aes_ccm_decrypt(
                     &session_key,
                     &session_nonce,
@@ -194,12 +171,11 @@ impl Provisionable {
                 match result {
                     Ok(_) => {
                         let provisioning_data = ProvisioningData::parse(&data.encrypted)?;
-                        defmt::debug!("** provisioning_data {}", provisioning_data);
                         ctx.set_provisioning_data(&provisioning_salt, &provisioning_data)
                             .await?;
                     }
                     Err(_) => {
-                        defmt::info!("decryption error!");
+                        return Err(DeviceError::CryptoError);
                     }
                 }
                 Ok(Some(ProvisioningPDU::Complete))

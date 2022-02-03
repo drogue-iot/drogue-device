@@ -16,7 +16,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Default, Format)]
 pub struct Configuration {
-    uuid: Option<[u8; 16]>,
+    seq: u32,
+    uuid: Option<Uuid>,
     keys: Keys,
     primary: PrimaryElementModels,
 }
@@ -26,21 +27,34 @@ impl Configuration {
         let mut changed = false;
 
         if self.uuid.is_none() {
-            defmt::info!("generate UUID");
             let mut uuid = [0; 16];
             rng.fill_bytes(&mut uuid);
-            self.uuid.replace(uuid);
+            self.uuid.replace(Uuid(uuid));
             changed = true;
         }
 
         if let Ok(None) = self.keys.private_key() {
-            defmt::info!("generate private key");
             let secret_key = SecretKey::random(rng);
             let _ = self.keys.set_private_key(&Some(secret_key));
             changed = true;
         }
 
+        if self.seq % 100 == 0 {
+            self.seq = self.seq + 100;
+            changed = true;
+        }
+
         changed
+    }
+
+    fn display_configuration(&self) {
+        if let Some(uuid) = self.uuid {
+            defmt::info!("UUID: {}", uuid);
+        } else {
+            defmt::info!("UUID: not set");
+        }
+        self.keys.display_configuration();
+
     }
 }
 
@@ -70,6 +84,15 @@ pub struct NetworkInfo {
     //pub(crate) privacy_key: [u8; 16],
 }
 
+impl NetworkInfo {
+
+    fn display_configuration(&self) {
+        defmt::info!("Primary unicast address: {=u16:04x}", self.unicast_address);
+        defmt::info!("IV index: {:x}", self.iv_index);
+    }
+
+}
+
 #[derive(Serialize, Deserialize, Copy, Clone, Default, Format)]
 pub struct NetworkKey {
     pub(crate) network_key: [u8; 16],
@@ -82,6 +105,13 @@ pub struct NetworkKey {
 impl NetworkInfo {}
 
 impl Keys {
+
+    fn display_configuration(&self) {
+        if let Some(network) = &self.network {
+            network.display_configuration();
+        }
+    }
+
     pub(crate) fn private_key(&self) -> Result<Option<SecretKey>, DeviceError> {
         match self.private_key {
             None => Ok(None),
@@ -191,12 +221,13 @@ pub trait PrimaryElementStorage {
 pub struct ConfigurationManager<S: Storage> {
     storage: RefCell<S>,
     config: RefCell<Configuration>,
+    runtime_seq: RefCell<u32>,
     force_reset: bool,
 }
 
 impl<S: Storage> GeneralStorage for ConfigurationManager<S> {
     fn uuid(&self) -> Uuid {
-        Uuid(self.config.borrow().uuid.unwrap())
+        self.config.borrow().uuid.unwrap()
     }
 }
 
@@ -209,7 +240,6 @@ impl<S: Storage> KeyStorage for ConfigurationManager<S> {
     fn store<'m>(&'m self, keys: Keys) -> Self::StoreFuture<'m> {
         let mut update = self.config.borrow().clone();
         update.keys = keys;
-        defmt::info!("STORE {}", update);
         async move { self.store(&update).await }
     }
 
@@ -227,7 +257,6 @@ impl<S: Storage> PrimaryElementStorage for ConfigurationManager<S> {
     fn store<'m>(&'m self, primary: PrimaryElementModels) -> Self::StoreFuture<'m> {
         let mut update = self.config.borrow().clone();
         update.primary = primary;
-        defmt::info!("STORE {}", update);
         async move { self.store(&update).await }
     }
 
@@ -242,6 +271,7 @@ impl<S: Storage> ConfigurationManager<S> {
             storage: RefCell::new(storage),
             config: RefCell::new(Default::default()),
             force_reset,
+            runtime_seq: RefCell::new(0),
         }
     }
 
@@ -250,12 +280,11 @@ impl<S: Storage> ConfigurationManager<S> {
         rng: &mut R,
     ) -> Result<(), DeviceError> {
         if self.force_reset {
-            defmt::info!("force reset");
+            defmt::info!("Performing FORCE RESET");
             let mut config = Configuration::default();
             config.validate(rng);
             self.store(&config).await
         } else {
-            defmt::info!("load config");
             let payload = self
                 .storage
                 .borrow_mut()
@@ -263,21 +292,32 @@ impl<S: Storage> ConfigurationManager<S> {
                 .await
                 .map_err(|_| DeviceError::StorageInitialization)?;
             match payload {
-                None => Err(DeviceError::StorageInitialization),
+                None => {
+                    defmt::info!("error loading configuration");
+                    Err(DeviceError::StorageInitialization)
+                },
                 Some(payload) => {
                     let mut config: Configuration =
                         from_bytes(&payload.payload).map_err(|_| DeviceError::Serialization)?;
                     if config.validate(rng) {
                         // we initialized some things that we should stuff away.
+                        self.runtime_seq.replace(config.seq);
                         self.store(&config).await?;
                     } else {
+                        self.runtime_seq.replace(config.seq);
                         self.config.replace(config);
                     }
-                    defmt::info!("Load {}", &*self.config.borrow());
                     Ok(())
                 }
             }
         }
+    }
+
+    pub(crate) fn display_configuration(&self) {
+        defmt::info!("================================================================");
+        defmt::info!("Message Sequence: {}", *self.runtime_seq.borrow());
+        self.config.borrow().display_configuration();
+        defmt::info!("================================================================");
     }
 
     fn retrieve(&self) -> Configuration {
@@ -285,7 +325,6 @@ impl<S: Storage> ConfigurationManager<S> {
     }
 
     async fn store(&self, config: &Configuration) -> Result<(), DeviceError> {
-        defmt::info!("Store {}", config);
         let mut payload = [0; 512];
         to_slice(config, &mut payload)?;
         let payload = Payload { payload };
@@ -296,6 +335,22 @@ impl<S: Storage> ConfigurationManager<S> {
             .map_err(|_| DeviceError::Storage)?;
         self.config.replace(config.clone());
         Ok(())
+    }
+
+    pub(crate) async fn next_sequence(&self) -> Result<u32, DeviceError> {
+        let mut runtime_seq = self.runtime_seq.borrow_mut();
+        let seq = *runtime_seq;
+        *runtime_seq = *runtime_seq + 1;
+        if *runtime_seq % 100 == 0 {
+            let mut config = self.retrieve();
+            config.seq = *runtime_seq;
+            self.store(&config).await?;
+        }
+        Ok(seq)
+    }
+
+    pub(crate) fn reset(&mut self) {
+        self.force_reset = true;
     }
 }
 

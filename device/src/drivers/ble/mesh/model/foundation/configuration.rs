@@ -98,7 +98,6 @@ impl Message for BeaconMessage {
 #[allow(unused)]
 impl BeaconMessage {
     pub fn parse_get(parameters: &[u8]) -> Result<Self, ParseError> {
-        defmt::info!("parse beacon get {:x}", parameters);
         if parameters.is_empty() {
             Ok(Self::Get)
         } else {
@@ -107,7 +106,6 @@ impl BeaconMessage {
     }
 
     pub fn parse_set(parameters: &[u8]) -> Result<Self, ParseError> {
-        defmt::info!("parse beacon get {:x}", parameters);
         if parameters.len() == 1 {
             if parameters[0] == 0x00 {
                 Ok(Self::Set(false))

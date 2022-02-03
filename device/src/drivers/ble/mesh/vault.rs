@@ -187,15 +187,15 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
                 unicast_address: data.unicast_address,
             };
 
+            defmt::info!("Assigned unicast address {:04x}", data.unicast_address);
+
             let mut keys = self.storage.retrieve();
             keys.set_network(&update);
-            defmt::info!("set provisioning salt {}", provisioning_salt.len());
             keys.set_provisioning_salt(
                 provisioning_salt
                     .try_into()
                     .map_err(|_| DeviceError::InsufficientBuffer)?,
             )?;
-            defmt::info!("DONE set provisioning salt {}", provisioning_salt.len());
             self.storage.store(keys).await
         }
     }

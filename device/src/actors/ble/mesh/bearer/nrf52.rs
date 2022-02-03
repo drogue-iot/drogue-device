@@ -15,9 +15,7 @@ impl Actor for Nrf52BleMeshFacilities {
         M: Inbox<Self> + 'm,
     {
         async move {
-            defmt::info!("start SD");
             self.sd.run().await;
-            defmt::info!("SD finished?");
         }
     }
 }

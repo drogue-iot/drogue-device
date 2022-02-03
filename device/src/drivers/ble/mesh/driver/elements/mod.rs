@@ -45,31 +45,23 @@ impl Elements {
         ctx: &C,
         message: &AccessMessage,
     ) -> Result<(), DeviceError> {
-        defmt::info!("primary elements");
         if let Ok(Some(payload)) = self
             .primary
             .configuration_server
             .parse(message.payload.opcode, &message.payload.parameters)
         {
-            defmt::info!("HANDLE {}", payload);
             match payload {
                 ConfigurationMessage::Beacon(beacon) => {
                     match beacon {
                         BeaconMessage::Get => {
-                            defmt::info!("sending response to GET");
                             let val = ctx.retrieve().configuration.secure_beacon;
-                            defmt::info!("sending response to GET --> {}", val);
-                            //ctx.transmit(BeaconMessage::Status(val).into_outbound_access_message(message.src.into(), None)?).await?;
                             ctx.transmit(message.create_response(ctx, BeaconMessage::Status(val))?)
                                 .await?;
-                            defmt::info!("put on xmit queue");
                         }
                         BeaconMessage::Set(val) => {
-                            defmt::info!("sending response to SET");
                             let mut update = ctx.retrieve();
                             update.configuration.secure_beacon = val;
                             ctx.store(update).await?;
-                            //ctx.transmit(BeaconMessage::Status(val).into_outbound_access_message(message.src.into(), None)?).await?;
                             ctx.transmit(message.create_response(ctx, BeaconMessage::Status(val))?)
                                 .await?;
                         }

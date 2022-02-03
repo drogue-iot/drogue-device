@@ -213,7 +213,6 @@ impl Beacon {
     }
 
     pub fn parse_get(parameters: &[u8]) -> Result<Self, ParseError> {
-        defmt::info!("parse beacon get {:x}", parameters);
         if parameters.is_empty() {
             Ok(Self::Get)
         } else {
@@ -882,7 +881,6 @@ impl Opcode {
     }
 
     pub fn split(data: &[u8]) -> Option<(Opcode, &[u8])> {
-        defmt::info!("opcode split {:x}", data);
         if data.is_empty() {
             None
         } else {

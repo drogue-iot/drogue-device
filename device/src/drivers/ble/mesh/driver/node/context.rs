@@ -235,6 +235,17 @@ where
     ) -> Result<(), DeviceError> {
         self.vault().encrypt_device_key(nonce, bytes, mic)
     }
+
+    type NextSequenceFuture<'m>
+    where
+        Self: 'm,
+    = impl Future<Output = Result<u32, DeviceError>> + 'm;
+
+    fn next_sequence<'m>(&'m self) -> Self::NextSequenceFuture<'m> {
+        async move {
+            self.configuration_manager.next_sequence().await
+        }
+    }
 }
 
 impl<TX, RX, S, R> UpperContext for Node<TX, RX, S, R>

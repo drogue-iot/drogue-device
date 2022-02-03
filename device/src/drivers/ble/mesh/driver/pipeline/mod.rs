@@ -53,27 +53,22 @@ impl Pipeline {
         ctx: &C,
         data: &[u8],
     ) -> Result<Option<State>, DeviceError> {
-        defmt::info!("pipeline {:x}", data);
         if let Some(result) = self.mesh.process_inbound(ctx, &data).await? {
             match result {
                 MeshData::Provisioning(pdu) => {
-                    defmt::info!("PDU {}", pdu);
                     if let Some(message) =
                         self.provisioning_bearer.process_inbound(ctx, pdu).await?
                     {
                         match message {
                             BearerMessage::ProvisioningPDU(provisioning_pdu) => {
-                                defmt::info!("provisioning_pdu {}", provisioning_pdu);
                                 if let Some(outbound) = self
                                     .provisionable
                                     .process_inbound(ctx, provisioning_pdu)
                                     .await?
                                 {
-                                    defmt::info!("<< outbound provisioning {}", outbound);
                                     for pdu in
                                         self.provisioning_bearer.process_outbound(outbound).await?
                                     {
-                                        defmt::info!("<< outbound: {}", pdu);
                                         self.mesh.process_outbound(ctx, pdu).await?;
                                     }
                                 }
@@ -93,18 +88,15 @@ impl Pipeline {
                     }
                 }
                 MeshData::Network(pdu) => {
-                    defmt::info!("* {}", pdu);
                     if let Some(pdu) = self.authentication.process_inbound(ctx, pdu).await? {
-                        defmt::info!("authenticated inbound -> {}", pdu);
                         // Relaying is independent from processing it locally
                         if let Some(_outbound) = self.relay.process_inbound(ctx, &pdu).await? {
                             // todo: send out any relayable outbounds.
                         }
 
                         if let Some(pdu) = self.lower.process_inbound(ctx, pdu).await? {
-                            defmt::info!("upper inbound --> {}", pdu);
                             if let Some(message) = self.upper.process_inbound(ctx, pdu).await? {
-                                defmt::info!("inbound ----> {}", message);
+                                defmt::trace!("inbound >>>> {}", message);
                                 ctx.dispatch_access(&message).await?;
                             }
                         }
@@ -122,19 +114,11 @@ impl Pipeline {
         ctx: &C,
         message: AccessMessage,
     ) -> Result<(), DeviceError> {
-        defmt::info!("outbound --> {}", message);
-        // send it back outbound, finally.
+        defmt::trace!("outbound <<<< {}", message);
         if let Some(message) = self.upper.process_outbound(ctx, message.into()).await? {
-            defmt::info!("outbound upper --> {}", message);
             if let Some(message) = self.lower.process_outbound(ctx, message).await? {
-                defmt::info!("outbound lower --> {}", message);
                 if let Some(message) = self.authentication.process_outbound(ctx, message).await? {
-                    defmt::info!("network --> {}", message);
-
-                    //for _ in 1..10 {
-                    let result = ctx.transmit_mesh_pdu(&message).await;
-                    defmt::info!("status {}", result);
-                    //}
+                    ctx.transmit_mesh_pdu(&message).await?;
                 }
             }
         }

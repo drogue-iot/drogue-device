@@ -201,7 +201,6 @@ where
     }
 
     async fn loop_provisioned(&mut self) -> Result<Option<State>, DeviceError> {
-        defmt::info!("loop provisioned");
         let receive_fut = self.receiver.receive_bytes();
         let outbound_fut = self.outbound.next();
 
@@ -217,7 +216,6 @@ where
                     .await
             }
             Either::Right((Some(outbound), _)) => {
-                defmt::info!("SENDING OUTBOUND");
                 self.pipeline
                     .borrow_mut()
                     .process_outbound(self, outbound)
@@ -225,19 +223,29 @@ where
                 Ok(None)
             }
             _ => {
-                defmt::info!("none?");
                 Ok(None)
             }
         }
         //Ok(None)
     }
 
-    pub async fn run(&mut self) -> Result<(), ()> {
-        // stop right now if we can't initialize our configuration manager.
-        self.configuration_manager
-            .initialize(&mut *self.rng.borrow_mut())
-            .await
-            .map_err(|_| ())?;
+    pub async fn run(&mut self) -> Result<(), DeviceError> {
+        let mut rng = self.rng.borrow_mut();
+        if let Err(e) = self.configuration_manager
+            .initialize(&mut *rng)
+            .await {
+            // try again as a force reset
+            defmt::error!("Error loading configuration {}", e);
+            defmt::warn!("Unable to load configuration; attempting reset.");
+            self.configuration_manager.reset();
+            self.configuration_manager
+                .initialize(&mut *rng)
+                .await?
+        }
+
+        drop(rng);
+
+        self.configuration_manager.display_configuration();
 
         if let Some(_) = self.configuration_manager.retrieve().network() {
             self.state = State::Provisioned;
