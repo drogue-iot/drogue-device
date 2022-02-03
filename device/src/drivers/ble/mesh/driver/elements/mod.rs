@@ -1,22 +1,12 @@
-pub mod configuration_server;
-
 use crate::drivers::ble::mesh::address::UnicastAddress;
-use crate::drivers::ble::mesh::configuration_manager::{
-    PrimaryElementModels, PrimaryElementStorage,
-};
-use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
+use crate::drivers::ble::mesh::configuration_manager::PrimaryElementModels;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::element::{Element, ElementError, ElementSink};
 use crate::drivers::ble::mesh::model::foundation::configuration::{
     BeaconMessage, ConfigurationMessage, ConfigurationServer,
 };
-use crate::drivers::ble::mesh::model::{Message, Model};
-use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload, Opcode};
-use crate::drivers::ble::mesh::storage::Storage;
+use crate::drivers::ble::mesh::model::Model;
+use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use core::future::Future;
-use core::marker::PhantomData;
-use heapless::Vec;
-use rand_core::{CryptoRng, RngCore};
 
 pub trait ElementContext {
     type TransmitFuture<'m>: Future<Output = Result<(), DeviceError>> + 'm

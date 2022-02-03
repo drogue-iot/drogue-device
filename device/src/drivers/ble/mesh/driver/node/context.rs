@@ -1,12 +1,10 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::configuration_manager::{
-    ConfigurationManager, KeyStorage, NetworkKey, PrimaryElementModels, PrimaryElementStorage,
+    KeyStorage, NetworkKey, PrimaryElementModels, PrimaryElementStorage,
 };
 use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::device::Uuid;
-use crate::drivers::ble::mesh::driver::elements::{
-    ElementContext, PrimaryElement, PrimaryElementContext,
-};
+use crate::drivers::ble::mesh::driver::elements::{ElementContext, PrimaryElementContext};
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessContext;
@@ -18,8 +16,7 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::ProvisionedContext
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::UnprovisionedContext;
 use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::model::Message;
-use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload};
+use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use crate::drivers::ble::mesh::provisioning::ProvisioningData;

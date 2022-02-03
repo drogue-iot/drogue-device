@@ -1,7 +1,4 @@
-use crate::drivers::ble::mesh::model::{
-    Model, ModelIdentifier, ReadableState, State, WriteableState,
-};
-use crate::drivers::ble::mesh::pdu::access::Opcode;
+use crate::drivers::ble::mesh::model::{ReadableState, State, WriteableState};
 
 pub trait GenericOnOff {}
 
@@ -16,7 +13,7 @@ impl<T: GenericOnOff> ReadableState<T> for T {
 }
 
 impl<T: GenericOnOff> WriteableState<T> for T {
-    fn write(&mut self, val: &bool) {
+    fn write(&mut self, _val: &bool) {
         todo!()
     }
 }

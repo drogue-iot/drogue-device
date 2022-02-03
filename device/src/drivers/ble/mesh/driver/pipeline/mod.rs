@@ -105,37 +105,7 @@ impl Pipeline {
                             defmt::info!("upper inbound --> {}", pdu);
                             if let Some(message) = self.upper.process_inbound(ctx, pdu).await? {
                                 defmt::info!("inbound ----> {}", message);
-                                ctx.dispatch_access(&message).await;
-                                /*
-                                if let Some(response) =
-                                    self.access.process_inbound(ctx, message).await?
-                                {
-                                    defmt::info!("outbound --> {}", response);
-                                    // send it back outbound, finally.
-                                    if let Some(response) =
-                                        self.upper.process_outbound(ctx, response).await?
-                                    {
-                                        defmt::info!("outbound upper --> {}", response);
-                                        if let Some(response) =
-                                            self.lower.process_outbound(ctx, response).await?
-                                        {
-                                            defmt::info!("outbound lower --> {}", response);
-                                            if let Some(response) = self
-                                                .authentication
-                                                .process_outbound(ctx, response)
-                                                .await?
-                                            {
-                                                defmt::info!("network --> {}", response);
-
-                                                //for _ in 1..10 {
-                                                let result = ctx.transmit_mesh_pdu(&response).await;
-                                                defmt::info!("status {}", result);
-                                                //}
-                                            }
-                                        }
-                                    }
-                                }
-                                 */
+                                ctx.dispatch_access(&message).await?;
                             }
                         }
                     }

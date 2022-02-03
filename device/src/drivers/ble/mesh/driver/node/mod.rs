@@ -1,9 +1,8 @@
-use crate::drivers::ble::mesh::address::Address;
 use crate::drivers::ble::mesh::configuration_manager::{ConfigurationManager, KeyStorage};
 use crate::drivers::ble::mesh::driver::elements::Elements;
 use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::pdu::access::{AccessMessage, Opcode};
+use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::vault::{StorageVault, Vault};
@@ -12,13 +11,11 @@ use core::cell::RefCell;
 use core::cell::UnsafeCell;
 use core::future::Future;
 use embassy::blocking_mutex::kind::Noop;
-use embassy::blocking_mutex::NoopMutex;
 use embassy::channel::mpsc;
 use embassy::channel::mpsc::{Channel, Receiver as ChannelReceiver, Sender as ChannelSender};
 use embassy::time::{Duration, Ticker};
 use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
-use heapless::spsc::Queue;
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
 
@@ -63,7 +60,7 @@ impl<'a> OutboundChannel<'a> {
     async fn send(&self, message: AccessMessage) {
         unsafe {
             if let Some(sender) = &*self.sender.get() {
-                sender.send(message).await;
+                sender.send(message).await.ok();
             }
         }
     }
@@ -242,7 +239,7 @@ where
             .await
             .map_err(|_| ())?;
 
-        if let Some(network) = self.configuration_manager.retrieve().network() {
+        if let Some(_) = self.configuration_manager.retrieve().network() {
             self.state = State::Provisioned;
         }
 

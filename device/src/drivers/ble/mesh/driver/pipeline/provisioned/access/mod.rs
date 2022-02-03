@@ -1,5 +1,5 @@
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload};
+use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use core::future::Future;
 
 pub trait AccessContext {

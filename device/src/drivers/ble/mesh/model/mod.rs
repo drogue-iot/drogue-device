@@ -1,8 +1,6 @@
-use crate::drivers::ble::mesh::address::Address;
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
-use core::marker::PhantomData;
 use heapless::Vec;
 
 pub mod foundation;
@@ -24,16 +22,6 @@ pub enum ModelIdentifier {
     Vendor(CompanyIdentifier, [u8; 4]),
 }
 
-pub struct Sink<M: Message> {
-    _marker: PhantomData<M>,
-}
-
-impl<M: Message> Sink<M> {
-    pub async fn transmit(&mut self, message: M) {
-        todo!()
-    }
-}
-
 pub trait Message {
     fn opcode(&self) -> Opcode;
     fn emit_parameters<const N: usize>(
@@ -53,8 +41,6 @@ pub trait Model {
 
     fn parse(&self, opcode: Opcode, parameters: &[u8])
         -> Result<Option<Self::MESSAGE>, ParseError>;
-    //fn connect(&mut self, sink: Sink<Self::MESSAGE>);
-    //fn handle(&mut self, message: &Self::MESSAGE) -> Result<(), HandlerError>;
 }
 
 pub trait State {
