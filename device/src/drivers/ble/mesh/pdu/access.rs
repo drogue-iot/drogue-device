@@ -1,11 +1,14 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::configuration_manager::NetworkKey;
+use crate::drivers::ble::mesh::driver::elements::ElementContext;
+use crate::drivers::ble::mesh::model::Message;
 use crate::drivers::ble::mesh::pdu::upper::UpperAccess;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use defmt::{Format, Formatter};
 use heapless::Vec;
+use crate::drivers::ble::mesh::driver::DeviceError;
 
 #[derive(Format)]
 pub struct AccessMessage {
@@ -45,27 +48,50 @@ impl AccessMessage {
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
         self.payload.emit(xmit)
     }
+
+    pub fn create_response<C: ElementContext, M: Message>(
+        &self,
+        ctx: &C,
+        response: M,
+    ) -> Result<AccessMessage, DeviceError> {
+        let mut parameters = Vec::new();
+        response.emit_parameters(&mut parameters).map_err(|_|InsufficientBuffer)?;
+        Ok(AccessMessage {
+            network_key: self.network_key,
+            ivi: self.ivi,
+            nid: self.nid,
+            akf: self.akf,
+            aid: self.aid,
+            src: ctx.address().ok_or(DeviceError::NotProvisioned)?,
+            dst: self.src.into(),
+            payload: AccessPayload {
+                opcode: response.opcode(),
+                parameters,
+            },
+        })
+    }
 }
 
 #[derive(Format)]
 pub struct AccessPayload {
     pub opcode: Opcode,
-    pub parameters: Vec<u8,384>,
+    pub parameters: Vec<u8, 384>,
 }
 
 #[allow(unused)]
 impl AccessPayload {
     pub fn parse(data: &[u8]) -> Result<Self, ParseError> {
         let (opcode, parameters) = Opcode::split(data).ok_or(ParseError::InvalidPDUFormat)?;
-        Ok( Self {
+        Ok(Self {
             opcode,
-            parameters: Vec::from_slice(parameters).map_err(|_|ParseError::InsufficientBuffer)?,
+            parameters: Vec::from_slice(parameters).map_err(|_| ParseError::InsufficientBuffer)?,
         })
     }
 
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
         self.opcode.emit(xmit)?;
-        xmit.extend_from_slice(&self.parameters).map_err(|_|InsufficientBuffer)
+        xmit.extend_from_slice(&self.parameters)
+            .map_err(|_| InsufficientBuffer)
     }
 }
 

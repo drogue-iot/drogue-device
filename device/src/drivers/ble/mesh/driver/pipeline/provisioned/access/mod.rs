@@ -7,6 +7,6 @@ pub trait AccessContext {
     where
         Self: 'm;
 
-    fn dispatch_access<'m>(&'m self, message: &'m AccessPayload) -> Self::DispatchFuture<'m>;
+    fn dispatch_access<'m>(&'m self, message: &'m AccessMessage) -> Self::DispatchFuture<'m>;
 }
 

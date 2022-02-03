@@ -3,12 +3,13 @@ use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use heapless::Vec;
+use crate::drivers::ble::mesh::address::Address;
 
 pub mod foundation;
 pub mod generic;
 
 #[derive(Eq, PartialEq)]
-pub struct CompanyIdentifier([u8;4]);
+pub struct CompanyIdentifier([u8; 4]);
 
 #[derive(Eq, PartialEq)]
 pub enum FoundationIdentifier {
@@ -20,14 +21,14 @@ pub enum FoundationIdentifier {
 pub enum ModelIdentifier {
     Foundation(FoundationIdentifier),
     SIG(u16),
-    Vendor(CompanyIdentifier, [u8;4]),
+    Vendor(CompanyIdentifier, [u8; 4]),
 }
 
-pub struct Sink<M:Message> {
+pub struct Sink<M: Message> {
     _marker: PhantomData<M>,
 }
 
-impl<M:Message> Sink<M> {
+impl<M: Message> Sink<M> {
     pub async fn transmit(&mut self, message: M) {
         todo!()
     }
@@ -35,7 +36,7 @@ impl<M:Message> Sink<M> {
 
 pub trait Message {
     fn opcode(&self) -> Opcode;
-    fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer>;
+    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer>;
 }
 
 pub enum HandlerError {
@@ -56,11 +57,11 @@ pub trait State {
     type TYPE;
 }
 
-pub trait ReadableState<S:State> {
+pub trait ReadableState<S: State> {
     fn read(&self) -> S::TYPE;
 }
 
-pub trait WriteableState<S:State> {
+pub trait WriteableState<S: State> {
     fn write(&mut self, val: &S::TYPE);
 }
 

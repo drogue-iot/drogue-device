@@ -4,13 +4,14 @@ use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::element::{Element, ElementError, ElementSink};
 use crate::drivers::ble::mesh::model::{Message, Model};
 use crate::drivers::ble::mesh::model::foundation::configuration::{BeaconMessage, ConfigurationMessage, ConfigurationServer};
-use crate::drivers::ble::mesh::pdu::access::{AccessPayload, Opcode};
+use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload, Opcode};
 use crate::drivers::ble::mesh::storage::Storage;
 use rand_core::{CryptoRng, RngCore};
 use crate::drivers::ble::mesh::driver::DeviceError;
 use core::future::Future;
 use core::marker::PhantomData;
 use heapless::Vec;
+use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::configuration_manager::{PrimaryElementModels, PrimaryElementStorage};
 
 pub trait ElementContext {
@@ -18,13 +19,9 @@ pub trait ElementContext {
     where
     Self: 'm;
 
-    fn transmit<'m, M: Message>(&'m self, message: &'m M) -> Self::TransmitFuture<'m> {
-        let mut bytes = Vec::<u8, 384>::new();
-        message.emit(&mut bytes).map_err(|_| DeviceError::InsufficientBuffer);
-        self.transmit_bytes(bytes)
-    }
+    fn transmit<'m>(&'m self, message: AccessMessage) -> Self::TransmitFuture<'m>;
 
-    fn transmit_bytes<'m>(&'m self, message: Vec<u8, 384>) -> Self::TransmitFuture<'m>;
+    fn address(&self) -> Option<UnicastAddress>;
 }
 
 // todo: make primary significantly less special
@@ -49,20 +46,32 @@ impl Elements {
         }
     }
 
-    pub(crate) async fn dispatch<C: PrimaryElementContext>(&self, ctx: &C, message: &AccessPayload) -> Result<(), DeviceError> {
-        if let Ok(Some(message)) = self.primary.configuration_server.parse(message.opcode, &message.parameters) {
-            match message {
+    pub(crate) async fn dispatch<C: PrimaryElementContext>(&self, ctx: &C, message: &AccessMessage) -> Result<(), DeviceError> {
+        defmt::info!("primary elements");
+        if let Ok(Some(payload)) = self.primary.configuration_server.parse(message.payload.opcode, &message.payload.parameters) {
+            defmt::info!("HANDLE {}", payload);
+            match payload {
                 ConfigurationMessage::Beacon(beacon) => {
                     match beacon {
                         BeaconMessage::Get => {
+                            defmt::info!("sending response to GET");
                             let val = ctx.retrieve().configuration.secure_beacon;
-                            ctx.transmit(&BeaconMessage::Status(val)).await?;
+                            defmt::info!("sending response to GET --> {}", val);
+                            //ctx.transmit(BeaconMessage::Status(val).into_outbound_access_message(message.src.into(), None)?).await?;
+                            ctx.transmit(
+                                message.create_response(ctx, BeaconMessage::Status(val))?
+                            ).await?;
+                            defmt::info!("put on xmit queue");
                         }
                         BeaconMessage::Set(val) => {
+                            defmt::info!("sending response to SET");
                             let mut update = ctx.retrieve();
                             update.configuration.secure_beacon = val;
-                            ctx.store(update);
-                            ctx.transmit(&BeaconMessage::Status(val)).await?;
+                            ctx.store(update).await?;
+                            //ctx.transmit(BeaconMessage::Status(val).into_outbound_access_message(message.src.into(), None)?).await?;
+                            ctx.transmit(
+                                message.create_response(ctx, BeaconMessage::Status(val))?
+                            ).await?;
                         }
                         _ => {
                             // not applicable to server role

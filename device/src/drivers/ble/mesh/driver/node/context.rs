@@ -1,3 +1,4 @@
+use core::convert::TryInto;
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::configuration_manager::{
     ConfigurationManager, KeyStorage, NetworkKey, PrimaryElementModels, PrimaryElementStorage,
@@ -7,7 +8,7 @@ use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::elements::{
     ElementContext, PrimaryElement, PrimaryElementContext,
 };
-use crate::drivers::ble::mesh::driver::node::{Node, OutboundAccessMessage, Receiver, Transmitter};
+use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::LowerContext;
@@ -19,7 +20,7 @@ use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::U
 use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::Message;
-use crate::drivers::ble::mesh::pdu::access::AccessPayload;
+use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload};
 use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use crate::drivers::ble::mesh::provisioning::ProvisioningData;
@@ -260,7 +261,7 @@ where
         Self: 'm,
     = impl Future<Output = Result<(), DeviceError>> + 'm;
 
-    fn dispatch_access<'m>(&'m self, message: &'m AccessPayload) -> Self::DispatchFuture<'m> {
+    fn dispatch_access<'m>(&'m self, message: &'m AccessMessage) -> Self::DispatchFuture<'m> {
         async move { self.elements.dispatch(self, message).await }
     }
 }
@@ -286,13 +287,20 @@ where
         Self: 'm,
     = impl Future<Output = Result<(), DeviceError>> + 'm;
 
-    fn transmit_bytes<'m>(&'m self, message: Vec<u8, 384>) -> Self::TransmitFuture<'m> {
+    fn transmit<'m>(&'m self, message: AccessMessage) -> Self::TransmitFuture<'m> {
         async move {
-            defmt::info!("TRANSMIT OUTBOUND!");
-            self.outbound
-                .send(OutboundAccessMessage { bytes: message })
-                .await;
+            self.outbound.send(message).await;
             Ok(())
+        }
+    }
+
+    fn address(&self) -> Option<UnicastAddress> {
+        // todo element-specific addresses
+        let keys = KeyStorage::retrieve(&self.configuration_manager);
+        if let Some(network)  = keys.network() {
+            network.unicast_address.try_into().ok()
+        } else {
+            None
         }
     }
 }

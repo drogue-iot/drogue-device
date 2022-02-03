@@ -1,50 +1,47 @@
-use crate::drivers::ble::mesh::configuration_manager::ConfigurationManager;
+use crate::drivers::ble::mesh::address::Address;
+use crate::drivers::ble::mesh::configuration_manager::{ConfigurationManager, KeyStorage};
+use crate::drivers::ble::mesh::driver::elements::Elements;
 use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
 use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::pdu::access::{AccessMessage, Opcode};
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::vault::{StorageVault, Vault};
 use crate::drivers::ble::mesh::MESH_BEACON;
 use core::cell::RefCell;
-use core::future::Future;
 use core::cell::UnsafeCell;
+use core::future::Future;
 use embassy::blocking_mutex::kind::Noop;
 use embassy::blocking_mutex::NoopMutex;
 use embassy::channel::mpsc;
-use embassy::channel::mpsc::{Sender as ChannelSender, Receiver as ChannelReceiver, Channel};
+use embassy::channel::mpsc::{Channel, Receiver as ChannelReceiver, Sender as ChannelSender};
 use embassy::time::{Duration, Ticker};
 use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
 use heapless::spsc::Queue;
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
-use crate::drivers::ble::mesh::driver::elements::Elements;
-use crate::drivers::ble::mesh::pdu::access::Opcode;
 
 mod context;
 
 pub trait Transmitter {
-    type TransmitFuture<'m>: Future<Output = Result<(), DeviceError> >
+    type TransmitFuture<'m>: Future<Output = Result<(), DeviceError>>
     where
-    Self: 'm;
+        Self: 'm;
     fn transmit_bytes<'m>(&'m self, bytes: &'m [u8]) -> Self::TransmitFuture<'m>;
 }
 
 pub trait Receiver {
-    type ReceiveFuture<'m>: Future<Output = Result<Vec<u8, 384 >, DeviceError> >
+    type ReceiveFuture<'m>: Future<Output = Result<Vec<u8, 384>, DeviceError>>
     where
-    Self: 'm;
+        Self: 'm;
     fn receive_bytes<'m>(&'m self) -> Self::ReceiveFuture<'m>;
 }
 
-pub struct OutboundAccessMessage {
-    bytes: Vec<u8, 384>,
-}
-
 pub(crate) struct OutboundChannel<'a> {
-    channel: UnsafeCell<Option<Channel<Noop, OutboundAccessMessage, 10>>>,
-    sender: UnsafeCell<Option<ChannelSender<'a, Noop, OutboundAccessMessage, 10>>>,
-    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, OutboundAccessMessage, 10>>>,
+    channel: UnsafeCell<Option<Channel<Noop, AccessMessage, 10>>>,
+    sender: UnsafeCell<Option<ChannelSender<'a, Noop, AccessMessage, 10>>>,
+    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, AccessMessage, 10>>>,
 }
 
 impl<'a> OutboundChannel<'a> {
@@ -56,14 +53,14 @@ impl<'a> OutboundChannel<'a> {
         }
     }
 
-    fn init(&self) {
+    fn initialize(&self) {
         unsafe { &mut *self.channel.get() }.replace(Channel::new());
         let (sender, receiver) = mpsc::split(unsafe { &mut *self.channel.get() }.as_mut().unwrap());
         unsafe { &mut *self.sender.get() }.replace(sender);
         unsafe { &mut *self.receiver.get() }.replace(receiver);
     }
 
-    async fn send(&self, message: OutboundAccessMessage) {
+    async fn send(&self, message: AccessMessage) {
         unsafe {
             if let Some(sender) = &*self.sender.get() {
                 sender.send(message).await;
@@ -71,7 +68,7 @@ impl<'a> OutboundChannel<'a> {
         }
     }
 
-    async fn next(&self) -> Option<OutboundAccessMessage> {
+    async fn next(&self) -> Option<AccessMessage> {
         unsafe {
             if let Some(receiver) = &mut *self.receiver.get() {
                 receiver.recv().await
@@ -89,11 +86,11 @@ pub enum State {
 }
 
 pub struct Node<TX, RX, S, R>
-    where
-        TX: Transmitter,
-        RX: Receiver,
-        S: Storage,
-        R: RngCore + CryptoRng,
+where
+    TX: Transmitter,
+    RX: Receiver,
+    S: Storage,
+    R: RngCore + CryptoRng,
 {
     state: State,
     //
@@ -108,11 +105,11 @@ pub struct Node<TX, RX, S, R>
 }
 
 impl<TX, RX, S, R> Node<TX, RX, S, R>
-    where
-        TX: Transmitter,
-        RX: Receiver,
-        S: Storage,
-        R: RngCore + CryptoRng,
+where
+    TX: Transmitter,
+    RX: Receiver,
+    S: Storage,
+    R: RngCore + CryptoRng,
 {
     pub fn new(
         capabilities: Capabilities,
@@ -223,8 +220,11 @@ impl<TX, RX, S, R> Node<TX, RX, S, R>
                     .await
             }
             Either::Right((Some(outbound), _)) => {
-                //self.pipeline.borrow_mut().try_retransmit(self).await?;
-                // process outbound.
+                defmt::info!("SENDING OUTBOUND");
+                self.pipeline
+                    .borrow_mut()
+                    .process_outbound(self, outbound)
+                    .await?;
                 Ok(None)
             }
             _ => {
@@ -242,7 +242,11 @@ impl<TX, RX, S, R> Node<TX, RX, S, R>
             .await
             .map_err(|_| ())?;
 
-        self.outbound.init();
+        if let Some(network) = self.configuration_manager.retrieve().network() {
+            self.state = State::Provisioned;
+        }
+
+        self.outbound.initialize();
 
         loop {
             if let Ok(Some(next_state)) = match self.state {

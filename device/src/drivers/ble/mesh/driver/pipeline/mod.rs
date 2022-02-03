@@ -13,6 +13,7 @@ use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisioning_bea
 };
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::generic_provisioning::Reason;
+use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 
 pub mod mesh;
@@ -104,7 +105,7 @@ impl Pipeline {
                             defmt::info!("upper inbound --> {}", pdu);
                             if let Some(message) = self.upper.process_inbound(ctx, pdu).await? {
                                 defmt::info!("inbound ----> {}", message);
-                                ctx.dispatch_access( &message.payload ).await;
+                                ctx.dispatch_access( &message ).await;
                                 /*
                                 if let Some(response) =
                                     self.access.process_inbound(ctx, message).await?
@@ -144,6 +145,37 @@ impl Pipeline {
         } else {
             Ok(None)
         }
+    }
+
+    pub async fn process_outbound<C: PipelineContext>(
+        &mut self,
+        ctx: &C,
+        message: AccessMessage
+    ) -> Result<(), DeviceError> {
+        defmt::info!("outbound --> {}", message);
+        // send it back outbound, finally.
+        if let Some(message) = self.upper.process_outbound(ctx, message.into()).await? {
+            defmt::info!("outbound upper --> {}", message);
+            if let Some(message) =
+            self.lower.process_outbound(ctx, message).await?
+            {
+                defmt::info!("outbound lower --> {}", message);
+                if let Some(message) = self
+                    .authentication
+                    .process_outbound(ctx, message)
+                    .await?
+                {
+                    defmt::info!("network --> {}", message);
+
+                    //for _ in 1..10 {
+                    let result = ctx.transmit_mesh_pdu(&message).await;
+                    defmt::info!("status {}", result);
+                    //}
+                }
+            }
+        }
+
+        Ok(())
     }
 
     pub async fn try_retransmit<C: PipelineContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
