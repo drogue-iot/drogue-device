@@ -26,9 +26,7 @@ impl Upper {
                 todo!()
             }
             UpperPDU::Access(access) => {
-                defmt::info!("parsing upper into access");
                 let message = AccessMessage::parse(&access)?;
-                //let message = access.try_into();
                 Ok(Some(message))
             }
         }

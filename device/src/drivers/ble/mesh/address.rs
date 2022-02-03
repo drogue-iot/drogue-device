@@ -20,6 +20,24 @@ impl Address {
     }
 }
 
+impl Into<Address> for UnicastAddress {
+    fn into(self) -> Address {
+        Address::Unicast(self)
+    }
+}
+
+impl Into<Address> for VirtualAddress {
+    fn into(self) -> Address {
+        Address::Virtual(self)
+    }
+}
+
+impl Into<Address> for GroupAddress {
+    fn into(self) -> Address {
+        Address::Group(self)
+    }
+}
+
 #[derive(Copy, Clone, Format, PartialEq)]
 pub struct InvalidAddress;
 

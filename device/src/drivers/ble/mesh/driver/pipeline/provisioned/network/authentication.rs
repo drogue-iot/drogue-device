@@ -94,7 +94,7 @@ impl Authentication {
                         transport_pdu,
                     }));
                 } else {
-                    defmt::info!("failed to decrypt");
+                    return Err(DeviceError::CryptoError);
                 }
             }
         }
@@ -134,8 +134,6 @@ impl Authentication {
                     &mut mic,
                 )
                 .map_err(|_| DeviceError::CryptoError)?;
-                defmt::info!("encrypted: {:x}", encrypted_and_mic);
-                defmt::info!("mic: {:x}", mic);
                 encrypted_and_mic
                     .extend_from_slice(&mic)
                     .map_err(|_| DeviceError::InsufficientBuffer)?;
@@ -187,7 +185,6 @@ impl Authentication {
         privacy_plaintext[6] = iv_index_bytes[1];
         privacy_plaintext[7] = iv_index_bytes[2];
         privacy_plaintext[8] = iv_index_bytes[3];
-        defmt::info!("AUTHN 3");
 
         // Privacy Random
         privacy_plaintext[9] = encrypted_and_mic[0];

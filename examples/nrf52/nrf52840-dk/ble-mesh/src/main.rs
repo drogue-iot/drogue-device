@@ -70,6 +70,6 @@ async fn main(spawner: Spawner, _p: Peripherals) {
     });
     device.facilities.mount(spawner, facilities);
     let mesh_node = MeshNode::new(capabilities, bearer, storage, rng);
-    //let mesh_node = MeshNode::new(capabilities, bearer, storage, rng).force_reset();;
+    //let mesh_node = MeshNode::new(capabilities, bearer, storage, rng).force_reset();
     device.mesh.mount(spawner, mesh_node);
 }

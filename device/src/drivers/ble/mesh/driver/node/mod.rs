@@ -1,12 +1,18 @@
-use crate::drivers::ble::mesh::configuration_manager::ConfigurationManager;
+use crate::drivers::ble::mesh::configuration_manager::{ConfigurationManager, KeyStorage};
+use crate::drivers::ble::mesh::driver::elements::Elements;
 use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
 use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::vault::{StorageVault, Vault};
 use crate::drivers::ble::mesh::MESH_BEACON;
 use core::cell::RefCell;
+use core::cell::UnsafeCell;
 use core::future::Future;
+use embassy::blocking_mutex::kind::Noop;
+use embassy::channel::mpsc;
+use embassy::channel::mpsc::{Channel, Receiver as ChannelReceiver, Sender as ChannelSender};
 use embassy::time::{Duration, Ticker};
 use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
@@ -29,6 +35,47 @@ pub trait Receiver {
     fn receive_bytes<'m>(&'m self) -> Self::ReceiveFuture<'m>;
 }
 
+pub(crate) struct OutboundChannel<'a> {
+    channel: UnsafeCell<Option<Channel<Noop, AccessMessage, 10>>>,
+    sender: UnsafeCell<Option<ChannelSender<'a, Noop, AccessMessage, 10>>>,
+    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, AccessMessage, 10>>>,
+}
+
+impl<'a> OutboundChannel<'a> {
+    fn new() -> Self {
+        Self {
+            channel: UnsafeCell::new(None),
+            sender: UnsafeCell::new(None),
+            receiver: UnsafeCell::new(None),
+        }
+    }
+
+    fn initialize(&self) {
+        unsafe { &mut *self.channel.get() }.replace(Channel::new());
+        let (sender, receiver) = mpsc::split(unsafe { &mut *self.channel.get() }.as_mut().unwrap());
+        unsafe { &mut *self.sender.get() }.replace(sender);
+        unsafe { &mut *self.receiver.get() }.replace(receiver);
+    }
+
+    async fn send(&self, message: AccessMessage) {
+        unsafe {
+            if let Some(sender) = &*self.sender.get() {
+                sender.send(message).await.ok();
+            }
+        }
+    }
+
+    async fn next(&self) -> Option<AccessMessage> {
+        unsafe {
+            if let Some(receiver) = &mut *self.receiver.get() {
+                receiver.recv().await
+            } else {
+                None
+            }
+        }
+    }
+}
+
 pub enum State {
     Unprovisioned,
     Provisioning,
@@ -49,6 +96,9 @@ where
     configuration_manager: ConfigurationManager<S>,
     rng: RefCell<R>,
     pipeline: RefCell<Pipeline>,
+    //
+    pub(crate) elements: Elements,
+    pub(crate) outbound: OutboundChannel<'static>,
 }
 
 impl<TX, RX, S, R> Node<TX, RX, S, R>
@@ -72,6 +122,9 @@ where
             configuration_manager,
             rng: RefCell::new(rng),
             pipeline: RefCell::new(Pipeline::new(capabilities)),
+            //
+            elements: Elements::new(),
+            outbound: OutboundChannel::new(),
         }
     }
 
@@ -130,10 +183,10 @@ where
         let result = select(receive_fut, ticker_fut).await;
 
         match result {
-            Either::Left((Ok(msg), _)) => {
+            Either::Left((Ok(inbound), _)) => {
                 self.pipeline
                     .borrow_mut()
-                    .process_inbound(self, &*msg)
+                    .process_inbound(self, &*inbound)
                     .await
             }
             Either::Right((_, _)) => {
@@ -148,20 +201,51 @@ where
     }
 
     async fn loop_provisioned(&mut self) -> Result<Option<State>, DeviceError> {
-        let msg = self.receiver.receive_bytes().await?;
-        self.pipeline
-            .borrow_mut()
-            .process_inbound(self, &*msg)
-            .await?;
-        Ok(None)
+        let receive_fut = self.receiver.receive_bytes();
+        let outbound_fut = self.outbound.next();
+
+        pin_mut!(receive_fut);
+        pin_mut!(outbound_fut);
+
+        let result = select(receive_fut, outbound_fut).await;
+        match result {
+            Either::Left((Ok(inbound), _)) => {
+                self.pipeline
+                    .borrow_mut()
+                    .process_inbound(self, &*inbound)
+                    .await
+            }
+            Either::Right((Some(outbound), _)) => {
+                self.pipeline
+                    .borrow_mut()
+                    .process_outbound(self, outbound)
+                    .await?;
+                Ok(None)
+            }
+            _ => Ok(None),
+        }
+        //Ok(None)
     }
 
-    pub async fn run(&mut self) -> Result<(), ()> {
-        // stop right now if we can't initialize our configuration manager.
-        self.configuration_manager
-            .initialize(&mut *self.rng.borrow_mut())
-            .await
-            .map_err(|_| ())?;
+    pub async fn run(&mut self) -> Result<(), DeviceError> {
+        let mut rng = self.rng.borrow_mut();
+        if let Err(e) = self.configuration_manager.initialize(&mut *rng).await {
+            // try again as a force reset
+            defmt::error!("Error loading configuration {}", e);
+            defmt::warn!("Unable to load configuration; attempting reset.");
+            self.configuration_manager.reset();
+            self.configuration_manager.initialize(&mut *rng).await?
+        }
+
+        drop(rng);
+
+        self.configuration_manager.display_configuration();
+
+        if let Some(_) = self.configuration_manager.retrieve().network() {
+            self.state = State::Provisioned;
+        }
+
+        self.outbound.initialize();
 
         loop {
             if let Ok(Some(next_state)) = match self.state {

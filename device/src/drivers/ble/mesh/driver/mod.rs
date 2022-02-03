@@ -4,6 +4,7 @@ use cmac::crypto_mac::InvalidKeyLength;
 use defmt::Format;
 use postcard::Error;
 
+pub mod elements;
 pub mod node;
 mod pipeline;
 

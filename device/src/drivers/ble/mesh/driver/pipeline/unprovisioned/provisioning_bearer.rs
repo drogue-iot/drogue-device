@@ -136,24 +136,20 @@ impl ProvisioningBearer {
     }
 
     fn should_process_transaction(&mut self, transaction_number: u8) -> bool {
-        defmt::info!("should process? {}", transaction_number);
         match (
             self.inbound_transaction_number,
             self.acked_inbound_transaction_number,
         ) {
             (Some(inbound), _) if inbound == transaction_number => {
                 // This transaction is still being collected
-                defmt::info!("yes, in flight");
                 true
             }
             (None, Some(acked)) if acked < transaction_number => {
                 // No current transaction, let's go.
-                defmt::info!("yes, it's new");
                 self.inbound_transaction_number.replace(transaction_number);
                 true
             }
             _ => {
-                defmt::info!("no");
                 // Either current transaction is different or it's already
                 // been acked.
                 false

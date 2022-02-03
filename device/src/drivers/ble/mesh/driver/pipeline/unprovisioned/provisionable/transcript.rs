@@ -28,7 +28,6 @@ impl Transcript {
     }
 
     pub(crate) fn add_invite(&mut self, invite: &Invite) -> Result<(), InsufficientBuffer> {
-        defmt::info!("#################### add invite");
         let mut vec: Vec<u8, 2> = Vec::new();
         invite.emit(&mut vec)?;
         self.confirmation_inputs
@@ -40,7 +39,6 @@ impl Transcript {
         &mut self,
         capabilities: &Capabilities,
     ) -> Result<(), InsufficientBuffer> {
-        defmt::info!("#################### add capabilities");
         let mut vec: Vec<u8, 32> = Vec::new();
         capabilities.emit(&mut vec)?;
         self.confirmation_inputs
@@ -49,7 +47,6 @@ impl Transcript {
     }
 
     pub(crate) fn add_start(&mut self, start: &Start) -> Result<(), InsufficientBuffer> {
-        defmt::info!("#################### add start");
         let mut vec: Vec<u8, 32> = Vec::new();
         start.emit(&mut vec)?;
         self.confirmation_inputs
@@ -61,7 +58,6 @@ impl Transcript {
         &mut self,
         pk: &PublicKey,
     ) -> Result<(), InsufficientBuffer> {
-        defmt::info!("#################### add pubkey provisioner");
         let mut vec: Vec<u8, 65> = Vec::new();
         pk.emit(&mut vec)?;
         self.confirmation_inputs
@@ -70,7 +66,6 @@ impl Transcript {
     }
 
     pub(crate) fn add_pubkey_device(&mut self, pk: &PublicKey) -> Result<(), InsufficientBuffer> {
-        defmt::info!("#################### add pubkey device");
         let mut vec: Vec<u8, 65> = Vec::new();
         pk.emit(&mut vec)?;
         self.confirmation_inputs
