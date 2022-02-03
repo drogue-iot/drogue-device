@@ -1,30 +1,27 @@
-use crate::drivers::ble::mesh::model::{Model, ReadableState, WriteableState, State, ModelIdentifier};
+use crate::drivers::ble::mesh::model::{
+    Model, ModelIdentifier, ReadableState, State, WriteableState,
+};
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 
-
-pub trait GenericOnOff {
-
-}
+pub trait GenericOnOff {}
 
 impl<T: GenericOnOff> State for T {
     type TYPE = bool;
 }
 
-impl<T: GenericOnOff> ReadableState<T> for T{
+impl<T: GenericOnOff> ReadableState<T> for T {
     fn read(&self) -> bool {
         todo!()
     }
 }
 
-impl<T: GenericOnOff> WriteableState<T> for T{
+impl<T: GenericOnOff> WriteableState<T> for T {
     fn write(&mut self, val: &bool) {
         todo!()
     }
 }
 
-pub trait GenericOnOffServer {
-
-}
+pub trait GenericOnOffServer {}
 
 pub enum GenericOnOffMessage {
     Get,

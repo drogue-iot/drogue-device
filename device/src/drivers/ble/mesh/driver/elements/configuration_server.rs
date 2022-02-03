@@ -1,6 +1,6 @@
-use rand_core::{CryptoRng, RngCore};
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::storage::Storage;
+use rand_core::{CryptoRng, RngCore};
 
 /*
 impl ConfigurationServerHandler for ConfigurationServerState

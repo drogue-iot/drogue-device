@@ -1,9 +1,9 @@
-use core::marker::PhantomData;
-use crate::drivers::ble::mesh::InsufficientBuffer;
+use crate::drivers::ble::mesh::address::Address;
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
+use crate::drivers::ble::mesh::InsufficientBuffer;
+use core::marker::PhantomData;
 use heapless::Vec;
-use crate::drivers::ble::mesh::address::Address;
 
 pub mod foundation;
 pub mod generic;
@@ -36,7 +36,10 @@ impl<M: Message> Sink<M> {
 
 pub trait Message {
     fn opcode(&self) -> Opcode;
-    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer>;
+    fn emit_parameters<const N: usize>(
+        &self,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer>;
 }
 
 pub enum HandlerError {
@@ -48,7 +51,8 @@ pub trait Model {
     const IDENTIFIER: ModelIdentifier;
     type MESSAGE: Message;
 
-    fn parse(&self, opcode: Opcode, parameters: &[u8]) -> Result<Option<Self::MESSAGE>, ParseError>;
+    fn parse(&self, opcode: Opcode, parameters: &[u8])
+        -> Result<Option<Self::MESSAGE>, ParseError>;
     //fn connect(&mut self, sink: Sink<Self::MESSAGE>);
     //fn handle(&mut self, message: &Self::MESSAGE) -> Result<(), HandlerError>;
 }
@@ -64,4 +68,3 @@ pub trait ReadableState<S: State> {
 pub trait WriteableState<S: State> {
     fn write(&mut self, val: &S::TYPE);
 }
-

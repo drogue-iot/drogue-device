@@ -1,4 +1,3 @@
-use core::convert::TryInto;
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::configuration_manager::{
     ConfigurationManager, KeyStorage, NetworkKey, PrimaryElementModels, PrimaryElementStorage,
@@ -30,6 +29,7 @@ use crate::drivers::ble::mesh::{crypto, MESH_MESSAGE};
 use aes::Aes128;
 use cmac::crypto_mac::Output;
 use cmac::Cmac;
+use core::convert::TryInto;
 use core::future::Future;
 use heapless::Vec;
 use p256::PublicKey;
@@ -297,7 +297,7 @@ where
     fn address(&self) -> Option<UnicastAddress> {
         // todo element-specific addresses
         let keys = KeyStorage::retrieve(&self.configuration_manager);
-        if let Some(network)  = keys.network() {
+        if let Some(network) = keys.network() {
             network.unicast_address.try_into().ok()
         } else {
             None

@@ -2,13 +2,13 @@ use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::configuration_manager::NetworkKey;
 use crate::drivers::ble::mesh::driver::elements::ElementContext;
+use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::Message;
 use crate::drivers::ble::mesh::pdu::upper::UpperAccess;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use defmt::{Format, Formatter};
 use heapless::Vec;
-use crate::drivers::ble::mesh::driver::DeviceError;
 
 #[derive(Format)]
 pub struct AccessMessage {
@@ -55,7 +55,9 @@ impl AccessMessage {
         response: M,
     ) -> Result<AccessMessage, DeviceError> {
         let mut parameters = Vec::new();
-        response.emit_parameters(&mut parameters).map_err(|_|InsufficientBuffer)?;
+        response
+            .emit_parameters(&mut parameters)
+            .map_err(|_| InsufficientBuffer)?;
         Ok(AccessMessage {
             network_key: self.network_key,
             ivi: self.ivi,

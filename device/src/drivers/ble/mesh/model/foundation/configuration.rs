@@ -20,7 +20,10 @@ impl Message for ConfigurationMessage {
         }
     }
 
-    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+    fn emit_parameters<const N: usize>(
+        &self,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
         match self {
             ConfigurationMessage::Beacon(inner) => inner.emit_parameters(xmit),
         }
@@ -40,13 +43,17 @@ impl Model for ConfigurationServer {
         ModelIdentifier::Foundation(FoundationIdentifier::Configuration);
     type MESSAGE = ConfigurationMessage;
 
-    fn parse(&self, opcode: Opcode, parameters: &[u8]) -> Result<Option<Self::MESSAGE>, ParseError> {
+    fn parse(
+        &self,
+        opcode: Opcode,
+        parameters: &[u8],
+    ) -> Result<Option<Self::MESSAGE>, ParseError> {
         match opcode {
             CONFIG_BEACON_GET => Ok(Some(ConfigurationMessage::Beacon(
-                BeaconMessage::parse_get(parameters)?
+                BeaconMessage::parse_get(parameters)?,
             ))),
             CONFIG_BEACON_SET => Ok(Some(ConfigurationMessage::Beacon(
-                BeaconMessage::parse_set(parameters)?
+                BeaconMessage::parse_set(parameters)?,
             ))),
             _ => Ok(None),
         }
@@ -73,7 +80,10 @@ impl Message for BeaconMessage {
         }
     }
 
-    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+    fn emit_parameters<const N: usize>(
+        &self,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
         match self {
             BeaconMessage::Get => {}
             BeaconMessage::Set(val) => xmit

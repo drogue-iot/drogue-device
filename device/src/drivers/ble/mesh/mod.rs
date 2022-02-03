@@ -10,13 +10,13 @@ pub mod configuration_manager;
 pub mod crypto;
 pub mod device;
 pub mod driver;
+pub mod element;
 pub mod generic_provisioning;
+pub mod model;
 pub mod pdu;
 pub mod provisioning;
 pub mod status;
 pub mod storage;
 pub mod vault;
-pub mod model;
-pub mod element;
 
 pub struct InsufficientBuffer;

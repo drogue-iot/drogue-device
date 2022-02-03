@@ -181,7 +181,7 @@ pub trait KeyStorage {
 pub trait PrimaryElementStorage {
     type StoreFuture<'m>: Future<Output = Result<(), DeviceError>>
     where
-    Self: 'm;
+        Self: 'm;
 
     fn store<'m>(&'m self, element: PrimaryElementModels) -> Self::StoreFuture<'m>;
 
@@ -220,8 +220,8 @@ impl<S: Storage> KeyStorage for ConfigurationManager<S> {
 
 impl<S: Storage> PrimaryElementStorage for ConfigurationManager<S> {
     type StoreFuture<'m>
-        where
-            Self: 'm,
+    where
+        Self: 'm,
     = impl Future<Output = Result<(), DeviceError>>;
 
     fn store<'m>(&'m self, primary: PrimaryElementModels) -> Self::StoreFuture<'m> {
@@ -303,7 +303,6 @@ impl<S: Storage> ConfigurationManager<S> {
 pub struct PrimaryElementModels {
     pub(crate) configuration: ConfigurationModel,
 }
-
 
 #[derive(Serialize, Deserialize, Clone, Format)]
 pub struct ConfigurationModel {
