@@ -8,8 +8,8 @@ use ccm::aead::Buffer;
 use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
 use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
-use heapless::Vec;
 use core::future::Future;
+use heapless::Vec;
 
 pub trait LowerContext: AuthenticationContext {
     fn decrypt_device_key(

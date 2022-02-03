@@ -14,6 +14,8 @@ use postcard::{from_bytes, to_slice};
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 
+const SEQUENCE_THRESHOLD: u32 = 100;
+
 #[derive(Serialize, Deserialize, Clone, Default, Format)]
 pub struct Configuration {
     seq: u32,
@@ -39,8 +41,8 @@ impl Configuration {
             changed = true;
         }
 
-        if self.seq % 100 == 0 {
-            self.seq = self.seq + 100;
+        if self.seq % SEQUENCE_THRESHOLD == 0 {
+            self.seq = self.seq + SEQUENCE_THRESHOLD;
             changed = true;
         }
 
@@ -54,7 +56,6 @@ impl Configuration {
             defmt::info!("UUID: not set");
         }
         self.keys.display_configuration();
-
     }
 }
 
@@ -85,12 +86,10 @@ pub struct NetworkInfo {
 }
 
 impl NetworkInfo {
-
     fn display_configuration(&self) {
         defmt::info!("Primary unicast address: {=u16:04x}", self.unicast_address);
         defmt::info!("IV index: {:x}", self.iv_index);
     }
-
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Default, Format)]
@@ -105,7 +104,6 @@ pub struct NetworkKey {
 impl NetworkInfo {}
 
 impl Keys {
-
     fn display_configuration(&self) {
         if let Some(network) = &self.network {
             network.display_configuration();
@@ -295,7 +293,7 @@ impl<S: Storage> ConfigurationManager<S> {
                 None => {
                     defmt::info!("error loading configuration");
                     Err(DeviceError::StorageInitialization)
-                },
+                }
                 Some(payload) => {
                     let mut config: Configuration =
                         from_bytes(&payload.payload).map_err(|_| DeviceError::Serialization)?;
@@ -341,7 +339,7 @@ impl<S: Storage> ConfigurationManager<S> {
         let mut runtime_seq = self.runtime_seq.borrow_mut();
         let seq = *runtime_seq;
         *runtime_seq = *runtime_seq + 1;
-        if *runtime_seq % 100 == 0 {
+        if *runtime_seq % SEQUENCE_THRESHOLD == 0 {
             let mut config = self.retrieve();
             config.seq = *runtime_seq;
             self.store(&config).await?;

@@ -242,9 +242,7 @@ where
     = impl Future<Output = Result<u32, DeviceError>> + 'm;
 
     fn next_sequence<'m>(&'m self) -> Self::NextSequenceFuture<'m> {
-        async move {
-            self.configuration_manager.next_sequence().await
-        }
+        async move { self.configuration_manager.next_sequence().await }
     }
 }
 

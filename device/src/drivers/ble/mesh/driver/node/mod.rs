@@ -222,25 +222,19 @@ where
                     .await?;
                 Ok(None)
             }
-            _ => {
-                Ok(None)
-            }
+            _ => Ok(None),
         }
         //Ok(None)
     }
 
     pub async fn run(&mut self) -> Result<(), DeviceError> {
         let mut rng = self.rng.borrow_mut();
-        if let Err(e) = self.configuration_manager
-            .initialize(&mut *rng)
-            .await {
+        if let Err(e) = self.configuration_manager.initialize(&mut *rng).await {
             // try again as a force reset
             defmt::error!("Error loading configuration {}", e);
             defmt::warn!("Unable to load configuration; attempting reset.");
             self.configuration_manager.reset();
-            self.configuration_manager
-                .initialize(&mut *rng)
-                .await?
+            self.configuration_manager.initialize(&mut *rng).await?
         }
 
         drop(rng);
