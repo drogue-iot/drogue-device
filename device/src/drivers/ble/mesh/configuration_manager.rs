@@ -60,10 +60,10 @@ impl Configuration {
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Default)]
-pub struct DeviceKey([u8;16]);
+pub struct DeviceKey([u8; 16]);
 
 impl DeviceKey {
-    pub fn new(material: [u8;16]) -> Self {
+    pub fn new(material: [u8; 16]) -> Self {
         Self(material)
     }
 }
@@ -117,10 +117,10 @@ impl NetworkInfo {
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Default)]
-pub struct NetworkKey([u8;16]);
+pub struct NetworkKey([u8; 16]);
 
 impl NetworkKey {
-    pub fn new(material: [u8;16]) -> Self {
+    pub fn new(material: [u8; 16]) -> Self {
         Self(material)
     }
 }
@@ -241,8 +241,8 @@ impl Keys {
         Ok(self.provisioning_salt)
     }
 
-    pub(crate) fn set_device_key(&mut self, key: [u8;16]) {
-        self.device_key.replace( DeviceKey::new(key));
+    pub(crate) fn set_device_key(&mut self, key: [u8; 16]) {
+        self.device_key.replace(DeviceKey::new(key));
     }
 }
 
@@ -365,6 +365,14 @@ impl<S: Storage> ConfigurationManager<S> {
         }
     }
 
+    pub(crate) async fn node_reset(&self) -> ! {
+        defmt::info!("reset");
+        self.store(&Configuration::default()).await;
+        defmt::info!("reset complete, reboot!");
+        // todo don't assume cortex-m some day
+        cortex_m::peripheral::SCB::sys_reset();
+    }
+
     pub(crate) fn display_configuration(&self) {
         defmt::info!("================================================================");
         defmt::info!("Message Sequence: {}", *self.runtime_seq.borrow());
@@ -414,12 +422,14 @@ pub struct PrimaryElementModels {
 #[derive(Serialize, Deserialize, Clone, Format)]
 pub struct ConfigurationModel {
     pub(crate) secure_beacon: bool,
+    pub(crate) default_ttl: u8,
 }
 
 impl Default for ConfigurationModel {
     fn default() -> Self {
         Self {
             secure_beacon: true,
+            default_ttl: 127,
         }
     }
 }

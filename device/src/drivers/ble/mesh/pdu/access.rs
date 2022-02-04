@@ -100,9 +100,7 @@ impl AccessPayload {
 #[derive(Format)]
 pub enum Config {
     AppKey(AppKey),
-    Beacon(Beacon),
     CompositionData(CompositionData),
-    DefaultTTL(DefaultTTL),
     Friend(Friend),
     GATTProxy(GATTProxy),
     HeartbeatPublication(HeartbeatPublication),
@@ -113,7 +111,6 @@ pub enum Config {
     NetKey(NetKey),
     NetworkTransmit(NetworkTransmit),
     NodeIdentity(NodeIdentity),
-    NodeReset(NodeReset),
     Relay(Relay),
     SIGModel(SIGModel),
     VendorModel(VendorModel),
@@ -124,9 +121,7 @@ impl Config {
     pub fn opcode(&self) -> Opcode {
         match self {
             Self::AppKey(inner) => inner.opcode(),
-            Self::Beacon(inner) => inner.opcode(),
             Self::CompositionData(inner) => inner.opcode(),
-            Self::DefaultTTL(inner) => inner.opcode(),
             Self::Friend(inner) => inner.opcode(),
             Self::GATTProxy(inner) => inner.opcode(),
             Self::HeartbeatPublication(inner) => inner.opcode(),
@@ -137,7 +132,6 @@ impl Config {
             Self::NetKey(inner) => inner.opcode(),
             Self::NetworkTransmit(inner) => inner.opcode(),
             Self::NodeIdentity(inner) => inner.opcode(),
-            Self::NodeReset(inner) => inner.opcode(),
             Self::Relay(inner) => inner.opcode(),
             Self::SIGModel(inner) => inner.opcode(),
             Self::VendorModel(inner) => inner.opcode(),
@@ -147,9 +141,7 @@ impl Config {
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
         match self {
             Config::AppKey(inner) => inner.emit(xmit),
-            Config::Beacon(inner) => inner.emit(xmit),
             Config::CompositionData(inner) => inner.emit(xmit),
-            Config::DefaultTTL(inner) => inner.emit(xmit),
             Config::Friend(inner) => inner.emit(xmit),
             Config::GATTProxy(inner) => inner.emit(xmit),
             Config::HeartbeatPublication(inner) => inner.emit(xmit),
@@ -160,7 +152,6 @@ impl Config {
             Config::NetKey(inner) => inner.emit(xmit),
             Config::NetworkTransmit(inner) => inner.emit(xmit),
             Config::NodeIdentity(inner) => inner.emit(xmit),
-            Config::NodeReset(inner) => inner.emit(xmit),
             Config::Relay(inner) => inner.emit(xmit),
             Config::SIGModel(inner) => inner.emit(xmit),
             Config::VendorModel(inner) => inner.emit(xmit),
@@ -196,44 +187,6 @@ impl AppKey {
 }
 
 #[derive(Format)]
-pub enum Beacon {
-    Get,
-    Set,
-    Status(bool),
-}
-
-#[allow(unused)]
-impl Beacon {
-    pub fn opcode(&self) -> Opcode {
-        match self {
-            Self::Get => CONFIG_BEACON_GET,
-            Self::Set => CONFIG_BEACON_SET,
-            Self::Status(_) => CONFIG_BEACON_STATUS,
-        }
-    }
-
-    pub fn parse_get(parameters: &[u8]) -> Result<Self, ParseError> {
-        if parameters.is_empty() {
-            Ok(Self::Get)
-        } else {
-            Err(ParseError::InvalidLength)
-        }
-    }
-
-    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        self.opcode().emit(xmit)?;
-        match self {
-            Beacon::Get => {}
-            Beacon::Set => {}
-            Beacon::Status(val) => xmit
-                .push(if *val { 1 } else { 0 })
-                .map_err(|_| InsufficientBuffer)?,
-        }
-        Ok(())
-    }
-}
-
-#[derive(Format)]
 pub enum CompositionData {
     Get,
     Status,
@@ -247,28 +200,6 @@ impl CompositionData {
             Self::Status => CONFIG_COMPOSITION_DATA_STATUS,
         }
     }
-    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        todo!()
-    }
-}
-
-#[derive(Format)]
-pub enum DefaultTTL {
-    Get,
-    Set,
-    Status,
-}
-
-#[allow(unused)]
-impl DefaultTTL {
-    pub fn opcode(&self) -> Opcode {
-        match self {
-            Self::Get => CONFIG_DEFAULT_TTL_GET,
-            Self::Set => CONFIG_DEFAULT_TTL_SET,
-            Self::Status => CONFIG_DEFAULT_TTL_STATUS,
-        }
-    }
-
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
         todo!()
     }
@@ -554,41 +485,6 @@ impl NodeIdentity {
             Self::Get => CONFIG_NODE_IDENTITY_GET,
             Self::Set => CONFIG_NODE_IDENTITY_SET,
             Self::Status => CONFIG_NODE_IDENTITY_STATUS,
-        }
-    }
-    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        todo!()
-    }
-}
-
-#[derive(Format)]
-pub enum NodeReset {
-    Reset,
-    Status,
-}
-
-#[allow(unused)]
-impl NodeReset {
-    pub fn opcode(&self) -> Opcode {
-        match self {
-            Self::Reset => CONFIG_NODE_RESET,
-            Self::Status => CONFIG_NODE_RESET_STATUS,
-        }
-    }
-
-    fn parse_reset(parameters: &[u8]) -> Result<Self, ParseError> {
-        if parameters.is_empty() {
-            Ok(Self::Reset)
-        } else {
-            Err(ParseError::InvalidLength)
-        }
-    }
-
-    fn parse_status(parameters: &[u8]) -> Result<Self, ParseError> {
-        if parameters.is_empty() {
-            Ok(Self::Status)
-        } else {
-            Err(ParseError::InvalidLength)
         }
     }
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
@@ -945,9 +841,9 @@ opcode!( CONFIG_BEACON_STATUS 0x80, 0x0B );
 opcode!( CONFIG_COMPOSITION_DATA_GET 0x80, 0x08 );
 opcode!( CONFIG_COMPOSITION_DATA_STATUS 0x02 );
 opcode!( CONFIG_CONFIG_MODEL_PUBLICATION_SET 0x03 );
-opcode!( CONFIG_DEFAULT_TTL_GET 0x80, 0x0C );
-opcode!( CONFIG_DEFAULT_TTL_SET 0x80, 0x0D );
-opcode!( CONFIG_DEFAULT_TTL_STATUS 0x80, 0x0E );
+//opcode!( CONFIG_DEFAULT_TTL_GET 0x80, 0x0C );
+//opcode!( CONFIG_DEFAULT_TTL_SET 0x80, 0x0D );
+//opcode!( CONFIG_DEFAULT_TTL_STATUS 0x80, 0x0E );
 opcode!( CONFIG_FRIEND_GET 0x80, 0x0F );
 opcode!( CONFIG_FRIEND_SET 0x80, 0x10 );
 opcode!( CONFIG_FRIEND_STATUS 0x80, 0x11 );
@@ -991,8 +887,6 @@ opcode!( CONFIG_NETWORK_TRANSMIT_STATUS 0x80, 0x25);
 opcode!( CONFIG_NODE_IDENTITY_GET 0x80, 0x46);
 opcode!( CONFIG_NODE_IDENTITY_SET 0x80, 0x47);
 opcode!( CONFIG_NODE_IDENTITY_STATUS 0x80, 0x48);
-opcode!( CONFIG_NODE_RESET 0x80, 0x49);
-opcode!( CONFIG_NODE_RESET_STATUS 0x80, 0x4A);
 opcode!( CONFIG_RELAY_GET 0x80, 0x26);
 opcode!( CONFIG_RELAY_SET 0x80, 0x27);
 opcode!( CONFIG_RELAY_STATUS 0x80, 0x28);

@@ -330,4 +330,15 @@ where
     fn store<'m>(&'m self, update: PrimaryElementModels) -> Self::StoreFuture<'m> {
         PrimaryElementStorage::store(&self.configuration_manager, update)
     }
+
+    type NodeResetFuture<'m>
+        where
+            Self: 'm,
+    = impl Future<Output = ()> + 'm;
+
+    fn node_reset<'m>(&'m self) -> Self::NodeResetFuture<'m> {
+        async move {
+            self.configuration_manager.node_reset().await
+        }
+    }
 }

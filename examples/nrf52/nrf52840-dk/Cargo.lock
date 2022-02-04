@@ -409,6 +409,7 @@ dependencies = [
  "base64",
  "ccm",
  "cmac",
+ "cortex-m",
  "critical-section",
  "defmt",
  "drogue-device-macros",
