@@ -157,6 +157,7 @@ impl Bearer for SoftdeviceAdvertisingBearer {
     type TransmitFuture<'m> = impl Future<Output = ()> + 'm;
 
     fn transmit<'m>(&'m self, message: &'m [u8]) -> Self::TransmitFuture<'m> {
+        defmt::info!("nrf transmit {}", message);
         let adv =
             peripheral::NonconnectableAdvertisement::NonscannableUndirected { adv_data: message };
 
