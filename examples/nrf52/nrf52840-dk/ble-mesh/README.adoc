@@ -14,16 +14,14 @@ Most of this is based upon the details from the link:https://www.bluetooth.com/w
 
 ==== First manually stop the existing `bluetoothd`
 
-As root
-
 ```
-# service bluetooth stop
+# sudo service bluetooth stop
 ```
 
 Then start the PB-ADV-based mesh.
 
 ```
-# /usr/libexec/bluetooth/bluetooth-meshd -nd --debug
+# sudo /usr/libexec/bluetooth/bluetooth-meshd -nd --debug
 ```
 
 This will leave the process running in the foreground to help with debugging, etc.
@@ -36,8 +34,10 @@ This can be done as non-root regular user.
 $ mesh-cfgclient
 ```
 
-The first time, it will complain about a missing
-`config_db.json`. Create one using the `create` command:
+If it fails silently, ensure you have a `~/.config` directory.
+
+If it complains about a missing `config_db.json` file, create one
+using the `create` command:
 
 ```
 pi@raspberrypi:~ $ mesh-cfgclient
@@ -55,7 +55,7 @@ Attached with path /org/bluez/mesh/node326d83779e8ccbaf254d4b604dfec674
 
 Flash this example onto an nRF 52840
 
-`DEFMT_LOG=trace cargo run --release`
+`DEFMT_LOG=debug cargo run --release`
 
 ==== If that fails...
 
@@ -73,21 +73,22 @@ If the app quits after a few seconds, try link:https://github.com/embassy-rs/nrf
 
 ==== On the pi, running mesh-cfgclient:
 
+If you know your board's UUID -- look in its startup output -- feed it
+to the the `provision` command. For example,
+```
+[mesh-cfgclient]# provision 066187E34A19B375F1A02A1E934DB15A
+```
+If you don't have the UUID, you can discover it:
 ```
 [mesh-cfgclient]# discover-unprovisioned on
 Unprovisioned scan started
 ```
-
-Wait for it to discover your nRF broadcasting the "please provision me" packets.
-
-When you see the UUID, provision it
-
+Wait for it to discover your nRF broadcasting the "please provision
+me" packets. Once you see the board's UUID, provision it.
 ```
+[mesh-cfgclient]# discover-unprovisioned off
 [mesh-cfgclient]# provision 066187E34A19B375F1A02A1E934DB15A
 ```
-
-Replacing the UUID with the actual UUID you saw during the discovery.
-
 If all goes well, you should see it assigning addresses and other happiness.
 
 === Do Stuff
