@@ -1,6 +1,6 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
-use crate::drivers::ble::mesh::configuration_manager::NetworkKey;
+use crate::drivers::ble::mesh::configuration_manager::NetworkKeyDetails;
 use crate::drivers::ble::mesh::driver::elements::ElementContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::Message;
@@ -12,7 +12,7 @@ use heapless::Vec;
 
 #[derive(Format)]
 pub struct AccessMessage {
-    pub(crate) network_key: NetworkKey,
+    pub(crate) network_key: NetworkKeyDetails,
     pub(crate) ivi: u8,
     pub(crate) nid: u8,
     pub(crate) akf: bool,

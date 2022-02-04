@@ -1,6 +1,6 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::configuration_manager::{
-    KeyStorage, NetworkKey, PrimaryElementModels, PrimaryElementStorage,
+    KeyStorage, NetworkKeyDetails, PrimaryElementModels, PrimaryElementStorage,
 };
 use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::device::Uuid;
@@ -206,7 +206,7 @@ where
         self.vault().iv_index()
     }
 
-    fn network_keys(&self, nid: u8) -> Vec<NetworkKey, 10> {
+    fn network_keys(&self, nid: u8) -> Vec<NetworkKeyDetails, 10> {
         self.vault().network_keys(nid)
     }
 }
