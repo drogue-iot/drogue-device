@@ -1,3 +1,4 @@
+use defmt::Format;
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
@@ -6,16 +7,16 @@ use heapless::Vec;
 pub mod foundation;
 pub mod generic;
 
-#[derive(Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Format)]
 pub struct CompanyIdentifier([u8; 4]);
 
-#[derive(Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Format)]
 pub enum FoundationIdentifier {
     Configuration,
     Health,
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Format)]
 pub enum ModelIdentifier {
     Foundation(FoundationIdentifier),
     SIG(u16),

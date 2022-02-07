@@ -10,7 +10,7 @@ pub mod configuration_manager;
 pub mod crypto;
 pub mod device;
 pub mod driver;
-pub mod element;
+pub mod composition;
 pub mod generic_provisioning;
 pub mod model;
 pub mod pdu;
