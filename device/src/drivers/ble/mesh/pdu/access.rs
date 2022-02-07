@@ -100,7 +100,6 @@ impl AccessPayload {
 #[derive(Format)]
 pub enum Config {
     AppKey(AppKey),
-    CompositionData(CompositionData),
     Friend(Friend),
     GATTProxy(GATTProxy),
     HeartbeatPublication(HeartbeatPublication),
@@ -121,7 +120,6 @@ impl Config {
     pub fn opcode(&self) -> Opcode {
         match self {
             Self::AppKey(inner) => inner.opcode(),
-            Self::CompositionData(inner) => inner.opcode(),
             Self::Friend(inner) => inner.opcode(),
             Self::GATTProxy(inner) => inner.opcode(),
             Self::HeartbeatPublication(inner) => inner.opcode(),
@@ -141,7 +139,6 @@ impl Config {
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
         match self {
             Config::AppKey(inner) => inner.emit(xmit),
-            Config::CompositionData(inner) => inner.emit(xmit),
             Config::Friend(inner) => inner.emit(xmit),
             Config::GATTProxy(inner) => inner.emit(xmit),
             Config::HeartbeatPublication(inner) => inner.emit(xmit),
@@ -186,24 +183,7 @@ impl AppKey {
     }
 }
 
-#[derive(Format)]
-pub enum CompositionData {
-    Get,
-    Status,
-}
 
-#[allow(unused)]
-impl CompositionData {
-    pub fn opcode(&self) -> Opcode {
-        match self {
-            Self::Get => CONFIG_COMPOSITION_DATA_GET,
-            Self::Status => CONFIG_COMPOSITION_DATA_STATUS,
-        }
-    }
-    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        todo!()
-    }
-}
 
 #[derive(Format)]
 pub enum Friend {
@@ -838,8 +818,8 @@ opcode!( CONFIG_APPKEY_UPDATE 0x01 );
 opcode!( CONFIG_BEACON_GET 0x80, 0x09 );
 opcode!( CONFIG_BEACON_SET 0x80, 0x0A );
 opcode!( CONFIG_BEACON_STATUS 0x80, 0x0B );
-opcode!( CONFIG_COMPOSITION_DATA_GET 0x80, 0x08 );
-opcode!( CONFIG_COMPOSITION_DATA_STATUS 0x02 );
+//opcode!( CONFIG_COMPOSITION_DATA_GET 0x80, 0x08 );
+//opcode!( CONFIG_COMPOSITION_DATA_STATUS 0x02 );
 opcode!( CONFIG_CONFIG_MODEL_PUBLICATION_SET 0x03 );
 //opcode!( CONFIG_DEFAULT_TTL_GET 0x80, 0x0C );
 //opcode!( CONFIG_DEFAULT_TTL_SET 0x80, 0x0D );

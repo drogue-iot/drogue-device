@@ -1,9 +1,10 @@
 mod beacon;
 mod default_ttl;
 mod node_reset;
+mod composition_data;
 
 use crate::drivers::ble::mesh::address::UnicastAddress;
-use crate::drivers::ble::mesh::composition::ElementsHandler;
+use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::configuration_manager::PrimaryElementModels;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::{
@@ -38,11 +39,13 @@ pub trait PrimaryElementContext: ElementContext {
         Self: 'm;
 
     fn node_reset<'m>(&'m self) -> Self::NodeResetFuture<'m>;
+
+    fn composition(&self) -> &Composition;
 }
 
 pub struct Elements<E: ElementsHandler> {
     zero: ElementZero,
-    app: E,
+    pub(crate) app: E,
 }
 
 impl<E: ElementsHandler> Elements<E> {
@@ -94,6 +97,9 @@ impl ElementZero {
                 }
                 ConfigurationMessage::NodeReset(message) => {
                     self::node_reset::dispatch(ctx, access, message).await
+                }
+                ConfigurationMessage::CompositionData(message) => {
+                    self::composition_data::dispatch(ctx, access, message).await
                 }
             }
         } else {

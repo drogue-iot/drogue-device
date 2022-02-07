@@ -222,6 +222,7 @@ where
                     .await
             }
             Either::Right((Some(outbound), _)) => {
+                defmt::info!("process an outbound");
                 self.pipeline
                     .borrow_mut()
                     .process_outbound(self, outbound)

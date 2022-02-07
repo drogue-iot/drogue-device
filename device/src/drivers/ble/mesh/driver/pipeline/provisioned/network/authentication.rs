@@ -104,7 +104,7 @@ impl Authentication {
     pub async fn process_outbound<C: AuthenticationContext>(
         &mut self,
         ctx: &C,
-        pdu: CleartextNetworkPDU,
+        pdu: &CleartextNetworkPDU,
     ) -> Result<Option<ObfuscatedAndEncryptedNetworkPDU>, DeviceError> {
         if let Some(iv_index) = ctx.iv_index() {
             let ctl = match &pdu.transport_pdu {

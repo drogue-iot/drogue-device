@@ -31,7 +31,7 @@ use core::future::Future;
 use heapless::Vec;
 use p256::PublicKey;
 use rand_core::{CryptoRng, RngCore};
-use crate::drivers::ble::mesh::composition::ElementsHandler;
+use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 
 // ------------------------------------------------------------------------
 // Unprovisioned pipeline context
@@ -305,6 +305,7 @@ where
     = impl Future<Output = Result<(), DeviceError>> + 'm;
 
     fn transmit<'m>(&'m self, message: AccessMessage) -> Self::TransmitFuture<'m> {
+        defmt::info!("OUTBOUND {}", message);
         async move {
             self.outbound.send(message).await;
             Ok(())
@@ -352,5 +353,9 @@ where
         async move {
             self.configuration_manager.node_reset().await
         }
+    }
+
+    fn composition(&self) -> &Composition {
+        self.elements.app.composition()
     }
 }

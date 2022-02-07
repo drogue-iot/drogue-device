@@ -1,6 +1,6 @@
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::lower::{
-    LowerAccess, LowerAccessMessage, LowerControlMessage, LowerPDU,
+    LowerAccess, LowerAccessMessage, LowerControlMessage, LowerPDU, SzMic,
 };
 use crate::drivers::ble::mesh::pdu::network::CleartextNetworkPDU;
 use ccm::aead::Buffer;
@@ -9,6 +9,7 @@ use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
 use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
 use core::future::Future;
+use embassy_nrf::gpiote::OutputChannelPolarity::Clear;
 use heapless::Vec;
 
 pub trait LowerContext: AuthenticationContext {
@@ -39,6 +40,9 @@ impl Default for Lower {
         Self {}
     }
 }
+
+const SEGMENTED_ACCESS_MTU: usize = 12;
+const NONSEGMENTED_ACCESS_MUT: usize = 15;
 
 impl Lower {
     pub async fn process_inbound<C: LowerContext>(
@@ -99,20 +103,23 @@ impl Lower {
         &mut self,
         ctx: &C,
         pdu: UpperPDU,
-    ) -> Result<Option<CleartextNetworkPDU>, DeviceError> {
-        // todo: work with segmented
+    ) -> Result<Option<CleartextNetworkPDUSegments>, DeviceError> {
+        defmt::info!("LOWER");
         match pdu {
             UpperPDU::Control(_control) => Ok(None),
             UpperPDU::Access(access) => {
-                let mut payload = Vec::from_slice(&access.payload)
+                defmt::info!("ACCESS");
+                let mut payload: Vec<u8, 380> = Vec::from_slice(&access.payload)
                     .map_err(|_| DeviceError::InsufficientBuffer)?;
 
                 let seq = ctx.next_sequence().await?;
 
                 if access.akf {
                     // encrypt with application key
+                    todo!()
                 } else {
                     // encrypt device key
+                    defmt::info!("lower A");
                     let nonce = DeviceNonce::new(
                         false,
                         seq,
@@ -122,30 +129,143 @@ impl Lower {
                     );
                     let mut trans_mic = [0; 4];
                     ctx.encrypt_device_key(nonce, &mut payload, &mut trans_mic)?;
+                    defmt::info!("lower B");
 
-                    let mut check: Vec<u8, 15> = Vec::new();
-                    check.extend_from_slice(&payload).ok();
-                    ctx.decrypt_device_key(nonce, &mut check, &trans_mic)?;
+                    //let mut check: Vec<u8, 15> = Vec::new();
+                    //check.extend_from_slice(&payload).ok();
+                    //ctx.decrypt_device_key(nonce, &mut check, &trans_mic)?;
 
                     payload
                         .extend_from_slice(&trans_mic)
                         .map_err(|_| DeviceError::InsufficientBuffer)?;
+                    defmt::info!("lower B");
+
+                    defmt::info!("***********");
+
+                    if payload.len() > NONSEGMENTED_ACCESS_MUT {
+                        defmt::info!("SEGMENTTING");
+                        let mut payload = payload.chunks(SEGMENTED_ACCESS_MTU);
+
+                        let count = payload.len();
+                        let mut segments = CleartextNetworkPDUSegments::new(CleartextNetworkPDU {
+                            network_key: access.network_key,
+                            ivi: access.ivi,
+                            nid: access.nid,
+                            ttl: 127,
+                            seq,
+                            src: access.src,
+                            dst: access.dst,
+                            transport_pdu: LowerPDU::Access(LowerAccess {
+                                // todo: support akf+aid
+                                akf: false,
+                                aid: 0,
+                                message: LowerAccessMessage::Segmented {
+                                    szmic: SzMic::Bit32,
+                                    seq_zero: seq as u16,
+                                    seg_o: 0,
+                                    seg_n: (count - 1) as u8,
+                                    segment_m: Vec::from_slice(payload.nth(0).unwrap()).unwrap(),
+                                },
+                            }),
+                        });
+
+                        for n in 1..count {
+                            segments.add(CleartextNetworkPDU {
+                                network_key: access.network_key,
+                                ivi: access.ivi,
+                                nid: access.nid,
+                                ttl: 127,
+                                seq: ctx.next_sequence().await?,
+                                src: access.src,
+                                dst: access.dst,
+                                transport_pdu: LowerPDU::Access(LowerAccess {
+                                    // todo: support akf+aid
+                                    akf: false,
+                                    aid: 0,
+                                    message: LowerAccessMessage::Segmented {
+                                        szmic: SzMic::Bit32,
+                                        seq_zero: seq as u16,
+                                        seg_o: n as u8,
+                                        seg_n: (count - 1) as u8,
+                                        segment_m: Vec::from_slice(payload.nth(0).unwrap())
+                                            .unwrap(),
+                                    },
+                                }),
+                            });
+                        }
+
+                        Ok(Some(segments))
+                    } else {
+                        defmt::info!("UNSEGMENTED");
+                        let payload = Vec::from_slice(&payload).map_err(|_|DeviceError::InsufficientBuffer)?;
+                        // can ship unsegmented
+                        Ok(Some(CleartextNetworkPDUSegments::new(
+                            CleartextNetworkPDU {
+                                network_key: access.network_key,
+                                ivi: access.ivi,
+                                nid: access.nid,
+                                ttl: 127,
+                                seq,
+                                src: access.src,
+                                dst: access.dst,
+                                transport_pdu: LowerPDU::Access(LowerAccess {
+                                    // todo: support akf+aid
+                                    akf: false,
+                                    aid: 0,
+                                    message: LowerAccessMessage::Unsegmented(payload),
+                                }),
+                            },
+                        )))
+                    }
                 }
-                Ok(Some(CleartextNetworkPDU {
-                    network_key: access.network_key,
-                    ivi: access.ivi,
-                    nid: access.nid,
-                    ttl: 127,
-                    seq,
-                    src: access.src,
-                    dst: access.dst,
-                    transport_pdu: LowerPDU::Access(LowerAccess {
-                        akf: false,
-                        aid: 0,
-                        message: LowerAccessMessage::Unsegmented(payload),
-                    }),
-                }))
             }
+        }
+    }
+}
+
+pub struct CleartextNetworkPDUSegments {
+    segments: Vec<CleartextNetworkPDU, 10>,
+}
+
+impl CleartextNetworkPDUSegments {
+    fn new(first: CleartextNetworkPDU) -> Self {
+        let mut segments = Vec::new();
+        segments.push(first).ok();
+        Self { segments }
+    }
+
+    fn add(&mut self, pdu: CleartextNetworkPDU) -> Result<(), DeviceError> {
+        self.segments
+            .push(pdu)
+            .map_err(|_| DeviceError::InsufficientBuffer)
+    }
+
+    pub fn iter(&self) -> CleartextNetworkPDUSegmentsIter {
+        CleartextNetworkPDUSegmentsIter::new(self)
+    }
+}
+
+pub struct CleartextNetworkPDUSegmentsIter<'a> {
+    segments: &'a CleartextNetworkPDUSegments,
+    cur: u8,
+}
+
+impl<'a> CleartextNetworkPDUSegmentsIter<'a> {
+    fn new(segments: &'a CleartextNetworkPDUSegments) -> Self {
+        Self { segments, cur: 0 }
+    }
+}
+
+impl<'a> Iterator for CleartextNetworkPDUSegmentsIter<'a> {
+    type Item = &'a CleartextNetworkPDU;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.cur >= self.segments.segments.len() as u8 {
+            None
+        } else {
+            let cur = self.cur;
+            self.cur = self.cur + 1;
+            Some(&self.segments.segments[cur as usize])
         }
     }
 }
