@@ -18,8 +18,8 @@ futures     = { version = "0.3.17", default-features = false, features = ["async
 embassy = { version = "0.1.0", default-features = false, features = ["time"] }
 fixed = "1.5.0"
 
-nrf-softdevice = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "f81a201211d63a994528e69b1c5a224be9b53f85", features = ["ble-peripheral", "ble-gatt-server"] }
-nrf-softdevice-s113 = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "f81a201211d63a994528e69b1c5a224be9b53f85", optional = true }
+nrf-softdevice = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "ba31fc03d97facc54efb9456901abf02549a4209", features = ["ble-peripheral", "ble-gatt-server"] }
+nrf-softdevice-s113 = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "ba31fc03d97facc54efb9456901abf02549a4209", optional = true }
 
 #nrf-softdevice = { version = "0.1.0", path = "../../../../nrf-softdevice/nrf-softdevice", features = ["ble-peripheral", "critical-section-impl", "ble-gatt-server"] }
 #nrf-softdevice-s113 = { version = "0.1.0", path = "../../../../nrf-softdevice/nrf-softdevice-s113", optional = true }

@@ -2,6 +2,7 @@
 pub mod ble;
 
 pub mod button;
+pub mod dfu;
 pub mod i2c;
 pub mod led;
 pub mod lora;

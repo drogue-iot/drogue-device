@@ -28,5 +28,5 @@ drogue-device = { path = "../../../../device", default-features = false, feature
 embassy = { version = "0.1.0", default-features = false, features=["defmt", "time"] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52840", "time-driver-rtc1", "gpiote"]}
 
-nrf-softdevice = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "f81a201211d63a994528e69b1c5a224be9b53f85", features = ["ble-central", "ble-peripheral", "ble-gatt-server", "nrf52840", "s140"] }
-nrf-softdevice-s140 = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "f81a201211d63a994528e69b1c5a224be9b53f85" }
+nrf-softdevice = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "ba31fc03d97facc54efb9456901abf02549a4209", features = ["ble-central", "ble-peripheral", "ble-gatt-server", "nrf52840", "s140"] }
+nrf-softdevice-s140 = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "ba31fc03d97facc54efb9456901abf02549a4209" }

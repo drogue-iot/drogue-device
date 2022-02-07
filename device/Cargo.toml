@@ -26,8 +26,8 @@ embassy-lora = { version = "0.1.0", default-features = false, optional = true }
 embassy-net = { version = "0.1.0", default-features = false, optional = true, features= ["tcp", "medium-ethernet", "pool-16" ]}
 embassy-traits = { version = "0.1.0", default-features = false, optional = true }
 #embassy-stm32 = {path = "../../../embassy/embassy-stm32", default-features = false, optional = true }
-nrf-softdevice = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "6e196a3c48857aba00ff400e4e31e730faab20b1", features = ["ble-peripheral", "ble-central", "ble-gatt-server", "s140", "nrf52840"], optional=true }
-nrf-softdevice-s140 = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "6e196a3c48857aba00ff400e4e31e730faab20b1", optional=true }
+nrf-softdevice = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "ba31fc03d97facc54efb9456901abf02549a4209", features = ["ble-peripheral", "ble-central", "ble-gatt-server", "s140", "nrf52840"], optional=true }
+nrf-softdevice-s140 = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "ba31fc03d97facc54efb9456901abf02549a4209", optional=true }
 
 # Wifi Dependencies
 nom = { version = "6.1.2", default-features = false, optional = true }
@@ -68,6 +68,28 @@ aes = { version = "0.7", default-features = false, optional = true }
 ccm = { version = "0.4.4", default-features = false, optional = true }
 serde = { version = "1.0", default-features = false, optional = true}
 postcard = { version = "0.7.2", optional=true }
+
+# Storage for flash
+embedded-storage = "0.3.0"
+embedded-storage-async = "0.3.0"
+
+# Bootloader
+embassy-boot = { path = "../../../embassy/embassy-boot/boot" }
+
+[target."thumbv6m-none-eabi".dependencies]
+cortex-m = "0.7.3"
+[target."thumbv7m-none-eabi".dependencies]
+cortex-m = "0.7.3"
+[target."thumbv7em-none-eabi".dependencies]
+cortex-m = "0.7.3"
+[target."thumbv7em-none-eabihf".dependencies]
+cortex-m = "0.7.3"
+[target."thumbv8m.base-none-eabi".dependencies]
+cortex-m = "0.7.3"
+[target."thumbv8m.main-none-eabi".dependencies]
+cortex-m = "0.7.3"
+[target."thumbv8m.main-none-eabihf".dependencies]
+cortex-m = "0.7.3"
 
 [dev-dependencies]
 embassy = { version = "0.1.0", features = ["std", "time", "time-tick-1mhz"]}
@@ -116,4 +138,4 @@ ble = []
 "bsp+microbit+temp" = ["bsp+microbit"]
 "bsp+adafruit_feather_nrf52840_sense" = [ "embassy-nrf" ]
 "bsp+b_l072z_lrwan1" = [ "embassy-stm32" ]
-"bsp+rak811" = [ "embassy-stm32", "rand", "embassy-stm32/unstable-pac", "cortex-m" ]
+"bsp+rak811" = [ "embassy-stm32", "rand", "embassy-stm32/unstable-pac" ]
