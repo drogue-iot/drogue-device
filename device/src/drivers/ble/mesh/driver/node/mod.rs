@@ -18,6 +18,7 @@ use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
+use crate::drivers::ble::mesh::composition::ElementsHandler;
 
 mod context;
 
@@ -82,13 +83,15 @@ pub enum State {
     Provisioned,
 }
 
-pub struct Node<TX, RX, S, R>
+pub struct Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
     R: RngCore + CryptoRng,
 {
+    //
     state: State,
     //
     transmitter: TX,
@@ -97,24 +100,27 @@ where
     rng: RefCell<R>,
     pipeline: RefCell<Pipeline>,
     //
-    pub(crate) elements: Elements,
+    pub(crate) elements: Elements<E>,
     pub(crate) outbound: OutboundChannel<'static>,
 }
 
-impl<TX, RX, S, R> Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
     R: RngCore + CryptoRng,
 {
     pub fn new(
-        capabilities: Capabilities,
+        app_elements: E,
+        mut capabilities: Capabilities,
         transmitter: TX,
         receiver: RX,
         configuration_manager: ConfigurationManager<S>,
         rng: R,
     ) -> Self {
+        capabilities.number_of_elements = 1 + app_elements.composition().elements.len() as u8;
         Self {
             state: State::Unprovisioned,
             transmitter,
@@ -123,7 +129,7 @@ where
             rng: RefCell::new(rng),
             pipeline: RefCell::new(Pipeline::new(capabilities)),
             //
-            elements: Elements::new(),
+            elements: Elements::new(app_elements),
             outbound: OutboundChannel::new(),
         }
     }

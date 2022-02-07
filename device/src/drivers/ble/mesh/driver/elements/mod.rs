@@ -3,6 +3,7 @@ mod default_ttl;
 mod node_reset;
 
 use crate::drivers::ble::mesh::address::UnicastAddress;
+use crate::drivers::ble::mesh::composition::ElementsHandler;
 use crate::drivers::ble::mesh::configuration_manager::PrimaryElementModels;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::{
@@ -39,14 +40,16 @@ pub trait PrimaryElementContext: ElementContext {
     fn node_reset<'m>(&'m self) -> Self::NodeResetFuture<'m>;
 }
 
-pub struct Elements {
+pub struct Elements<E: ElementsHandler> {
     zero: ElementZero,
+    app: E,
 }
 
-impl Elements {
-    pub fn new() -> Self {
+impl<E: ElementsHandler> Elements<E> {
+    pub fn new(app_elements: E) -> Self {
         Self {
             zero: ElementZero::new(),
+            app: app_elements,
         }
     }
 

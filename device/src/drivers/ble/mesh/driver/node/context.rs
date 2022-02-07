@@ -31,13 +31,15 @@ use core::future::Future;
 use heapless::Vec;
 use p256::PublicKey;
 use rand_core::{CryptoRng, RngCore};
+use crate::drivers::ble::mesh::composition::ElementsHandler;
 
 // ------------------------------------------------------------------------
 // Unprovisioned pipeline context
 // ------------------------------------------------------------------------
 
-impl<TX, RX, S, R> UnprovisionedContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> UnprovisionedContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
@@ -117,8 +119,9 @@ where
     }
 }
 
-impl<TX, RX, S, R> MeshContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> MeshContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
@@ -174,8 +177,9 @@ where
 // Provisioned pipeline context
 // ------------------------------------------------------------------------
 
-impl<TX, RX, S, R> ProvisionedContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> ProvisionedContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     R: CryptoRng + RngCore,
     RX: Receiver,
     S: Storage,
@@ -183,8 +187,9 @@ where
 {
 }
 
-impl<TX, RX, S, R> RelayContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> RelayContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     R: CryptoRng + RngCore,
     RX: Receiver,
     S: Storage,
@@ -195,8 +200,9 @@ where
     }
 }
 
-impl<TX, RX, S, R> AuthenticationContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> AuthenticationContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     R: CryptoRng + RngCore,
     RX: Receiver,
     S: Storage,
@@ -211,8 +217,9 @@ where
     }
 }
 
-impl<TX, RX, S, R> LowerContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> LowerContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     R: CryptoRng + RngCore,
     RX: Receiver,
     S: Storage,
@@ -246,8 +253,9 @@ where
     }
 }
 
-impl<TX, RX, S, R> UpperContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> UpperContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     R: CryptoRng + RngCore,
     RX: Receiver,
     S: Storage,
@@ -255,8 +263,9 @@ where
 {
 }
 
-impl<TX, RX, S, R> AccessContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> AccessContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     R: CryptoRng + RngCore,
     RX: Receiver,
     S: Storage,
@@ -272,8 +281,9 @@ where
     }
 }
 
-impl<TX, RX, S, R> PipelineContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> PipelineContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
@@ -281,8 +291,9 @@ where
 {
 }
 
-impl<TX, RX, S, R> ElementContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> ElementContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     R: CryptoRng + RngCore,
     RX: Receiver,
     S: Storage,
@@ -311,8 +322,9 @@ where
     }
 }
 
-impl<TX, RX, S, R> PrimaryElementContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> PrimaryElementContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
