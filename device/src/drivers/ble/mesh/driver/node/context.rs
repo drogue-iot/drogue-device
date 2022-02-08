@@ -251,6 +251,10 @@ where
     fn next_sequence<'m>(&'m self) -> Self::NextSequenceFuture<'m> {
         async move { self.configuration_manager.next_sequence().await }
     }
+
+    fn default_ttl(&self) -> u8 {
+        PrimaryElementStorage::retrieve(&self.configuration_manager).configuration.default_ttl
+    }
 }
 
 impl<E, TX, RX, S, R> UpperContext for Node<E, TX, RX, S, R>

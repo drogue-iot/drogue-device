@@ -12,6 +12,7 @@ use heapless::Vec;
 
 #[derive(Format)]
 pub struct AccessMessage {
+    pub ttl: Option<u8>,
     pub(crate) network_key: NetworkKeyDetails,
     pub(crate) ivi: u8,
     pub(crate) nid: u8,
@@ -24,6 +25,11 @@ pub struct AccessMessage {
 
 #[allow(unused)]
 impl AccessMessage {
+    pub fn with_ttl(mut self, ttl: u8) -> Self {
+        self.ttl.replace(ttl);
+        self
+    }
+
     pub fn opcode(&self) -> Opcode {
         self.payload.opcode
     }
@@ -34,6 +40,7 @@ impl AccessMessage {
 
     pub fn parse(access: &UpperAccess) -> Result<Self, ParseError> {
         Ok(Self {
+            ttl: None,
             network_key: access.network_key,
             ivi: access.ivi,
             nid: access.nid,
@@ -59,6 +66,7 @@ impl AccessMessage {
             .emit_parameters(&mut parameters)
             .map_err(|_| InsufficientBuffer)?;
         Ok(AccessMessage {
+            ttl: None,
             network_key: self.network_key,
             ivi: self.ivi,
             nid: self.nid,

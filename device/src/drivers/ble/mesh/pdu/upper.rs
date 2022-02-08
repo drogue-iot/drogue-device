@@ -20,6 +20,7 @@ pub struct UpperControl {
 
 #[derive(Format)]
 pub struct UpperAccess {
+    pub(crate) ttl: Option<u8>,
     pub(crate) network_key: NetworkKeyDetails,
     pub(crate) ivi: u8,
     pub(crate) nid: u8,

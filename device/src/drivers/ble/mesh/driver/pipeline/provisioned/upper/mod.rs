@@ -41,6 +41,7 @@ impl Upper {
         let mut payload = Vec::new();
         message.emit(&mut payload)?;
         Ok(Some(UpperPDU::Access(UpperAccess {
+            ttl: message.ttl,
             network_key: message.network_key,
             ivi: message.ivi,
             nid: message.nid,

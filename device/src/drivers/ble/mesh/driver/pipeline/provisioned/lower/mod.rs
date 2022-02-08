@@ -31,6 +31,8 @@ pub trait LowerContext: AuthenticationContext {
         Self: 'm;
 
     fn next_sequence<'m>(&'m self) -> Self::NextSequenceFuture<'m>;
+
+    fn default_ttl(&self) -> u8;
 }
 
 pub struct Lower {}
@@ -73,6 +75,7 @@ impl Lower {
                             ctx.decrypt_device_key(nonce, &mut payload, &trans_mic)?;
                         }
                         Ok(Some(UpperPDU::Access(UpperAccess {
+                            ttl: Some(pdu.ttl),
                             network_key: pdu.network_key,
                             ivi: pdu.ivi,
                             nid: pdu.nid,
@@ -112,6 +115,8 @@ impl Lower {
 
                 let seq_zero = ctx.next_sequence().await?;
 
+                let ttl = access.ttl.unwrap_or(ctx.default_ttl());
+
                 if access.akf {
                     // encrypt with application key
                     todo!()
@@ -144,8 +149,8 @@ impl Lower {
                                 network_key: access.network_key,
                                 ivi: access.ivi,
                                 nid: access.nid,
-                                ttl: 127,
-                                seq: seq,
+                                ttl,
+                                seq,
                                 src: access.src,
                                 dst: access.dst,
                                 transport_pdu: LowerPDU::Access(LowerAccess {
@@ -172,7 +177,7 @@ impl Lower {
                                 network_key: access.network_key,
                                 ivi: access.ivi,
                                 nid: access.nid,
-                                ttl: 127,
+                                ttl,
                                 seq: seq_zero,
                                 src: access.src,
                                 dst: access.dst,
