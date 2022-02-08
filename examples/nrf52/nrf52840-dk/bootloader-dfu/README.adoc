@@ -1,0 +1,40 @@
+= bootloader-dfu
+
+Example that demonstrate using embassy-boot with drogue-device
+
+== Prerequisites
+
+* embassy bootloader
+* llvm tools preview
+
+== Install llvm-tools
+
+`rustup component add llvm-tools-preview`
+
+== Flash bootloader
+
+```
+cargo flash --manifest-path ~/dev/embassy/embassy-boot/nrf/Cargo.toml --features embassy-nrf/nrf52840,softdevice --release --chip nRF52840_xxAA
+```
+
+== Build the 'b' firmware
+
+```
+cargo objcopy --release -- -O binary b.bin
+```
+
+== Flash the 'a' firmware
+
+```
+cargo flash --release --chip nRF52840_xxAA
+```
+
+== Usage
+
+Once flashed with application 'a', press button 1 to toggle LED 1.
+
+To flash with application 'b', press button 2. After the application is swapped (may take 20 seconds or more), then pressing button 1 will toggle LED 4.
+
+When application 'b' is loaded, to mark application as successfully booted, press button 2. This will cause application 'b' to be booted on reset.
+
+NOTE: If not pressing button 2 when application 'b' is loaded, and the chip is reset, the bootloader will swap back to application 'a'.

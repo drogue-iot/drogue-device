@@ -489,6 +489,7 @@ dependencies = [
 name = "embassy-boot-nrf"
 version = "0.1.0"
 dependencies = [
+ "cfg-if",
  "cortex-m",
  "cortex-m-rt",
  "embassy",

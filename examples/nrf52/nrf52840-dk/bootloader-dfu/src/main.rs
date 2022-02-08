@@ -48,19 +48,19 @@ async fn main(s: Spawner, p: Peripherals) {
     static DFU: ActorContext<FirmwareManager<Flash>> = ActorContext::new();
     let dfu = DFU.mount(s, FirmwareManager::new(flash, updater));
 
-    let mut button = Input::new(p.P0_27.degrade(), Pull::Up);
+    let mut button = Input::new(p.P0_11.degrade(), Pull::Up);
 
     #[cfg(feature = "a")]
-    let mut led = Output::new(p.P0_28.degrade(), Level::Low, OutputDrive::Standard);
+    let mut led = Output::new(p.P0_13.degrade(), Level::Low, OutputDrive::Standard);
 
     #[cfg(feature = "b")]
-    let mut led = Output::new(p.P0_30.degrade(), Level::Low, OutputDrive::Standard);
+    let mut led = Output::new(p.P0_16.degrade(), Level::Low, OutputDrive::Standard);
 
     s.spawn(blinker(button, led)).unwrap();
 
     #[cfg(feature = "a")]
     {
-        let mut dfu_button = Input::new(p.P1_02, Pull::Up);
+        let mut dfu_button = Input::new(p.P0_12, Pull::Up);
         loop {
             dfu_button.wait_for_falling_edge().await;
             defmt::info!(
@@ -87,7 +87,7 @@ async fn main(s: Spawner, p: Peripherals) {
 
     #[cfg(feature = "b")]
     {
-        let mut dfu_button = Input::new(p.P1_02, Pull::Up);
+        let mut dfu_button = Input::new(p.P0_12, Pull::Up);
         dfu_button.wait_for_falling_edge().await;
         dfu.request(DfuCommand::Booted).unwrap().await.unwrap();
     }
