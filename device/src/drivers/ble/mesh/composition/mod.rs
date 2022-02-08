@@ -39,7 +39,6 @@ pub struct Features {
 impl Features {
     pub(crate) fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
         // bits 15-8 RFU
-        xmit.push(0).map_err(|_|InsufficientBuffer)?;
         let mut val = 0;
         if self.relay {
             val = val | 0b0001;
@@ -54,10 +53,9 @@ impl Features {
             val = val | 0b1000;
         }
         xmit.push(val).map_err(|_|InsufficientBuffer)?;
+        xmit.push(0).map_err(|_|InsufficientBuffer)?;
         Ok(())
-
     }
-
 }
 
 #[derive(Clone, Format)]

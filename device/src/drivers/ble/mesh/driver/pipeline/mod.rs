@@ -114,14 +114,10 @@ impl Pipeline {
         ctx: &C,
         message: AccessMessage,
     ) -> Result<(), DeviceError> {
-        defmt::info!("outbound <<<< {}", message);
+        defmt::trace!("outbound <<<< {}", message);
         if let Some(message) = self.upper.process_outbound(ctx, message.into()).await? {
-            defmt::info!("OB A");
             if let Some(message) = self.lower.process_outbound(ctx, message).await? {
-                defmt::info!("OB B");
                 for message in message.iter() {
-                    defmt::info!("OB C");
-                    defmt::info!("transmit" );
                     if let Some(message) =
                         self.authentication.process_outbound(ctx, message).await?
                     {

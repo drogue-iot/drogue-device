@@ -23,14 +23,16 @@ pub enum ModelIdentifier {
 
 impl ModelIdentifier {
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        // NOTE: While so many things are big-endian... this is little-endian.
+        // WHY OH WHY?
         match self {
             ModelIdentifier::Foundation(_) => { /* nope, don't do it */ }
             ModelIdentifier::SIG(model_id) => {
-                xmit.extend_from_slice( &model_id.to_be_bytes() ).map_err(|_|InsufficientBuffer)?;
+                xmit.extend_from_slice( &model_id.to_le_bytes() ).map_err(|_|InsufficientBuffer)?;
             }
             ModelIdentifier::Vendor(company_id, model_id) => {
-                xmit.extend_from_slice( &company_id.0.to_be_bytes() ).map_err(|_|InsufficientBuffer)?;
-                xmit.extend_from_slice( &model_id.to_be_bytes() ).map_err(|_|InsufficientBuffer)?;
+                xmit.extend_from_slice( &company_id.0.to_le_bytes() ).map_err(|_|InsufficientBuffer)?;
+                xmit.extend_from_slice( &model_id.to_le_bytes() ).map_err(|_|InsufficientBuffer)?;
             }
         }
         Ok(())

@@ -305,7 +305,6 @@ where
     = impl Future<Output = Result<(), DeviceError>> + 'm;
 
     fn transmit<'m>(&'m self, message: AccessMessage) -> Self::TransmitFuture<'m> {
-        defmt::info!("OUTBOUND {}", message);
         async move {
             self.outbound.send(message).await;
             Ok(())

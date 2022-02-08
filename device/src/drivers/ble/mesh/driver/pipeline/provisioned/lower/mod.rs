@@ -104,78 +104,48 @@ impl Lower {
         ctx: &C,
         pdu: UpperPDU,
     ) -> Result<Option<CleartextNetworkPDUSegments>, DeviceError> {
-        defmt::info!("LOWER");
         match pdu {
             UpperPDU::Control(_control) => Ok(None),
             UpperPDU::Access(access) => {
-                defmt::info!("ACCESS");
                 let mut payload: Vec<u8, 380> = Vec::from_slice(&access.payload)
                     .map_err(|_| DeviceError::InsufficientBuffer)?;
 
-                let seq = ctx.next_sequence().await?;
+                let seq_zero = ctx.next_sequence().await?;
 
                 if access.akf {
                     // encrypt with application key
                     todo!()
                 } else {
                     // encrypt device key
-                    defmt::info!("lower A");
                     let nonce = DeviceNonce::new(
                         false,
-                        seq,
+                        seq_zero,
                         access.src,
                         access.dst,
                         ctx.iv_index().ok_or(DeviceError::CryptoError)?,
                     );
                     let mut trans_mic = [0; 4];
                     ctx.encrypt_device_key(nonce, &mut payload, &mut trans_mic)?;
-                    defmt::info!("lower B");
-
-                    //let mut check: Vec<u8, 15> = Vec::new();
-                    //check.extend_from_slice(&payload).ok();
-                    //ctx.decrypt_device_key(nonce, &mut check, &trans_mic)?;
 
                     payload
                         .extend_from_slice(&trans_mic)
                         .map_err(|_| DeviceError::InsufficientBuffer)?;
-                    defmt::info!("lower B");
-
-                    defmt::info!("***********");
 
                     if payload.len() > NONSEGMENTED_ACCESS_MUT {
-                        defmt::info!("SEGMENTTING");
                         let mut payload = payload.chunks(SEGMENTED_ACCESS_MTU);
 
-                        let count = payload.len();
-                        let mut segments = CleartextNetworkPDUSegments::new(CleartextNetworkPDU {
-                            network_key: access.network_key,
-                            ivi: access.ivi,
-                            nid: access.nid,
-                            ttl: 127,
-                            seq,
-                            src: access.src,
-                            dst: access.dst,
-                            transport_pdu: LowerPDU::Access(LowerAccess {
-                                // todo: support akf+aid
-                                akf: false,
-                                aid: 0,
-                                message: LowerAccessMessage::Segmented {
-                                    szmic: SzMic::Bit32,
-                                    seq_zero: seq as u16,
-                                    seg_o: 0,
-                                    seg_n: (count - 1) as u8,
-                                    segment_m: Vec::from_slice(payload.nth(0).unwrap()).unwrap(),
-                                },
-                            }),
-                        });
+                        let mut segments = CleartextNetworkPDUSegments::new_empty();
 
-                        for n in 1..count {
+                        let seg_n = payload.len() - 1;
+
+                        for (seg_o, segment_m) in payload.enumerate() {
+                            let seq = if seg_o == 0 { seq_zero } else { ctx.next_sequence().await? };
                             segments.add(CleartextNetworkPDU {
                                 network_key: access.network_key,
                                 ivi: access.ivi,
                                 nid: access.nid,
                                 ttl: 127,
-                                seq: ctx.next_sequence().await?,
+                                seq: seq,
                                 src: access.src,
                                 dst: access.dst,
                                 transport_pdu: LowerPDU::Access(LowerAccess {
@@ -184,20 +154,18 @@ impl Lower {
                                     aid: 0,
                                     message: LowerAccessMessage::Segmented {
                                         szmic: SzMic::Bit32,
-                                        seq_zero: seq as u16,
-                                        seg_o: n as u8,
-                                        seg_n: (count - 1) as u8,
-                                        segment_m: Vec::from_slice(payload.nth(0).unwrap())
-                                            .unwrap(),
+                                        seq_zero: seq_zero as u16,
+                                        seg_o: seg_o as u8,
+                                        seg_n: seg_n as u8,
+                                        segment_m: Vec::from_slice(segment_m).unwrap(),
                                     },
                                 }),
                             });
                         }
-
                         Ok(Some(segments))
                     } else {
-                        defmt::info!("UNSEGMENTED");
-                        let payload = Vec::from_slice(&payload).map_err(|_|DeviceError::InsufficientBuffer)?;
+                        let payload = Vec::from_slice(&payload)
+                            .map_err(|_| DeviceError::InsufficientBuffer)?;
                         // can ship unsegmented
                         Ok(Some(CleartextNetworkPDUSegments::new(
                             CleartextNetworkPDU {
@@ -205,7 +173,7 @@ impl Lower {
                                 ivi: access.ivi,
                                 nid: access.nid,
                                 ttl: 127,
-                                seq,
+                                seq: seq_zero,
                                 src: access.src,
                                 dst: access.dst,
                                 transport_pdu: LowerPDU::Access(LowerAccess {
@@ -232,6 +200,12 @@ impl CleartextNetworkPDUSegments {
         let mut segments = Vec::new();
         segments.push(first).ok();
         Self { segments }
+    }
+
+    fn new_empty() -> Self {
+        Self {
+            segments: Default::default(),
+        }
     }
 
     fn add(&mut self, pdu: CleartextNetworkPDU) -> Result<(), DeviceError> {

@@ -286,38 +286,27 @@ pub struct CompositionStatus {
 impl CompositionStatus {
     fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
         xmit.push(self.page).map_err(|_|InsufficientBuffer)?;
-        defmt::info!("---> page {}", xmit);
         xmit.extend_from_slice(&self.data.cid.0.to_be_bytes()).map_err(|_|InsufficientBuffer)?;
-        defmt::info!("---> cid {}", xmit);
         xmit.extend_from_slice(&self.data.pid.0.to_be_bytes()).map_err(|_|InsufficientBuffer)?;
-        defmt::info!("---> pid {}", xmit);
         xmit.extend_from_slice(&self.data.vid.0.to_be_bytes()).map_err(|_|InsufficientBuffer)?;
-        defmt::info!("---> vid {}", xmit);
         xmit.extend_from_slice(&self.data.crpl.to_be_bytes()).map_err(|_|InsufficientBuffer)?;
-        defmt::info!("---> crpl {}", xmit);
         self.data.features.emit(xmit);
-        defmt::info!("---> features {}", xmit);
         for element in self.data.elements.iter() {
             xmit.extend_from_slice( &element.loc.0.to_be_bytes() ).map_err(|_|InsufficientBuffer)?;
             let sig_models: Vec<_, 10> = element.models.iter().filter(|e| matches!(e, ModelIdentifier::SIG(_))).collect();
             let vendor_models: Vec<_, 10> = element.models.iter().filter(|e| matches!(e, ModelIdentifier::Vendor(..))).collect();
 
             xmit.push(sig_models.len() as u8);
-            defmt::info!("sig models {} {}", xmit, sig_models);
             xmit.push(vendor_models.len() as u8);
-            defmt::info!("vendor models {} {}", xmit, vendor_models);
 
             for model in sig_models.iter() {
-                defmt::info!("sig {}", model);
                 model.emit(xmit)?
             }
 
             for model in vendor_models.iter() {
-                defmt::info!("vendor {}", model);
                 model.emit(xmit)?
             }
         }
-        defmt::info!("---> {}", xmit);
         Ok(())
     }
 

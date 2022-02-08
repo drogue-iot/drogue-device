@@ -114,13 +114,12 @@ where
 {
     pub fn new(
         app_elements: E,
-        mut capabilities: Capabilities,
+        capabilities: Capabilities,
         transmitter: TX,
         receiver: RX,
         configuration_manager: ConfigurationManager<S>,
         rng: R,
     ) -> Self {
-        capabilities.number_of_elements = 1 + app_elements.composition().elements.len() as u8;
         Self {
             state: State::Unprovisioned,
             transmitter,
@@ -222,7 +221,6 @@ where
                     .await
             }
             Either::Right((Some(outbound), _)) => {
-                defmt::info!("process an outbound");
                 self.pipeline
                     .borrow_mut()
                     .process_outbound(self, outbound)
