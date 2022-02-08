@@ -46,7 +46,5 @@ overflow-checks = false
 embassy = { path = "../../../../../embassy/embassy" }
 embassy-nrf = { path = "../../../../../embassy/embassy-nrf" }
 embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }
-embedded-storage = { path = "../../../../../embedded-storage" }
-embedded-storage-async = { path = "../../../../../embedded-storage/embedded-storage-async" }
 nrf-softdevice = { path = "../../../../../nrf-softdevice/nrf-softdevice" }
 nrf-softdevice-s140 = { path = "../../../../../nrf-softdevice/nrf-softdevice-s140" }

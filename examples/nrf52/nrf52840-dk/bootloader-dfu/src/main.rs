@@ -7,15 +7,15 @@
 use drogue_device::actors::dfu::{DfuCommand, FirmwareManager};
 use drogue_device::{actors, drivers, ActorContext, DeviceContext};
 use embassy::executor::Spawner;
+use embassy_boot_nrf::updater;
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::{
-    gpio::{AnyPin, Output, Input, Pull, Level, OutputDrive, Pin},
+    gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},
+    peripherals::P0_11,
     Peripherals,
-    peripherals::{P0_11},
 };
 use nrf_softdevice::{Flash, Softdevice};
-use embassy_boot_nrf::updater;
 
 #[cfg(feature = "a")]
 use panic_probe as _;
@@ -48,44 +48,53 @@ async fn main(s: Spawner, p: Peripherals) {
     static DFU: ActorContext<FirmwareManager<Flash>> = ActorContext::new();
     let dfu = DFU.mount(s, FirmwareManager::new(flash, updater));
 
-    let mut button = Input::new(p.P0_11, Pull::Up);
+    let mut button = Input::new(p.P0_27.degrade(), Pull::Up);
+
     #[cfg(feature = "a")]
-    let mut led = Output::new(p.P0_13.degrade(), Level::High, OutputDrive::Standard);
+    let mut led = Output::new(p.P0_28.degrade(), Level::Low, OutputDrive::Standard);
 
     #[cfg(feature = "b")]
-    let mut led = Output::new(p.P0_16.degrade(), Level::High, OutputDrive::Standard);
-
+    let mut led = Output::new(p.P0_30.degrade(), Level::Low, OutputDrive::Standard);
 
     s.spawn(blinker(button, led)).unwrap();
 
     #[cfg(feature = "a")]
     {
-        let mut dfu_button = Input::new(p.P0_12, Pull::Up);
+        let mut dfu_button = Input::new(p.P1_02, Pull::Up);
         loop {
             dfu_button.wait_for_falling_edge().await;
-            defmt::info!("DFU process triggered. Reflashing with 'b' (size {} bytes)", FIRMWARE.len());
+            defmt::info!(
+                "DFU process triggered. Reflashing with 'b' (size {} bytes)",
+                FIRMWARE.len()
+            );
             dfu.request(DfuCommand::Start).unwrap().await.unwrap();
 
             let mut offset = 0;
             for block in FIRMWARE.chunks(4096) {
-                dfu.request(DfuCommand::Write(offset as u32, block)).unwrap().await.unwrap();
+                dfu.request(DfuCommand::Write(offset as u32, block))
+                    .unwrap()
+                    .await
+                    .unwrap();
                 offset += block.len();
             }
 
-            dfu.request(DfuCommand::Finish(123456)).unwrap().await.unwrap();
+            dfu.request(DfuCommand::Finish(123456))
+                .unwrap()
+                .await
+                .unwrap();
         }
     }
 
     #[cfg(feature = "b")]
     {
-        let mut dfu_button = Input::new(p.P0_12, Pull::Up);
+        let mut dfu_button = Input::new(p.P1_02, Pull::Up);
         dfu_button.wait_for_falling_edge().await;
         dfu.request(DfuCommand::Booted).unwrap().await.unwrap();
     }
 }
 
 #[embassy::task]
-async fn blinker(mut button: Input<'static, P0_11>, mut led: Output<'static, AnyPin>) {
+async fn blinker(mut button: Input<'static, AnyPin>, mut led: Output<'static, AnyPin>) {
     let mut high = false;
     loop {
         button.wait_for_falling_edge().await;
