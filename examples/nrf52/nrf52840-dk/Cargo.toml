@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "ble-mesh",
-    "bootloader-dfu",
 ]
 resolver = "2"
 
@@ -38,13 +37,13 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-#embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
-#embassy-traits = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
-#embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
-#embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
+embassy-traits = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
 
-embassy = { path = "../../../../../embassy/embassy" }
-embassy-nrf = { path = "../../../../../embassy/embassy-nrf" }
-embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }
-nrf-softdevice = { path = "../../../../../nrf-softdevice/nrf-softdevice" }
-nrf-softdevice-s140 = { path = "../../../../../nrf-softdevice/nrf-softdevice-s140" }
+#embassy = { path = "../../../../../embassy/embassy" }
+#embassy-nrf = { path = "../../../../../embassy/embassy-nrf" }
+#embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }
+#nrf-softdevice = { path = "../../../../../nrf-softdevice/nrf-softdevice" }
+#nrf-softdevice-s140 = { path = "../../../../../nrf-softdevice/nrf-softdevice-s140" }

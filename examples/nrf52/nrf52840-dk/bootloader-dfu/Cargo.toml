@@ -9,6 +9,8 @@ version = "0.1.0"
 description = "nrf52840-dk Bootloader DFU example"
 keywords = ["nrf52840", "nrf", "nrf52", "dfu"]
 
+[workspace]
+
 [dependencies]
 defmt = { version = "0.3", optional = true }
 defmt-rtt = { version = "0.3", optional = true }
