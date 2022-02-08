@@ -50,10 +50,10 @@ async fn main(s: Spawner, p: Peripherals) {
 
     let mut button = Input::new(p.P0_11, Pull::Up);
     #[cfg(feature = "a")]
-    let mut led = Output::new(p.P0_13.degrade(), Level::Low, OutputDrive::Standard);
+    let mut led = Output::new(p.P0_13.degrade(), Level::High, OutputDrive::Standard);
 
     #[cfg(feature = "b")]
-    let mut led = Output::new(p.P0_16.degrade(), Level::Low, OutputDrive::Standard);
+    let mut led = Output::new(p.P0_16.degrade(), Level::High, OutputDrive::Standard);
 
 
     s.spawn(blinker(button, led)).unwrap();
@@ -67,7 +67,7 @@ async fn main(s: Spawner, p: Peripherals) {
             dfu.request(DfuCommand::Start).unwrap().await.unwrap();
 
             let mut offset = 0;
-            for block in FIRMWARE.chunks(64) {
+            for block in FIRMWARE.chunks(4096) {
                 dfu.request(DfuCommand::Write(offset as u32, block)).unwrap().await.unwrap();
                 offset += block.len();
             }
@@ -79,6 +79,7 @@ async fn main(s: Spawner, p: Peripherals) {
     #[cfg(feature = "b")]
     {
         let mut dfu_button = Input::new(p.P0_12, Pull::Up);
+        dfu_button.wait_for_falling_edge().await;
         dfu.request(DfuCommand::Booted).unwrap().await.unwrap();
     }
 }

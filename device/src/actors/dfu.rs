@@ -149,7 +149,7 @@ impl<F: AsyncNorFlash + AsyncReadNorFlash> Actor for FirmwareManager<F> {
                         DfuCommand::Finish(crc) => {
                             let r = self.swap(*crc).await;
                             if let Ok(_) = r {
-                                cortex_m::peripheral::SCB::sys_reset();
+                                //cortex_m::peripheral::SCB::sys_reset();
                             }
                             r
                         }
