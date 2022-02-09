@@ -5,17 +5,17 @@
 #![feature(type_alias_impl_trait)]
 
 use drogue_device::actors::dfu::{DfuCommand, FirmwareManager};
-use drogue_device::{ActorContext};
+use drogue_device::ActorContext;
 use embassy::executor::Spawner;
+use embassy_boot_nrf::updater;
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::{
-    gpio::{AnyPin, Output, Input, Pull, Level, OutputDrive, Pin},
+    gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},
+    peripherals::P0_11,
     Peripherals,
-    peripherals::{P0_11},
 };
 use nrf_softdevice::{Flash, Softdevice};
-use embassy_boot_nrf::updater;
 
 #[cfg(feature = "a")]
 use panic_probe as _;
@@ -55,7 +55,6 @@ async fn main(s: Spawner, p: Peripherals) {
     #[cfg(feature = "b")]
     let led = Output::new(p.P0_16.degrade(), Level::High, OutputDrive::Standard);
 
-
     s.spawn(blinker(button, led)).unwrap();
 
     #[cfg(feature = "a")]
@@ -63,16 +62,25 @@ async fn main(s: Spawner, p: Peripherals) {
         let mut dfu_button = Input::new(p.P0_12, Pull::Up);
         loop {
             dfu_button.wait_for_falling_edge().await;
-            defmt::info!("DFU process triggered. Reflashing with 'b' (size {} bytes)", FIRMWARE.len());
+            defmt::info!(
+                "DFU process triggered. Reflashing with 'b' (size {} bytes)",
+                FIRMWARE.len()
+            );
             dfu.request(DfuCommand::Start).unwrap().await.unwrap();
 
             let mut offset = 0;
             for block in FIRMWARE.chunks(4096) {
-                dfu.request(DfuCommand::Write(offset as u32, block)).unwrap().await.unwrap();
+                dfu.request(DfuCommand::Write(offset as u32, block))
+                    .unwrap()
+                    .await
+                    .unwrap();
                 offset += block.len();
             }
 
-            dfu.request(DfuCommand::Finish(123456)).unwrap().await.unwrap();
+            dfu.request(DfuCommand::Finish(123456))
+                .unwrap()
+                .await
+                .unwrap();
         }
     }
 
