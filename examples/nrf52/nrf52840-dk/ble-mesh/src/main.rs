@@ -106,12 +106,6 @@ async fn main(spawner: Spawner, p: Peripherals) {
         led,
     };
 
-    /*
-    let elements = ElementsHandWritten {
-        led,
-    };
-     */
-
     device.facilities.mount(spawner, facilities);
     let mesh_node = MeshNode::new(elements, capabilities, bearer, storage, rng);
     //let mesh_node = MeshNode::new(capabilities, bearer, storage, rng).force_reset();
