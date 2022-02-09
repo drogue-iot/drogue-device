@@ -13,7 +13,6 @@ use core::future::Future;
 use drogue_device::actors::button::{Button, ButtonEvent, ButtonEventDispatcher, FromButtonEvent};
 use drogue_device::{Actor, ActorContext, Address, DeviceContext, Inbox};
 use embassy::time::Delay;
-use embassy::traits::rng::Rng;
 use embassy_stm32::dma::NoDma;
 use embassy_stm32::peripherals::*;
 use embassy_stm32::rng::Rng as Random;
@@ -64,7 +63,7 @@ impl App {
 
     async fn random_color(&mut self) -> (OctColor, OctColor) {
         let mut v = [0; 1];
-        self.random.fill_bytes(&mut v).await.ok();
+        self.random.async_fill_bytes(&mut v).await.ok();
 
         let fg = v[0] & 0b00000111;
         let bg = (v[0] & 0b01110000) >> 4;
