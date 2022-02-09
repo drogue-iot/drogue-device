@@ -18,8 +18,8 @@ futures     = { version = "0.3.17", default-features = false, features = ["async
 embassy = { version = "0.1.0", default-features = false, features = ["time"] }
 fixed = "1.5.0"
 
-nrf-softdevice = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "f81a201211d63a994528e69b1c5a224be9b53f85", features = ["ble-peripheral", "ble-gatt-server"] }
-nrf-softdevice-s113 = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "f81a201211d63a994528e69b1c5a224be9b53f85", optional = true }
+nrf-softdevice = { version = "0.1.0", features = ["ble-peripheral", "ble-gatt-server"] }
+nrf-softdevice-s113 = { version = "0.1.0", optional = true }
 
 #nrf-softdevice = { version = "0.1.0", path = "../../../../nrf-softdevice/nrf-softdevice", features = ["ble-peripheral", "critical-section-impl", "ble-gatt-server"] }
 #nrf-softdevice-s113 = { version = "0.1.0", path = "../../../../nrf-softdevice/nrf-softdevice-s113", optional = true }
@@ -33,7 +33,9 @@ nrf52833 = ["nrf-softdevice/nrf52833"]
 withdefmt = ["nrf-softdevice/defmt"]
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
-#embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
-#embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
-#embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "d76cd5ceaf5140c48ef97180beae156c0c0e07c8" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "3d6b8bd9832d5a29cab4aa21434663e6ea6f4488" }
+nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "ba31fc03d97facc54efb9456901abf02549a4209" }
+nrf-softdevice-s113 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "ba31fc03d97facc54efb9456901abf02549a4209" }
+#embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "3d6b8bd9832d5a29cab4aa21434663e6ea6f4488" }
+#embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "3d6b8bd9832d5a29cab4aa21434663e6ea6f4488" }
+#embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "3d6b8bd9832d5a29cab4aa21434663e6ea6f4488" }

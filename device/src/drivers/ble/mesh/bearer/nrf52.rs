@@ -5,7 +5,7 @@ use core::future::Future;
 use core::mem;
 use core::num::NonZeroU32;
 use core::ptr::slice_from_raw_parts;
-use embassy::traits::flash::Flash;
+use embedded_storage_async::nor_flash::{AsyncNorFlash, AsyncReadNorFlash};
 use heapless::Vec;
 use nrf_softdevice::ble::central::ScanConfig;
 use nrf_softdevice::ble::peripheral::AdvertiseError;
@@ -124,9 +124,12 @@ impl Storage for SoftdeviceStorage {
 
     fn store<'m>(&'m mut self, keys: &'m Payload) -> Self::StoreFuture<'m> {
         async move {
-            self.flash.erase(self.address).await.map_err(|_| ())?;
             self.flash
-                .write(self.address, &keys.payload)
+                .erase(self.address as u32, self.address as u32 + 4096)
+                .await
+                .map_err(|_| ())?;
+            self.flash
+                .write(self.address as u32, &keys.payload)
                 .await
                 .map_err(|_| ())
         }
@@ -141,7 +144,7 @@ impl Storage for SoftdeviceStorage {
         async move {
             let mut payload = [0; 512];
             self.flash
-                .read(self.address, &mut payload)
+                .read(self.address as u32, &mut payload)
                 .await
                 .map_err(|_| ())?;
             Ok(Some(Payload { payload }))
