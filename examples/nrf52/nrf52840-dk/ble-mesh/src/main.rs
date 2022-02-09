@@ -31,7 +31,7 @@ use embassy_nrf::gpio::{Level, OutputDrive};
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::peripherals::P0_13;
 use embassy_nrf::{
-    gpio::{AnyPin, Output},
+    gpio::Output,
     Peripherals,
 };
 use panic_probe as _;
@@ -113,7 +113,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
         FEATURES,
     );
     composition
-        .add_element(ElementDescriptor::new(Location(0x0001)).add_model(GENERIC_ON_OFF_MODEL));
+        .add_element(ElementDescriptor::new(Location(0x0001)).add_model(GENERIC_ON_OFF_MODEL)).ok();
 
     let elements = CustomElementsHandler { composition, led };
 
@@ -123,6 +123,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
     device.mesh.mount(spawner, mesh_node);
 }
 
+#[allow(unused)]
 pub struct CustomElementsHandler {
     composition: Composition,
     led: Address<actors::led::Led<drivers::led::Led<Output<'static, P0_13>>>>,
@@ -135,7 +136,7 @@ impl ElementsHandler for CustomElementsHandler {
         &self.composition
     }
 
-    fn connect<C: ElementContext>(&self, ctx: &C) {
+    fn connect<C: ElementContext>(&self, _ctx: &C) {
         todo!()
     }
 
@@ -144,7 +145,7 @@ impl ElementsHandler for CustomElementsHandler {
         Self: 'm,
     = impl Future<Output = Result<(), DeviceError>> + 'm;
 
-    fn dispatch<'m>(&'m self, element: u8, message: AccessMessage) -> Self::DispatchFuture<'m> {
+    fn dispatch(&self, _element: u8, _message: AccessMessage) -> Self::DispatchFuture<'_> {
         async move { todo!() }
     }
 }

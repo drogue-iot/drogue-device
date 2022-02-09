@@ -232,7 +232,7 @@ impl Message for NodeResetMessage {
 
     fn emit_parameters<const N: usize>(
         &self,
-        xmit: &mut Vec<u8, N>,
+        _xmit: &mut Vec<u8, N>,
     ) -> Result<(), InsufficientBuffer> {
         Ok(())
     }
@@ -300,7 +300,7 @@ impl CompositionStatus {
             .map_err(|_| InsufficientBuffer)?;
         xmit.extend_from_slice(&self.data.crpl.to_be_bytes())
             .map_err(|_| InsufficientBuffer)?;
-        self.data.features.emit(xmit);
+        self.data.features.emit(xmit)?;
         for element in self.data.elements.iter() {
             xmit.extend_from_slice(&element.loc.0.to_be_bytes())
                 .map_err(|_| InsufficientBuffer)?;
@@ -315,8 +315,8 @@ impl CompositionStatus {
                 .filter(|e| matches!(e, ModelIdentifier::Vendor(..)))
                 .collect();
 
-            xmit.push(sig_models.len() as u8);
-            xmit.push(vendor_models.len() as u8);
+            xmit.push(sig_models.len() as u8).map_err(|_|InsufficientBuffer)?;
+            xmit.push(vendor_models.len() as u8).map_err(|_|InsufficientBuffer)?;
 
             for model in sig_models.iter() {
                 model.emit(xmit)?

@@ -1,7 +1,7 @@
 use crate::drivers::ble::mesh::driver::elements::ElementContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::model::{Model, ModelIdentifier};
-use crate::drivers::ble::mesh::pdu::access::{AccessMessage, Opcode};
+use crate::drivers::ble::mesh::model::ModelIdentifier;
+use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use core::future::Future;
 use defmt::Format;
@@ -111,7 +111,7 @@ impl ElementDescriptor {
     }
 
     pub fn add_model(mut self, model: ModelIdentifier) -> Self {
-        self.models.push(model);
+        self.models.push(model).ok();
         self
     }
 }

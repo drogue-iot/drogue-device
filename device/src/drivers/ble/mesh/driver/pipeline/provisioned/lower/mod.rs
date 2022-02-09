@@ -9,7 +9,6 @@ use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
 use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
 use core::future::Future;
-use embassy_nrf::gpiote::OutputChannelPolarity::Clear;
 use heapless::Vec;
 
 pub trait LowerContext: AuthenticationContext {
@@ -137,7 +136,7 @@ impl Lower {
                         .map_err(|_| DeviceError::InsufficientBuffer)?;
 
                     if payload.len() > NONSEGMENTED_ACCESS_MUT {
-                        let mut payload = payload.chunks(SEGMENTED_ACCESS_MTU);
+                        let payload = payload.chunks(SEGMENTED_ACCESS_MTU);
 
                         let mut segments = CleartextNetworkPDUSegments::new_empty();
 
@@ -169,7 +168,7 @@ impl Lower {
                                         segment_m: Vec::from_slice(segment_m).unwrap(),
                                     },
                                 }),
-                            });
+                            })?;
                         }
                         Ok(Some(segments))
                     } else {

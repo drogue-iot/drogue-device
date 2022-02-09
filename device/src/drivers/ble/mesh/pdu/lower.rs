@@ -184,8 +184,17 @@ impl LowerAccessMessage {
                 segment_m,
             } => {
                 let mut header = [0; 3];
-                // small szmic + first 7 bits of seq_zero
-                header[0] = 0b00000000 | ((seq_zero & 0b1111111000000) >> 6) as u8;
+                match szmic {
+                    // small szmic + first 7 bits of seq_zero
+                    SzMic::Bit32 => {
+                            header[0] = 0b00000000 | ((seq_zero & 0b1111111000000) >> 6) as u8;
+
+                    }
+                    // big szmic + first 7 bits of seq_zero
+                    SzMic::Bit64 => {
+                        header[0] = 0b10000000 | ((seq_zero & 0b1111111000000) >> 6) as u8;
+                    }
+                }
                 // last 6 bits of seq_zero + first 2 bits of seg_o
                 header[1] = ((seq_zero & 0b111111) << 2) as u8 | ((seg_o & 0b00011000) >> 2) as u8;
                 header[2] = ((seg_o & 0b00000111) << 5) | (seg_n & 0b00011111);

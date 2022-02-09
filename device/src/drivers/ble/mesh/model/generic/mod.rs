@@ -1,6 +1,5 @@
-use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::{
-    Message, Model, ModelIdentifier, ReadableState, State, WriteableState,
+    Message, Model, ModelIdentifier,
 };
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
@@ -49,7 +48,7 @@ impl Model for GenericOnOffServer {
     fn parse(
         &self,
         opcode: Opcode,
-        parameters: &[u8],
+        _parameters: &[u8],
     ) -> Result<Option<Self::MESSAGE>, ParseError> {
         match opcode {
             GENERIC_ON_OFF_GET => Ok(None),

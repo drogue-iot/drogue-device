@@ -366,9 +366,8 @@ impl<S: Storage> ConfigurationManager<S> {
     }
 
     pub(crate) async fn node_reset(&self) -> ! {
-        defmt::info!("reset");
-        self.store(&Configuration::default()).await;
-        defmt::info!("reset complete, reboot!");
+        // best effort
+        self.store(&Configuration::default()).await.ok();
         // todo don't assume cortex-m some day
         cortex_m::peripheral::SCB::sys_reset();
     }
