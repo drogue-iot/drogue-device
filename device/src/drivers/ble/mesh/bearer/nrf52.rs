@@ -160,7 +160,7 @@ impl Bearer for SoftdeviceAdvertisingBearer {
     type TransmitFuture<'m> = impl Future<Output = ()> + 'm;
 
     fn transmit<'m>(&'m self, message: &'m [u8]) -> Self::TransmitFuture<'m> {
-        defmt::info!("nrf transmit {}", message);
+        info!("nrf transmit {}", message);
         let adv =
             peripheral::NonconnectableAdvertisement::NonscannableUndirected { adv_data: message };
 
@@ -180,10 +180,10 @@ impl Bearer for SoftdeviceAdvertisingBearer {
                         // timeout is okay, ignore.
                     }
                     AdvertiseError::NoFreeConn => {
-                        defmt::error!("-- nRF No Free Connection")
+                        error!("-- nRF No Free Connection")
                     }
                     AdvertiseError::Raw(inner) => {
-                        defmt::error!("-- nRF {}", inner);
+                        error!("-- nRF {}", inner);
                     }
                 }
             }

@@ -443,6 +443,7 @@ dependencies = [
  "embedded-hal 0.2.6",
  "embedded-hal 1.0.0-alpha.6",
  "embedded-hal-async",
+ "embedded-storage-async",
  "futures",
  "heapless",
  "lorawan-device",
@@ -574,6 +575,21 @@ version = "0.0.1"
 source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy#1fa64a1d2f9cc1a1ae632dbfcc4064a9f6504a3f"
 dependencies = [
  "embedded-hal 1.0.0-alpha.6",
+]
+
+[[package]]
+name = "embedded-storage"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "156d7a2fdd98ebbf9ae579cbceca3058cff946e13f8e17b90e3511db0508c723"
+
+[[package]]
+name = "embedded-storage-async"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ff04af74e47e9bb4315bd7aa2b01f3d1b05f33c03a6c4e9c3b20e9ce9cd8d79"
+dependencies = [
+ "embedded-storage",
 ]
 
 [[package]]
