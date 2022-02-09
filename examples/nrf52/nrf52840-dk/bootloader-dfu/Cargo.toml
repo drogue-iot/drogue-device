@@ -19,7 +19,7 @@ drogue-device = { path = "../../../../device", default-features = false, feature
 
 embassy = { version = "0.1.0", default-features = false, features = [] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52840", "gpiote", "time-driver-rtc1"]}
-embassy-boot-nrf = { version = "0.1.0", default-features = false, features = ["softdevice"] }
+embassy-boot-nrf = { version = "0.0.0", default-features = false, features = ["softdevice"] }
 
 cortex-m    = { version = "0.7.2" }
 cortex-m-rt = "0.7"
