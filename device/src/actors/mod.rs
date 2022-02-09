@@ -1,6 +1,9 @@
 #[cfg(feature = "ble")]
 pub mod ble;
 
+#[cfg(feature = "dfu")]
+pub mod dfu;
+
 pub mod button;
 pub mod i2c;
 pub mod led;
