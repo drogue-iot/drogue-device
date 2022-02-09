@@ -315,8 +315,10 @@ impl CompositionStatus {
                 .filter(|e| matches!(e, ModelIdentifier::Vendor(..)))
                 .collect();
 
-            xmit.push(sig_models.len() as u8).map_err(|_|InsufficientBuffer)?;
-            xmit.push(vendor_models.len() as u8).map_err(|_|InsufficientBuffer)?;
+            xmit.push(sig_models.len() as u8)
+                .map_err(|_| InsufficientBuffer)?;
+            xmit.push(vendor_models.len() as u8)
+                .map_err(|_| InsufficientBuffer)?;
 
             for model in sig_models.iter() {
                 model.emit(xmit)?

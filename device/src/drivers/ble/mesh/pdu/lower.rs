@@ -187,8 +187,7 @@ impl LowerAccessMessage {
                 match szmic {
                     // small szmic + first 7 bits of seq_zero
                     SzMic::Bit32 => {
-                            header[0] = 0b00000000 | ((seq_zero & 0b1111111000000) >> 6) as u8;
-
+                        header[0] = 0b00000000 | ((seq_zero & 0b1111111000000) >> 6) as u8;
                     }
                     // big szmic + first 7 bits of seq_zero
                     SzMic::Bit64 => {

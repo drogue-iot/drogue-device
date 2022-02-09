@@ -30,10 +30,7 @@ use embassy_nrf::config::Config;
 use embassy_nrf::gpio::{Level, OutputDrive};
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::peripherals::P0_13;
-use embassy_nrf::{
-    gpio::Output,
-    Peripherals,
-};
+use embassy_nrf::{gpio::Output, Peripherals};
 use panic_probe as _;
 
 pub struct MyDevice {
@@ -113,7 +110,8 @@ async fn main(spawner: Spawner, p: Peripherals) {
         FEATURES,
     );
     composition
-        .add_element(ElementDescriptor::new(Location(0x0001)).add_model(GENERIC_ON_OFF_MODEL)).ok();
+        .add_element(ElementDescriptor::new(Location(0x0001)).add_model(GENERIC_ON_OFF_MODEL))
+        .ok();
 
     let elements = CustomElementsHandler { composition, led };
 

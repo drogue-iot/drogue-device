@@ -1,6 +1,4 @@
-use crate::drivers::ble::mesh::model::{
-    Message, Model, ModelIdentifier,
-};
+use crate::drivers::ble::mesh::model::{Message, Model, ModelIdentifier};
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
