@@ -31,7 +31,11 @@ impl Configuration {
         if self.uuid.is_none() {
             let mut uuid = [0; 16];
             rng.fill_bytes(&mut uuid);
-            self.uuid.replace(Uuid(uuid));
+            self.uuid.replace(Uuid(
+                *uuid::Builder::from_random_bytes(uuid)
+                    .into_uuid()
+                    .as_bytes(),
+            ));
             changed = true;
         }
 
