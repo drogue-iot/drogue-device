@@ -1,9 +1,9 @@
-use defmt::Format;
+use crate::drivers::ble::mesh::composition::CompanyIdentifier;
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
+use defmt::Format;
 use heapless::Vec;
-use crate::drivers::ble::mesh::composition::CompanyIdentifier;
 
 pub mod foundation;
 pub mod generic;
@@ -28,16 +28,18 @@ impl ModelIdentifier {
         match self {
             ModelIdentifier::Foundation(_) => { /* nope, don't do it */ }
             ModelIdentifier::SIG(model_id) => {
-                xmit.extend_from_slice( &model_id.to_le_bytes() ).map_err(|_|InsufficientBuffer)?;
+                xmit.extend_from_slice(&model_id.to_le_bytes())
+                    .map_err(|_| InsufficientBuffer)?;
             }
             ModelIdentifier::Vendor(company_id, model_id) => {
-                xmit.extend_from_slice( &company_id.0.to_le_bytes() ).map_err(|_|InsufficientBuffer)?;
-                xmit.extend_from_slice( &model_id.to_le_bytes() ).map_err(|_|InsufficientBuffer)?;
+                xmit.extend_from_slice(&company_id.0.to_le_bytes())
+                    .map_err(|_| InsufficientBuffer)?;
+                xmit.extend_from_slice(&model_id.to_le_bytes())
+                    .map_err(|_| InsufficientBuffer)?;
             }
         }
         Ok(())
     }
-
 }
 
 pub trait Message {

@@ -1,3 +1,4 @@
+use crate::drivers::ble::mesh::composition::Composition;
 use crate::drivers::ble::mesh::model::{FoundationIdentifier, Message, Model, ModelIdentifier};
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
@@ -5,7 +6,6 @@ use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
 use defmt::Format;
 use heapless::Vec;
-use crate::drivers::ble::mesh::composition::Composition;
 
 #[derive(Format)]
 pub enum ConfigurationMessage {
@@ -73,7 +73,7 @@ impl Model for ConfigurationServer {
                 NodeResetMessage::parse_reset(parameters)?,
             ))),
             CONFIG_COMPOSITION_DATA_GET => Ok(Some(ConfigurationMessage::CompositionData(
-                CompositionDataMessage::parse_get(parameters)?
+                CompositionDataMessage::parse_get(parameters)?,
             ))),
             _ => Ok(None),
         }
@@ -230,8 +230,10 @@ impl Message for NodeResetMessage {
         }
     }
 
-
-    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+    fn emit_parameters<const N: usize>(
+        &self,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
         Ok(())
     }
 }
@@ -264,14 +266,15 @@ impl Message for CompositionDataMessage {
         }
     }
 
-    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+    fn emit_parameters<const N: usize>(
+        &self,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
         match self {
             CompositionDataMessage::Get(page) => {
-                xmit.push(*page).map_err(|_|InsufficientBuffer)?
+                xmit.push(*page).map_err(|_| InsufficientBuffer)?
             }
-            CompositionDataMessage::Status(inner) => {
-                inner.emit_parameters(xmit)?
-            }
+            CompositionDataMessage::Status(inner) => inner.emit_parameters(xmit)?,
         }
         Ok(())
     }
@@ -284,17 +287,33 @@ pub struct CompositionStatus {
 }
 
 impl CompositionStatus {
-    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        xmit.push(self.page).map_err(|_|InsufficientBuffer)?;
-        xmit.extend_from_slice(&self.data.cid.0.to_be_bytes()).map_err(|_|InsufficientBuffer)?;
-        xmit.extend_from_slice(&self.data.pid.0.to_be_bytes()).map_err(|_|InsufficientBuffer)?;
-        xmit.extend_from_slice(&self.data.vid.0.to_be_bytes()).map_err(|_|InsufficientBuffer)?;
-        xmit.extend_from_slice(&self.data.crpl.to_be_bytes()).map_err(|_|InsufficientBuffer)?;
+    fn emit_parameters<const N: usize>(
+        &self,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
+        xmit.push(self.page).map_err(|_| InsufficientBuffer)?;
+        xmit.extend_from_slice(&self.data.cid.0.to_be_bytes())
+            .map_err(|_| InsufficientBuffer)?;
+        xmit.extend_from_slice(&self.data.pid.0.to_be_bytes())
+            .map_err(|_| InsufficientBuffer)?;
+        xmit.extend_from_slice(&self.data.vid.0.to_be_bytes())
+            .map_err(|_| InsufficientBuffer)?;
+        xmit.extend_from_slice(&self.data.crpl.to_be_bytes())
+            .map_err(|_| InsufficientBuffer)?;
         self.data.features.emit(xmit);
         for element in self.data.elements.iter() {
-            xmit.extend_from_slice( &element.loc.0.to_be_bytes() ).map_err(|_|InsufficientBuffer)?;
-            let sig_models: Vec<_, 10> = element.models.iter().filter(|e| matches!(e, ModelIdentifier::SIG(_))).collect();
-            let vendor_models: Vec<_, 10> = element.models.iter().filter(|e| matches!(e, ModelIdentifier::Vendor(..))).collect();
+            xmit.extend_from_slice(&element.loc.0.to_be_bytes())
+                .map_err(|_| InsufficientBuffer)?;
+            let sig_models: Vec<_, 10> = element
+                .models
+                .iter()
+                .filter(|e| matches!(e, ModelIdentifier::SIG(_)))
+                .collect();
+            let vendor_models: Vec<_, 10> = element
+                .models
+                .iter()
+                .filter(|e| matches!(e, ModelIdentifier::Vendor(..)))
+                .collect();
 
             xmit.push(sig_models.len() as u8);
             xmit.push(vendor_models.len() as u8);
@@ -309,5 +328,4 @@ impl CompositionStatus {
         }
         Ok(())
     }
-
 }

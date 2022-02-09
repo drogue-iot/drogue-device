@@ -144,7 +144,11 @@ impl Lower {
                         let seg_n = payload.len() - 1;
 
                         for (seg_o, segment_m) in payload.enumerate() {
-                            let seq = if seg_o == 0 { seq_zero } else { ctx.next_sequence().await? };
+                            let seq = if seg_o == 0 {
+                                seq_zero
+                            } else {
+                                ctx.next_sequence().await?
+                            };
                             segments.add(CleartextNetworkPDU {
                                 network_key: access.network_key,
                                 ivi: access.ivi,

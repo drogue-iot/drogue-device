@@ -1,4 +1,5 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
+use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::configuration_manager::{
     KeyStorage, NetworkKeyDetails, PrimaryElementModels, PrimaryElementStorage,
 };
@@ -31,7 +32,6 @@ use core::future::Future;
 use heapless::Vec;
 use p256::PublicKey;
 use rand_core::{CryptoRng, RngCore};
-use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 
 // ------------------------------------------------------------------------
 // Unprovisioned pipeline context
@@ -253,7 +253,9 @@ where
     }
 
     fn default_ttl(&self) -> u8 {
-        PrimaryElementStorage::retrieve(&self.configuration_manager).configuration.default_ttl
+        PrimaryElementStorage::retrieve(&self.configuration_manager)
+            .configuration
+            .default_ttl
     }
 }
 
@@ -348,14 +350,12 @@ where
     }
 
     type NodeResetFuture<'m>
-        where
-            Self: 'm,
+    where
+        Self: 'm,
     = impl Future<Output = ()> + 'm;
 
     fn node_reset<'m>(&'m self) -> Self::NodeResetFuture<'m> {
-        async move {
-            self.configuration_manager.node_reset().await
-        }
+        async move { self.configuration_manager.node_reset().await }
     }
 
     fn composition(&self) -> &Composition {

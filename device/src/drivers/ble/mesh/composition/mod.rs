@@ -1,20 +1,20 @@
 use crate::drivers::ble::mesh::driver::elements::ElementContext;
-use crate::drivers::ble::mesh::pdu::access::{AccessMessage, Opcode};
 use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::model::{Model, ModelIdentifier};
+use crate::drivers::ble::mesh::pdu::access::{AccessMessage, Opcode};
+use crate::drivers::ble::mesh::InsufficientBuffer;
 use core::future::Future;
 use defmt::Format;
-use crate::drivers::ble::mesh::model::{Model, ModelIdentifier};
 use heapless::Vec;
-use crate::drivers::ble::mesh::InsufficientBuffer;
 
 pub trait ElementsHandler {
     fn composition(&self) -> &Composition;
 
-    fn connect<C:ElementContext>(&self, ctx: &C);
+    fn connect<C: ElementContext>(&self, ctx: &C);
 
     type DispatchFuture<'m>: Future<Output = Result<(), DeviceError>> + 'm
     where
-    Self: 'm;
+        Self: 'm;
 
     fn dispatch<'m>(&'m self, element: u8, message: AccessMessage) -> Self::DispatchFuture<'m>;
 }
@@ -37,7 +37,10 @@ pub struct Features {
 }
 
 impl Features {
-    pub(crate) fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+    pub(crate) fn emit<const N: usize>(
+        &self,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
         // bits 15-8 RFU
         let mut val = 0;
         if self.relay {
@@ -52,8 +55,8 @@ impl Features {
         if self.low_power {
             val = val | 0b1000;
         }
-        xmit.push(val).map_err(|_|InsufficientBuffer)?;
-        xmit.push(0).map_err(|_|InsufficientBuffer)?;
+        xmit.push(val).map_err(|_| InsufficientBuffer)?;
+        xmit.push(0).map_err(|_| InsufficientBuffer)?;
         Ok(())
     }
 }
@@ -69,14 +72,19 @@ pub struct Composition {
 }
 
 impl Composition {
-    pub fn new(cid: CompanyIdentifier, pid: ProductIdentifier, vid: VersionIdentifier, features: Features) -> Self {
+    pub fn new(
+        cid: CompanyIdentifier,
+        pid: ProductIdentifier,
+        vid: VersionIdentifier,
+        features: Features,
+    ) -> Self {
         Self {
             cid,
             pid,
             vid,
             crpl: 0,
             features,
-            elements: Default::default()
+            elements: Default::default(),
         }
     }
 
@@ -106,5 +114,4 @@ impl ElementDescriptor {
         self.models.push(model);
         self
     }
-
 }

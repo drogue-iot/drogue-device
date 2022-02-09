@@ -191,8 +191,6 @@ impl AppKey {
     }
 }
 
-
-
 #[derive(Format)]
 pub enum Friend {
     Get,

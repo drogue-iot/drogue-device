@@ -1,9 +1,13 @@
-use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::driver::elements::PrimaryElementContext;
+use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::DefaultTTLMessage;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 
-pub(crate) async fn dispatch<C:PrimaryElementContext>(ctx: &C, access: &AccessMessage, message: &DefaultTTLMessage) -> Result<(), DeviceError>{
+pub(crate) async fn dispatch<C: PrimaryElementContext>(
+    ctx: &C,
+    access: &AccessMessage,
+    message: &DefaultTTLMessage,
+) -> Result<(), DeviceError> {
     match message {
         DefaultTTLMessage::Get => {
             let val = ctx.retrieve().configuration.default_ttl;

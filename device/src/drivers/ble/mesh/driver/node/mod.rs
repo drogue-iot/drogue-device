@@ -1,3 +1,4 @@
+use crate::drivers::ble::mesh::composition::ElementsHandler;
 use crate::drivers::ble::mesh::configuration_manager::{ConfigurationManager, KeyStorage};
 use crate::drivers::ble::mesh::driver::elements::Elements;
 use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
@@ -18,7 +19,6 @@ use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
-use crate::drivers::ble::mesh::composition::ElementsHandler;
 
 mod context;
 

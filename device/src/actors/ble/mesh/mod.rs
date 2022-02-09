@@ -1,6 +1,7 @@
 pub mod bearer;
 
 use crate::drivers::ble::mesh::bearer::{Bearer, Handler};
+use crate::drivers::ble::mesh::composition::ElementsHandler;
 use crate::drivers::ble::mesh::configuration_manager::ConfigurationManager;
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::DeviceError;
@@ -14,14 +15,13 @@ use embassy::channel::mpsc::{self, Channel};
 use futures::{join, pin_mut};
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
-use crate::drivers::ble::mesh::composition::ElementsHandler;
 
 pub struct MeshNode<E, B, S, R>
-    where
-        E: ElementsHandler,
-        B: Bearer,
-        S: Storage,
-        R: RngCore + CryptoRng,
+where
+    E: ElementsHandler,
+    B: Bearer,
+    S: Storage,
+    R: RngCore + CryptoRng,
 {
     elements: Option<E>,
     force_reset: bool,
@@ -32,11 +32,11 @@ pub struct MeshNode<E, B, S, R>
 }
 
 impl<E, B, S, R> MeshNode<E, B, S, R>
-    where
-        E: ElementsHandler,
-        B: Bearer,
-        S: Storage,
-        R: RngCore + CryptoRng,
+where
+    E: ElementsHandler,
+    B: Bearer,
+    S: Storage,
+    R: RngCore + CryptoRng,
 {
     pub fn new(elements: E, capabilities: Capabilities, transport: B, storage: S, rng: R) -> Self {
         Self {
@@ -71,9 +71,9 @@ impl<'c> BearerReceiver<'c> {
 
 impl<'c> Receiver for BearerReceiver<'c> {
     type ReceiveFuture<'m>
-        where
-            Self: 'm,
-    = impl Future<Output=Result<Vec<u8, 384>, DeviceError>>;
+    where
+        Self: 'm,
+    = impl Future<Output = Result<Vec<u8, 384>, DeviceError>>;
 
     fn receive_bytes<'m>(&'m self) -> Self::ReceiveFuture<'m> {
         async move {
@@ -87,16 +87,16 @@ impl<'c> Receiver for BearerReceiver<'c> {
 }
 
 struct BearerHandler<'t, 'c, B>
-    where
-        B: Bearer + 't,
+where
+    B: Bearer + 't,
 {
     transport: &'t B,
     sender: mpsc::Sender<'c, CriticalSection, Vec<u8, 384>, 6>,
 }
 
 impl<'t, 'c, B> BearerHandler<'t, 'c, B>
-    where
-        B: Bearer + 't,
+where
+    B: Bearer + 't,
 {
     fn new(transport: &'t B, sender: mpsc::Sender<'c, CriticalSection, Vec<u8, 384>, 6>) -> Self {
         Self { transport, sender }
@@ -108,8 +108,8 @@ impl<'t, 'c, B> BearerHandler<'t, 'c, B>
 }
 
 impl<'t, 'c, B> Handler for BearerHandler<'t, 'c, B>
-    where
-        B: Bearer + 't,
+where
+    B: Bearer + 't,
 {
     fn handle(&self, message: Vec<u8, 384>) {
         // BLE loses messages anyhow, so if this fails, just ignore.
@@ -118,20 +118,20 @@ impl<'t, 'c, B> Handler for BearerHandler<'t, 'c, B>
 }
 
 struct BearerTransmitter<'t, B>
-    where
-        B: Bearer + 't,
+where
+    B: Bearer + 't,
 {
     transport: &'t B,
 }
 
 impl<'t, B> Transmitter for BearerTransmitter<'t, B>
-    where
-        B: Bearer + 't,
+where
+    B: Bearer + 't,
 {
     type TransmitFuture<'m>
-        where
-            Self: 'm,
-    = impl Future<Output=Result<(), DeviceError>>;
+    where
+        Self: 'm,
+    = impl Future<Output = Result<(), DeviceError>>;
 
     fn transmit_bytes<'m>(&'m self, bytes: &'m [u8]) -> Self::TransmitFuture<'m> {
         async move {
@@ -142,21 +142,21 @@ impl<'t, B> Transmitter for BearerTransmitter<'t, B>
 }
 
 impl<E, B, S, R> Actor for MeshNode<E, B, S, R>
-    where
-        E: ElementsHandler + 'static,
-        B: Bearer + 'static,
-        S: Storage + 'static,
-        R: RngCore + CryptoRng + 'static,
+where
+    E: ElementsHandler + 'static,
+    B: Bearer + 'static,
+    S: Storage + 'static,
+    R: RngCore + CryptoRng + 'static,
 {
     type Message<'m> = Vec<u8, 384>;
     type OnMountFuture<'m, M>
-        where
-            M: 'm,
-    = impl Future<Output=()> + 'm;
+    where
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
 
     fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
-        where
-            M: Inbox<Self> + 'm,
+    where
+        M: Inbox<Self> + 'm,
     {
         async move {
             let tx = BearerTransmitter {

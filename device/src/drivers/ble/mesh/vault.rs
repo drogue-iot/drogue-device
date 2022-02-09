@@ -2,7 +2,7 @@ use core::convert::TryInto;
 use core::future::Future;
 
 use crate::drivers::ble::mesh::configuration_manager::{
-    GeneralStorage, KeyStorage, NetworkInfo, NetworkKeyDetails, NetworkKey,
+    GeneralStorage, KeyStorage, NetworkInfo, NetworkKey, NetworkKeyDetails,
 };
 use crate::drivers::ble::mesh::crypto;
 use aes::Aes128;
@@ -199,7 +199,9 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
             if let Some(salt) = keys.provisioning_salt()? {
                 let device_key = self.prdk(&salt)?;
                 let device_key = device_key.into_bytes();
-                let device_key: [u8;16] = device_key.try_into().map_err(|_|DeviceError::KeyInitialization)?;
+                let device_key: [u8; 16] = device_key
+                    .try_into()
+                    .map_err(|_| DeviceError::KeyInitialization)?;
                 keys.set_device_key(device_key);
             }
             self.storage.store(keys).await

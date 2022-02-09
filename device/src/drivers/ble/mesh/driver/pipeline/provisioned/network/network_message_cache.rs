@@ -1,7 +1,7 @@
 use crate::drivers::ble::mesh::pdu::network::CleartextNetworkPDU;
 
-use uluru::LRUCache;
 use crate::drivers::ble::mesh::address::UnicastAddress;
+use uluru::LRUCache;
 
 #[derive(PartialEq)]
 struct CacheEntry {

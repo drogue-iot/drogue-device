@@ -1,7 +1,7 @@
 mod beacon;
+mod composition_data;
 mod default_ttl;
 mod node_reset;
-mod composition_data;
 
 use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};

@@ -8,9 +8,9 @@ use core::ptr::slice_from_raw_parts;
 use embassy::traits::flash::Flash;
 use heapless::Vec;
 use nrf_softdevice::ble::central::ScanConfig;
+use nrf_softdevice::ble::peripheral::AdvertiseError;
 use nrf_softdevice::ble::{central, peripheral};
 use nrf_softdevice::{random_bytes, raw, Softdevice};
-use nrf_softdevice::ble::peripheral::AdvertiseError;
 use rand_core::{CryptoRng, Error, RngCore};
 
 pub struct Nrf52BleMeshFacilities {
@@ -170,14 +170,14 @@ impl Bearer for SoftdeviceAdvertisingBearer {
                     ..Default::default()
                 },
             )
-            .await {
+            .await
+            {
                 match err {
                     AdvertiseError::Timeout => {
                         // timeout is okay, ignore.
                     }
                     AdvertiseError::NoFreeConn => {
                         defmt::error!("-- nRF No Free Connection")
-
                     }
                     AdvertiseError::Raw(inner) => {
                         defmt::error!("-- nRF {}", inner);
