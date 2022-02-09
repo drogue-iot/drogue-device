@@ -1,8 +1,14 @@
+mod beacon;
+mod composition_data;
+mod default_ttl;
+mod node_reset;
+
 use crate::drivers::ble::mesh::address::UnicastAddress;
+use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::configuration_manager::PrimaryElementModels;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::{
-    BeaconMessage, ConfigurationMessage, ConfigurationServer,
+    ConfigurationMessage, ConfigurationServer,
 };
 use crate::drivers::ble::mesh::model::Model;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
@@ -27,16 +33,26 @@ pub trait PrimaryElementContext: ElementContext {
         Self: 'm;
 
     fn store<'m>(&'m self, update: PrimaryElementModels) -> Self::StoreFuture<'m>;
+
+    type NodeResetFuture<'m>: Future<Output = ()>
+    where
+        Self: 'm;
+
+    fn node_reset<'m>(&'m self) -> Self::NodeResetFuture<'m>;
+
+    fn composition(&self) -> &Composition;
 }
 
-pub struct Elements {
-    primary: PrimaryElement,
+pub struct Elements<E: ElementsHandler> {
+    zero: ElementZero,
+    pub(crate) app: E,
 }
 
-impl Elements {
-    pub fn new() -> Self {
+impl<E: ElementsHandler> Elements<E> {
+    pub fn new(app_elements: E) -> Self {
         Self {
-            primary: PrimaryElement::new(),
+            zero: ElementZero::new(),
+            app: app_elements,
         }
     }
 
@@ -45,45 +61,50 @@ impl Elements {
         ctx: &C,
         message: &AccessMessage,
     ) -> Result<(), DeviceError> {
-        if let Ok(Some(payload)) = self
-            .primary
-            .configuration_server
-            .parse(message.payload.opcode, &message.payload.parameters)
-        {
-            match payload {
-                ConfigurationMessage::Beacon(beacon) => {
-                    match beacon {
-                        BeaconMessage::Get => {
-                            let val = ctx.retrieve().configuration.secure_beacon;
-                            ctx.transmit(message.create_response(ctx, BeaconMessage::Status(val))?)
-                                .await?;
-                        }
-                        BeaconMessage::Set(val) => {
-                            let mut update = ctx.retrieve();
-                            update.configuration.secure_beacon = val;
-                            ctx.store(update).await?;
-                            ctx.transmit(message.create_response(ctx, BeaconMessage::Status(val))?)
-                                .await?;
-                        }
-                        _ => {
-                            // not applicable to server role
-                        }
-                    }
-                }
-            }
-        }
-        Ok(())
+        // todo dispatch correctly based on dst address element
+        self.zero.dispatch(ctx, message).await
     }
 }
 
-pub struct PrimaryElement {
+pub struct ElementZero {
     configuration_server: ConfigurationServer,
 }
 
-impl PrimaryElement {
+impl ElementZero {
     fn new() -> Self {
         Self {
             configuration_server: ConfigurationServer,
+        }
+    }
+}
+
+impl ElementZero {
+    pub(crate) async fn dispatch<C: PrimaryElementContext>(
+        &self,
+        ctx: &C,
+        access: &AccessMessage,
+    ) -> Result<(), DeviceError> {
+        if let Ok(Some(payload)) = self
+            .configuration_server
+            .parse(access.payload.opcode, &access.payload.parameters)
+        {
+            match &payload {
+                ConfigurationMessage::Beacon(message) => {
+                    self::beacon::dispatch(ctx, access, message).await
+                }
+                ConfigurationMessage::DefaultTTL(message) => {
+                    self::default_ttl::dispatch(ctx, access, message).await
+                }
+                ConfigurationMessage::NodeReset(message) => {
+                    self::node_reset::dispatch(ctx, access, message).await
+                }
+                ConfigurationMessage::CompositionData(message) => {
+                    self::composition_data::dispatch(ctx, access, message).await
+                }
+            }
+        } else {
+            // todo should probably be some UnhandledMessage error
+            Ok(())
         }
     }
 }

@@ -1,6 +1,7 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
+use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::configuration_manager::{
-    KeyStorage, NetworkKey, PrimaryElementModels, PrimaryElementStorage,
+    KeyStorage, NetworkKeyDetails, PrimaryElementModels, PrimaryElementStorage,
 };
 use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::device::Uuid;
@@ -36,8 +37,9 @@ use rand_core::{CryptoRng, RngCore};
 // Unprovisioned pipeline context
 // ------------------------------------------------------------------------
 
-impl<TX, RX, S, R> UnprovisionedContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> UnprovisionedContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
@@ -117,8 +119,9 @@ where
     }
 }
 
-impl<TX, RX, S, R> MeshContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> MeshContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
@@ -174,8 +177,9 @@ where
 // Provisioned pipeline context
 // ------------------------------------------------------------------------
 
-impl<TX, RX, S, R> ProvisionedContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> ProvisionedContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     R: CryptoRng + RngCore,
     RX: Receiver,
     S: Storage,
@@ -183,8 +187,9 @@ where
 {
 }
 
-impl<TX, RX, S, R> RelayContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> RelayContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     R: CryptoRng + RngCore,
     RX: Receiver,
     S: Storage,
@@ -195,8 +200,9 @@ where
     }
 }
 
-impl<TX, RX, S, R> AuthenticationContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> AuthenticationContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     R: CryptoRng + RngCore,
     RX: Receiver,
     S: Storage,
@@ -206,13 +212,14 @@ where
         self.vault().iv_index()
     }
 
-    fn network_keys(&self, nid: u8) -> Vec<NetworkKey, 10> {
+    fn network_keys(&self, nid: u8) -> Vec<NetworkKeyDetails, 10> {
         self.vault().network_keys(nid)
     }
 }
 
-impl<TX, RX, S, R> LowerContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> LowerContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     R: CryptoRng + RngCore,
     RX: Receiver,
     S: Storage,
@@ -244,10 +251,17 @@ where
     fn next_sequence<'m>(&'m self) -> Self::NextSequenceFuture<'m> {
         async move { self.configuration_manager.next_sequence().await }
     }
+
+    fn default_ttl(&self) -> u8 {
+        PrimaryElementStorage::retrieve(&self.configuration_manager)
+            .configuration
+            .default_ttl
+    }
 }
 
-impl<TX, RX, S, R> UpperContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> UpperContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     R: CryptoRng + RngCore,
     RX: Receiver,
     S: Storage,
@@ -255,8 +269,9 @@ where
 {
 }
 
-impl<TX, RX, S, R> AccessContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> AccessContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     R: CryptoRng + RngCore,
     RX: Receiver,
     S: Storage,
@@ -272,8 +287,9 @@ where
     }
 }
 
-impl<TX, RX, S, R> PipelineContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> PipelineContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
@@ -281,8 +297,9 @@ where
 {
 }
 
-impl<TX, RX, S, R> ElementContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> ElementContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     R: CryptoRng + RngCore,
     RX: Receiver,
     S: Storage,
@@ -311,8 +328,9 @@ where
     }
 }
 
-impl<TX, RX, S, R> PrimaryElementContext for Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> PrimaryElementContext for Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
@@ -329,5 +347,18 @@ where
 
     fn store<'m>(&'m self, update: PrimaryElementModels) -> Self::StoreFuture<'m> {
         PrimaryElementStorage::store(&self.configuration_manager, update)
+    }
+
+    type NodeResetFuture<'m>
+    where
+        Self: 'm,
+    = impl Future<Output = ()> + 'm;
+
+    fn node_reset<'m>(&'m self) -> Self::NodeResetFuture<'m> {
+        async move { self.configuration_manager.node_reset().await }
+    }
+
+    fn composition(&self) -> &Composition {
+        self.elements.app.composition()
     }
 }

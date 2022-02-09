@@ -4,31 +4,47 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
+use core::future::Future;
 #[cfg(feature = "defmt-rtt")]
 use defmt_rtt as _;
 use drogue_device::actors::ble::mesh::MeshNode;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
     Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceRng, SoftdeviceStorage,
 };
+use drogue_device::drivers::ble::mesh::composition::{
+    CompanyIdentifier, Composition, ElementDescriptor, ElementsHandler, Features, Location,
+    ProductIdentifier, VersionIdentifier,
+};
+use drogue_device::drivers::ble::mesh::driver::elements::ElementContext;
+use drogue_device::drivers::ble::mesh::driver::DeviceError;
+use drogue_device::drivers::ble::mesh::model::generic::GENERIC_ON_OFF_MODEL;
+use drogue_device::drivers::ble::mesh::pdu::access::AccessMessage;
 use drogue_device::drivers::ble::mesh::provisioning::{
     Algorithms, Capabilities, InputOOBActions, OOBSize, OutputOOBActions, PublicKeyType,
     StaticOOBType,
 };
-use drogue_device::{actors, drivers, ActorContext, DeviceContext};
+use drogue_device::drivers::ActiveHigh;
+use drogue_device::{actors, drivers, ActorContext, Address, DeviceContext};
 use embassy::executor::Spawner;
 use embassy_nrf::config::Config;
+use embassy_nrf::gpio::{Level, OutputDrive};
 use embassy_nrf::interrupt::Priority;
-use embassy_nrf::{
-    gpio::{AnyPin, Output},
-    Peripherals,
-};
+use embassy_nrf::peripherals::P0_13;
+use embassy_nrf::{gpio::Output, Peripherals};
 use panic_probe as _;
 
 pub struct MyDevice {
     #[allow(dead_code)]
-    led: ActorContext<actors::led::Led<drivers::led::Led<Output<'static, AnyPin>>>>,
+    led: ActorContext<actors::led::Led<drivers::led::Led<Output<'static, P0_13>>>>,
     facilities: ActorContext<Nrf52BleMeshFacilities>,
-    mesh: ActorContext<MeshNode<SoftdeviceAdvertisingBearer, SoftdeviceStorage, SoftdeviceRng>>,
+    mesh: ActorContext<
+        MeshNode<
+            CustomElementsHandler,
+            SoftdeviceAdvertisingBearer,
+            SoftdeviceStorage,
+            SoftdeviceRng,
+        >,
+    >,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
@@ -45,8 +61,18 @@ extern "C" {
     static __storage: u8;
 }
 
+const COMPANY_IDENTIFIER: CompanyIdentifier = CompanyIdentifier(0x0003);
+const PRODUCT_IDENTIFIER: ProductIdentifier = ProductIdentifier(0x0001);
+const VERSION_IDENTIFIER: VersionIdentifier = VersionIdentifier(0x0001);
+const FEATURES: Features = Features {
+    relay: true,
+    proxy: false,
+    friend: false,
+    low_power: false,
+};
+
 #[embassy::main(config = "config()")]
-async fn main(spawner: Spawner, _p: Peripherals) {
+async fn main(spawner: Spawner, p: Peripherals) {
     let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BLE Mesh");
     let bearer = facilities.bearer();
     let rng = facilities.rng();
@@ -68,8 +94,56 @@ async fn main(spawner: Spawner, _p: Peripherals) {
         facilities: ActorContext::new(),
         mesh: ActorContext::new(),
     });
+
+    let led = actors::led::Led::new(drivers::led::Led::<_, ActiveHigh>::new(Output::new(
+        p.P0_13,
+        Level::High,
+        OutputDrive::Standard,
+    )));
+
+    let led = device.led.mount(spawner, led);
+
+    let mut composition = Composition::new(
+        COMPANY_IDENTIFIER,
+        PRODUCT_IDENTIFIER,
+        VERSION_IDENTIFIER,
+        FEATURES,
+    );
+    composition
+        .add_element(ElementDescriptor::new(Location(0x0001)).add_model(GENERIC_ON_OFF_MODEL))
+        .ok();
+
+    let elements = CustomElementsHandler { composition, led };
+
     device.facilities.mount(spawner, facilities);
-    let mesh_node = MeshNode::new(capabilities, bearer, storage, rng);
+    let mesh_node = MeshNode::new(elements, capabilities, bearer, storage, rng);
     //let mesh_node = MeshNode::new(capabilities, bearer, storage, rng).force_reset();
     device.mesh.mount(spawner, mesh_node);
+}
+
+#[allow(unused)]
+pub struct CustomElementsHandler {
+    composition: Composition,
+    led: Address<actors::led::Led<drivers::led::Led<Output<'static, P0_13>>>>,
+}
+
+impl CustomElementsHandler {}
+
+impl ElementsHandler for CustomElementsHandler {
+    fn composition(&self) -> &Composition {
+        &self.composition
+    }
+
+    fn connect<C: ElementContext>(&self, _ctx: &C) {
+        todo!()
+    }
+
+    type DispatchFuture<'m>
+    where
+        Self: 'm,
+    = impl Future<Output = Result<(), DeviceError>> + 'm;
+
+    fn dispatch(&self, _element: u8, _message: AccessMessage) -> Self::DispatchFuture<'_> {
+        async move { todo!() }
+    }
 }

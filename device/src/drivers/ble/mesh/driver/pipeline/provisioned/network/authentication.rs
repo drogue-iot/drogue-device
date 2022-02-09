@@ -1,5 +1,5 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
-use crate::drivers::ble::mesh::configuration_manager::{NetworkInfo, NetworkKey};
+use crate::drivers::ble::mesh::configuration_manager::{NetworkInfo, NetworkKeyDetails};
 use crate::drivers::ble::mesh::crypto::nonce::NetworkNonce;
 use crate::drivers::ble::mesh::crypto::{aes_ccm_decrypt_detached, aes_ccm_encrypt_detached, e};
 use crate::drivers::ble::mesh::driver::DeviceError;
@@ -13,7 +13,7 @@ use heapless::Vec;
 pub trait AuthenticationContext {
     fn iv_index(&self) -> Option<u32>;
 
-    fn network_keys(&self, nid: u8) -> Vec<NetworkKey, 10>;
+    fn network_keys(&self, nid: u8) -> Vec<NetworkKeyDetails, 10>;
 }
 
 pub struct AuthenticationOutput {
@@ -104,7 +104,7 @@ impl Authentication {
     pub async fn process_outbound<C: AuthenticationContext>(
         &mut self,
         ctx: &C,
-        pdu: CleartextNetworkPDU,
+        pdu: &CleartextNetworkPDU,
     ) -> Result<Option<ObfuscatedAndEncryptedNetworkPDU>, DeviceError> {
         if let Some(iv_index) = ctx.iv_index() {
             let ctl = match &pdu.transport_pdu {

@@ -8,6 +8,7 @@ use core::ptr::slice_from_raw_parts;
 use embassy::traits::flash::Flash;
 use heapless::Vec;
 use nrf_softdevice::ble::central::ScanConfig;
+use nrf_softdevice::ble::peripheral::AdvertiseError;
 use nrf_softdevice::ble::{central, peripheral};
 use nrf_softdevice::{random_bytes, raw, Softdevice};
 use rand_core::{CryptoRng, Error, RngCore};
@@ -156,11 +157,12 @@ impl Bearer for SoftdeviceAdvertisingBearer {
     type TransmitFuture<'m> = impl Future<Output = ()> + 'm;
 
     fn transmit<'m>(&'m self, message: &'m [u8]) -> Self::TransmitFuture<'m> {
+        defmt::info!("nrf transmit {}", message);
         let adv =
             peripheral::NonconnectableAdvertisement::NonscannableUndirected { adv_data: message };
 
         async move {
-            peripheral::advertise(
+            if let Err(err) = peripheral::advertise(
                 self.sd,
                 adv,
                 &peripheral::Config {
@@ -169,7 +171,19 @@ impl Bearer for SoftdeviceAdvertisingBearer {
                 },
             )
             .await
-            .ok();
+            {
+                match err {
+                    AdvertiseError::Timeout => {
+                        // timeout is okay, ignore.
+                    }
+                    AdvertiseError::NoFreeConn => {
+                        defmt::error!("-- nRF No Free Connection")
+                    }
+                    AdvertiseError::Raw(inner) => {
+                        defmt::error!("-- nRF {}", inner);
+                    }
+                }
+            }
         }
     }
 

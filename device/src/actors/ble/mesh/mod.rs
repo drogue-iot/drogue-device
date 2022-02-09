@@ -1,6 +1,7 @@
 pub mod bearer;
 
 use crate::drivers::ble::mesh::bearer::{Bearer, Handler};
+use crate::drivers::ble::mesh::composition::ElementsHandler;
 use crate::drivers::ble::mesh::configuration_manager::ConfigurationManager;
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::DeviceError;
@@ -15,12 +16,14 @@ use futures::{join, pin_mut};
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
 
-pub struct MeshNode<B, S, R>
+pub struct MeshNode<E, B, S, R>
 where
+    E: ElementsHandler,
     B: Bearer,
     S: Storage,
     R: RngCore + CryptoRng,
 {
+    elements: Option<E>,
     force_reset: bool,
     capabilities: Option<Capabilities>,
     transport: B,
@@ -28,14 +31,16 @@ where
     rng: Option<R>,
 }
 
-impl<B, S, R> MeshNode<B, S, R>
+impl<E, B, S, R> MeshNode<E, B, S, R>
 where
+    E: ElementsHandler,
     B: Bearer,
     S: Storage,
     R: RngCore + CryptoRng,
 {
-    pub fn new(capabilities: Capabilities, transport: B, storage: S, rng: R) -> Self {
+    pub fn new(elements: E, capabilities: Capabilities, transport: B, storage: S, rng: R) -> Self {
         Self {
+            elements: Some(elements),
             force_reset: false,
             capabilities: Some(capabilities),
             transport,
@@ -136,8 +141,9 @@ where
     }
 }
 
-impl<B, S, R> Actor for MeshNode<B, S, R>
+impl<E, B, S, R> Actor for MeshNode<E, B, S, R>
 where
+    E: ElementsHandler + 'static,
     B: Bearer + 'static,
     S: Storage + 'static,
     R: RngCore + CryptoRng + 'static,
@@ -167,6 +173,7 @@ where
                 ConfigurationManager::new(self.storage.take().unwrap(), self.force_reset);
 
             let mut node = Node::new(
+                self.elements.take().unwrap(),
                 self.capabilities.take().unwrap(),
                 tx,
                 rx,

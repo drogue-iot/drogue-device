@@ -4,7 +4,7 @@ use crate::drivers::ble::mesh::provisioning::IVUpdateFlag;
 use crate::drivers::ble::mesh::storage::{Payload, Storage};
 use core::cell::RefCell;
 use core::convert::TryInto;
-use defmt::Format;
+use defmt::{Format, Formatter};
 use futures::future::Future;
 use heapless::Vec;
 use p256::ecdh::SharedSecret;
@@ -59,12 +59,32 @@ impl Configuration {
     }
 }
 
+#[derive(Serialize, Deserialize, Copy, Clone, Default)]
+pub struct DeviceKey([u8; 16]);
+
+impl DeviceKey {
+    pub fn new(material: [u8; 16]) -> Self {
+        Self(material)
+    }
+}
+
+impl Format for DeviceKey {
+    fn format(&self, fmt: Formatter) {
+        defmt::write!(
+            fmt,
+            "{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}",
+            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5], self.0[6], self.0[7], self.0[8], self.0[9], self.0[10], self.0[11], self.0[12], self.0[13], self.0[14], self.0[15],
+        )
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Default, Format)]
 pub struct Keys {
     random: Option<[u8; 16]>,
     private_key: Option<[u8; 32]>,
     shared_secret: Option<[u8; 32]>,
     provisioning_salt: Option<[u8; 16]>,
+    device_key: Option<DeviceKey>,
     network: Option<NetworkInfo>,
 }
 
@@ -75,7 +95,7 @@ pub struct NetworkInfo {
     pub(crate) key_index: u16,
     pub(crate) key_refresh_flag: KeyRefreshFlag,
      */
-    pub(crate) network_keys: Vec<NetworkKey, 10>,
+    pub(crate) network_keys: Vec<NetworkKeyDetails, 10>,
     pub(crate) iv_update_flag: IVUpdateFlag,
     pub(crate) iv_index: u32,
     pub(crate) unicast_address: u16,
@@ -89,22 +109,52 @@ impl NetworkInfo {
     fn display_configuration(&self) {
         defmt::info!("Primary unicast address: {=u16:04x}", self.unicast_address);
         defmt::info!("IV index: {:x}", self.iv_index);
+
+        for key in &self.network_keys {
+            key.display_configuration();
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Copy, Clone, Default)]
+pub struct NetworkKey([u8; 16]);
+
+impl NetworkKey {
+    pub fn new(material: [u8; 16]) -> Self {
+        Self(material)
+    }
+}
+
+impl Format for NetworkKey {
+    fn format(&self, fmt: Formatter) {
+        defmt::write!(
+            fmt,
+            "{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}",
+            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5], self.0[6], self.0[7], self.0[8], self.0[9], self.0[10], self.0[11], self.0[12], self.0[13], self.0[14], self.0[15],
+        )
     }
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Default, Format)]
-pub struct NetworkKey {
-    pub(crate) network_key: [u8; 16],
+pub struct NetworkKeyDetails {
+    pub(crate) network_key: NetworkKey,
     pub(crate) key_index: u16,
     pub(crate) nid: u8,
     pub(crate) encryption_key: [u8; 16],
     pub(crate) privacy_key: [u8; 16],
 }
 
-impl NetworkInfo {}
+impl NetworkKeyDetails {
+    fn display_configuration(&self) {
+        defmt::info!("NetKey: {}", self.network_key);
+        defmt::info!(" index: {}", self.key_index);
+        defmt::info!("   nid: {}", self.nid);
+    }
+}
 
 impl Keys {
     fn display_configuration(&self) {
+        defmt::info!("DeviceKey: {}", self.device_key);
         if let Some(network) = &self.network {
             network.display_configuration();
         }
@@ -189,6 +239,10 @@ impl Keys {
 
     pub(crate) fn provisioning_salt(&self) -> Result<Option<[u8; 16]>, DeviceError> {
         Ok(self.provisioning_salt)
+    }
+
+    pub(crate) fn set_device_key(&mut self, key: [u8; 16]) {
+        self.device_key.replace(DeviceKey::new(key));
     }
 }
 
@@ -311,6 +365,13 @@ impl<S: Storage> ConfigurationManager<S> {
         }
     }
 
+    pub(crate) async fn node_reset(&self) -> ! {
+        // best effort
+        self.store(&Configuration::default()).await.ok();
+        // todo don't assume cortex-m some day
+        cortex_m::peripheral::SCB::sys_reset();
+    }
+
     pub(crate) fn display_configuration(&self) {
         defmt::info!("================================================================");
         defmt::info!("Message Sequence: {}", *self.runtime_seq.borrow());
@@ -360,12 +421,14 @@ pub struct PrimaryElementModels {
 #[derive(Serialize, Deserialize, Clone, Format)]
 pub struct ConfigurationModel {
     pub(crate) secure_beacon: bool,
+    pub(crate) default_ttl: u8,
 }
 
 impl Default for ConfigurationModel {
     fn default() -> Self {
         Self {
             secure_beacon: true,
+            default_ttl: 127,
         }
     }
 }

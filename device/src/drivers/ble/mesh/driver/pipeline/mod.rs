@@ -117,8 +117,12 @@ impl Pipeline {
         defmt::trace!("outbound <<<< {}", message);
         if let Some(message) = self.upper.process_outbound(ctx, message.into()).await? {
             if let Some(message) = self.lower.process_outbound(ctx, message).await? {
-                if let Some(message) = self.authentication.process_outbound(ctx, message).await? {
-                    ctx.transmit_mesh_pdu(&message).await?;
+                for message in message.iter() {
+                    if let Some(message) =
+                        self.authentication.process_outbound(ctx, message).await?
+                    {
+                        ctx.transmit_mesh_pdu(&message).await?;
+                    }
                 }
             }
         }

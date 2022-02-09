@@ -2,7 +2,7 @@ use core::convert::TryInto;
 use core::future::Future;
 
 use crate::drivers::ble::mesh::configuration_manager::{
-    GeneralStorage, KeyStorage, NetworkInfo, NetworkKey,
+    GeneralStorage, KeyStorage, NetworkInfo, NetworkKey, NetworkKeyDetails,
 };
 use crate::drivers::ble::mesh::crypto;
 use aes::Aes128;
@@ -85,7 +85,7 @@ pub trait Vault {
 
     fn iv_index(&self) -> Option<u32>;
 
-    fn network_keys(&self, nid: u8) -> Vec<NetworkKey, 10>;
+    fn network_keys(&self, nid: u8) -> Vec<NetworkKeyDetails, 10>;
 
     fn is_local_unicast(&self, addr: &Address) -> bool;
 
@@ -167,8 +167,8 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
             let (nid, encryption_key, privacy_key) = crypto::k2(&data.network_key, &[0x00])
                 .map_err(|_| DeviceError::KeyInitialization)?;
 
-            let network_key = NetworkKey {
-                network_key: data.network_key,
+            let network_key = NetworkKeyDetails {
+                network_key: NetworkKey::new(data.network_key),
                 key_index: data.key_index,
                 nid,
                 encryption_key,
@@ -196,6 +196,14 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
                     .try_into()
                     .map_err(|_| DeviceError::InsufficientBuffer)?,
             )?;
+            if let Some(salt) = keys.provisioning_salt()? {
+                let device_key = self.prdk(&salt)?;
+                let device_key = device_key.into_bytes();
+                let device_key: [u8; 16] = device_key
+                    .try_into()
+                    .map_err(|_| DeviceError::KeyInitialization)?;
+                keys.set_device_key(device_key);
+            }
             self.storage.store(keys).await
         }
     }
@@ -208,7 +216,7 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
         }
     }
 
-    fn network_keys(&self, nid: u8) -> Vec<NetworkKey, 10> {
+    fn network_keys(&self, nid: u8) -> Vec<NetworkKeyDetails, 10> {
         if let Some(network) = self.storage.retrieve().network() {
             network
                 .network_keys

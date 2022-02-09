@@ -1,9 +1,10 @@
 use crate::drivers::ble::mesh::address::Address;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::network_message_cache::NetworkMessageCache;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::network::CleartextNetworkPDU;
 
-pub trait RelayContext {
+pub trait RelayContext: AuthenticationContext {
     fn is_local_unicast(&self, address: &Address) -> bool;
 }
 
@@ -26,7 +27,11 @@ impl Relay {
         pdu: &CleartextNetworkPDU,
     ) -> Result<Option<CleartextNetworkPDU>, DeviceError> {
         if !ctx.is_local_unicast(&pdu.dst) {
-            if pdu.ttl >= 2 && !self.cache.has_seen(pdu) {
+            if pdu.ttl >= 2
+                && !self
+                    .cache
+                    .has_seen(ctx.iv_index().ok_or(DeviceError::NotProvisioned)?, pdu)
+            {
                 // decrease TTL and send a copy along.
                 Ok(Some(CleartextNetworkPDU {
                     network_key: pdu.network_key,

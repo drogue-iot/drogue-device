@@ -1,3 +1,4 @@
+use crate::drivers::ble::mesh::composition::ElementsHandler;
 use crate::drivers::ble::mesh::configuration_manager::{ConfigurationManager, KeyStorage};
 use crate::drivers::ble::mesh::driver::elements::Elements;
 use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
@@ -82,13 +83,15 @@ pub enum State {
     Provisioned,
 }
 
-pub struct Node<TX, RX, S, R>
+pub struct Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
     R: RngCore + CryptoRng,
 {
+    //
     state: State,
     //
     transmitter: TX,
@@ -97,18 +100,20 @@ where
     rng: RefCell<R>,
     pipeline: RefCell<Pipeline>,
     //
-    pub(crate) elements: Elements,
+    pub(crate) elements: Elements<E>,
     pub(crate) outbound: OutboundChannel<'static>,
 }
 
-impl<TX, RX, S, R> Node<TX, RX, S, R>
+impl<E, TX, RX, S, R> Node<E, TX, RX, S, R>
 where
+    E: ElementsHandler,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
     R: RngCore + CryptoRng,
 {
     pub fn new(
+        app_elements: E,
         capabilities: Capabilities,
         transmitter: TX,
         receiver: RX,
@@ -123,7 +128,7 @@ where
             rng: RefCell::new(rng),
             pipeline: RefCell::new(Pipeline::new(capabilities)),
             //
-            elements: Elements::new(),
+            elements: Elements::new(app_elements),
             outbound: OutboundChannel::new(),
         }
     }
