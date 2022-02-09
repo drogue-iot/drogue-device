@@ -1,11 +1,14 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::configuration_manager::{
-    KeyStorage, NetworkKeyDetails, PrimaryElementModels, PrimaryElementStorage,
+    AppKey, AppKeyDetails, KeyStorage, NetworkKeyStorage, PrimaryElementModels,
+    PrimaryElementStorage,
 };
 use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::device::Uuid;
-use crate::drivers::ble::mesh::driver::elements::{ElementContext, PrimaryElementContext};
+use crate::drivers::ble::mesh::driver::elements::{
+    ElementContext, NetworkDetails, PrimaryElementContext,
+};
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessContext;
@@ -17,6 +20,7 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::ProvisionedContext
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::UnprovisionedContext;
 use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::model::Status;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
@@ -212,7 +216,7 @@ where
         self.vault().iv_index()
     }
 
-    fn network_keys(&self, nid: u8) -> Vec<NetworkKeyDetails, 10> {
+    fn network_keys(&self, nid: u8) -> Vec<NetworkKeyStorage, 10> {
         self.vault().network_keys(nid)
     }
 }
@@ -360,5 +364,52 @@ where
 
     fn composition(&self) -> &Composition {
         self.elements.app.composition()
+    }
+
+    type NetworkDetails<'n>
+    where
+        Self: 'n,
+        E: 'n,
+        TX: 'n,
+        RX: 'n,
+        S: 'n,
+        R: 'n,
+    = NodeNetworkDetails<'n, E, TX, RX, S, R>;
+
+    fn network_details(&self, net_key_index: u16) -> Self::NetworkDetails<'_> {
+        NodeNetworkDetails {
+            node: self,
+            net_key_index,
+        }
+    }
+}
+
+pub struct NodeNetworkDetails<'n, E, TX, RX, S, R>
+where
+    E: ElementsHandler,
+    TX: Transmitter,
+    RX: Receiver,
+    S: Storage,
+    R: RngCore + CryptoRng,
+{
+    node: &'n Node<E, TX, RX, S, R>,
+    net_key_index: u16,
+}
+
+impl<'n, E, TX, RX, S, R> NetworkDetails for NodeNetworkDetails<'n, E, TX, RX, S, R>
+where
+    E: ElementsHandler,
+    TX: Transmitter,
+    RX: Receiver,
+    S: Storage,
+    R: RngCore + CryptoRng,
+{
+    type AddKeyFuture<'m>
+    where
+        Self: 'm,
+    = impl Future<Output = Result<Status, DeviceError>> + 'm;
+
+    fn add_app_key(&mut self, app_key_index: u16, key: [u8; 16]) -> Self::AddKeyFuture<'_> {
+        self.node.configuration_manager.add_app_key(self.net_key_index, app_key_index, key)
     }
 }

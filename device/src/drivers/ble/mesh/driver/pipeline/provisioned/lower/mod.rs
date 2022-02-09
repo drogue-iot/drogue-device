@@ -1,3 +1,5 @@
+mod segmentation;
+
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::lower::{
     LowerAccess, LowerAccessMessage, LowerControlMessage, LowerPDU, SzMic,
@@ -5,6 +7,7 @@ use crate::drivers::ble::mesh::pdu::lower::{
 use crate::drivers::ble::mesh::pdu::network::CleartextNetworkPDU;
 use ccm::aead::Buffer;
 
+use self::segmentation::Segmentation;
 use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
 use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
@@ -34,11 +37,15 @@ pub trait LowerContext: AuthenticationContext {
     fn default_ttl(&self) -> u8;
 }
 
-pub struct Lower {}
+pub struct Lower {
+    segmentation: Segmentation,
+}
 
 impl Default for Lower {
     fn default() -> Self {
-        Self {}
+        Self {
+            segmentation: Default::default(),
+        }
     }
 }
 
@@ -65,7 +72,7 @@ impl Lower {
                         } else {
                             // decrypt with device key
                             let nonce = DeviceNonce::new(
-                                false,
+                                SzMic::Bit32,
                                 pdu.seq,
                                 pdu.src,
                                 pdu.dst,
@@ -85,8 +92,65 @@ impl Lower {
                             payload,
                         })))
                     }
-                    LowerAccessMessage::Segmented { .. } => {
-                        todo!()
+                    LowerAccessMessage::Segmented {
+                        szmic,
+                        seq_zero,
+                        seg_o,
+                        seg_n,
+                        segment_m,
+                    } => {
+                        if let Some(payload) = self.segmentation.process_inbound(
+                            pdu.src,
+                            seq_zero,
+                            seg_o,
+                            seg_n,
+                            &segment_m,
+                        )? {
+                            // todo: DRY this code
+                            let (payload, trans_mic) = match szmic {
+                                SzMic::Bit32 => {
+                                    payload.split_at(payload.len() - 4)
+                                }
+                                SzMic::Bit64 => {
+                                    payload.split_at(payload.len() - 8)
+                                }
+                            };
+
+                            let mut payload = Vec::from_slice(payload)
+                                .map_err(|_| DeviceError::InsufficientBuffer)?;
+
+                            let seq_auth = (( ctx.iv_index().ok_or(DeviceError::CryptoError)? << 13) | seq_zero as u32) & 0xFFFFFF;
+
+                            if access.akf {
+                                // decrypt with aid key
+                            } else {
+                                // decrypt with device key
+                                let nonce = DeviceNonce::new(
+                                    szmic,
+                                    seq_auth,
+                                    pdu.src,
+                                    pdu.dst,
+                                    ctx.iv_index().ok_or(DeviceError::CryptoError)?,
+                                );
+                                defmt::info!("decrypt?");
+                                defmt::info!("{} {} {:x} {:x}", szmic, seq_auth, payload, trans_mic);
+                                ctx.decrypt_device_key(nonce, &mut payload, &trans_mic)?;
+                                defmt::info!("decrypt!");
+                            }
+                            Ok(Some(UpperPDU::Access(UpperAccess {
+                                ttl: Some(pdu.ttl),
+                                network_key: pdu.network_key,
+                                ivi: pdu.ivi,
+                                nid: pdu.nid,
+                                akf: access.akf,
+                                aid: access.aid,
+                                src: pdu.src,
+                                dst: pdu.dst,
+                                payload,
+                            })))
+                        } else {
+                            Ok(None)
+                        }
                     }
                 }
             }
@@ -122,7 +186,7 @@ impl Lower {
                 } else {
                     // encrypt device key
                     let nonce = DeviceNonce::new(
-                        false,
+                        SzMic::Bit32,
                         seq_zero,
                         access.src,
                         access.dst,

@@ -1,6 +1,6 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
-use crate::drivers::ble::mesh::configuration_manager::NetworkKeyDetails;
+use crate::drivers::ble::mesh::configuration_manager::{NetworkKeyHandle, NetworkKeyStorage};
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use core::convert::TryInto;
@@ -21,7 +21,7 @@ pub struct UpperControl {
 #[derive(Format)]
 pub struct UpperAccess {
     pub(crate) ttl: Option<u8>,
-    pub(crate) network_key: NetworkKeyDetails,
+    pub(crate) network_key: NetworkKeyHandle,
     pub(crate) ivi: u8,
     pub(crate) nid: u8,
     pub(crate) akf: bool,

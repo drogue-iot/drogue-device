@@ -2,7 +2,7 @@ use core::convert::TryInto;
 use core::future::Future;
 
 use crate::drivers::ble::mesh::configuration_manager::{
-    GeneralStorage, KeyStorage, NetworkInfo, NetworkKey, NetworkKeyDetails,
+    GeneralStorage, KeyStorage, NetworkInfo, NetworkKey, NetworkKeyStorage,
 };
 use crate::drivers::ble::mesh::crypto;
 use aes::Aes128;
@@ -85,7 +85,7 @@ pub trait Vault {
 
     fn iv_index(&self) -> Option<u32>;
 
-    fn network_keys(&self, nid: u8) -> Vec<NetworkKeyDetails, 10>;
+    fn network_keys(&self, nid: u8) -> Vec<NetworkKeyStorage, 10>;
 
     fn is_local_unicast(&self, addr: &Address) -> bool;
 
@@ -167,12 +167,13 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
             let (nid, encryption_key, privacy_key) = crypto::k2(&data.network_key, &[0x00])
                 .map_err(|_| DeviceError::KeyInitialization)?;
 
-            let network_key = NetworkKeyDetails {
+            let network_key = NetworkKeyStorage {
                 network_key: NetworkKey::new(data.network_key),
                 key_index: data.key_index,
                 nid,
                 encryption_key,
                 privacy_key,
+                app_keys: Default::default(),
             };
 
             let mut network_keys = Vec::new();
@@ -216,7 +217,7 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
         }
     }
 
-    fn network_keys(&self, nid: u8) -> Vec<NetworkKeyDetails, 10> {
+    fn network_keys(&self, nid: u8) -> Vec<NetworkKeyStorage, 10> {
         if let Some(network) = self.storage.retrieve().network() {
             network
                 .network_keys

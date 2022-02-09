@@ -1,5 +1,6 @@
+use core::convert::TryInto;
 use crate::drivers::ble::mesh::composition::Composition;
-use crate::drivers::ble::mesh::model::{FoundationIdentifier, Message, Model, ModelIdentifier};
+use crate::drivers::ble::mesh::model::{FoundationIdentifier, Message, Model, ModelIdentifier, Status};
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
@@ -13,6 +14,7 @@ pub enum ConfigurationMessage {
     DefaultTTL(DefaultTTLMessage),
     NodeReset(NodeResetMessage),
     CompositionData(CompositionDataMessage),
+    AppKey(AppKeyMessage),
 }
 
 impl Message for ConfigurationMessage {
@@ -22,6 +24,7 @@ impl Message for ConfigurationMessage {
             ConfigurationMessage::DefaultTTL(inner) => inner.opcode(),
             ConfigurationMessage::NodeReset(inner) => inner.opcode(),
             ConfigurationMessage::CompositionData(inner) => inner.opcode(),
+            ConfigurationMessage::AppKey(inner) => inner.opcode(),
         }
     }
 
@@ -34,6 +37,7 @@ impl Message for ConfigurationMessage {
             ConfigurationMessage::DefaultTTL(inner) => inner.emit_parameters(xmit),
             ConfigurationMessage::NodeReset(inner) => inner.emit_parameters(xmit),
             ConfigurationMessage::CompositionData(inner) => inner.emit_parameters(xmit),
+            ConfigurationMessage::AppKey(inner) => inner.emit_parameters(xmit),
         }
     }
 }
@@ -74,6 +78,10 @@ impl Model for ConfigurationServer {
             ))),
             CONFIG_COMPOSITION_DATA_GET => Ok(Some(ConfigurationMessage::CompositionData(
                 CompositionDataMessage::parse_get(parameters)?,
+            ))),
+            // App Key
+            CONFIG_APPKEY_ADD => Ok(Some(ConfigurationMessage::AppKey(
+                AppKeyMessage::parse_add(parameters)?,
             ))),
             _ => Ok(None),
         }
@@ -329,5 +337,178 @@ impl CompositionStatus {
             }
         }
         Ok(())
+    }
+}
+
+opcode!( CONFIG_APPKEY_ADD 0x00 );
+opcode!( CONFIG_APPKEY_DELETE 0x80, 0x00 );
+opcode!( CONFIG_APPKEY_GET 0x80, 0x01 );
+opcode!( CONFIG_APPKEY_LIST 0x80, 0x02 );
+opcode!( CONFIG_APPKEY_STATUS 0x80, 0x03 );
+opcode!( CONFIG_APPKEY_UPDATE 0x01 );
+
+#[derive(Format)]
+pub enum AppKeyMessage {
+    Add(AppKeyAddMessage),
+    Delete(AppKeyDeleteMessage),
+    Get(AppKeyGetMessage),
+    List(AppKeyListMessage),
+    Status(AppKeyStatusMessage),
+    Update(AppKeyUpdateMessage),
+}
+
+impl AppKeyMessage {
+    pub fn parse_add(parameters: &[u8]) -> Result<Self, ParseError> {
+        if parameters.len() == 19 {
+            let indexes = NetKeyAppKeyIndexesPair::parse(&parameters[0..=2])?;
+            let app_key = parameters[3..].try_into().map_err(|_| ParseError::InvalidLength)?;
+            Ok(
+                Self::Add(
+                    AppKeyAddMessage {
+                        indexes,
+                        app_key,
+                    }
+                )
+            )
+        } else {
+            Err(ParseError::InvalidLength)
+        }
+
+    }
+}
+
+impl Message for AppKeyMessage {
+    fn opcode(&self) -> Opcode {
+        match self {
+            Self::Add(_) => CONFIG_APPKEY_ADD,
+            Self::Delete(_) => CONFIG_APPKEY_DELETE,
+            Self::Get(_) => CONFIG_APPKEY_GET,
+            Self::List(_) => CONFIG_APPKEY_LIST,
+            Self::Status(_) => CONFIG_APPKEY_STATUS,
+            Self::Update(_) => CONFIG_APPKEY_STATUS,
+        }
+    }
+
+    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        match self {
+            AppKeyMessage::Add(inner) => inner.emit_parameters(xmit),
+            AppKeyMessage::Delete(inner) => inner.emit_parameters(xmit),
+            AppKeyMessage::Get(inner) => inner.emit_parameters(xmit),
+            AppKeyMessage::List(inner) => inner.emit_parameters(xmit),
+            AppKeyMessage::Status(inner) => inner.emit_parameters(xmit),
+            AppKeyMessage::Update(inner) => inner.emit_parameters(xmit),
+        }
+    }
+}
+
+#[derive(Format, Copy, Clone)]
+pub struct NetKeyAppKeyIndexesPair(u16, u16);
+
+impl NetKeyAppKeyIndexesPair {
+    fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        let net_key = self.0.to_be_bytes();
+        let app_key = self.1.to_be_bytes();
+        xmit.push(((net_key[0] & 0b00001111)  <<  4) | net_key[1] & 0b11110000).map_err(|_|InsufficientBuffer)?;
+        xmit.push( ((net_key[1] & 0b00001111) << 4) | app_key[0] & 0b00001111).map_err(|_|InsufficientBuffer)?;
+        xmit.push( app_key[1]).map_err(|_|InsufficientBuffer)?;
+        Ok(())
+    }
+
+    pub fn parse(parameters: &[u8]) -> Result<Self, ParseError> {
+        if parameters.len() == 3 {
+            let net_key = ((parameters[0] as u16) << 4) | ((parameters[1] as u16) & 0b11110000 >> 4);
+            let app_key = (((parameters[1] as u16) & 0b00001111) << 8) | (parameters[2] as u16);
+            Ok(
+                Self(net_key, app_key)
+            )
+        } else {
+            Err(ParseError::InvalidLength)
+        }
+
+    }
+
+    pub fn net_key(&self) -> u16 {
+        self.0
+    }
+
+    pub fn app_key(&self) -> u16 {
+        self.1
+    }
+}
+
+
+#[derive(Format)]
+pub struct AppKeyAddMessage {
+    pub(crate) indexes: NetKeyAppKeyIndexesPair,
+    pub(crate) app_key: [u8; 16],
+}
+
+impl AppKeyAddMessage {
+    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!();
+    }
+}
+
+#[derive(Format)]
+pub struct AppKeyDeleteMessage {
+    pub(crate) indexes: NetKeyAppKeyIndexesPair,
+}
+
+impl AppKeyDeleteMessage {
+    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!();
+    }
+
+}
+
+#[derive(Format)]
+pub struct AppKeyGetMessage {
+    pub(crate) net_key_index: u16,
+}
+
+impl AppKeyGetMessage {
+    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+
+}
+
+#[derive(Format)]
+pub struct AppKeyListMessage {
+    pub(crate) status: Status,
+    pub(crate) net_key_index: u16,
+    pub(crate) app_key_indexes: Vec<u16, 10>,
+}
+
+impl AppKeyListMessage {
+    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[derive(Format)]
+pub struct AppKeyStatusMessage {
+    pub(crate) status: Status,
+    pub(crate) indexes: NetKeyAppKeyIndexesPair,
+}
+
+impl AppKeyStatusMessage {
+    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        xmit.push( self.status as u8 ).map_err(|_|InsufficientBuffer)?;
+        self.indexes.emit(xmit)?;
+        Ok(())
+    }
+}
+
+#[derive(Format)]
+pub struct AppKeyUpdateMessage {
+    pub(crate) net_key_index: u16,
+    pub(crate) app_key_index: u16,
+    pub(crate) app_key: [u8; 16],
+}
+
+impl AppKeyUpdateMessage {
+    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
     }
 }

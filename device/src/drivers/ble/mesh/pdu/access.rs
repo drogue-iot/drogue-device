@@ -1,6 +1,6 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
-use crate::drivers::ble::mesh::configuration_manager::NetworkKeyDetails;
+use crate::drivers::ble::mesh::configuration_manager::{NetworkKeyHandle, NetworkKeyStorage};
 use crate::drivers::ble::mesh::driver::elements::ElementContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::Message;
@@ -13,7 +13,7 @@ use heapless::Vec;
 #[derive(Format)]
 pub struct AccessMessage {
     pub ttl: Option<u8>,
-    pub(crate) network_key: NetworkKeyDetails,
+    pub(crate) network_key: NetworkKeyHandle,
     pub(crate) ivi: u8,
     pub(crate) nid: u8,
     pub(crate) akf: bool,
@@ -107,7 +107,6 @@ impl AccessPayload {
 
 #[derive(Format)]
 pub enum Config {
-    AppKey(AppKey),
     Friend(Friend),
     GATTProxy(GATTProxy),
     HeartbeatPublication(HeartbeatPublication),
@@ -127,7 +126,6 @@ pub enum Config {
 impl Config {
     pub fn opcode(&self) -> Opcode {
         match self {
-            Self::AppKey(inner) => inner.opcode(),
             Self::Friend(inner) => inner.opcode(),
             Self::GATTProxy(inner) => inner.opcode(),
             Self::HeartbeatPublication(inner) => inner.opcode(),
@@ -146,7 +144,6 @@ impl Config {
 
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
         match self {
-            Config::AppKey(inner) => inner.emit(xmit),
             Config::Friend(inner) => inner.emit(xmit),
             Config::GATTProxy(inner) => inner.emit(xmit),
             Config::HeartbeatPublication(inner) => inner.emit(xmit),
@@ -164,32 +161,7 @@ impl Config {
     }
 }
 
-#[derive(Format)]
-pub enum AppKey {
-    Add,
-    Delete,
-    Get,
-    List,
-    Status,
-    Update,
-}
 
-#[allow(unused)]
-impl AppKey {
-    pub fn opcode(&self) -> Opcode {
-        match self {
-            Self::Add => CONFIG_APPKEY_ADD,
-            Self::Delete => CONFIG_APPKEY_DELETE,
-            Self::Get => CONFIG_APPKEY_GET,
-            Self::List => CONFIG_APPKEY_LIST,
-            Self::Status => CONFIG_APPKEY_STATUS,
-            Self::Update => CONFIG_APPKEY_STATUS,
-        }
-    }
-    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        todo!()
-    }
-}
 
 #[derive(Format)]
 pub enum Friend {
@@ -815,12 +787,7 @@ macro_rules! opcode {
     };
 }
 
-opcode!( CONFIG_APPKEY_ADD 0x00 );
-opcode!( CONFIG_APPKEY_DELETE 0x80, 0x00 );
-opcode!( CONFIG_APPKEY_GET 0x80, 0x01 );
-opcode!( CONFIG_APPKEY_LIST 0x80, 0x02 );
-opcode!( CONFIG_APPKEY_STATUS 0x80, 0x03 );
-opcode!( CONFIG_APPKEY_UPDATE 0x01 );
+
 opcode!( CONFIG_BEACON_GET 0x80, 0x09 );
 opcode!( CONFIG_BEACON_SET 0x80, 0x0A );
 opcode!( CONFIG_BEACON_STATUS 0x80, 0x0B );

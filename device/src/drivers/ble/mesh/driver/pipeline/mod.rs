@@ -88,15 +88,21 @@ impl Pipeline {
                     }
                 }
                 MeshData::Network(pdu) => {
+                    defmt::info!("A");
                     if let Some(pdu) = self.authentication.process_inbound(ctx, pdu).await? {
+                        defmt::info!("B");
                         // Relaying is independent from processing it locally
                         if let Some(_outbound) = self.relay.process_inbound(ctx, &pdu).await? {
+                            defmt::info!("C");
                             // todo: send out any relayable outbounds.
                         }
+                        defmt::info!("D");
 
                         if let Some(pdu) = self.lower.process_inbound(ctx, pdu).await? {
+                            defmt::info!("E");
                             if let Some(message) = self.upper.process_inbound(ctx, pdu).await? {
                                 defmt::trace!("inbound >>>> {}", message);
+                                defmt::info!("F");
                                 ctx.dispatch_access(&message).await?;
                             }
                         }

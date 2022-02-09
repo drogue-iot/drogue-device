@@ -1,4 +1,5 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
+use crate::drivers::ble::mesh::pdu::lower::SzMic;
 
 pub struct NetworkNonce([u8; 13]);
 
@@ -43,13 +44,16 @@ pub struct DeviceNonce([u8; 13]);
 impl DeviceNonce {
     const NONCE_TYPE: u8 = 0x02;
 
-    pub fn new(aszmic: bool, seq: u32, src: UnicastAddress, dst: Address, iv_index: u32) -> Self {
+    pub fn new(aszmic: SzMic, seq: u32, src: UnicastAddress, dst: Address, iv_index: u32) -> Self {
         let mut nonce = [0; 13];
         nonce[0] = Self::NONCE_TYPE;
-        if aszmic {
-            nonce[1] = 0b10000000;
-        } else {
-            nonce[1] = 0b00000000;
+        match aszmic {
+            SzMic::Bit32 => {
+                nonce[1] = 0b00000000;
+            }
+            SzMic::Bit64 => {
+                nonce[1] = 0b10000000;
+            }
         }
 
         let seq = seq.to_be_bytes();
