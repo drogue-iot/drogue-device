@@ -128,16 +128,7 @@ impl Lower {
                                     pdu.dst,
                                     ctx.iv_index().ok_or(DeviceError::CryptoError)?,
                                 );
-                                defmt::info!("decrypt?");
-                                defmt::info!(
-                                    "{} {} {:x} {:x}",
-                                    szmic,
-                                    seq_auth,
-                                    payload,
-                                    trans_mic
-                                );
                                 ctx.decrypt_device_key(nonce, &mut payload, &trans_mic)?;
-                                defmt::info!("decrypt!");
                             }
                             Ok(Some(UpperPDU::Access(UpperAccess {
                                 ttl: Some(pdu.ttl),

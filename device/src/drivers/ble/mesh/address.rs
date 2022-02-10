@@ -1,5 +1,6 @@
 use crate::drivers::ble::mesh::pdu::ParseError;
 use core::convert::TryInto;
+use core::ops::Add;
 use defmt::{Format, Formatter};
 use serde::{Deserialize, Serialize};
 
@@ -71,6 +72,14 @@ impl TryInto<UnicastAddress> for u16 {
     fn try_into(self) -> Result<UnicastAddress, Self::Error> {
         let bytes = self.to_be_bytes();
         UnicastAddress::parse([bytes[0], bytes[1]])
+    }
+}
+
+impl Add<u8> for UnicastAddress {
+    type Output = UnicastAddress;
+
+    fn add(self, rhs: u8) -> Self::Output {
+        Self(self.0 + rhs as u16)
     }
 }
 

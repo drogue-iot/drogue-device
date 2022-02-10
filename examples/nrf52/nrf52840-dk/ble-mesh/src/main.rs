@@ -17,7 +17,7 @@ use drogue_device::drivers::ble::mesh::composition::{
 };
 use drogue_device::drivers::ble::mesh::driver::elements::ElementContext;
 use drogue_device::drivers::ble::mesh::driver::DeviceError;
-use drogue_device::drivers::ble::mesh::model::generic::GENERIC_ON_OFF_MODEL;
+use drogue_device::drivers::ble::mesh::model::generic::GENERIC_ONOFF_SERVER;
 use drogue_device::drivers::ble::mesh::pdu::access::AccessMessage;
 use drogue_device::drivers::ble::mesh::provisioning::{
     Algorithms, Capabilities, InputOOBActions, OOBSize, OutputOOBActions, PublicKeyType,
@@ -121,7 +121,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
         FEATURES,
     );
     composition
-        .add_element(ElementDescriptor::new(Location(0x0001)).add_model(GENERIC_ON_OFF_MODEL))
+        .add_element(ElementDescriptor::new(Location(0x0001)).add_model(GENERIC_ONOFF_SERVER))
         .ok();
 
     let elements = CustomElementsHandler { composition, led };

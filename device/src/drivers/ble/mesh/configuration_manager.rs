@@ -1,8 +1,11 @@
 use crate::drivers::ble::mesh::address::UnicastAddress;
+use crate::drivers::ble::mesh::composition::{Composition, ElementDescriptor, Location};
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::model::foundation::configuration::{AppKeyIndex, NetKeyIndex};
-use crate::drivers::ble::mesh::model::Status;
+use crate::drivers::ble::mesh::model::foundation::configuration::{
+    AppKeyIndex, NetKeyIndex, CONFIGURATION_SERVER,
+};
+use crate::drivers::ble::mesh::model::{ModelIdentifier, Status};
 use crate::drivers::ble::mesh::provisioning::IVUpdateFlag;
 use crate::drivers::ble::mesh::storage::{Payload, Storage};
 use core::cell::RefCell;
@@ -56,13 +59,13 @@ impl Configuration {
         changed
     }
 
-    fn display_configuration(&self) {
+    fn display_configuration(&self, composition: &Composition) {
         if let Some(uuid) = self.uuid {
             defmt::info!("UUID: {}", uuid);
         } else {
             defmt::info!("UUID: not set");
         }
-        self.keys.display_configuration();
+        self.keys.display_configuration(composition);
     }
 }
 
@@ -104,12 +107,24 @@ pub struct NetworkInfo {
 }
 
 impl NetworkInfo {
-    fn display_configuration(&self) {
+    fn display_configuration(&self, composition: &Composition) {
         defmt::info!("Primary unicast address: {}", self.unicast_address);
         defmt::info!("IV index: {:x}", self.iv_index);
 
         for key in &self.network_keys {
             key.display_configuration();
+        }
+
+        defmt::info!("Elements:");
+        for (i, element) in composition.elements.iter().enumerate() {
+            let element_address = self.unicast_address + i as u8;
+            defmt::info!("  {}: Address={}", i, element_address);
+            for model in &element.models {
+                defmt::info!("    - {}", model);
+                for key in &self.network_keys {
+                    key.display_bindings(&element_address, model);
+                }
+            }
         }
     }
 
@@ -123,6 +138,15 @@ impl NetworkInfo {
         self.network_keys
             .iter_mut()
             .find(|e| e.key_index == net_key_index)
+    }
+
+    fn by_app_key_index(&self, app_key_index: AppKeyIndex) -> Option<&NetworkKeyStorage> {
+        self.network_keys.iter().find(|e| {
+            matches!(
+                e.app_keys.iter().find(|a| a.key_index == app_key_index),
+                Some(_)
+            )
+        })
     }
 }
 
@@ -153,11 +177,34 @@ pub struct NetworkKeyStorage {
     pub(crate) encryption_key: [u8; 16],
     pub(crate) privacy_key: [u8; 16],
     pub(crate) app_keys: Vec<AppKeyDetails, 10>,
+    pub(crate) bindings: Bindings,
+}
+
+impl NetworkKeyStorage {
+    pub(crate) fn display_bindings(
+        &self,
+        element_address: &UnicastAddress,
+        model_identifier: &ModelIdentifier,
+    ) {
+        let mut matching: Vec<Binding, 20> = Vec::new();
+        for e in self.bindings.bindings.iter().filter(|e| {
+            e.element_address == *element_address && e.model_identifier == *model_identifier
+        }) {
+            matching.push(*e).ok();
+        }
+
+        if !matching.is_empty() {
+            defmt::info!("      App Keys:");
+            for binding in matching.iter() {
+                defmt::info!("      [{}]", binding.app_key_index);
+            }
+        }
+    }
 }
 
 impl NetworkKeyStorage {
     fn display_configuration(&self) {
-        defmt::info!("Network Keys");
+        defmt::info!("Network Keys:");
         defmt::info!(
             "  {}: {} [nid={}]",
             self.key_index,
@@ -166,7 +213,7 @@ impl NetworkKeyStorage {
         );
         defmt::info!("Application Keys:");
         for app_key in &self.app_keys {
-            app_key.display_configuration()
+            app_key.display_configuration();
         }
     }
 
@@ -186,6 +233,77 @@ impl NetworkKeyStorage {
 
     fn app_key_indexes(&self) -> Vec<AppKeyIndex, 10> {
         self.app_keys.iter().map(|e| e.key_index).collect()
+    }
+
+    fn is_valid_app_key_index(&self, app_key_index: AppKeyIndex) -> bool {
+        matches!(
+            self.app_keys.iter().find(|e| e.key_index == app_key_index),
+            Some(_)
+        )
+    }
+
+    fn model_app_bind(
+        &mut self,
+        element_address: UnicastAddress,
+        model_identifier: ModelIdentifier,
+        app_key_index: AppKeyIndex,
+    ) -> Result<(), Status> {
+        if !self.is_valid_app_key_index(app_key_index) {
+            return Err(Status::InvalidAppKeyIndex);
+        }
+
+        if let Some(_) = self.bindings.bindings.iter().find(|e| {
+            e.element_address == element_address
+                && e.model_identifier == model_identifier
+                && e.app_key_index == app_key_index
+        }) {
+            Err(Status::KeyIndexAlreadyStored)
+        } else {
+            let binding = Binding {
+                model_identifier,
+                element_address,
+                app_key_index,
+            };
+            self.bindings
+                .bindings
+                .push(binding)
+                .map_err(|_| Status::InsufficientResources)?;
+            Ok(())
+        }
+    }
+
+    fn model_app_unbind(
+        &mut self,
+        element_address: UnicastAddress,
+        model_identifier: ModelIdentifier,
+        app_key_index: AppKeyIndex,
+    ) -> Result<(), Status> {
+        if !self.is_valid_app_key_index(app_key_index) {
+            return Err(Status::InvalidAppKeyIndex);
+        }
+
+        let mut update = Vec::new();
+        let mut removed = false;
+
+        for binding in self.bindings.bindings.iter() {
+            if !(binding.element_address == element_address
+                && binding.model_identifier == model_identifier
+                && binding.app_key_index == app_key_index)
+            {
+                update
+                    .push(*binding)
+                    .map_err(|_| Status::InsufficientResources)?;
+            } else {
+                removed = true;
+            }
+        }
+
+        if removed {
+            self.bindings.bindings = update;
+            Ok(())
+        } else {
+            Err(Status::InvalidBinding)
+        }
     }
 }
 
@@ -236,7 +354,7 @@ impl AppKeyDetails {
 }
 
 impl Keys {
-    fn display_configuration(&self) {
+    fn display_configuration(&self, composition: &Composition) {
         if let Some(key) = self.device_key {
             defmt::info!("DeviceKey: {}", key);
         } else {
@@ -244,7 +362,7 @@ impl Keys {
         }
 
         if let Some(network) = &self.network {
-            network.display_configuration();
+            network.display_configuration(composition);
         }
     }
 
@@ -361,6 +479,7 @@ pub trait PrimaryElementStorage {
 pub struct ConfigurationManager<S: Storage> {
     storage: RefCell<S>,
     config: RefCell<Configuration>,
+    composition: Composition,
     runtime_seq: RefCell<u32>,
     force_reset: bool,
 }
@@ -406,10 +525,23 @@ impl<S: Storage> PrimaryElementStorage for ConfigurationManager<S> {
 }
 
 impl<S: Storage> ConfigurationManager<S> {
-    pub fn new(storage: S, force_reset: bool) -> Self {
+    pub fn new(storage: S, mut composition: Composition, force_reset: bool) -> Self {
+        if composition.elements.is_empty() {
+            let descriptor = ElementDescriptor::new(Location(0x0106));
+            composition.add_element(descriptor).ok();
+        }
+
+        let mut models = Vec::new();
+        models.push(CONFIGURATION_SERVER).ok();
+        models
+            .extend_from_slice(&composition.elements[0].models)
+            .ok();
+        composition.elements[0].models = models;
+
         Self {
             storage: RefCell::new(storage),
             config: RefCell::new(Default::default()),
+            composition,
             force_reset,
             runtime_seq: RefCell::new(0),
         }
@@ -453,6 +585,10 @@ impl<S: Storage> ConfigurationManager<S> {
         }
     }
 
+    pub(crate) fn composition(&self) -> Composition {
+        self.composition.clone()
+    }
+
     pub(crate) async fn node_reset(&self) -> ! {
         // best effort
         self.store(&Configuration::default()).await.ok();
@@ -463,7 +599,9 @@ impl<S: Storage> ConfigurationManager<S> {
     pub(crate) fn display_configuration(&self) {
         defmt::info!("================================================================");
         defmt::info!("Message Sequence: {}", *self.runtime_seq.borrow());
-        self.config.borrow().display_configuration();
+        self.config
+            .borrow()
+            .display_configuration(&self.composition);
         defmt::info!("================================================================");
     }
 
@@ -498,6 +636,22 @@ impl<S: Storage> ConfigurationManager<S> {
 
     pub(crate) fn reset(&mut self) {
         self.force_reset = true;
+    }
+
+    pub(crate) fn net_key_index_by_app_key_index(
+        &self,
+        app_key_index: AppKeyIndex,
+    ) -> Option<NetKeyIndex> {
+        let config = self.retrieve();
+        if let Some(network) = config.keys.network {
+            if let Some(specific_netork) = network.by_app_key_index(app_key_index) {
+                Some(specific_netork.key_index)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
     pub(crate) async fn add_app_key(
@@ -539,6 +693,66 @@ impl<S: Storage> ConfigurationManager<S> {
             Err(Status::InvalidNetKeyIndex)
         }
     }
+
+    pub async fn model_app_bind(
+        &self,
+        net_key_index: NetKeyIndex,
+        element_address: UnicastAddress,
+        model_identifier: ModelIdentifier,
+        app_key_index: AppKeyIndex,
+    ) -> Result<Status, DeviceError> {
+        let mut config = self.retrieve();
+        if let Some(ref mut network) = config.keys.network {
+            if let Some(specific_network) = network.by_index_mut(net_key_index) {
+                let result = specific_network.model_app_bind(
+                    element_address,
+                    model_identifier,
+                    app_key_index,
+                );
+                match result {
+                    Ok(_) => {
+                        self.store(&config).await?;
+                        Ok(Status::Success)
+                    }
+                    Err(status) => Ok(status),
+                }
+            } else {
+                Ok(Status::InvalidNetKeyIndex)
+            }
+        } else {
+            Err(DeviceError::NotProvisioned)
+        }
+    }
+
+    pub async fn model_app_unbind(
+        &self,
+        net_key_index: NetKeyIndex,
+        element_address: UnicastAddress,
+        model_identifier: ModelIdentifier,
+        app_key_index: AppKeyIndex,
+    ) -> Result<Status, DeviceError> {
+        let mut config = self.retrieve();
+        if let Some(ref mut network) = config.keys.network {
+            if let Some(specific_network) = network.by_index_mut(net_key_index) {
+                let result = specific_network.model_app_unbind(
+                    element_address,
+                    model_identifier,
+                    app_key_index,
+                );
+                match result {
+                    Ok(_) => {
+                        self.store(&config).await?;
+                        Ok(Status::Success)
+                    }
+                    Err(status) => Ok(status),
+                }
+            } else {
+                Ok(Status::InvalidNetKeyIndex)
+            }
+        } else {
+            Err(DeviceError::NotProvisioned)
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, Format)]
@@ -560,3 +774,19 @@ impl Default for ConfigurationModel {
         }
     }
 }
+
+#[derive(Serialize, Deserialize, Format, Default, Clone)]
+pub struct Bindings {
+    bindings: Vec<Binding, 30>,
+}
+
+impl Bindings {}
+
+#[derive(Serialize, Deserialize, Format, Copy, Clone)]
+pub struct Binding {
+    model_identifier: ModelIdentifier,
+    element_address: UnicastAddress,
+    app_key_index: AppKeyIndex,
+}
+
+impl Binding {}

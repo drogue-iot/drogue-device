@@ -287,7 +287,6 @@ impl LowPowerNodePollTimeout {
 
 #[derive(Format)]
 pub enum Model {
-    App(ModelApp),
     Publication(ModelPublication),
     Subscription(ModelSubscription),
 }
@@ -296,30 +295,9 @@ pub enum Model {
 impl Model {
     pub fn opcode(&self) -> Opcode {
         match self {
-            Self::App(inner) => inner.opcode(),
+            //Self::App(inner) => inner.opcode(),
             Self::Publication(inner) => inner.opcode(),
             Self::Subscription(inner) => inner.opcode(),
-        }
-    }
-    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        todo!()
-    }
-}
-
-#[derive(Format)]
-pub enum ModelApp {
-    Bind,
-    Status,
-    Unbind,
-}
-
-#[allow(unused)]
-impl ModelApp {
-    pub fn opcode(&self) -> Opcode {
-        match self {
-            Self::Bind => CONFIG_MODEL_APP_BIND,
-            Self::Status => CONFIG_MODEL_APP_STATUS,
-            Self::Unbind => CONFIG_MODEL_APP_UNBIND,
         }
     }
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
@@ -698,13 +676,13 @@ impl Format for Opcode {
     fn format(&self, fmt: Formatter) {
         match self {
             Opcode::OneOctet(a) => {
-                defmt::write!(fmt, "{:x}", a)
+                defmt::write!(fmt, "{:02x}", a)
             }
             Opcode::TwoOctet(a, b) => {
-                defmt::write!(fmt, "{:x} {:x}", a, b)
+                defmt::write!(fmt, "{:02x}{:02x}", a, b)
             }
             Opcode::ThreeOctet(a, b, c) => {
-                defmt::write!(fmt, "{:x} {:x} {:x}", a, b, c)
+                defmt::write!(fmt, "{:02x}{:02x}{:02x}", a, b, c)
             }
         }
     }
@@ -811,9 +789,9 @@ opcode!( CONFIG_KEY_REFRESH_PHASE_SET 0x80, 0x16 );
 opcode!( CONFIG_KEY_REFRESH_PHASE_STATUS 0x80, 0x17 );
 opcode!( CONFIG_LOW_POWER_NODE_POLLTIMEOUT_GET 0x80, 0x2D );
 opcode!( CONFIG_LOW_POWER_NODE_POLLTIMEOUT_STATUS 0x80, 0x2E );
-opcode!( CONFIG_MODEL_APP_BIND 0x80, 0x3D);
-opcode!( CONFIG_MODEL_APP_STATUS 0x80, 0x3E);
-opcode!( CONFIG_MODEL_APP_UNBIND 0x80, 0x3F);
+//opcode!( CONFIG_MODEL_APP_BIND 0x80, 0x3D);
+//opcode!( CONFIG_MODEL_APP_STATUS 0x80, 0x3E);
+//opcode!( CONFIG_MODEL_APP_UNBIND 0x80, 0x3F);
 opcode!( CONFIG_MODEL_PUBLICATION_GET 0x80, 0x18);
 opcode!( CONFIG_MODEL_PUBLICATION_STATUS 0x80, 0x19);
 opcode!( CONFIG_MODEL_PUBLICATION_VIRTUAL_ADDRESS_SET 0x80, 0x1A);

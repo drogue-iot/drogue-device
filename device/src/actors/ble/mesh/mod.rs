@@ -169,8 +169,11 @@ where
             let rx = BearerReceiver::new(receiver);
             let handler = BearerHandler::new(&self.transport, sender);
 
-            let configuration_manager =
-                ConfigurationManager::new(self.storage.take().unwrap(), self.force_reset);
+            let configuration_manager = ConfigurationManager::new(
+                self.storage.take().unwrap(),
+                self.elements.as_ref().unwrap().composition().clone(),
+                self.force_reset,
+            );
 
             let mut node = Node::new(
                 self.elements.take().unwrap(),
