@@ -1,11 +1,11 @@
+use crate::drivers::ble::mesh::address::UnicastAddress;
+use crate::drivers::ble::mesh::model::foundation::configuration::NetKeyIndex;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use core::convert::TryInto;
 use defmt::{Format, Formatter};
 use heapless::Vec;
 use serde::{Deserialize, Serialize};
-use crate::drivers::ble::mesh::address::UnicastAddress;
-use crate::drivers::ble::mesh::model::foundation::configuration::NetKeyIndex;
 
 #[derive(Format)]
 pub enum ProvisioningPDU {
@@ -298,7 +298,7 @@ impl ProvisioningData {
             let key_index = NetKeyIndex::new(u16::from_be_bytes([data[16], data[17]]));
             let flags = data[18];
             let iv_index = u32::from_be_bytes([data[19], data[20], data[21], data[22]]);
-            let unicast_address = UnicastAddress::parse( [data[23], data[24]] )?;
+            let unicast_address = UnicastAddress::parse([data[23], data[24]])?;
 
             Ok(Self {
                 network_key: network_key

@@ -99,27 +99,23 @@ impl Lower {
                         seg_n,
                         segment_m,
                     } => {
-                        if let Some(payload) = self.segmentation.process_inbound(
-                            pdu.src,
-                            seq_zero,
-                            seg_o,
-                            seg_n,
-                            &segment_m,
-                        )? {
+                        if let Some(payload) = self
+                            .segmentation
+                            .process_inbound(pdu.src, seq_zero, seg_o, seg_n, &segment_m)?
+                        {
                             // todo: DRY this code
                             let (payload, trans_mic) = match szmic {
-                                SzMic::Bit32 => {
-                                    payload.split_at(payload.len() - 4)
-                                }
-                                SzMic::Bit64 => {
-                                    payload.split_at(payload.len() - 8)
-                                }
+                                SzMic::Bit32 => payload.split_at(payload.len() - 4),
+                                SzMic::Bit64 => payload.split_at(payload.len() - 8),
                             };
 
                             let mut payload = Vec::from_slice(payload)
                                 .map_err(|_| DeviceError::InsufficientBuffer)?;
 
-                            let seq_auth = (( ctx.iv_index().ok_or(DeviceError::CryptoError)? << 13) | seq_zero as u32) & 0xFFFFFF;
+                            let seq_auth = ((ctx.iv_index().ok_or(DeviceError::CryptoError)?
+                                << 13)
+                                | seq_zero as u32)
+                                & 0xFFFFFF;
 
                             if access.akf {
                                 // decrypt with aid key
@@ -133,7 +129,13 @@ impl Lower {
                                     ctx.iv_index().ok_or(DeviceError::CryptoError)?,
                                 );
                                 defmt::info!("decrypt?");
-                                defmt::info!("{} {} {:x} {:x}", szmic, seq_auth, payload, trans_mic);
+                                defmt::info!(
+                                    "{} {} {:x} {:x}",
+                                    szmic,
+                                    seq_auth,
+                                    payload,
+                                    trans_mic
+                                );
                                 ctx.decrypt_device_key(nonce, &mut payload, &trans_mic)?;
                                 defmt::info!("decrypt!");
                             }

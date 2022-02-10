@@ -1,7 +1,7 @@
 use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use heapless::Vec;
 use crate::drivers::ble::mesh::InsufficientBuffer;
+use heapless::Vec;
 
 pub struct Segmentation {
     in_flight: [Option<InFlight>; 3],
@@ -24,14 +24,10 @@ impl Segmentation {
         seg_n: u8,
         segment_m: &Vec<u8, 12>,
     ) -> Result<Option<Vec<u8, 380>>, DeviceError> {
-        let in_flight_index = self.find_or_create_in_flight(
-            src,
-            seq_zero,
-            seg_n,
-        )?;
+        let in_flight_index = self.find_or_create_in_flight(src, seq_zero, seg_n)?;
 
         if let Some(in_flight) = &mut self.in_flight[in_flight_index] {
-            if let Some( all) = in_flight.process_inbound(seg_o, segment_m)? {
+            if let Some(all) = in_flight.process_inbound(seg_o, segment_m)? {
                 self.in_flight[in_flight_index] = None;
                 Ok(Some(all))
             } else {
@@ -54,15 +50,16 @@ impl Segmentation {
             } else {
                 false
             }
-        } ) {
+        }) {
             Ok(index)
         } else {
-            if let Some((index, _)) = self.in_flight.iter_mut().enumerate().find(|(_, e)| matches!(e, None)) {
-                let in_flight = InFlight::new(
-                    src,
-                    seq_zero,
-                    seg_n,
-                );
+            if let Some((index, _)) = self
+                .in_flight
+                .iter_mut()
+                .enumerate()
+                .find(|(_, e)| matches!(e, None))
+            {
+                let in_flight = InFlight::new(src, seq_zero, seg_n);
                 self.in_flight[index] = Some(in_flight);
                 Ok(index)
             } else {
@@ -80,11 +77,7 @@ struct InFlight {
 }
 
 impl InFlight {
-    fn new(
-        src: UnicastAddress,
-        seq_zero: u16,
-        seg_n: u8,
-    ) -> Self {
+    fn new(src: UnicastAddress, seq_zero: u16, seg_n: u8) -> Self {
         let mut segments = Vec::new();
         for _ in 0..=seg_n {
             // supposedly infallible
@@ -98,16 +91,23 @@ impl InFlight {
         }
     }
 
-    fn process_inbound(&mut self, seg_n: u8, segment_m: &Vec<u8, 12>) -> Result<Option<Vec<u8, 380>>, InsufficientBuffer> {
+    fn process_inbound(
+        &mut self,
+        seg_n: u8,
+        segment_m: &Vec<u8, 12>,
+    ) -> Result<Option<Vec<u8, 380>>, InsufficientBuffer> {
         if matches!(self.segments[seg_n as usize], None) {
             let mut inner = Vec::new();
-            inner.extend_from_slice(segment_m).map_err(|_|InsufficientBuffer)?;
+            inner
+                .extend_from_slice(segment_m)
+                .map_err(|_| InsufficientBuffer)?;
             self.segments[seg_n as usize] = Some(inner);
             if self.segments.iter().all(|e| !matches!(e, None)) {
                 let mut all = Vec::new();
                 for segment in self.segments.iter() {
                     if let Some(segment) = segment {
-                        all.extend_from_slice(segment).map_err(|_| InsufficientBuffer)?
+                        all.extend_from_slice(segment)
+                            .map_err(|_| InsufficientBuffer)?
                     }
                 }
                 Ok(Some(all))

@@ -1,7 +1,7 @@
+use crate::drivers::ble::mesh::pdu::ParseError;
 use core::convert::TryInto;
 use defmt::{Format, Formatter};
 use serde::{Deserialize, Serialize};
-use crate::drivers::ble::mesh::pdu::ParseError;
 
 #[derive(Serialize, Deserialize, Copy, Clone, Format, PartialEq)]
 pub enum Address {

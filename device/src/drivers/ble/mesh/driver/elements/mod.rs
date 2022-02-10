@@ -8,11 +8,13 @@ use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::configuration_manager::PrimaryElementModels;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::model::foundation::configuration::{AppKeyIndex, ConfigurationMessage, ConfigurationServer, NetKeyIndex};
+use crate::drivers::ble::mesh::model::foundation::configuration::{
+    AppKeyIndex, ConfigurationMessage, ConfigurationServer, NetKeyIndex,
+};
 use crate::drivers::ble::mesh::model::Model;
+use crate::drivers::ble::mesh::model::Status;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use core::future::Future;
-use crate::drivers::ble::mesh::model::Status;
 use heapless::Vec;
 
 pub trait ElementContext {

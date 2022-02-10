@@ -1,5 +1,8 @@
+use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::model::foundation::configuration::{AppKeyIndex, NetKeyIndex};
+use crate::drivers::ble::mesh::model::Status;
 use crate::drivers::ble::mesh::provisioning::IVUpdateFlag;
 use crate::drivers::ble::mesh::storage::{Payload, Storage};
 use core::cell::RefCell;
@@ -13,9 +16,6 @@ use p256::{PublicKey, SecretKey};
 use postcard::{from_bytes, to_slice};
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
-use crate::drivers::ble::mesh::address::UnicastAddress;
-use crate::drivers::ble::mesh::model::foundation::configuration::{AppKeyIndex, NetKeyIndex};
-use crate::drivers::ble::mesh::model::Status;
 
 const SEQUENCE_THRESHOLD: u32 = 100;
 
@@ -114,11 +114,15 @@ impl NetworkInfo {
     }
 
     fn by_index(&self, net_key_index: NetKeyIndex) -> Option<&NetworkKeyStorage> {
-        self.network_keys.iter().find(|e| e.key_index == net_key_index)
+        self.network_keys
+            .iter()
+            .find(|e| e.key_index == net_key_index)
     }
 
     fn by_index_mut(&mut self, net_key_index: NetKeyIndex) -> Option<&mut NetworkKeyStorage> {
-        self.network_keys.iter_mut().find(|e| e.key_index == net_key_index)
+        self.network_keys
+            .iter_mut()
+            .find(|e| e.key_index == net_key_index)
     }
 }
 
@@ -154,7 +158,12 @@ pub struct NetworkKeyStorage {
 impl NetworkKeyStorage {
     fn display_configuration(&self) {
         defmt::info!("Network Keys");
-        defmt::info!("  {}: {} [nid={}]", self.key_index, self.network_key, self.nid);
+        defmt::info!(
+            "  {}: {} [nid={}]",
+            self.key_index,
+            self.network_key,
+            self.nid
+        );
         defmt::info!("Application Keys:");
         for app_key in &self.app_keys {
             app_key.display_configuration()
@@ -162,19 +171,21 @@ impl NetworkKeyStorage {
     }
 
     fn add_app_key(&mut self, app_key_index: AppKeyIndex, app_key: [u8; 16]) -> Result<(), Status> {
-        if let Some(_) = self.app_keys.iter().find(|e| e.key_index == app_key_index ) {
+        if let Some(_) = self.app_keys.iter().find(|e| e.key_index == app_key_index) {
             Err(Status::KeyIndexAlreadyStored)
         } else {
-            self.app_keys.push( AppKeyDetails {
-                app_key: AppKey( app_key ),
-                key_index: app_key_index,
-            }).map_err(|_|Status::InsufficientResources)?;
+            self.app_keys
+                .push(AppKeyDetails {
+                    app_key: AppKey(app_key),
+                    key_index: app_key_index,
+                })
+                .map_err(|_| Status::InsufficientResources)?;
             Ok(())
         }
     }
 
     fn app_key_indexes(&self) -> Vec<AppKeyIndex, 10> {
-        self.app_keys.iter().map(|e|e.key_index).collect()
+        self.app_keys.iter().map(|e| e.key_index).collect()
     }
 }
 
@@ -489,19 +500,22 @@ impl<S: Storage> ConfigurationManager<S> {
         self.force_reset = true;
     }
 
-    pub(crate) async fn add_app_key(&self, net_key_index: NetKeyIndex, app_key_index: AppKeyIndex, app_key: [u8;16]) -> Result<Status, DeviceError> {
+    pub(crate) async fn add_app_key(
+        &self,
+        net_key_index: NetKeyIndex,
+        app_key_index: AppKeyIndex,
+        app_key: [u8; 16],
+    ) -> Result<Status, DeviceError> {
         let mut config = self.retrieve();
         if let Some(ref mut network) = config.keys.network {
             if let Some(specific_network) = network.by_index_mut(net_key_index) {
-                let result = specific_network.add_app_key( app_key_index, app_key );
+                let result = specific_network.add_app_key(app_key_index, app_key);
                 match result {
                     Ok(_) => {
                         self.store(&config).await?;
                         Ok(Status::Success)
                     }
-                    Err(status) => {
-                        Ok(status)
-                    }
+                    Err(status) => Ok(status),
                 }
             } else {
                 Ok(Status::InvalidNetKeyIndex)
@@ -511,7 +525,10 @@ impl<S: Storage> ConfigurationManager<S> {
         }
     }
 
-    pub fn app_key_indexes(&self, net_key_index: NetKeyIndex) -> Result<Vec<AppKeyIndex, 10>, Status> {
+    pub fn app_key_indexes(
+        &self,
+        net_key_index: NetKeyIndex,
+    ) -> Result<Vec<AppKeyIndex, 10>, Status> {
         if let Some(network) = self.retrieve().keys.network {
             if let Some(specific_network) = network.by_index(net_key_index) {
                 Ok(specific_network.app_key_indexes())

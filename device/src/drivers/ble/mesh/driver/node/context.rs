@@ -1,8 +1,7 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::configuration_manager::{
-    KeyStorage, NetworkKeyStorage, PrimaryElementModels,
-    PrimaryElementStorage,
+    KeyStorage, NetworkKeyStorage, PrimaryElementModels, PrimaryElementStorage,
 };
 use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
 use crate::drivers::ble::mesh::device::Uuid;
@@ -20,6 +19,7 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::ProvisionedContext
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::UnprovisionedContext;
 use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::model::foundation::configuration::{AppKeyIndex, NetKeyIndex};
 use crate::drivers::ble::mesh::model::Status;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
@@ -36,7 +36,6 @@ use core::future::Future;
 use heapless::Vec;
 use p256::PublicKey;
 use rand_core::{CryptoRng, RngCore};
-use crate::drivers::ble::mesh::model::foundation::configuration::{AppKeyIndex, NetKeyIndex};
 
 // ------------------------------------------------------------------------
 // Unprovisioned pipeline context
@@ -411,10 +410,14 @@ where
     = impl Future<Output = Result<Status, DeviceError>> + 'm;
 
     fn add_app_key(&mut self, app_key_index: AppKeyIndex, key: [u8; 16]) -> Self::AddKeyFuture<'_> {
-        self.node.configuration_manager.add_app_key(self.net_key_index, app_key_index, key)
+        self.node
+            .configuration_manager
+            .add_app_key(self.net_key_index, app_key_index, key)
     }
 
     fn app_key_indexes(&self) -> Result<Vec<AppKeyIndex, 10>, Status> {
-        self.node.configuration_manager.app_key_indexes(self.net_key_index)
+        self.node
+            .configuration_manager
+            .app_key_indexes(self.net_key_index)
     }
 }

@@ -378,8 +378,7 @@ impl AppKeyMessage {
 
     pub fn parse_get(parameters: &[u8]) -> Result<Self, ParseError> {
         if parameters.len() == 2 {
-            let net_key_index =
-                NetKeyIndex( KeyIndex::parse_first(parameters)?);
+            let net_key_index = NetKeyIndex(KeyIndex::parse_first(parameters)?);
             Ok(Self::Get(AppKeyGetMessage { net_key_index }))
         } else {
             Err(ParseError::InvalidLength)
@@ -461,7 +460,7 @@ impl KeyIndex {
         let bytes = val.to_be_bytes();
         if let Some(last) = xmit.last_mut() {
             *last = *last | bytes[0];
-            xmit.push(bytes[1]).map_err(|_|InsufficientBuffer)?;
+            xmit.push(bytes[1]).map_err(|_| InsufficientBuffer)?;
             Ok(())
         } else {
             self.emit_first(xmit)

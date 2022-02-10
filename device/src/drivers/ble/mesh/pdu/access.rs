@@ -161,8 +161,6 @@ impl Config {
     }
 }
 
-
-
 #[derive(Format)]
 pub enum Friend {
     Get,
@@ -786,7 +784,6 @@ macro_rules! opcode {
         pub const $name: Opcode = Opcode::ThreeOctet($o1, $o2, $o3);
     };
 }
-
 
 opcode!( CONFIG_BEACON_GET 0x80, 0x09 );
 opcode!( CONFIG_BEACON_SET 0x80, 0x0A );
