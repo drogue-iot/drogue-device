@@ -1,3 +1,5 @@
+use crate::drivers::ble::mesh::address::UnicastAddress;
+use crate::drivers::ble::mesh::model::foundation::configuration::NetKeyIndex;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use core::convert::TryInto;
@@ -280,11 +282,11 @@ impl Data {
 /// The decrypted provisioning data wrapped in `Data` above.
 pub struct ProvisioningData {
     pub network_key: [u8; 16],
-    pub key_index: u16,
+    pub key_index: NetKeyIndex,
     pub key_refresh_flag: KeyRefreshFlag,
     pub iv_update_flag: IVUpdateFlag,
     pub iv_index: u32,
-    pub unicast_address: u16,
+    pub unicast_address: UnicastAddress,
 }
 
 impl ProvisioningData {
@@ -293,10 +295,10 @@ impl ProvisioningData {
             Err(ParseError::InvalidLength)
         } else {
             let network_key = &data[0..16];
-            let key_index = u16::from_be_bytes([data[16], data[17]]);
+            let key_index = NetKeyIndex::new(u16::from_be_bytes([data[16], data[17]]));
             let flags = data[18];
             let iv_index = u32::from_be_bytes([data[19], data[20], data[21], data[22]]);
-            let unicast_address = u16::from_be_bytes([data[23], data[24]]);
+            let unicast_address = UnicastAddress::parse([data[23], data[24]])?;
 
             Ok(Self {
                 network_key: network_key

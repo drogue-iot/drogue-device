@@ -1,3 +1,4 @@
+mod app_key;
 mod beacon;
 mod composition_data;
 mod default_ttl;
@@ -8,11 +9,13 @@ use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::configuration_manager::PrimaryElementModels;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::{
-    ConfigurationMessage, ConfigurationServer,
+    AppKeyIndex, ConfigurationMessage, ConfigurationServer, NetKeyIndex,
 };
 use crate::drivers::ble::mesh::model::Model;
+use crate::drivers::ble::mesh::model::Status;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use core::future::Future;
+use heapless::Vec;
 
 pub trait ElementContext {
     type TransmitFuture<'m>: Future<Output = Result<(), DeviceError>> + 'm
@@ -41,6 +44,22 @@ pub trait PrimaryElementContext: ElementContext {
     fn node_reset<'m>(&'m self) -> Self::NodeResetFuture<'m>;
 
     fn composition(&self) -> &Composition;
+
+    type NetworkDetails<'n>: NetworkDetails
+    where
+        Self: 'n;
+
+    fn network_details(&self, net_key_index: NetKeyIndex) -> Self::NetworkDetails<'_>;
+}
+
+pub trait NetworkDetails {
+    type AddKeyFuture<'m>: Future<Output = Result<Status, DeviceError>>
+    where
+        Self: 'm;
+
+    fn add_app_key(&mut self, app_key_index: AppKeyIndex, key: [u8; 16]) -> Self::AddKeyFuture<'_>;
+
+    fn app_key_indexes(&self) -> Result<Vec<AppKeyIndex, 10>, Status>;
 }
 
 pub struct Elements<E: ElementsHandler> {
@@ -100,6 +119,9 @@ impl ElementZero {
                 }
                 ConfigurationMessage::CompositionData(message) => {
                     self::composition_data::dispatch(ctx, access, message).await
+                }
+                ConfigurationMessage::AppKey(message) => {
+                    self::app_key::dispatch(ctx, access, message).await
                 }
             }
         } else {

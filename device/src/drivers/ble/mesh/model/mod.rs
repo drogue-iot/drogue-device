@@ -63,14 +63,24 @@ pub trait Model {
         -> Result<Option<Self::MESSAGE>, ParseError>;
 }
 
-pub trait State {
-    type TYPE;
-}
-
-pub trait ReadableState<S: State> {
-    fn read(&self) -> S::TYPE;
-}
-
-pub trait WriteableState<S: State> {
-    fn write(&mut self, val: &S::TYPE);
+#[derive(Copy, Clone, Format)]
+pub enum Status {
+    Success = 0x00,
+    InvalidAddress = 0x01,
+    InvalidModel = 0x02,
+    InvalidAppKeyIndex = 0x03,
+    InvalidNetKeyIndex = 0x04,
+    InsufficientResources = 0x05,
+    KeyIndexAlreadyStored = 0x06,
+    InvalidPublishParameters = 0x07,
+    NotASubscribeModel = 0x08,
+    StorageFailure = 0x09,
+    FeatureNotSupported = 0x0A,
+    CannotUpdate = 0x0B,
+    CannotRemove = 0x0C,
+    CannotBind = 0x0D,
+    TemporarilyUnableToChangeState = 0x0E,
+    CannotSet = 0x0F,
+    UnspecifiedError = 0x10,
+    InvalidBinding = 0x11,
 }
