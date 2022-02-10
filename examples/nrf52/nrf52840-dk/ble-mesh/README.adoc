@@ -3,11 +3,32 @@
 === Raspberry Pi with Bluetooth
 
 The "bullseye" Raspbian distro should include enough kernel mods to
-let the PB-ADV mesh work, but you'll need to install the `bluez-meshd`
-package:
+let the PB-ADV mesh work. Unfortunately, the version of `bluez` is
+5.55, which is known to be flaky. You should enable the apt `testing`
+repo to install version <5.62.
 
+To do that, `sudo su -` and add this line to `/etc/apt/sources.alist`:
 ```
-$ sudo apt-get install bluez-meshd -y
+deb http://raspbian.raspberrypi.org/raspbian/ testing main contrib non-free rpi
+```
+Then create a file called `/etc/apt/preferences.d/prefs` with these contents:
+```
+Package: *
+Pin: release a=stable
+Pin-Priority: 700
+
+Package: *
+Pin: release a=testing
+Pin-Priority: 650
+```
+
+Those priorities will ensure packages are still installed from
+`stable` unless you specifically request otherwise...
+
+To get a working version of `bluez`, do the following:
+```
+$ sudo apt update
+$ sudo apt -t testing install bluez bluez-meshd
 ```
 
 Most of this is based upon the details from the link:https://www.bluetooth.com/wp-content/uploads/2020/04/Developer-Study-Guide-How-to-Deploy-BlueZ-on-a-Raspberry-Pi-Board-as-a-Bluetooth-Mesh-Provisioner.pdf[Bluetooth Site]
