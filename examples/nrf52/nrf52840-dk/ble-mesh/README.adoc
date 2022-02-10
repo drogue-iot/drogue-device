@@ -7,7 +7,7 @@ let the PB-ADV mesh work. Unfortunately, the version of `bluez` is
 5.55, which is known to be flaky. You should enable the apt `testing`
 repo to install version <5.62.
 
-To do that, `sudo su -` and add this line to `/etc/apt/sources.alist`:
+To do that, `sudo su -` and add this line to `/etc/apt/sources.list`:
 ```
 deb http://raspbian.raspberrypi.org/raspbian/ testing main contrib non-free rpi
 ```
