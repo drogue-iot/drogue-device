@@ -1,7 +1,9 @@
 use core::convert::TryInto;
-use defmt::Format;
+use defmt::{Format, Formatter};
+use serde::{Deserialize, Serialize};
+use crate::drivers::ble::mesh::pdu::ParseError;
 
-#[derive(Copy, Clone, Format, PartialEq)]
+#[derive(Serialize, Deserialize, Copy, Clone, Format, PartialEq)]
 pub enum Address {
     Unassigned,
     Unicast(UnicastAddress),
@@ -41,12 +43,25 @@ impl Into<Address> for GroupAddress {
 #[derive(Copy, Clone, Format, PartialEq)]
 pub struct InvalidAddress;
 
-#[derive(Copy, Clone, Format, PartialEq)]
-pub struct UnicastAddress([u8; 2]);
+impl From<InvalidAddress> for ParseError {
+    fn from(_: InvalidAddress) -> Self {
+        ParseError::InvalidValue
+    }
+}
+
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq)]
+pub struct UnicastAddress(u16);
+
+impl Format for UnicastAddress {
+    fn format(&self, fmt: Formatter) {
+        defmt::write!(fmt, "{=u16:04x}", self.0);
+    }
+}
 
 impl UnicastAddress {
     pub fn as_bytes(&self) -> [u8; 2] {
-        [self.0[0], self.0[1]]
+        //[self.0[0], self.0[1]]
+        self.0.to_be_bytes()
     }
 }
 
@@ -59,21 +74,21 @@ impl TryInto<UnicastAddress> for u16 {
     }
 }
 
-#[derive(Copy, Clone, Format, PartialEq)]
-pub struct VirtualAddress([u8; 2]);
+#[derive(Serialize, Deserialize, Copy, Clone, Format, PartialEq)]
+pub struct VirtualAddress(u16);
 
 impl VirtualAddress {
     pub fn as_bytes(&self) -> [u8; 2] {
-        [self.0[0], self.0[1]]
+        self.0.to_be_bytes()
     }
 }
 
-#[derive(Copy, Clone, Format, PartialEq)]
-pub struct GroupAddress([u8; 2]);
+#[derive(Serialize, Deserialize, Copy, Clone, Format, PartialEq)]
+pub struct GroupAddress(u16);
 
 impl GroupAddress {
     pub fn as_bytes(&self) -> [u8; 2] {
-        [self.0[0], self.0[1]]
+        self.0.to_be_bytes()
     }
 }
 
@@ -84,7 +99,7 @@ impl UnicastAddress {
 
     pub fn parse(data: [u8; 2]) -> Result<Self, InvalidAddress> {
         if Self::is_unicast_address(&data) {
-            Ok(UnicastAddress(data))
+            Ok(UnicastAddress(u16::from_be_bytes(data)))
         } else {
             Err(InvalidAddress)
         }
@@ -98,7 +113,7 @@ impl VirtualAddress {
 
     pub fn parse(data: [u8; 2]) -> Result<Self, InvalidAddress> {
         if Self::is_virtual_address(&data) {
-            Ok(VirtualAddress(data))
+            Ok(VirtualAddress(u16::from_be_bytes(data)))
         } else {
             Err(InvalidAddress)
         }
@@ -112,7 +127,7 @@ impl GroupAddress {
 
     pub fn parse(data: [u8; 2]) -> Result<Self, InvalidAddress> {
         if Self::is_group_address(&data) {
-            Ok(GroupAddress(data))
+            Ok(GroupAddress(u16::from_be_bytes(data)))
         } else {
             Err(InvalidAddress)
         }
@@ -121,14 +136,15 @@ impl GroupAddress {
 
 impl Address {
     pub fn parse(data: [u8; 2]) -> Self {
+        let val = u16::from_be_bytes(data);
         if data[0] == 0 && data[1] == 0 {
             Self::Unassigned
         } else if UnicastAddress::is_unicast_address(&data) {
-            Self::Unicast(UnicastAddress([data[0], data[1]]))
+            Self::Unicast(UnicastAddress(val))
         } else if GroupAddress::is_group_address(&data) {
-            Self::Group(GroupAddress([data[0], data[1]]))
+            Self::Group(GroupAddress(val))
         } else {
-            Self::Virtual(VirtualAddress([data[0], data[1]]))
+            Self::Virtual(VirtualAddress(val))
         }
     }
 }

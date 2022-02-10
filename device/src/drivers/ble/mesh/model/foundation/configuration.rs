@@ -1,12 +1,15 @@
-use core::convert::TryInto;
 use crate::drivers::ble::mesh::composition::Composition;
-use crate::drivers::ble::mesh::model::{FoundationIdentifier, Message, Model, ModelIdentifier, Status};
+use crate::drivers::ble::mesh::model::{
+    FoundationIdentifier, Message, Model, ModelIdentifier, Status,
+};
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
-use defmt::Format;
+use core::convert::TryInto;
+use defmt::{Format, Formatter};
 use heapless::Vec;
+use serde::{Deserialize, Serialize};
 
 #[derive(Format)]
 pub enum ConfigurationMessage {
@@ -82,6 +85,9 @@ impl Model for ConfigurationServer {
             // App Key
             CONFIG_APPKEY_ADD => Ok(Some(ConfigurationMessage::AppKey(
                 AppKeyMessage::parse_add(parameters)?,
+            ))),
+            CONFIG_APPKEY_GET => Ok(Some(ConfigurationMessage::AppKey(
+                AppKeyMessage::parse_get(parameters)?,
             ))),
             _ => Ok(None),
         }
@@ -361,19 +367,23 @@ impl AppKeyMessage {
     pub fn parse_add(parameters: &[u8]) -> Result<Self, ParseError> {
         if parameters.len() == 19 {
             let indexes = NetKeyAppKeyIndexesPair::parse(&parameters[0..=2])?;
-            let app_key = parameters[3..].try_into().map_err(|_| ParseError::InvalidLength)?;
-            Ok(
-                Self::Add(
-                    AppKeyAddMessage {
-                        indexes,
-                        app_key,
-                    }
-                )
-            )
+            let app_key = parameters[3..]
+                .try_into()
+                .map_err(|_| ParseError::InvalidLength)?;
+            Ok(Self::Add(AppKeyAddMessage { indexes, app_key }))
         } else {
             Err(ParseError::InvalidLength)
         }
+    }
 
+    pub fn parse_get(parameters: &[u8]) -> Result<Self, ParseError> {
+        if parameters.len() == 2 {
+            let net_key_index =
+                NetKeyIndex( KeyIndex::parse_first(parameters)?);
+            Ok(Self::Get(AppKeyGetMessage { net_key_index }))
+        } else {
+            Err(ParseError::InvalidLength)
+        }
     }
 }
 
@@ -389,7 +399,10 @@ impl Message for AppKeyMessage {
         }
     }
 
-    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+    fn emit_parameters<const N: usize>(
+        &self,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
         match self {
             AppKeyMessage::Add(inner) => inner.emit_parameters(xmit),
             AppKeyMessage::Delete(inner) => inner.emit_parameters(xmit),
@@ -401,41 +414,123 @@ impl Message for AppKeyMessage {
     }
 }
 
+#[derive(Serialize, Deserialize, PartialEq, Copy, Clone)]
+pub struct KeyIndex(u16);
+
+impl Format for KeyIndex {
+    fn format(&self, fmt: Formatter) {
+        defmt::write!(fmt, "{}", self.0);
+    }
+}
+
+impl KeyIndex {
+    fn parse_first(parameters: &[u8]) -> Result<Self, ParseError> {
+        if parameters.len() >= 2 {
+            let byte1 = parameters[0];
+            let byte2 = parameters[1] & 0b11110000;
+            let val = u16::from_be_bytes([byte1, byte2]) >> 4;
+            Ok(Self(val))
+        } else {
+            Err(ParseError::InvalidLength)
+        }
+    }
+
+    fn parse_second(parameters: &[u8]) -> Result<Self, ParseError> {
+        if parameters.len() >= 2 {
+            let byte1 = parameters[0] & 0b00001111;
+            let byte2 = parameters[1];
+            let val = u16::from_be_bytes([byte1, byte2]);
+            Ok(Self(val))
+        } else {
+            Err(ParseError::InvalidLength)
+        }
+    }
+
+    fn emit_first<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        // shift it all to the left, removing leading zeros, preferring trailing zeros.
+        let val = self.0 << 4;
+        let bytes = val.to_be_bytes();
+        xmit.push(bytes[0]).map_err(|_| InsufficientBuffer)?;
+        xmit.push(bytes[1]).map_err(|_| InsufficientBuffer)?;
+        Ok(())
+    }
+
+    fn emit_second<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        // do not shift, prefer leading zeros.
+        let val = self.0;
+        let bytes = val.to_be_bytes();
+        if let Some(last) = xmit.last_mut() {
+            *last = *last | bytes[0];
+            xmit.push(bytes[1]).map_err(|_|InsufficientBuffer)?;
+            Ok(())
+        } else {
+            self.emit_first(xmit)
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Copy, Clone)]
+pub struct NetKeyIndex(KeyIndex);
+
+impl NetKeyIndex {
+    pub fn new(index: u16) -> Self {
+        Self(KeyIndex(index))
+    }
+
+    fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        self.0.emit_first(xmit)
+    }
+}
+
+impl Format for NetKeyIndex {
+    fn format(&self, fmt: Formatter) {
+        defmt::write!(fmt, "{}", self.0)
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Copy, Clone)]
+pub struct AppKeyIndex(KeyIndex);
+
+impl AppKeyIndex {
+    fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        self.0.emit_first(xmit)
+    }
+}
+
+impl Format for AppKeyIndex {
+    fn format(&self, fmt: Formatter) {
+        defmt::write!(fmt, "{}", self.0)
+    }
+}
+
 #[derive(Format, Copy, Clone)]
-pub struct NetKeyAppKeyIndexesPair(u16, u16);
+pub struct NetKeyAppKeyIndexesPair(NetKeyIndex, AppKeyIndex);
 
 impl NetKeyAppKeyIndexesPair {
     fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        let net_key = self.0.to_be_bytes();
-        let app_key = self.1.to_be_bytes();
-        xmit.push(((net_key[0] & 0b00001111)  <<  4) | net_key[1] & 0b11110000).map_err(|_|InsufficientBuffer)?;
-        xmit.push( ((net_key[1] & 0b00001111) << 4) | app_key[0] & 0b00001111).map_err(|_|InsufficientBuffer)?;
-        xmit.push( app_key[1]).map_err(|_|InsufficientBuffer)?;
+        self.0 .0.emit_first(xmit)?;
+        self.1 .0.emit_second(xmit)?;
         Ok(())
     }
 
     pub fn parse(parameters: &[u8]) -> Result<Self, ParseError> {
         if parameters.len() == 3 {
-            let net_key = ((parameters[0] as u16) << 4) | ((parameters[1] as u16) & 0b11110000 >> 4);
-            let app_key = (((parameters[1] as u16) & 0b00001111) << 8) | (parameters[2] as u16);
-            Ok(
-                Self(net_key, app_key)
-            )
+            let net_key = KeyIndex::parse_first(parameters)?;
+            let app_key = KeyIndex::parse_second(&parameters[1..])?;
+            Ok(Self(NetKeyIndex(net_key), AppKeyIndex(app_key)))
         } else {
             Err(ParseError::InvalidLength)
         }
-
     }
 
-    pub fn net_key(&self) -> u16 {
+    pub fn net_key(&self) -> NetKeyIndex {
         self.0
     }
 
-    pub fn app_key(&self) -> u16 {
+    pub fn app_key(&self) -> AppKeyIndex {
         self.1
     }
 }
-
 
 #[derive(Format)]
 pub struct AppKeyAddMessage {
@@ -444,7 +539,10 @@ pub struct AppKeyAddMessage {
 }
 
 impl AppKeyAddMessage {
-    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+    fn emit_parameters<const N: usize>(
+        &self,
+        _xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
         todo!();
     }
 }
@@ -455,34 +553,53 @@ pub struct AppKeyDeleteMessage {
 }
 
 impl AppKeyDeleteMessage {
-    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+    fn emit_parameters<const N: usize>(
+        &self,
+        _xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
         todo!();
     }
-
 }
 
 #[derive(Format)]
 pub struct AppKeyGetMessage {
-    pub(crate) net_key_index: u16,
+    pub(crate) net_key_index: NetKeyIndex,
 }
 
 impl AppKeyGetMessage {
-    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+    fn emit_parameters<const N: usize>(
+        &self,
+        _xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
         todo!()
     }
-
 }
 
 #[derive(Format)]
 pub struct AppKeyListMessage {
     pub(crate) status: Status,
-    pub(crate) net_key_index: u16,
-    pub(crate) app_key_indexes: Vec<u16, 10>,
+    pub(crate) net_key_index: NetKeyIndex,
+    pub(crate) app_key_indexes: Vec<AppKeyIndex, 10>,
 }
 
 impl AppKeyListMessage {
-    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        todo!()
+    fn emit_parameters<const N: usize>(
+        &self,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
+        xmit.push(self.status as u8)
+            .map_err(|_| InsufficientBuffer)?;
+        self.net_key_index.emit(xmit)?;
+
+        for (i, app_key_index) in self.app_key_indexes.iter().enumerate() {
+            if (i + 1) % 2 == 0 {
+                app_key_index.0.emit_second(xmit)?;
+            } else {
+                app_key_index.0.emit_first(xmit)?;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -493,8 +610,12 @@ pub struct AppKeyStatusMessage {
 }
 
 impl AppKeyStatusMessage {
-    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        xmit.push( self.status as u8 ).map_err(|_|InsufficientBuffer)?;
+    fn emit_parameters<const N: usize>(
+        &self,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
+        xmit.push(self.status as u8)
+            .map_err(|_| InsufficientBuffer)?;
         self.indexes.emit(xmit)?;
         Ok(())
     }
@@ -502,13 +623,16 @@ impl AppKeyStatusMessage {
 
 #[derive(Format)]
 pub struct AppKeyUpdateMessage {
-    pub(crate) net_key_index: u16,
-    pub(crate) app_key_index: u16,
+    pub(crate) net_key_index: NetKeyIndex,
+    pub(crate) app_key_index: AppKeyIndex,
     pub(crate) app_key: [u8; 16],
 }
 
 impl AppKeyUpdateMessage {
-    fn emit_parameters<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+    fn emit_parameters<const N: usize>(
+        &self,
+        _xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
         todo!()
     }
 }

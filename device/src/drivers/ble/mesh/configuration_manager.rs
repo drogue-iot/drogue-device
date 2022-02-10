@@ -13,6 +13,8 @@ use p256::{PublicKey, SecretKey};
 use postcard::{from_bytes, to_slice};
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
+use crate::drivers::ble::mesh::address::UnicastAddress;
+use crate::drivers::ble::mesh::model::foundation::configuration::{AppKeyIndex, NetKeyIndex};
 use crate::drivers::ble::mesh::model::Status;
 
 const SEQUENCE_THRESHOLD: u32 = 100;
@@ -93,17 +95,17 @@ pub struct Keys {
     network: Option<NetworkInfo>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default, Format)]
+#[derive(Serialize, Deserialize, Clone, Format)]
 pub struct NetworkInfo {
     pub(crate) network_keys: Vec<NetworkKeyStorage, 10>,
     pub(crate) iv_update_flag: IVUpdateFlag,
     pub(crate) iv_index: u32,
-    pub(crate) unicast_address: u16,
+    pub(crate) unicast_address: UnicastAddress,
 }
 
 impl NetworkInfo {
     fn display_configuration(&self) {
-        defmt::info!("Primary unicast address: {=u16:04x}", self.unicast_address);
+        defmt::info!("Primary unicast address: {}", self.unicast_address);
         defmt::info!("IV index: {:x}", self.iv_index);
 
         for key in &self.network_keys {
@@ -111,7 +113,11 @@ impl NetworkInfo {
         }
     }
 
-    fn by_index(&mut self, net_key_index: u16) -> Option<&mut NetworkKeyStorage> {
+    fn by_index(&self, net_key_index: NetKeyIndex) -> Option<&NetworkKeyStorage> {
+        self.network_keys.iter().find(|e| e.key_index == net_key_index)
+    }
+
+    fn by_index_mut(&mut self, net_key_index: NetKeyIndex) -> Option<&mut NetworkKeyStorage> {
         self.network_keys.iter_mut().find(|e| e.key_index == net_key_index)
     }
 }
@@ -135,10 +141,10 @@ impl Format for NetworkKey {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Default, Format)]
+#[derive(Serialize, Deserialize, Clone, Format)]
 pub struct NetworkKeyStorage {
     pub(crate) network_key: NetworkKey,
-    pub(crate) key_index: u16,
+    pub(crate) key_index: NetKeyIndex,
     pub(crate) nid: u8,
     pub(crate) encryption_key: [u8; 16],
     pub(crate) privacy_key: [u8; 16],
@@ -147,28 +153,35 @@ pub struct NetworkKeyStorage {
 
 impl NetworkKeyStorage {
     fn display_configuration(&self) {
-        defmt::info!("NetKey: {}", self.network_key);
-        defmt::info!(" index: {}", self.key_index);
-        defmt::info!("   nid: {}", self.nid);
+        defmt::info!("Network Keys");
+        defmt::info!("  {}: {} [nid={}]", self.key_index, self.network_key, self.nid);
+        defmt::info!("Application Keys:");
+        for app_key in &self.app_keys {
+            app_key.display_configuration()
+        }
     }
 
-    fn add_app_key(&mut self, app_key_index: u16, app_key: [u8; 16]) -> Result<(), Status> {
+    fn add_app_key(&mut self, app_key_index: AppKeyIndex, app_key: [u8; 16]) -> Result<(), Status> {
         if let Some(_) = self.app_keys.iter().find(|e| e.key_index == app_key_index ) {
             Err(Status::KeyIndexAlreadyStored)
         } else {
             self.app_keys.push( AppKeyDetails {
                 app_key: AppKey( app_key ),
                 key_index: app_key_index,
-            });
+            }).map_err(|_|Status::InsufficientResources)?;
             Ok(())
         }
     }
+
+    fn app_key_indexes(&self) -> Vec<AppKeyIndex, 10> {
+        self.app_keys.iter().map(|e|e.key_index).collect()
+    }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Default, Format)]
+#[derive(Serialize, Deserialize, Copy, Clone, Format)]
 pub struct NetworkKeyHandle {
     pub(crate) network_key: NetworkKey,
-    pub(crate) key_index: u16,
+    pub(crate) key_index: NetKeyIndex,
     pub(crate) nid: u8,
     pub(crate) encryption_key: [u8; 16],
     pub(crate) privacy_key: [u8; 16],
@@ -199,15 +212,26 @@ impl Format for AppKey {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Default, Format)]
+#[derive(Serialize, Deserialize, Copy, Clone, Format)]
 pub struct AppKeyDetails {
     pub(crate) app_key: AppKey,
-    pub(crate) key_index: u16,
+    pub(crate) key_index: AppKeyIndex,
+}
+
+impl AppKeyDetails {
+    pub(crate) fn display_configuration(&self) {
+        defmt::info!("  {}: {}", self.key_index, self.app_key)
+    }
 }
 
 impl Keys {
     fn display_configuration(&self) {
-        defmt::info!("DeviceKey: {}", self.device_key);
+        if let Some(key) = self.device_key {
+            defmt::info!("DeviceKey: {}", key);
+        } else {
+            defmt::info!("DeviceKey: None");
+        }
+
         if let Some(network) = &self.network {
             network.display_configuration();
         }
@@ -465,10 +489,10 @@ impl<S: Storage> ConfigurationManager<S> {
         self.force_reset = true;
     }
 
-    pub(crate) async fn add_app_key(&self, net_key_index: u16, app_key_index: u16, app_key: [u8;16]) -> Result<Status, DeviceError> {
+    pub(crate) async fn add_app_key(&self, net_key_index: NetKeyIndex, app_key_index: AppKeyIndex, app_key: [u8;16]) -> Result<Status, DeviceError> {
         let mut config = self.retrieve();
         if let Some(ref mut network) = config.keys.network {
-            if let Some(specific_network) = network.by_index(net_key_index) {
+            if let Some(specific_network) = network.by_index_mut(net_key_index) {
                 let result = specific_network.add_app_key( app_key_index, app_key );
                 match result {
                     Ok(_) => {
@@ -484,6 +508,18 @@ impl<S: Storage> ConfigurationManager<S> {
             }
         } else {
             Err(DeviceError::NotProvisioned)
+        }
+    }
+
+    pub fn app_key_indexes(&self, net_key_index: NetKeyIndex) -> Result<Vec<AppKeyIndex, 10>, Status> {
+        if let Some(network) = self.retrieve().keys.network {
+            if let Some(specific_network) = network.by_index(net_key_index) {
+                Ok(specific_network.app_key_indexes())
+            } else {
+                Err(Status::InvalidNetKeyIndex)
+            }
+        } else {
+            Err(Status::InvalidNetKeyIndex)
         }
     }
 }

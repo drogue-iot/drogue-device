@@ -6,15 +6,14 @@ mod node_reset;
 
 use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
-use crate::drivers::ble::mesh::configuration_manager::{NetworkKeyStorage, PrimaryElementModels};
+use crate::drivers::ble::mesh::configuration_manager::PrimaryElementModels;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::model::foundation::configuration::{
-    ConfigurationMessage, ConfigurationServer,
-};
+use crate::drivers::ble::mesh::model::foundation::configuration::{AppKeyIndex, ConfigurationMessage, ConfigurationServer, NetKeyIndex};
 use crate::drivers::ble::mesh::model::Model;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use core::future::Future;
 use crate::drivers::ble::mesh::model::Status;
+use heapless::Vec;
 
 pub trait ElementContext {
     type TransmitFuture<'m>: Future<Output = Result<(), DeviceError>> + 'm
@@ -48,7 +47,7 @@ pub trait PrimaryElementContext: ElementContext {
     where
         Self: 'n;
 
-    fn network_details(&self, net_key_index: u16) -> Self::NetworkDetails<'_>;
+    fn network_details(&self, net_key_index: NetKeyIndex) -> Self::NetworkDetails<'_>;
 }
 
 pub trait NetworkDetails {
@@ -56,7 +55,9 @@ pub trait NetworkDetails {
     where
         Self: 'm;
 
-    fn add_app_key(&mut self, app_key_index: u16, key: [u8; 16]) -> Self::AddKeyFuture<'_>;
+    fn add_app_key(&mut self, app_key_index: AppKeyIndex, key: [u8; 16]) -> Self::AddKeyFuture<'_>;
+
+    fn app_key_indexes(&self) -> Result<Vec<AppKeyIndex, 10>, Status>;
 }
 
 pub struct Elements<E: ElementsHandler> {
@@ -104,7 +105,6 @@ impl ElementZero {
             .configuration_server
             .parse(access.payload.opcode, &access.payload.parameters)
         {
-            defmt::info!("ZERO");
             match &payload {
                 ConfigurationMessage::Beacon(message) => {
                     self::beacon::dispatch(ctx, access, message).await

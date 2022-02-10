@@ -1,15 +1,15 @@
 use crate::drivers::ble::mesh::driver::elements::PrimaryElementContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::model::foundation::configuration::{AppKeyMessage, AppKeyStatusMessage};
+use crate::drivers::ble::mesh::model::foundation::configuration::{AppKeyListMessage, AppKeyMessage, AppKeyStatusMessage};
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::driver::elements::NetworkDetails;
+use crate::drivers::ble::mesh::model::Status;
 
 pub(crate) async fn dispatch<C: PrimaryElementContext>(
     ctx: &C,
     access: &AccessMessage,
     message: &AppKeyMessage,
 ) -> Result<(), DeviceError> {
-    defmt::info!("PROCESS {}", message);
     match message {
         AppKeyMessage::Add(add) => {
             let status = ctx.network_details(add.indexes.net_key())
@@ -20,6 +20,29 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                     indexes: add.indexes
                 }
             ))?).await?;
+        }
+        AppKeyMessage::Get(get) => {
+            let result = ctx.network_details(get.net_key_index)
+                .app_key_indexes();
+
+            let inner = match result {
+                Ok(indexes) => {
+                    AppKeyListMessage {
+                        status: Status::Success,
+                        net_key_index: get.net_key_index,
+                        app_key_indexes: indexes,
+                    }
+                }
+                Err(status) => {
+                    AppKeyListMessage {
+                        status,
+                        net_key_index: get.net_key_index,
+                        app_key_indexes: Default::default(),
+                    }
+                }
+            };
+
+            ctx.transmit( access.create_response(ctx, AppKeyMessage::List(inner))?).await?;
         }
         /*
         AppKeyMessage::Delete(delete) => {

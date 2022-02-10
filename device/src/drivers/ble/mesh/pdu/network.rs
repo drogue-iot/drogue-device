@@ -1,5 +1,5 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
-use crate::drivers::ble::mesh::configuration_manager::{NetworkKeyHandle, NetworkKeyStorage};
+use crate::drivers::ble::mesh::configuration_manager::NetworkKeyHandle;
 use crate::drivers::ble::mesh::pdu::lower::LowerPDU;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;

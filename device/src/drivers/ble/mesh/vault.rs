@@ -234,13 +234,8 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
         match addr {
             Address::Unicast(inner) => {
                 if let Some(network) = self.storage.retrieve().network() {
-                    let addr_bytes = network.unicast_address.to_be_bytes();
-                    let addr = UnicastAddress::parse([addr_bytes[0], addr_bytes[1]]);
-                    if let Ok(addr) = addr {
-                        *inner == addr
-                    } else {
-                        false
-                    }
+                    // todo check other element addrs
+                    *inner == network.unicast_address
                 } else {
                     false
                 }

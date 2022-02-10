@@ -1,7 +1,7 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::configuration_manager::{
-    AppKey, AppKeyDetails, KeyStorage, NetworkKeyStorage, PrimaryElementModels,
+    KeyStorage, NetworkKeyStorage, PrimaryElementModels,
     PrimaryElementStorage,
 };
 use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
@@ -36,6 +36,7 @@ use core::future::Future;
 use heapless::Vec;
 use p256::PublicKey;
 use rand_core::{CryptoRng, RngCore};
+use crate::drivers::ble::mesh::model::foundation::configuration::{AppKeyIndex, NetKeyIndex};
 
 // ------------------------------------------------------------------------
 // Unprovisioned pipeline context
@@ -376,7 +377,7 @@ where
         R: 'n,
     = NodeNetworkDetails<'n, E, TX, RX, S, R>;
 
-    fn network_details(&self, net_key_index: u16) -> Self::NetworkDetails<'_> {
+    fn network_details(&self, net_key_index: NetKeyIndex) -> Self::NetworkDetails<'_> {
         NodeNetworkDetails {
             node: self,
             net_key_index,
@@ -393,7 +394,7 @@ where
     R: RngCore + CryptoRng,
 {
     node: &'n Node<E, TX, RX, S, R>,
-    net_key_index: u16,
+    net_key_index: NetKeyIndex,
 }
 
 impl<'n, E, TX, RX, S, R> NetworkDetails for NodeNetworkDetails<'n, E, TX, RX, S, R>
@@ -409,7 +410,11 @@ where
         Self: 'm,
     = impl Future<Output = Result<Status, DeviceError>> + 'm;
 
-    fn add_app_key(&mut self, app_key_index: u16, key: [u8; 16]) -> Self::AddKeyFuture<'_> {
+    fn add_app_key(&mut self, app_key_index: AppKeyIndex, key: [u8; 16]) -> Self::AddKeyFuture<'_> {
         self.node.configuration_manager.add_app_key(self.net_key_index, app_key_index, key)
+    }
+
+    fn app_key_indexes(&self) -> Result<Vec<AppKeyIndex, 10>, Status> {
+        self.node.configuration_manager.app_key_indexes(self.net_key_index)
     }
 }

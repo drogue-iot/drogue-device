@@ -1,9 +1,5 @@
-use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
-use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
-use crate::drivers::ble::mesh::configuration_manager::NetworkKeyHandle;
+use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::pdu::lower::SzMic;
-use crate::drivers::ble::mesh::pdu::upper::UpperPDU;
 use heapless::Vec;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 
@@ -28,8 +24,6 @@ impl Segmentation {
         seg_n: u8,
         segment_m: &Vec<u8, 12>,
     ) -> Result<Option<Vec<u8, 380>>, DeviceError> {
-        defmt::info!("reassemble {} {} {}", src, seq_zero, seg_o);
-        defmt::info!("--> {:x}", segment_m);
         let in_flight_index = self.find_or_create_in_flight(
             src,
             seq_zero,
@@ -39,7 +33,6 @@ impl Segmentation {
         if let Some(in_flight) = &mut self.in_flight[in_flight_index] {
             if let Some( all) = in_flight.process_inbound(seg_o, segment_m)? {
                 self.in_flight[in_flight_index] = None;
-                defmt::info!("fully assembled");
                 Ok(Some(all))
             } else {
                 Ok(None)
@@ -64,7 +57,7 @@ impl Segmentation {
         } ) {
             Ok(index)
         } else {
-            if let Some((index, slot)) = self.in_flight.iter_mut().enumerate().find(|(_, e)| matches!(e, None)) {
+            if let Some((index, _)) = self.in_flight.iter_mut().enumerate().find(|(_, e)| matches!(e, None)) {
                 let in_flight = InFlight::new(
                     src,
                     seq_zero,
@@ -94,7 +87,8 @@ impl InFlight {
     ) -> Self {
         let mut segments = Vec::new();
         for _ in 0..=seg_n {
-            segments.push(None);
+            // supposedly infallible
+            segments.push(None).ok();
         }
         Self {
             src,
