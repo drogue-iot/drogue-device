@@ -1,4 +1,5 @@
 use core::future::Future;
+use embedded_storage_async::nor_flash::{AsyncNorFlash, AsyncReadNorFlash};
 /*
 use p256::ecdh::SharedSecret;
 use p256::elliptic_curve::group::GroupEncoding;
@@ -49,4 +50,61 @@ pub trait Storage {
         Self: 'm;
 
     fn retrieve<'m>(&'m mut self) -> Self::RetrieveFuture<'m>;
+}
+
+/// Flash storage implementation
+pub struct FlashStorage<F>
+where
+    F: AsyncNorFlash + AsyncReadNorFlash,
+{
+    address: usize,
+    flash: F,
+}
+
+impl<F> FlashStorage<F>
+where
+    F: AsyncNorFlash + AsyncReadNorFlash,
+{
+    pub fn new(address: usize, flash: F) -> Self {
+        Self { address, flash }
+    }
+}
+
+impl<F> Storage for FlashStorage<F>
+where
+    F: AsyncNorFlash + AsyncReadNorFlash,
+{
+    type StoreFuture<'m>
+    where
+        Self: 'm,
+    = impl Future<Output = Result<(), ()>>;
+
+    fn store<'m>(&'m mut self, keys: &'m Payload) -> Self::StoreFuture<'m> {
+        async move {
+            self.flash
+                .erase(self.address as u32, self.address as u32 + 4096)
+                .await
+                .map_err(|_| ())?;
+            self.flash
+                .write(self.address as u32, &keys.payload)
+                .await
+                .map_err(|_| ())
+        }
+    }
+
+    type RetrieveFuture<'m>
+    where
+        Self: 'm,
+    = impl Future<Output = Result<Option<Payload>, ()>>;
+
+    fn retrieve<'m>(&'m mut self) -> Self::RetrieveFuture<'m> {
+        async move {
+            let mut payload = [0; 512];
+            self.flash
+                .read(self.address as u32, &mut payload)
+                .await
+                .map_err(|_| ())?;
+            Ok(Some(Payload { payload }))
+        }
+    }
 }

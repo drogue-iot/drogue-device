@@ -9,7 +9,7 @@ use core::future::Future;
 use defmt_rtt as _;
 use drogue_device::actors::ble::mesh::MeshNode;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
-    Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceRng, SoftdeviceStorage,
+    Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceRng,
 };
 use drogue_device::drivers::ble::mesh::composition::{
     CompanyIdentifier, Composition, ElementDescriptor, ElementsHandler, Features, Location,
@@ -23,14 +23,17 @@ use drogue_device::drivers::ble::mesh::provisioning::{
     Algorithms, Capabilities, InputOOBActions, OOBSize, OutputOOBActions, PublicKeyType,
     StaticOOBType,
 };
+use drogue_device::drivers::ble::mesh::storage::FlashStorage;
 use drogue_device::drivers::ActiveHigh;
 use drogue_device::{actors, drivers, ActorContext, Address, DeviceContext};
 use embassy::executor::Spawner;
 use embassy_nrf::config::Config;
 use embassy_nrf::gpio::{Level, OutputDrive};
 use embassy_nrf::interrupt::Priority;
-use embassy_nrf::peripherals::P0_13;
+use embassy_nrf::peripherals::P0_06;
 use embassy_nrf::{gpio::Output, Peripherals};
+
+use nrf_softdevice::Flash;
 
 #[cfg(feature = "panic-probe")]
 use panic_probe as _;
@@ -40,13 +43,13 @@ use panic_reset as _;
 
 pub struct MyDevice {
     #[allow(dead_code)]
-    led: ActorContext<actors::led::Led<drivers::led::Led<Output<'static, P0_13>>>>,
+    led: ActorContext<actors::led::Led<drivers::led::Led<Output<'static, P0_06>>>>,
     facilities: ActorContext<Nrf52BleMeshFacilities>,
     mesh: ActorContext<
         MeshNode<
             CustomElementsHandler,
             SoftdeviceAdvertisingBearer,
-            SoftdeviceStorage,
+            FlashStorage<Flash>,
             SoftdeviceRng,
         >,
     >,
@@ -81,7 +84,10 @@ async fn main(spawner: Spawner, p: Peripherals) {
     let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BLE Mesh");
     let bearer = facilities.bearer();
     let rng = facilities.rng();
-    let storage = facilities.storage(unsafe { &__storage as *const u8 as usize });
+    let storage = FlashStorage::new(
+        unsafe { &__storage as *const u8 as usize },
+        facilities.flash(),
+    );
 
     let capabilities = Capabilities {
         number_of_elements: 1,
@@ -101,7 +107,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
     });
 
     let led = actors::led::Led::new(drivers::led::Led::<_, ActiveHigh>::new(Output::new(
-        p.P0_13,
+        p.P0_06,
         Level::High,
         OutputDrive::Standard,
     )));
@@ -129,7 +135,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
 #[allow(unused)]
 pub struct CustomElementsHandler {
     composition: Composition,
-    led: Address<actors::led::Led<drivers::led::Led<Output<'static, P0_13>>>>,
+    led: Address<actors::led::Led<drivers::led::Led<Output<'static, P0_06>>>>,
 }
 
 impl CustomElementsHandler {}
