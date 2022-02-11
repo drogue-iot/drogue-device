@@ -419,7 +419,6 @@ dependencies = [
  "defmt",
  "drogue-device-macros",
  "embassy",
- "embassy-boot",
  "embassy-nrf",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.6",
@@ -483,32 +482,6 @@ dependencies = [
  "futures",
  "heapless",
  "pin-project",
-]
-
-[[package]]
-name = "embassy-boot"
-version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=3d6b8bd9832d5a29cab4aa21434663e6ea6f4488#3d6b8bd9832d5a29cab4aa21434663e6ea6f4488"
-dependencies = [
- "embassy",
- "embedded-storage",
- "embedded-storage-async",
-]
-
-[[package]]
-name = "embassy-boot-nrf"
-version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=3d6b8bd9832d5a29cab4aa21434663e6ea6f4488#3d6b8bd9832d5a29cab4aa21434663e6ea6f4488"
-dependencies = [
- "cfg-if",
- "cortex-m",
- "cortex-m-rt",
- "embassy",
- "embassy-boot",
- "embassy-nrf",
- "embedded-storage",
- "embedded-storage-async",
- "nrf-softdevice-mbr",
 ]
 
 [[package]]
@@ -879,11 +852,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nrf-softdevice-mbr"
-version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#ba31fc03d97facc54efb9456901abf02549a4209"
-
-[[package]]
 name = "nrf-softdevice-s140"
 version = "0.1.1"
 source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=ba31fc03d97facc54efb9456901abf02549a4209#ba31fc03d97facc54efb9456901abf02549a4209"
@@ -917,26 +885,6 @@ dependencies = [
  "nrf-softdevice",
  "nrf-softdevice-s140",
  "panic-probe",
-]
-
-[[package]]
-name = "nrf52840-bootloader-dfu"
-version = "0.1.0"
-dependencies = [
- "cortex-m",
- "cortex-m-rt",
- "defmt",
- "defmt-rtt",
- "drogue-device",
- "embassy",
- "embassy-boot-nrf",
- "embassy-nrf",
- "futures",
- "heapless",
- "nrf-softdevice",
- "nrf-softdevice-s140",
- "panic-probe",
- "panic-reset",
 ]
 
 [[package]]
@@ -1012,15 +960,6 @@ checksum = "3ab1f00eac22bd18f8e5cae9555f2820b3a0c166b5b556ee3e203746ea6dcf3a"
 dependencies = [
  "cortex-m",
  "defmt",
-]
-
-[[package]]
-name = "panic-reset"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6cf1ff2a5b1a478dd94572aa43476b6630e72071cbd016985003ad3903a3a4f5"
-dependencies = [
- "cortex-m",
 ]
 
 [[package]]
@@ -1400,3 +1339,8 @@ name = "zeroize"
 version = "1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c88870063c39ee00ec285a2f8d6a966e5b6fb2becc4e8dac77ed0d370ed6006"
+
+[[patch.unused]]
+name = "embassy-boot"
+version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=3d6b8bd9832d5a29cab4aa21434663e6ea6f4488#3d6b8bd9832d5a29cab4aa21434663e6ea6f4488"
