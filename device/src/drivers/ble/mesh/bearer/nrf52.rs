@@ -1,16 +1,14 @@
 use crate::drivers::ble::mesh::bearer::{Bearer, Handler};
-use crate::drivers::ble::mesh::storage::{Payload, Storage};
 use crate::drivers::ble::mesh::{MESH_MESSAGE, PB_ADV};
 use core::future::Future;
 use core::mem;
 use core::num::NonZeroU32;
 use core::ptr::slice_from_raw_parts;
-use embedded_storage_async::nor_flash::{AsyncNorFlash, AsyncReadNorFlash};
 use heapless::Vec;
 use nrf_softdevice::ble::central::ScanConfig;
 use nrf_softdevice::ble::peripheral::AdvertiseError;
 use nrf_softdevice::ble::{central, peripheral};
-use nrf_softdevice::{random_bytes, raw, Softdevice};
+use nrf_softdevice::{random_bytes, raw, Flash, Softdevice};
 use rand_core::{CryptoRng, Error, RngCore};
 
 pub struct Nrf52BleMeshFacilities {
@@ -67,11 +65,8 @@ impl Nrf52BleMeshFacilities {
         SoftdeviceRng { sd: self.sd }
     }
 
-    pub fn storage(&self, address: usize) -> SoftdeviceStorage {
-        SoftdeviceStorage {
-            address,
-            flash: nrf_softdevice::Flash::take(self.sd),
-        }
+    pub fn flash(&self) -> Flash {
+        Flash::take(self.sd)
     }
 }
 
@@ -110,47 +105,6 @@ impl RngCore for SoftdeviceRng {
 }
 
 impl CryptoRng for SoftdeviceRng {}
-
-pub struct SoftdeviceStorage {
-    address: usize,
-    flash: nrf_softdevice::Flash,
-}
-
-impl Storage for SoftdeviceStorage {
-    type StoreFuture<'m>
-    where
-        Self: 'm,
-    = impl Future<Output = Result<(), ()>>;
-
-    fn store<'m>(&'m mut self, keys: &'m Payload) -> Self::StoreFuture<'m> {
-        async move {
-            self.flash
-                .erase(self.address as u32, self.address as u32 + 4096)
-                .await
-                .map_err(|_| ())?;
-            self.flash
-                .write(self.address as u32, &keys.payload)
-                .await
-                .map_err(|_| ())
-        }
-    }
-
-    type RetrieveFuture<'m>
-    where
-        Self: 'm,
-    = impl Future<Output = Result<Option<Payload>, ()>>;
-
-    fn retrieve<'m>(&'m mut self) -> Self::RetrieveFuture<'m> {
-        async move {
-            let mut payload = [0; 512];
-            self.flash
-                .read(self.address as u32, &mut payload)
-                .await
-                .map_err(|_| ())?;
-            Ok(Some(Payload { payload }))
-        }
-    }
-}
 
 pub struct SoftdeviceAdvertisingBearer {
     sd: &'static Softdevice,
