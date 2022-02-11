@@ -1,32 +1,72 @@
 use crate::drivers::ble::mesh::composition::CompanyIdentifier;
+use crate::drivers::ble::mesh::model::foundation::configuration::{
+    CONFIGURATION_CLIENT, CONFIGURATION_SERVER,
+};
+use crate::drivers::ble::mesh::model::generic::{GENERIC_ONOFF_CLIENT, GENERIC_ONOFF_SERVER};
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
-use defmt::Format;
+use defmt::{Format, Formatter};
 use heapless::Vec;
+use serde::{Deserialize, Serialize};
 
 pub mod foundation;
 pub mod generic;
 
-#[derive(Copy, Clone, Eq, PartialEq, Format)]
-pub enum FoundationIdentifier {
-    Configuration,
-    Health,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Format)]
+#[derive(Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 pub enum ModelIdentifier {
-    Foundation(FoundationIdentifier),
     SIG(u16),
     Vendor(CompanyIdentifier, u16),
 }
 
+impl Format for ModelIdentifier {
+    fn format(&self, fmt: Formatter) {
+        match *self {
+            CONFIGURATION_SERVER => {
+                defmt::write!(fmt, "Configuration Server (0x0000)");
+            }
+            CONFIGURATION_CLIENT => {
+                defmt::write!(fmt, "Configuration Client (0x0001)");
+            }
+            GENERIC_ONOFF_SERVER => {
+                defmt::write!(fmt, "Generic OnOff Server (0x1000)");
+            }
+            GENERIC_ONOFF_CLIENT => {
+                defmt::write!(fmt, "Generic OnOff Client (0x1001)");
+            }
+            ModelIdentifier::SIG(id) => match id {
+                _ => {
+                    defmt::write!(fmt, "SIG(0x{=u16:04x}", id);
+                }
+            },
+            ModelIdentifier::Vendor(company_id, model_id) => {
+                defmt::write!(fmt, "Vendor({}, 0x{=u16:04x})", company_id, model_id);
+            }
+        }
+    }
+}
+
 impl ModelIdentifier {
+    pub fn parse(parameters: &[u8]) -> Result<Self, ParseError> {
+        if parameters.len() == 2 {
+            Ok(ModelIdentifier::SIG(u16::from_le_bytes([
+                parameters[0],
+                parameters[1],
+            ])))
+        } else if parameters.len() == 4 {
+            Ok(ModelIdentifier::Vendor(
+                CompanyIdentifier::parse(&parameters[0..=1])?,
+                u16::from_le_bytes([parameters[2], parameters[3]]),
+            ))
+        } else {
+            Err(ParseError::InvalidLength)
+        }
+    }
+
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
         // NOTE: While so many things are big-endian... this is little-endian.
         // WHY OH WHY?
         match self {
-            ModelIdentifier::Foundation(_) => { /* nope, don't do it */ }
             ModelIdentifier::SIG(model_id) => {
                 xmit.extend_from_slice(&model_id.to_le_bytes())
                     .map_err(|_| InsufficientBuffer)?;

@@ -14,36 +14,50 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
 ) -> Result<(), DeviceError> {
     match message {
         AppKeyMessage::Add(add) => {
-            let status = ctx
-                .network_details(add.indexes.net_key())
-                .add_app_key(add.indexes.app_key(), add.app_key)
-                .await?;
-            ctx.transmit(access.create_response(
-                ctx,
-                AppKeyMessage::Status(AppKeyStatusMessage {
+            let response = if let Some(mut network) = ctx.network_details(add.indexes.net_key()) {
+                let status = network
+                    .add_app_key(add.indexes.app_key(), add.app_key)
+                    .await?;
+
+                AppKeyStatusMessage {
                     status,
                     indexes: add.indexes,
-                }),
-            )?)
-            .await?;
-        }
-        AppKeyMessage::Get(get) => {
-            let result = ctx.network_details(get.net_key_index).app_key_indexes();
-
-            let inner = match result {
-                Ok(indexes) => AppKeyListMessage {
-                    status: Status::Success,
-                    net_key_index: get.net_key_index,
-                    app_key_indexes: indexes,
-                },
-                Err(status) => AppKeyListMessage {
-                    status,
-                    net_key_index: get.net_key_index,
-                    app_key_indexes: Default::default(),
-                },
+                }
+            } else {
+                AppKeyStatusMessage {
+                    status: Status::InvalidNetKeyIndex,
+                    indexes: add.indexes,
+                }
             };
 
-            ctx.transmit(access.create_response(ctx, AppKeyMessage::List(inner))?)
+            ctx.transmit(access.create_response(ctx, AppKeyMessage::Status(response))?)
+                .await?;
+        }
+        AppKeyMessage::Get(get) => {
+            let response = if let Some(network) = ctx.network_details(get.net_key_index) {
+                let result = network.app_key_indexes();
+
+                match result {
+                    Ok(indexes) => AppKeyListMessage {
+                        status: Status::Success,
+                        net_key_index: get.net_key_index,
+                        app_key_indexes: indexes,
+                    },
+                    Err(status) => AppKeyListMessage {
+                        status,
+                        net_key_index: get.net_key_index,
+                        app_key_indexes: Default::default(),
+                    },
+                }
+            } else {
+                AppKeyListMessage {
+                    status: Status::InvalidNetKeyIndex,
+                    net_key_index: get.net_key_index,
+                    app_key_indexes: Default::default(),
+                }
+            };
+
+            ctx.transmit(access.create_response(ctx, AppKeyMessage::List(response))?)
                 .await?;
         }
         /*

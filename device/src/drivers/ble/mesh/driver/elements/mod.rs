@@ -2,6 +2,7 @@ mod app_key;
 mod beacon;
 mod composition_data;
 mod default_ttl;
+mod model_app;
 mod node_reset;
 
 use crate::drivers::ble::mesh::address::UnicastAddress;
@@ -11,8 +12,8 @@ use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::{
     AppKeyIndex, ConfigurationMessage, ConfigurationServer, NetKeyIndex,
 };
-use crate::drivers::ble::mesh::model::Model;
 use crate::drivers::ble::mesh::model::Status;
+use crate::drivers::ble::mesh::model::{Model, ModelIdentifier};
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use core::future::Future;
 use heapless::Vec;
@@ -43,13 +44,18 @@ pub trait PrimaryElementContext: ElementContext {
 
     fn node_reset<'m>(&'m self) -> Self::NodeResetFuture<'m>;
 
-    fn composition(&self) -> &Composition;
+    fn composition(&self) -> Composition;
 
     type NetworkDetails<'n>: NetworkDetails
     where
         Self: 'n;
 
-    fn network_details(&self, net_key_index: NetKeyIndex) -> Self::NetworkDetails<'_>;
+    fn network_details(&self, net_key_index: NetKeyIndex) -> Option<Self::NetworkDetails<'_>>;
+
+    fn network_details_by_app_key(
+        &self,
+        app_key_index: AppKeyIndex,
+    ) -> Option<Self::NetworkDetails<'_>>;
 }
 
 pub trait NetworkDetails {
@@ -60,6 +66,28 @@ pub trait NetworkDetails {
     fn add_app_key(&mut self, app_key_index: AppKeyIndex, key: [u8; 16]) -> Self::AddKeyFuture<'_>;
 
     fn app_key_indexes(&self) -> Result<Vec<AppKeyIndex, 10>, Status>;
+
+    type ModelAppBindFuture<'m>: Future<Output = Result<Status, DeviceError>>
+    where
+        Self: 'm;
+
+    fn model_app_bind<'m>(
+        &'m self,
+        element: UnicastAddress,
+        model: ModelIdentifier,
+        app_key_index: AppKeyIndex,
+    ) -> Self::ModelAppBindFuture<'m>;
+
+    type ModelAppUnbindFuture<'m>: Future<Output = Result<Status, DeviceError>>
+    where
+        Self: 'm;
+
+    fn model_app_unbind<'m>(
+        &'m self,
+        element: UnicastAddress,
+        model: ModelIdentifier,
+        app_key_index: AppKeyIndex,
+    ) -> Self::ModelAppUnbindFuture<'m>;
 }
 
 pub struct Elements<E: ElementsHandler> {
@@ -81,7 +109,12 @@ impl<E: ElementsHandler> Elements<E> {
         message: &AccessMessage,
     ) -> Result<(), DeviceError> {
         // todo dispatch correctly based on dst address element
-        self.zero.dispatch(ctx, message).await
+        if let Err(err) = self.zero.dispatch(ctx, message).await {
+            defmt::error!("{}", err);
+            Err(err)
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -122,6 +155,9 @@ impl ElementZero {
                 }
                 ConfigurationMessage::AppKey(message) => {
                     self::app_key::dispatch(ctx, access, message).await
+                }
+                ConfigurationMessage::ModelApp(message) => {
+                    self::model_app::dispatch(ctx, access, message).await
                 }
             }
         } else {

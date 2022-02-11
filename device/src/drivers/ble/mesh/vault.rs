@@ -174,6 +174,7 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
                 encryption_key,
                 privacy_key,
                 app_keys: Default::default(),
+                bindings: Default::default(),
             };
 
             let mut network_keys = Vec::new();

@@ -20,7 +20,7 @@ use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::U
 use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::{AppKeyIndex, NetKeyIndex};
-use crate::drivers::ble::mesh::model::Status;
+use crate::drivers::ble::mesh::model::{ModelIdentifier, Status};
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
@@ -362,8 +362,8 @@ where
         async move { self.configuration_manager.node_reset().await }
     }
 
-    fn composition(&self) -> &Composition {
-        self.elements.app.composition()
+    fn composition(&self) -> Composition {
+        self.configuration_manager.composition()
     }
 
     type NetworkDetails<'n>
@@ -376,10 +376,27 @@ where
         R: 'n,
     = NodeNetworkDetails<'n, E, TX, RX, S, R>;
 
-    fn network_details(&self, net_key_index: NetKeyIndex) -> Self::NetworkDetails<'_> {
-        NodeNetworkDetails {
+    fn network_details(&self, net_key_index: NetKeyIndex) -> Option<Self::NetworkDetails<'_>> {
+        Some(NodeNetworkDetails {
             node: self,
             net_key_index,
+        })
+    }
+
+    fn network_details_by_app_key(
+        &self,
+        app_key_index: AppKeyIndex,
+    ) -> Option<Self::NetworkDetails<'_>> {
+        if let Some(net_key_index) = self
+            .configuration_manager
+            .net_key_index_by_app_key_index(app_key_index)
+        {
+            Some(NodeNetworkDetails {
+                node: self,
+                net_key_index,
+            })
+        } else {
+            None
         }
     }
 }
@@ -419,5 +436,43 @@ where
         self.node
             .configuration_manager
             .app_key_indexes(self.net_key_index)
+    }
+
+    type ModelAppBindFuture<'m>
+    where
+        Self: 'm,
+    = impl Future<Output = Result<Status, DeviceError>> + 'm;
+
+    fn model_app_bind<'m>(
+        &'m self,
+        element_address: UnicastAddress,
+        model_identifier: ModelIdentifier,
+        app_key_index: AppKeyIndex,
+    ) -> Self::ModelAppBindFuture<'m> {
+        self.node.configuration_manager.model_app_bind(
+            self.net_key_index,
+            element_address,
+            model_identifier,
+            app_key_index,
+        )
+    }
+
+    type ModelAppUnbindFuture<'m>
+    where
+        Self: 'm,
+    = impl Future<Output = Result<Status, DeviceError>> + 'm;
+
+    fn model_app_unbind<'m>(
+        &'m self,
+        element_address: UnicastAddress,
+        model_identifier: ModelIdentifier,
+        app_key_index: AppKeyIndex,
+    ) -> Self::ModelAppUnbindFuture<'m> {
+        self.node.configuration_manager.model_app_unbind(
+            self.net_key_index,
+            element_address,
+            model_identifier,
+            app_key_index,
+        )
     }
 }

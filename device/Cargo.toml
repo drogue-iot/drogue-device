@@ -98,15 +98,7 @@ lora = ["embassy-lora", "lorawan-device", "lorawan-encoding", "embassy/time"]
 wifi = []
 tls = ["drogue-tls"]
 dfu = ["embassy-boot", "cortex-m"]
-ble = []
-"ble+nrf52840" = [
-    "ble",
-    "nrf-softdevice",
-    "nrf-softdevice/ble-peripheral",
-    "nrf-softdevice/ble-central",
-    "nrf-softdevice/s140",
-    "nrf-softdevice/nrf52840",
-    "nrf-softdevice-s140",
+ble = [
     "p256",
     "p256/arithmetic",
     "p256/ecdh",
@@ -119,6 +111,15 @@ ble = []
     "uluru",
     "cortex-m",
     "uuid",
+]
+"ble+nrf52840" = [
+    "ble",
+    "nrf-softdevice",
+    "nrf-softdevice/ble-peripheral",
+    "nrf-softdevice/ble-central",
+    "nrf-softdevice/s140",
+    "nrf-softdevice/nrf52840",
+    "nrf-softdevice-s140",
 ]
 
 "bsp+b_u585i_iot02a" = [ "embassy-stm32" ]

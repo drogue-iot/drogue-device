@@ -2,10 +2,12 @@ use crate::drivers::ble::mesh::driver::elements::ElementContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::ModelIdentifier;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
+use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use core::future::Future;
 use defmt::Format;
 use heapless::Vec;
+use serde::{Deserialize, Serialize};
 
 pub trait ElementsHandler {
     fn composition(&self) -> &Composition;
@@ -19,13 +21,23 @@ pub trait ElementsHandler {
     fn dispatch<'m>(&'m self, element: u8, message: AccessMessage) -> Self::DispatchFuture<'m>;
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Format)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Copy, Clone, Format)]
 pub struct CompanyIdentifier(pub u16);
 
-#[derive(Copy, Clone, Format)]
+impl CompanyIdentifier {
+    pub fn parse(parameters: &[u8]) -> Result<Self, ParseError> {
+        if parameters.len() >= 2 {
+            Ok(Self(u16::from_le_bytes([parameters[0], parameters[1]])))
+        } else {
+            Err(ParseError::InvalidLength)
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Copy, Clone, Format)]
 pub struct ProductIdentifier(pub u16);
 
-#[derive(Copy, Clone, Format)]
+#[derive(Serialize, Deserialize, Copy, Clone, Format)]
 pub struct VersionIdentifier(pub u16);
 
 #[derive(Copy, Clone, Format)]

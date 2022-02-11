@@ -1,7 +1,6 @@
+use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::composition::Composition;
-use crate::drivers::ble::mesh::model::{
-    FoundationIdentifier, Message, Model, ModelIdentifier, Status,
-};
+use crate::drivers::ble::mesh::model::{Message, Model, ModelIdentifier, Status};
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
@@ -11,6 +10,9 @@ use defmt::{Format, Formatter};
 use heapless::Vec;
 use serde::{Deserialize, Serialize};
 
+pub const CONFIGURATION_SERVER: ModelIdentifier = ModelIdentifier::SIG(0x0000);
+pub const CONFIGURATION_CLIENT: ModelIdentifier = ModelIdentifier::SIG(0x0001);
+
 #[derive(Format)]
 pub enum ConfigurationMessage {
     Beacon(BeaconMessage),
@@ -18,6 +20,7 @@ pub enum ConfigurationMessage {
     NodeReset(NodeResetMessage),
     CompositionData(CompositionDataMessage),
     AppKey(AppKeyMessage),
+    ModelApp(ModelAppMessage),
 }
 
 impl Message for ConfigurationMessage {
@@ -28,6 +31,7 @@ impl Message for ConfigurationMessage {
             ConfigurationMessage::NodeReset(inner) => inner.opcode(),
             ConfigurationMessage::CompositionData(inner) => inner.opcode(),
             ConfigurationMessage::AppKey(inner) => inner.opcode(),
+            ConfigurationMessage::ModelApp(inner) => inner.opcode(),
         }
     }
 
@@ -41,6 +45,7 @@ impl Message for ConfigurationMessage {
             ConfigurationMessage::NodeReset(inner) => inner.emit_parameters(xmit),
             ConfigurationMessage::CompositionData(inner) => inner.emit_parameters(xmit),
             ConfigurationMessage::AppKey(inner) => inner.emit_parameters(xmit),
+            ConfigurationMessage::ModelApp(inner) => inner.emit_parameters(xmit),
         }
     }
 }
@@ -54,8 +59,8 @@ impl Default for ConfigurationServer {
 }
 
 impl Model for ConfigurationServer {
-    const IDENTIFIER: ModelIdentifier =
-        ModelIdentifier::Foundation(FoundationIdentifier::Configuration);
+    const IDENTIFIER: ModelIdentifier = CONFIGURATION_SERVER;
+
     type MESSAGE = ConfigurationMessage;
 
     fn parse(
@@ -88,6 +93,13 @@ impl Model for ConfigurationServer {
             ))),
             CONFIG_APPKEY_GET => Ok(Some(ConfigurationMessage::AppKey(
                 AppKeyMessage::parse_get(parameters)?,
+            ))),
+            // Model App
+            CONFIG_MODEL_APP_BIND => Ok(Some(ConfigurationMessage::ModelApp(
+                ModelAppMessage::parse_bind(parameters)?,
+            ))),
+            CONFIG_MODEL_APP_UNBIND => Ok(Some(ConfigurationMessage::ModelApp(
+                ModelAppMessage::parse_unbind(parameters)?,
             ))),
             _ => Ok(None),
         }
@@ -378,7 +390,7 @@ impl AppKeyMessage {
 
     pub fn parse_get(parameters: &[u8]) -> Result<Self, ParseError> {
         if parameters.len() == 2 {
-            let net_key_index = NetKeyIndex(KeyIndex::parse_first(parameters)?);
+            let net_key_index = NetKeyIndex(KeyIndex::parse_one(parameters)?);
             Ok(Self::Get(AppKeyGetMessage { net_key_index }))
         } else {
             Err(ParseError::InvalidLength)
@@ -423,48 +435,64 @@ impl Format for KeyIndex {
 }
 
 impl KeyIndex {
-    fn parse_first(parameters: &[u8]) -> Result<Self, ParseError> {
+    fn parse_one(parameters: &[u8]) -> Result<Self, ParseError> {
         if parameters.len() >= 2 {
             let byte1 = parameters[0];
-            let byte2 = parameters[1] & 0b11110000;
-            let val = u16::from_be_bytes([byte1, byte2]) >> 4;
+            let byte2 = parameters[1] & 0b11110000 >> 4;
+            let val = u16::from_be_bytes([byte2, byte1]);
             Ok(Self(val))
         } else {
             Err(ParseError::InvalidLength)
         }
     }
 
-    fn parse_second(parameters: &[u8]) -> Result<Self, ParseError> {
-        if parameters.len() >= 2 {
-            let byte1 = parameters[0] & 0b00001111;
-            let byte2 = parameters[1];
-            let val = u16::from_be_bytes([byte1, byte2]);
-            Ok(Self(val))
-        } else {
-            Err(ParseError::InvalidLength)
-        }
-    }
-
-    fn emit_first<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        // shift it all to the left, removing leading zeros, preferring trailing zeros.
-        let val = self.0 << 4;
-        let bytes = val.to_be_bytes();
-        xmit.push(bytes[0]).map_err(|_| InsufficientBuffer)?;
-        xmit.push(bytes[1]).map_err(|_| InsufficientBuffer)?;
+    fn emit_one<const N: usize>(
+        index: &KeyIndex,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
+        let bytes = index.0.to_be_bytes();
+        let byte1 = bytes[1];
+        let byte2 = bytes[0] << 4;
+        xmit.push(byte1).map_err(|_| InsufficientBuffer)?;
+        xmit.push(byte2).map_err(|_| InsufficientBuffer)?;
         Ok(())
     }
 
-    fn emit_second<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        // do not shift, prefer leading zeros.
-        let val = self.0;
-        let bytes = val.to_be_bytes();
-        if let Some(last) = xmit.last_mut() {
-            *last = *last | bytes[0];
-            xmit.push(bytes[1]).map_err(|_| InsufficientBuffer)?;
-            Ok(())
+    fn parse_two(parameters: &[u8]) -> Result<(Self, Self), ParseError> {
+        if parameters.len() >= 3 {
+            let byte1 = parameters[0];
+            let byte2 = (parameters[1] & 0b11110000) >> 4;
+
+            let index1 = u16::from_be_bytes([byte1, byte2]);
+
+            let byte1 = parameters[1] & 0b00001111;
+            let byte2 = parameters[2];
+
+            let index2 = u16::from_be_bytes([byte1, byte2]);
+            Ok((Self(index2), Self(index1)))
         } else {
-            self.emit_first(xmit)
+            Err(ParseError::InvalidLength)
         }
+    }
+
+    fn emit_two<const N: usize>(
+        indexes: (&KeyIndex, &KeyIndex),
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
+        let bytes = indexes.1 .0.to_be_bytes();
+        let byte1 = bytes[0];
+        xmit.push(byte1).map_err(|_| InsufficientBuffer)?;
+
+        let byte2 = bytes[1] << 4;
+        let bytes = indexes.0 .0.to_be_bytes();
+        let byte1 = byte2 | bytes[0];
+
+        xmit.push(byte1).map_err(|_| InsufficientBuffer)?;
+
+        let byte2 = bytes[1];
+        xmit.push(byte2).map_err(|_| InsufficientBuffer)?;
+
+        Ok(())
     }
 }
 
@@ -477,7 +505,7 @@ impl NetKeyIndex {
     }
 
     fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        self.0.emit_first(xmit)
+        KeyIndex::emit_one(&self.0, xmit)
     }
 }
 
@@ -492,7 +520,7 @@ pub struct AppKeyIndex(KeyIndex);
 
 impl AppKeyIndex {
     fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        self.0.emit_first(xmit)
+        KeyIndex::emit_one(&self.0, xmit)
     }
 }
 
@@ -507,15 +535,13 @@ pub struct NetKeyAppKeyIndexesPair(NetKeyIndex, AppKeyIndex);
 
 impl NetKeyAppKeyIndexesPair {
     fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        self.0 .0.emit_first(xmit)?;
-        self.1 .0.emit_second(xmit)?;
+        KeyIndex::emit_two((&self.0 .0, &self.1 .0), xmit).map_err(|_| InsufficientBuffer)?;
         Ok(())
     }
 
     pub fn parse(parameters: &[u8]) -> Result<Self, ParseError> {
         if parameters.len() == 3 {
-            let net_key = KeyIndex::parse_first(parameters)?;
-            let app_key = KeyIndex::parse_second(&parameters[1..])?;
+            let (net_key, app_key) = KeyIndex::parse_two(parameters)?;
             Ok(Self(NetKeyIndex(net_key), AppKeyIndex(app_key)))
         } else {
             Err(ParseError::InvalidLength)
@@ -590,11 +616,20 @@ impl AppKeyListMessage {
             .map_err(|_| InsufficientBuffer)?;
         self.net_key_index.emit(xmit)?;
 
+        /*
         for (i, app_key_index) in self.app_key_indexes.iter().enumerate() {
             if (i + 1) % 2 == 0 {
                 app_key_index.0.emit_second(xmit)?;
             } else {
                 app_key_index.0.emit_first(xmit)?;
+            }
+        }
+         */
+        for chunk in self.app_key_indexes.chunks(2) {
+            if chunk.len() == 2 {
+                KeyIndex::emit_two((&chunk[0].0, &chunk[1].0), xmit)?;
+            } else {
+                KeyIndex::emit_one(&chunk[0].0, xmit)?;
             }
         }
 
@@ -633,5 +668,103 @@ impl AppKeyUpdateMessage {
         _xmit: &mut Vec<u8, N>,
     ) -> Result<(), InsufficientBuffer> {
         todo!()
+    }
+}
+
+opcode!( CONFIG_MODEL_APP_BIND 0x80, 0x3D);
+opcode!( CONFIG_MODEL_APP_STATUS 0x80, 0x3E);
+opcode!( CONFIG_MODEL_APP_UNBIND 0x80, 0x3F);
+
+#[derive(Format)]
+pub enum ModelAppMessage {
+    Bind(ModelAppPayload),
+    Status(ModelAppStatusMessage),
+    Unbind(ModelAppPayload),
+}
+
+impl ModelAppMessage {
+    fn parse_bind(parameters: &[u8]) -> Result<Self, ParseError> {
+        Ok(Self::Bind(ModelAppPayload::parse(parameters)?))
+    }
+
+    fn parse_unbind(parameters: &[u8]) -> Result<Self, ParseError> {
+        Ok(Self::Unbind(ModelAppPayload::parse(parameters)?))
+    }
+}
+
+impl Message for ModelAppMessage {
+    fn opcode(&self) -> Opcode {
+        match self {
+            Self::Bind(_) => CONFIG_MODEL_APP_BIND,
+            Self::Status(_) => CONFIG_MODEL_APP_STATUS,
+            Self::Unbind(_) => CONFIG_MODEL_APP_UNBIND,
+        }
+    }
+
+    fn emit_parameters<const N: usize>(
+        &self,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
+        match self {
+            ModelAppMessage::Bind(inner) => inner.emit_parameters(xmit),
+            ModelAppMessage::Status(inner) => inner.emit_parameters(xmit),
+            ModelAppMessage::Unbind(inner) => inner.emit_parameters(xmit),
+        }
+    }
+}
+
+#[derive(Format)]
+pub struct ModelAppPayload {
+    pub(crate) element_address: UnicastAddress,
+    pub(crate) app_key_index: AppKeyIndex,
+    pub(crate) model_identifier: ModelIdentifier,
+}
+
+impl ModelAppPayload {
+    fn parse(parameters: &[u8]) -> Result<Self, ParseError> {
+        if parameters.len() >= 6 {
+            // yes, swapped, because in *this* case it's little-endian
+            let element_address = UnicastAddress::parse([parameters[1], parameters[0]])
+                .map_err(|_| ParseError::InvalidValue)?;
+            let app_key_index = AppKeyIndex(KeyIndex::parse_one(&parameters[2..=3])?);
+            let model_identifier = ModelIdentifier::parse(&parameters[4..])?;
+            Ok(Self {
+                element_address,
+                app_key_index,
+                model_identifier,
+            })
+        } else {
+            Err(ParseError::InvalidLength)
+        }
+    }
+
+    fn emit_parameters<const N: usize>(
+        &self,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
+        let addr_bytes = self.element_address.as_bytes();
+        xmit.push(addr_bytes[1]).map_err(|_| InsufficientBuffer)?;
+        xmit.push(addr_bytes[0]).map_err(|_| InsufficientBuffer)?;
+        self.app_key_index.emit(xmit)?;
+        self.model_identifier.emit(xmit)?;
+        Ok(())
+    }
+}
+
+#[derive(Format)]
+pub struct ModelAppStatusMessage {
+    pub(crate) status: Status,
+    pub(crate) payload: ModelAppPayload,
+}
+
+impl ModelAppStatusMessage {
+    fn emit_parameters<const N: usize>(
+        &self,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
+        xmit.push(self.status as u8)
+            .map_err(|_| InsufficientBuffer)?;
+        self.payload.emit_parameters(xmit)?;
+        Ok(())
     }
 }

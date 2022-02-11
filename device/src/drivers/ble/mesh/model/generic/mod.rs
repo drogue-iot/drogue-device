@@ -7,7 +7,8 @@ use heapless::Vec;
 
 pub struct GenericOnOffServer;
 
-pub const GENERIC_ON_OFF_MODEL: ModelIdentifier = ModelIdentifier::SIG(0x1000);
+pub const GENERIC_ONOFF_SERVER: ModelIdentifier = ModelIdentifier::SIG(0x1000);
+pub const GENERIC_ONOFF_CLIENT: ModelIdentifier = ModelIdentifier::SIG(0x1001);
 
 pub enum GenericOnOffMessage {
     Get,
@@ -40,7 +41,7 @@ impl Message for GenericOnOffMessage {
 }
 
 impl Model for GenericOnOffServer {
-    const IDENTIFIER: ModelIdentifier = GENERIC_ON_OFF_MODEL;
+    const IDENTIFIER: ModelIdentifier = GENERIC_ONOFF_SERVER;
     type MESSAGE = GenericOnOffMessage;
 
     fn parse(
