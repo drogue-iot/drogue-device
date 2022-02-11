@@ -17,13 +17,13 @@ use embassy_nrf::{
 };
 use nrf_softdevice::{Flash, Softdevice};
 
-#[cfg(feature = "a")]
+#[cfg(feature = "panic-probe")]
 use panic_probe as _;
 
-#[cfg(feature = "a")]
+#[cfg(feature = "defmt-rtt")]
 use defmt_rtt as _;
 
-#[cfg(feature = "b")]
+#[cfg(feature = "panic-reset")]
 use panic_reset as _;
 
 // Application must run at a lower priority than softdevice
@@ -50,7 +50,7 @@ async fn main(s: Spawner, p: Peripherals) {
 
     let button = Input::new(p.P0_11, Pull::Up);
     #[cfg(feature = "a")]
-    let mut led = Output::new(p.P0_13.degrade(), Level::High, OutputDrive::Standard);
+    let led = Output::new(p.P0_13.degrade(), Level::High, OutputDrive::Standard);
 
     #[cfg(feature = "b")]
     let led = Output::new(p.P0_16.degrade(), Level::High, OutputDrive::Standard);
@@ -70,17 +70,14 @@ async fn main(s: Spawner, p: Peripherals) {
 
             let mut offset = 0;
             for block in FIRMWARE.chunks(4096) {
-                dfu.request(DfuCommand::Write(offset as u32, block))
+                dfu.request(DfuCommand::WriteBlock(block))
                     .unwrap()
                     .await
                     .unwrap();
                 offset += block.len();
             }
 
-            dfu.request(DfuCommand::Finish(123456))
-                .unwrap()
-                .await
-                .unwrap();
+            dfu.request(DfuCommand::Finish).unwrap().await.unwrap();
         }
     }
 

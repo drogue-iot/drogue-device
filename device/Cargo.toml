@@ -77,7 +77,7 @@ embedded-storage-async = { version = "0.3.0" }
 embedded-storage = { version = "0.3.0" }
 
 # Bootloader
-embassy-boot = { version = "0.0.0", optional = true }
+embassy-boot = { version = "0.1.0", optional = true }
 
 [dev-dependencies]
 embassy = { version = "0.1.0", features = ["std", "time", "time-tick-1mhz"]}

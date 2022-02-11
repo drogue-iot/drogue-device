@@ -201,7 +201,7 @@ checksum = "37ff967e867ca14eba0c34ac25cd71ea98c678e741e3915d923999bb2fe7c826"
 dependencies = [
  "bare-metal 0.2.5",
  "bitfield",
- "embedded-hal 0.2.6",
+ "embedded-hal 0.2.7",
  "volatile-register",
 ]
 
@@ -421,7 +421,7 @@ dependencies = [
  "embassy",
  "embassy-boot",
  "embassy-nrf",
- "embedded-hal 0.2.6",
+ "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.6",
  "embedded-hal-async",
  "embedded-storage",
@@ -479,7 +479,7 @@ dependencies = [
  "critical-section",
  "defmt",
  "embassy-macros",
- "embedded-hal 0.2.6",
+ "embedded-hal 0.2.7",
  "futures",
  "heapless",
  "pin-project",
@@ -547,7 +547,7 @@ dependencies = [
  "embassy-hal-common",
  "embassy-macros",
  "embedded-dma",
- "embedded-hal 0.2.6",
+ "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.6",
  "embedded-hal-async",
  "embedded-storage",
@@ -570,9 +570,9 @@ dependencies = [
 
 [[package]]
 name = "embedded-hal"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e36cfb62ff156596c892272f3015ef952fe1525e85261fa3a7f327bd6b384ab9"
+checksum = "35949884794ad573cf46071e41c9b60efb0cb311e3ca01f7af807af1debc66ff"
 dependencies = [
  "nb 0.1.3",
  "void",
@@ -1400,8 +1400,3 @@ name = "zeroize"
 version = "1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c88870063c39ee00ec285a2f8d6a966e5b6fb2becc4e8dac77ed0d370ed6006"
-
-[[patch.unused]]
-name = "embassy-traits"
-version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=3d6b8bd9832d5a29cab4aa21434663e6ea6f4488#3d6b8bd9832d5a29cab4aa21434663e6ea6f4488"

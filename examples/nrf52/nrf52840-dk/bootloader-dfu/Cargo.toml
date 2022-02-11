@@ -8,9 +8,10 @@ name = "nrf52840-bootloader-dfu"
 version = "0.1.0"
 description = "nrf52840-dk Bootloader DFU example"
 keywords = ["nrf52840", "nrf", "nrf52", "dfu"]
+resolver = "2"
 
 [dependencies]
-defmt = { version = "0.3", optional = true }
+defmt = { version = "0.3" }
 defmt-rtt = { version = "0.3", optional = true }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 panic-reset = { version = "0.1.1", optional = true }
@@ -19,7 +20,7 @@ drogue-device = { path = "../../../../device", default-features = false, feature
 
 embassy = { version = "0.1.0", default-features = false, features = [] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52840", "gpiote", "time-driver-rtc1"]}
-embassy-boot-nrf = { version = "0.0.0", default-features = false, features = ["softdevice"] }
+embassy-boot-nrf = { version = "0.1.0", default-features = false, features = ["softdevice"] }
 
 cortex-m    = { version = "0.7.2" }
 cortex-m-rt = "0.7"
@@ -30,11 +31,9 @@ nrf-softdevice = { version = "0.1.0", features = ["ble-peripheral", "ble-central
 nrf-softdevice-s140 = { version = "0.1.0" }
 
 [features]
-default = ["b"]
-a = []
-b = ["panic-reset"]
-withdefmt = [
-    "defmt",
+default = ["b", "defmt-rtt", "panic-probe"]
+b = []
+a = [
     "defmt-rtt",
     "panic-probe",
     "drogue-device/defmt",

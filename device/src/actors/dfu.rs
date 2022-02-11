@@ -79,15 +79,52 @@ impl<E> From<Result<(), E>> for DfuResponse<E> {
     }
 }
 
-impl<E> DfuResponse<E> {
-    pub fn unwrap(self) -> () {
+#[cfg(feature = "defmt")]
+impl<E> DfuResponse<E>
+where
+    E: defmt::Format,
+{
+    pub fn unwrap(self) -> ()
+    where
+        E:,
+    {
         match self {
             Self::Ok => (),
-            Self::Err(_e) => {
-                #[cfg(any(feature = "defmt", feature = "log"))]
-                panic!("dfu error: {:?}", _e);
-                #[cfg(not(any(feature = "defmt", feature = "log")))]
-                panic!("dfu error");
+            Self::Err(e) => {
+                panic!("dfu error: {:?}", e);
+            }
+        }
+    }
+}
+
+#[cfg(feature = "log")]
+impl<E> DfuResponse<E>
+where
+    E: core::format::Debug,
+{
+    pub fn unwrap(self) -> ()
+    where
+        E:,
+    {
+        match self {
+            Self::Ok => (),
+            Self::Err(e) => {
+                panic!("dfu error: {:?}", e);
+            }
+        }
+    }
+}
+
+#[cfg(not(any(feature = "defmt", feature = "log")))]
+impl<E> DfuResponse<E> {
+    pub fn unwrap(self) -> ()
+    where
+        E:,
+    {
+        match self {
+            Self::Ok => (),
+            Self::Err(e) => {
+                panic!("dfu error")
             }
         }
     }
