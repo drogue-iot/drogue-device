@@ -31,7 +31,12 @@ use embassy_nrf::gpio::{Level, OutputDrive};
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::peripherals::P0_13;
 use embassy_nrf::{gpio::Output, Peripherals};
+
+#[cfg(feature = "panic-probe")]
 use panic_probe as _;
+
+#[cfg(not(feature = "panic-probe"))]
+use panic_reset as _;
 
 pub struct MyDevice {
     #[allow(dead_code)]

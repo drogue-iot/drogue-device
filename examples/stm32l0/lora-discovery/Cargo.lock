@@ -266,7 +266,7 @@ checksum = "37ff967e867ca14eba0c34ac25cd71ea98c678e741e3915d923999bb2fe7c826"
 dependencies = [
  "bare-metal 0.2.5",
  "bitfield",
- "embedded-hal 0.2.6",
+ "embedded-hal 0.2.7",
  "volatile-register",
 ]
 
@@ -452,9 +452,10 @@ dependencies = [
  "embassy",
  "embassy-lora",
  "embassy-stm32",
- "embedded-hal 0.2.6",
+ "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.6",
  "embedded-hal-async",
+ "embedded-storage",
  "embedded-storage-async",
  "futures",
  "heapless 0.7.10",
@@ -491,7 +492,7 @@ dependencies = [
  "cortex-m",
  "critical-section",
  "embassy-macros",
- "embedded-hal 0.2.6",
+ "embedded-hal 0.2.7",
  "futures",
  "heapless 0.7.10",
  "pin-project",
@@ -516,7 +517,7 @@ dependencies = [
  "bit_field",
  "embassy",
  "embassy-hal-common",
- "embedded-hal 0.2.6",
+ "embedded-hal 0.2.7",
  "embedded-hal-async",
  "futures",
  "lorawan-device",
@@ -549,7 +550,7 @@ dependencies = [
  "embassy",
  "embassy-hal-common",
  "embassy-macros",
- "embedded-hal 0.2.6",
+ "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.6",
  "embedded-hal-async",
  "futures",
@@ -563,9 +564,9 @@ dependencies = [
 
 [[package]]
 name = "embedded-hal"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e36cfb62ff156596c892272f3015ef952fe1525e85261fa3a7f327bd6b384ab9"
+checksum = "35949884794ad573cf46071e41c9b60efb0cb311e3ca01f7af807af1debc66ff"
 dependencies = [
  "nb 0.1.3",
  "void",
@@ -881,7 +882,7 @@ dependencies = [
  "embassy",
  "embassy-lora",
  "embassy-stm32",
- "embedded-hal 0.2.6",
+ "embedded-hal 0.2.7",
  "heapless 0.6.1",
  "lorawan-app",
  "panic-probe",
@@ -1322,7 +1323,7 @@ version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf16ee9bd5de754482883cf3eac9a49eb862baf1420f55ce408e001705e9ae74"
 dependencies = [
- "embedded-hal 0.2.6",
+ "embedded-hal 0.2.7",
 ]
 
 [[package]]

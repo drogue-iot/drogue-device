@@ -8,11 +8,12 @@ name = "nrf52840-ble-mesh"
 version = "0.1.0"
 description = "nrf52840-dk BLE Mesh example"
 keywords = ["ble", "bluetooth", "microbit", "nrf", "nrf52", "temperature"]
+resolver = "2"
 
 [dependencies]
 defmt = { version = "0.3" }
 defmt-rtt = { version = "0.3", optional = true }
-panic-probe = { version = "0.3", features = ["print-defmt"] }
+panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 
 drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "time", "bsp+microbit", "ble+nrf52840"] }
 
@@ -20,7 +21,7 @@ embassy = { version = "0.1.0", default-features = false, features = [] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52840", "gpiote", "time-driver-rtc1"]}
 
 cortex-m        = { version = "0.7.2" }
-cortex-m-rt = "0.6"
+cortex-m-rt = "0.7"
 heapless = "0.7"
 futures     = { version = "0.3.17", default-features = false, features = ["async-await"] }
 
@@ -32,6 +33,7 @@ nrf-softdevice-s140 = { version = "0.1.0" }
 [features]
 default = [
     "defmt-rtt",
+    "panic-probe",
     "drogue-device/defmt",
     "embassy/defmt",
     "embassy-nrf/defmt",

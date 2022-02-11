@@ -69,10 +69,15 @@ ccm = { version = "0.4.4", default-features = false, optional = true }
 serde = { version = "1.0", default-features = false, optional = true}
 postcard = { version = "0.7.2", optional=true }
 uluru = { version ="3.0.0", optional=true}
+
 uuid = { version = "1.0.0-alpha.1", default-features = false, optional = true }
 
 # Storage
 embedded-storage-async = { version = "0.3.0" }
+embedded-storage = { version = "0.3.0" }
+
+# Bootloader
+embassy-boot = { version = "0.1.0", optional = true }
 
 [dev-dependencies]
 embassy = { version = "0.1.0", features = ["std", "time", "time-tick-1mhz"]}
@@ -92,6 +97,7 @@ time = []
 lora = ["embassy-lora", "lorawan-device", "lorawan-encoding", "embassy/time"]
 wifi = []
 tls = ["drogue-tls"]
+dfu = ["embassy-boot", "cortex-m"]
 ble = []
 "ble+nrf52840" = [
     "ble",

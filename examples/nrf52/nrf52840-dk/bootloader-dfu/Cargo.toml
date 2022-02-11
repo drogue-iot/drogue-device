@@ -1,8 +1,48 @@
-[workspace]
-members = [
-    "ble-mesh",
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
 ]
+edition = "2018"
+name = "nrf52840-bootloader-dfu"
+version = "0.1.0"
+description = "nrf52840-dk Bootloader DFU example"
+keywords = ["nrf52840", "nrf", "nrf52", "dfu"]
 resolver = "2"
+
+[workspace]
+
+[dependencies]
+defmt = { version = "0.3" }
+defmt-rtt = { version = "0.3", optional = true }
+panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
+panic-reset = { version = "0.1.1", optional = true }
+
+drogue-device = { path = "../../../../device", default-features = false, features = ["time", "dfu"] }
+
+embassy = { version = "0.1.0", default-features = false, features = [] }
+embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52840", "gpiote", "time-driver-rtc1"]}
+embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "3d6b8bd9832d5a29cab4aa21434663e6ea6f4488", features = ["softdevice"] }
+
+cortex-m    = { version = "0.7.2" }
+cortex-m-rt = "0.7"
+heapless = "0.7"
+futures     = { version = "0.3.17", default-features = false, features = ["async-await"] }
+
+nrf-softdevice = { version = "0.1.0", features = ["ble-peripheral", "ble-central", "ble-gatt-server", "s140", "nrf52840"] }
+nrf-softdevice-s140 = { version = "0.1.0" }
+
+[features]
+default = ["b", "defmt-rtt", "panic-probe"]
+b = []
+a = [
+    "defmt-rtt",
+    "panic-probe",
+    "drogue-device/defmt",
+    "nrf-softdevice/defmt",
+    "embassy/defmt",
+    "embassy-nrf/defmt",
+]
 
 [profile.dev]
 codegen-units = 1
@@ -33,7 +73,7 @@ overflow-checks = false
 codegen-units = 8
 debug = false
 debug-assertions = false
-opt-level = 0 
+opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
