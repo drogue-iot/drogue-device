@@ -20,7 +20,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: target
-          key: ${{ runner.os }}-device
+          key: ${{ runner.os }}-device-batch
 
       - name: Build and test
         run: |
