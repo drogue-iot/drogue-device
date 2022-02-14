@@ -123,7 +123,7 @@ impl<E> DfuResponse<E> {
     {
         match self {
             Self::Ok => (),
-            Self::Err(e) => {
+            Self::Err(_) => {
                 panic!("dfu error")
             }
         }

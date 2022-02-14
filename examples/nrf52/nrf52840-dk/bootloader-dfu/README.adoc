@@ -22,17 +22,17 @@ cargo flash --manifest-path $EMBASSY_GIT_REPO/embassy-boot/nrf/Cargo.toml --rele
 === Build 'b'
 
 ```
-cargo build --release --features b,panic-reset --no-default-features --bin b
+cargo build --release --features b,panic-reset --no-default-features
 ```
 
 === Generate binary for 'b'
 
 ```
-cargo objcopy --release --features b,panic-reset --no-default-features --bin b -- -O binary b.bin
+cargo objcopy --release --features b,panic-reset --no-default-features -- -O binary b.bin
 ```
 
 === Flash `a` (which includes b.bin)
 
 ```
-cargo flash --release --bin a --chip nRF52840_xxAA
+cargo flash --features a --release --chip nRF52840_xxAA
 ```

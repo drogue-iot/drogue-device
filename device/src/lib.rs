@@ -90,7 +90,7 @@ pub(crate) mod fmt;
 
 pub mod kernel;
 pub use kernel::{
-    actor::{Actor, ActorContext, ActorSpawner, Address, Inbox},
+    actor::{Actor, ActorContext, ActorError, ActorSpawner, Address, Inbox},
     device::DeviceContext,
     package::Package,
     util::ImmediateFuture,
