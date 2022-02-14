@@ -125,3 +125,16 @@ pub fn aes_ccm_encrypt_detached(
         _ => Err(Error),
     }
 }
+
+const ID6: [u8; 4] = [b'i', b'd', b'6', 0x00];
+
+pub fn k4(n: &[u8]) -> Result<u8, InvalidKeyLength> {
+    let salt = s1(b"smk4")?;
+    let t = aes_cmac(n, &salt.into_bytes())?;
+    let result = aes_cmac(&t.into_bytes(), &ID6)?.into_bytes();
+    if let Some(last) = result.last() {
+        Ok(last & 0b00111111)
+    } else {
+        Err(InvalidKeyLength)
+    }
+}
