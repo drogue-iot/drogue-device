@@ -1,5 +1,6 @@
 use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::composition::{Composition, ElementDescriptor, Location};
+use crate::drivers::ble::mesh::crypto;
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::{
@@ -221,8 +222,10 @@ impl NetworkKeyStorage {
         if let Some(_) = self.app_keys.iter().find(|e| e.key_index == app_key_index) {
             Err(Status::KeyIndexAlreadyStored)
         } else {
+            let aid = crypto::k4(&app_key).map_err(|_| Status::UnspecifiedError)?;
             self.app_keys
                 .push(AppKeyDetails {
+                    aid,
                     app_key: AppKey(app_key),
                     key_index: app_key_index,
                 })
@@ -343,13 +346,14 @@ impl Format for AppKey {
 
 #[derive(Serialize, Deserialize, Copy, Clone, Format)]
 pub struct AppKeyDetails {
+    pub(crate) aid: u8,
     pub(crate) app_key: AppKey,
     pub(crate) key_index: AppKeyIndex,
 }
 
 impl AppKeyDetails {
     pub(crate) fn display_configuration(&self) {
-        defmt::info!("  {}: {}", self.key_index, self.app_key)
+        defmt::info!("  {}: {} [aid={}]", self.key_index, self.app_key, self.aid)
     }
 }
 
