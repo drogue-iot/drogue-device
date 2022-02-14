@@ -1,6 +1,6 @@
 use crate::drivers::ble::mesh::driver::elements::PrimaryElementContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::model::foundation::configuration::{
+use crate::drivers::ble::mesh::model::foundation::configuration::composition_data::{
     CompositionDataMessage, CompositionStatus,
 };
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;

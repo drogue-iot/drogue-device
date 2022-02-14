@@ -1,6 +1,6 @@
 use crate::drivers::ble::mesh::driver::elements::PrimaryElementContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::model::foundation::configuration::BeaconMessage;
+use crate::drivers::ble::mesh::model::foundation::configuration::beacon::BeaconMessage;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 
 pub(crate) async fn dispatch<C: PrimaryElementContext>(
