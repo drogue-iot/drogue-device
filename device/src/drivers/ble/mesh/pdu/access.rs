@@ -287,7 +287,6 @@ impl LowPowerNodePollTimeout {
 
 #[derive(Format)]
 pub enum Model {
-    Publication(ModelPublication),
     Subscription(ModelSubscription),
 }
 
@@ -296,29 +295,7 @@ impl Model {
     pub fn opcode(&self) -> Opcode {
         match self {
             //Self::App(inner) => inner.opcode(),
-            Self::Publication(inner) => inner.opcode(),
             Self::Subscription(inner) => inner.opcode(),
-        }
-    }
-    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        todo!()
-    }
-}
-
-#[derive(Format)]
-pub enum ModelPublication {
-    Get,
-    Status,
-    VirtualAddressSet,
-}
-
-#[allow(unused)]
-impl ModelPublication {
-    pub fn opcode(&self) -> Opcode {
-        match self {
-            Self::Get => CONFIG_MODEL_PUBLICATION_GET,
-            Self::Status => CONFIG_MODEL_PUBLICATION_STATUS,
-            Self::VirtualAddressSet => CONFIG_MODEL_PUBLICATION_VIRTUAL_ADDRESS_SET,
         }
     }
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
@@ -768,7 +745,7 @@ opcode!( CONFIG_BEACON_SET 0x80, 0x0A );
 opcode!( CONFIG_BEACON_STATUS 0x80, 0x0B );
 //opcode!( CONFIG_COMPOSITION_DATA_GET 0x80, 0x08 );
 //opcode!( CONFIG_COMPOSITION_DATA_STATUS 0x02 );
-opcode!( CONFIG_CONFIG_MODEL_PUBLICATION_SET 0x03 );
+//opcode!( CONFIG_CONFIG_MODEL_PUBLICATION_SET 0x03 );
 //opcode!( CONFIG_DEFAULT_TTL_GET 0x80, 0x0C );
 //opcode!( CONFIG_DEFAULT_TTL_SET 0x80, 0x0D );
 //opcode!( CONFIG_DEFAULT_TTL_STATUS 0x80, 0x0E );
@@ -792,9 +769,9 @@ opcode!( CONFIG_LOW_POWER_NODE_POLLTIMEOUT_STATUS 0x80, 0x2E );
 //opcode!( CONFIG_MODEL_APP_BIND 0x80, 0x3D);
 //opcode!( CONFIG_MODEL_APP_STATUS 0x80, 0x3E);
 //opcode!( CONFIG_MODEL_APP_UNBIND 0x80, 0x3F);
-opcode!( CONFIG_MODEL_PUBLICATION_GET 0x80, 0x18);
-opcode!( CONFIG_MODEL_PUBLICATION_STATUS 0x80, 0x19);
-opcode!( CONFIG_MODEL_PUBLICATION_VIRTUAL_ADDRESS_SET 0x80, 0x1A);
+//opcode!( CONFIG_MODEL_PUBLICATION_GET 0x80, 0x18);
+//opcode!( CONFIG_MODEL_PUBLICATION_STATUS 0x80, 0x19);
+//opcode!( CONFIG_MODEL_PUBLICATION_VIRTUAL_ADDRESS_SET 0x80, 0x1A);
 opcode!( CONFIG_MODEL_SUBSCRIPTION_ADD 0x80, 0x1B);
 opcode!( CONFIG_MODEL_SUBSCRIPTION_DELETE 0x80, 0x1C);
 opcode!( CONFIG_MODEL_SUBSCRIPTION_DELETE_ALL 0x80, 0x1D);

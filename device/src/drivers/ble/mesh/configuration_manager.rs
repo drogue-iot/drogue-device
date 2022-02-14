@@ -1,4 +1,4 @@
-use crate::drivers::ble::mesh::address::UnicastAddress;
+use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::composition::{Composition, ElementDescriptor, Location};
 use crate::drivers::ble::mesh::crypto;
 use crate::drivers::ble::mesh::device::Uuid;
@@ -125,6 +125,9 @@ impl NetworkInfo {
                 for key in &self.network_keys {
                     key.display_bindings(&element_address, model);
                 }
+                for key in &self.network_keys {
+                    key.display_publications(&element_address, model);
+                }
             }
         }
     }
@@ -143,6 +146,18 @@ impl NetworkInfo {
 
     fn by_app_key_index(&self, app_key_index: AppKeyIndex) -> Option<&NetworkKeyStorage> {
         self.network_keys.iter().find(|e| {
+            matches!(
+                e.app_keys.iter().find(|a| a.key_index == app_key_index),
+                Some(_)
+            )
+        })
+    }
+
+    fn by_app_key_index_mut(
+        &mut self,
+        app_key_index: AppKeyIndex,
+    ) -> Option<&mut NetworkKeyStorage> {
+        self.network_keys.iter_mut().find(|e| {
             matches!(
                 e.app_keys.iter().find(|a| a.key_index == app_key_index),
                 Some(_)
@@ -179,6 +194,7 @@ pub struct NetworkKeyStorage {
     pub(crate) privacy_key: [u8; 16],
     pub(crate) app_keys: Vec<AppKeyDetails, 10>,
     pub(crate) bindings: Bindings,
+    pub(crate) publications: Publications,
 }
 
 impl NetworkKeyStorage {
@@ -187,17 +203,41 @@ impl NetworkKeyStorage {
         element_address: &UnicastAddress,
         model_identifier: &ModelIdentifier,
     ) {
-        let mut matching: Vec<Binding, 20> = Vec::new();
+        let mut matching: Vec<&Binding, 20> = Vec::new();
         for e in self.bindings.bindings.iter().filter(|e| {
             e.element_address == *element_address && e.model_identifier == *model_identifier
         }) {
-            matching.push(*e).ok();
+            matching.push(e).ok();
         }
 
         if !matching.is_empty() {
             defmt::info!("      App Keys:");
             for binding in matching.iter() {
-                defmt::info!("      [{}]", binding.app_key_index);
+                defmt::info!("        [{}]", binding.app_key_index);
+            }
+        }
+    }
+
+    pub(crate) fn display_publications(
+        &self,
+        element_address: &UnicastAddress,
+        model_identifier: &ModelIdentifier,
+    ) {
+        let mut matching: Vec<&Publication, 20> = Vec::new();
+        for e in self.publications.publications.iter().filter(|e| {
+            e.element_address == *element_address && e.model_identifier == *model_identifier
+        }) {
+            matching.push(e).ok();
+        }
+
+        if !matching.is_empty() {
+            defmt::info!("      Publications:");
+            for publication in matching.iter() {
+                defmt::info!(
+                    "        {} [{}]",
+                    publication.publish_address,
+                    publication.app_key_index
+                );
             }
         }
     }
@@ -307,6 +347,51 @@ impl NetworkKeyStorage {
         } else {
             Err(Status::InvalidBinding)
         }
+    }
+
+    pub(crate) fn model_publication_set(
+        &mut self,
+        element_address: UnicastAddress,
+        publish_address: Address,
+        app_key_index: AppKeyIndex,
+        credential_flag: bool,
+        publish_ttl: u8,
+        publish_period: u8,
+        publish_retransmit_count: u8,
+        publish_retransmit_interval_steps: u8,
+        model_identifier: ModelIdentifier,
+    ) -> Result<(), Status> {
+        if !self.is_valid_app_key_index(app_key_index) {
+            return Err(Status::InvalidAppKeyIndex);
+        }
+
+        if let Some(publication) = self.publications.publications.iter_mut().find(|e| {
+            e.element_address == element_address && e.model_identifier == model_identifier
+        }) {
+            publication.publish_address = publish_address;
+            publication.credential_flag = credential_flag;
+            publication.publish_ttl = publish_ttl;
+            publication.publish_period = publish_period;
+            publication.publish_retransmit_count = publish_retransmit_count;
+            publication.publish_retransmit_interval_steps = publish_retransmit_interval_steps;
+        } else {
+            let publication = Publication {
+                element_address,
+                publish_address,
+                app_key_index,
+                credential_flag,
+                publish_ttl,
+                publish_period,
+                publish_retransmit_count,
+                publish_retransmit_interval_steps,
+                model_identifier,
+            };
+            self.publications
+                .publications
+                .push(publication)
+                .map_err(|_| Status::InsufficientResources)?
+        }
+        Ok(())
     }
 }
 
@@ -487,6 +572,8 @@ pub struct ConfigurationManager<S: Storage> {
     runtime_seq: RefCell<u32>,
     force_reset: bool,
 }
+
+impl<S: Storage> ConfigurationManager<S> {}
 
 impl<S: Storage> GeneralStorage for ConfigurationManager<S> {
     fn uuid(&self) -> Uuid {
@@ -757,6 +844,47 @@ impl<S: Storage> ConfigurationManager<S> {
             Err(DeviceError::NotProvisioned)
         }
     }
+
+    pub(crate) async fn model_publication_set(
+        &self,
+        element_address: UnicastAddress,
+        publish_address: Address,
+        app_key_index: AppKeyIndex,
+        credential_flag: bool,
+        publish_ttl: u8,
+        publish_period: u8,
+        publish_retransmit_count: u8,
+        publish_retransmit_interval_steps: u8,
+        model_identifier: ModelIdentifier,
+    ) -> Result<Status, DeviceError> {
+        let mut config = self.retrieve();
+        if let Some(ref mut network) = config.keys.network {
+            if let Some(specific_network) = network.by_app_key_index_mut(app_key_index) {
+                let result = specific_network.model_publication_set(
+                    element_address,
+                    publish_address,
+                    app_key_index,
+                    credential_flag,
+                    publish_ttl,
+                    publish_period,
+                    publish_retransmit_count,
+                    publish_retransmit_interval_steps,
+                    model_identifier,
+                );
+                match result {
+                    Ok(_) => {
+                        self.store(&config).await?;
+                        Ok(Status::Success)
+                    }
+                    Err(status) => Ok(status),
+                }
+            } else {
+                Ok(Status::InvalidNetKeyIndex)
+            }
+        } else {
+            Err(DeviceError::NotProvisioned)
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, Format)]
@@ -781,7 +909,7 @@ impl Default for ConfigurationModel {
 
 #[derive(Serialize, Deserialize, Format, Default, Clone)]
 pub struct Bindings {
-    bindings: Vec<Binding, 30>,
+    bindings: Vec<Binding, 10>,
 }
 
 impl Bindings {}
@@ -794,3 +922,21 @@ pub struct Binding {
 }
 
 impl Binding {}
+
+#[derive(Serialize, Deserialize, Format, Default, Clone)]
+pub struct Publications {
+    publications: Vec<Publication, 10>,
+}
+
+#[derive(Serialize, Deserialize, Format, Clone)]
+pub struct Publication {
+    element_address: UnicastAddress,
+    publish_address: Address,
+    app_key_index: AppKeyIndex,
+    credential_flag: bool,
+    publish_ttl: u8,
+    publish_period: u8,
+    publish_retransmit_count: u8,
+    publish_retransmit_interval_steps: u8,
+    model_identifier: ModelIdentifier,
+}

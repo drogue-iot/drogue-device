@@ -1,10 +1,3 @@
-pub mod app_key;
-pub mod beacon;
-pub mod composition_data;
-pub mod default_ttl;
-pub mod model_app;
-pub mod node_reset;
-
 use crate::drivers::ble::mesh::model::foundation::configuration::app_key::{
     AppKeyMessage, CONFIG_APPKEY_ADD, CONFIG_APPKEY_GET,
 };
@@ -20,6 +13,9 @@ use crate::drivers::ble::mesh::model::foundation::configuration::default_ttl::{
 use crate::drivers::ble::mesh::model::foundation::configuration::model_app::{
     ModelAppMessage, CONFIG_MODEL_APP_BIND, CONFIG_MODEL_APP_UNBIND,
 };
+use crate::drivers::ble::mesh::model::foundation::configuration::model_publication::{
+    ModelPublicationMessage, CONFIG_MODEL_PUBLICATION_SET,
+};
 use crate::drivers::ble::mesh::model::foundation::configuration::node_reset::{
     NodeResetMessage, CONFIG_NODE_RESET,
 };
@@ -30,6 +26,14 @@ use crate::drivers::ble::mesh::InsufficientBuffer;
 use defmt::{Format, Formatter};
 use heapless::Vec;
 use serde::{Deserialize, Serialize};
+
+pub mod app_key;
+pub mod beacon;
+pub mod composition_data;
+pub mod default_ttl;
+pub mod model_app;
+pub mod model_publication;
+pub mod node_reset;
 
 pub const CONFIGURATION_SERVER: ModelIdentifier = ModelIdentifier::SIG(0x0000);
 pub const CONFIGURATION_CLIENT: ModelIdentifier = ModelIdentifier::SIG(0x0001);
@@ -42,6 +46,7 @@ pub enum ConfigurationMessage {
     CompositionData(CompositionDataMessage),
     AppKey(AppKeyMessage),
     ModelApp(ModelAppMessage),
+    ModelPublication(ModelPublicationMessage),
 }
 
 impl Message for ConfigurationMessage {
@@ -53,6 +58,7 @@ impl Message for ConfigurationMessage {
             ConfigurationMessage::CompositionData(inner) => inner.opcode(),
             ConfigurationMessage::AppKey(inner) => inner.opcode(),
             ConfigurationMessage::ModelApp(inner) => inner.opcode(),
+            ConfigurationMessage::ModelPublication(inner) => inner.opcode(),
         }
     }
 
@@ -67,6 +73,7 @@ impl Message for ConfigurationMessage {
             ConfigurationMessage::CompositionData(inner) => inner.emit_parameters(xmit),
             ConfigurationMessage::AppKey(inner) => inner.emit_parameters(xmit),
             ConfigurationMessage::ModelApp(inner) => inner.emit_parameters(xmit),
+            ConfigurationMessage::ModelPublication(inner) => inner.emit_parameters(xmit),
         }
     }
 }
@@ -121,6 +128,10 @@ impl Model for ConfigurationServer {
             ))),
             CONFIG_MODEL_APP_UNBIND => Ok(Some(ConfigurationMessage::ModelApp(
                 ModelAppMessage::parse_unbind(parameters)?,
+            ))),
+            // Model Publication
+            CONFIG_MODEL_PUBLICATION_SET => Ok(Some(ConfigurationMessage::ModelPublication(
+                ModelPublicationMessage::parse_set(parameters)?,
             ))),
             _ => Ok(None),
         }
