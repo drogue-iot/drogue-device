@@ -1,7 +1,7 @@
 use crate::drivers::ble::mesh::driver::elements::NetworkDetails;
 use crate::drivers::ble::mesh::driver::elements::PrimaryElementContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::model::foundation::configuration::{
+use crate::drivers::ble::mesh::model::foundation::configuration::app_key::{
     AppKeyListMessage, AppKeyMessage, AppKeyStatusMessage,
 };
 use crate::drivers::ble::mesh::model::Status;
