@@ -475,4 +475,34 @@ where
             app_key_index,
         )
     }
+
+    type ModelPublicationSetFuture<'m>
+    where
+        Self: 'm,
+    = impl Future<Output = Result<Status, DeviceError>> + 'm;
+
+    fn model_publication_set<'m>(
+        &'m self,
+        element_address: UnicastAddress,
+        publish_address: Address,
+        app_key_index: AppKeyIndex,
+        credential_flag: bool,
+        publish_ttl: u8,
+        publish_period: u8,
+        publish_retransmit_count: u8,
+        publish_retransmit_interval_steps: u8,
+        model_identifier: ModelIdentifier,
+    ) -> Self::ModelPublicationSetFuture<'m> {
+        self.node.configuration_manager.model_publication_set(
+            element_address,
+            publish_address,
+            app_key_index,
+            credential_flag,
+            publish_ttl,
+            publish_period,
+            publish_retransmit_count,
+            publish_retransmit_interval_steps,
+            model_identifier,
+        )
+    }
 }

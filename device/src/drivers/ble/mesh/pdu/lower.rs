@@ -71,7 +71,7 @@ impl LowerPDU {
     fn parse_segmented_access(data: &[u8]) -> Result<LowerAccess, ParseError> {
         let akf = data[0] & 0b01000000 != 0;
         let aid = data[0] & 0b00111111;
-        let szmic = SzMic::parse(data[1] & 0b1000000);
+        let szmic = SzMic::parse(data[1] & 0b10000000);
         let seq_zero = u16::from_be_bytes([data[1] & 0b01111111, data[2] & 0b11111100]) >> 2;
         let seg_o = (u16::from_be_bytes([data[2] & 0b00000011, data[3] & 0b11100000]) >> 5) as u8;
         let seg_n = data[3] & 0b00011111;

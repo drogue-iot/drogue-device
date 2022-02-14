@@ -253,12 +253,21 @@ where
         self.outbound.initialize();
 
         loop {
-            if let Ok(Some(next_state)) = match self.state {
+            let result = match self.state {
                 State::Unprovisioned => self.loop_unprovisioned().await,
                 State::Provisioning => self.loop_provisioning().await,
                 State::Provisioned => self.loop_provisioned().await,
-            } {
-                self.state = next_state;
+            };
+
+            match result {
+                Ok(next_state) => {
+                    if let Some(next_state) = next_state {
+                        self.state = next_state;
+                    }
+                }
+                Err(error) => {
+                    defmt::error!("{}", error)
+                }
             }
         }
     }

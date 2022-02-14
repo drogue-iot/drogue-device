@@ -3,9 +3,10 @@ mod beacon;
 mod composition_data;
 mod default_ttl;
 mod model_app;
+mod model_publication;
 mod node_reset;
 
-use crate::drivers::ble::mesh::address::UnicastAddress;
+use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::configuration_manager::PrimaryElementModels;
 use crate::drivers::ble::mesh::driver::DeviceError;
@@ -88,6 +89,23 @@ pub trait NetworkDetails {
         model: ModelIdentifier,
         app_key_index: AppKeyIndex,
     ) -> Self::ModelAppUnbindFuture<'m>;
+
+    type ModelPublicationSetFuture<'m>: Future<Output = Result<Status, DeviceError>>
+    where
+        Self: 'm;
+
+    fn model_publication_set<'m>(
+        &'m self,
+        element: UnicastAddress,
+        publish_address: Address,
+        app_key_index: AppKeyIndex,
+        credential_flag: bool,
+        publish_ttl: u8,
+        publish_period: u8,
+        publish_retransmit_count: u8,
+        public_retransmit_interval_steps: u8,
+        model: ModelIdentifier,
+    ) -> Self::ModelPublicationSetFuture<'m>;
 }
 
 pub struct Elements<E: ElementsHandler> {
@@ -158,6 +176,9 @@ impl ElementZero {
                 }
                 ConfigurationMessage::ModelApp(message) => {
                     self::model_app::dispatch(ctx, access, message).await
+                }
+                ConfigurationMessage::ModelPublication(message) => {
+                    self::model_publication::dispatch(ctx, access, message).await
                 }
             }
         } else {

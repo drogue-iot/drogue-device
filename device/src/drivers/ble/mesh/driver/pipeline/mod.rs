@@ -96,7 +96,6 @@ impl Pipeline {
 
                         if let Some(pdu) = self.lower.process_inbound(ctx, pdu).await? {
                             if let Some(message) = self.upper.process_inbound(ctx, pdu).await? {
-                                defmt::trace!("inbound >>>> {}", message);
                                 ctx.dispatch_access(&message).await?;
                             }
                         }
