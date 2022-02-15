@@ -2,7 +2,9 @@ use crate::drivers::ble::mesh::composition::CompanyIdentifier;
 use crate::drivers::ble::mesh::model::foundation::configuration::{
     CONFIGURATION_CLIENT, CONFIGURATION_SERVER,
 };
-use crate::drivers::ble::mesh::model::generic::{GENERIC_ONOFF_CLIENT, GENERIC_ONOFF_SERVER};
+use crate::drivers::ble::mesh::model::generic::{
+    GENERIC_BATTERY_CLIENT, GENERIC_BATTERY_SERVER, GENERIC_ONOFF_CLIENT, GENERIC_ONOFF_SERVER,
+};
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
@@ -34,9 +36,15 @@ impl Format for ModelIdentifier {
             GENERIC_ONOFF_CLIENT => {
                 defmt::write!(fmt, "Generic OnOff Client (0x1001)");
             }
+            GENERIC_BATTERY_SERVER => {
+                defmt::write!(fmt, "Generic Battery Server (0x100C)");
+            }
+            GENERIC_BATTERY_CLIENT => {
+                defmt::write!(fmt, "Generic Battery Client (0x100D)");
+            }
             ModelIdentifier::SIG(id) => match id {
                 _ => {
-                    defmt::write!(fmt, "SIG(0x{=u16:04x}", id);
+                    defmt::write!(fmt, "SIG(0x{=u16:04x})", id);
                 }
             },
             ModelIdentifier::Vendor(company_id, model_id) => {
