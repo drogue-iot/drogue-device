@@ -1,13 +1,16 @@
+use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::composition::ElementsHandler;
-use crate::drivers::ble::mesh::configuration_manager::{ConfigurationManager, KeyStorage};
-use crate::drivers::ble::mesh::driver::elements::Elements;
+use crate::drivers::ble::mesh::configuration_manager::{ConfigurationManager, KeyStorage, NetworkKeyHandle};
+use crate::drivers::ble::mesh::driver::elements::{AppElementsContext, ElementContext, Elements};
 use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::pdu::access::AccessMessage;
+use crate::drivers::ble::mesh::model::ModelIdentifier;
+use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload};
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::vault::{StorageVault, Vault};
 use crate::drivers::ble::mesh::MESH_BEACON;
+use core::borrow::Borrow;
 use core::cell::RefCell;
 use core::cell::UnsafeCell;
 use core::future::Future;
@@ -77,6 +80,60 @@ impl<'a> OutboundChannel<'a> {
     }
 }
 
+// --
+
+pub struct OutboundPublishMessage {
+    pub(crate) element_address: UnicastAddress,
+    pub(crate) model_identifier: ModelIdentifier,
+    pub(crate) payload: AccessPayload,
+}
+
+pub(crate) struct OutboundPublishChannel<'a> {
+    channel: UnsafeCell<Option<Channel<Noop, OutboundPublishMessage, 10>>>,
+    sender: UnsafeCell<Option<ChannelSender<'a, Noop, OutboundPublishMessage, 10>>>,
+    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, OutboundPublishMessage, 10>>>,
+}
+
+impl<'a> OutboundPublishChannel<'a> {
+    fn new() -> Self {
+        Self {
+            channel: UnsafeCell::new(None),
+            sender: UnsafeCell::new(None),
+            receiver: UnsafeCell::new(None),
+        }
+    }
+
+    fn initialize(&self) {
+        unsafe { &mut *self.channel.get() }.replace(Channel::new());
+        let (sender, receiver) = mpsc::split(unsafe { &mut *self.channel.get() }.as_mut().unwrap());
+        unsafe { &mut *self.sender.get() }.replace(sender);
+        unsafe { &mut *self.receiver.get() }.replace(receiver);
+    }
+
+    async fn send(&self, message: OutboundPublishMessage) {
+        unsafe {
+            if let Some(sender) = &*self.sender.get() {
+                sender.send(message).await.ok();
+            }
+        }
+    }
+
+    async fn next(&self) -> Option<OutboundPublishMessage> {
+        unsafe {
+            if let Some(receiver) = &mut *self.receiver.get() {
+                receiver.recv().await
+            } else {
+                None
+            }
+        }
+    }
+
+    fn clone_sender(&self) -> ChannelSender<'a, Noop, OutboundPublishMessage, 10> {
+        unsafe { &*self.sender.get() }.as_ref().unwrap().clone()
+    }
+}
+// --
+
 pub enum State {
     Unprovisioned,
     Provisioning,
@@ -102,6 +159,7 @@ where
     //
     pub(crate) elements: Elements<E>,
     pub(crate) outbound: OutboundChannel<'static>,
+    pub(crate) publish_outbound: OutboundPublishChannel<'static>,
 }
 
 impl<E, TX, RX, S, R> Node<E, TX, RX, S, R>
@@ -130,11 +188,50 @@ where
             //
             elements: Elements::new(app_elements),
             outbound: OutboundChannel::new(),
+            publish_outbound: OutboundPublishChannel::new(),
         }
     }
 
     pub(crate) fn vault(&self) -> StorageVault<ConfigurationManager<S>> {
         StorageVault::new(&self.configuration_manager)
+    }
+
+    async fn publish(&self, publish: OutboundPublishMessage) -> Result<(), DeviceError> {
+        defmt::info!("publish A");
+        if let Some(network) = self.configuration_manager.retrieve().network() {
+            defmt::info!("publish B");
+            for network in &network.network_keys {
+                defmt::info!("publish C");
+                if let Some(publication) =
+                    network.publications.find(publish.element_address, publish.model_identifier)
+                {
+                    defmt::info!("publish D");
+                    if let Some(app_key_details) = network
+                        .app_keys
+                        .iter()
+                        .find(|e| e.key_index == publication.app_key_index)
+                    {
+                        defmt::info!("publish E");
+                        let message = AccessMessage {
+                            ttl: Some(publication.publish_ttl),
+                            network_key: NetworkKeyHandle::from(network),
+                            ivi: 0,
+                            nid: network.nid,
+                            //akf: true,
+                            akf: false,
+                            aid: app_key_details.aid,
+                            src: publish.element_address,
+                            dst: publication.publish_address,
+                            payload: publish.payload,
+                        };
+                        defmt::info!("sending it out {}", message);
+                        self.outbound.send(message).await;
+                        return Ok(());
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     async fn loop_unprovisioned(&mut self) -> Result<Option<State>, DeviceError> {
@@ -208,9 +305,37 @@ where
     async fn loop_provisioned(&mut self) -> Result<Option<State>, DeviceError> {
         let receive_fut = self.receiver.receive_bytes();
         let outbound_fut = self.outbound.next();
+        let outbound_publish_fut = self.publish_outbound.next();
 
         pin_mut!(receive_fut);
         pin_mut!(outbound_fut);
+        pin_mut!(outbound_publish_fut);
+
+        let result = select(receive_fut, select(outbound_fut, outbound_publish_fut)).await;
+        match result {
+            Either::Left((Ok(inbound), _)) => {
+                self.pipeline
+                    .borrow_mut()
+                    .process_inbound(self, &*inbound)
+                    .await
+            }
+            Either::Right((inner, _)) => match inner {
+                Either::Left((Some(outbound), _)) => {
+                    self.pipeline
+                        .borrow_mut()
+                        .process_outbound(self, outbound)
+                        .await?;
+                    Ok(None)
+                }
+                Either::Right((Some(publish), _)) => {
+                    self.publish(publish).await?;
+                    Ok(None)
+                }
+                _ => Ok(None),
+            },
+            _ => Ok(None),
+        }
+        /*
 
         let result = select(receive_fut, outbound_fut).await;
         match result {
@@ -229,7 +354,15 @@ where
             }
             _ => Ok(None),
         }
-        //Ok(None)
+         */
+    }
+
+    fn connect_elements(&self) {
+        let ctx = AppElementsContext {
+            sender: self.publish_outbound.clone_sender(),
+            address: self.address().unwrap(),
+        };
+        self.elements.connect(ctx);
     }
 
     pub async fn run(&mut self) -> Result<(), DeviceError> {
@@ -246,11 +379,13 @@ where
 
         self.configuration_manager.display_configuration();
 
+        self.outbound.initialize();
+        self.publish_outbound.initialize();
+
         if let Some(_) = self.configuration_manager.retrieve().network() {
             self.state = State::Provisioned;
+            self.connect_elements();
         }
-
-        self.outbound.initialize();
 
         loop {
             let result = match self.state {
@@ -262,6 +397,9 @@ where
             match result {
                 Ok(next_state) => {
                     if let Some(next_state) = next_state {
+                        if matches!(next_state, State::Provisioned) {
+                            self.connect_elements()
+                        }
                         self.state = next_state;
                     }
                 }

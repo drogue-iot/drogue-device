@@ -89,13 +89,13 @@ impl Default for ConfigurationServer {
 impl Model for ConfigurationServer {
     const IDENTIFIER: ModelIdentifier = CONFIGURATION_SERVER;
 
-    type MESSAGE = ConfigurationMessage;
+    type Message = ConfigurationMessage;
 
     fn parse(
         &self,
         opcode: Opcode,
         parameters: &[u8],
-    ) -> Result<Option<Self::MESSAGE>, ParseError> {
+    ) -> Result<Option<Self::Message>, ParseError> {
         match opcode {
             CONFIG_BEACON_GET => Ok(Some(ConfigurationMessage::Beacon(
                 BeaconMessage::parse_get(parameters)?,

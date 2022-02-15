@@ -416,6 +416,18 @@ impl From<NetworkKeyStorage> for NetworkKeyHandle {
     }
 }
 
+impl From<&NetworkKeyStorage> for NetworkKeyHandle {
+    fn from(key: &NetworkKeyStorage) -> Self {
+        Self {
+            network_key: key.network_key,
+            key_index: key.key_index,
+            nid: key.nid,
+            encryption_key: key.encryption_key,
+            privacy_key: key.privacy_key,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Copy, Clone, Default)]
 pub struct AppKey(pub(crate) [u8; 16]);
 
@@ -928,15 +940,23 @@ pub struct Publications {
     publications: Vec<Publication, 10>,
 }
 
+impl Publications {
+    pub(crate) fn find(&self, element_address: UnicastAddress, model_identifier: ModelIdentifier) -> Option<&Publication> {
+        defmt::info!("find publication {} {}", element_address, model_identifier);
+        defmt::info!(" ---> {}", self.publications);
+        self.publications.iter().find(|e| e.element_address == element_address && e.model_identifier == model_identifier )
+    }
+}
+
 #[derive(Serialize, Deserialize, Format, Clone)]
 pub struct Publication {
-    element_address: UnicastAddress,
-    publish_address: Address,
-    app_key_index: AppKeyIndex,
-    credential_flag: bool,
-    publish_ttl: u8,
-    publish_period: u8,
-    publish_retransmit_count: u8,
-    publish_retransmit_interval_steps: u8,
-    model_identifier: ModelIdentifier,
+    pub(crate) element_address: UnicastAddress,
+    pub(crate) publish_address: Address,
+    pub(crate) app_key_index: AppKeyIndex,
+    pub(crate) credential_flag: bool,
+    pub(crate) publish_ttl: u8,
+    pub(crate) publish_period: u8,
+    pub(crate) publish_retransmit_count: u8,
+    pub(crate) publish_retransmit_interval_steps: u8,
+    pub(crate) model_identifier: ModelIdentifier,
 }

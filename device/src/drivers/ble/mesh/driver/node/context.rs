@@ -481,8 +481,8 @@ where
         Self: 'm,
     = impl Future<Output = Result<Status, DeviceError>> + 'm;
 
-    fn model_publication_set<'m>(
-        &'m self,
+    fn model_publication_set(
+        &self,
         element_address: UnicastAddress,
         publish_address: Address,
         app_key_index: AppKeyIndex,
@@ -492,7 +492,7 @@ where
         publish_retransmit_count: u8,
         publish_retransmit_interval_steps: u8,
         model_identifier: ModelIdentifier,
-    ) -> Self::ModelPublicationSetFuture<'m> {
+    ) -> Self::ModelPublicationSetFuture<'_> {
         self.node.configuration_manager.model_publication_set(
             element_address,
             publish_address,

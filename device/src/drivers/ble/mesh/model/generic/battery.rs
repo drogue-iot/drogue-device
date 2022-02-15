@@ -1,3 +1,4 @@
+use defmt::{Format, Formatter};
 use crate::drivers::ble::mesh::model::{Message, Model, ModelIdentifier};
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
@@ -10,6 +11,7 @@ pub struct GenericBatteryServer;
 pub const GENERIC_BATTERY_SERVER: ModelIdentifier = ModelIdentifier::SIG(0x100C);
 pub const GENERIC_BATTERY_CLIENT: ModelIdentifier = ModelIdentifier::SIG(0x100D);
 
+#[derive(Format)]
 pub enum GenericBatteryMessage {
     Get,
     Status(Status),
@@ -36,13 +38,13 @@ impl Message for GenericBatteryMessage {
 
 impl Model for GenericBatteryServer {
     const IDENTIFIER: ModelIdentifier = GENERIC_BATTERY_SERVER;
-    type MESSAGE = GenericBatteryMessage;
+    type Message = GenericBatteryMessage;
 
     fn parse(
         &self,
         opcode: Opcode,
         _parameters: &[u8],
-    ) -> Result<Option<Self::MESSAGE>, ParseError> {
+    ) -> Result<Option<Self::Message>, ParseError> {
         match opcode {
             GENERIC_BATTERY_GET => Ok(Some(GenericBatteryMessage::Get)),
             _ => Ok(None),
@@ -53,6 +55,7 @@ impl Model for GenericBatteryServer {
 opcode!( GENERIC_BATTERY_GET 0x82, 0x23 );
 opcode!( GENERIC_BATTERY_STATUS 0x82, 0x24 );
 
+#[derive(Format)]
 pub struct GenericBatteryFlags {
     pub presence: GenericBatteryFlagsPresence,
     pub indicator: GenericBatteryFlagsIndicator,
@@ -91,6 +94,7 @@ impl GenericBatteryFlags {
     }
 }
 
+#[derive(Format)]
 pub enum GenericBatteryFlagsPresence {
     NotPresent,
     PresentRemovable,
@@ -98,6 +102,7 @@ pub enum GenericBatteryFlagsPresence {
     Unknown,
 }
 
+#[derive(Format)]
 pub enum GenericBatteryFlagsIndicator {
     LowCritical,
     Low,
@@ -105,6 +110,7 @@ pub enum GenericBatteryFlagsIndicator {
     Unknown,
 }
 
+#[derive(Format)]
 pub enum GenericBatteryFlagsCharging {
     NotChargeable,
     ChargeableNotCharging,
@@ -112,6 +118,7 @@ pub enum GenericBatteryFlagsCharging {
     Unknown,
 }
 
+#[derive(Format)]
 pub struct Status {
     battery_level: u8,
     time_to_discharge: u32,

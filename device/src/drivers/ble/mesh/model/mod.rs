@@ -3,7 +3,12 @@ use crate::drivers::ble::mesh::model::foundation::configuration::{
     CONFIGURATION_CLIENT, CONFIGURATION_SERVER,
 };
 use crate::drivers::ble::mesh::model::generic::{
-    GENERIC_BATTERY_CLIENT, GENERIC_BATTERY_SERVER, GENERIC_ONOFF_CLIENT, GENERIC_ONOFF_SERVER,
+    battery::{
+        GENERIC_BATTERY_CLIENT, GENERIC_BATTERY_SERVER,
+    },
+    onoff::{
+        GENERIC_ONOFF_CLIENT, GENERIC_ONOFF_SERVER,
+    }
 };
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
@@ -90,7 +95,7 @@ impl ModelIdentifier {
     }
 }
 
-pub trait Message {
+pub trait Message : Format {
     fn opcode(&self) -> Opcode;
     fn emit_parameters<const N: usize>(
         &self,
@@ -105,10 +110,10 @@ pub enum HandlerError {
 
 pub trait Model {
     const IDENTIFIER: ModelIdentifier;
-    type MESSAGE: Message;
+    type Message: Message;
 
     fn parse(&self, opcode: Opcode, parameters: &[u8])
-        -> Result<Option<Self::MESSAGE>, ParseError>;
+        -> Result<Option<Self::Message>, ParseError>;
 }
 
 #[derive(Copy, Clone, Format)]

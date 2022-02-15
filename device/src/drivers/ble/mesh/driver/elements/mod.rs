@@ -8,16 +8,79 @@ mod node_reset;
 
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
-use crate::drivers::ble::mesh::configuration_manager::PrimaryElementModels;
+use crate::drivers::ble::mesh::configuration_manager::{
+    ConfigurationManager, PrimaryElementModels,
+};
+use crate::drivers::ble::mesh::driver::node::OutboundPublishMessage;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::{
     AppKeyIndex, ConfigurationMessage, ConfigurationServer, NetKeyIndex,
 };
-use crate::drivers::ble::mesh::model::Status;
+use crate::drivers::ble::mesh::model::{Message, Status};
 use crate::drivers::ble::mesh::model::{Model, ModelIdentifier};
-use crate::drivers::ble::mesh::pdu::access::AccessMessage;
+use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload};
 use core::future::Future;
+use core::marker::PhantomData;
+use defmt::{Format, Formatter};
+use embassy::blocking_mutex::kind::Noop;
+use embassy::channel::mpsc::{Channel, Receiver as ChannelReceiver, Sender as ChannelSender};
+use futures::TryFutureExt;
 use heapless::Vec;
+
+pub struct AppElementsContext {
+    pub(crate) sender: ChannelSender<'static, Noop, OutboundPublishMessage, 10>,
+    pub(crate) address: UnicastAddress,
+}
+
+impl AppElementsContext {
+    pub fn for_element_model<M: Model>(&self, element_number: u8) -> AppElementContext<M> {
+        AppElementContext {
+            sender: self.sender.clone(),
+            address: self.address + element_number,
+            _message: PhantomData,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct AppElementContext<M: Model> {
+    sender: ChannelSender<'static, Noop, OutboundPublishMessage, 10>,
+    address: UnicastAddress,
+    _message: PhantomData<M>,
+}
+
+impl<M: Model> AppElementContext<M> {
+    async fn transmit<'m>(&'m self, message: OutboundPublishMessage) -> Result<(), DeviceError> {
+        self.sender
+            .send(message)
+            .await
+            .map_err(|_| DeviceError::InsufficientBuffer)
+    }
+
+    pub async fn publish(&self, message: M::Message) -> Result<(), DeviceError> {
+        defmt::info!(
+            "publish model={} element_address={} :: {}",
+            M::IDENTIFIER,
+            self.address(),
+            message
+        );
+        let mut parameters = Vec::new();
+        message.emit_parameters(&mut parameters)?;
+        let publish = OutboundPublishMessage {
+            element_address: self.address,
+            model_identifier: M::IDENTIFIER,
+            payload: AccessPayload {
+                opcode: message.opcode(),
+                parameters,
+            },
+        };
+        self.transmit(publish).await
+    }
+
+    pub fn address(&self) -> UnicastAddress {
+        self.address
+    }
+}
 
 pub trait ElementContext {
     type TransmitFuture<'m>: Future<Output = Result<(), DeviceError>> + 'm
@@ -133,6 +196,10 @@ impl<E: ElementsHandler> Elements<E> {
         } else {
             Ok(())
         }
+    }
+
+    pub(crate) fn connect(&self, ctx: AppElementsContext) {
+        self.app.connect(ctx);
     }
 }
 
