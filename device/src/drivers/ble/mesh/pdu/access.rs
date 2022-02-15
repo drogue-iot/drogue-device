@@ -67,17 +67,13 @@ impl AccessMessage {
             .map_err(|_| InsufficientBuffer)?;
         Ok(Self {
             ttl: None,
-            network_key: self.network_key,
-            ivi: self.ivi,
-            nid: self.nid,
-            akf: self.akf,
-            aid: self.aid,
             src: ctx.address().ok_or(DeviceError::NotProvisioned)?,
             dst: self.src.into(),
             payload: AccessPayload {
                 opcode: response.opcode(),
                 parameters,
             },
+            ..*self
         })
     }
 }
