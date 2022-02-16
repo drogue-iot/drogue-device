@@ -4,7 +4,7 @@ pub mod matrix;
 use crate::traits;
 use crate::{
     actors::button::{ButtonEvent, ButtonEventHandler},
-    kernel::{actor::Actor, actor::Address, actor::Inbox},
+    kernel::{actor::Actor, actor::ActorError, actor::Address, actor::Inbox},
 };
 use core::future::Future;
 
@@ -91,5 +91,22 @@ where
                 }
             }
         }
+    }
+}
+
+impl<P> traits::led::Led for Address<Led<P>>
+where
+    P: traits::led::Led,
+{
+    type Error = ActorError;
+
+    fn on(&mut self) -> Result<(), Self::Error> {
+        self.notify(LedMessage::On)?;
+        Ok(())
+    }
+
+    fn off(&mut self) -> Result<(), Self::Error> {
+        self.notify(LedMessage::Off)?;
+        Ok(())
     }
 }
