@@ -24,7 +24,7 @@ jobs:
 
       - name: Build and test
         run: |
-          curl -L -o /usr/local/bin/cargo-batch https://github.com/embassy-rs/cargo-batch/releases/download/batch-0.1.0/cargo-batch
+          curl -L -o /usr/local/bin/cargo-batch https://github.com/embassy-rs/cargo-batch/releases/download/batch-0.2.0/cargo-batch
           chmod +x /usr/local/bin/cargo-batch
           cargo xtask ci_batch
 

@@ -5,6 +5,9 @@ use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
 use heapless::Vec;
 
+pub mod battery;
+pub use battery::*;
+
 pub struct GenericOnOffServer;
 
 pub const GENERIC_ONOFF_SERVER: ModelIdentifier = ModelIdentifier::SIG(0x1000);
