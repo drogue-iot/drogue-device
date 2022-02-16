@@ -44,10 +44,8 @@ impl Model for GenericBatteryServer {
         _parameters: &[u8],
     ) -> Result<Option<Self::MESSAGE>, ParseError> {
         match opcode {
-            _ => {
-                // not applicable to this role
-                Ok(None)
-            }
+            GENERIC_BATTERY_GET => Ok(Some(GenericBatteryMessage::Get)),
+            _ => Ok(None),
         }
     }
 }
@@ -55,14 +53,87 @@ impl Model for GenericBatteryServer {
 opcode!( GENERIC_BATTERY_GET 0x82, 0x23 );
 opcode!( GENERIC_BATTERY_STATUS 0x82, 0x24 );
 
+pub struct GenericBatteryFlags {
+    pub presence: GenericBatteryFlagsPresence,
+    pub indicator: GenericBatteryFlagsIndicator,
+    pub charging: GenericBatteryFlagsCharging,
+}
+
+impl GenericBatteryFlags {
+    fn emit_parameters<const N: usize>(
+        &self,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
+        let mut value: u8 = 0;
+        value |= match self.presence {
+            GenericBatteryFlagsPresence::NotPresent => 0b00,
+            GenericBatteryFlagsPresence::PresentRemovable => 0b01,
+            GenericBatteryFlagsPresence::PresentNotRemovable => 0b10,
+            GenericBatteryFlagsPresence::Unknown => 0b11,
+        } << 4;
+
+        value |= match self.indicator {
+            GenericBatteryFlagsIndicator::LowCritical => 0b00,
+            GenericBatteryFlagsIndicator::Low => 0b01,
+            GenericBatteryFlagsIndicator::Good => 0b10,
+            GenericBatteryFlagsIndicator::Unknown => 0b11,
+        } << 2;
+
+        value |= match self.charging {
+            GenericBatteryFlagsCharging::NotChargeable => 0b00,
+            GenericBatteryFlagsCharging::ChargeableNotCharging => 0b01,
+            GenericBatteryFlagsCharging::ChargeableCharging => 0b10,
+            GenericBatteryFlagsCharging::Unknown => 0b11,
+        };
+
+        xmit.push(value).map_err(|_| InsufficientBuffer)?;
+        Ok(())
+    }
+}
+
+pub enum GenericBatteryFlagsPresence {
+    NotPresent,
+    PresentRemovable,
+    PresentNotRemovable,
+    Unknown,
+}
+
+pub enum GenericBatteryFlagsIndicator {
+    LowCritical,
+    Low,
+    Good,
+    Unknown,
+}
+
+pub enum GenericBatteryFlagsCharging {
+    NotChargeable,
+    ChargeableNotCharging,
+    ChargeableCharging,
+    Unknown,
+}
+
 pub struct Status {
     battery_level: u8,
     time_to_discharge: u32,
     time_to_charge: u32,
-    flags: u8,
+    flags: GenericBatteryFlags,
 }
 
 impl Status {
+    pub fn new(
+        battery_level: u8,
+        time_to_discharge: u32,
+        time_to_charge: u32,
+        flags: GenericBatteryFlags,
+    ) -> Self {
+        Self {
+            battery_level,
+            time_to_discharge,
+            time_to_charge,
+            flags,
+        }
+    }
+
     fn emit_parameters<const N: usize>(
         &self,
         xmit: &mut Vec<u8, N>,
@@ -73,7 +144,7 @@ impl Status {
             .map_err(|_| InsufficientBuffer)?;
         xmit.extend_from_slice(&self.time_to_charge.to_be_bytes()[1..])
             .map_err(|_| InsufficientBuffer)?;
-        xmit.push(self.flags).map_err(|_| InsufficientBuffer)?;
+        self.flags.emit_parameters(xmit)?;
         Ok(())
     }
 }
