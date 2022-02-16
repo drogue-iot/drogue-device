@@ -60,24 +60,20 @@ impl AccessMessage {
         &self,
         ctx: &C,
         response: M,
-    ) -> Result<AccessMessage, DeviceError> {
+    ) -> Result<Self, DeviceError> {
         let mut parameters = Vec::new();
         response
             .emit_parameters(&mut parameters)
             .map_err(|_| InsufficientBuffer)?;
-        Ok(AccessMessage {
+        Ok(Self {
             ttl: None,
-            network_key: self.network_key,
-            ivi: self.ivi,
-            nid: self.nid,
-            akf: self.akf,
-            aid: self.aid,
             src: ctx.address().ok_or(DeviceError::NotProvisioned)?,
             dst: self.src.into(),
             payload: AccessPayload {
                 opcode: response.opcode(),
                 parameters,
             },
+            ..*self
         })
     }
 }
@@ -144,19 +140,19 @@ impl Config {
 
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
         match self {
-            Config::Friend(inner) => inner.emit(xmit),
-            Config::GATTProxy(inner) => inner.emit(xmit),
-            Config::HeartbeatPublication(inner) => inner.emit(xmit),
-            Config::HeartbeatSubscription(inner) => inner.emit(xmit),
-            Config::KeyRefreshPhase(inner) => inner.emit(xmit),
-            Config::LowPowerNodePollTimeout(inner) => inner.emit(xmit),
-            Config::Model(inner) => inner.emit(xmit),
-            Config::NetKey(inner) => inner.emit(xmit),
-            Config::NetworkTransmit(inner) => inner.emit(xmit),
-            Config::NodeIdentity(inner) => inner.emit(xmit),
-            Config::Relay(inner) => inner.emit(xmit),
-            Config::SIGModel(inner) => inner.emit(xmit),
-            Config::VendorModel(inner) => inner.emit(xmit),
+            Self::Friend(inner) => inner.emit(xmit),
+            Self::GATTProxy(inner) => inner.emit(xmit),
+            Self::HeartbeatPublication(inner) => inner.emit(xmit),
+            Self::HeartbeatSubscription(inner) => inner.emit(xmit),
+            Self::KeyRefreshPhase(inner) => inner.emit(xmit),
+            Self::LowPowerNodePollTimeout(inner) => inner.emit(xmit),
+            Self::Model(inner) => inner.emit(xmit),
+            Self::NetKey(inner) => inner.emit(xmit),
+            Self::NetworkTransmit(inner) => inner.emit(xmit),
+            Self::NodeIdentity(inner) => inner.emit(xmit),
+            Self::Relay(inner) => inner.emit(xmit),
+            Self::SIGModel(inner) => inner.emit(xmit),
+            Self::VendorModel(inner) => inner.emit(xmit),
         }
     }
 }
