@@ -83,6 +83,17 @@ pub struct SharedFlashHandle<F>(pub Address<SharedFlash<F>>)
 where
     F: AsyncNorFlash + AsyncReadNorFlash + 'static;
 
+impl<F> Copy for SharedFlashHandle<F> where F: AsyncNorFlash + AsyncReadNorFlash + 'static {}
+
+impl<F> Clone for SharedFlashHandle<F>
+where
+    F: AsyncNorFlash + AsyncReadNorFlash + 'static,
+{
+    fn clone(&self) -> Self {
+        Self(self.0)
+    }
+}
+
 impl<F> ErrorType for SharedFlashHandle<F>
 where
     F: AsyncNorFlash + AsyncReadNorFlash,
