@@ -10,11 +10,13 @@ use crate::drivers::ble::mesh::storage::Storage;
 use crate::{Actor, Address, Inbox};
 use core::cell::RefCell;
 use core::future::Future;
-use embassy::blocking_mutex::kind::CriticalSection;
+use embassy::blocking_mutex::kind::ThreadMode;
 use embassy::channel::mpsc::{self, Channel};
 use futures::{join, pin_mut};
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
+
+const PDU_SIZE: usize = 384;
 
 pub struct MeshNode<E, B, S, R>
 where
@@ -23,6 +25,7 @@ where
     S: Storage,
     R: RngCore + CryptoRng,
 {
+    channel: Channel<ThreadMode, Vec<u8, PDU_SIZE>, 6>,
     elements: Option<E>,
     force_reset: bool,
     capabilities: Option<Capabilities>,
@@ -40,6 +43,7 @@ where
 {
     pub fn new(elements: E, capabilities: Capabilities, transport: B, storage: S, rng: R) -> Self {
         Self {
+            channel: Channel::new(),
             elements: Some(elements),
             force_reset: false,
             capabilities: Some(capabilities),
@@ -58,11 +62,11 @@ where
 }
 
 struct BearerReceiver<'c> {
-    receiver: RefCell<mpsc::Receiver<'c, CriticalSection, Vec<u8, 384>, 6>>,
+    receiver: RefCell<mpsc::Receiver<'c, ThreadMode, Vec<u8, PDU_SIZE>, 6>>,
 }
 
 impl<'c> BearerReceiver<'c> {
-    fn new(receiver: mpsc::Receiver<'c, CriticalSection, Vec<u8, 384>, 6>) -> Self {
+    fn new(receiver: mpsc::Receiver<'c, ThreadMode, Vec<u8, PDU_SIZE>, 6>) -> Self {
         Self {
             receiver: RefCell::new(receiver),
         }
@@ -73,7 +77,7 @@ impl<'c> Receiver for BearerReceiver<'c> {
     type ReceiveFuture<'m>
     where
         Self: 'm,
-    = impl Future<Output = Result<Vec<u8, 384>, DeviceError>>;
+    = impl Future<Output = Result<Vec<u8, PDU_SIZE>, DeviceError>>;
 
     fn receive_bytes<'m>(&'m self) -> Self::ReceiveFuture<'m> {
         async move {
@@ -91,14 +95,14 @@ where
     B: Bearer + 't,
 {
     transport: &'t B,
-    sender: mpsc::Sender<'c, CriticalSection, Vec<u8, 384>, 6>,
+    sender: mpsc::Sender<'c, ThreadMode, Vec<u8, PDU_SIZE>, 6>,
 }
 
 impl<'t, 'c, B> BearerHandler<'t, 'c, B>
 where
     B: Bearer + 't,
 {
-    fn new(transport: &'t B, sender: mpsc::Sender<'c, CriticalSection, Vec<u8, 384>, 6>) -> Self {
+    fn new(transport: &'t B, sender: mpsc::Sender<'c, ThreadMode, Vec<u8, PDU_SIZE>, 6>) -> Self {
         Self { transport, sender }
     }
 
@@ -111,7 +115,7 @@ impl<'t, 'c, B> Handler for BearerHandler<'t, 'c, B>
 where
     B: Bearer + 't,
 {
-    fn handle(&self, message: Vec<u8, 384>) {
+    fn handle(&self, message: Vec<u8, PDU_SIZE>) {
         // BLE loses messages anyhow, so if this fails, just ignore.
         self.sender.try_send(message).ok();
     }
@@ -148,7 +152,7 @@ where
     S: Storage + 'static,
     R: RngCore + CryptoRng + 'static,
 {
-    type Message<'m> = Vec<u8, 384>;
+    type Message<'m> = Vec<u8, PDU_SIZE>;
     type OnMountFuture<'m, M>
     where
         M: 'm,
@@ -159,12 +163,11 @@ where
         M: Inbox<Self> + 'm,
     {
         async move {
+            let (sender, receiver) = mpsc::split(&mut self.channel);
+
             let tx = BearerTransmitter {
                 transport: &self.transport,
             };
-
-            let mut channel = Channel::new();
-            let (sender, receiver) = mpsc::split(&mut channel);
 
             let rx = BearerReceiver::new(receiver);
             let handler = BearerHandler::new(&self.transport, sender);

@@ -22,7 +22,7 @@ impl Nrf52BleMeshFacilities {
         }
     }
 
-    fn new_sd(device_name: &'static str) -> &'static Softdevice {
+    pub fn new_sd(device_name: &'static str) -> &'static Softdevice {
         let config = nrf_softdevice::Config {
             clock: Some(raw::nrf_clock_lf_cfg_t {
                 source: raw::NRF_CLOCK_LF_SRC_RC as u8,
@@ -58,11 +58,11 @@ impl Nrf52BleMeshFacilities {
     }
 
     pub fn bearer(&self) -> SoftdeviceAdvertisingBearer {
-        SoftdeviceAdvertisingBearer { sd: self.sd }
+        SoftdeviceAdvertisingBearer::new(self.sd)
     }
 
     pub fn rng(&self) -> SoftdeviceRng {
-        SoftdeviceRng { sd: self.sd }
+        SoftdeviceRng::new(self.sd)
     }
 
     pub fn flash(&self) -> Flash {
@@ -73,6 +73,12 @@ impl Nrf52BleMeshFacilities {
 #[derive(Copy, Clone)]
 pub struct SoftdeviceRng {
     sd: &'static Softdevice,
+}
+
+impl SoftdeviceRng {
+    pub fn new(sd: &'static Softdevice) -> Self {
+        Self { sd }
+    }
 }
 
 impl RngCore for SoftdeviceRng {
@@ -108,6 +114,12 @@ impl CryptoRng for SoftdeviceRng {}
 
 pub struct SoftdeviceAdvertisingBearer {
     sd: &'static Softdevice,
+}
+
+impl SoftdeviceAdvertisingBearer {
+    pub fn new(sd: &'static Softdevice) -> Self {
+        Self { sd }
+    }
 }
 
 impl Bearer for SoftdeviceAdvertisingBearer {
