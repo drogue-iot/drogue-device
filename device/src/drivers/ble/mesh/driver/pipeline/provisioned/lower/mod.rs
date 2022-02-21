@@ -8,11 +8,10 @@ use crate::drivers::ble::mesh::pdu::network::CleartextNetworkPDU;
 use ccm::aead::Buffer;
 
 use self::segmentation::Segmentation;
-use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
-use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperControl, UpperPDU};
+use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
 use core::future::Future;
 use heapless::Vec;
 
@@ -224,7 +223,7 @@ impl Lower {
         pdu: UpperPDU,
     ) -> Result<Option<CleartextNetworkPDUSegments>, DeviceError> {
         match pdu {
-            UpperPDU::Control(control) => Ok(None),
+            UpperPDU::Control(_control) => Ok(None),
             UpperPDU::Access(access) => {
                 let mut payload: Vec<u8, 380> = Vec::from_slice(&access.payload)
                     .map_err(|_| DeviceError::InsufficientBuffer)?;

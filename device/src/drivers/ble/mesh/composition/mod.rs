@@ -1,4 +1,4 @@
-use crate::drivers::ble::mesh::driver::elements::{AppElementsContext, ElementContext};
+use crate::drivers::ble::mesh::driver::elements::AppElementsContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::ModelIdentifier;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;

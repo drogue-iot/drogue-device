@@ -8,9 +8,7 @@ mod node_reset;
 
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
-use crate::drivers::ble::mesh::configuration_manager::{
-    ConfigurationManager, PrimaryElementModels,
-};
+use crate::drivers::ble::mesh::configuration_manager::PrimaryElementModels;
 use crate::drivers::ble::mesh::driver::node::OutboundPublishMessage;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::{
@@ -21,10 +19,8 @@ use crate::drivers::ble::mesh::model::{Model, ModelIdentifier};
 use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload};
 use core::future::Future;
 use core::marker::PhantomData;
-use defmt::{Format, Formatter};
 use embassy::blocking_mutex::kind::Noop;
-use embassy::channel::mpsc::{Channel, Receiver as ChannelReceiver, Sender as ChannelSender};
-use futures::TryFutureExt;
+use embassy::channel::mpsc::Sender as ChannelSender;
 use heapless::Vec;
 
 pub struct AppElementsContext {

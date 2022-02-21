@@ -12,7 +12,6 @@ use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::vault::{StorageVault, Vault};
 use crate::drivers::ble::mesh::MESH_BEACON;
-use core::borrow::Borrow;
 use core::cell::RefCell;
 use core::cell::UnsafeCell;
 use core::future::Future;

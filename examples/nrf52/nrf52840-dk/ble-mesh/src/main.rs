@@ -15,9 +15,9 @@ use drogue_device::drivers::ble::mesh::composition::{
     CompanyIdentifier, Composition, ElementDescriptor, ElementsHandler, Features, Location,
     ProductIdentifier, VersionIdentifier,
 };
-use drogue_device::drivers::ble::mesh::driver::elements::{AppElementContext, AppElementsContext, ElementContext};
+use drogue_device::drivers::ble::mesh::driver::elements::{AppElementContext, AppElementsContext};
 use drogue_device::drivers::ble::mesh::driver::DeviceError;
-use drogue_device::drivers::ble::mesh::model::generic::onoff::{GENERIC_ONOFF_CLIENT, GENERIC_ONOFF_SERVER, GenericOnOffClient, GenericOnOffMessage, Set};
+use drogue_device::drivers::ble::mesh::model::generic::onoff::{GENERIC_ONOFF_CLIENT, GenericOnOffClient, GenericOnOffMessage, Set};
 use drogue_device::drivers::ble::mesh::pdu::access::AccessMessage;
 use drogue_device::drivers::ble::mesh::provisioning::{
     Algorithms, Capabilities, InputOOBActions, OOBSize, OutputOOBActions, PublicKeyType,
@@ -130,7 +130,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
     let button_publisher_connector = MeshButtonPublisherConnector(button_publisher);
 
     let button = actors::button::Button::new(drivers::button::Button::new(Input::new(p.P0_11, Pull::Up)), button_publisher_connector);
-    let button = device.button.mount(spawner, button);
+    let _button = device.button.mount(spawner, button);
 
     let mut composition = Composition::new(
         COMPANY_IDENTIFIER,
@@ -168,7 +168,7 @@ impl ElementsHandler for CustomElementsHandler {
 
     fn connect(&self, ctx: AppElementsContext) {
         let button_ctx = ctx.for_element_model::<GenericOnOffClient>(0);
-        self.button.notify( MeshButtonMessage::Connect(button_ctx));
+        self.button.notify( MeshButtonMessage::Connect(button_ctx)).ok();
         defmt::info!("connecting!");
     }
 
@@ -200,6 +200,12 @@ impl MeshButtonPublisher {
     }
 }
 
+impl Default for MeshButtonPublisher {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Actor for MeshButtonPublisher {
     type Message<'m> = MeshButtonMessage;
     type OnMountFuture<'m, M>
@@ -228,7 +234,7 @@ impl Actor for MeshButtonPublisher {
                                                 transition_time: 0,
                                                 delay: 0
                                             }
-                                        )).await;
+                                        )).await.ok();
                                     }
                                 }
                                 Event::Released => {
@@ -241,7 +247,7 @@ impl Actor for MeshButtonPublisher {
                                                 transition_time: 0,
                                                 delay: 0
                                             }
-                                        )).await;
+                                        )).await.ok();
                                     }
                                 }
                             }
@@ -259,6 +265,6 @@ pub struct MeshButtonPublisherConnector(
 
 impl ButtonEventHandler for MeshButtonPublisherConnector {
     fn handle(&mut self, event: Event) {
-        self.0.notify( MeshButtonMessage::Event(event) );
+        self.0.notify( MeshButtonMessage::Event(event) ).ok();
     }
 }
