@@ -1,9 +1,10 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
+use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::configuration_manager::{
     KeyStorage, NetworkKeyStorage, PrimaryElementModels, PrimaryElementStorage,
 };
-use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
+use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::elements::{
     ElementContext, NetworkDetails, PrimaryElementContext,
@@ -175,6 +176,14 @@ where
             self.transmitter.transmit_bytes(&*bytes).await
         }
     }
+
+    fn primary_unicast_address(&self) -> Option<UnicastAddress> {
+        if let Some(network) = KeyStorage::retrieve(&self.configuration_manager).network() {
+            Some(network.unicast_address)
+        } else {
+            None
+        }
+    }
 }
 
 // ------------------------------------------------------------------------
@@ -245,6 +254,16 @@ where
         mic: &mut [u8],
     ) -> Result<(), DeviceError> {
         self.vault().encrypt_device_key(nonce, bytes, mic)
+    }
+
+    fn encrypt_application_key(
+        &self,
+        aid: ApplicationKeyIdentifier,
+        nonce: ApplicationNonce,
+        bytes: &mut [u8],
+        mic: &mut [u8],
+    ) -> Result<(), DeviceError> {
+        self.vault().encrypt_application_key(aid, nonce, bytes, mic)
     }
 
     type NextSequenceFuture<'m>
@@ -481,18 +500,18 @@ where
         Self: 'm,
     = impl Future<Output = Result<Status, DeviceError>> + 'm;
 
-    fn model_publication_set<'m>(
-        &'m self,
+    fn model_publication_set(
+        &self,
         element_address: UnicastAddress,
         publish_address: Address,
         app_key_index: AppKeyIndex,
         credential_flag: bool,
-        publish_ttl: u8,
+        publish_ttl: Option<u8>,
         publish_period: u8,
         publish_retransmit_count: u8,
         publish_retransmit_interval_steps: u8,
         model_identifier: ModelIdentifier,
-    ) -> Self::ModelPublicationSetFuture<'m> {
+    ) -> Self::ModelPublicationSetFuture<'_> {
         self.node.configuration_manager.model_publication_set(
             element_address,
             publish_address,

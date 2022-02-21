@@ -91,7 +91,7 @@ pub struct ModelPublicationSetMessage {
     pub publish_address: PublishAddress,
     pub app_key_index: AppKeyIndex,
     pub credential_flag: bool,
-    pub publish_ttl: u8,
+    pub publish_ttl: Option<u8>,
     pub publish_period: u8,
     pub publish_retransmit_count: u8,
     pub publish_retransmit_interval_steps: u8,
@@ -114,6 +114,11 @@ impl ModelPublicationSetMessage {
             let app_key_index = AppKeyIndex(KeyIndex::parse_one(&parameters[4..=5])?);
             let credential_flag = (parameters[5] & 0b0001000) != 0;
             let publish_ttl = parameters[6];
+            let publish_ttl = if publish_ttl == 0xFF {
+                None
+            } else {
+                Some(publish_ttl)
+            };
             let publish_period = parameters[7];
             let publish_retransmit_count = (parameters[8] & 0b11100000) >> 5;
             let publish_retransmit_interval_steps = parameters[8] & 0b00011111;
@@ -157,7 +162,7 @@ pub struct ModelPublicationStatusMessage {
     publish_address: PublishAddress,
     app_key_index: AppKeyIndex,
     credential_flag: bool,
-    publish_ttl: u8,
+    publish_ttl: Option<u8>,
     publish_period: u8,
     publish_retransmit_count: u8,
     publish_retransmit_interval_steps: u8,
@@ -195,8 +200,11 @@ impl ModelPublicationStatusMessage {
                 return Err(InsufficientBuffer);
             }
         }
-        xmit.push(self.publish_ttl)
-            .map_err(|_| InsufficientBuffer)?;
+        if let Some(ttl) = self.publish_ttl {
+            xmit.push(ttl).map_err(|_| InsufficientBuffer)?;
+        } else {
+            xmit.push(0xFF).map_err(|_| InsufficientBuffer)?;
+        }
         xmit.push(self.publish_period)
             .map_err(|_| InsufficientBuffer)?;
 

@@ -138,7 +138,19 @@ pub struct LowerControl {
 impl LowerControl {
     #[allow(unused)]
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        todo!()
+        xmit.push(self.opcode as u8)
+            .map_err(|_| InsufficientBuffer)?;
+        match &self.message {
+            LowerControlMessage::Unsegmented { parameters } => {
+                xmit.extend_from_slice(&parameters)
+                    .map_err(|_| InsufficientBuffer)?;
+            }
+            LowerControlMessage::Segmented { .. } => {
+                todo!("emit segmented lower control message");
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -220,9 +232,9 @@ pub enum LowerControlMessage {
     },
 }
 
-#[derive(Clone, Format)]
+#[derive(Copy, Clone, Format)]
 pub enum Opcode {
-    Reserved = 0x00,
+    SegmentedAcknowledgement = 0x00,
     FriendPoll = 0x01,
     FriendUpdate = 0x02,
     FriendRequest = 0x03,
@@ -238,6 +250,7 @@ pub enum Opcode {
 impl Opcode {
     pub fn parse(data: u8) -> Option<Opcode> {
         match data {
+            0x00 => Some(Self::SegmentedAcknowledgement),
             0x01 => Some(Self::FriendPoll),
             0x02 => Some(Self::FriendUpdate),
             0x03 => Some(Self::FriendRequest),

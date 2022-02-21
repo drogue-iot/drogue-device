@@ -2,6 +2,7 @@ use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::configuration_manager::{NetworkInfo, NetworkKeyStorage};
 use crate::drivers::ble::mesh::crypto::nonce::NetworkNonce;
 use crate::drivers::ble::mesh::crypto::{aes_ccm_decrypt_detached, aes_ccm_encrypt_detached, e};
+use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::lower;
 use crate::drivers::ble::mesh::pdu::lower::LowerPDU;
@@ -10,7 +11,7 @@ use crate::drivers::ble::mesh::pdu::network::{
 };
 use heapless::Vec;
 
-pub trait AuthenticationContext {
+pub trait AuthenticationContext: MeshContext {
     fn iv_index(&self) -> Option<u32>;
 
     fn network_keys(&self, nid: u8) -> Vec<NetworkKeyStorage, 10>;
@@ -116,54 +117,51 @@ impl Authentication {
 
             let nonce = NetworkNonce::new(ctl_ttl, pdu.seq, pdu.src.as_bytes(), iv_index);
 
-            if ctl {
-                todo!()
-            } else {
-                let mut mic = [0; 4];
+            let mut mic = [0; 4];
 
-                let mut encrypted_and_mic = Vec::new();
-                encrypted_and_mic
-                    .extend_from_slice(&pdu.dst.as_bytes())
-                    .map_err(|_| DeviceError::InsufficientBuffer)?;
-                pdu.transport_pdu.emit(&mut encrypted_and_mic)?;
+            let mut encrypted_and_mic = Vec::new();
+            encrypted_and_mic
+                .extend_from_slice(&pdu.dst.as_bytes())
+                .map_err(|_| DeviceError::InsufficientBuffer)?;
+            pdu.transport_pdu.emit(&mut encrypted_and_mic)?;
 
-                aes_ccm_encrypt_detached(
-                    &pdu.network_key.encryption_key,
-                    &nonce.into_bytes(),
-                    &mut encrypted_and_mic,
-                    &mut mic,
-                )
-                .map_err(|_| DeviceError::CryptoError)?;
-                encrypted_and_mic
-                    .extend_from_slice(&mic)
-                    .map_err(|_| DeviceError::InsufficientBuffer)?;
+            aes_ccm_encrypt_detached(
+                &pdu.network_key.encryption_key,
+                &nonce.into_bytes(),
+                &mut encrypted_and_mic,
+                &mut mic,
+            )
+            .map_err(|_| DeviceError::CryptoError)?;
+            encrypted_and_mic
+                .extend_from_slice(&mic)
+                .map_err(|_| DeviceError::InsufficientBuffer)?;
 
-                let privacy_plaintext = Self::privacy_plaintext(iv_index, &encrypted_and_mic);
+            let privacy_plaintext = Self::privacy_plaintext(iv_index, &encrypted_and_mic);
 
-                let pecb = e(&pdu.network_key.privacy_key, privacy_plaintext)
-                    .map_err(|_| DeviceError::InvalidKeyLength)?;
+            let pecb = e(&pdu.network_key.privacy_key, privacy_plaintext)
+                .map_err(|_| DeviceError::InvalidKeyLength)?;
 
-                let mut unobfuscated = [0; 6];
-                unobfuscated[0] = ctl_ttl;
+            let mut unobfuscated = [0; 6];
+            unobfuscated[0] = ctl_ttl;
 
-                let seq_bytes = pdu.seq.to_be_bytes();
-                unobfuscated[1] = seq_bytes[1];
-                unobfuscated[2] = seq_bytes[2];
-                unobfuscated[3] = seq_bytes[3];
+            let seq_bytes = pdu.seq.to_be_bytes();
+            unobfuscated[1] = seq_bytes[1];
+            unobfuscated[2] = seq_bytes[2];
+            unobfuscated[3] = seq_bytes[3];
 
-                let src_bytes = pdu.src.as_bytes();
-                unobfuscated[4] = src_bytes[0];
-                unobfuscated[5] = src_bytes[1];
+            let src_bytes = pdu.src.as_bytes();
+            unobfuscated[4] = src_bytes[0];
+            unobfuscated[5] = src_bytes[1];
 
-                let obfuscated = Self::xor(pecb, unobfuscated);
+            let obfuscated = Self::xor(pecb, unobfuscated);
+            //let obfuscated = unobfuscated;
 
-                Ok(Some(ObfuscatedAndEncryptedNetworkPDU {
-                    ivi: pdu.ivi,
-                    nid: pdu.nid,
-                    obfuscated,
-                    encrypted_and_mic,
-                }))
-            }
+            Ok(Some(ObfuscatedAndEncryptedNetworkPDU {
+                ivi: pdu.ivi,
+                nid: pdu.nid,
+                obfuscated,
+                encrypted_and_mic,
+            }))
         } else {
             Err(DeviceError::NotProvisioned)
         }

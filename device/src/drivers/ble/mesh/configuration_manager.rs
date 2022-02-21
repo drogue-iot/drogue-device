@@ -1,4 +1,5 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
+use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::composition::{Composition, ElementDescriptor, Location};
 use crate::drivers::ble::mesh::crypto;
 use crate::drivers::ble::mesh::device::Uuid;
@@ -11,6 +12,7 @@ use crate::drivers::ble::mesh::provisioning::IVUpdateFlag;
 use crate::drivers::ble::mesh::storage::{Payload, Storage};
 use core::cell::RefCell;
 use core::convert::TryInto;
+use core::ops::Deref;
 use defmt::{Format, Formatter};
 use futures::future::Future;
 use heapless::Vec;
@@ -234,9 +236,10 @@ impl NetworkKeyStorage {
             defmt::info!("      Publications:");
             for publication in matching.iter() {
                 defmt::info!(
-                    "        {} [{}]",
+                    "        {} [{}] ttl={}",
                     publication.publish_address,
-                    publication.app_key_index
+                    publication.app_key_index,
+                    publication.publish_ttl,
                 );
             }
         }
@@ -355,7 +358,7 @@ impl NetworkKeyStorage {
         publish_address: Address,
         app_key_index: AppKeyIndex,
         credential_flag: bool,
-        publish_ttl: u8,
+        publish_ttl: Option<u8>,
         publish_period: u8,
         publish_retransmit_count: u8,
         publish_retransmit_interval_steps: u8,
@@ -416,8 +419,28 @@ impl From<NetworkKeyStorage> for NetworkKeyHandle {
     }
 }
 
+impl From<&NetworkKeyStorage> for NetworkKeyHandle {
+    fn from(key: &NetworkKeyStorage) -> Self {
+        Self {
+            network_key: key.network_key,
+            key_index: key.key_index,
+            nid: key.nid,
+            encryption_key: key.encryption_key,
+            privacy_key: key.privacy_key,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Copy, Clone, Default)]
 pub struct AppKey(pub(crate) [u8; 16]);
+
+impl Deref for AppKey {
+    type Target = [u8; 16];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl Format for AppKey {
     fn format(&self, fmt: Formatter) {
@@ -431,7 +454,7 @@ impl Format for AppKey {
 
 #[derive(Serialize, Deserialize, Copy, Clone, Format)]
 pub struct AppKeyDetails {
-    pub(crate) aid: u8,
+    pub(crate) aid: ApplicationKeyIdentifier,
     pub(crate) app_key: AppKey,
     pub(crate) key_index: AppKeyIndex,
 }
@@ -851,7 +874,7 @@ impl<S: Storage> ConfigurationManager<S> {
         publish_address: Address,
         app_key_index: AppKeyIndex,
         credential_flag: bool,
-        publish_ttl: u8,
+        publish_ttl: Option<u8>,
         publish_period: u8,
         publish_retransmit_count: u8,
         publish_retransmit_interval_steps: u8,
@@ -928,15 +951,27 @@ pub struct Publications {
     publications: Vec<Publication, 10>,
 }
 
+impl Publications {
+    pub(crate) fn find(
+        &self,
+        element_address: UnicastAddress,
+        model_identifier: ModelIdentifier,
+    ) -> Option<&Publication> {
+        self.publications.iter().find(|e| {
+            e.element_address == element_address && e.model_identifier == model_identifier
+        })
+    }
+}
+
 #[derive(Serialize, Deserialize, Format, Clone)]
 pub struct Publication {
-    element_address: UnicastAddress,
-    publish_address: Address,
-    app_key_index: AppKeyIndex,
-    credential_flag: bool,
-    publish_ttl: u8,
-    publish_period: u8,
-    publish_retransmit_count: u8,
-    publish_retransmit_interval_steps: u8,
-    model_identifier: ModelIdentifier,
+    pub(crate) element_address: UnicastAddress,
+    pub(crate) publish_address: Address,
+    pub(crate) app_key_index: AppKeyIndex,
+    pub(crate) credential_flag: bool,
+    pub(crate) publish_ttl: Option<u8>,
+    pub(crate) publish_period: u8,
+    pub(crate) publish_retransmit_count: u8,
+    pub(crate) publish_retransmit_interval_steps: u8,
+    pub(crate) model_identifier: ModelIdentifier,
 }

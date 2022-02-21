@@ -1,3 +1,4 @@
+use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::bearer::advertising;
@@ -26,6 +27,8 @@ pub trait MeshContext {
         &'m self,
         pdu: &'m ObfuscatedAndEncryptedNetworkPDU,
     ) -> Self::TransmitMeshFuture<'m>;
+
+    fn primary_unicast_address(&self) -> Option<UnicastAddress>;
 }
 
 pub struct Mesh {}

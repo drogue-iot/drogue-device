@@ -12,7 +12,8 @@ use p256::elliptic_curve::ecdh::diffie_hellman;
 use p256::PublicKey;
 
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
-use crate::drivers::ble::mesh::crypto::nonce::DeviceNonce;
+use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
+use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::ProvisioningData;
@@ -99,6 +100,14 @@ pub trait Vault {
     fn encrypt_device_key(
         &self,
         nonce: DeviceNonce,
+        bytes: &mut [u8],
+        mic: &mut [u8],
+    ) -> Result<(), DeviceError>;
+
+    fn encrypt_application_key(
+        &self,
+        aid: ApplicationKeyIdentifier,
+        nonce: ApplicationNonce,
         bytes: &mut [u8],
         mic: &mut [u8],
     ) -> Result<(), DeviceError>;
@@ -281,6 +290,33 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
         } else {
             Err(DeviceError::CryptoError)
         }
+    }
+
+    fn encrypt_application_key(
+        &self,
+        aid: ApplicationKeyIdentifier,
+        nonce: ApplicationNonce,
+        bytes: &mut [u8],
+        mic: &mut [u8],
+    ) -> Result<(), DeviceError> {
+        let keys = self.storage.retrieve();
+        if let Some(network) = keys.network() {
+            for network in network.network_keys.iter() {
+                for app_key in network.app_keys.iter() {
+                    if app_key.aid == aid {
+                        return crypto::aes_ccm_encrypt_detached(
+                            &*app_key.app_key,
+                            &*nonce,
+                            bytes,
+                            mic,
+                        )
+                        .map_err(|_| DeviceError::CryptoError);
+                    }
+                }
+            }
+        }
+
+        Err(DeviceError::CryptoError)
     }
 
     fn primary_unicast_address(&self) -> Option<UnicastAddress> {

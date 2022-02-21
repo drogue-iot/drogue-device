@@ -94,7 +94,16 @@ impl Pipeline {
                             // todo: send out any relayable outbounds.
                         }
 
-                        if let Some(pdu) = self.lower.process_inbound(ctx, pdu).await? {
+                        let (ack, pdu) = self.lower.process_inbound(ctx, pdu).await?;
+                        if let Some(ack) = ack {
+                            if let Some(ack) =
+                                self.authentication.process_outbound(ctx, &ack).await?
+                            {
+                                ctx.transmit_mesh_pdu(&ack).await?;
+                            }
+                        }
+
+                        if let Some(pdu) = pdu {
                             if let Some(message) = self.upper.process_inbound(ctx, pdu).await? {
                                 ctx.dispatch_access(&message).await?;
                             }

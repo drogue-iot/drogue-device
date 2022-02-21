@@ -1,4 +1,4 @@
-use crate::drivers::ble::mesh::driver::elements::ElementContext;
+use crate::drivers::ble::mesh::driver::elements::AppElementsContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::ModelIdentifier;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 pub trait ElementsHandler {
     fn composition(&self) -> &Composition;
 
-    fn connect<C: ElementContext>(&self, ctx: &C);
+    fn connect(&self, ctx: AppElementsContext);
 
     type DispatchFuture<'m>: Future<Output = Result<(), DeviceError>> + 'm
     where

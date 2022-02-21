@@ -23,15 +23,16 @@ impl Segmentation {
         seg_o: u8,
         seg_n: u8,
         segment_m: &Vec<u8, 12>,
-    ) -> Result<Option<Vec<u8, 380>>, DeviceError> {
+    ) -> Result<(u32, Option<Vec<u8, 380>>), DeviceError> {
         let in_flight_index = self.find_or_create_in_flight(src, seq_zero, seg_n)?;
 
         if let Some(in_flight) = &mut self.in_flight[in_flight_index] {
             if let Some(all) = in_flight.process_inbound(seg_o, segment_m)? {
+                let block_ack = in_flight.block_ack();
                 self.in_flight[in_flight_index] = None;
-                Ok(Some(all))
+                Ok((block_ack, Some(all)))
             } else {
-                Ok(None)
+                Ok((in_flight.block_ack(), None))
             }
         } else {
             Err(DeviceError::InsufficientBuffer)
@@ -89,6 +90,17 @@ impl InFlight {
             seg_n,
             segments,
         }
+    }
+
+    fn block_ack(&self) -> u32 {
+        let mut block_ack = 0;
+        for (i, segment) in self.segments.iter().enumerate() {
+            if let Some(_) = segment {
+                block_ack = block_ack | (1 << i);
+            }
+        }
+
+        block_ack
     }
 
     fn process_inbound(
