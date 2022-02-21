@@ -3,12 +3,8 @@ use crate::drivers::ble::mesh::model::foundation::configuration::{
     CONFIGURATION_CLIENT, CONFIGURATION_SERVER,
 };
 use crate::drivers::ble::mesh::model::generic::{
-    battery::{
-        GENERIC_BATTERY_CLIENT, GENERIC_BATTERY_SERVER,
-    },
-    onoff::{
-        GENERIC_ONOFF_CLIENT, GENERIC_ONOFF_SERVER,
-    }
+    battery::{GENERIC_BATTERY_CLIENT, GENERIC_BATTERY_SERVER},
+    onoff::{GENERIC_ONOFF_CLIENT, GENERIC_ONOFF_SERVER},
 };
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;

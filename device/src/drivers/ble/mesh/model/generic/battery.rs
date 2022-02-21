@@ -1,9 +1,9 @@
-use defmt::Format;
 use crate::drivers::ble::mesh::model::{Message, Model, ModelIdentifier};
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
+use defmt::Format;
 use heapless::Vec;
 
 pub struct GenericBatteryServer;
