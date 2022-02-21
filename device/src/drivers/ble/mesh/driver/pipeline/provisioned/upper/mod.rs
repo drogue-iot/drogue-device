@@ -38,7 +38,6 @@ impl Upper {
         message: AccessMessage,
     ) -> Result<Option<UpperPDU>, DeviceError> {
         // todo: split access and control handling, wrap with an enum, I guess.
-        defmt::info!("outbound upper --> {} ", message);
         let mut payload = Vec::new();
         message.emit(&mut payload)?;
         Ok(Some(UpperPDU::Access(UpperAccess {

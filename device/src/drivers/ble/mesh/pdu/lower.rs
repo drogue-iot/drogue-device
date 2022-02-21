@@ -138,10 +138,12 @@ pub struct LowerControl {
 impl LowerControl {
     #[allow(unused)]
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        xmit.push( self.opcode as u8).map_err(|_|InsufficientBuffer)?;
+        xmit.push(self.opcode as u8)
+            .map_err(|_| InsufficientBuffer)?;
         match &self.message {
             LowerControlMessage::Unsegmented { parameters } => {
-                xmit.extend_from_slice( &parameters ).map_err(|_|InsufficientBuffer)?;
+                xmit.extend_from_slice(&parameters)
+                    .map_err(|_| InsufficientBuffer)?;
             }
             LowerControlMessage::Segmented { .. } => {
                 todo!("emit segmented lower control message");

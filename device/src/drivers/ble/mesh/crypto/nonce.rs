@@ -1,6 +1,6 @@
-use core::ops::Deref;
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::pdu::lower::SzMic;
+use core::ops::Deref;
 
 pub struct NetworkNonce([u8; 13]);
 
@@ -78,7 +78,7 @@ impl ApplicationNonce {
 }
 
 impl Deref for ApplicationNonce {
-    type Target =[u8;13];
+    type Target = [u8; 13];
 
     fn deref(&self) -> &Self::Target {
         &self.0

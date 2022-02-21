@@ -107,7 +107,6 @@ impl Authentication {
         ctx: &C,
         pdu: &CleartextNetworkPDU,
     ) -> Result<Option<ObfuscatedAndEncryptedNetworkPDU>, DeviceError> {
-        defmt::info!("*** TTL {}", pdu.ttl);
         if let Some(iv_index) = ctx.iv_index() {
             let ctl = match &pdu.transport_pdu {
                 LowerPDU::Access(_) => false,

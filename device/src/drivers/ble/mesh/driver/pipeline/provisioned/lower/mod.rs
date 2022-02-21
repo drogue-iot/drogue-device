@@ -1,18 +1,20 @@
 mod segmentation;
 
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::pdu::lower::{LowerAccess, LowerAccessMessage, LowerControl, LowerControlMessage, LowerPDU, Opcode, SzMic};
+use crate::drivers::ble::mesh::pdu::lower::{
+    LowerAccess, LowerAccessMessage, LowerControl, LowerControlMessage, LowerPDU, Opcode, SzMic,
+};
 use crate::drivers::ble::mesh::pdu::network::CleartextNetworkPDU;
 use ccm::aead::Buffer;
 
 use self::segmentation::Segmentation;
+use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
 use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperControl, UpperPDU};
 use core::future::Future;
 use heapless::Vec;
-use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 
 pub trait LowerContext: AuthenticationContext {
     fn decrypt_device_key(
@@ -89,17 +91,20 @@ impl Lower {
                             );
                             ctx.decrypt_device_key(nonce, &mut payload, &trans_mic)?;
                         }
-                        Ok((None, Some(UpperPDU::Access(UpperAccess {
-                            ttl: Some(pdu.ttl),
-                            network_key: pdu.network_key,
-                            ivi: pdu.ivi,
-                            nid: pdu.nid,
-                            akf: access.akf,
-                            aid: access.aid,
-                            src: pdu.src,
-                            dst: pdu.dst,
-                            payload,
-                        }))))
+                        Ok((
+                            None,
+                            Some(UpperPDU::Access(UpperAccess {
+                                ttl: Some(pdu.ttl),
+                                network_key: pdu.network_key,
+                                ivi: pdu.ivi,
+                                nid: pdu.nid,
+                                akf: access.akf,
+                                aid: access.aid,
+                                src: pdu.src,
+                                dst: pdu.dst,
+                                payload,
+                            })),
+                        ))
                     }
                     LowerAccessMessage::Segmented {
                         szmic,
@@ -113,15 +118,29 @@ impl Lower {
                             .process_inbound(pdu.src, seq_zero, seg_o, seg_n, &segment_m)?
                         {
                             let mut parameters = Vec::new();
-                            parameters.push(0).map_err(|_|DeviceError::InsufficientBuffer)?;
+                            parameters
+                                .push(0)
+                                .map_err(|_| DeviceError::InsufficientBuffer)?;
                             let ack_seq_zero = (seq_zero << 2).to_be_bytes();
-                            parameters.push( ack_seq_zero[0]).map_err(|_|DeviceError::InsufficientBuffer)?;
-                            parameters.push( ack_seq_zero[1]).map_err(|_|DeviceError::InsufficientBuffer)?;
+                            parameters
+                                .push(ack_seq_zero[0])
+                                .map_err(|_| DeviceError::InsufficientBuffer)?;
+                            parameters
+                                .push(ack_seq_zero[1])
+                                .map_err(|_| DeviceError::InsufficientBuffer)?;
                             let block_ack = block_ack.to_be_bytes();
-                            parameters.push( block_ack[0]).map_err(|_|DeviceError::InsufficientBuffer)?;
-                            parameters.push( block_ack[1]).map_err(|_|DeviceError::InsufficientBuffer)?;
-                            parameters.push( block_ack[2]).map_err(|_|DeviceError::InsufficientBuffer)?;
-                            parameters.push( block_ack[3]).map_err(|_|DeviceError::InsufficientBuffer)?;
+                            parameters
+                                .push(block_ack[0])
+                                .map_err(|_| DeviceError::InsufficientBuffer)?;
+                            parameters
+                                .push(block_ack[1])
+                                .map_err(|_| DeviceError::InsufficientBuffer)?;
+                            parameters
+                                .push(block_ack[2])
+                                .map_err(|_| DeviceError::InsufficientBuffer)?;
+                            parameters
+                                .push(block_ack[3])
+                                .map_err(|_| DeviceError::InsufficientBuffer)?;
 
                             let ack = CleartextNetworkPDU {
                                 network_key: pdu.network_key,
@@ -129,16 +148,14 @@ impl Lower {
                                 nid: pdu.nid,
                                 ttl: pdu.ttl,
                                 seq: ctx.next_sequence().await?,
-                                src: ctx.primary_unicast_address().ok_or(DeviceError::NotProvisioned)?,
+                                src: ctx
+                                    .primary_unicast_address()
+                                    .ok_or(DeviceError::NotProvisioned)?,
                                 dst: pdu.src.into(),
-                                transport_pdu: LowerPDU::Control(
-                                    LowerControl  {
-                                        opcode: Opcode::SegmentedAcknowledgement,
-                                        message: LowerControlMessage::Unsegmented {
-                                            parameters,
-                                        }
-                                    }
-                                )
+                                transport_pdu: LowerPDU::Control(LowerControl {
+                                    opcode: Opcode::SegmentedAcknowledgement,
+                                    message: LowerControlMessage::Unsegmented { parameters },
+                                }),
                             };
 
                             // todo: DRY this code
@@ -168,17 +185,20 @@ impl Lower {
                                 );
                                 ctx.decrypt_device_key(nonce, &mut payload, &trans_mic)?;
                             }
-                            Ok((Some(ack), Some(UpperPDU::Access(UpperAccess {
-                                ttl: Some(pdu.ttl),
-                                network_key: pdu.network_key,
-                                ivi: pdu.ivi,
-                                nid: pdu.nid,
-                                akf: access.akf,
-                                aid: access.aid,
-                                src: pdu.src,
-                                dst: pdu.dst,
-                                payload,
-                            }))))
+                            Ok((
+                                Some(ack),
+                                Some(UpperPDU::Access(UpperAccess {
+                                    ttl: Some(pdu.ttl),
+                                    network_key: pdu.network_key,
+                                    ivi: pdu.ivi,
+                                    nid: pdu.nid,
+                                    akf: access.akf,
+                                    aid: access.aid,
+                                    src: pdu.src,
+                                    dst: pdu.dst,
+                                    payload,
+                                })),
+                            ))
                         } else {
                             Ok((None, None))
                         }
@@ -188,11 +208,11 @@ impl Lower {
             LowerPDU::Control(control) => match control.message {
                 LowerControlMessage::Unsegmented { .. } => {
                     //todo!("inbound unsegmented control")
-                    Ok((None,None))
+                    Ok((None, None))
                 }
                 LowerControlMessage::Segmented { .. } => {
                     //todo!("inbound segmented control")
-                    Ok((None,None))
+                    Ok((None, None))
                 }
             },
         }
@@ -203,11 +223,8 @@ impl Lower {
         ctx: &C,
         pdu: UpperPDU,
     ) -> Result<Option<CleartextNetworkPDUSegments>, DeviceError> {
-        defmt::info!("outbound lower --> {} ", pdu);
         match pdu {
-            UpperPDU::Control(control) => {
-                Ok(None)
-            },
+            UpperPDU::Control(control) => Ok(None),
             UpperPDU::Access(access) => {
                 let mut payload: Vec<u8, 380> = Vec::from_slice(&access.payload)
                     .map_err(|_| DeviceError::InsufficientBuffer)?;
@@ -217,7 +234,6 @@ impl Lower {
                 let ttl = access.ttl.unwrap_or(ctx.default_ttl());
 
                 let (akf, aid) = if access.akf {
-                    defmt::info!("ENCRYPT APPLICATION KEY");
                     let nonce = ApplicationNonce::new(
                         SzMic::Bit32,
                         seq_zero,
@@ -249,7 +265,6 @@ impl Lower {
                 };
 
                 if payload.len() > NONSEGMENTED_ACCESS_MUT {
-                    defmt::info!("SEGMENTED");
                     let payload = payload.chunks(SEGMENTED_ACCESS_MTU);
 
                     let mut segments = CleartextNetworkPDUSegments::new_empty();

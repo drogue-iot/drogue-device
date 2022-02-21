@@ -1,6 +1,8 @@
 use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::composition::ElementsHandler;
-use crate::drivers::ble::mesh::configuration_manager::{ConfigurationManager, KeyStorage, NetworkKeyHandle};
+use crate::drivers::ble::mesh::configuration_manager::{
+    ConfigurationManager, KeyStorage, NetworkKeyHandle,
+};
 use crate::drivers::ble::mesh::driver::elements::{AppElementsContext, ElementContext, Elements};
 use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
 use crate::drivers::ble::mesh::driver::DeviceError;
@@ -197,21 +199,17 @@ where
     }
 
     async fn publish(&self, publish: OutboundPublishMessage) -> Result<(), DeviceError> {
-        defmt::info!("publish A");
         if let Some(network) = self.configuration_manager.retrieve().network() {
-            defmt::info!("publish B");
             for network in &network.network_keys {
-                defmt::info!("publish C");
-                if let Some(publication) =
-                    network.publications.find(publish.element_address, publish.model_identifier)
+                if let Some(publication) = network
+                    .publications
+                    .find(publish.element_address, publish.model_identifier)
                 {
-                    defmt::info!("publish D");
                     if let Some(app_key_details) = network
                         .app_keys
                         .iter()
                         .find(|e| e.key_index == publication.app_key_index)
                     {
-                        defmt::info!("publish E {}", publication.publish_ttl);
                         let message = AccessMessage {
                             ttl: publication.publish_ttl,
                             network_key: NetworkKeyHandle::from(network),
@@ -223,8 +221,10 @@ where
                             dst: publication.publish_address,
                             payload: publish.payload,
                         };
-                        defmt::info!("sending it out {}", message);
-                        self.outbound.send(message).await;
+                        self.pipeline
+                            .borrow_mut()
+                            .process_outbound(self, message)
+                            .await?;
                         return Ok(());
                     }
                 }

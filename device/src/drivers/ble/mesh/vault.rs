@@ -12,12 +12,12 @@ use p256::elliptic_curve::ecdh::diffie_hellman;
 use p256::PublicKey;
 
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
+use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::ProvisioningData;
 use heapless::Vec;
-use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 
 pub trait Vault {
     fn uuid(&self) -> Uuid;
@@ -304,9 +304,13 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
             for network in network.network_keys.iter() {
                 for app_key in network.app_keys.iter() {
                     if app_key.aid == aid {
-                        return crypto::aes_ccm_encrypt_detached(&*app_key.app_key, &*nonce, bytes, mic)
-                            .map_err(|_| DeviceError::CryptoError);
-
+                        return crypto::aes_ccm_encrypt_detached(
+                            &*app_key.app_key,
+                            &*nonce,
+                            bytes,
+                            mic,
+                        )
+                        .map_err(|_| DeviceError::CryptoError);
                     }
                 }
             }

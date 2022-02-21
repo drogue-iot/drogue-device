@@ -201,11 +201,9 @@ impl ModelPublicationStatusMessage {
             }
         }
         if let Some(ttl) = self.publish_ttl {
-            xmit.push(ttl)
-                .map_err(|_| InsufficientBuffer)?;
+            xmit.push(ttl).map_err(|_| InsufficientBuffer)?;
         } else {
-            xmit.push(0xFF)
-                .map_err(|_| InsufficientBuffer)?;
+            xmit.push(0xFF).map_err(|_| InsufficientBuffer)?;
         }
         xmit.push(self.publish_period)
             .map_err(|_| InsufficientBuffer)?;

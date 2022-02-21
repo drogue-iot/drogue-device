@@ -95,7 +95,7 @@ impl ModelIdentifier {
     }
 }
 
-pub trait Message : Format {
+pub trait Message: Format {
     fn opcode(&self) -> Opcode;
     fn emit_parameters<const N: usize>(
         &self,

@@ -1,4 +1,5 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
+use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::composition::{Composition, ElementDescriptor, Location};
 use crate::drivers::ble::mesh::crypto;
 use crate::drivers::ble::mesh::device::Uuid;
@@ -21,7 +22,6 @@ use p256::{PublicKey, SecretKey};
 use postcard::{from_bytes, to_slice};
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
-use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 
 const SEQUENCE_THRESHOLD: u32 = 100;
 
@@ -435,7 +435,7 @@ impl From<&NetworkKeyStorage> for NetworkKeyHandle {
 pub struct AppKey(pub(crate) [u8; 16]);
 
 impl Deref for AppKey {
-    type Target = [u8;16];
+    type Target = [u8; 16];
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -952,10 +952,14 @@ pub struct Publications {
 }
 
 impl Publications {
-    pub(crate) fn find(&self, element_address: UnicastAddress, model_identifier: ModelIdentifier) -> Option<&Publication> {
-        defmt::info!("find publication {} {}", element_address, model_identifier);
-        defmt::info!(" ---> {}", self.publications);
-        self.publications.iter().find(|e| e.element_address == element_address && e.model_identifier == model_identifier )
+    pub(crate) fn find(
+        &self,
+        element_address: UnicastAddress,
+        model_identifier: ModelIdentifier,
+    ) -> Option<&Publication> {
+        self.publications.iter().find(|e| {
+            e.element_address == element_address && e.model_identifier == model_identifier
+        })
     }
 }
 
