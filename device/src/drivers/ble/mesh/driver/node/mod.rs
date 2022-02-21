@@ -211,14 +211,13 @@ where
                         .iter()
                         .find(|e| e.key_index == publication.app_key_index)
                     {
-                        defmt::info!("publish E");
+                        defmt::info!("publish E {}", publication.publish_ttl);
                         let message = AccessMessage {
-                            ttl: Some(publication.publish_ttl),
+                            ttl: publication.publish_ttl,
                             network_key: NetworkKeyHandle::from(network),
                             ivi: 0,
                             nid: network.nid,
-                            //akf: true,
-                            akf: false,
+                            akf: true,
                             aid: app_key_details.aid,
                             src: publish.element_address,
                             dst: publication.publish_address,

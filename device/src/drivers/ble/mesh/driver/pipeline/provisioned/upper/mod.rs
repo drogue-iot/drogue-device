@@ -23,7 +23,7 @@ impl Upper {
         // todo: split access and control handling, wrap with an enum, I guess.
         match pdu {
             UpperPDU::Control(_control) => {
-                todo!()
+                todo!("inbound upper pdu control")
             }
             UpperPDU::Access(access) => {
                 let message = AccessMessage::parse(&access)?;
@@ -38,6 +38,7 @@ impl Upper {
         message: AccessMessage,
     ) -> Result<Option<UpperPDU>, DeviceError> {
         // todo: split access and control handling, wrap with an enum, I guess.
+        defmt::info!("outbound upper --> {} ", message);
         let mut payload = Vec::new();
         message.emit(&mut payload)?;
         Ok(Some(UpperPDU::Access(UpperAccess {

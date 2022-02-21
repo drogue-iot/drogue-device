@@ -6,6 +6,7 @@ use crate::drivers::ble::mesh::pdu::ParseError;
 use core::convert::TryInto;
 use defmt::Format;
 use heapless::Vec;
+use crate::drivers::ble::mesh::pdu::lower::Opcode;
 
 #[derive(Format)]
 pub enum UpperPDU {
@@ -15,7 +16,14 @@ pub enum UpperPDU {
 
 #[derive(Format)]
 pub struct UpperControl {
-    data: Vec<u8, 256>,
+    pub(crate) ttl: u8,
+    pub(crate) network_key: NetworkKeyHandle,
+    pub(crate) ivi: u8,
+    pub(crate) nid: u8,
+    pub(crate) src: UnicastAddress,
+    pub(crate) dst: Address,
+    pub(crate) opcode: Opcode,
+    pub(crate) data: Vec<u8, 256>,
 }
 
 #[derive(Format)]

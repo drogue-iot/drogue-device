@@ -163,7 +163,7 @@ pub trait NetworkDetails {
         publish_address: Address,
         app_key_index: AppKeyIndex,
         credential_flag: bool,
-        publish_ttl: u8,
+        publish_ttl: Option<u8>,
         publish_period: u8,
         publish_retransmit_count: u8,
         public_retransmit_interval_steps: u8,

@@ -6,6 +6,7 @@ use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use crate::drivers::ble::mesh::pdu::{network, ParseError};
 use crate::drivers::ble::mesh::{MESH_MESSAGE, PB_ADV};
 use core::future::Future;
+use crate::drivers::ble::mesh::address::UnicastAddress;
 
 pub trait MeshContext {
     fn uuid(&self) -> Uuid;
@@ -26,6 +27,8 @@ pub trait MeshContext {
         &'m self,
         pdu: &'m ObfuscatedAndEncryptedNetworkPDU,
     ) -> Self::TransmitMeshFuture<'m>;
+
+    fn primary_unicast_address(&self) -> Option<UnicastAddress>;
 }
 
 pub struct Mesh {}

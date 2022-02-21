@@ -11,6 +11,7 @@ use crate::drivers::ble::mesh::provisioning::IVUpdateFlag;
 use crate::drivers::ble::mesh::storage::{Payload, Storage};
 use core::cell::RefCell;
 use core::convert::TryInto;
+use core::ops::Deref;
 use defmt::{Format, Formatter};
 use futures::future::Future;
 use heapless::Vec;
@@ -20,6 +21,7 @@ use p256::{PublicKey, SecretKey};
 use postcard::{from_bytes, to_slice};
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
+use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 
 const SEQUENCE_THRESHOLD: u32 = 100;
 
@@ -234,9 +236,10 @@ impl NetworkKeyStorage {
             defmt::info!("      Publications:");
             for publication in matching.iter() {
                 defmt::info!(
-                    "        {} [{}]",
+                    "        {} [{}] ttl={}",
                     publication.publish_address,
-                    publication.app_key_index
+                    publication.app_key_index,
+                    publication.publish_ttl,
                 );
             }
         }
@@ -355,7 +358,7 @@ impl NetworkKeyStorage {
         publish_address: Address,
         app_key_index: AppKeyIndex,
         credential_flag: bool,
-        publish_ttl: u8,
+        publish_ttl: Option<u8>,
         publish_period: u8,
         publish_retransmit_count: u8,
         publish_retransmit_interval_steps: u8,
@@ -431,6 +434,14 @@ impl From<&NetworkKeyStorage> for NetworkKeyHandle {
 #[derive(Serialize, Deserialize, Copy, Clone, Default)]
 pub struct AppKey(pub(crate) [u8; 16]);
 
+impl Deref for AppKey {
+    type Target = [u8;16];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 impl Format for AppKey {
     fn format(&self, fmt: Formatter) {
         defmt::write!(
@@ -443,7 +454,7 @@ impl Format for AppKey {
 
 #[derive(Serialize, Deserialize, Copy, Clone, Format)]
 pub struct AppKeyDetails {
-    pub(crate) aid: u8,
+    pub(crate) aid: ApplicationKeyIdentifier,
     pub(crate) app_key: AppKey,
     pub(crate) key_index: AppKeyIndex,
 }
@@ -863,7 +874,7 @@ impl<S: Storage> ConfigurationManager<S> {
         publish_address: Address,
         app_key_index: AppKeyIndex,
         credential_flag: bool,
-        publish_ttl: u8,
+        publish_ttl: Option<u8>,
         publish_period: u8,
         publish_retransmit_count: u8,
         publish_retransmit_interval_steps: u8,
@@ -954,7 +965,7 @@ pub struct Publication {
     pub(crate) publish_address: Address,
     pub(crate) app_key_index: AppKeyIndex,
     pub(crate) credential_flag: bool,
-    pub(crate) publish_ttl: u8,
+    pub(crate) publish_ttl: Option<u8>,
     pub(crate) publish_period: u8,
     pub(crate) publish_retransmit_count: u8,
     pub(crate) publish_retransmit_interval_steps: u8,
