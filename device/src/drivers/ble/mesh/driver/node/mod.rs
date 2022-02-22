@@ -327,26 +327,6 @@ where
             },
             _ => Ok(None),
         }
-        /*
-
-        let result = select(receive_fut, outbound_fut).await;
-        match result {
-            Either::Left((Ok(inbound), _)) => {
-                self.pipeline
-                    .borrow_mut()
-                    .process_inbound(self, &*inbound)
-                    .await
-            }
-            Either::Right((Some(outbound), _)) => {
-                self.pipeline
-                    .borrow_mut()
-                    .process_outbound(self, outbound)
-                    .await?;
-                Ok(None)
-            }
-            _ => Ok(None),
-        }
-         */
     }
 
     fn connect_elements(&self) {

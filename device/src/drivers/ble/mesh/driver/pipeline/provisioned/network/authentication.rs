@@ -113,26 +113,16 @@ impl Authentication {
                 LowerPDU::Control(_) => true,
             };
 
-            info!("pdu seq {}", pdu.seq);
-            info!("pdu TTL {:x} {}", pdu.ttl, ctl);
-
             let ctl_ttl = pdu.ttl | (if ctl { 0b10000000 } else { 0 });
 
-            info!("ctl_ttl {:x}", ctl_ttl);
-
             let nonce = NetworkNonce::new(ctl_ttl, pdu.seq, pdu.src.as_bytes(), iv_index);
-
-            info!("dst = {}", pdu.dst);
 
             let mut encrypted_and_mic = Vec::new();
             encrypted_and_mic
                 .extend_from_slice(&pdu.dst.as_bytes())
                 .map_err(|_| DeviceError::InsufficientBuffer)?;
 
-            info!("dst before encrypt {:x}", encrypted_and_mic);
             pdu.transport_pdu.emit(&mut encrypted_and_mic)?;
-
-            info!("before encrypt {:x}", encrypted_and_mic);
 
             if ctl {
                 let mut mic = [0; 8];
@@ -162,7 +152,6 @@ impl Authentication {
                     .map_err(|_| DeviceError::InsufficientBuffer)?;
             }
 
-            info!("random.len {}", encrypted_and_mic.len());
 
             let privacy_plaintext = Self::privacy_plaintext(iv_index, &encrypted_and_mic);
 
@@ -180,13 +169,7 @@ impl Authentication {
             let src_bytes = pdu.src.as_bytes();
             unobfuscated[4] = src_bytes[0];
             unobfuscated[5] = src_bytes[1];
-
-            info!("pre unobfuscated {:x}", unobfuscated);
             let obfuscated = Self::xor(pecb, unobfuscated);
-            info!("obfuscated {:x}", obfuscated);
-            let unobfuscated = Self::xor(pecb, obfuscated);
-            info!("post unobfuscated {:x}", unobfuscated);
-            //let obfuscated = unobfuscated;
 
             Ok(Some(ObfuscatedAndEncryptedNetworkPDU {
                 ivi: pdu.ivi,

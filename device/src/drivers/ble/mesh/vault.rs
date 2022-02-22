@@ -257,7 +257,7 @@ impl<'c, S: Storage> Vault for StorageVault<'c, S> {
             mic,
             nonce
         );
-        crypto::aes_ccm_decrypt_detached(device_key.as_ref(), &nonce.into_bytes(), bytes, mic)
+        crypto::aes_ccm_decrypt_detached(device_key.as_ref(), &*nonce, bytes, mic)
             .map_err(|_| DeviceError::CryptoError)
     }
 
@@ -272,7 +272,7 @@ impl<'c, S: Storage> Vault for StorageVault<'c, S> {
             .device_keys()
             .device_key()
             .ok_or(DeviceError::CryptoError)?;
-        crypto::aes_ccm_encrypt_detached(device_key.as_ref(), &nonce.into_bytes(), bytes, mic)
+        crypto::aes_ccm_encrypt_detached(device_key.as_ref(), &*nonce, bytes, mic)
             .map_err(|_| DeviceError::CryptoError)
     }
 
