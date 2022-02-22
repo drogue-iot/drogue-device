@@ -1,7 +1,9 @@
 use crate::drivers::ble::mesh::composition::CompanyIdentifier;
+#[allow(unused_imports)]
 use crate::drivers::ble::mesh::model::foundation::configuration::{
     CONFIGURATION_CLIENT, CONFIGURATION_SERVER,
 };
+#[allow(unused_imports)]
 use crate::drivers::ble::mesh::model::generic::{
     battery::{GENERIC_BATTERY_CLIENT, GENERIC_BATTERY_SERVER},
     onoff::{GENERIC_ONOFF_CLIENT, GENERIC_ONOFF_SERVER},
