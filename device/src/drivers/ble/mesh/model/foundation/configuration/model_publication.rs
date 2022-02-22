@@ -1,5 +1,4 @@
 use crate::opcode;
-use defmt::Format;
 use heapless::Vec;
 use crate::drivers::ble::mesh::address::{Address, GroupAddress, UnicastAddress, VirtualAddress};
 use crate::drivers::ble::mesh::InsufficientBuffer;
@@ -14,7 +13,7 @@ opcode!( CONFIG_MODEL_PUBLICATION_GET 0x80, 0x18);
 opcode!( CONFIG_MODEL_PUBLICATION_STATUS 0x80, 0x19);
 opcode!( CONFIG_MODEL_PUBLICATION_VIRTUAL_ADDRESS_SET 0x80, 0x1A);
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ModelPublicationMessage {
     Get(ModelPublicationGetMessage),
     Set(ModelPublicationSetMessage),
@@ -53,7 +52,7 @@ impl ModelPublicationMessage {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ModelPublicationGetMessage {
     element_address: UnicastAddress,
     model_identifier: ModelIdentifier,
@@ -68,7 +67,8 @@ impl ModelPublicationGetMessage {
     }
 }
 
-#[derive(Copy, Clone, Format)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PublishAddress {
     Unicast(UnicastAddress),
     Group(GroupAddress),
@@ -85,7 +85,7 @@ impl Into<Address> for PublishAddress {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ModelPublicationSetMessage {
     pub element_address: UnicastAddress,
     pub publish_address: PublishAddress,
@@ -155,7 +155,7 @@ impl ModelPublicationSetMessage {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ModelPublicationStatusMessage {
     status: Status,
     element_address: UnicastAddress,

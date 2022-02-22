@@ -3,7 +3,6 @@ use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
-use defmt::Format;
 use heapless::Vec;
 
 #[derive(Clone)]
@@ -15,7 +14,8 @@ pub struct GenericOnOffClient;
 pub const GENERIC_ONOFF_SERVER: ModelIdentifier = ModelIdentifier::SIG(0x1000);
 pub const GENERIC_ONOFF_CLIENT: ModelIdentifier = ModelIdentifier::SIG(0x1001);
 
-#[derive(Copy, Clone, Format)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum GenericOnOffMessage {
     Get,
     Set(Set),
@@ -91,7 +91,8 @@ opcode!( GENERIC_ON_OFF_SET 0x82, 0x02 );
 opcode!( GENERIC_ON_OFF_SET_UNACKNOWLEDGE 0x82, 0x03 );
 opcode!( GENERIC_ON_OFF_STATUS 0x82, 0x04 );
 
-#[derive(Copy, Clone, Format)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Set {
     pub on_off: u8,
     pub tid: u8,
@@ -113,7 +114,8 @@ impl Set {
     }
 }
 
-#[derive(Copy, Clone, Format)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Status {
     present_on_off: u8,
     target_on_off: u8,

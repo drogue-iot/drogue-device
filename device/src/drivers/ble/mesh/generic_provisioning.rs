@@ -1,9 +1,8 @@
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::InsufficientBuffer;
-use defmt::Format;
 use heapless::Vec;
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum GenericProvisioningPDU {
     TransactionStart(TransactionStart),
     TransactionAck,
@@ -11,7 +10,7 @@ pub enum GenericProvisioningPDU {
     ProvisioningBearerControl(ProvisioningBearerControl),
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TransactionStart {
     pub seg_n: u8,
     pub total_len: u16,
@@ -48,7 +47,7 @@ impl TransactionStart {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TransactionContinuation {
     pub segment_index: u8,
     pub data: Vec<u8, 64>,
@@ -77,7 +76,7 @@ impl TransactionContinuation {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum GenericProvisioningError {
     InvalidSize,
     InvalidGpcf,
@@ -138,7 +137,7 @@ impl GenericProvisioningPDU {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ProvisioningBearerControl {
     LinkOpen(Uuid),
     LinkAck,
@@ -197,7 +196,7 @@ impl ProvisioningBearerControl {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Reason {
     Success = 0x00,
     Timeout = 0x01,

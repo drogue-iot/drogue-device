@@ -3,11 +3,10 @@ use crate::drivers::ble::mesh::model::foundation::configuration::NetKeyIndex;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use core::convert::TryInto;
-use defmt::{Format, Formatter};
 use heapless::Vec;
 use serde::{Deserialize, Serialize};
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ProvisioningPDU {
     Invite(Invite),
     Capabilities(Capabilities),
@@ -21,7 +20,7 @@ pub enum ProvisioningPDU {
     Failed(Failed),
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Invite {
     pub attention_duration: u8,
 }
@@ -46,7 +45,8 @@ impl Invite {
     }
 }
 
-#[derive(Format, Clone)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Capabilities {
     pub number_of_elements: u8,
     pub algorithms: Algorithms,
@@ -103,7 +103,8 @@ impl Capabilities {
     }
 }
 
-#[derive(Format, Clone)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Start {
     pub algorithm: Algorithm,
     pub public_key: PublicKeySelected,
@@ -169,7 +170,8 @@ impl Start {
     }
 }
 
-#[derive(Format, Copy, Clone)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct PublicKey {
     pub x: [u8; 32],
     pub y: [u8; 32],
@@ -202,7 +204,7 @@ impl PublicKey {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Confirmation {
     pub confirmation: [u8; 16],
 }
@@ -229,7 +231,7 @@ impl Confirmation {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Random {
     pub random: [u8; 16],
 }
@@ -256,7 +258,7 @@ impl Random {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Data {
     pub encrypted: [u8; 25],
     pub mic: [u8; 8],
@@ -315,7 +317,8 @@ impl ProvisioningData {
 }
 
 // TODO: probably move this elsewhere
-#[derive(Copy, Clone, Format, Serialize, Deserialize)]
+#[derive(Copy, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum KeyRefreshFlag {
     Phase0,
     Phase2,
@@ -338,7 +341,8 @@ impl Default for KeyRefreshFlag {
 }
 
 // TODO: probably move this elsewhere
-#[derive(Copy, Clone, Format, Serialize, Deserialize)]
+#[derive(Copy, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum IVUpdateFlag {
     NormalOperation,
     UpdateActive,
@@ -360,8 +364,9 @@ impl Default for IVUpdateFlag {
     }
 }
 
-impl Format for ProvisioningData {
-    fn format(&self, fmt: Formatter) {
+#[cfg(feature = "defmt")]
+impl defmt::Format for ProvisioningData {
+    fn format(&self, fmt: defmt::Formatter) {
         defmt::write!(fmt, "ProvisioningData( network_key={:x}, key_index: {}, flags={}:{}, iv_index={}, unicast_address={:x}",
             self.network_key,
             self.key_index,
@@ -373,7 +378,7 @@ impl Format for ProvisioningData {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Failed {
     pub error_code: ErrorCode,
 }
@@ -464,7 +469,8 @@ impl ProvisioningPDU {
     }
 }
 
-#[derive(Format, Clone)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Algorithm {
     P256,
 }
@@ -487,7 +493,8 @@ impl Algorithm {
     }
 }
 
-#[derive(Format, Clone)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Algorithms(Vec<Algorithm, 16>);
 
 impl Algorithms {
@@ -542,7 +549,8 @@ impl Default for Algorithms {
     }
 }
 
-#[derive(Format, Clone)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct PublicKeyType {
     pub available: bool,
 }
@@ -573,7 +581,8 @@ impl PublicKeyType {
     }
 }
 
-#[derive(Format, Clone)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PublicKeySelected {
     NoPublicKey,
     OOBPublicKey,
@@ -598,7 +607,8 @@ impl PublicKeySelected {
     }
 }
 
-#[derive(Format, Clone)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct StaticOOBType {
     pub available: bool,
 }
@@ -629,7 +639,8 @@ impl Default for StaticOOBType {
     }
 }
 
-#[derive(Format, Clone)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum OOBSize {
     NotSupported,
     MaximumSize(u8 /* 1-8 decimal */),
@@ -654,7 +665,8 @@ impl OOBSize {
     }
 }
 
-#[derive(Format, Copy, Clone)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum OutputOOBAction {
     Blink = 0b0000000000000001,
     Beep = 0b0000000000000010,
@@ -681,7 +693,8 @@ impl OutputOOBAction {
     }
 }
 
-#[derive(Format, Clone)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct OutputOOBActions(Vec<OutputOOBAction, 5>);
 
 impl OutputOOBActions {
@@ -752,7 +765,8 @@ impl Default for OutputOOBActions {
     }
 }
 
-#[derive(Format, Copy, Clone)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum InputOOBAction {
     Push = 0b0000000000000001,
     Twist = 0b0000000000000010,
@@ -777,7 +791,8 @@ impl InputOOBAction {
     }
 }
 
-#[derive(Format, Clone)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct InputOOBActions(Vec<InputOOBAction, 4>);
 
 impl InputOOBActions {
@@ -842,7 +857,8 @@ impl Default for InputOOBActions {
     }
 }
 
-#[derive(Format, Clone)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum OOBAction {
     None,
     Output(OutputOOBAction),
@@ -884,7 +900,8 @@ impl OOBAction {
     }
 }
 
-#[derive(Format, Clone)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum AuthenticationMethod {
     NoOOBAuthentication = 0x00,
     StaticOOBAuthentication = 0x01,
@@ -922,7 +939,7 @@ impl AuthenticationMethod {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ErrorCode {
     Prohibited = 0x00,
     InvalidPDU = 0x01,

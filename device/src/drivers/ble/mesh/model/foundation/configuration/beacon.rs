@@ -3,14 +3,13 @@ use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
-use defmt::Format;
 use heapless::Vec;
 
 opcode!( CONFIG_BEACON_GET 0x80, 0x09 );
 opcode!( CONFIG_BEACON_SET 0x80, 0x0A );
 opcode!( CONFIG_BEACON_STATUS 0x80, 0x0B );
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum BeaconMessage {
     Get,
     Set(bool),

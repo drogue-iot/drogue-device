@@ -7,7 +7,6 @@ use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
 use core::convert::TryInto;
-use defmt::Format;
 use heapless::Vec;
 
 opcode!( CONFIG_APPKEY_ADD 0x00 );
@@ -17,7 +16,7 @@ opcode!( CONFIG_APPKEY_LIST 0x80, 0x02 );
 opcode!( CONFIG_APPKEY_STATUS 0x80, 0x03 );
 opcode!( CONFIG_APPKEY_UPDATE 0x01 );
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum AppKeyMessage {
     Add(AppKeyAddMessage),
     Delete(AppKeyDeleteMessage),
@@ -77,7 +76,7 @@ impl Message for AppKeyMessage {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct AppKeyAddMessage {
     pub(crate) indexes: NetKeyAppKeyIndexesPair,
     pub(crate) app_key: [u8; 16],
@@ -92,7 +91,7 @@ impl AppKeyAddMessage {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct AppKeyDeleteMessage {
     pub(crate) indexes: NetKeyAppKeyIndexesPair,
 }
@@ -106,7 +105,7 @@ impl AppKeyDeleteMessage {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct AppKeyGetMessage {
     pub(crate) net_key_index: NetKeyIndex,
 }
@@ -120,7 +119,7 @@ impl AppKeyGetMessage {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct AppKeyListMessage {
     pub(crate) status: Status,
     pub(crate) net_key_index: NetKeyIndex,
@@ -157,7 +156,7 @@ impl AppKeyListMessage {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct AppKeyStatusMessage {
     pub(crate) status: Status,
     pub(crate) indexes: NetKeyAppKeyIndexesPair,
@@ -175,7 +174,7 @@ impl AppKeyStatusMessage {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct AppKeyUpdateMessage {
     pub(crate) net_key_index: NetKeyIndex,
     pub(crate) app_key_index: AppKeyIndex,

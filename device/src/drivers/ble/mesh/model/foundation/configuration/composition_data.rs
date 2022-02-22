@@ -4,13 +4,12 @@ use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
-use defmt::Format;
 use heapless::Vec;
 
 opcode!( CONFIG_COMPOSITION_DATA_GET 0x80, 0x08 );
 opcode!( CONFIG_COMPOSITION_DATA_STATUS 0x02 );
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum CompositionDataMessage {
     Get(u8),
     Status(CompositionStatus),
@@ -49,7 +48,7 @@ impl Message for CompositionDataMessage {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct CompositionStatus {
     pub(crate) page: u8,
     pub(crate) data: Composition,

@@ -54,7 +54,7 @@ impl<M: Model> AppElementContext<M> {
     }
 
     pub async fn publish(&self, message: M::Message) -> Result<(), DeviceError> {
-        defmt::info!(
+        info!(
             "publish model={} element_address={} :: {}",
             M::IDENTIFIER,
             self.address(),
@@ -187,7 +187,7 @@ impl<E: ElementsHandler> Elements<E> {
     ) -> Result<(), DeviceError> {
         // todo dispatch correctly based on dst address element
         if let Err(err) = self.zero.dispatch(ctx, message).await {
-            defmt::error!("{}", err);
+            error!("{}", err);
             Err(err)
         } else {
             Ok(())

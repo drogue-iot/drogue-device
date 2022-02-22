@@ -9,7 +9,6 @@ use crate::drivers::ble::mesh::model::generic::{
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
-use defmt::{Format, Formatter};
 use heapless::Vec;
 use serde::{Deserialize, Serialize};
 
@@ -22,8 +21,9 @@ pub enum ModelIdentifier {
     Vendor(CompanyIdentifier, u16),
 }
 
-impl Format for ModelIdentifier {
-    fn format(&self, fmt: Formatter) {
+#[cfg(feature = "defmt")]
+impl defmt::Format for ModelIdentifier {
+    fn format(&self, fmt: defmt::Formatter) {
         match *self {
             CONFIGURATION_SERVER => {
                 defmt::write!(fmt, "Configuration Server (0x0000)");
@@ -91,7 +91,17 @@ impl ModelIdentifier {
     }
 }
 
-pub trait Message: Format {
+#[cfg(feature = "defmt")]
+pub trait Message: defmt::Format {
+    fn opcode(&self) -> Opcode;
+    fn emit_parameters<const N: usize>(
+        &self,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer>;
+}
+
+#[cfg(not(feature = "defmt"))]
+pub trait Message {
     fn opcode(&self) -> Opcode;
     fn emit_parameters<const N: usize>(
         &self,
@@ -112,7 +122,8 @@ pub trait Model {
         -> Result<Option<Self::Message>, ParseError>;
 }
 
-#[derive(Copy, Clone, Format)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Status {
     Success = 0x00,
     InvalidAddress = 0x01,

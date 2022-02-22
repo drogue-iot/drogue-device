@@ -5,14 +5,13 @@ use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
-use defmt::Format;
 use heapless::Vec;
 
 opcode!( CONFIG_MODEL_APP_BIND 0x80, 0x3D);
 opcode!( CONFIG_MODEL_APP_STATUS 0x80, 0x3E);
 opcode!( CONFIG_MODEL_APP_UNBIND 0x80, 0x3F);
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ModelAppMessage {
     Bind(ModelAppPayload),
     Status(ModelAppStatusMessage),
@@ -50,7 +49,7 @@ impl Message for ModelAppMessage {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ModelAppPayload {
     pub(crate) element_address: UnicastAddress,
     pub(crate) app_key_index: AppKeyIndex,
@@ -88,7 +87,7 @@ impl ModelAppPayload {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ModelAppStatusMessage {
     pub(crate) status: Status,
     pub(crate) payload: ModelAppPayload,

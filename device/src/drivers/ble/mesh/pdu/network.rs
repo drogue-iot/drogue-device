@@ -3,7 +3,6 @@ use crate::drivers::ble::mesh::configuration_manager::NetworkKeyHandle;
 use crate::drivers::ble::mesh::pdu::lower::LowerPDU;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
-use defmt::Format;
 use heapless::Vec;
 
 pub enum NetworkPDU {
@@ -11,14 +10,14 @@ pub enum NetworkPDU {
     Authenticated(CleartextNetworkPDU),
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum NetMic {
     Access([u8; 4]),
     Control([u8; 8]),
 }
 
 // todo: format vecs/arrays as hex
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ObfuscatedAndEncryptedNetworkPDU {
     pub(crate) ivi: u8, /* 1 bit */
     pub(crate) nid: u8, /* 7 bits */
@@ -55,7 +54,7 @@ impl ObfuscatedAndEncryptedNetworkPDU {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct CleartextNetworkPDU {
     pub(crate) network_key: NetworkKeyHandle,
     pub(crate) ivi: u8, /* 1 bit */

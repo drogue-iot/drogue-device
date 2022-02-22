@@ -3,14 +3,13 @@ use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
-use defmt::Format;
 use heapless::Vec;
 
 opcode!( CONFIG_DEFAULT_TTL_GET 0x80, 0x0C );
 opcode!( CONFIG_DEFAULT_TTL_SET 0x80, 0x0D );
 opcode!( CONFIG_DEFAULT_TTL_STATUS 0x80, 0x0E );
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DefaultTTLMessage {
     Get,
     Set(u8),

@@ -23,7 +23,6 @@ use crate::drivers::ble::mesh::model::{Message, Model, ModelIdentifier};
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
-use defmt::{Format, Formatter};
 use heapless::Vec;
 use serde::{Deserialize, Serialize};
 
@@ -38,7 +37,7 @@ pub mod node_reset;
 pub const CONFIGURATION_SERVER: ModelIdentifier = ModelIdentifier::SIG(0x0000);
 pub const CONFIGURATION_CLIENT: ModelIdentifier = ModelIdentifier::SIG(0x0001);
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ConfigurationMessage {
     Beacon(BeaconMessage),
     DefaultTTL(DefaultTTLMessage),
@@ -144,8 +143,9 @@ impl Model for ConfigurationServer {
 #[derive(Serialize, Deserialize, PartialEq, Copy, Clone)]
 pub struct KeyIndex(u16);
 
-impl Format for KeyIndex {
-    fn format(&self, fmt: Formatter) {
+#[cfg(feature = "defmt")]
+impl defmt::Format for KeyIndex {
+    fn format(&self, fmt: defmt::Formatter) {
         defmt::write!(fmt, "{}", self.0);
     }
 }
@@ -225,8 +225,9 @@ impl NetKeyIndex {
     }
 }
 
-impl Format for NetKeyIndex {
-    fn format(&self, fmt: Formatter) {
+#[cfg(feature = "defmt")]
+impl defmt::Format for NetKeyIndex {
+    fn format(&self, fmt: defmt::Formatter) {
         defmt::write!(fmt, "{}", self.0)
     }
 }
@@ -240,13 +241,15 @@ impl AppKeyIndex {
     }
 }
 
-impl Format for AppKeyIndex {
-    fn format(&self, fmt: Formatter) {
+#[cfg(feature = "defmt")]
+impl defmt::Format for AppKeyIndex {
+    fn format(&self, fmt: defmt::Formatter) {
         defmt::write!(fmt, "{}", self.0)
     }
 }
 
-#[derive(Format, Copy, Clone)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct NetKeyAppKeyIndexesPair(NetKeyIndex, AppKeyIndex);
 
 impl NetKeyAppKeyIndexesPair {

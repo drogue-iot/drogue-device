@@ -13,7 +13,6 @@ use crate::drivers::ble::mesh::storage::{Payload, Storage};
 use core::cell::RefCell;
 use core::convert::TryInto;
 use core::ops::Deref;
-use defmt::{Format, Formatter};
 use futures::future::Future;
 use heapless::Vec;
 use p256::ecdh::SharedSecret;
@@ -25,7 +24,8 @@ use serde::{Deserialize, Serialize};
 
 const SEQUENCE_THRESHOLD: u32 = 100;
 
-#[derive(Serialize, Deserialize, Clone, Default, Format)]
+#[derive(Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Configuration {
     seq: u32,
     uuid: Option<Uuid>,
@@ -64,9 +64,9 @@ impl Configuration {
 
     fn display_configuration(&self, composition: &Composition) {
         if let Some(uuid) = self.uuid {
-            defmt::info!("UUID: {}", uuid);
+            info!("UUID: {}", uuid);
         } else {
-            defmt::info!("UUID: not set");
+            info!("UUID: not set");
         }
         self.keys.display_configuration(composition);
     }
@@ -81,8 +81,9 @@ impl DeviceKey {
     }
 }
 
-impl Format for DeviceKey {
-    fn format(&self, fmt: Formatter) {
+#[cfg(feature = "defmt")]
+impl defmt::Format for DeviceKey {
+    fn format(&self, fmt: defmt::Formatter) {
         defmt::write!(
             fmt,
             "{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}",
@@ -91,7 +92,8 @@ impl Format for DeviceKey {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Default, Format)]
+#[derive(Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Keys {
     random: Option<[u8; 16]>,
     private_key: Option<[u8; 32]>,
@@ -101,7 +103,8 @@ pub struct Keys {
     network: Option<NetworkInfo>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Format)]
+#[derive(Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct NetworkInfo {
     pub(crate) network_keys: Vec<NetworkKeyStorage, 10>,
     pub(crate) iv_update_flag: IVUpdateFlag,
@@ -111,19 +114,19 @@ pub struct NetworkInfo {
 
 impl NetworkInfo {
     fn display_configuration(&self, composition: &Composition) {
-        defmt::info!("Primary unicast address: {}", self.unicast_address);
-        defmt::info!("IV index: {:x}", self.iv_index);
+        info!("Primary unicast address: {}", self.unicast_address);
+        info!("IV index: {:x}", self.iv_index);
 
         for key in &self.network_keys {
             key.display_configuration();
         }
 
-        defmt::info!("Elements:");
+        info!("Elements:");
         for (i, element) in composition.elements.iter().enumerate() {
             let element_address = self.unicast_address + i as u8;
-            defmt::info!("  {}: Address={}", i, element_address);
+            info!("  {}: Address={}", i, element_address);
             for model in &element.models {
-                defmt::info!("    - {}", model);
+                info!("    - {}", model);
                 for key in &self.network_keys {
                     key.display_bindings(&element_address, model);
                 }
@@ -177,8 +180,9 @@ impl NetworkKey {
     }
 }
 
-impl Format for NetworkKey {
-    fn format(&self, fmt: Formatter) {
+#[cfg(feature = "defmt")]
+impl defmt::Format for NetworkKey {
+    fn format(&self, fmt: defmt::Formatter) {
         defmt::write!(
             fmt,
             "{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}",
@@ -187,7 +191,8 @@ impl Format for NetworkKey {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Format)]
+#[derive(Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct NetworkKeyStorage {
     pub(crate) network_key: NetworkKey,
     pub(crate) key_index: NetKeyIndex,
@@ -213,9 +218,9 @@ impl NetworkKeyStorage {
         }
 
         if !matching.is_empty() {
-            defmt::info!("      App Keys:");
+            info!("      App Keys:");
             for binding in matching.iter() {
-                defmt::info!("        [{}]", binding.app_key_index);
+                info!("        [{}]", binding.app_key_index);
             }
         }
     }
@@ -233,13 +238,11 @@ impl NetworkKeyStorage {
         }
 
         if !matching.is_empty() {
-            defmt::info!("      Publications:");
+            info!("      Publications:");
             for publication in matching.iter() {
-                defmt::info!(
+                info!(
                     "        {} [{}] ttl={}",
-                    publication.publish_address,
-                    publication.app_key_index,
-                    publication.publish_ttl,
+                    publication.publish_address, publication.app_key_index, publication.publish_ttl,
                 );
             }
         }
@@ -248,14 +251,12 @@ impl NetworkKeyStorage {
 
 impl NetworkKeyStorage {
     fn display_configuration(&self) {
-        defmt::info!("Network Keys:");
-        defmt::info!(
+        info!("Network Keys:");
+        info!(
             "  {}: {} [nid={}]",
-            self.key_index,
-            self.network_key,
-            self.nid
+            self.key_index, self.network_key, self.nid
         );
-        defmt::info!("Application Keys:");
+        info!("Application Keys:");
         for app_key in &self.app_keys {
             app_key.display_configuration();
         }
@@ -398,7 +399,8 @@ impl NetworkKeyStorage {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Format)]
+#[derive(Serialize, Deserialize, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct NetworkKeyHandle {
     pub(crate) network_key: NetworkKey,
     pub(crate) key_index: NetKeyIndex,
@@ -442,8 +444,9 @@ impl Deref for AppKey {
     }
 }
 
-impl Format for AppKey {
-    fn format(&self, fmt: Formatter) {
+#[cfg(feature = "defmt")]
+impl defmt::Format for AppKey {
+    fn format(&self, fmt: defmt::Formatter) {
         defmt::write!(
             fmt,
             "{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}",
@@ -452,7 +455,8 @@ impl Format for AppKey {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Format)]
+#[derive(Serialize, Deserialize, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct AppKeyDetails {
     pub(crate) aid: ApplicationKeyIdentifier,
     pub(crate) app_key: AppKey,
@@ -461,16 +465,16 @@ pub struct AppKeyDetails {
 
 impl AppKeyDetails {
     pub(crate) fn display_configuration(&self) {
-        defmt::info!("  {}: {} [aid={}]", self.key_index, self.app_key, self.aid)
+        info!("  {}: {} [aid={}]", self.key_index, self.app_key, self.aid)
     }
 }
 
 impl Keys {
     fn display_configuration(&self, composition: &Composition) {
         if let Some(key) = self.device_key {
-            defmt::info!("DeviceKey: {}", key);
+            info!("DeviceKey: {}", key);
         } else {
-            defmt::info!("DeviceKey: None");
+            info!("DeviceKey: None");
         }
 
         if let Some(network) = &self.network {
@@ -666,7 +670,7 @@ impl<S: Storage> ConfigurationManager<S> {
         rng: &mut R,
     ) -> Result<(), DeviceError> {
         if self.force_reset {
-            defmt::info!("Performing FORCE RESET");
+            info!("Performing FORCE RESET");
             let mut config = Configuration::default();
             config.validate(rng);
             self.store(&config).await
@@ -679,7 +683,7 @@ impl<S: Storage> ConfigurationManager<S> {
                 .map_err(|_| DeviceError::StorageInitialization)?;
             match payload {
                 None => {
-                    defmt::info!("error loading configuration");
+                    info!("error loading configuration");
                     Err(DeviceError::StorageInitialization)
                 }
                 Some(payload) => {
@@ -711,12 +715,12 @@ impl<S: Storage> ConfigurationManager<S> {
     }
 
     pub(crate) fn display_configuration(&self) {
-        defmt::info!("================================================================");
-        defmt::info!("Message Sequence: {}", *self.runtime_seq.borrow());
+        info!("================================================================");
+        info!("Message Sequence: {}", *self.runtime_seq.borrow());
         self.config
             .borrow()
             .display_configuration(&self.composition);
-        defmt::info!("================================================================");
+        info!("================================================================");
     }
 
     fn retrieve(&self) -> Configuration {
@@ -910,12 +914,14 @@ impl<S: Storage> ConfigurationManager<S> {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Default, Format)]
+#[derive(Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct PrimaryElementModels {
     pub(crate) configuration: ConfigurationModel,
 }
 
-#[derive(Serialize, Deserialize, Clone, Format)]
+#[derive(Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ConfigurationModel {
     pub(crate) secure_beacon: bool,
     pub(crate) default_ttl: u8,
@@ -930,14 +936,16 @@ impl Default for ConfigurationModel {
     }
 }
 
-#[derive(Serialize, Deserialize, Format, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Bindings {
     bindings: Vec<Binding, 10>,
 }
 
 impl Bindings {}
 
-#[derive(Serialize, Deserialize, Format, Copy, Clone)]
+#[derive(Serialize, Deserialize, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Binding {
     model_identifier: ModelIdentifier,
     element_address: UnicastAddress,
@@ -946,7 +954,8 @@ pub struct Binding {
 
 impl Binding {}
 
-#[derive(Serialize, Deserialize, Format, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Publications {
     publications: Vec<Publication, 10>,
 }
@@ -963,7 +972,8 @@ impl Publications {
     }
 }
 
-#[derive(Serialize, Deserialize, Format, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Publication {
     pub(crate) element_address: UnicastAddress,
     pub(crate) publish_address: Address,

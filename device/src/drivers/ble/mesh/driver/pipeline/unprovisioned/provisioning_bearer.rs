@@ -10,7 +10,6 @@ use crate::drivers::ble::mesh::generic_provisioning::{
 use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::provisioning::ProvisioningPDU;
 use core::iter::Iterator;
-use defmt::Format;
 
 pub struct ProvisioningBearer {
     segmentation: Segmentation,
@@ -34,7 +33,7 @@ impl Default for ProvisioningBearer {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum BearerMessage {
     ProvisioningPDU(ProvisioningPDU),
     Close(Reason),

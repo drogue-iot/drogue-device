@@ -7,10 +7,9 @@ use crate::drivers::ble::mesh::model::Message;
 use crate::drivers::ble::mesh::pdu::upper::UpperAccess;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
-use defmt::{Format, Formatter};
 use heapless::Vec;
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct AccessMessage {
     pub ttl: Option<u8>,
     pub(crate) network_key: NetworkKeyHandle,
@@ -78,7 +77,7 @@ impl AccessMessage {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct AccessPayload {
     pub opcode: Opcode,
     pub parameters: Vec<u8, 384>,
@@ -101,7 +100,7 @@ impl AccessPayload {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Config {
     Friend(Friend),
     GATTProxy(GATTProxy),
@@ -157,7 +156,7 @@ impl Config {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Friend {
     Get,
     Set,
@@ -178,7 +177,7 @@ impl Friend {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum GATTProxy {
     Get,
     Set,
@@ -199,7 +198,7 @@ impl GATTProxy {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum HeartbeatPublication {
     Get,
     Set,
@@ -220,7 +219,7 @@ impl HeartbeatPublication {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum HeartbeatSubscription {
     Get,
     Set,
@@ -241,7 +240,7 @@ impl HeartbeatSubscription {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum KeyRefreshPhase {
     Get,
     Set,
@@ -262,7 +261,7 @@ impl KeyRefreshPhase {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum LowPowerNodePollTimeout {
     Get,
     Status,
@@ -281,7 +280,7 @@ impl LowPowerNodePollTimeout {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Model {
     Subscription(ModelSubscription),
 }
@@ -299,7 +298,7 @@ impl Model {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ModelSubscription {
     Add,
     Delete,
@@ -330,7 +329,7 @@ impl ModelSubscription {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum NetKey {
     Add,
     Delete,
@@ -357,7 +356,7 @@ impl NetKey {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum NetworkTransmit {
     Get,
     Set,
@@ -378,7 +377,7 @@ impl NetworkTransmit {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum NodeIdentity {
     Get,
     Set,
@@ -399,7 +398,7 @@ impl NodeIdentity {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Relay {
     Get,
     Set,
@@ -428,7 +427,7 @@ impl Relay {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum SIGModel {
     App(SIGModelApp),
     Subscription(SIGModelSubscription),
@@ -447,7 +446,7 @@ impl SIGModel {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum SIGModelApp {
     Get,
     List,
@@ -466,7 +465,7 @@ impl SIGModelApp {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum SIGModelSubscription {
     Get,
     List,
@@ -485,7 +484,7 @@ impl SIGModelSubscription {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum VendorModel {
     App(VendorModelApp),
     Susbcription(VendorModelSubscription),
@@ -504,7 +503,7 @@ impl VendorModel {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum VendorModelApp {
     Get,
     List,
@@ -523,7 +522,7 @@ impl VendorModelApp {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum VendorModelSubscription {
     Get,
     List,
@@ -542,7 +541,7 @@ impl VendorModelSubscription {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Health {
     Attention(Attention),
     CurrentStatus,
@@ -566,7 +565,7 @@ impl Health {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Attention {
     Get,
     Set,
@@ -587,7 +586,7 @@ impl Attention {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Fault {
     Clear,
     ClearUnacknowledged,
@@ -614,7 +613,7 @@ impl Fault {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Period {
     Get,
     Set,
@@ -645,8 +644,9 @@ pub enum Opcode {
 }
 
 #[allow(unused)]
-impl Format for Opcode {
-    fn format(&self, fmt: Formatter) {
+#[cfg(feature = "defmt")]
+impl defmt::Format for Opcode {
+    fn format(&self, fmt: defmt::Formatter) {
         match self {
             Opcode::OneOctet(a) => {
                 defmt::write!(fmt, "{:02x}", a)

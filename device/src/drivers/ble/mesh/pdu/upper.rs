@@ -5,16 +5,15 @@ use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::lower::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use core::convert::TryInto;
-use defmt::Format;
 use heapless::Vec;
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum UpperPDU {
     Control(UpperControl),
     Access(UpperAccess),
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct UpperControl {
     pub(crate) ttl: u8,
     pub(crate) network_key: NetworkKeyHandle,
@@ -26,7 +25,7 @@ pub struct UpperControl {
     pub(crate) data: Vec<u8, 256>,
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct UpperAccess {
     pub(crate) ttl: Option<u8>,
     pub(crate) network_key: NetworkKeyHandle,

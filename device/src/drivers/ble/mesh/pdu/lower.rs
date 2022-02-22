@@ -1,10 +1,10 @@
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
-use defmt::Format;
 use heapless::Vec;
 
-#[derive(Clone, Format)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum LowerPDU {
     Access(LowerAccess),
     Control(LowerControl),
@@ -99,7 +99,8 @@ impl LowerPDU {
     }
 }
 
-#[derive(Clone, Format)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct LowerAccess {
     pub(crate) akf: bool,
     pub(crate) aid: ApplicationKeyIdentifier,
@@ -129,7 +130,8 @@ impl LowerAccess {
     }
 }
 
-#[derive(Clone, Format)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct LowerControl {
     pub(crate) opcode: Opcode,
     pub(crate) message: LowerControlMessage,
@@ -154,7 +156,8 @@ impl LowerControl {
     }
 }
 
-#[derive(Copy, Clone, Format)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum SzMic {
     Bit32,
     Bit64,
@@ -170,7 +173,8 @@ impl SzMic {
     }
 }
 
-#[derive(Clone, Format)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum LowerAccessMessage {
     Unsegmented(Vec<u8, 15>),
     Segmented {
@@ -219,7 +223,8 @@ impl LowerAccessMessage {
     }
 }
 
-#[derive(Clone, Format)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum LowerControlMessage {
     Unsegmented {
         parameters: Vec<u8, 11>,
@@ -232,7 +237,8 @@ pub enum LowerControlMessage {
     },
 }
 
-#[derive(Copy, Clone, Format)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Opcode {
     SegmentedAcknowledgement = 0x00,
     FriendPoll = 0x01,

@@ -1,10 +1,10 @@
 use crate::drivers::ble::mesh::pdu::ParseError;
 use core::convert::TryInto;
 use core::ops::Add;
-use defmt::{Format, Formatter};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Copy, Clone, Format, PartialEq)]
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Address {
     Unassigned,
     Unicast(UnicastAddress),
@@ -41,7 +41,8 @@ impl Into<Address> for GroupAddress {
     }
 }
 
-#[derive(Copy, Clone, Format, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct InvalidAddress;
 
 impl From<InvalidAddress> for ParseError {
@@ -53,8 +54,9 @@ impl From<InvalidAddress> for ParseError {
 #[derive(Serialize, Deserialize, Copy, Clone, PartialEq)]
 pub struct UnicastAddress(u16);
 
-impl Format for UnicastAddress {
-    fn format(&self, fmt: Formatter) {
+#[cfg(feature = "defmt")]
+impl defmt::Format for UnicastAddress {
+    fn format(&self, fmt: defmt::Formatter) {
         defmt::write!(fmt, "{=u16:04x}", self.0);
     }
 }
@@ -83,7 +85,8 @@ impl Add<u8> for UnicastAddress {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Format, PartialEq)]
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct VirtualAddress(u16);
 
 impl VirtualAddress {
@@ -92,7 +95,8 @@ impl VirtualAddress {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Format, PartialEq)]
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct GroupAddress(u16);
 
 impl GroupAddress {
