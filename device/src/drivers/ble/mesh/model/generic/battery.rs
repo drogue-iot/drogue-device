@@ -3,7 +3,6 @@ use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
-use defmt::Format;
 use heapless::Vec;
 
 pub struct GenericBatteryServer;
@@ -11,7 +10,7 @@ pub struct GenericBatteryServer;
 pub const GENERIC_BATTERY_SERVER: ModelIdentifier = ModelIdentifier::SIG(0x100C);
 pub const GENERIC_BATTERY_CLIENT: ModelIdentifier = ModelIdentifier::SIG(0x100D);
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum GenericBatteryMessage {
     Get,
     Status(Status),
@@ -55,7 +54,7 @@ impl Model for GenericBatteryServer {
 opcode!( GENERIC_BATTERY_GET 0x82, 0x23 );
 opcode!( GENERIC_BATTERY_STATUS 0x82, 0x24 );
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct GenericBatteryFlags {
     pub presence: GenericBatteryFlagsPresence,
     pub indicator: GenericBatteryFlagsIndicator,
@@ -94,7 +93,7 @@ impl GenericBatteryFlags {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum GenericBatteryFlagsPresence {
     NotPresent,
     PresentRemovable,
@@ -102,7 +101,7 @@ pub enum GenericBatteryFlagsPresence {
     Unknown,
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum GenericBatteryFlagsIndicator {
     LowCritical,
     Low,
@@ -110,7 +109,7 @@ pub enum GenericBatteryFlagsIndicator {
     Unknown,
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum GenericBatteryFlagsCharging {
     NotChargeable,
     ChargeableNotCharging,
@@ -118,7 +117,7 @@ pub enum GenericBatteryFlagsCharging {
     Unknown,
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Status {
     battery_level: u8,
     time_to_discharge: u32,

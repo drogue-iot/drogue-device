@@ -69,14 +69,14 @@ impl Board for Rak811 {
         st.clear_current();
         st.enable_counter();
         let mut sample = 10;
-        defmt::info!("Gathering entropy for random seed");
+        info!("Gathering entropy for random seed");
         for _ in 0..1000 {
             block_for(Duration::from_millis(sample as u64));
             sample = cortex_m::peripheral::SYST::get_current() & 0xF;
             seed += sample;
         }
         st.disable_counter();
-        defmt::info!("Done");
+        info!("Done");
         let rng = SmallRng::seed_from_u64(seed as u64);
 
         let crf1_pa = Output::new(p.PA4, Level::Low, Speed::Low);

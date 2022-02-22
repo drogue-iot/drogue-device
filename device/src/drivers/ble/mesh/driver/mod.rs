@@ -1,14 +1,13 @@
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use cmac::crypto_mac::InvalidKeyLength;
-use defmt::Format;
 use postcard::Error;
 
 pub mod elements;
 pub mod node;
 mod pipeline;
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DeviceError {
     CryptoError,
     Storage,

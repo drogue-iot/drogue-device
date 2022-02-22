@@ -122,7 +122,7 @@ impl Pipeline {
         ctx: &C,
         message: AccessMessage,
     ) -> Result<(), DeviceError> {
-        defmt::trace!("outbound <<<< {}", message);
+        trace!("outbound <<<< {}", message);
         if let Some(message) = self.upper.process_outbound(ctx, message.into()).await? {
             if let Some(message) = self.lower.process_outbound(ctx, message).await? {
                 for message in message.iter() {

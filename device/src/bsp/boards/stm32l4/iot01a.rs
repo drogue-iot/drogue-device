@@ -108,8 +108,8 @@ impl Board for Iot01a {
         let wifi = EsWifiController::new(spi, cs, reset, wake, ready);
         /*
         match wifi.start().await {
-            Ok(()) => defmt::info!("Started..."),
-            Err(err) => defmt::info!("Error... {}", err),
+            Ok(()) => info!("Started..."),
+            Err(err) => info!("Error... {}", err),
         }
         */
 

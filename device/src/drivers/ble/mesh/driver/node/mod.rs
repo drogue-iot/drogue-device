@@ -367,8 +367,8 @@ where
         let mut rng = self.rng.borrow_mut();
         if let Err(e) = self.configuration_manager.initialize(&mut *rng).await {
             // try again as a force reset
-            defmt::error!("Error loading configuration {}", e);
-            defmt::warn!("Unable to load configuration; attempting reset.");
+            error!("Error loading configuration {}", e);
+            warn!("Unable to load configuration; attempting reset.");
             self.configuration_manager.reset();
             self.configuration_manager.initialize(&mut *rng).await?
         }
@@ -402,7 +402,7 @@ where
                     }
                 }
                 Err(error) => {
-                    defmt::error!("{}", error)
+                    error!("{}", error)
                 }
             }
         }

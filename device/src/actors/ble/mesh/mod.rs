@@ -195,7 +195,7 @@ where
 
             let _ = join!(node_fut, handler_fut);
 
-            defmt::info!("shutting down");
+            info!("shutting down");
         }
     }
 }

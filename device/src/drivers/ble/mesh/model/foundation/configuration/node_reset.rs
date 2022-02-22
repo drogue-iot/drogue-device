@@ -3,13 +3,12 @@ use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
-use defmt::Format;
 use heapless::Vec;
 
 opcode!( CONFIG_NODE_RESET 0x80, 0x49 );
 opcode!( CONFIG_NODE_RESET_STATUS 0x80, 0x4A );
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum NodeResetMessage {
     Reset,
     Status,

@@ -199,7 +199,7 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
                 unicast_address: data.unicast_address,
             };
 
-            defmt::info!("Assigned unicast address {:04x}", data.unicast_address);
+            info!("Assigned unicast address {:04x}", data.unicast_address);
 
             let mut keys = self.storage.retrieve();
             keys.set_network(&update);

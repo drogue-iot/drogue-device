@@ -5,7 +5,6 @@ use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use core::future::Future;
-use defmt::Format;
 use heapless::Vec;
 use serde::{Deserialize, Serialize};
 
@@ -21,7 +20,8 @@ pub trait ElementsHandler {
     fn dispatch<'m>(&'m self, element: u8, message: AccessMessage) -> Self::DispatchFuture<'m>;
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, Copy, Clone, Format)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct CompanyIdentifier(pub u16);
 
 impl CompanyIdentifier {
@@ -34,13 +34,16 @@ impl CompanyIdentifier {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Format)]
+#[derive(Serialize, Deserialize, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ProductIdentifier(pub u16);
 
-#[derive(Serialize, Deserialize, Copy, Clone, Format)]
+#[derive(Serialize, Deserialize, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct VersionIdentifier(pub u16);
 
-#[derive(Copy, Clone, Format)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Features {
     pub relay: bool,
     pub proxy: bool,
@@ -73,7 +76,8 @@ impl Features {
     }
 }
 
-#[derive(Clone, Format)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Composition {
     pub(crate) cid: CompanyIdentifier,
     pub(crate) pid: ProductIdentifier,
@@ -105,10 +109,12 @@ impl Composition {
     }
 }
 
-#[derive(Copy, Clone, Format)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Location(pub u16);
 
-#[derive(Clone, Format)]
+#[derive(Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ElementDescriptor {
     pub(crate) loc: Location,
     pub(crate) models: Vec<ModelIdentifier, 10>,

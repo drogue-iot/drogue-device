@@ -1,11 +1,11 @@
-use defmt::{Format, Formatter};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 pub struct Uuid(pub [u8; 16]);
 
-impl Format for Uuid {
-    fn format(&self, fmt: Formatter) {
+#[cfg(feature = "defmt")]
+impl defmt::Format for Uuid {
+    fn format(&self, fmt: defmt::Formatter) {
         defmt::write!(
             fmt,
             "{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}{=u8:02X}",

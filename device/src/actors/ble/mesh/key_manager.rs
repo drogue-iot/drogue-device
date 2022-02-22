@@ -76,10 +76,10 @@ where
         self.load_keys()?;
 
         if let None = self.private_key {
-            defmt::info!("** Generating secrets");
+            info!("** Generating secrets");
             let secret = SecretKey::random(&mut *self.services()?.rng());
             self.private_key.replace(secret);
-            defmt::info!("   ...complete");
+            info!("   ...complete");
             self.store_keys().await?
         }
         Ok(())
@@ -111,7 +111,7 @@ where
         &mut self,
         data: &ProvisioningData,
     ) -> Result<(), DeviceError> {
-        defmt::info!("******************************** SET PROVISIONING DATA");
+        info!("******************************** SET PROVISIONING DATA");
         self.update_stored( |_manager, keys| {
 
             let (nid, encryption_key, privacy_key) = k2(&data.network_key, &[0x00]).map_err(|_|DeviceError::KeyInitialization)?;

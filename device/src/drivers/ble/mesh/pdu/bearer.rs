@@ -3,17 +3,16 @@ pub mod advertising {
         GenericProvisioningError, GenericProvisioningPDU,
     };
     use crate::drivers::ble::mesh::{InsufficientBuffer, PB_ADV};
-    use defmt::Format;
     use heapless::Vec;
 
-    #[derive(Format)]
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     pub struct AdvertisingPDU {
         pub link_id: u32,
         pub transaction_number: u8,
         pub pdu: GenericProvisioningPDU,
     }
 
-    #[derive(Format)]
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     pub enum PBAdvError {
         InvalidSize,
         Generic(GenericProvisioningError),
