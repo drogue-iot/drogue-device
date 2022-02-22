@@ -61,7 +61,7 @@ impl LowerPDU {
         let aid = data[0] & 0b00111111;
         Ok(LowerAccess {
             akf,
-            aid,
+            aid: aid.into(),
             message: LowerAccessMessage::Unsegmented(
                 Vec::from_slice(&data[1..]).map_err(|_| ParseError::InsufficientBuffer)?,
             ),
@@ -79,7 +79,7 @@ impl LowerPDU {
 
         Ok(LowerAccess {
             akf,
-            aid,
+            aid: aid.into(),
             message: LowerAccessMessage::Segmented {
                 szmic,
                 seq_zero,
@@ -112,16 +112,16 @@ impl LowerAccess {
         let seg_akf_aid = match self.message {
             LowerAccessMessage::Unsegmented(_) => {
                 if self.akf {
-                    self.aid | 0b01000000
+                    u8::from(self.aid) | 0b01000000
                 } else {
-                    self.aid
+                    u8::from(self.aid)
                 }
             }
             LowerAccessMessage::Segmented { .. } => {
                 if self.akf {
-                    self.aid | 0b11000000
+                    u8::from(self.aid) | 0b11000000
                 } else {
-                    self.aid | 0b10000000
+                    u8::from(self.aid) | 0b10000000
                 }
             }
         };
@@ -138,7 +138,6 @@ pub struct LowerControl {
 }
 
 impl LowerControl {
-    #[allow(unused)]
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
         xmit.push(self.opcode as u8)
             .map_err(|_| InsufficientBuffer)?;

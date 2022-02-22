@@ -28,7 +28,7 @@ pub trait MeshContext {
         pdu: &'m ObfuscatedAndEncryptedNetworkPDU,
     ) -> Self::TransmitMeshFuture<'m>;
 
-    fn primary_unicast_address(&self) -> Option<UnicastAddress>;
+    fn primary_unicast_address(&self) -> Result<UnicastAddress, DeviceError>;
 }
 
 pub struct Mesh {}

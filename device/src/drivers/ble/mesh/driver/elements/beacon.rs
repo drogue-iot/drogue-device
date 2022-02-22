@@ -10,14 +10,23 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
 ) -> Result<(), DeviceError> {
     match message {
         BeaconMessage::Get => {
-            let val = ctx.retrieve().configuration.secure_beacon;
+            let val = ctx
+                .configuration()
+                .foundation_models()
+                .configuration_model()
+                .secure_beacon();
             ctx.transmit(access.create_response(ctx, BeaconMessage::Status(val))?)
                 .await?;
         }
         BeaconMessage::Set(val) => {
-            let mut update = ctx.retrieve();
-            update.configuration.secure_beacon = *val;
-            ctx.store(update).await?;
+            ctx.update_configuration(|config| {
+                *config
+                    .foundation_models_mut()
+                    .configuration_model_mut()
+                    .secure_beacon_mut() = *val;
+                Ok(())
+            })
+            .await?;
             ctx.transmit(access.create_response(ctx, BeaconMessage::Status(*val))?)
                 .await?;
         }

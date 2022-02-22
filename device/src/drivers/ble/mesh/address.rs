@@ -61,6 +61,20 @@ impl defmt::Format for UnicastAddress {
     }
 }
 
+/*
+impl Into<u16> for UnicastAddress {
+    fn into(self) -> u16 {
+        self.0
+    }
+}
+ */
+
+impl From<UnicastAddress> for u16 {
+    fn from(addr: UnicastAddress) -> Self {
+        addr.0
+    }
+}
+
 impl UnicastAddress {
     pub fn as_bytes(&self) -> [u8; 2] {
         //[self.0[0], self.0[1]]

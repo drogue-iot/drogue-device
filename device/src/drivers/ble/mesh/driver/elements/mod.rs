@@ -6,17 +6,18 @@ mod model_app;
 mod model_publication;
 mod node_reset;
 
-use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
+use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
-use crate::drivers::ble::mesh::configuration_manager::PrimaryElementModels;
+use crate::drivers::ble::mesh::config::Configuration;
 use crate::drivers::ble::mesh::driver::node::OutboundPublishMessage;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::{
-    AppKeyIndex, ConfigurationMessage, ConfigurationServer, NetKeyIndex,
+    ConfigurationMessage, ConfigurationServer,
 };
-use crate::drivers::ble::mesh::model::{Message, Status};
-use crate::drivers::ble::mesh::model::{Model, ModelIdentifier};
+use crate::drivers::ble::mesh::model::Message;
+use crate::drivers::ble::mesh::model::Model;
 use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload};
+use core::cell::Ref;
 use core::future::Future;
 use core::marker::PhantomData;
 use embassy::blocking_mutex::kind::Noop;
@@ -90,81 +91,25 @@ pub trait ElementContext {
 
 // todo: make primary significantly less special
 pub trait PrimaryElementContext: ElementContext {
-    fn retrieve(&self) -> PrimaryElementModels;
-
-    type StoreFuture<'m>: Future<Output = Result<(), DeviceError>>
-    where
-        Self: 'm;
-
-    fn store<'m>(&'m self, update: PrimaryElementModels) -> Self::StoreFuture<'m>;
-
     type NodeResetFuture<'m>: Future<Output = ()>
     where
         Self: 'm;
 
     fn node_reset<'m>(&'m self) -> Self::NodeResetFuture<'m>;
 
-    fn composition(&self) -> Composition;
+    fn composition(&self) -> &Composition;
 
-    type NetworkDetails<'n>: NetworkDetails
+    fn configuration(&self) -> Ref<'_, Configuration>;
+
+    type UpdateConfigurationFuture<'m, F>: Future<Output = Result<(), DeviceError>>
     where
-        Self: 'n;
+        Self: 'm,
+        F: 'm;
 
-    fn network_details(&self, net_key_index: NetKeyIndex) -> Option<Self::NetworkDetails<'_>>;
-
-    fn network_details_by_app_key(
+    fn update_configuration<F: FnOnce(&mut Configuration) -> Result<(), DeviceError>>(
         &self,
-        app_key_index: AppKeyIndex,
-    ) -> Option<Self::NetworkDetails<'_>>;
-}
-
-pub trait NetworkDetails {
-    type AddKeyFuture<'m>: Future<Output = Result<Status, DeviceError>>
-    where
-        Self: 'm;
-
-    fn add_app_key(&mut self, app_key_index: AppKeyIndex, key: [u8; 16]) -> Self::AddKeyFuture<'_>;
-
-    fn app_key_indexes(&self) -> Result<Vec<AppKeyIndex, 10>, Status>;
-
-    type ModelAppBindFuture<'m>: Future<Output = Result<Status, DeviceError>>
-    where
-        Self: 'm;
-
-    fn model_app_bind<'m>(
-        &'m self,
-        element: UnicastAddress,
-        model: ModelIdentifier,
-        app_key_index: AppKeyIndex,
-    ) -> Self::ModelAppBindFuture<'m>;
-
-    type ModelAppUnbindFuture<'m>: Future<Output = Result<Status, DeviceError>>
-    where
-        Self: 'm;
-
-    fn model_app_unbind<'m>(
-        &'m self,
-        element: UnicastAddress,
-        model: ModelIdentifier,
-        app_key_index: AppKeyIndex,
-    ) -> Self::ModelAppUnbindFuture<'m>;
-
-    type ModelPublicationSetFuture<'m>: Future<Output = Result<Status, DeviceError>>
-    where
-        Self: 'm;
-
-    fn model_publication_set<'m>(
-        &'m self,
-        element: UnicastAddress,
-        publish_address: Address,
-        app_key_index: AppKeyIndex,
-        credential_flag: bool,
-        publish_ttl: Option<u8>,
-        publish_period: u8,
-        publish_retransmit_count: u8,
-        public_retransmit_interval_steps: u8,
-        model: ModelIdentifier,
-    ) -> Self::ModelPublicationSetFuture<'m>;
+        update: F,
+    ) -> Self::UpdateConfigurationFuture<'_, F>;
 }
 
 pub struct Elements<E: ElementsHandler> {

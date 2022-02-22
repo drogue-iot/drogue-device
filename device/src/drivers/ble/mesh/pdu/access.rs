@@ -1,6 +1,6 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
-use crate::drivers::ble::mesh::configuration_manager::NetworkKeyHandle;
+use crate::drivers::ble::mesh::config::network::NetworkKeyHandle;
 use crate::drivers::ble::mesh::driver::elements::ElementContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::Message;

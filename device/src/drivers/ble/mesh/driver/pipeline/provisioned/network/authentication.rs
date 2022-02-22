@@ -1,5 +1,5 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
-use crate::drivers::ble::mesh::configuration_manager::{NetworkInfo, NetworkKeyStorage};
+use crate::drivers::ble::mesh::config::network::NetworkDetails;
 use crate::drivers::ble::mesh::crypto::nonce::NetworkNonce;
 use crate::drivers::ble::mesh::crypto::{aes_ccm_decrypt_detached, aes_ccm_encrypt_detached, e};
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
@@ -14,11 +14,11 @@ use heapless::Vec;
 pub trait AuthenticationContext: MeshContext {
     fn iv_index(&self) -> Option<u32>;
 
-    fn network_keys(&self, nid: u8) -> Vec<NetworkKeyStorage, 10>;
+    fn find_network_keys_by_nid(&self, nid: u8) -> Result<Vec<NetworkDetails, 10>, DeviceError>;
 }
 
 pub struct AuthenticationOutput {
-    network: NetworkInfo,
+    network: NetworkDetails,
     dst: [u8; 2],
     transport_pdu: Vec<u8, 28>,
 }
@@ -39,8 +39,8 @@ impl Authentication {
     ) -> Result<Option<CleartextNetworkPDU>, DeviceError> {
         if let Some(iv_index) = ctx.iv_index() {
             let privacy_plaintext = Self::privacy_plaintext(iv_index, &pdu.encrypted_and_mic);
-
-            for network_key in ctx.network_keys(pdu.nid) {
+            let networks = ctx.find_network_keys_by_nid(pdu.nid)?;
+            for network_key in networks {
                 let pecb = e(&network_key.privacy_key, privacy_plaintext)
                     .map_err(|_| DeviceError::InvalidKeyLength)?;
 
@@ -113,28 +113,56 @@ impl Authentication {
                 LowerPDU::Control(_) => true,
             };
 
+            info!("pdu seq {}", pdu.seq);
+            info!("pdu TTL {:x} {}", pdu.ttl, ctl);
+
             let ctl_ttl = pdu.ttl | (if ctl { 0b10000000 } else { 0 });
+
+            info!("ctl_ttl {:x}", ctl_ttl);
 
             let nonce = NetworkNonce::new(ctl_ttl, pdu.seq, pdu.src.as_bytes(), iv_index);
 
-            let mut mic = [0; 4];
+            info!("dst = {}", pdu.dst);
 
             let mut encrypted_and_mic = Vec::new();
             encrypted_and_mic
                 .extend_from_slice(&pdu.dst.as_bytes())
                 .map_err(|_| DeviceError::InsufficientBuffer)?;
+
+            info!("dst before encrypt {:x}", encrypted_and_mic);
             pdu.transport_pdu.emit(&mut encrypted_and_mic)?;
 
-            aes_ccm_encrypt_detached(
-                &pdu.network_key.encryption_key,
-                &nonce.into_bytes(),
-                &mut encrypted_and_mic,
-                &mut mic,
-            )
-            .map_err(|_| DeviceError::CryptoError)?;
-            encrypted_and_mic
-                .extend_from_slice(&mic)
-                .map_err(|_| DeviceError::InsufficientBuffer)?;
+            info!("before encrypt {:x}", encrypted_and_mic);
+
+            if ctl {
+                let mut mic = [0; 8];
+
+                aes_ccm_encrypt_detached(
+                    &pdu.network_key.encryption_key,
+                    &nonce.into_bytes(),
+                    &mut encrypted_and_mic,
+                    &mut mic,
+                )
+                .map_err(|_| DeviceError::CryptoError)?;
+                encrypted_and_mic
+                    .extend_from_slice(&mic)
+                    .map_err(|_| DeviceError::InsufficientBuffer)?;
+            } else {
+                let mut mic = [0; 4];
+
+                aes_ccm_encrypt_detached(
+                    &pdu.network_key.encryption_key,
+                    &nonce.into_bytes(),
+                    &mut encrypted_and_mic,
+                    &mut mic,
+                )
+                .map_err(|_| DeviceError::CryptoError)?;
+                encrypted_and_mic
+                    .extend_from_slice(&mic)
+                    .map_err(|_| DeviceError::InsufficientBuffer)?;
+            }
+
+            info!("random.len {}", encrypted_and_mic.len());
 
             let privacy_plaintext = Self::privacy_plaintext(iv_index, &encrypted_and_mic);
 
@@ -153,7 +181,11 @@ impl Authentication {
             unobfuscated[4] = src_bytes[0];
             unobfuscated[5] = src_bytes[1];
 
+            info!("pre unobfuscated {:x}", unobfuscated);
             let obfuscated = Self::xor(pecb, unobfuscated);
+            info!("obfuscated {:x}", obfuscated);
+            let unobfuscated = Self::xor(pecb, obfuscated);
+            info!("post unobfuscated {:x}", unobfuscated);
             //let obfuscated = unobfuscated;
 
             Ok(Some(ObfuscatedAndEncryptedNetworkPDU {

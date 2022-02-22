@@ -7,7 +7,7 @@ pub mod app;
 pub mod beacon;
 pub mod bearer;
 pub mod composition;
-pub mod configuration_manager;
+pub mod config;
 pub mod crypto;
 pub mod device;
 pub mod driver;

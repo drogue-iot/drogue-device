@@ -1,3 +1,4 @@
+use crate::drivers::ble::mesh::model::Status;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use cmac::crypto_mac::InvalidKeyLength;
@@ -27,6 +28,13 @@ pub enum DeviceError {
     InvalidSrcAddress,
     InvalidState,
     NotProvisioned,
+    Status(Status),
+}
+
+impl From<Status> for DeviceError {
+    fn from(status: Status) -> Self {
+        Self::Status(status)
+    }
 }
 
 impl From<InvalidKeyLength> for DeviceError {

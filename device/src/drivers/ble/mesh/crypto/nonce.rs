@@ -23,6 +23,7 @@ impl NetworkNonce {
         nonce[7] = 0x00;
         nonce[8] = 0x00;
 
+        info!("iv index {}", iv_index);
         let iv_index = iv_index.to_be_bytes();
         nonce[9] = iv_index[0];
         nonce[10] = iv_index[1];
@@ -86,6 +87,7 @@ impl Deref for ApplicationNonce {
 }
 
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct DeviceNonce([u8; 13]);
 
 impl DeviceNonce {
