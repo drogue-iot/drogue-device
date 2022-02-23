@@ -53,7 +53,7 @@ impl<M: Model> AppElementContext<M> {
             .map_err(|_| DeviceError::InsufficientBuffer)
     }
 
-    pub async fn publish(&self, message: M::Message) -> Result<(), DeviceError> {
+    pub async fn publish<'m>(&self, message: M::Message<'m>) -> Result<(), DeviceError> {
         info!(
             "publish model={} element_address={} :: {}",
             M::IDENTIFIER,

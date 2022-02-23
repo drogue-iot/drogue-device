@@ -37,13 +37,13 @@ impl Message for GenericBatteryMessage {
 
 impl Model for GenericBatteryServer {
     const IDENTIFIER: ModelIdentifier = GENERIC_BATTERY_SERVER;
-    type Message = GenericBatteryMessage;
+    type Message<'m> = GenericBatteryMessage;
 
-    fn parse(
+    fn parse<'m>(
         &self,
         opcode: Opcode,
-        _parameters: &[u8],
-    ) -> Result<Option<Self::Message>, ParseError> {
+        _parameters: &'m [u8],
+    ) -> Result<Option<Self::Message<'m>>, ParseError> {
         match opcode {
             GENERIC_BATTERY_GET => Ok(Some(GenericBatteryMessage::Get)),
             _ => Ok(None),

@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod foundation;
 pub mod generic;
+pub mod sensor;
 
 #[derive(Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 pub enum ModelIdentifier {
@@ -118,10 +119,13 @@ pub enum HandlerError {
 
 pub trait Model {
     const IDENTIFIER: ModelIdentifier;
-    type Message: Message;
+    type Message<'m>: Message;
 
-    fn parse(&self, opcode: Opcode, parameters: &[u8])
-        -> Result<Option<Self::Message>, ParseError>;
+    fn parse<'m>(
+        &self,
+        opcode: Opcode,
+        parameters: &'m [u8],
+    ) -> Result<Option<Self::Message<'m>>, ParseError>;
 }
 
 #[derive(Copy, Clone)]
