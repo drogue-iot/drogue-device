@@ -1,5 +1,6 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::pdu::lower::SzMic;
+use core::ops::Deref;
 
 pub struct NetworkNonce([u8; 13]);
 
