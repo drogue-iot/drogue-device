@@ -55,12 +55,6 @@ impl<M: Model> AppElementContext<M> {
     }
 
     pub async fn publish<'m>(&self, message: M::Message<'m>) -> Result<(), DeviceError> {
-        info!(
-            "publish model={} element_address={} :: {}",
-            M::IDENTIFIER,
-            self.address(),
-            message
-        );
         let mut parameters = Vec::new();
         message.emit_parameters(&mut parameters)?;
         let publish = OutboundPublishMessage {

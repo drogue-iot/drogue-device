@@ -141,9 +141,6 @@ impl Lower {
                             .push(block_ack[3])
                             .map_err(|_| DeviceError::InsufficientBuffer)?;
 
-                        info!("ack zero: {:x} {:x}", seq_zero, ack_seq_zero);
-                        info!("ack params: {:x}", parameters);
-
                         let ack = CleartextNetworkPDU {
                             network_key: pdu.network_key,
                             ivi: pdu.ivi,
@@ -159,7 +156,6 @@ impl Lower {
                         };
 
                         if let Some(payload) = payload {
-                            info!("full payload {:x}", payload);
                             // todo: DRY this code
                             let (payload, trans_mic) = match szmic {
                                 SzMic::Bit32 => payload.split_at(payload.len() - 4),
