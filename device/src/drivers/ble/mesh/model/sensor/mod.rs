@@ -37,12 +37,12 @@ pub const SENSOR_SERVER: ModelIdentifier = ModelIdentifier::SIG(0x1100);
 pub const SENSOR_SETUP_SERVER: ModelIdentifier = ModelIdentifier::SIG(0x1101);
 pub const SENSOR_CLIENT: ModelIdentifier = ModelIdentifier::SIG(0x1102);
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct PropertyId(u16);
+pub struct PropertyId(pub u16);
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct RawValue<'m>(&'m [u8]);
+pub struct RawValue<'m>(pub &'m [u8]);
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Tolerance(u16);
@@ -515,6 +515,9 @@ impl SensorGet {
 }
 
 impl<'a, const NUM_SENSORS: usize> SensorStatus<'a, NUM_SENSORS> {
+    pub fn new(values: Vec<SensorData<'a>, NUM_SENSORS>) -> Self {
+        Self { values }
+    }
     fn emit_parameters<const N: usize>(
         &self,
         xmit: &mut heapless::Vec<u8, N>,
@@ -527,6 +530,12 @@ impl<'a, const NUM_SENSORS: usize> SensorStatus<'a, NUM_SENSORS> {
 }
 
 impl<'a> SensorData<'a> {
+    pub fn new(id: PropertyId, value: &'a [u8]) -> Self {
+        Self {
+            id,
+            value: RawValue(value),
+        }
+    }
     fn emit_parameters<const N: usize>(
         &self,
         xmit: &mut heapless::Vec<u8, N>,
