@@ -427,6 +427,7 @@ dependencies = [
  "embedded-storage-async",
  "futures",
  "heapless",
+ "micromath",
  "nrf-softdevice",
  "nrf-softdevice-s140",
  "p256",
@@ -790,6 +791,12 @@ name = "memchr"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "308cc39be01b73d0d18f82a0e7b2a3df85245f84af96fdddc5d202d27e47b86a"
+
+[[package]]
+name = "micromath"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39617bc909d64b068dcffd0e3e31679195b5576d0c83fadc52690268cc2b2b55"
 
 [[package]]
 name = "nb"
