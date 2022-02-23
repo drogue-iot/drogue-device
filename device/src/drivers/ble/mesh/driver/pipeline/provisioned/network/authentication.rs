@@ -152,7 +152,6 @@ impl Authentication {
                     .map_err(|_| DeviceError::InsufficientBuffer)?;
             }
 
-
             let privacy_plaintext = Self::privacy_plaintext(iv_index, &encrypted_and_mic);
 
             let pecb = e(&pdu.network_key.privacy_key, privacy_plaintext)
