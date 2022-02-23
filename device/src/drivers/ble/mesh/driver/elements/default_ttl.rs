@@ -10,14 +10,23 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
 ) -> Result<(), DeviceError> {
     match message {
         DefaultTTLMessage::Get => {
-            let val = ctx.retrieve().configuration.default_ttl;
+            let val = ctx
+                .configuration()
+                .foundation_models()
+                .configuration_model()
+                .default_ttl();
             ctx.transmit(access.create_response(ctx, DefaultTTLMessage::Status(val))?)
                 .await?;
         }
         DefaultTTLMessage::Set(val) => {
-            let mut update = ctx.retrieve();
-            update.configuration.default_ttl = *val;
-            ctx.store(update).await?;
+            ctx.update_configuration(|config| {
+                *config
+                    .foundation_models_mut()
+                    .configuration_model_mut()
+                    .default_ttl_mut() = *val;
+                Ok(())
+            })
+            .await?;
             ctx.transmit(access.create_response(ctx, DefaultTTLMessage::Status(*val))?)
                 .await?;
         }

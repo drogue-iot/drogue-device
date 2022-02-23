@@ -1,9 +1,7 @@
+use core::cell::Ref;
 use core::convert::TryInto;
 use core::future::Future;
 
-use crate::drivers::ble::mesh::configuration_manager::{
-    GeneralStorage, KeyStorage, NetworkInfo, NetworkKey, NetworkKeyStorage,
-};
 use crate::drivers::ble::mesh::crypto;
 use aes::Aes128;
 use cmac::crypto_mac::Output;
@@ -13,11 +11,14 @@ use p256::PublicKey;
 
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
+use crate::drivers::ble::mesh::config::configuration_manager::ConfigurationManager;
+use crate::drivers::ble::mesh::config::network::{Network, NetworkDetails};
+use crate::drivers::ble::mesh::config::Configuration;
 use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::ProvisioningData;
-use heapless::Vec;
+use crate::drivers::ble::mesh::storage::Storage;
 
 pub trait Vault {
     fn uuid(&self) -> Uuid;
@@ -86,8 +87,6 @@ pub trait Vault {
 
     fn iv_index(&self) -> Option<u32>;
 
-    fn network_keys(&self, nid: u8) -> Vec<NetworkKeyStorage, 10>;
-
     fn is_local_unicast(&self, addr: &Address) -> bool;
 
     fn decrypt_device_key(
@@ -106,7 +105,7 @@ pub trait Vault {
 
     fn encrypt_application_key(
         &self,
-        aid: ApplicationKeyIdentifier,
+        aid: &ApplicationKeyIdentifier,
         nonce: ApplicationNonce,
         bytes: &mut [u8],
         mic: &mut [u8],
@@ -115,19 +114,25 @@ pub trait Vault {
     fn primary_unicast_address(&self) -> Option<UnicastAddress>;
 }
 
-pub struct StorageVault<'s, S: GeneralStorage + KeyStorage> {
-    storage: &'s S,
+pub struct StorageVault<'c, S: Storage> {
+    configuration_manager: &'c ConfigurationManager<S>,
 }
 
-impl<'s, S: GeneralStorage + KeyStorage> StorageVault<'s, S> {
-    pub(crate) fn new(storage: &'s S) -> Self {
-        Self { storage }
+impl<'c, S: Storage> StorageVault<'c, S> {
+    pub(crate) fn new(configuration_manager: &'c ConfigurationManager<S>) -> Self {
+        Self {
+            configuration_manager,
+        }
+    }
+
+    fn config(&self) -> Ref<'_, Configuration> {
+        self.configuration_manager.configuration()
     }
 }
 
-impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
+impl<'c, S: Storage> Vault for StorageVault<'c, S> {
     fn uuid(&self) -> Uuid {
-        self.storage.uuid()
+        self.config().uuid().unwrap()
     }
 
     type SetPeerPublicKeyFuture<'m>
@@ -137,22 +142,35 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
 
     fn set_peer_public_key<'m>(&'m mut self, pk: PublicKey) -> Self::SetPeerPublicKeyFuture<'m> {
         async move {
-            let mut keys = self.storage.retrieve();
-            let secret_key = keys.private_key()?.ok_or(DeviceError::KeyInitialization)?;
-            let shared_secret = diffie_hellman(secret_key.to_nonzero_scalar(), pk.as_affine());
-            let _ = keys.set_shared_secret(Some(shared_secret));
-            self.storage.store(keys).await
+            self.configuration_manager
+                .update_configuration(|config| {
+                    let secret_key = config
+                        .device_keys()
+                        .private_key()?
+                        .ok_or(DeviceError::KeyInitialization)?;
+                    let shared_secret =
+                        diffie_hellman(secret_key.to_nonzero_scalar(), pk.as_affine());
+                    config
+                        .device_keys_mut()
+                        .set_shared_secret(Some(shared_secret))?;
+                    Ok(())
+                })
+                .await
         }
     }
 
     fn public_key(&self) -> Result<PublicKey, DeviceError> {
-        self.storage.retrieve().public_key()
+        self.configuration_manager
+            .configuration()
+            .device_keys()
+            .public_key()
     }
 
     fn n_k1(&self, salt: &[u8], p: &[u8]) -> Result<Output<Cmac<Aes128>>, DeviceError> {
         crypto::k1(
-            self.storage
-                .retrieve()
+            self.configuration_manager
+                .configuration()
+                .device_keys()
                 .shared_secret()?
                 .ok_or(DeviceError::CryptoError)?
                 .as_bytes(),
@@ -176,83 +194,49 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
             let (nid, encryption_key, privacy_key) = crypto::k2(&data.network_key, &[0x00])
                 .map_err(|_| DeviceError::KeyInitialization)?;
 
-            let network_key = NetworkKeyStorage {
-                network_key: NetworkKey::new(data.network_key),
-                key_index: data.key_index,
+            let primary_network_details = NetworkDetails::new(
+                data.network_key.into(),
+                data.key_index,
                 nid,
                 encryption_key,
                 privacy_key,
-                app_keys: Default::default(),
-                bindings: Default::default(),
-                publications: Default::default(),
-            };
+            );
 
-            let mut network_keys = Vec::new();
-            network_keys
-                .push(network_key)
-                .map_err(|_| DeviceError::InsufficientBuffer)?;
+            self.configuration_manager
+                .update_configuration(|config| {
+                    let device_key = self.prdk(&provisioning_salt)?;
+                    let device_key = device_key.into_bytes();
+                    let device_key: [u8; 16] = device_key
+                        .try_into()
+                        .map_err(|_| DeviceError::KeyInitialization)?;
+                    config.device_keys_mut().set_device_key(device_key);
 
-            let update = NetworkInfo {
-                network_keys: network_keys,
-                iv_update_flag: data.iv_update_flag,
-                iv_index: data.iv_index,
-                unicast_address: data.unicast_address,
-            };
+                    config.network_mut().replace(Network::new(
+                        primary_network_details,
+                        data.iv_update_flag,
+                        data.iv_index,
+                        data.unicast_address,
+                    ));
+
+                    Ok(())
+                })
+                .await?;
 
             info!("Assigned unicast address {:04x}", data.unicast_address);
-
-            let mut keys = self.storage.retrieve();
-            keys.set_network(&update);
-            keys.set_provisioning_salt(
-                provisioning_salt
-                    .try_into()
-                    .map_err(|_| DeviceError::InsufficientBuffer)?,
-            )?;
-            if let Some(salt) = keys.provisioning_salt()? {
-                let device_key = self.prdk(&salt)?;
-                let device_key = device_key.into_bytes();
-                let device_key: [u8; 16] = device_key
-                    .try_into()
-                    .map_err(|_| DeviceError::KeyInitialization)?;
-                keys.set_device_key(device_key);
-            }
-            self.storage.store(keys).await
+            Ok(())
         }
     }
 
     fn iv_index(&self) -> Option<u32> {
-        if let Some(network) = self.storage.retrieve().network() {
-            Some(network.iv_index)
+        if let Some(network) = self.configuration_manager.configuration().network() {
+            Some(network.iv_index())
         } else {
             None
         }
     }
 
-    fn network_keys(&self, nid: u8) -> Vec<NetworkKeyStorage, 10> {
-        if let Some(network) = self.storage.retrieve().network() {
-            network
-                .network_keys
-                .iter()
-                .filter(|e| e.nid == nid)
-                .map(|e| e.clone())
-                .collect()
-        } else {
-            Vec::new()
-        }
-    }
-
     fn is_local_unicast(&self, addr: &Address) -> bool {
-        match addr {
-            Address::Unicast(inner) => {
-                if let Some(network) = self.storage.retrieve().network() {
-                    // todo check other element addrs
-                    *inner == network.unicast_address
-                } else {
-                    false
-                }
-            }
-            _ => false,
-        }
+        self.configuration_manager.is_local_unicast(addr)
     }
 
     fn decrypt_device_key(
@@ -261,19 +245,20 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
         bytes: &mut [u8],
         mic: &[u8],
     ) -> Result<(), DeviceError> {
-        let keys = self.storage.retrieve();
-        if let Some(salt) = keys.provisioning_salt()? {
-            let device_key = self.prdk(&salt)?;
-            crypto::aes_ccm_decrypt_detached(
-                &*device_key.into_bytes(),
-                &nonce.into_bytes(),
-                bytes,
-                mic,
-            )
+        let device_key = self
+            .config()
+            .device_keys()
+            .device_key()
+            .ok_or(DeviceError::CryptoError)?;
+        info!(
+            "decrypt device {:x} {:x} {:x} nonce = {}",
+            device_key.as_ref(),
+            bytes,
+            mic,
+            nonce
+        );
+        crypto::aes_ccm_decrypt_detached(device_key.as_ref(), &nonce.into_bytes(), bytes, mic)
             .map_err(|_| DeviceError::CryptoError)
-        } else {
-            Err(DeviceError::CryptoError)
-        }
     }
 
     fn encrypt_device_key(
@@ -282,37 +267,26 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
         bytes: &mut [u8],
         mic: &mut [u8],
     ) -> Result<(), DeviceError> {
-        let keys = self.storage.retrieve();
-        if let Some(salt) = keys.provisioning_salt()? {
-            let device_key = self.prdk(&salt)?.into_bytes();
-            crypto::aes_ccm_encrypt_detached(&*device_key, &nonce.into_bytes(), bytes, mic)
-                .map_err(|_| DeviceError::CryptoError)
-        } else {
-            Err(DeviceError::CryptoError)
-        }
+        let device_key = self
+            .config()
+            .device_keys()
+            .device_key()
+            .ok_or(DeviceError::CryptoError)?;
+        crypto::aes_ccm_encrypt_detached(device_key.as_ref(), &nonce.into_bytes(), bytes, mic)
+            .map_err(|_| DeviceError::CryptoError)
     }
 
     fn encrypt_application_key(
         &self,
-        aid: ApplicationKeyIdentifier,
+        aid: &ApplicationKeyIdentifier,
         nonce: ApplicationNonce,
         bytes: &mut [u8],
         mic: &mut [u8],
     ) -> Result<(), DeviceError> {
-        let keys = self.storage.retrieve();
-        if let Some(network) = keys.network() {
-            for network in network.network_keys.iter() {
-                for app_key in network.app_keys.iter() {
-                    if app_key.aid == aid {
-                        return crypto::aes_ccm_encrypt_detached(
-                            &*app_key.app_key,
-                            &*nonce,
-                            bytes,
-                            mic,
-                        )
-                        .map_err(|_| DeviceError::CryptoError);
-                    }
-                }
+        if let Some(network) = self.config().network() {
+            if let Some(app_key) = network.find_app_key_by_aid(aid) {
+                return crypto::aes_ccm_encrypt_detached(app_key.key.as_ref(), &*nonce, bytes, mic)
+                    .map_err(|_| DeviceError::CryptoError);
             }
         }
 
@@ -320,8 +294,8 @@ impl<'s, S: GeneralStorage + KeyStorage> Vault for StorageVault<'s, S> {
     }
 
     fn primary_unicast_address(&self) -> Option<UnicastAddress> {
-        if let Some(network) = self.storage.retrieve().network() {
-            network.unicast_address.try_into().ok()
+        if let Some(network) = self.config().network() {
+            Some(*network.unicast_address())
         } else {
             None
         }

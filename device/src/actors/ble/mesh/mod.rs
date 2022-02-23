@@ -2,7 +2,7 @@ pub mod bearer;
 
 use crate::drivers::ble::mesh::bearer::{Bearer, Handler};
 use crate::drivers::ble::mesh::composition::ElementsHandler;
-use crate::drivers::ble::mesh::configuration_manager::ConfigurationManager;
+use crate::drivers::ble::mesh::config::configuration_manager::ConfigurationManager;
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::Capabilities;

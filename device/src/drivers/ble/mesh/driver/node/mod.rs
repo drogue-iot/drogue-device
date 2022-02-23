@@ -1,8 +1,7 @@
 use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::composition::ElementsHandler;
-use crate::drivers::ble::mesh::configuration_manager::{
-    ConfigurationManager, KeyStorage, NetworkKeyHandle,
-};
+use crate::drivers::ble::mesh::config::configuration_manager::ConfigurationManager;
+use crate::drivers::ble::mesh::config::network::NetworkKeyHandle;
 use crate::drivers::ble::mesh::driver::elements::{AppElementsContext, ElementContext, Elements};
 use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
 use crate::drivers::ble::mesh::driver::DeviceError;
@@ -193,39 +192,34 @@ where
         }
     }
 
-    pub(crate) fn vault(&self) -> StorageVault<ConfigurationManager<S>> {
+    pub(crate) fn vault(&self) -> StorageVault<S> {
         StorageVault::new(&self.configuration_manager)
     }
 
     async fn publish(&self, publish: OutboundPublishMessage) -> Result<(), DeviceError> {
-        if let Some(network) = self.configuration_manager.retrieve().network() {
-            for network in &network.network_keys {
-                if let Some(publication) = network
-                    .publications
-                    .find(publish.element_address, publish.model_identifier)
+        if let Some(network) = self.configuration_manager.configuration().network() {
+            if let Some((network, publication)) =
+                network.find_publication(&publish.element_address, &publish.model_identifier)
+            {
+                if let Some(app_key_details) =
+                    network.find_app_key_by_index(&publication.app_key_index)
                 {
-                    if let Some(app_key_details) = network
-                        .app_keys
-                        .iter()
-                        .find(|e| e.key_index == publication.app_key_index)
-                    {
-                        let message = AccessMessage {
-                            ttl: publication.publish_ttl,
-                            network_key: NetworkKeyHandle::from(network),
-                            ivi: 0,
-                            nid: network.nid,
-                            akf: true,
-                            aid: app_key_details.aid,
-                            src: publish.element_address,
-                            dst: publication.publish_address,
-                            payload: publish.payload,
-                        };
-                        self.pipeline
-                            .borrow_mut()
-                            .process_outbound(self, message)
-                            .await?;
-                        return Ok(());
-                    }
+                    let message = AccessMessage {
+                        ttl: publication.publish_ttl,
+                        network_key: NetworkKeyHandle::from(network),
+                        ivi: 0,
+                        nid: network.nid,
+                        akf: true,
+                        aid: app_key_details.aid,
+                        src: publish.element_address,
+                        dst: publication.publish_address,
+                        payload: publish.payload,
+                    };
+                    self.pipeline
+                        .borrow_mut()
+                        .process_outbound(self, message)
+                        .await?;
+                    return Ok(());
                 }
             }
         }
@@ -380,7 +374,7 @@ where
         self.outbound.initialize();
         self.publish_outbound.initialize();
 
-        if let Some(_) = self.configuration_manager.retrieve().network() {
+        if self.configuration_manager.is_provisioned() {
             self.state = State::Provisioned;
             self.connect_elements();
         }

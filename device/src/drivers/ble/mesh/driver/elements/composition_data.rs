@@ -17,7 +17,7 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                     ctx,
                     CompositionDataMessage::Status(CompositionStatus {
                         page: 0,
-                        data: ctx.composition(),
+                        data: ctx.composition().clone(),
                     }),
                 )?)
                 .await?;

@@ -112,51 +112,54 @@ impl Lower {
                         seg_n,
                         segment_m,
                     } => {
-                        if let (block_ack, Some(payload)) = self
+                        let (block_ack, payload) = self
                             .segmentation
-                            .process_inbound(pdu.src, seq_zero, seg_o, seg_n, &segment_m)?
-                        {
-                            let mut parameters = Vec::new();
-                            parameters
-                                .push(0)
-                                .map_err(|_| DeviceError::InsufficientBuffer)?;
-                            let ack_seq_zero = (seq_zero << 2).to_be_bytes();
-                            parameters
-                                .push(ack_seq_zero[0])
-                                .map_err(|_| DeviceError::InsufficientBuffer)?;
-                            parameters
-                                .push(ack_seq_zero[1])
-                                .map_err(|_| DeviceError::InsufficientBuffer)?;
-                            let block_ack = block_ack.to_be_bytes();
-                            parameters
-                                .push(block_ack[0])
-                                .map_err(|_| DeviceError::InsufficientBuffer)?;
-                            parameters
-                                .push(block_ack[1])
-                                .map_err(|_| DeviceError::InsufficientBuffer)?;
-                            parameters
-                                .push(block_ack[2])
-                                .map_err(|_| DeviceError::InsufficientBuffer)?;
-                            parameters
-                                .push(block_ack[3])
-                                .map_err(|_| DeviceError::InsufficientBuffer)?;
+                            .process_inbound(pdu.src, seq_zero, seg_o, seg_n, &segment_m)?;
 
-                            let ack = CleartextNetworkPDU {
-                                network_key: pdu.network_key,
-                                ivi: pdu.ivi,
-                                nid: pdu.nid,
-                                ttl: pdu.ttl,
-                                seq: ctx.next_sequence().await?,
-                                src: ctx
-                                    .primary_unicast_address()
-                                    .ok_or(DeviceError::NotProvisioned)?,
-                                dst: pdu.src.into(),
-                                transport_pdu: LowerPDU::Control(LowerControl {
-                                    opcode: Opcode::SegmentedAcknowledgement,
-                                    message: LowerControlMessage::Unsegmented { parameters },
-                                }),
-                            };
+                        let mut parameters = Vec::new();
+                        //parameters
+                        //.push(0)
+                        //.map_err(|_| DeviceError::InsufficientBuffer)?;
+                        let ack_seq_zero = (seq_zero << 2).to_be_bytes();
+                        parameters
+                            .push(ack_seq_zero[0])
+                            .map_err(|_| DeviceError::InsufficientBuffer)?;
+                        parameters
+                            .push(ack_seq_zero[1])
+                            .map_err(|_| DeviceError::InsufficientBuffer)?;
+                        let block_ack = block_ack.to_be_bytes();
+                        parameters
+                            .push(block_ack[0])
+                            .map_err(|_| DeviceError::InsufficientBuffer)?;
+                        parameters
+                            .push(block_ack[1])
+                            .map_err(|_| DeviceError::InsufficientBuffer)?;
+                        parameters
+                            .push(block_ack[2])
+                            .map_err(|_| DeviceError::InsufficientBuffer)?;
+                        parameters
+                            .push(block_ack[3])
+                            .map_err(|_| DeviceError::InsufficientBuffer)?;
 
+                        info!("ack zero: {:x} {:x}", seq_zero, ack_seq_zero);
+                        info!("ack params: {:x}", parameters);
+
+                        let ack = CleartextNetworkPDU {
+                            network_key: pdu.network_key,
+                            ivi: pdu.ivi,
+                            nid: pdu.nid,
+                            ttl: 1,
+                            seq: ctx.next_sequence().await?,
+                            src: ctx.primary_unicast_address()?,
+                            dst: pdu.src.into(),
+                            transport_pdu: LowerPDU::Control(LowerControl {
+                                opcode: Opcode::SegmentedAcknowledgement,
+                                message: LowerControlMessage::Unsegmented { parameters },
+                            }),
+                        };
+
+                        if let Some(payload) = payload {
+                            info!("full payload {:x}", payload);
                             // todo: DRY this code
                             let (payload, trans_mic) = match szmic {
                                 SzMic::Bit32 => payload.split_at(payload.len() - 4),
@@ -166,10 +169,11 @@ impl Lower {
                             let mut payload = Vec::from_slice(payload)
                                 .map_err(|_| DeviceError::InsufficientBuffer)?;
 
-                            let seq_auth = ((ctx.iv_index().ok_or(DeviceError::CryptoError)?
-                                << 13)
-                                | seq_zero as u32)
-                                & 0xFFFFFF;
+                            let seq_auth = Self::seq_auth(
+                                ctx.iv_index().ok_or(DeviceError::CryptoError)?,
+                                pdu.seq,
+                                seq_zero,
+                            );
 
                             if access.akf {
                                 // decrypt with aid key
@@ -199,7 +203,7 @@ impl Lower {
                                 })),
                             ))
                         } else {
-                            Ok((None, None))
+                            Ok((Some(ack), None))
                         }
                     }
                 }
@@ -214,6 +218,18 @@ impl Lower {
                     Ok((None, None))
                 }
             },
+        }
+    }
+
+    fn seq_auth(iv_index: u32, seq: u32, seq_zero: u16) -> u32 {
+        (iv_index << 24) + Self::first_seq_number(seq, seq_zero)
+    }
+
+    fn first_seq_number(seq: u32, seq_zero: u16) -> u32 {
+        if (seq & 8191u32) < seq_zero as u32 {
+            seq - ((seq & 8191) - seq_zero as u32) - (8191 + 1)
+        } else {
+            seq - ((seq & 8191) - seq_zero as u32)
         }
     }
 
@@ -260,7 +276,7 @@ impl Lower {
                     payload
                         .extend_from_slice(&trans_mic)
                         .map_err(|_| DeviceError::InsufficientBuffer)?;
-                    (false, 0)
+                    (false, 0.into())
                 };
 
                 if payload.len() > NONSEGMENTED_ACCESS_MUT {
