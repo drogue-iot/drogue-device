@@ -45,26 +45,43 @@ pub struct PropertyId(pub u16);
 pub struct RawValue<'m>(pub &'m [u8]);
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct Tolerance(u16);
+pub struct Tolerance(pub u16);
 
+#[cfg(feature = "defmt")]
+pub trait SensorConfig: defmt::Format {
+    type Data<'m>: SensorData + defmt::Format;
+    const DESCRIPTORS: &'static [SensorDescriptor];
+}
+
+#[cfg(not(feature = "defmt"))]
 pub trait SensorConfig {
-    fn value(id: PropertyId) -> usize;
-    fn x_value(id: PropertyId) -> usize;
-    fn column_width(id: PropertyId) -> usize;
-    fn y_value(id: PropertyId) -> usize;
+    type Data<'m>: SensorData;
+    const DESCRIPTORS: &'static [SensorDescriptor];
+}
+
+pub trait SensorData {
+    fn decode(&mut self, property: PropertyId, data: &[u8]) -> Result<(), ParseError>;
+    fn encode<const N: usize>(
+        &self,
+        property: PropertyId,
+        xmit: &mut Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer>;
 }
 
 pub trait SensorSetupConfig: SensorConfig {
-    fn cadence(id: PropertyId) -> usize;
-    fn setting(id: PropertyId, setting: PropertyId) -> usize;
+    const CADENCE_DESCRIPTORS: &'static [CadenceDescriptor];
+    const SETTING_DESCRIPTORS: &'static [SettingDescriptor];
 }
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum SensorMessage<'m, const NUM_SENSORS: usize, const NUM_COLUMNS: usize> {
+pub enum SensorMessage<'m, C, const NUM_SENSORS: usize, const NUM_COLUMNS: usize>
+where
+    C: SensorConfig,
+{
     DescriptorGet(DescriptorGet),
     DescriptorStatus(DescriptorStatus<NUM_SENSORS>),
     Get(SensorGet),
-    Status(SensorStatus<'m, NUM_SENSORS>),
+    Status(SensorStatus<'m, C>),
     ColumnGet(ColumnGet<'m>),
     ColumnStatus(ColumnStatus<'m>),
     SeriesGet(SeriesGet<'m>),
@@ -84,12 +101,27 @@ pub enum DescriptorStatus<const NUM_SENSORS: usize> {
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct SensorDescriptor {
+    pub id: PropertyId,
+    pub positive_tolerance: Tolerance,
+    pub negative_tolerance: Tolerance,
+    pub sampling_function: SamplingFunction,
+    pub measurement_period: Option<Duration>,
+    pub update_interval: Option<Duration>,
+    pub size: usize,
+    pub x_size: usize,
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct CadenceDescriptor {
     id: PropertyId,
-    positive_tolerance: Tolerance,
-    negative_tolerance: Tolerance,
-    sampling_function: SamplingFunction,
-    measurement_period: Duration,
-    update_interval: Duration,
+    size: usize,
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct SettingDescriptor {
+    sensor: PropertyId,
+    setting: PropertyId,
+    size: usize,
 }
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -110,14 +142,11 @@ pub struct SensorGet {
 }
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct SensorStatus<'m, const NUM_SENSORS: usize> {
-    values: Vec<SensorData<'m>, NUM_SENSORS>,
-}
-
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct SensorData<'m> {
-    id: PropertyId,
-    value: RawValue<'m>,
+pub struct SensorStatus<'a, C>
+where
+    C: SensorConfig,
+{
+    data: C::Data<'a>,
 }
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -146,8 +175,11 @@ pub struct SeriesStatus<'m, const NUM_COLUMNS: usize> {
 }
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum SensorSetupMessage<'m, const NUM_SENSORS: usize, const NUM_COLUMNS: usize> {
-    Sensor(SensorMessage<'m, NUM_SENSORS, NUM_COLUMNS>),
+pub enum SensorSetupMessage<'m, C, const NUM_SENSORS: usize, const NUM_COLUMNS: usize>
+where
+    C: SensorSetupConfig,
+{
+    Sensor(SensorMessage<'m, C, NUM_SENSORS, NUM_COLUMNS>),
     CadenceGet(CadenceGet),
     CadenceSet(CadenceSet<'m>),
     CadenceSetUnacknowledged(CadenceSet<'m>),
@@ -243,8 +275,10 @@ opcode!( SENSOR_SETTING_SET 0x59 );
 opcode!( SENSOR_SETTING_SET_UNACKNOWLEDGED 0x5A );
 opcode!( SENSOR_SETTING_STATUS 0x5B );
 
-impl<'a, const NUM_SENSORS: usize, const NUM_COLUMNS: usize> Message
-    for SensorMessage<'a, NUM_SENSORS, NUM_COLUMNS>
+impl<'a, C, const NUM_SENSORS: usize, const NUM_COLUMNS: usize> Message
+    for SensorMessage<'a, C, NUM_SENSORS, NUM_COLUMNS>
+where
+    C: SensorConfig,
 {
     fn opcode(&self) -> Opcode {
         match self {
@@ -276,8 +310,10 @@ impl<'a, const NUM_SENSORS: usize, const NUM_COLUMNS: usize> Message
     }
 }
 
-impl<'a, const NUM_SENSORS: usize, const NUM_COLUMNS: usize> Message
-    for SensorSetupMessage<'a, NUM_SENSORS, NUM_COLUMNS>
+impl<'a, C, const NUM_SENSORS: usize, const NUM_COLUMNS: usize> Message
+    for SensorSetupMessage<'a, C, NUM_SENSORS, NUM_COLUMNS>
+where
+    C: SensorSetupConfig,
 {
     fn opcode(&self) -> Opcode {
         match self {
@@ -321,7 +357,7 @@ where
     C: SensorConfig,
 {
     const IDENTIFIER: ModelIdentifier = SENSOR_SERVER;
-    type Message<'m> = SensorMessage<'m, NUM_SENSORS, NUM_COLUMNS>;
+    type Message<'m> = SensorMessage<'m, C, NUM_SENSORS, NUM_COLUMNS>;
 
     fn parse<'m>(
         &self,
@@ -349,7 +385,7 @@ where
     C: SensorSetupConfig,
 {
     const IDENTIFIER: ModelIdentifier = SENSOR_SETUP_SERVER;
-    type Message<'m> = SensorSetupMessage<'m, NUM_SENSORS, NUM_COLUMNS>;
+    type Message<'m> = SensorSetupMessage<'m, C, NUM_SENSORS, NUM_COLUMNS>;
 
     fn parse<'m>(
         &self,
@@ -443,6 +479,18 @@ impl<const NUM_SENSORS: usize> DescriptorStatus<NUM_SENSORS> {
 }
 
 impl SensorDescriptor {
+    pub const fn new(id: PropertyId, size: usize) -> Self {
+        Self {
+            id,
+            positive_tolerance: Tolerance(0),
+            negative_tolerance: Tolerance(0),
+            sampling_function: SamplingFunction::Unspecified,
+            measurement_period: None,
+            update_interval: None,
+            size,
+            x_size: 0,
+        }
+    }
     fn emit_parameters<const N: usize>(
         &self,
         xmit: &mut heapless::Vec<u8, N>,
@@ -464,11 +512,18 @@ impl SensorDescriptor {
 
         self.sampling_function.emit_parameters(xmit)?;
 
-        let value = log_1_1(self.measurement_period.as_secs() as f32);
-
+        let value = if let Some(m) = self.measurement_period {
+            log_1_1(m.as_secs() as f32)
+        } else {
+            0
+        };
         xmit.push(value).map_err(|_| InsufficientBuffer)?;
 
-        let value = log_1_1(self.update_interval.as_secs() as f32);
+        let value = if let Some(m) = self.update_interval {
+            log_1_1(m.as_secs() as f32)
+        } else {
+            0
+        };
         xmit.push(value).map_err(|_| InsufficientBuffer)?;
         Ok(())
     }
@@ -514,53 +569,89 @@ impl SensorGet {
     }
 }
 
-impl<'a, const NUM_SENSORS: usize> SensorStatus<'a, NUM_SENSORS> {
-    pub fn new(values: Vec<SensorData<'a>, NUM_SENSORS>) -> Self {
-        Self { values }
+impl<'a, C> SensorStatus<'a, C>
+where
+    C: SensorConfig,
+{
+    pub fn new(data: C::Data<'a>) -> Self {
+        Self { data }
     }
     fn emit_parameters<const N: usize>(
         &self,
         xmit: &mut heapless::Vec<u8, N>,
     ) -> Result<(), InsufficientBuffer> {
-        for value in self.values.iter() {
-            value.emit_parameters(xmit)?;
+        let descriptors = C::DESCRIPTORS;
+        for d in descriptors {
+            self.emit_property(d.id, d.size, xmit)?;
         }
+        Ok(())
+    }
+
+    fn emit_property<const N: usize>(
+        &self,
+        id: PropertyId,
+        size: usize,
+        xmit: &mut heapless::Vec<u8, N>,
+    ) -> Result<(), InsufficientBuffer> {
+        let len = size;
+
+        if id.0 < 2048 && len <= 16 {
+            let value: u8 = (len as u8) << 3;
+            let value: u8 = value | ((id.0 & 0x0700) >> 8) as u8;
+            xmit.push(value).map_err(|_| InsufficientBuffer)?;
+
+            let value = (id.0 & 0xFF) as u8;
+            xmit.push(value).map_err(|_| InsufficientBuffer)?;
+        } else {
+            let value: u8 = 0x80;
+            let value: u8 = value | len as u8 & 0x7F;
+            xmit.push(value).map_err(|_| InsufficientBuffer)?;
+
+            xmit.push((id.0 & 0xFF00 >> 8) as u8)
+                .map_err(|_| InsufficientBuffer)?;
+            xmit.push((id.0 & 0xFF) as u8)
+                .map_err(|_| InsufficientBuffer)?;
+        }
+
+        self.data.encode(id, xmit).map_err(|_| InsufficientBuffer)?;
         Ok(())
     }
 }
 
-impl<'a> SensorData<'a> {
-    pub fn new(id: PropertyId, value: &'a [u8]) -> Self {
-        Self {
-            id,
-            value: RawValue(value),
+fn lookup_descriptor<C>(p: PropertyId) -> Option<&'static SensorDescriptor>
+where
+    C: SensorConfig,
+{
+    for d in C::DESCRIPTORS {
+        if d.id == p {
+            return Some(d);
         }
     }
-    fn emit_parameters<const N: usize>(
-        &self,
-        xmit: &mut heapless::Vec<u8, N>,
-    ) -> Result<(), InsufficientBuffer> {
-        if self.id.0 < 2048 && self.value.0.len() <= 16 {
-            let value: u8 = (self.value.0.len() as u8) << 3;
-            let value: u8 = value | ((self.id.0 & 0x0700) >> 8) as u8;
-            xmit.push(value).map_err(|_| InsufficientBuffer)?;
+    None
+}
 
-            let value = (self.id.0 & 0xFF) as u8;
-            xmit.push(value).map_err(|_| InsufficientBuffer)?;
-        } else {
-            let value: u8 = 0x80;
-            let value: u8 = value | self.value.0.len() as u8 & 0x7F;
-            xmit.push(value).map_err(|_| InsufficientBuffer)?;
-
-            xmit.push((self.id.0 & 0xFF00 >> 8) as u8)
-                .map_err(|_| InsufficientBuffer)?;
-            xmit.push((self.id.0 & 0xFF) as u8)
-                .map_err(|_| InsufficientBuffer)?;
+fn lookup_cadence_descriptor<C>(p: PropertyId) -> Option<&'static CadenceDescriptor>
+where
+    C: SensorSetupConfig,
+{
+    for d in C::CADENCE_DESCRIPTORS {
+        if d.id == p {
+            return Some(d);
         }
-
-        self.value.emit_parameters(xmit)?;
-        Ok(())
     }
+    None
+}
+
+fn lookup_setting_descriptor<C>(p: PropertyId, s: PropertyId) -> Option<&'static SettingDescriptor>
+where
+    C: SensorSetupConfig,
+{
+    for d in C::SETTING_DESCRIPTORS {
+        if d.sensor == p && d.setting == s {
+            return Some(d);
+        }
+    }
+    None
 }
 
 impl<'a> ColumnGet<'a> {
@@ -569,12 +660,17 @@ impl<'a> ColumnGet<'a> {
         C: SensorConfig,
     {
         let id = PropertyId::parse(parameters)?;
-        let x_len = C::x_value(id);
-        let parameters = &parameters[2..];
-        Ok(Self {
-            id,
-            x: RawValue(&parameters[..x_len]),
-        })
+
+        if let Some(d) = lookup_descriptor::<C>(id) {
+            let x_len = d.x_size;
+            let parameters = &parameters[2..];
+            Ok(Self {
+                id,
+                x: RawValue(&parameters[..x_len]),
+            })
+        } else {
+            Err(ParseError::InvalidValue)
+        }
     }
 
     fn emit_parameters<const N: usize>(
@@ -610,14 +706,18 @@ impl<'a> SeriesGet<'a> {
         let id = PropertyId::parse(parameters)?;
         let parameters = &parameters[2..];
         if parameters.len() > 0 {
-            let x_len = C::x_value(id);
-            let x1 = RawValue(&parameters[..x_len]);
-            let parameters = &parameters[x_len..];
-            let x2 = RawValue(&parameters[..x_len]);
-            Ok(Self {
-                id,
-                x: Some((x1, x2)),
-            })
+            if let Some(d) = lookup_descriptor::<C>(id) {
+                let x_len = d.x_size;
+                let x1 = RawValue(&parameters[..x_len]);
+                let parameters = &parameters[x_len..];
+                let x2 = RawValue(&parameters[..x_len]);
+                Ok(Self {
+                    id,
+                    x: Some((x1, x2)),
+                })
+            } else {
+                Err(ParseError::InvalidValue)
+            }
         } else {
             Ok(Self { id, x: None })
         }
@@ -690,31 +790,35 @@ impl<'a> CadenceSet<'a> {
             StatusTriggerType::Property
         };
 
-        let c_len = C::cadence(id);
+        if let Some(d) = lookup_cadence_descriptor::<C>(id) {
+            let c_len = d.size;
 
-        let parameters = &parameters[3..];
-        let status_trigger_delta_down = RawValue(&parameters[..c_len]);
-        let parameters = &parameters[c_len..];
-        let status_trigger_delta_up = RawValue(&parameters[..c_len]);
-        let parameters = &parameters[c_len..];
+            let parameters = &parameters[3..];
+            let status_trigger_delta_down = RawValue(&parameters[..c_len]);
+            let parameters = &parameters[c_len..];
+            let status_trigger_delta_up = RawValue(&parameters[..c_len]);
+            let parameters = &parameters[c_len..];
 
-        let status_min_interval = parameters[0];
-        let parameters = &parameters[1..];
+            let status_min_interval = parameters[0];
+            let parameters = &parameters[1..];
 
-        let fast_cadence_low = RawValue(&parameters[..c_len]);
-        let parameters = &parameters[c_len..];
-        let fast_cadence_high = RawValue(&parameters[..c_len]);
+            let fast_cadence_low = RawValue(&parameters[..c_len]);
+            let parameters = &parameters[c_len..];
+            let fast_cadence_high = RawValue(&parameters[..c_len]);
 
-        Ok(Self {
-            id,
-            fast_cadence_divisor,
-            status_trigger_type,
-            status_trigger_delta_down,
-            status_trigger_delta_up,
-            status_min_interval,
-            fast_cadence_low,
-            fast_cadence_high,
-        })
+            Ok(Self {
+                id,
+                fast_cadence_divisor,
+                status_trigger_type,
+                status_trigger_delta_down,
+                status_trigger_delta_up,
+                status_min_interval,
+                fast_cadence_low,
+                fast_cadence_high,
+            })
+        } else {
+            Err(ParseError::InvalidValue)
+        }
     }
 
     fn emit_parameters<const N: usize>(
@@ -794,10 +898,14 @@ impl<'a> SettingSet<'a> {
         let id = PropertyId::parse(parameters)?;
         let setting = PropertyId::parse(&parameters[2..])?;
 
-        let s_len = C::setting(id, setting);
-        let raw = RawValue(&parameters[4..4 + s_len]);
+        if let Some(d) = lookup_setting_descriptor::<C>(id, setting) {
+            let s_len = d.size;
+            let raw = RawValue(&parameters[4..4 + s_len]);
 
-        Ok(Self { id, setting, raw })
+            Ok(Self { id, setting, raw })
+        } else {
+            Err(ParseError::InvalidValue)
+        }
     }
 
     fn emit_parameters<const N: usize>(
