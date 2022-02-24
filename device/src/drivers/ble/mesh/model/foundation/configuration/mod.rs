@@ -15,6 +15,7 @@ use crate::drivers::ble::mesh::model::foundation::configuration::model_app::{
 };
 use crate::drivers::ble::mesh::model::foundation::configuration::model_publication::{
     ModelPublicationMessage, CONFIG_MODEL_PUBLICATION_SET,
+    CONFIG_MODEL_PUBLICATION_VIRTUAL_ADDRESS_SET,
 };
 use crate::drivers::ble::mesh::model::foundation::configuration::node_reset::{
     NodeResetMessage, CONFIG_NODE_RESET,
@@ -95,6 +96,7 @@ impl Model for ConfigurationServer {
         opcode: Opcode,
         parameters: &'m [u8],
     ) -> Result<Option<Self::Message<'m>>, ParseError> {
+        info!("PARSE {:x} {}", parameters, parameters.len());
         match opcode {
             CONFIG_BEACON_GET => Ok(Some(ConfigurationMessage::Beacon(
                 BeaconMessage::parse_get(parameters)?,
@@ -132,6 +134,11 @@ impl Model for ConfigurationServer {
             CONFIG_MODEL_PUBLICATION_SET => Ok(Some(ConfigurationMessage::ModelPublication(
                 ModelPublicationMessage::parse_set(parameters)?,
             ))),
+            CONFIG_MODEL_PUBLICATION_VIRTUAL_ADDRESS_SET => {
+                Ok(Some(ConfigurationMessage::ModelPublication(
+                    ModelPublicationMessage::parse_virtual_address_set(parameters)?,
+                )))
+            }
             _ => Ok(None),
         }
     }

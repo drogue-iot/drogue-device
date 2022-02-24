@@ -1,6 +1,7 @@
 use crate::opcode;
 use heapless::Vec;
-use crate::drivers::ble::mesh::address::{Address, GroupAddress, UnicastAddress, VirtualAddress};
+use crate::drivers::ble::mesh::address::{Address, GroupAddress, UnicastAddress};
+use crate::drivers::ble::mesh::address::virtual_address::LabelUuid;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::drivers::ble::mesh::model::foundation::configuration::{AppKeyIndex, KeyIndex};
 use crate::drivers::ble::mesh::model::{Message, ModelIdentifier, Status};
@@ -50,6 +51,12 @@ impl ModelPublicationMessage {
     pub fn parse_set(parameters: &[u8]) -> Result<Self, ParseError> {
         Ok(Self::Set(ModelPublicationSetMessage::parse(parameters)?))
     }
+
+    pub fn parse_virtual_address_set(parameters: &[u8]) -> Result<Self, ParseError> {
+        Ok(Self::Set(
+            ModelPublicationSetMessage::parse_virtual_address(parameters)?,
+        ))
+    }
 }
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -72,7 +79,7 @@ impl ModelPublicationGetMessage {
 pub enum PublishAddress {
     Unicast(UnicastAddress),
     Group(GroupAddress),
-    Virtual(VirtualAddress),
+    Virtual(LabelUuid),
 }
 
 impl Into<Address> for PublishAddress {
@@ -80,7 +87,7 @@ impl Into<Address> for PublishAddress {
         match self {
             Unicast(inner) => Address::Unicast(inner),
             PublishAddress::Group(inner) => Address::Group(inner),
-            PublishAddress::Virtual(inner) => Address::Virtual(inner),
+            PublishAddress::Virtual(inner) => Address::LabelUuid(inner),
         }
     }
 }
@@ -123,6 +130,39 @@ impl ModelPublicationSetMessage {
             let publish_retransmit_count = (parameters[8] & 0b11100000) >> 5;
             let publish_retransmit_interval_steps = parameters[8] & 0b00011111;
             let model_identifier = ModelIdentifier::parse(&parameters[9..])?;
+            Ok(Self {
+                element_address,
+                publish_address,
+                app_key_index,
+                credential_flag,
+                publish_ttl,
+                publish_period,
+                publish_retransmit_count,
+                publish_retransmit_interval_steps,
+                model_identifier,
+            })
+        } else {
+            Err(ParseError::InvalidLength)
+        }
+    }
+
+    fn parse_virtual_address(parameters: &[u8]) -> Result<Self, ParseError> {
+        if parameters.len() >= 25 {
+            let element_address = UnicastAddress::parse([parameters[1], parameters[0]])?;
+            let publish_address = PublishAddress::Virtual(LabelUuid::parse(&parameters[2..=17])?);
+
+            let app_key_index = AppKeyIndex(KeyIndex::parse_one(&parameters[18..=19])?);
+            let credential_flag = (parameters[19] & 0b0001000) != 0;
+            let publish_ttl = parameters[20];
+            let publish_ttl = if publish_ttl == 0xFF {
+                None
+            } else {
+                Some(publish_ttl)
+            };
+            let publish_period = parameters[21];
+            let publish_retransmit_count = (parameters[22] & 0b11100000) >> 5;
+            let publish_retransmit_interval_steps = parameters[22] & 0b00011111;
+            let model_identifier = ModelIdentifier::parse(&parameters[23..])?;
             Ok(Self {
                 element_address,
                 publish_address,
@@ -188,8 +228,10 @@ impl ModelPublicationStatusMessage {
             PublishAddress::Group(_addr) => {
                 todo!("group address")
             }
-            PublishAddress::Virtual(_addr) => {
-                todo!("virtual address")
+            PublishAddress::Virtual(addr) => {
+                let addr_bytes = addr.virtual_address().as_bytes();
+                xmit.push(addr_bytes[1]).map_err(|_| InsufficientBuffer)?;
+                xmit.push(addr_bytes[0]).map_err(|_| InsufficientBuffer)?;
             }
         }
         self.app_key_index.emit(xmit)?;

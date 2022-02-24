@@ -8,6 +8,7 @@ use crate::drivers::ble::mesh::pdu::network::CleartextNetworkPDU;
 use ccm::aead::Buffer;
 
 use self::segmentation::Segmentation;
+use crate::drivers::ble::mesh::address::Address;
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
@@ -36,6 +37,7 @@ pub trait LowerContext: AuthenticationContext {
         nonce: ApplicationNonce,
         bytes: &mut [u8],
         mic: &mut [u8],
+        additional_data: Option<&[u8]>,
     ) -> Result<(), DeviceError>;
 
     type NextSequenceFuture<'m>: Future<Output = Result<u32, DeviceError>> + 'm
@@ -253,7 +255,17 @@ impl Lower {
                         ctx.iv_index().ok_or(DeviceError::CryptoError)?,
                     );
                     let mut trans_mic = [0; 4];
-                    ctx.encrypt_application_key(access.aid, nonce, &mut payload, &mut trans_mic)?;
+
+                    ctx.encrypt_application_key(
+                        access.aid,
+                        nonce,
+                        &mut payload,
+                        &mut trans_mic,
+                        match &access.dst {
+                            Address::LabelUuid(inner) => Some(inner.label_uuid()),
+                            _ => None,
+                        },
+                    )?;
                     payload
                         .extend_from_slice(&trans_mic)
                         .map_err(|_| DeviceError::InsufficientBuffer)?;

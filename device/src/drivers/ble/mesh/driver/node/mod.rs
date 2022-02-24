@@ -370,7 +370,10 @@ where
                 Ok(next_state) => {
                     if let Some(next_state) = next_state {
                         if matches!(next_state, State::Provisioned) {
-                            self.connect_elements()
+                            if !matches!(self.state, State::Provisioned) {
+                                // only connect during the first transition.
+                                self.connect_elements()
+                            }
                         }
                         self.state = next_state;
                     }

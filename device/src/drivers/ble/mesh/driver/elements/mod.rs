@@ -160,6 +160,7 @@ impl ElementZero {
             .configuration_server
             .parse(access.payload.opcode, &access.payload.parameters)
         {
+            info!("--> {}", payload);
             match &payload {
                 ConfigurationMessage::Beacon(message) => {
                     self::beacon::dispatch(ctx, access, message).await
@@ -185,6 +186,7 @@ impl ElementZero {
             }
         } else {
             // todo should probably be some UnhandledMessage error
+            error!("failed to parse");
             Ok(())
         }
     }
