@@ -103,12 +103,14 @@ pub fn aes_ccm_encrypt_detached(
     nonce: &[u8],
     data: &mut [u8],
     mic: &mut [u8],
+    additional_data: Option<&[u8]>,
 ) -> Result<(), Error> {
     let key = GenericArray::<u8, <Aes128 as NewBlockCipher>::KeySize>::from_slice(key);
     match mic.len() {
         4 => {
             let ccm = AesCcm32bitMac::new(&key);
-            let tag = ccm.encrypt_in_place_detached(nonce.into(), &[], data)?;
+            let tag =
+                ccm.encrypt_in_place_detached(nonce.into(), additional_data.unwrap_or(&[]), data)?;
             for (i, b) in mic.iter_mut().enumerate() {
                 *b = tag[i];
             }
@@ -116,7 +118,8 @@ pub fn aes_ccm_encrypt_detached(
         }
         8 => {
             let ccm = AesCcm64bitMac::new(&key);
-            let tag = ccm.encrypt_in_place_detached(nonce.into(), &[], data)?;
+            let tag =
+                ccm.encrypt_in_place_detached(nonce.into(), additional_data.unwrap_or(&[]), data)?;
             for (i, b) in mic.iter_mut().enumerate() {
                 *b = tag[i];
             }

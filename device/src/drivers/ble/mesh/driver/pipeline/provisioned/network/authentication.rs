@@ -132,6 +132,7 @@ impl Authentication {
                     &nonce.into_bytes(),
                     &mut encrypted_and_mic,
                     &mut mic,
+                    None,
                 )
                 .map_err(|_| DeviceError::CryptoError)?;
                 encrypted_and_mic
@@ -145,6 +146,7 @@ impl Authentication {
                     &nonce.into_bytes(),
                     &mut encrypted_and_mic,
                     &mut mic,
+                    None,
                 )
                 .map_err(|_| DeviceError::CryptoError)?;
                 encrypted_and_mic

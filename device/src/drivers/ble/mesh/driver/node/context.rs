@@ -261,9 +261,10 @@ where
         nonce: ApplicationNonce,
         bytes: &mut [u8],
         mic: &mut [u8],
+        additional_data: Option<&[u8]>,
     ) -> Result<(), DeviceError> {
         self.vault()
-            .encrypt_application_key(&aid, nonce, bytes, mic)
+            .encrypt_application_key(&aid, nonce, bytes, mic, additional_data)
     }
 
     type NextSequenceFuture<'m>
