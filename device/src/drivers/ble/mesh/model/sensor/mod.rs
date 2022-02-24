@@ -47,6 +47,13 @@ pub struct RawValue<'m>(pub &'m [u8]);
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Tolerance(pub u16);
 
+#[cfg(feature = "defmt")]
+pub trait SensorConfig: defmt::Format {
+    type Data<'m>: SensorData + defmt::Format;
+    const DESCRIPTORS: &'static [SensorDescriptor];
+}
+
+#[cfg(not(feature = "defmt"))]
 pub trait SensorConfig {
     type Data<'m>: SensorData;
     const DESCRIPTORS: &'static [SensorDescriptor];
