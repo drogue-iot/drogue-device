@@ -1,11 +1,11 @@
-use crate::drivers::ble::mesh::bearer::{Bearer, Handler};
+use crate::drivers::ble::mesh::bearer::{Bearer, BearerError, Handler};
 use crate::drivers::ble::mesh::{MESH_MESSAGE, PB_ADV};
 use core::future::Future;
 use core::mem;
 use core::num::NonZeroU32;
 use core::ptr::slice_from_raw_parts;
 use heapless::Vec;
-use nrf_softdevice::ble::central::ScanConfig;
+use nrf_softdevice::ble::central::{ScanConfig, ScanError};
 use nrf_softdevice::ble::peripheral::AdvertiseError;
 use nrf_softdevice::ble::{central, peripheral};
 use nrf_softdevice::{random_bytes, raw, Flash, Softdevice};
@@ -123,10 +123,9 @@ impl SoftdeviceAdvertisingBearer {
 }
 
 impl Bearer for SoftdeviceAdvertisingBearer {
-    type TransmitFuture<'m> = impl Future<Output = ()> + 'm;
+    type TransmitFuture<'m> = impl Future<Output = Result<(), BearerError>> + 'm;
 
     fn transmit<'m>(&'m self, message: &'m [u8]) -> Self::TransmitFuture<'m> {
-        info!("nrf transmit {}", message);
         let adv =
             peripheral::NonconnectableAdvertisement::NonscannableUndirected { adv_data: message };
 
@@ -142,16 +141,12 @@ impl Bearer for SoftdeviceAdvertisingBearer {
             .await
             {
                 match err {
-                    AdvertiseError::Timeout => {
-                        // timeout is okay, ignore.
-                    }
-                    AdvertiseError::NoFreeConn => {
-                        error!("-- nRF No Free Connection")
-                    }
-                    AdvertiseError::Raw(inner) => {
-                        error!("-- nRF {}", inner);
-                    }
+                    AdvertiseError::Timeout => Ok(()),
+                    AdvertiseError::NoFreeConn => Err(BearerError::InsufficientResources),
+                    AdvertiseError::Raw(_) => Err(BearerError::TransmissionFailure),
                 }
+            } else {
+                Ok(())
             }
         }
     }
@@ -160,7 +155,7 @@ impl Bearer for SoftdeviceAdvertisingBearer {
     where
         Self: 'm,
         H: 'm,
-    = impl Future<Output = ()> + 'm;
+    = impl Future<Output = Result<(), BearerError>> + 'm;
 
     fn start_receive<'m, H: Handler + 'm>(&'m self, handler: &'m H) -> Self::ReceiveFuture<'m, H> {
         async move {
@@ -170,7 +165,7 @@ impl Bearer for SoftdeviceAdvertisingBearer {
                 ..Default::default()
             };
             loop {
-                central::scan::<_, ()>(self.sd, &config, |event| {
+                if let Err(err) = central::scan::<_, ()>(self.sd, &config, |event| {
                     let data = event.data;
                     let data = unsafe { &*slice_from_raw_parts(data.p_data, data.len as usize) };
                     if data.len() >= 2 && (data[1] == PB_ADV || data[1] == MESH_MESSAGE) {
@@ -179,7 +174,14 @@ impl Bearer for SoftdeviceAdvertisingBearer {
                     None
                 })
                 .await
-                .ok();
+                {
+                    match err {
+                        ScanError::Timeout => {
+                            // ignore, loop-de-loop
+                        }
+                        ScanError::Raw(_) => return Err(BearerError::Unspecified),
+                    }
+                }
             }
         }
     }

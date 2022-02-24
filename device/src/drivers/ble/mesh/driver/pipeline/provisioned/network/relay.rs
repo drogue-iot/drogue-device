@@ -1,6 +1,5 @@
 use crate::drivers::ble::mesh::address::Address;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::LowerContext;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::network_message_cache::NetworkMessageCache;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::network::CleartextNetworkPDU;

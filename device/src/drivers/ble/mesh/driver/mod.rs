@@ -1,3 +1,4 @@
+use crate::drivers::ble::mesh::bearer::BearerError;
 use crate::drivers::ble::mesh::model::Status;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
@@ -29,6 +30,13 @@ pub enum DeviceError {
     InvalidState,
     NotProvisioned,
     Status(Status),
+    Bearer(BearerError),
+}
+
+impl From<BearerError> for DeviceError {
+    fn from(err: BearerError) -> Self {
+        Self::Bearer(err)
+    }
 }
 
 impl From<Status> for DeviceError {

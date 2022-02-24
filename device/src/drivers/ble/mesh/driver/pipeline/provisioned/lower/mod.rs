@@ -12,6 +12,7 @@ use crate::drivers::ble::mesh::address::Address;
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::replay_cache::ReplayCache;
 use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
 use core::future::Future;
 use heapless::Vec;
@@ -50,12 +51,14 @@ pub trait LowerContext: AuthenticationContext {
 }
 
 pub struct Lower {
+    replay_cache: ReplayCache,
     segmentation: Segmentation,
 }
 
 impl Default for Lower {
     fn default() -> Self {
         Self {
+            replay_cache: Default::default(),
             segmentation: Default::default(),
         }
     }
@@ -82,6 +85,14 @@ impl Lower {
                         if access.akf {
                             // decrypt with aid key
                         } else {
+                            if self.replay_cache.has_seen(
+                                ctx.iv_index().unwrap_or(0),
+                                pdu.seq,
+                                pdu.src,
+                            ) {
+                                info!("dropping replay unsegmented");
+                                return Ok((None, None));
+                            }
                             // decrypt with device key
                             let nonce = DeviceNonce::new(
                                 SzMic::Bit32,
@@ -172,6 +183,15 @@ impl Lower {
                                 pdu.seq,
                                 seq_zero,
                             );
+
+                            if self.replay_cache.has_seen(
+                                ctx.iv_index().unwrap_or(0),
+                                pdu.seq,
+                                pdu.src,
+                            ) {
+                                info!("dropping replay segmented");
+                                return Ok((None, None));
+                            }
 
                             if access.akf {
                                 // decrypt with aid key

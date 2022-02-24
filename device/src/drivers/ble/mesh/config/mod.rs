@@ -55,6 +55,7 @@ impl Configuration {
         changed
     }
 
+    #[cfg(feature = "defmt")]
     fn display_configuration(&self, composition: &Composition) {
         if let Some(uuid) = self.uuid {
             info!("UUID: {}", uuid);
