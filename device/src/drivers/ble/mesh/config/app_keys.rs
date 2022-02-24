@@ -62,6 +62,7 @@ pub struct AppKeyDetails {
 }
 
 impl AppKeyDetails {
+    #[cfg(feature = "defmt")]
     pub(crate) fn display_configuration(&self) {
         info!("  {}: {} [aid={}]", self.index, self.key, self.aid)
     }

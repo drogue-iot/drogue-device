@@ -349,6 +349,7 @@ where
 
         drop(rng);
 
+        #[cfg(feature = "defmt")]
         self.configuration_manager.display_configuration();
 
         self.outbound.initialize();

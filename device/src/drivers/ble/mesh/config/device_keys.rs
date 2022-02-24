@@ -15,6 +15,7 @@ pub struct DeviceKeys {
 }
 
 impl DeviceKeys {
+    #[cfg(feature = "defmt")]
     pub(crate) fn display_configuration(&self) {
         if let Some(key) = self.device_key {
             info!("DeviceKey: {}", key);

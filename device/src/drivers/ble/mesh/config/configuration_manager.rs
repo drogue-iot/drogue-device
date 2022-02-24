@@ -122,6 +122,7 @@ impl<S: Storage> ConfigurationManager<S> {
         cortex_m::peripheral::SCB::sys_reset();
     }
 
+    #[cfg(feature = "defmt")]
     pub(crate) fn display_configuration(&self) {
         info!("================================================================");
         info!("Message Sequence: {}", *self.runtime_seq.borrow());

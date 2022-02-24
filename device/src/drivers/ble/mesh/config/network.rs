@@ -91,6 +91,7 @@ impl Network {
         self.networks.iter()
     }
 
+    #[cfg(feature = "defmt")]
     pub(crate) fn display_configuration(&self, composition: &Composition) {
         info!("Primary unicast address: {}", self.unicast_address);
         info!("IV index: {:x}", self.iv_index);
@@ -131,12 +132,14 @@ impl Networks {
         Self { networks }
     }
 
+    #[cfg(feature = "defmt")]
     pub(crate) fn display_configuration(&self) {
         for network in &self.networks {
             network.display_configuration()
         }
     }
 
+    #[cfg(feature = "defmt")]
     pub(crate) fn display_publications(
         &self,
         element_address: &UnicastAddress,
@@ -147,6 +150,7 @@ impl Networks {
         }
     }
 
+    #[cfg(feature = "defmt")]
     pub(crate) fn display_bindings(
         &self,
         element_address: &UnicastAddress,
@@ -370,6 +374,7 @@ impl NetworkDetails {
         self.bindings.unbind(element_address, model_identifier)
     }
 
+    #[cfg(feature = "defmt")]
     pub(crate) fn display_bindings(
         &self,
         element_address: &UnicastAddress,
@@ -379,6 +384,7 @@ impl NetworkDetails {
             .display_bindings(element_address, model_identifier);
     }
 
+    #[cfg(feature = "defmt")]
     pub(crate) fn display_publications(
         &self,
         element_address: &UnicastAddress,
@@ -388,6 +394,7 @@ impl NetworkDetails {
             .display_publications(element_address, model_identifier);
     }
 
+    #[cfg(feature = "defmt")]
     pub(crate) fn display_configuration(&self) {
         info!("Network Keys:");
         info!(

@@ -106,8 +106,9 @@ where
         Self { transport, sender }
     }
 
-    async fn start(&self) {
-        self.transport.start_receive(self).await
+    async fn start(&self) -> Result<(), DeviceError> {
+        self.transport.start_receive(self).await?;
+        Ok(())
     }
 }
 
@@ -139,7 +140,7 @@ where
 
     fn transmit_bytes<'m>(&'m self, bytes: &'m [u8]) -> Self::TransmitFuture<'m> {
         async move {
-            self.transport.transmit(bytes).await;
+            self.transport.transmit(bytes).await?;
             Ok(())
         }
     }
@@ -193,8 +194,19 @@ where
             pin_mut!(node_fut);
             pin_mut!(handler_fut);
 
-            let _ = join!(node_fut, handler_fut);
+            let (left, right) = join!(node_fut, handler_fut);
 
+            if let Err(left) = left {
+                #[cfg(feature = "defmt")]
+                error!("{}", left)
+            }
+
+            if let Err(right) = right {
+                #[cfg(feature = "defmt")]
+                error!("{}", right)
+            }
+
+            #[cfg(feature = "defmt")]
             info!("shutting down");
         }
     }

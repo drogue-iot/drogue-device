@@ -13,11 +13,8 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
         ModelPublicationMessage::Set(set) => {
             let result = ctx
                 .update_configuration(|config| {
-                    info!("pub A");
                     if let Some(network) = config.network_mut() {
-                        info!("pub B");
                         if let Ok(network) = network.find_by_app_key_index_mut(&set.app_key_index) {
-                            info!("pub C");
                             network.publications_mut().set(
                                 set.element_address,
                                 set.publish_address.into(),
