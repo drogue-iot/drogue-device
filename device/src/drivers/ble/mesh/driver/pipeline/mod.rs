@@ -90,8 +90,14 @@ impl Pipeline {
                 MeshData::Network(pdu) => {
                     if let Some(pdu) = self.authentication.process_inbound(ctx, pdu).await? {
                         // Relaying is independent from processing it locally
-                        if let Some(_outbound) = self.relay.process_inbound(ctx, &pdu).await? {
-                            // todo: send out any relayable outbounds.
+                        if let Some(outbound) = self.relay.process_inbound(ctx, &pdu).await? {
+                            // don't fail if we fail to encrypt a relay.
+                            if let Ok(Some(outbound)) =
+                                self.authentication.process_outbound(ctx, &outbound).await
+                            {
+                                // don't fail if we fail to retransmit.
+                                ctx.transmit_mesh_pdu(&outbound).await.ok();
+                            }
                         }
 
                         let (ack, pdu) = self.lower.process_inbound(ctx, pdu).await?;
@@ -99,7 +105,8 @@ impl Pipeline {
                             if let Some(ack) =
                                 self.authentication.process_outbound(ctx, &ack).await?
                             {
-                                ctx.transmit_mesh_pdu(&ack).await?;
+                                // don't fail if we fail to transmit the ack.
+                                ctx.transmit_mesh_pdu(&ack).await.ok();
                             }
                         }
 
