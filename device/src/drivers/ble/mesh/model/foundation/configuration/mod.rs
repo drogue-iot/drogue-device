@@ -17,6 +17,11 @@ use crate::drivers::ble::mesh::model::foundation::configuration::model_publicati
     ModelPublicationMessage, CONFIG_MODEL_PUBLICATION_SET,
     CONFIG_MODEL_PUBLICATION_VIRTUAL_ADDRESS_SET,
 };
+
+use crate::drivers::ble::mesh::model::foundation::configuration::model_subscription::{
+    ModelSubscriptionMessage, CONFIG_MODEL_SUBSCRIPTION_ADD,
+    CONFIG_MODEL_SUBSCRIPTION_VIRTUAL_ADDRESS_ADD,
+};
 use crate::drivers::ble::mesh::model::foundation::configuration::node_reset::{
     NodeResetMessage, CONFIG_NODE_RESET,
 };
@@ -33,6 +38,7 @@ pub mod composition_data;
 pub mod default_ttl;
 pub mod model_app;
 pub mod model_publication;
+pub mod model_subscription;
 pub mod node_reset;
 
 pub const CONFIGURATION_SERVER: ModelIdentifier = ModelIdentifier::SIG(0x0000);
@@ -47,6 +53,7 @@ pub enum ConfigurationMessage {
     AppKey(AppKeyMessage),
     ModelApp(ModelAppMessage),
     ModelPublication(ModelPublicationMessage),
+    ModelSubscription(ModelSubscriptionMessage),
 }
 
 impl Message for ConfigurationMessage {
@@ -59,6 +66,7 @@ impl Message for ConfigurationMessage {
             ConfigurationMessage::AppKey(inner) => inner.opcode(),
             ConfigurationMessage::ModelApp(inner) => inner.opcode(),
             ConfigurationMessage::ModelPublication(inner) => inner.opcode(),
+            ConfigurationMessage::ModelSubscription(inner) => inner.opcode(),
         }
     }
 
@@ -74,6 +82,7 @@ impl Message for ConfigurationMessage {
             ConfigurationMessage::AppKey(inner) => inner.emit_parameters(xmit),
             ConfigurationMessage::ModelApp(inner) => inner.emit_parameters(xmit),
             ConfigurationMessage::ModelPublication(inner) => inner.emit_parameters(xmit),
+            ConfigurationMessage::ModelSubscription(inner) => inner.emit_parameters(xmit),
         }
     }
 }
@@ -96,7 +105,6 @@ impl Model for ConfigurationServer {
         opcode: Opcode,
         parameters: &'m [u8],
     ) -> Result<Option<Self::Message<'m>>, ParseError> {
-        info!("PARSE {:x} {}", parameters, parameters.len());
         match opcode {
             CONFIG_BEACON_GET => Ok(Some(ConfigurationMessage::Beacon(
                 BeaconMessage::parse_get(parameters)?,
@@ -137,6 +145,15 @@ impl Model for ConfigurationServer {
             CONFIG_MODEL_PUBLICATION_VIRTUAL_ADDRESS_SET => {
                 Ok(Some(ConfigurationMessage::ModelPublication(
                     ModelPublicationMessage::parse_virtual_address_set(parameters)?,
+                )))
+            }
+            // Model Subscription
+            CONFIG_MODEL_SUBSCRIPTION_ADD => Ok(Some(ConfigurationMessage::ModelSubscription(
+                ModelSubscriptionMessage::parse_add(parameters)?,
+            ))),
+            CONFIG_MODEL_SUBSCRIPTION_VIRTUAL_ADDRESS_ADD => {
+                Ok(Some(ConfigurationMessage::ModelSubscription(
+                    ModelSubscriptionMessage::parse_virtual_address_add(parameters)?,
                 )))
             }
             _ => Ok(None),

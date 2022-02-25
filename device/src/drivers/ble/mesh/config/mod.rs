@@ -5,12 +5,14 @@ pub(crate) mod device_keys;
 pub(crate) mod foundation_models;
 pub(crate) mod network;
 pub(crate) mod publications;
+pub(crate) mod subcriptions;
 
 use crate::drivers::ble::mesh::composition::Composition;
 use crate::drivers::ble::mesh::config::configuration_manager::SEQUENCE_THRESHOLD;
 use crate::drivers::ble::mesh::config::device_keys::DeviceKeys;
 use crate::drivers::ble::mesh::config::foundation_models::FoundationModels;
 use crate::drivers::ble::mesh::config::network::Network;
+use crate::drivers::ble::mesh::config::subcriptions::Subscriptions;
 use crate::drivers::ble::mesh::device::Uuid;
 use p256::SecretKey;
 use rand_core::{CryptoRng, RngCore};

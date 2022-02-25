@@ -4,6 +4,7 @@ mod composition_data;
 mod default_ttl;
 mod model_app;
 mod model_publication;
+mod model_subscription;
 mod node_reset;
 
 use crate::drivers::ble::mesh::address::UnicastAddress;
@@ -181,6 +182,9 @@ impl ElementZero {
                 }
                 ConfigurationMessage::ModelPublication(message) => {
                     self::model_publication::dispatch(ctx, access, message).await
+                }
+                ConfigurationMessage::ModelSubscription(message) => {
+                    self::model_subscription::dispatch(ctx, access, message).await
                 }
             }
         } else {

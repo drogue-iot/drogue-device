@@ -90,7 +90,6 @@ impl Lower {
                                 pdu.seq,
                                 pdu.src,
                             ) {
-                                info!("dropping replay unsegmented");
                                 return Ok((None, None));
                             }
                             // decrypt with device key
@@ -189,7 +188,6 @@ impl Lower {
                                 pdu.seq,
                                 pdu.src,
                             ) {
-                                info!("dropping replay segmented");
                                 return Ok((None, None));
                             }
 

@@ -21,6 +21,7 @@ impl Publications {
         })
     }
 
+    #[cfg(feature = "defmt")]
     pub(crate) fn display_publications(
         &self,
         element_address: &UnicastAddress,
