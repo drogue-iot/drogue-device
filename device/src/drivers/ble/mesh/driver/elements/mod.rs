@@ -4,9 +4,10 @@ mod composition_data;
 mod default_ttl;
 mod model_app;
 mod model_publication;
+mod model_subscription;
 mod node_reset;
 
-use crate::drivers::ble::mesh::address::UnicastAddress;
+use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::config::Configuration;
 use crate::drivers::ble::mesh::driver::node::OutboundPublishMessage;
@@ -18,6 +19,7 @@ use crate::drivers::ble::mesh::model::Message;
 use crate::drivers::ble::mesh::model::Model;
 use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload};
 use core::cell::Ref;
+use core::convert::TryInto;
 use core::future::Future;
 use core::marker::PhantomData;
 use embassy::blocking_mutex::kind::Noop;
@@ -108,14 +110,14 @@ pub trait PrimaryElementContext: ElementContext {
 
 pub struct Elements<E: ElementsHandler> {
     zero: ElementZero,
-    pub(crate) app: E,
+    pub(crate) elements: E,
 }
 
 impl<E: ElementsHandler> Elements<E> {
     pub fn new(app_elements: E) -> Self {
         Self {
             zero: ElementZero::new(),
-            app: app_elements,
+            elements: app_elements,
         }
     }
 
@@ -124,17 +126,60 @@ impl<E: ElementsHandler> Elements<E> {
         ctx: &C,
         message: &AccessMessage,
     ) -> Result<(), DeviceError> {
-        // todo dispatch correctly based on dst address element
-        if let Err(err) = self.zero.dispatch(ctx, message).await {
-            error!("{}", err);
-            Err(err)
-        } else {
-            Ok(())
+        let unicast_element_index = match &message.dst {
+            Address::Unicast(addr) => {
+                let primary_addr = ctx.address().ok_or(DeviceError::NotProvisioned)?;
+                let element_index = *addr - primary_addr;
+                if element_index < self.elements.composition().elements.len() as u8 {
+                    Some(element_index)
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        };
+
+        for (element_index, element) in self.elements.composition().elements.iter().enumerate() {
+            if let Some(unicast_element_index) = unicast_element_index {
+                // it's a unicast-directed message... is it a given element's?
+                if unicast_element_index == element_index as u8 {
+                    if element_index == 0 {
+                        // try to dispatch to foundation models in element#0
+                        if self.zero.dispatch(ctx, message).await? {
+                            // handled, stop, don't pass to app models on element#0
+                            return Ok(());
+                        }
+                    }
+                    // the app gets one chance to process.
+                    self.elements.dispatch(element_index as u8, message).await?;
+                    return Ok(());
+                }
+            } else {
+                let primary_addr = ctx.address().ok_or(DeviceError::NotProvisioned)?;
+                // non-unicast, check every element.
+                if let Some(network) = ctx.configuration().network() {
+                    let element_address = primary_addr + element_index as u8;
+                    for model in &element.models {
+                        if network.subscriptions().has_subscription(
+                            &element_address,
+                            &message
+                                .dst
+                                .try_into()
+                                .map_err(|_| DeviceError::InvalidDstAddress)?,
+                            model,
+                        ) {
+                            self.elements.dispatch(element_index as u8, message).await?;
+                        }
+                    }
+                }
+            }
         }
+
+        Ok(())
     }
 
     pub(crate) fn connect(&self, ctx: AppElementsContext) {
-        self.app.connect(ctx);
+        self.elements.connect(ctx);
     }
 }
 
@@ -155,38 +200,40 @@ impl ElementZero {
         &self,
         ctx: &C,
         access: &AccessMessage,
-    ) -> Result<(), DeviceError> {
+    ) -> Result<bool, DeviceError> {
         if let Ok(Some(payload)) = self
             .configuration_server
             .parse(access.payload.opcode, &access.payload.parameters)
         {
             match &payload {
                 ConfigurationMessage::Beacon(message) => {
-                    self::beacon::dispatch(ctx, access, message).await
+                    self::beacon::dispatch(ctx, access, message).await?;
                 }
                 ConfigurationMessage::DefaultTTL(message) => {
-                    self::default_ttl::dispatch(ctx, access, message).await
+                    self::default_ttl::dispatch(ctx, access, message).await?;
                 }
                 ConfigurationMessage::NodeReset(message) => {
-                    self::node_reset::dispatch(ctx, access, message).await
+                    self::node_reset::dispatch(ctx, access, message).await?;
                 }
                 ConfigurationMessage::CompositionData(message) => {
-                    self::composition_data::dispatch(ctx, access, message).await
+                    self::composition_data::dispatch(ctx, access, message).await?;
                 }
                 ConfigurationMessage::AppKey(message) => {
-                    self::app_key::dispatch(ctx, access, message).await
+                    self::app_key::dispatch(ctx, access, message).await?;
                 }
                 ConfigurationMessage::ModelApp(message) => {
-                    self::model_app::dispatch(ctx, access, message).await
+                    self::model_app::dispatch(ctx, access, message).await?;
                 }
                 ConfigurationMessage::ModelPublication(message) => {
-                    self::model_publication::dispatch(ctx, access, message).await
+                    self::model_publication::dispatch(ctx, access, message).await?;
+                }
+                ConfigurationMessage::ModelSubscription(message) => {
+                    self::model_subscription::dispatch(ctx, access, message).await?;
                 }
             }
+            Ok(true)
         } else {
-            // todo should probably be some UnhandledMessage error
-            error!("failed to parse");
-            Ok(())
+            Ok(false)
         }
     }
 }

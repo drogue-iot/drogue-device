@@ -217,7 +217,7 @@ where
                     };
                     self.pipeline
                         .borrow_mut()
-                        .process_outbound(self, message)
+                        .process_outbound(self, &message)
                         .await?;
                     return Ok(());
                 }
@@ -315,7 +315,7 @@ where
                 Either::Left((Some(outbound), _)) => {
                     self.pipeline
                         .borrow_mut()
-                        .process_outbound(self, outbound)
+                        .process_outbound(self, &outbound)
                         .await?;
                     Ok(None)
                 }

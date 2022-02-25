@@ -9,6 +9,7 @@ use core::future::Future;
 use defmt_rtt as _;
 use drogue_device::actors::ble::mesh::MeshNode;
 use drogue_device::actors::button::ButtonEventHandler;
+use drogue_device::actors::led::LedMessage;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
     Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceRng,
 };
@@ -19,15 +20,16 @@ use drogue_device::drivers::ble::mesh::composition::{
 use drogue_device::drivers::ble::mesh::driver::elements::{AppElementContext, AppElementsContext};
 use drogue_device::drivers::ble::mesh::driver::DeviceError;
 use drogue_device::drivers::ble::mesh::model::generic::onoff::{
-    GenericOnOffClient, GenericOnOffMessage, Set, GENERIC_ONOFF_CLIENT,
+    GenericOnOffClient, GenericOnOffMessage, GenericOnOffServer, Set, GENERIC_ONOFF_CLIENT,
+    GENERIC_ONOFF_SERVER,
 };
+use drogue_device::drivers::ble::mesh::model::Model;
 use drogue_device::drivers::ble::mesh::pdu::access::AccessMessage;
 use drogue_device::drivers::ble::mesh::provisioning::{
     Algorithms, Capabilities, InputOOBActions, OOBSize, OutputOOBActions, PublicKeyType,
     StaticOOBType,
 };
 use drogue_device::drivers::ble::mesh::storage::FlashStorage;
-use drogue_device::drivers::ActiveHigh;
 use drogue_device::drivers::ActiveLow;
 use drogue_device::traits::button::Event;
 use drogue_device::{actors, drivers, Actor, ActorContext, Address, DeviceContext, Inbox};
@@ -35,7 +37,7 @@ use embassy::executor::Spawner;
 use embassy_nrf::config::Config;
 use embassy_nrf::gpio::{Level, OutputDrive, Pull};
 use embassy_nrf::interrupt::Priority;
-use embassy_nrf::peripherals::{P0_06, P0_11};
+use embassy_nrf::peripherals::{P0_11, P0_13};
 use embassy_nrf::{gpio::Input, gpio::Output, Peripherals};
 
 use nrf_softdevice::Flash;
@@ -48,7 +50,7 @@ use panic_reset as _;
 
 pub struct MyDevice {
     #[allow(dead_code)]
-    led: ActorContext<actors::led::Led<drivers::led::Led<Output<'static, P0_06>>>>,
+    led: ActorContext<actors::led::Led<drivers::led::Led<Output<'static, P0_13>, ActiveLow>>>,
     button_publisher: ActorContext<MeshButtonPublisher>,
     button: ActorContext<
         actors::button::Button<
@@ -120,9 +122,9 @@ async fn main(spawner: Spawner, p: Peripherals) {
         mesh: ActorContext::new(),
     });
 
-    let led = actors::led::Led::new(drivers::led::Led::<_, ActiveHigh>::new(Output::new(
-        p.P0_06,
-        Level::High,
+    let led = actors::led::Led::new(drivers::led::Led::<_, ActiveLow>::new(Output::new(
+        p.P0_13,
+        Level::Low,
         OutputDrive::Standard,
     )));
 
@@ -146,7 +148,11 @@ async fn main(spawner: Spawner, p: Peripherals) {
         FEATURES,
     );
     composition
-        .add_element(ElementDescriptor::new(Location(0x0001)).add_model(GENERIC_ONOFF_CLIENT))
+        .add_element(
+            ElementDescriptor::new(Location(0x0001))
+                .add_model(GENERIC_ONOFF_CLIENT) /* the button */
+                .add_model(GENERIC_ONOFF_SERVER), /* the LED */
+        )
         .ok();
 
     let elements = CustomElementsHandler {
@@ -164,7 +170,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
 #[allow(unused)]
 pub struct CustomElementsHandler {
     composition: Composition,
-    led: Address<actors::led::Led<drivers::led::Led<Output<'static, P0_06>>>>,
+    led: Address<actors::led::Led<drivers::led::Led<Output<'static, P0_13>, ActiveLow>>>,
     button: Address<MeshButtonPublisher>,
 }
 
@@ -180,7 +186,6 @@ impl ElementsHandler for CustomElementsHandler {
         self.button
             .notify(MeshButtonMessage::Connect(button_ctx))
             .ok();
-        defmt::info!("connecting!");
     }
 
     type DispatchFuture<'m>
@@ -188,8 +193,27 @@ impl ElementsHandler for CustomElementsHandler {
         Self: 'm,
     = impl Future<Output = Result<(), DeviceError>> + 'm;
 
-    fn dispatch(&self, _element: u8, _message: AccessMessage) -> Self::DispatchFuture<'_> {
-        async move { todo!() }
+    fn dispatch<'m>(&'m self, element: u8, message: &'m AccessMessage) -> Self::DispatchFuture<'m> {
+        async move {
+            if element == 0 {
+                let server = GenericOnOffServer;
+                if let Ok(Some(message)) = server.parse(message.opcode(), message.parameters()) {
+                    match message {
+                        GenericOnOffMessage::Set(set) => {
+                            if set.on_off == 0 {
+                                self.led.request(LedMessage::Off).unwrap().await;
+                            } else {
+                                self.led.request(LedMessage::On).unwrap().await;
+                            }
+                        }
+                        _ => {
+                            defmt::warn!("unhandled {}", message);
+                        }
+                    }
+                }
+            }
+            Ok(())
+        }
     }
 }
 
@@ -240,7 +264,6 @@ impl Actor for MeshButtonPublisher {
                         }
                         MeshButtonMessage::Event(event) => match event {
                             Event::Pressed => {
-                                defmt::info!("pressed");
                                 if let Some(ctx) = &self.ctx {
                                     ctx.publish(GenericOnOffMessage::SetUnacknowledged(Set {
                                         on_off: 1,
@@ -253,7 +276,6 @@ impl Actor for MeshButtonPublisher {
                                 }
                             }
                             Event::Released => {
-                                defmt::info!("released");
                                 if let Some(ctx) = &self.ctx {
                                     ctx.publish(GenericOnOffMessage::SetUnacknowledged(Set {
                                         on_off: 0,

@@ -127,10 +127,10 @@ impl Pipeline {
     pub async fn process_outbound<C: PipelineContext>(
         &mut self,
         ctx: &C,
-        message: AccessMessage,
+        message: &AccessMessage,
     ) -> Result<(), DeviceError> {
         trace!("outbound <<<< {}", message);
-        if let Some(message) = self.upper.process_outbound(ctx, message.into()).await? {
+        if let Some(message) = self.upper.process_outbound(ctx, message).await? {
             if let Some(message) = self.lower.process_outbound(ctx, message).await? {
                 for message in message.iter() {
                     if let Some(message) =
@@ -141,6 +141,10 @@ impl Pipeline {
                 }
             }
         }
+
+        // now loopback for local subscriptions
+        // todo: ensure that the dst is locally-processible.
+        ctx.dispatch_access(&message).await?;
 
         Ok(())
     }

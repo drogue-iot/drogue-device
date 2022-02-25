@@ -1,6 +1,7 @@
 use crate::drivers::ble::mesh::address::{Address, InvalidAddress};
 use core::convert::TryInto;
 use core::ops::Add;
+use core::ops::Sub;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Copy, Clone, PartialEq)]
@@ -56,5 +57,13 @@ impl Add<u8> for UnicastAddress {
 
     fn add(self, rhs: u8) -> Self::Output {
         Self(self.0 + rhs as u16)
+    }
+}
+
+impl Sub<UnicastAddress> for UnicastAddress {
+    type Output = u8;
+
+    fn sub(self, rhs: UnicastAddress) -> Self::Output {
+        (self.0 - rhs.0) as u8
     }
 }

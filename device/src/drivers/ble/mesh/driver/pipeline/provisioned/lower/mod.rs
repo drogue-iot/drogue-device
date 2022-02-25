@@ -8,7 +8,7 @@ use crate::drivers::ble::mesh::pdu::network::CleartextNetworkPDU;
 use ccm::aead::Buffer;
 
 use self::segmentation::Segmentation;
-use crate::drivers::ble::mesh::address::Address;
+use crate::drivers::ble::mesh::address::{Address, LabelUuid};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
@@ -18,6 +18,11 @@ use core::future::Future;
 use heapless::Vec;
 
 pub trait LowerContext: AuthenticationContext {
+    fn find_label_uuids_by_address(
+        &self,
+        addr: Address,
+    ) -> Result<Option<Vec<LabelUuid, 10>>, DeviceError>;
+
     fn decrypt_device_key(
         &self,
         nonce: DeviceNonce,
@@ -38,6 +43,15 @@ pub trait LowerContext: AuthenticationContext {
         nonce: ApplicationNonce,
         bytes: &mut [u8],
         mic: &mut [u8],
+        additional_data: Option<&[u8]>,
+    ) -> Result<(), DeviceError>;
+
+    fn decrypt_application_key(
+        &self,
+        aid: ApplicationKeyIdentifier,
+        nonce: ApplicationNonce,
+        bytes: &mut [u8],
+        mic: &[u8],
         additional_data: Option<&[u8]>,
     ) -> Result<(), DeviceError>;
 
@@ -82,17 +96,51 @@ impl Lower {
                         let mut payload = Vec::from_slice(payload)
                             .map_err(|_| DeviceError::InsufficientBuffer)?;
 
+                        if self
+                            .replay_cache
+                            .has_seen(ctx.iv_index().unwrap_or(0), pdu.seq, pdu.src)
+                        {
+                            return Ok((None, None));
+                        }
+
                         if access.akf {
                             // decrypt with aid key
-                        } else {
-                            if self.replay_cache.has_seen(
-                                ctx.iv_index().unwrap_or(0),
+                            let nonce = ApplicationNonce::new(
+                                SzMic::Bit32,
                                 pdu.seq,
                                 pdu.src,
-                            ) {
-                                info!("dropping replay unsegmented");
-                                return Ok((None, None));
+                                pdu.dst,
+                                ctx.iv_index().ok_or(DeviceError::CryptoError)?,
+                            );
+                            if let Some(label_uuids) = ctx.find_label_uuids_by_address(pdu.dst)? {
+                                let mut success = false;
+                                for label_uuid in &label_uuids {
+                                    let result = ctx.decrypt_application_key(
+                                        access.aid,
+                                        nonce,
+                                        &mut payload,
+                                        &trans_mic,
+                                        Some(&label_uuid.uuid),
+                                    );
+                                    if let Ok(_) = result {
+                                        success = true;
+                                        break;
+                                    }
+                                }
+
+                                if !success {
+                                    return Err(DeviceError::CryptoError);
+                                }
+                            } else {
+                                ctx.decrypt_application_key(
+                                    access.aid,
+                                    nonce,
+                                    &mut payload,
+                                    &trans_mic,
+                                    None,
+                                )?;
                             }
+                        } else {
                             // decrypt with device key
                             let nonce = DeviceNonce::new(
                                 SzMic::Bit32,
@@ -189,7 +237,6 @@ impl Lower {
                                 pdu.seq,
                                 pdu.src,
                             ) {
-                                info!("dropping replay segmented");
                                 return Ok((None, None));
                             }
 

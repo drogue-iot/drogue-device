@@ -53,12 +53,14 @@ impl Model for GenericOnOffServer {
     fn parse<'m>(
         &self,
         opcode: Opcode,
-        _parameters: &'m [u8],
+        parameters: &'m [u8],
     ) -> Result<Option<Self::Message<'m>>, ParseError> {
         match opcode {
             GENERIC_ON_OFF_GET => Ok(None),
-            GENERIC_ON_OFF_SET => Ok(None),
-            GENERIC_ON_OFF_SET_UNACKNOWLEDGE => Ok(None),
+            GENERIC_ON_OFF_SET => Ok(Some(GenericOnOffMessage::Set(Set::parse(parameters)?))),
+            GENERIC_ON_OFF_SET_UNACKNOWLEDGE => {
+                Ok(Some(GenericOnOffMessage::Set(Set::parse(parameters)?)))
+            }
             _ => {
                 // not applicable to this role
                 Ok(None)
@@ -101,6 +103,23 @@ pub struct Set {
 }
 
 impl Set {
+    fn parse(parameters: &[u8]) -> Result<Self, ParseError> {
+        if parameters.len() == 4 {
+            let on_off = parameters[0];
+            let tid = parameters[1];
+            let transition_time = parameters[2];
+            let delay = parameters[3];
+            Ok(Self {
+                on_off,
+                tid,
+                transition_time,
+                delay,
+            })
+        } else {
+            Err(ParseError::InvalidLength)
+        }
+    }
+
     fn emit_parameters<const N: usize>(
         &self,
         xmit: &mut Vec<u8, N>,
