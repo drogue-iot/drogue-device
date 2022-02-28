@@ -54,6 +54,7 @@ pub trait UnprovisionedContext: MeshContext {
         nonce: &[u8],
         data: &mut [u8],
         mic: &[u8],
+        additional_data: Option<&[u8]>,
     ) -> Result<(), DeviceError>;
 
     fn rng_u8(&self) -> u8;
@@ -167,6 +168,7 @@ impl Provisionable {
                     &session_nonce,
                     &mut data.encrypted,
                     &data.mic,
+                    None,
                 );
                 match result {
                     Ok(_) => {

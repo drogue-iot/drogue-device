@@ -108,7 +108,6 @@ pub enum Config {
     HeartbeatSubscription(HeartbeatSubscription),
     KeyRefreshPhase(KeyRefreshPhase),
     LowPowerNodePollTimeout(LowPowerNodePollTimeout),
-    Model(Model),
     NetKey(NetKey),
     NetworkTransmit(NetworkTransmit),
     NodeIdentity(NodeIdentity),
@@ -127,7 +126,6 @@ impl Config {
             Self::HeartbeatSubscription(inner) => inner.opcode(),
             Self::KeyRefreshPhase(inner) => inner.opcode(),
             Self::LowPowerNodePollTimeout(inner) => inner.opcode(),
-            Self::Model(inner) => inner.opcode(),
             Self::NetKey(inner) => inner.opcode(),
             Self::NetworkTransmit(inner) => inner.opcode(),
             Self::NodeIdentity(inner) => inner.opcode(),
@@ -145,7 +143,6 @@ impl Config {
             Self::HeartbeatSubscription(inner) => inner.emit(xmit),
             Self::KeyRefreshPhase(inner) => inner.emit(xmit),
             Self::LowPowerNodePollTimeout(inner) => inner.emit(xmit),
-            Self::Model(inner) => inner.emit(xmit),
             Self::NetKey(inner) => inner.emit(xmit),
             Self::NetworkTransmit(inner) => inner.emit(xmit),
             Self::NodeIdentity(inner) => inner.emit(xmit),
@@ -273,55 +270,6 @@ impl LowPowerNodePollTimeout {
         match self {
             Self::Get => CONFIG_LOW_POWER_NODE_POLLTIMEOUT_GET,
             Self::Status => CONFIG_LOW_POWER_NODE_POLLTIMEOUT_STATUS,
-        }
-    }
-    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        todo!()
-    }
-}
-
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum Model {
-    Subscription(ModelSubscription),
-}
-
-#[allow(unused)]
-impl Model {
-    pub fn opcode(&self) -> Opcode {
-        match self {
-            //Self::App(inner) => inner.opcode(),
-            Self::Subscription(inner) => inner.opcode(),
-        }
-    }
-    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
-        todo!()
-    }
-}
-
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum ModelSubscription {
-    Add,
-    Delete,
-    DeleteAll,
-    Overwrite,
-    Status,
-    VirtualAddressAdd,
-    VirtualAddressDelete,
-    VirtualAddressOverwrite,
-}
-
-#[allow(unused)]
-impl ModelSubscription {
-    pub fn opcode(&self) -> Opcode {
-        match self {
-            Self::Add => CONFIG_MODEL_SUBSCRIPTION_ADD,
-            Self::Delete => CONFIG_MODEL_SUBSCRIPTION_DELETE,
-            Self::DeleteAll => CONFIG_MODEL_SUBSCRIPTION_DELETE_ALL,
-            Self::Overwrite => CONFIG_MODEL_SUBSCRIPTION_OVERWRITE,
-            Self::Status => CONFIG_MODEL_SUBSCRIPTION_STATUS,
-            Self::VirtualAddressAdd => CONFIG_MODEL_SUBSCRIPTION_VIRTUAL_ADDRESS_ADD,
-            Self::VirtualAddressDelete => CONFIG_MODEL_SUBSCRIPTION_VIRTUAL_ADDRESS_DELETE,
-            Self::VirtualAddressOverwrite => CONFIG_MODEL_SUBSCRIPTION_VIRTUAL_ADDRESS_OVERWRITE,
         }
     }
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
@@ -768,14 +716,14 @@ opcode!( CONFIG_LOW_POWER_NODE_POLLTIMEOUT_STATUS 0x80, 0x2E );
 //opcode!( CONFIG_MODEL_PUBLICATION_GET 0x80, 0x18);
 //opcode!( CONFIG_MODEL_PUBLICATION_STATUS 0x80, 0x19);
 //opcode!( CONFIG_MODEL_PUBLICATION_VIRTUAL_ADDRESS_SET 0x80, 0x1A);
-opcode!( CONFIG_MODEL_SUBSCRIPTION_ADD 0x80, 0x1B);
-opcode!( CONFIG_MODEL_SUBSCRIPTION_DELETE 0x80, 0x1C);
-opcode!( CONFIG_MODEL_SUBSCRIPTION_DELETE_ALL 0x80, 0x1D);
-opcode!( CONFIG_MODEL_SUBSCRIPTION_OVERWRITE 0x80, 0x1E);
-opcode!( CONFIG_MODEL_SUBSCRIPTION_STATUS 0x80, 0x1F);
-opcode!( CONFIG_MODEL_SUBSCRIPTION_VIRTUAL_ADDRESS_ADD 0x80, 0x20);
-opcode!( CONFIG_MODEL_SUBSCRIPTION_VIRTUAL_ADDRESS_DELETE 0x80, 0x21);
-opcode!( CONFIG_MODEL_SUBSCRIPTION_VIRTUAL_ADDRESS_OVERWRITE 0x80, 0x22);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_ADD 0x80, 0x1B);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_DELETE 0x80, 0x1C);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_DELETE_ALL 0x80, 0x1D);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_OVERWRITE 0x80, 0x1E);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_STATUS 0x80, 0x1F);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_VIRTUAL_ADDRESS_ADD 0x80, 0x20);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_VIRTUAL_ADDRESS_DELETE 0x80, 0x21);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_VIRTUAL_ADDRESS_OVERWRITE 0x80, 0x22);
 opcode!( CONFIG_NETKEY_ADD 0x80, 0x40);
 opcode!( CONFIG_NETKEY_DELETE 0x80, 0x41);
 opcode!( CONFIG_NETKEY_GET 0x80, 0x42);

@@ -4,6 +4,7 @@ use crate::drivers::ble::mesh::composition::Composition;
 use crate::drivers::ble::mesh::config::app_keys::AppKeyDetails;
 use crate::drivers::ble::mesh::config::bindings::Bindings;
 use crate::drivers::ble::mesh::config::publications::{Publication, Publications};
+use crate::drivers::ble::mesh::config::subcriptions::Subscriptions;
 use crate::drivers::ble::mesh::model::foundation::configuration::{AppKeyIndex, NetKeyIndex};
 use crate::drivers::ble::mesh::model::{ModelIdentifier, Status};
 use crate::drivers::ble::mesh::provisioning::IVUpdateFlag;
@@ -19,6 +20,7 @@ pub struct Network {
     iv_update_flag: IVUpdateFlag,
     iv_index: u32,
     unicast_address: UnicastAddress,
+    subscriptions: Subscriptions,
 }
 
 impl Network {
@@ -33,7 +35,16 @@ impl Network {
             iv_update_flag,
             iv_index,
             unicast_address,
+            subscriptions: Default::default(),
         }
+    }
+
+    pub fn subscriptions(&self) -> &Subscriptions {
+        &self.subscriptions
+    }
+
+    pub fn subscriptions_mut(&mut self) -> &mut Subscriptions {
+        &mut self.subscriptions
     }
 
     pub(crate) fn find_by_net_key_index(
@@ -106,6 +117,8 @@ impl Network {
                 info!("    - {}", model);
                 self.networks.display_bindings(&element_address, &model);
                 self.networks.display_publications(&element_address, &model);
+                self.subscriptions
+                    .display_subscriptions(&element_address, &model);
             }
         }
     }
@@ -146,7 +159,7 @@ impl Networks {
         model_identifier: &ModelIdentifier,
     ) {
         for network in &self.networks {
-            network.display_publications(element_address, model_identifier)
+            network.display_publications(element_address, model_identifier);
         }
     }
 

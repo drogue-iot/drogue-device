@@ -42,7 +42,7 @@ impl Into<Address> for VirtualAddress {
 
 #[derive(Serialize, Deserialize, Copy, Clone, PartialEq)]
 pub struct LabelUuid {
-    uuid: [u8; 16],
+    pub(crate) uuid: [u8; 16],
     address: VirtualAddress,
 }
 

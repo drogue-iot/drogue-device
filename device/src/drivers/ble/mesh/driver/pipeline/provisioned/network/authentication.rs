@@ -72,6 +72,7 @@ impl Authentication {
                     &nonce.into_bytes(),
                     payload,
                     mic,
+                    None,
                 ) {
                     let ttl = unobfuscated[0] & 0b01111111;
                     let seq =

@@ -1,4 +1,4 @@
-use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
+use crate::drivers::ble::mesh::address::{Address, LabelUuid, UnicastAddress};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::config::network::NetworkDetails;
@@ -105,8 +105,9 @@ where
         nonce: &[u8],
         data: &mut [u8],
         mic: &[u8],
+        additional_data: Option<&[u8]>,
     ) -> Result<(), DeviceError> {
-        crypto::aes_ccm_decrypt_detached(key, nonce, data, mic)
+        crypto::aes_ccm_decrypt_detached(key, nonce, data, mic, additional_data)
             .map_err(|_| DeviceError::CryptoError)
     }
 
@@ -237,6 +238,25 @@ where
     S: Storage,
     TX: Transmitter,
 {
+    fn find_label_uuids_by_address(
+        &self,
+        addr: Address,
+    ) -> Result<Option<Vec<LabelUuid, 10>>, DeviceError> {
+        if let Address::Virtual(address) = addr {
+            if let Some(network) = self.configuration_manager.configuration().network() {
+                network
+                    .subscriptions()
+                    .find_label_uuids_by_address(address)
+                    .map_err(|_| DeviceError::InsufficientBuffer)
+                    .map(|inner| Some(inner))
+            } else {
+                Err(DeviceError::NotProvisioned)
+            }
+        } else {
+            Ok(None)
+        }
+    }
+
     fn decrypt_device_key(
         &self,
         nonce: DeviceNonce,
@@ -265,6 +285,18 @@ where
     ) -> Result<(), DeviceError> {
         self.vault()
             .encrypt_application_key(&aid, nonce, bytes, mic, additional_data)
+    }
+
+    fn decrypt_application_key(
+        &self,
+        aid: ApplicationKeyIdentifier,
+        nonce: ApplicationNonce,
+        bytes: &mut [u8],
+        mic: &[u8],
+        additional_data: Option<&[u8]>,
+    ) -> Result<(), DeviceError> {
+        self.vault()
+            .decrypt_application_key(&aid, nonce, bytes, mic, additional_data)
     }
 
     type NextSequenceFuture<'m>

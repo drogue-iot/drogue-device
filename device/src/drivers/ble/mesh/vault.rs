@@ -70,8 +70,9 @@ pub trait Vault {
         nonce: &[u8],
         data: &mut [u8],
         mic: &[u8],
+        additional_data: Option<&[u8]>,
     ) -> Result<(), DeviceError> {
-        crypto::aes_ccm_decrypt_detached(key, nonce, data, mic)
+        crypto::aes_ccm_decrypt_detached(key, nonce, data, mic, additional_data)
             .map_err(|_| DeviceError::CryptoError)
     }
 
@@ -109,6 +110,15 @@ pub trait Vault {
         nonce: ApplicationNonce,
         bytes: &mut [u8],
         mic: &mut [u8],
+        additional_data: Option<&[u8]>,
+    ) -> Result<(), DeviceError>;
+
+    fn decrypt_application_key(
+        &self,
+        aid: &ApplicationKeyIdentifier,
+        nonce: ApplicationNonce,
+        bytes: &mut [u8],
+        mic: &[u8],
         additional_data: Option<&[u8]>,
     ) -> Result<(), DeviceError>;
 
@@ -251,7 +261,7 @@ impl<'c, S: Storage> Vault for StorageVault<'c, S> {
             .device_keys()
             .device_key()
             .ok_or(DeviceError::CryptoError)?;
-        crypto::aes_ccm_decrypt_detached(device_key.as_ref(), &*nonce, bytes, mic)
+        crypto::aes_ccm_decrypt_detached(device_key.as_ref(), &*nonce, bytes, mic, None)
             .map_err(|_| DeviceError::CryptoError)
     }
 
@@ -288,6 +298,31 @@ impl<'c, S: Storage> Vault for StorageVault<'c, S> {
                     additional_data,
                 )
                 .map_err(|_| DeviceError::CryptoError);
+            }
+        }
+
+        Err(DeviceError::CryptoError)
+    }
+
+    fn decrypt_application_key(
+        &self,
+        aid: &ApplicationKeyIdentifier,
+        nonce: ApplicationNonce,
+        bytes: &mut [u8],
+        mic: &[u8],
+        additional_data: Option<&[u8]>,
+    ) -> Result<(), DeviceError> {
+        if let Some(network) = self.config().network() {
+            if let Some(app_key) = network.find_app_key_by_aid(aid) {
+                if let Ok(_) = crypto::aes_ccm_decrypt_detached(
+                    app_key.key.as_ref(),
+                    &*nonce,
+                    bytes,
+                    mic,
+                    additional_data,
+                ) {
+                    return Ok(());
+                }
             }
         }
 

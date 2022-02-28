@@ -27,6 +27,7 @@ pub enum DeviceError {
     TransmitError,
     Serialization,
     InvalidSrcAddress,
+    InvalidDstAddress,
     InvalidState,
     NotProvisioned,
     Status(Status),

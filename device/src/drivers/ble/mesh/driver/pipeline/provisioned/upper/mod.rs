@@ -35,7 +35,7 @@ impl Upper {
     pub async fn process_outbound<C: UpperContext>(
         &mut self,
         _ctx: &C,
-        message: AccessMessage,
+        message: &AccessMessage,
     ) -> Result<Option<UpperPDU>, DeviceError> {
         // todo: split access and control handling, wrap with an enum, I guess.
         let mut payload = Vec::new();

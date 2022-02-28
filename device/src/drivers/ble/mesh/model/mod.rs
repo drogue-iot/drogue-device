@@ -119,6 +119,8 @@ pub enum HandlerError {
 
 pub trait Model {
     const IDENTIFIER: ModelIdentifier;
+    const SUPPORTS_SUBSCRIPTION: bool = true;
+    const SUPPORTS_PUBLICATION: bool = true;
     type Message<'m>: Message;
 
     fn parse<'m>(
