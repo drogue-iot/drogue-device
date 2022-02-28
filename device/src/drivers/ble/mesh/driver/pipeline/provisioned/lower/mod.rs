@@ -90,7 +90,7 @@ impl Lower {
         match pdu.transport_pdu {
             LowerPDU::Access(access) => {
                 match access.message {
-                    LowerAccessMessage::Unsegmented(payload) => {
+                    LowerAccessMessage::Unsegmented(ref payload) => {
                         // TransMIC is 32 bits for unsegmented access messages.
                         let (payload, trans_mic) = payload.split_at(payload.len() - 4);
                         let mut payload = Vec::from_slice(payload)
@@ -103,7 +103,7 @@ impl Lower {
                             return Ok((None, None));
                         }
 
-                        if access.akf {
+                        let dst = if access.akf {
                             // decrypt with aid key
                             let nonce = ApplicationNonce::new(
                                 SzMic::Bit32,
@@ -113,22 +113,20 @@ impl Lower {
                                 ctx.iv_index().ok_or(DeviceError::CryptoError)?,
                             );
                             if let Some(label_uuids) = ctx.find_label_uuids_by_address(pdu.dst)? {
-                                let mut success = false;
-                                for label_uuid in &label_uuids {
-                                    let result = ctx.decrypt_application_key(
-                                        access.aid,
-                                        nonce,
-                                        &mut payload,
-                                        &trans_mic,
-                                        Some(&label_uuid.uuid),
-                                    );
-                                    if let Ok(_) = result {
-                                        success = true;
-                                        break;
-                                    }
-                                }
-
-                                if !success {
+                                if let Some(label_uuid) = label_uuids.iter().find(|label_uuid| {
+                                    matches!(
+                                        ctx.decrypt_application_key(
+                                            access.aid,
+                                            nonce,
+                                            &mut payload,
+                                            &trans_mic,
+                                            Some(&label_uuid.uuid),
+                                        ),
+                                        Ok(_)
+                                    )
+                                }) {
+                                    Address::LabelUuid(*label_uuid)
+                                } else {
                                     return Err(DeviceError::CryptoError);
                                 }
                             } else {
@@ -139,6 +137,7 @@ impl Lower {
                                     &trans_mic,
                                     None,
                                 )?;
+                                pdu.dst
                             }
                         } else {
                             // decrypt with device key
@@ -150,7 +149,9 @@ impl Lower {
                                 ctx.iv_index().ok_or(DeviceError::CryptoError)?,
                             );
                             ctx.decrypt_device_key(nonce, &mut payload, &trans_mic)?;
-                        }
+                            pdu.dst
+                        };
+
                         Ok((
                             None,
                             Some(UpperPDU::Access(UpperAccess {
@@ -161,7 +162,7 @@ impl Lower {
                                 akf: access.akf,
                                 aid: access.aid,
                                 src: pdu.src,
-                                dst: pdu.dst,
+                                dst,
                                 payload,
                             })),
                         ))
