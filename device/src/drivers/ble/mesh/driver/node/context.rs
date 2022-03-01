@@ -108,7 +108,7 @@ where
         additional_data: Option<&[u8]>,
     ) -> Result<(), DeviceError> {
         crypto::aes_ccm_decrypt_detached(key, nonce, data, mic, additional_data)
-            .map_err(|_| DeviceError::CryptoError)
+            .map_err(|_| DeviceError::CryptoError("aes_ccm_decrypt"))
     }
 
     fn rng_u8(&self) -> u8 {
@@ -180,6 +180,19 @@ where
             Err(DeviceError::NotProvisioned)
         }
     }
+
+    fn is_local_unicast(&self, addr: &Address) -> bool {
+        if let Address::Unicast(addr) = addr {
+            if let Ok(primary_addr) = self.primary_unicast_address() {
+                let element_index = *addr - primary_addr;
+                element_index < self.elements.elements.composition().elements.len() as u8
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
 }
 
 // ------------------------------------------------------------------------
@@ -204,9 +217,6 @@ where
     S: Storage,
     TX: Transmitter,
 {
-    fn is_local_unicast(&self, address: &Address) -> bool {
-        self.vault().is_local_unicast(address)
-    }
 }
 
 impl<E, TX, RX, S, R> AuthenticationContext for Node<E, TX, RX, S, R>
@@ -318,6 +328,18 @@ where
         //.configuration
         //.default_ttl
     }
+
+    fn has_any_subscription(&self, dst: &Address) -> bool {
+        if let Some(network) = self.configuration_manager.configuration().network() {
+            network.subscriptions().has_any_subscription(dst)
+        } else {
+            false
+        }
+    }
+
+    fn is_locally_relevant(&self, dst: &Address) -> bool {
+        self.is_local_unicast(dst) || self.has_any_subscription(dst)
+    }
 }
 
 impl<E, TX, RX, S, R> UpperContext for Node<E, TX, RX, S, R>
@@ -424,5 +446,9 @@ where
         update: F,
     ) -> Self::UpdateConfigurationFuture<'_, F> {
         self.configuration_manager.update_configuration(update)
+    }
+
+    fn is_local(&self, addr: &UnicastAddress) -> bool {
+        self.is_local_unicast(&Address::Unicast(*addr))
     }
 }

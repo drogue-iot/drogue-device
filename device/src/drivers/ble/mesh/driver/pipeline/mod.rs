@@ -130,6 +130,12 @@ impl Pipeline {
         message: &AccessMessage,
     ) -> Result<(), DeviceError> {
         trace!("outbound <<<< {}", message);
+
+        // local loopback.
+        if ctx.is_locally_relevant(&message.dst) {
+            ctx.dispatch_access(&message).await?;
+        }
+
         if let Some(message) = self.upper.process_outbound(ctx, message).await? {
             if let Some(message) = self.lower.process_outbound(ctx, message).await? {
                 for message in message.iter() {
@@ -141,10 +147,6 @@ impl Pipeline {
                 }
             }
         }
-
-        // now loopback for local subscriptions
-        // todo: ensure that the dst is locally-processible.
-        ctx.dispatch_access(&message).await?;
 
         Ok(())
     }

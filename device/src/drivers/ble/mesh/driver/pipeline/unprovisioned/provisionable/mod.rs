@@ -148,7 +148,9 @@ impl Provisionable {
             ProvisioningPDU::Random(random) => {
                 self.random_provisioner.replace(random.random);
                 Ok(Some(ProvisioningPDU::Random(Random {
-                    random: self.random_device.ok_or(DeviceError::CryptoError)?,
+                    random: self
+                        .random_device
+                        .ok_or(DeviceError::CryptoError("provisioning random"))?,
                 })))
             }
             ProvisioningPDU::Data(mut data) => {
@@ -177,7 +179,7 @@ impl Provisionable {
                             .await?;
                     }
                     Err(_) => {
-                        return Err(DeviceError::CryptoError);
+                        return Err(DeviceError::CryptoError("provisioning data"));
                     }
                 }
                 Ok(Some(ProvisioningPDU::Complete))

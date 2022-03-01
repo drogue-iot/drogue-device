@@ -9,7 +9,7 @@ use cmac::Cmac;
 use p256::elliptic_curve::ecdh::diffie_hellman;
 use p256::PublicKey;
 
-use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
+use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::config::configuration_manager::ConfigurationManager;
 use crate::drivers::ble::mesh::config::network::{Network, NetworkDetails};
@@ -62,7 +62,7 @@ pub trait Vault {
     }
 
     fn k2(n: &[u8], p: &[u8]) -> Result<(u8, [u8; 16], [u8; 16]), DeviceError> {
-        crypto::k2(n, p).map_err(|_| DeviceError::CryptoError)
+        crypto::k2(n, p).map_err(|_| DeviceError::CryptoError("k2"))
     }
 
     fn aes_ccm_decrypt(
@@ -73,7 +73,7 @@ pub trait Vault {
         additional_data: Option<&[u8]>,
     ) -> Result<(), DeviceError> {
         crypto::aes_ccm_decrypt_detached(key, nonce, data, mic, additional_data)
-            .map_err(|_| DeviceError::CryptoError)
+            .map_err(|_| DeviceError::CryptoError("aes_ccm_decrypt"))
     }
 
     type SetProvisioningDataFuture<'m>: Future<Output = Result<(), DeviceError>>
@@ -87,8 +87,6 @@ pub trait Vault {
     ) -> Self::SetProvisioningDataFuture<'m>;
 
     fn iv_index(&self) -> Option<u32>;
-
-    fn is_local_unicast(&self, addr: &Address) -> bool;
 
     fn decrypt_device_key(
         &self,
@@ -183,12 +181,12 @@ impl<'c, S: Storage> Vault for StorageVault<'c, S> {
                 .configuration()
                 .device_keys()
                 .shared_secret()?
-                .ok_or(DeviceError::CryptoError)?
+                .ok_or(DeviceError::CryptoError("n_k1"))?
                 .as_bytes(),
             salt,
             p,
         )
-        .map_err(|_| DeviceError::CryptoError)
+        .map_err(|_| DeviceError::CryptoError("n_k1"))
     }
 
     type SetProvisioningDataFuture<'m>
@@ -246,10 +244,6 @@ impl<'c, S: Storage> Vault for StorageVault<'c, S> {
         }
     }
 
-    fn is_local_unicast(&self, addr: &Address) -> bool {
-        self.configuration_manager.is_local_unicast(addr)
-    }
-
     fn decrypt_device_key(
         &self,
         nonce: DeviceNonce,
@@ -260,9 +254,9 @@ impl<'c, S: Storage> Vault for StorageVault<'c, S> {
             .config()
             .device_keys()
             .device_key()
-            .ok_or(DeviceError::CryptoError)?;
+            .ok_or(DeviceError::CryptoError("decrypt device key"))?;
         crypto::aes_ccm_decrypt_detached(device_key.as_ref(), &*nonce, bytes, mic, None)
-            .map_err(|_| DeviceError::CryptoError)
+            .map_err(|_| DeviceError::CryptoError("decrypt device key"))
     }
 
     fn encrypt_device_key(
@@ -275,9 +269,9 @@ impl<'c, S: Storage> Vault for StorageVault<'c, S> {
             .config()
             .device_keys()
             .device_key()
-            .ok_or(DeviceError::CryptoError)?;
+            .ok_or(DeviceError::CryptoError("encrypt device key"))?;
         crypto::aes_ccm_encrypt_detached(device_key.as_ref(), &*nonce, bytes, mic, None)
-            .map_err(|_| DeviceError::CryptoError)
+            .map_err(|_| DeviceError::CryptoError("encrypt device key"))
     }
 
     fn encrypt_application_key(
@@ -297,11 +291,11 @@ impl<'c, S: Storage> Vault for StorageVault<'c, S> {
                     mic,
                     additional_data,
                 )
-                .map_err(|_| DeviceError::CryptoError);
+                .map_err(|_| DeviceError::CryptoError("encrypt app key"));
             }
         }
 
-        Err(DeviceError::CryptoError)
+        Err(DeviceError::CryptoError("encrypt app key"))
     }
 
     fn decrypt_application_key(
@@ -326,7 +320,7 @@ impl<'c, S: Storage> Vault for StorageVault<'c, S> {
             }
         }
 
-        Err(DeviceError::CryptoError)
+        Err(DeviceError::CryptoError("decrypt app key"))
     }
 
     fn primary_unicast_address(&self) -> Option<UnicastAddress> {

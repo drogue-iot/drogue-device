@@ -11,7 +11,7 @@ mod pipeline;
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DeviceError {
-    CryptoError,
+    CryptoError(&'static str),
     Storage,
     StorageInitialization,
     KeyInitialization,
