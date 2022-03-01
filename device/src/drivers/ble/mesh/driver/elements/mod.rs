@@ -106,6 +106,8 @@ pub trait PrimaryElementContext: ElementContext {
         &self,
         update: F,
     ) -> Self::UpdateConfigurationFuture<'_, F>;
+
+    fn is_local(&self, addr: &UnicastAddress) -> bool;
 }
 
 pub struct Elements<E: ElementsHandler> {
@@ -149,10 +151,11 @@ impl<E: ElementsHandler> Elements<E> {
                             // handled, stop, don't pass to app models on element#0
                             return Ok(());
                         }
+                    } else {
+                        // the app gets one chance to process.
+                        self.elements.dispatch(element_index as u8, message).await?;
+                        return Ok(());
                     }
-                    // the app gets one chance to process.
-                    self.elements.dispatch(element_index as u8, message).await?;
-                    return Ok(());
                 }
             } else {
                 let primary_addr = ctx.address().ok_or(DeviceError::NotProvisioned)?;

@@ -1,4 +1,4 @@
-use crate::drivers::ble::mesh::address::{LabelUuid, UnicastAddress, VirtualAddress};
+use crate::drivers::ble::mesh::address::{Address, LabelUuid, UnicastAddress, VirtualAddress};
 use crate::drivers::ble::mesh::model::foundation::configuration::model_subscription::SubscriptionAddress;
 use crate::drivers::ble::mesh::model::{ModelIdentifier, Status};
 use crate::drivers::ble::mesh::InsufficientBuffer;
@@ -82,10 +82,31 @@ impl Subscriptions {
         )
     }
 
+    pub(crate) fn has_any_subscription(&self, dst: &Address) -> bool {
+        match dst {
+            Address::Unicast(addr) => {
+                let addr = SubscriptionAddress::Unicast(*addr);
+                self.subscriptions
+                    .iter()
+                    .find(|e| e.subscription_address == addr)
+                    .is_some()
+            }
+            Address::LabelUuid(addr) => {
+                let addr = SubscriptionAddress::Virtual(*addr);
+                self.subscriptions
+                    .iter()
+                    .find(|e| e.subscription_address == addr)
+                    .is_some()
+            }
+            _ => false,
+        }
+    }
+
     pub(crate) fn find_label_uuids_by_address(
         &self,
         addr: VirtualAddress,
     ) -> Result<Vec<LabelUuid, 10>, InsufficientBuffer> {
+        info!("find_label_uuids_by_address {}", addr);
         let mut uuids = Vec::new();
 
         for subscription in &self.subscriptions {
@@ -97,6 +118,8 @@ impl Subscriptions {
                 }
             }
         }
+
+        info!("--> {}", uuids);
 
         Ok(uuids)
     }

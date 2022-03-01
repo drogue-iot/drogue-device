@@ -1,4 +1,4 @@
-use crate::drivers::ble::mesh::address::UnicastAddress;
+use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::bearer::advertising;
@@ -29,6 +29,8 @@ pub trait MeshContext {
     ) -> Self::TransmitMeshFuture<'m>;
 
     fn primary_unicast_address(&self) -> Result<UnicastAddress, DeviceError>;
+
+    fn is_local_unicast(&self, addr: &Address) -> bool;
 }
 
 pub struct Mesh {}

@@ -134,7 +134,7 @@ impl Bearer for SoftdeviceAdvertisingBearer {
                 self.sd,
                 adv,
                 &peripheral::Config {
-                    max_events: Some(2),
+                    max_events: Some(3),
                     ..Default::default()
                 },
             )
@@ -161,7 +161,7 @@ impl Bearer for SoftdeviceAdvertisingBearer {
         async move {
             //let config = ScanConfig::default();
             let config = ScanConfig {
-                interval: 200,
+                interval: 100,
                 ..Default::default()
             };
             loop {

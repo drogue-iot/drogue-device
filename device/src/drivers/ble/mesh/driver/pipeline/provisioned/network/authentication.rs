@@ -96,7 +96,7 @@ impl Authentication {
                         transport_pdu,
                     }));
                 } else {
-                    return Err(DeviceError::CryptoError);
+                    return Err(DeviceError::CryptoError("inbound network pdu"));
                 }
             }
         }
@@ -135,7 +135,7 @@ impl Authentication {
                     &mut mic,
                     None,
                 )
-                .map_err(|_| DeviceError::CryptoError)?;
+                .map_err(|_| DeviceError::CryptoError("outbound network ctl pdu"))?;
                 encrypted_and_mic
                     .extend_from_slice(&mic)
                     .map_err(|_| DeviceError::InsufficientBuffer)?;
@@ -149,7 +149,7 @@ impl Authentication {
                     &mut mic,
                     None,
                 )
-                .map_err(|_| DeviceError::CryptoError)?;
+                .map_err(|_| DeviceError::CryptoError("outbound network access pdu"))?;
                 encrypted_and_mic
                     .extend_from_slice(&mic)
                     .map_err(|_| DeviceError::InsufficientBuffer)?;
