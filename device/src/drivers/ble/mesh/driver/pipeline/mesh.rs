@@ -76,12 +76,4 @@ impl Mesh {
             Ok(None)
         }
     }
-
-    pub async fn process_outbound<C: MeshContext>(
-        &mut self,
-        ctx: &C,
-        pdu: advertising::AdvertisingPDU,
-    ) -> Result<(), DeviceError> {
-        ctx.transmit_advertising_pdu(pdu).await
-    }
 }

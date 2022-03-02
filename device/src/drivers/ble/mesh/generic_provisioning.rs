@@ -196,6 +196,7 @@ impl ProvisioningBearerControl {
     }
 }
 
+#[derive(Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Reason {
     Success = 0x00,

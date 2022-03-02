@@ -401,7 +401,6 @@ where
     }
 
     fn address(&self) -> Option<UnicastAddress> {
-        // todo element-specific addresses
         if let Some(networks) = self.configuration_manager.configuration().network() {
             Some(*networks.unicast_address())
         } else {

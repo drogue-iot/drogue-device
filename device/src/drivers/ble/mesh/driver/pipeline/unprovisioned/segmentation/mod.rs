@@ -20,9 +20,9 @@ impl Default for Segmentation {
 }
 
 impl Segmentation {
-    pub async fn process_inbound(
+    pub fn process_inbound(
         &mut self,
-        pdu: GenericProvisioningPDU,
+        pdu: &GenericProvisioningPDU,
     ) -> Result<Option<ProvisioningPDU>, DeviceError> {
         match pdu {
             GenericProvisioningPDU::TransactionStart(transaction_start) => {

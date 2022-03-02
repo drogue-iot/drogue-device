@@ -51,13 +51,13 @@ impl ProvisioningBearer {
     pub async fn process_inbound<C: MeshContext>(
         &mut self,
         ctx: &C,
-        pdu: AdvertisingPDU,
+        pdu: &AdvertisingPDU,
     ) -> Result<Option<BearerMessage>, DeviceError> {
-        match pdu.pdu {
+        match &pdu.pdu {
             GenericProvisioningPDU::ProvisioningBearerControl(pbc) => {
                 match pbc {
                     ProvisioningBearerControl::LinkOpen(uuid) => {
-                        if ctx.uuid() == uuid {
+                        if ctx.uuid() == *uuid {
                             if let None = self.link_id {
                                 self.inbound_transaction_number
                                     .replace(pdu.transaction_number);
@@ -101,14 +101,14 @@ impl ProvisioningBearer {
                     ProvisioningBearerControl::LinkClose(reason) => {
                         self.link_id.take();
                         self.inbound_transaction_number.take();
-                        Ok(Some(BearerMessage::Close(reason)))
+                        Ok(Some(BearerMessage::Close(*reason)))
                     }
                 }
             }
             GenericProvisioningPDU::TransactionStart(_)
             | GenericProvisioningPDU::TransactionContinuation(_) => {
                 if self.should_process_transaction(pdu.transaction_number) {
-                    let result = self.segmentation.process_inbound(pdu.pdu).await;
+                    let result = self.segmentation.process_inbound(&pdu.pdu);
                     if let Ok(Some(result)) = result {
                         self.ack_transaction(ctx).await?;
                         Ok(Some(BearerMessage::ProvisioningPDU(result)))

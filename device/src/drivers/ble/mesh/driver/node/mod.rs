@@ -134,6 +134,7 @@ impl<'a> OutboundPublishChannel<'a> {
 }
 // --
 
+#[derive(Copy, Clone, PartialEq)]
 pub enum State {
     Unprovisioned,
     Provisioning,
@@ -360,6 +361,8 @@ where
             self.connect_elements();
         }
 
+        self.pipeline.borrow_mut().state(self.state);
+
         loop {
             let result = match self.state {
                 State::Unprovisioned => self.loop_unprovisioned().await,
@@ -376,7 +379,10 @@ where
                                 self.connect_elements()
                             }
                         }
-                        self.state = next_state;
+                        if next_state != self.state {
+                            self.pipeline.borrow_mut().state(self.state);
+                            self.state = next_state;
+                        }
                     }
                 }
                 Err(error) => {
