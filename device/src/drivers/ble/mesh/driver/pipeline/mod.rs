@@ -15,6 +15,7 @@ use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::generic_provisioning::Reason;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
+use futures::{join, pin_mut};
 
 pub mod mesh;
 pub mod provisioned;
@@ -53,7 +54,7 @@ impl Pipeline {
         ctx: &C,
         data: &[u8],
     ) -> Result<Option<State>, DeviceError> {
-        if let Some(result) = self.mesh.process_inbound(ctx, &data).await? {
+        if let Some(result) = self.mesh.process_inbound(ctx, &data)? {
             match result {
                 MeshData::Provisioning(pdu) => {
                     if let Some(message) =
@@ -88,31 +89,30 @@ impl Pipeline {
                     }
                 }
                 MeshData::Network(pdu) => {
-                    if let Some(pdu) = self.authentication.process_inbound(ctx, pdu).await? {
-                        // Relaying is independent from processing it locally
-                        if let Some(outbound) = self.relay.process_inbound(ctx, &pdu).await? {
-                            // don't fail if we fail to encrypt a relay.
-                            if let Ok(Some(outbound)) =
-                                self.authentication.process_outbound(ctx, &outbound).await
-                            {
-                                // don't fail if we fail to retransmit.
-                                ctx.transmit_mesh_pdu(&outbound).await.ok();
+                    if let Some(inboud_pdu) = self.authentication.process_inbound(ctx, pdu)? {
+                        let (ack, pdu) = self.lower.process_inbound(ctx, &inboud_pdu).await?;
+
+                        if let Some(pdu) = pdu {
+                            if let Some(message) = self.upper.process_inbound(ctx, pdu)? {
+                                ctx.dispatch_access(&message).await?;
                             }
                         }
 
-                        let (ack, pdu) = self.lower.process_inbound(ctx, pdu).await?;
                         if let Some(ack) = ack {
-                            if let Some(ack) =
-                                self.authentication.process_outbound(ctx, &ack).await?
-                            {
+                            if let Some(ack) = self.authentication.process_outbound(ctx, &ack)? {
                                 // don't fail if we fail to transmit the ack.
                                 ctx.transmit_mesh_pdu(&ack).await.ok();
                             }
                         }
 
-                        if let Some(pdu) = pdu {
-                            if let Some(message) = self.upper.process_inbound(ctx, pdu).await? {
-                                ctx.dispatch_access(&message).await?;
+                        // Relaying is independent from processing it locally
+                        if let Some(outbound) = self.relay.process_inbound(ctx, &inboud_pdu)? {
+                            // don't fail if we fail to encrypt a relay.
+                            if let Ok(Some(outbound)) =
+                                self.authentication.process_outbound(ctx, &outbound)
+                            {
+                                // don't fail if we fail to retransmit.
+                                ctx.transmit_mesh_pdu(&outbound).await.ok();
                             }
                         }
                     }
@@ -132,23 +132,38 @@ impl Pipeline {
         trace!("outbound <<<< {}", message);
 
         // local loopback.
-        if ctx.is_locally_relevant(&message.dst) {
-            ctx.dispatch_access(&message).await?;
-        }
+        let loopback_fut = async move {
+            info!("l>");
+            if ctx.is_locally_relevant(&message.dst) {
+                ctx.dispatch_access(&message).await?;
+            }
+            info!("l<");
+            Result::<(), DeviceError>::Ok(())
+        };
 
-        if let Some(message) = self.upper.process_outbound(ctx, message).await? {
-            if let Some(message) = self.lower.process_outbound(ctx, message).await? {
-                for message in message.iter() {
-                    if let Some(message) =
-                        self.authentication.process_outbound(ctx, message).await?
-                    {
-                        ctx.transmit_mesh_pdu(&message).await?;
+        let transmit_fut = async move {
+            if let Some(message) = self.upper.process_outbound(ctx, message)? {
+                if let Some(message) = self.lower.process_outbound(ctx, message).await? {
+                    for message in message.iter() {
+                        if let Some(message) = self.authentication.process_outbound(ctx, message)? {
+                            ctx.transmit_mesh_pdu(&message).await?;
+                        }
                     }
                 }
             }
-        }
+            Result::<(), DeviceError>::Ok(())
+        };
 
-        Ok(())
+        pin_mut!(loopback_fut);
+        pin_mut!(transmit_fut);
+
+        let result = join!(loopback_fut, transmit_fut);
+
+        match result {
+            (Ok(()), Ok(())) => Ok(()),
+            (_, Err(e)) => Err(e),
+            (Err(e), _) => Err(e),
+        }
     }
 
     pub async fn try_retransmit<C: PipelineContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {

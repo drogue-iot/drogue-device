@@ -17,7 +17,12 @@ pub trait ElementsHandler {
     where
         Self: 'm;
 
-    fn dispatch<'m>(&'m self, element: u8, message: &'m AccessMessage) -> Self::DispatchFuture<'m>;
+    fn dispatch<'m>(
+        &'m self,
+        element: u8,
+        model_identifier: &'m ModelIdentifier,
+        message: &'m AccessMessage,
+    ) -> Self::DispatchFuture<'m>;
 }
 
 #[derive(Serialize, Deserialize, Eq, PartialEq, Copy, Clone)]

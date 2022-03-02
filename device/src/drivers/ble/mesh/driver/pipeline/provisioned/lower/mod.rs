@@ -88,11 +88,11 @@ impl Lower {
     pub async fn process_inbound<C: LowerContext>(
         &mut self,
         ctx: &C,
-        pdu: CleartextNetworkPDU,
+        pdu: &CleartextNetworkPDU,
     ) -> Result<(Option<CleartextNetworkPDU>, Option<UpperPDU>), DeviceError> {
-        match pdu.transport_pdu {
+        match &pdu.transport_pdu {
             LowerPDU::Access(access) => {
-                match access.message {
+                match &access.message {
                     LowerAccessMessage::Unsegmented(ref payload) => {
                         // TransMIC is 32 bits for unsegmented access messages.
                         let (payload, trans_mic) = payload.split_at(payload.len() - 4);
@@ -205,7 +205,7 @@ impl Lower {
                     } => {
                         let (block_ack, payload) = self
                             .segmentation
-                            .process_inbound(pdu.src, seq_zero, seg_o, seg_n, &segment_m)?;
+                            .process_inbound(pdu.src, *seq_zero, *seg_o, *seg_n, segment_m)?;
 
                         let mut parameters = Vec::new();
                         //parameters
@@ -261,7 +261,7 @@ impl Lower {
                                     "inbound segmented access pdu",
                                 ))?,
                                 pdu.seq,
-                                seq_zero,
+                                *seq_zero,
                             );
 
                             if self.replay_cache.has_seen(
@@ -280,7 +280,7 @@ impl Lower {
                                     return Ok((None, None));
                                 }
                                 let nonce = DeviceNonce::new(
-                                    szmic,
+                                    *szmic,
                                     seq_auth,
                                     pdu.src,
                                     pdu.dst,

@@ -128,6 +128,7 @@ impl<E: ElementsHandler> Elements<E> {
         ctx: &C,
         message: &AccessMessage,
     ) -> Result<(), DeviceError> {
+        info!("d>");
         let unicast_element_index = match &message.dst {
             Address::Unicast(addr) => {
                 let primary_addr = ctx.address().ok_or(DeviceError::NotProvisioned)?;
@@ -141,43 +142,48 @@ impl<E: ElementsHandler> Elements<E> {
             _ => None,
         };
 
-        for (element_index, element) in self.elements.composition().elements.iter().enumerate() {
-            if let Some(unicast_element_index) = unicast_element_index {
-                // it's a unicast-directed message... is it a given element's?
-                if unicast_element_index == element_index as u8 {
-                    if element_index == 0 {
-                        // try to dispatch to foundation models in element#0
-                        if self.zero.dispatch(ctx, message).await? {
-                            // handled, stop, don't pass to app models on element#0
-                            return Ok(());
-                        }
-                    } else {
-                        // the app gets one chance to process.
-                        self.elements.dispatch(element_index as u8, message).await?;
-                        return Ok(());
-                    }
+        if let Some(element_index) = unicast_element_index {
+            if element_index == 0 {
+                if self.zero.dispatch(ctx, message).await? {
+                    info!("d<");
+                    return Ok(());
                 }
-            } else {
-                let primary_addr = ctx.address().ok_or(DeviceError::NotProvisioned)?;
+            }
+            let element = &self.elements.composition().elements[element_index as usize];
+            for model in &element.models {
+                self.elements
+                    .dispatch(element_index as u8, model, message)
+                    .await?;
+            }
+            info!("d<");
+            return Ok(());
+        }
+
+        if let Some(network) = ctx.configuration().network() {
+            let primary_addr = ctx.address().ok_or(DeviceError::NotProvisioned)?;
+            // non-unicast, give everyone a chance to respond
+            for (element_index, element) in self.elements.composition().elements.iter().enumerate()
+            {
                 // non-unicast, check every element.
-                if let Some(network) = ctx.configuration().network() {
-                    let element_address = primary_addr + element_index as u8;
-                    for model in &element.models {
-                        if network.subscriptions().has_subscription(
-                            &element_address,
-                            &message
-                                .dst
-                                .try_into()
-                                .map_err(|_| DeviceError::InvalidDstAddress)?,
-                            model,
-                        ) {
-                            self.elements.dispatch(element_index as u8, message).await?;
-                        }
+                let element_address = primary_addr + element_index as u8;
+                for model in &element.models {
+                    if network.subscriptions().has_subscription(
+                        &element_address,
+                        &message
+                            .dst
+                            .try_into()
+                            .map_err(|_| DeviceError::InvalidDstAddress)?,
+                        model,
+                    ) {
+                        self.elements
+                            .dispatch(element_index as u8, model, message)
+                            .await?;
                     }
                 }
             }
         }
 
+        info!("d<");
         Ok(())
     }
 
@@ -186,15 +192,11 @@ impl<E: ElementsHandler> Elements<E> {
     }
 }
 
-pub struct ElementZero {
-    configuration_server: ConfigurationServer,
-}
+pub struct ElementZero {}
 
 impl ElementZero {
     fn new() -> Self {
-        Self {
-            configuration_server: ConfigurationServer,
-        }
+        Self {}
     }
 }
 
@@ -204,9 +206,8 @@ impl ElementZero {
         ctx: &C,
         access: &AccessMessage,
     ) -> Result<bool, DeviceError> {
-        if let Ok(Some(payload)) = self
-            .configuration_server
-            .parse(access.payload.opcode, &access.payload.parameters)
+        if let Ok(Some(payload)) =
+            ConfigurationServer::parse(access.payload.opcode, &access.payload.parameters)
         {
             match &payload {
                 ConfigurationMessage::Beacon(message) => {

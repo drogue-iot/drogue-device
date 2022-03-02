@@ -124,7 +124,6 @@ pub trait Model {
     type Message<'m>: Message;
 
     fn parse<'m>(
-        &self,
         opcode: Opcode,
         parameters: &'m [u8],
     ) -> Result<Option<Self::Message<'m>>, ParseError>;

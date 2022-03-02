@@ -40,7 +40,6 @@ impl Model for GenericBatteryServer {
     type Message<'m> = GenericBatteryMessage;
 
     fn parse<'m>(
-        &self,
         opcode: Opcode,
         _parameters: &'m [u8],
     ) -> Result<Option<Self::Message<'m>>, ParseError> {

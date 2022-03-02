@@ -102,7 +102,6 @@ impl Model for ConfigurationServer {
     type Message<'m> = ConfigurationMessage;
 
     fn parse<'m>(
-        &self,
         opcode: Opcode,
         parameters: &'m [u8],
     ) -> Result<Option<Self::Message<'m>>, ParseError> {
