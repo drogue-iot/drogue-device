@@ -85,7 +85,6 @@ pub trait ElementContext {
     fn address(&self) -> Option<UnicastAddress>;
 }
 
-// todo: make primary significantly less special
 pub trait PrimaryElementContext: ElementContext {
     type NodeResetFuture<'m>: Future<Output = ()>
     where

@@ -11,6 +11,8 @@ mod pipeline;
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DeviceError {
+    PipelineNotConfigured,
+    AlreadyProvisioned,
     CryptoError(&'static str),
     Storage,
     StorageInitialization,

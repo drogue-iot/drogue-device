@@ -35,7 +35,7 @@ impl Authentication {
     pub fn process_inbound<C: AuthenticationContext>(
         &mut self,
         ctx: &C,
-        mut pdu: ObfuscatedAndEncryptedNetworkPDU,
+        pdu: &mut ObfuscatedAndEncryptedNetworkPDU,
     ) -> Result<Option<CleartextNetworkPDU>, DeviceError> {
         if let Some(iv_index) = ctx.iv_index() {
             let privacy_plaintext = Self::privacy_plaintext(iv_index, &pdu.encrypted_and_mic);
