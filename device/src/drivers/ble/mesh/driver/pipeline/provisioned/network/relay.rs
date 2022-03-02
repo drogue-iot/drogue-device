@@ -19,7 +19,7 @@ impl Default for Relay {
 }
 
 impl Relay {
-    pub async fn process_inbound<C: RelayContext>(
+    pub fn process_inbound<C: RelayContext>(
         &mut self,
         ctx: &C,
         pdu: &CleartextNetworkPDU,
@@ -37,7 +37,7 @@ impl Relay {
                     .cache
                     .has_seen(ctx.iv_index().ok_or(DeviceError::NotProvisioned)?, pdu)
             {
-                info!("relay {}", pdu);
+                info!("relay");
                 // decrease TTL and send a copy along.
                 Ok(Some(CleartextNetworkPDU {
                     network_key: pdu.network_key,

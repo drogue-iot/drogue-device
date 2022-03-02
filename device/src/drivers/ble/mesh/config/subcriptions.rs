@@ -106,7 +106,6 @@ impl Subscriptions {
         &self,
         addr: VirtualAddress,
     ) -> Result<Vec<LabelUuid, 10>, InsufficientBuffer> {
-        info!("find_label_uuids_by_address {}", addr);
         let mut uuids = Vec::new();
 
         for subscription in &self.subscriptions {
@@ -118,8 +117,6 @@ impl Subscriptions {
                 }
             }
         }
-
-        info!("--> {}", uuids);
 
         Ok(uuids)
     }

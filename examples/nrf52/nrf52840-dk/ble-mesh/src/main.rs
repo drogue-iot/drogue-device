@@ -23,7 +23,7 @@ use drogue_device::drivers::ble::mesh::model::generic::onoff::{
     GenericOnOffClient, GenericOnOffMessage, GenericOnOffServer, Set, GENERIC_ONOFF_CLIENT,
     GENERIC_ONOFF_SERVER,
 };
-use drogue_device::drivers::ble::mesh::model::Model;
+use drogue_device::drivers::ble::mesh::model::{Model, ModelIdentifier};
 use drogue_device::drivers::ble::mesh::pdu::access::AccessMessage;
 use drogue_device::drivers::ble::mesh::provisioning::{
     Algorithms, Capabilities, InputOOBActions, OOBSize, OutputOOBActions, PublicKeyType,
@@ -193,11 +193,17 @@ impl ElementsHandler for CustomElementsHandler {
         Self: 'm,
     = impl Future<Output = Result<(), DeviceError>> + 'm;
 
-    fn dispatch<'m>(&'m self, element: u8, message: &'m AccessMessage) -> Self::DispatchFuture<'m> {
+    fn dispatch<'m>(
+        &'m self,
+        element: u8,
+        model_identifier: &'m ModelIdentifier,
+        message: &'m AccessMessage,
+    ) -> Self::DispatchFuture<'m> {
         async move {
-            if element == 0 {
-                let server = GenericOnOffServer;
-                if let Ok(Some(message)) = server.parse(message.opcode(), message.parameters()) {
+            if element == 0 && *model_identifier == GENERIC_ONOFF_SERVER {
+                if let Ok(Some(message)) =
+                    GenericOnOffServer::parse(message.opcode(), message.parameters())
+                {
                     match message {
                         GenericOnOffMessage::Set(set) => {
                             if set.on_off == 0 {

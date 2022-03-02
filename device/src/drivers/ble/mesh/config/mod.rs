@@ -7,6 +7,7 @@ pub(crate) mod network;
 pub(crate) mod publications;
 pub(crate) mod subcriptions;
 
+use crate::drivers::ble::mesh::composition::Composition;
 use crate::drivers::ble::mesh::config::configuration_manager::SEQUENCE_THRESHOLD;
 use crate::drivers::ble::mesh::config::device_keys::DeviceKeys;
 use crate::drivers::ble::mesh::config::foundation_models::FoundationModels;

@@ -48,7 +48,7 @@ impl Default for Mesh {
 
 #[allow(unused_variables)]
 impl Mesh {
-    pub async fn process_inbound<C: MeshContext>(
+    pub fn process_inbound<C: MeshContext>(
         &mut self,
         ctx: &C,
         data: &[u8],

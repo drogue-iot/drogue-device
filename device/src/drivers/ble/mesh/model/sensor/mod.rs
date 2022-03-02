@@ -360,7 +360,6 @@ where
     type Message<'m> = SensorMessage<'m, C, NUM_SENSORS, NUM_COLUMNS>;
 
     fn parse<'m>(
-        &self,
         opcode: Opcode,
         parameters: &'m [u8],
     ) -> Result<Option<Self::Message<'m>>, ParseError> {
@@ -388,7 +387,6 @@ where
     type Message<'m> = SensorSetupMessage<'m, C, NUM_SENSORS, NUM_COLUMNS>;
 
     fn parse<'m>(
-        &self,
         opcode: Opcode,
         parameters: &'m [u8],
     ) -> Result<Option<Self::Message<'m>>, ParseError> {

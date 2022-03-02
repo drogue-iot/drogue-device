@@ -32,7 +32,7 @@ impl Default for Authentication {
 }
 
 impl Authentication {
-    pub async fn process_inbound<C: AuthenticationContext>(
+    pub fn process_inbound<C: AuthenticationContext>(
         &mut self,
         ctx: &C,
         mut pdu: ObfuscatedAndEncryptedNetworkPDU,
@@ -103,7 +103,7 @@ impl Authentication {
         Ok(None)
     }
 
-    pub async fn process_outbound<C: AuthenticationContext>(
+    pub fn process_outbound<C: AuthenticationContext>(
         &mut self,
         ctx: &C,
         pdu: &CleartextNetworkPDU,

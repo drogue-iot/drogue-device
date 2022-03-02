@@ -15,7 +15,7 @@ impl Default for Upper {
 }
 
 impl Upper {
-    pub async fn process_inbound<C: UpperContext>(
+    pub fn process_inbound<C: UpperContext>(
         &mut self,
         _ctx: &C,
         pdu: UpperPDU,
@@ -32,7 +32,7 @@ impl Upper {
         }
     }
 
-    pub async fn process_outbound<C: UpperContext>(
+    pub fn process_outbound<C: UpperContext>(
         &mut self,
         _ctx: &C,
         message: &AccessMessage,

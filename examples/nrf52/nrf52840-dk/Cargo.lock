@@ -832,6 +832,7 @@ dependencies = [
  "cortex-m",
  "cortex-m-rt",
  "critical-section",
+ "defmt",
  "embassy",
  "embedded-storage",
  "embedded-storage-async",

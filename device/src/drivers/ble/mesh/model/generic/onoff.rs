@@ -51,7 +51,6 @@ impl Model for GenericOnOffServer {
     type Message<'m> = GenericOnOffMessage;
 
     fn parse<'m>(
-        &self,
         opcode: Opcode,
         parameters: &'m [u8],
     ) -> Result<Option<Self::Message<'m>>, ParseError> {
@@ -74,7 +73,6 @@ impl Model for GenericOnOffClient {
     type Message<'m> = GenericOnOffMessage;
 
     fn parse<'m>(
-        &self,
         opcode: Opcode,
         _parameters: &'m [u8],
     ) -> Result<Option<Self::Message<'m>>, ParseError> {
