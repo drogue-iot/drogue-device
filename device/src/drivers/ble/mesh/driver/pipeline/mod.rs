@@ -109,7 +109,7 @@ impl UnprovisionedPipeline {
                         .process_inbound(ctx, provisioning_pdu)
                         .await?
                     {
-                        for pdu in self.provisioning_bearer.process_outbound(outbound).await? {
+                        for pdu in self.provisioning_bearer.process_outbound(outbound)? {
                             ctx.transmit_advertising_pdu(pdu).await?;
                         }
                     }
@@ -239,12 +239,16 @@ impl Pipeline {
     pub(crate) fn state(&mut self, state: State) {
         match state {
             State::Unprovisioned => {
-                self.inner = PipelineInner::Unprovisioned(UnprovisionedPipeline::new(
-                    self.capabilities.clone(),
-                ))
+                if !matches!(self.inner, PipelineInner::Unprovisioned(_)) {
+                    self.inner = PipelineInner::Unprovisioned(UnprovisionedPipeline::new(
+                        self.capabilities.clone(),
+                    ))
+                }
             }
             State::Provisioned => {
-                self.inner = PipelineInner::Provisioned(ProvisionedPipeline::new())
+                if !matches!(self.inner, PipelineInner::Provisioned(_)) {
+                    self.inner = PipelineInner::Provisioned(ProvisionedPipeline::new())
+                }
             }
             _ => {}
         }

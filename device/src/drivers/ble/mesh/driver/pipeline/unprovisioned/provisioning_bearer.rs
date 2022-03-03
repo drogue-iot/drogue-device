@@ -215,11 +215,11 @@ impl ProvisioningBearer {
         Ok(())
     }
 
-    pub async fn process_outbound(
+    pub fn process_outbound(
         &mut self,
         pdu: ProvisioningPDU,
     ) -> Result<impl Iterator<Item = AdvertisingPDU> + '_, DeviceError> {
-        let segments = self.segmentation.process_outbound(pdu).await?;
+        let segments = self.segmentation.process_outbound(pdu)?;
 
         let transaction_number = self.outbound_transaction_number;
         self.outbound_transaction_number = self.outbound_transaction_number + 1;

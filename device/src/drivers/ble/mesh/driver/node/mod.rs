@@ -17,6 +17,7 @@ use core::future::Future;
 use embassy::blocking_mutex::kind::Noop;
 use embassy::channel::mpsc;
 use embassy::channel::mpsc::{Channel, Receiver as ChannelReceiver, Sender as ChannelSender};
+use embassy::channel::signal::Signal;
 use embassy::time::{Duration, Ticker};
 use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
@@ -141,7 +142,12 @@ pub enum State {
     Provisioned,
 }
 
-pub struct Node<E, TX, RX, S, R>
+pub enum MeshNodeMessage {
+    ForceReset,
+    Shutdown,
+}
+
+pub struct Node<'signal, E, TX, RX, S, R>
 where
     E: ElementsHandler,
     TX: Transmitter,
@@ -149,8 +155,9 @@ where
     S: Storage,
     R: RngCore + CryptoRng,
 {
+    control_signal: &'signal Signal<MeshNodeMessage>,
     //
-    state: State,
+    state: RefCell<State>,
     //
     transmitter: TX,
     receiver: RX,
@@ -163,7 +170,7 @@ where
     pub(crate) publish_outbound: OutboundPublishChannel<'static>,
 }
 
-impl<E, TX, RX, S, R> Node<E, TX, RX, S, R>
+impl<'signal, E, TX, RX, S, R> Node<'signal, E, TX, RX, S, R>
 where
     E: ElementsHandler,
     TX: Transmitter,
@@ -172,6 +179,7 @@ where
     R: RngCore + CryptoRng,
 {
     pub fn new(
+        control_signal: &'signal Signal<MeshNodeMessage>,
         app_elements: E,
         capabilities: Capabilities,
         transmitter: TX,
@@ -180,7 +188,8 @@ where
         rng: R,
     ) -> Self {
         Self {
-            state: State::Unprovisioned,
+            control_signal,
+            state: RefCell::new(State::Unprovisioned),
             transmitter,
             receiver: receiver,
             configuration_manager,
@@ -227,7 +236,7 @@ where
         Ok(())
     }
 
-    async fn loop_unprovisioned(&mut self) -> Result<Option<State>, DeviceError> {
+    async fn loop_unprovisioned(&self) -> Result<Option<State>, DeviceError> {
         self.transmit_unprovisioned_beacon().await?;
 
         let receive_fut = self.receiver.receive_bytes();
@@ -267,7 +276,7 @@ where
         self.transmitter.transmit_bytes(&*adv_data).await
     }
 
-    async fn loop_provisioning(&mut self) -> Result<Option<State>, DeviceError> {
+    async fn loop_provisioning(&self) -> Result<Option<State>, DeviceError> {
         let receive_fut = self.receiver.receive_bytes();
         let mut ticker = Ticker::every(Duration::from_secs(1));
         let ticker_fut = ticker.next();
@@ -295,7 +304,7 @@ where
         }
     }
 
-    async fn loop_provisioned(&mut self) -> Result<Option<State>, DeviceError> {
+    async fn loop_provisioned(&self) -> Result<Option<State>, DeviceError> {
         let receive_fut = self.receiver.receive_bytes();
         let outbound_fut = self.outbound.next();
         let outbound_publish_fut = self.publish_outbound.next();
@@ -330,6 +339,26 @@ where
         }
     }
 
+    async fn do_loop(&self) -> Result<(), DeviceError> {
+        if let Some(next_state) = match *self.state.borrow() {
+            State::Unprovisioned => self.loop_unprovisioned().await,
+            State::Provisioning => self.loop_provisioning().await,
+            State::Provisioned => self.loop_provisioned().await,
+        }? {
+            if matches!(next_state, State::Provisioned) {
+                if !matches!(*self.state.borrow(), State::Provisioned) {
+                    // only connect during the first transition.
+                    self.connect_elements()
+                }
+            }
+            if next_state != *self.state.borrow() {
+                *self.state.borrow_mut() = next_state;
+                self.pipeline.borrow_mut().state(next_state);
+            };
+        }
+        Ok(())
+    }
+
     fn connect_elements(&self) {
         let ctx = AppElementsContext {
             sender: self.publish_outbound.clone_sender(),
@@ -357,37 +386,31 @@ where
         self.publish_outbound.initialize();
 
         if self.configuration_manager.is_provisioned() {
-            self.state = State::Provisioned;
+            *self.state.borrow_mut() = State::Provisioned;
             self.connect_elements();
         }
 
-        self.pipeline.borrow_mut().state(self.state);
+        self.pipeline.borrow_mut().state(*self.state.borrow());
 
         loop {
-            let result = match self.state {
-                State::Unprovisioned => self.loop_unprovisioned().await,
-                State::Provisioning => self.loop_provisioning().await,
-                State::Provisioned => self.loop_provisioned().await,
-            };
+            let loop_fut = self.do_loop();
+            let signal_fut = self.control_signal.wait();
 
-            match result {
-                Ok(next_state) => {
-                    if let Some(next_state) = next_state {
-                        if matches!(next_state, State::Provisioned) {
-                            if !matches!(self.state, State::Provisioned) {
-                                // only connect during the first transition.
-                                self.connect_elements()
-                            }
-                        }
-                        if next_state != self.state {
-                            self.pipeline.borrow_mut().state(self.state);
-                            self.state = next_state;
-                        }
+            pin_mut!(loop_fut);
+            pin_mut!(signal_fut);
+
+            let result = select(loop_fut, signal_fut).await;
+
+            match &result {
+                Either::Left((_, _)) => {
+                    // normal operation
+                }
+                Either::Right((control_message, _)) => match control_message {
+                    MeshNodeMessage::ForceReset => {
+                        self.configuration_manager.node_reset().await;
                     }
-                }
-                Err(error) => {
-                    error!("{}", error)
-                }
+                    MeshNodeMessage::Shutdown => {}
+                },
             }
         }
     }

@@ -7,7 +7,6 @@ pub(crate) mod network;
 pub(crate) mod publications;
 pub(crate) mod subcriptions;
 
-use crate::drivers::ble::mesh::composition::Composition;
 use crate::drivers::ble::mesh::config::configuration_manager::SEQUENCE_THRESHOLD;
 use crate::drivers::ble::mesh::config::device_keys::DeviceKeys;
 use crate::drivers::ble::mesh::config::foundation_models::FoundationModels;
@@ -16,6 +15,9 @@ use crate::drivers::ble::mesh::device::Uuid;
 use p256::SecretKey;
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "defmt")]
+use crate::drivers::ble::mesh::composition::Composition;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]

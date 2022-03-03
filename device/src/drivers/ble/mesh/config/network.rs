@@ -1,5 +1,6 @@
 use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
+#[cfg(feature = "defmt")]
 use crate::drivers::ble::mesh::composition::Composition;
 use crate::drivers::ble::mesh::config::app_keys::AppKeyDetails;
 use crate::drivers::ble::mesh::config::bindings::Bindings;
