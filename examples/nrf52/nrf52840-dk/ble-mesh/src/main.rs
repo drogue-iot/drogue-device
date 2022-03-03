@@ -7,8 +7,8 @@
 use core::future::Future;
 #[cfg(feature = "defmt-rtt")]
 use defmt_rtt as _;
-use drogue_device::actors::ble::mesh::MeshNode;
-use drogue_device::actors::button::ButtonEventHandler;
+use drogue_device::actors::ble::mesh::{MeshNode, MeshNodeMessage};
+use drogue_device::actors::button::{ButtonEvent, ButtonEventHandler};
 use drogue_device::actors::led::LedMessage;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
     Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceRng,
@@ -34,11 +34,14 @@ use drogue_device::drivers::ActiveLow;
 use drogue_device::traits::button::Event;
 use drogue_device::{actors, drivers, Actor, ActorContext, Address, DeviceContext, Inbox};
 use embassy::executor::Spawner;
+use embassy::time::{Duration, Timer};
 use embassy_nrf::config::Config;
 use embassy_nrf::gpio::{Level, OutputDrive, Pull};
 use embassy_nrf::interrupt::Priority;
-use embassy_nrf::peripherals::{P0_11, P0_13};
+use embassy_nrf::peripherals::{P0_11, P0_13, P0_25};
 use embassy_nrf::{gpio::Input, gpio::Output, Peripherals};
+use futures::future::{select, Either};
+use futures::pin_mut;
 
 use nrf_softdevice::Flash;
 
@@ -47,6 +50,13 @@ use panic_probe as _;
 
 #[cfg(not(feature = "panic-probe"))]
 use panic_reset as _;
+
+type ConcreteMeshNode = MeshNode<
+    CustomElementsHandler,
+    SoftdeviceAdvertisingBearer,
+    FlashStorage<Flash>,
+    SoftdeviceRng,
+>;
 
 pub struct MyDevice {
     #[allow(dead_code)]
@@ -59,12 +69,12 @@ pub struct MyDevice {
         >,
     >,
     facilities: ActorContext<Nrf52BleMeshFacilities>,
-    mesh: ActorContext<
-        MeshNode<
-            CustomElementsHandler,
-            SoftdeviceAdvertisingBearer,
-            FlashStorage<Flash>,
-            SoftdeviceRng,
+    mesh: ActorContext<ConcreteMeshNode>,
+    reset: ActorContext<MeshNodeReset>,
+    reset_button: ActorContext<
+        actors::button::Button<
+            drivers::button::Button<Input<'static, P0_25>, ActiveLow>,
+            ResetButtonHandler,
         >,
     >,
 }
@@ -120,6 +130,8 @@ async fn main(spawner: Spawner, p: Peripherals) {
         button_publisher: ActorContext::new(),
         facilities: ActorContext::new(),
         mesh: ActorContext::new(),
+        reset: ActorContext::new(),
+        reset_button: ActorContext::new(),
     });
 
     let led = actors::led::Led::new(drivers::led::Led::<_, ActiveLow>::new(Output::new(
@@ -163,8 +175,17 @@ async fn main(spawner: Spawner, p: Peripherals) {
 
     device.facilities.mount(spawner, facilities);
     let mesh_node = MeshNode::new(elements, capabilities, bearer, storage, rng);
-    //let mesh_node = MeshNode::new(capabilities, bearer, storage, rng).force_reset();
-    device.mesh.mount(spawner, mesh_node);
+    let mesh_node = device.mesh.mount(spawner, mesh_node);
+
+    let reset = MeshNodeReset(mesh_node);
+    let reset = device.reset.mount(spawner, reset);
+
+    let reset_handler = ResetButtonHandler(reset);
+    let reset_button = actors::button::Button::new(
+        drivers::button::Button::new(Input::new(p.P0_25, Pull::Up)),
+        reset_handler,
+    );
+    let _reset_button = device.reset_button.mount(spawner, reset_button);
 }
 
 #[allow(unused)]
@@ -306,5 +327,73 @@ pub struct MeshButtonPublisherConnector(Address<MeshButtonPublisher>);
 impl ButtonEventHandler for MeshButtonPublisherConnector {
     fn handle(&mut self, event: Event) {
         self.0.notify(MeshButtonMessage::Event(event)).ok();
+    }
+}
+
+pub struct ResetButtonHandler(Address<MeshNodeReset>);
+
+impl ButtonEventHandler for ResetButtonHandler {
+    fn handle(&mut self, event: Event) {
+        self.0.notify(event).ok();
+    }
+}
+
+pub struct MeshNodeReset(Address<ConcreteMeshNode>);
+
+impl Actor for MeshNodeReset {
+    type Message<'m>
+    where
+        Self: 'm,
+    = ButtonEvent;
+
+    type OnMountFuture<'m, M>
+    where
+        M: 'm,
+    = impl Future<Output = ()> + 'm;
+
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Address<Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
+    where
+        M: Inbox<Self> + 'm,
+        Self: 'm,
+    {
+        async move {
+            loop {
+                let mut message = inbox.next().await;
+                if let Some(inner) = &mut message {
+                    match inner.message() {
+                        ButtonEvent::Pressed => {
+                            defmt::warn!(
+                                "continue holding button 4 for 5 seconds to perform reset"
+                            );
+                            drop(message);
+                            let next_event_fut = inbox.next();
+                            let timeout_fut = Timer::after(Duration::from_secs(5));
+
+                            pin_mut!(next_event_fut);
+                            pin_mut!(timeout_fut);
+
+                            let result = select(next_event_fut, timeout_fut).await;
+                            match result {
+                                Either::Left((_, _)) => {
+                                    // nothing
+                                    defmt::warn!("reset cancelled")
+                                }
+                                Either::Right((_, _)) => {
+                                    defmt::warn!("performing reset");
+                                    self.0.notify(MeshNodeMessage::ForceReset).ok();
+                                }
+                            }
+                        }
+                        ButtonEvent::Released => {
+                            // nothing
+                        }
+                    }
+                }
+            }
+        }
     }
 }

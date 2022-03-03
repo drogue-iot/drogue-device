@@ -3,6 +3,7 @@ pub mod bearer;
 use crate::drivers::ble::mesh::bearer::{Bearer, Handler};
 use crate::drivers::ble::mesh::composition::ElementsHandler;
 use crate::drivers::ble::mesh::config::configuration_manager::ConfigurationManager;
+pub use crate::drivers::ble::mesh::driver::node::MeshNodeMessage;
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
@@ -12,7 +13,9 @@ use core::cell::RefCell;
 use core::future::Future;
 use embassy::blocking_mutex::kind::ThreadMode;
 use embassy::channel::mpsc::{self, Channel};
-use futures::{join, pin_mut};
+use embassy::channel::signal::Signal;
+use futures::future::{select, Either};
+use futures::pin_mut;
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
 
@@ -153,13 +156,17 @@ where
     S: Storage + 'static,
     R: RngCore + CryptoRng + 'static,
 {
-    type Message<'m> = Vec<u8, PDU_SIZE>;
+    type Message<'m> = MeshNodeMessage;
     type OnMountFuture<'m, M>
     where
         M: 'm,
     = impl Future<Output = ()> + 'm;
 
-    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Address<Self>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<Self> + 'm,
     {
@@ -179,7 +186,10 @@ where
                 self.force_reset,
             );
 
+            let control_signal = Signal::new();
+
             let mut node = Node::new(
+                &control_signal,
                 self.elements.take().unwrap(),
                 self.capabilities.take().unwrap(),
                 tx,
@@ -190,20 +200,36 @@ where
 
             let node_fut = node.run();
             let handler_fut = handler.start();
-
             pin_mut!(node_fut);
             pin_mut!(handler_fut);
 
-            let (left, right) = join!(node_fut, handler_fut);
+            let mut runtime_fut = select(node_fut, handler_fut);
 
-            if let Err(left) = left {
-                #[cfg(feature = "defmt")]
-                error!("{}", left)
-            }
+            loop {
+                let inbox_fut = inbox.next();
+                pin_mut!(inbox_fut);
 
-            if let Err(right) = right {
-                #[cfg(feature = "defmt")]
-                error!("{}", right)
+                let result = select(inbox_fut, runtime_fut).await;
+
+                match result {
+                    Either::Left((None, not_selected)) => {
+                        runtime_fut = not_selected;
+                    }
+                    Either::Left((Some(mut message), not_selected)) => {
+                        match &mut message.message() {
+                            MeshNodeMessage::ForceReset => {
+                                control_signal.signal(MeshNodeMessage::ForceReset);
+                            }
+                            _ => {
+                                // todo: handle others.
+                            }
+                        }
+                        runtime_fut = not_selected;
+                    }
+                    Either::Right((_, _)) => {
+                        break;
+                    }
+                }
             }
 
             #[cfg(feature = "defmt")]

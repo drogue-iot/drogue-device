@@ -67,7 +67,7 @@ impl Segmentation {
         }
     }
 
-    pub async fn process_outbound(
+    pub fn process_outbound(
         &mut self,
         pdu: ProvisioningPDU,
     ) -> Result<OutboundSegments, DeviceError> {
