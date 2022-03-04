@@ -305,22 +305,37 @@ where
     }
 
     async fn loop_provisioned(&self) -> Result<Option<State>, DeviceError> {
+        let mut ticker = Ticker::every(Duration::from_millis(250));
+
+        let ack_timeout = ticker.next();
         let receive_fut = self.receiver.receive_bytes();
         let outbound_fut = self.outbound.next();
         let outbound_publish_fut = self.publish_outbound.next();
 
+        pin_mut!(ack_timeout);
         pin_mut!(receive_fut);
         pin_mut!(outbound_fut);
         pin_mut!(outbound_publish_fut);
 
-        let result = select(receive_fut, select(outbound_fut, outbound_publish_fut)).await;
+        let result = select(
+            select(receive_fut, ack_timeout),
+            select(outbound_fut, outbound_publish_fut),
+        )
+        .await;
         match result {
-            Either::Left((Ok(inbound), _)) => {
-                self.pipeline
-                    .borrow_mut()
-                    .process_inbound(self, &*inbound)
-                    .await
-            }
+            Either::Left((inner, _)) => match inner {
+                Either::Left((Ok(inbound), _)) => {
+                    self.pipeline
+                        .borrow_mut()
+                        .process_inbound(self, &*inbound)
+                        .await
+                }
+                Either::Right((_, _)) => {
+                    self.pipeline.borrow_mut().try_retransmit(self).await?;
+                    Ok(None)
+                }
+                _ => Ok(None),
+            },
             Either::Right((inner, _)) => match inner {
                 Either::Left((Some(outbound), _)) => {
                     self.pipeline
@@ -335,7 +350,6 @@ where
                 }
                 _ => Ok(None),
             },
-            _ => Ok(None),
         }
     }
 
@@ -354,7 +368,6 @@ where
                 }
             }
             if next_state != *current_state {
-                info!("setting state");
                 drop(current_state);
                 *self.state.borrow_mut() = next_state;
                 self.pipeline.borrow_mut().state(next_state);

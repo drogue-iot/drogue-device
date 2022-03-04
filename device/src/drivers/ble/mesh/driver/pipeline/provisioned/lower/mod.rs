@@ -1,4 +1,5 @@
-mod segmentation;
+mod inbound_segmentation;
+mod outbound_segmentation;
 
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::lower::{
@@ -7,10 +8,11 @@ use crate::drivers::ble::mesh::pdu::lower::{
 use crate::drivers::ble::mesh::pdu::network::CleartextNetworkPDU;
 use ccm::aead::Buffer;
 
-use self::segmentation::Segmentation;
+use self::inbound_segmentation::InboundSegmentation;
 use crate::drivers::ble::mesh::address::{Address, LabelUuid};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::outbound_segmentation::OutboundSegmentation;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::replay_cache::ReplayCache;
 use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
@@ -69,14 +71,16 @@ pub trait LowerContext: AuthenticationContext {
 
 pub struct Lower {
     replay_cache: ReplayCache,
-    segmentation: Segmentation,
+    inbound_segmentation: InboundSegmentation,
+    outbound_segmentation: OutboundSegmentation,
 }
 
 impl Default for Lower {
     fn default() -> Self {
         Self {
             replay_cache: Default::default(),
-            segmentation: Default::default(),
+            inbound_segmentation: Default::default(),
+            outbound_segmentation: Default::default(),
         }
     }
 }
@@ -142,14 +146,12 @@ impl Lower {
                                                 true
                                             }
                                         } else {
-                                            info!("failed with {}", label_uuid);
                                             false
                                         }
                                     }
                                 }) {
                                     Address::LabelUuid(*label_uuid)
                                 } else {
-                                    info!("--> {}", pdu.dst);
                                     return Err(DeviceError::CryptoError(
                                         "inbound label-uuid access pdu",
                                     ));
@@ -204,13 +206,10 @@ impl Lower {
                         segment_m,
                     } => {
                         let (block_ack, payload) = self
-                            .segmentation
+                            .inbound_segmentation
                             .process_inbound(pdu.src, *seq_zero, *seg_o, *seg_n, segment_m)?;
 
                         let mut parameters = Vec::new();
-                        //parameters
-                        //.push(0)
-                        //.map_err(|_| DeviceError::InsufficientBuffer)?;
                         let ack_seq_zero = (seq_zero << 2).to_be_bytes();
                         parameters
                             .push(ack_seq_zero[0])
@@ -310,15 +309,22 @@ impl Lower {
                     }
                 }
             }
-            LowerPDU::Control(control) => match control.message {
-                LowerControlMessage::Unsegmented { .. } => {
-                    //todo!("inbound unsegmented control")
+            LowerPDU::Control(control) => match &control.message {
+                LowerControlMessage::Unsegmented { parameters } => {
+                    if control.opcode == Opcode::SegmentedAcknowledgement {
+                        let seq_zero = u16::from_be_bytes([parameters[0], parameters[1]]) >> 2;
+                        let block_ack = u32::from_be_bytes([
+                            parameters[2],
+                            parameters[3],
+                            parameters[4],
+                            parameters[5],
+                        ]);
+
+                        self.outbound_segmentation.ack(seq_zero, block_ack);
+                    }
                     Ok((None, None))
                 }
-                LowerControlMessage::Segmented { .. } => {
-                    //todo!("inbound segmented control")
-                    Ok((None, None))
-                }
+                LowerControlMessage::Segmented { .. } => Ok((None, None)),
             },
         }
     }
@@ -427,6 +433,8 @@ impl Lower {
                             }),
                         })?;
                     }
+                    self.outbound_segmentation
+                        .register(seq_zero as u16, segments.clone())?;
                     Ok(Some(segments))
                 } else {
                     let payload =
@@ -452,16 +460,23 @@ impl Lower {
             }
         }
     }
+
+    pub fn process_retransmits(
+        &mut self,
+    ) -> Result<Option<CleartextNetworkPDUSegments<64>>, DeviceError> {
+        self.outbound_segmentation.process_retransmits()
+    }
 }
 
-pub struct CleartextNetworkPDUSegments {
-    segments: Vec<CleartextNetworkPDU, 10>,
+#[derive(Clone)]
+pub struct CleartextNetworkPDUSegments<const N: usize = 10> {
+    segments: Vec<Option<CleartextNetworkPDU>, N>,
 }
 
-impl CleartextNetworkPDUSegments {
+impl<const N: usize> CleartextNetworkPDUSegments<N> {
     fn new(first: CleartextNetworkPDU) -> Self {
         let mut segments = Vec::new();
-        segments.push(first).ok();
+        segments.push(Some(first)).ok();
         Self { segments }
     }
 
@@ -471,38 +486,53 @@ impl CleartextNetworkPDUSegments {
         }
     }
 
+    fn ack(&mut self, block_ack: u32) -> bool {
+        for i in 0..self.segments.len() {
+            let bit = 1 << i;
+            if bit & block_ack != 0 {
+                self.segments[i] = None;
+            }
+        }
+
+        self.segments.iter().all(|e| matches!(e, None))
+    }
+
     fn add(&mut self, pdu: CleartextNetworkPDU) -> Result<(), DeviceError> {
         self.segments
-            .push(pdu)
+            .push(Some(pdu))
             .map_err(|_| DeviceError::InsufficientBuffer)
     }
 
-    pub fn iter(&self) -> CleartextNetworkPDUSegmentsIter {
+    pub fn iter(&self) -> CleartextNetworkPDUSegmentsIter<N> {
         CleartextNetworkPDUSegmentsIter::new(self)
     }
 }
 
-pub struct CleartextNetworkPDUSegmentsIter<'a> {
-    segments: &'a CleartextNetworkPDUSegments,
+pub struct CleartextNetworkPDUSegmentsIter<'a, const N: usize> {
+    segments: &'a CleartextNetworkPDUSegments<N>,
     cur: u8,
 }
 
-impl<'a> CleartextNetworkPDUSegmentsIter<'a> {
-    fn new(segments: &'a CleartextNetworkPDUSegments) -> Self {
+impl<'a, const N: usize> CleartextNetworkPDUSegmentsIter<'a, N> {
+    fn new(segments: &'a CleartextNetworkPDUSegments<N>) -> Self {
         Self { segments, cur: 0 }
     }
 }
 
-impl<'a> Iterator for CleartextNetworkPDUSegmentsIter<'a> {
+impl<'a, const N: usize> Iterator for CleartextNetworkPDUSegmentsIter<'a, N> {
     type Item = &'a CleartextNetworkPDU;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.cur >= self.segments.segments.len() as u8 {
-            None
-        } else {
-            let cur = self.cur;
-            self.cur = self.cur + 1;
-            Some(&self.segments.segments[cur as usize])
+        loop {
+            if self.cur >= self.segments.segments.len() as u8 {
+                return None;
+            } else {
+                let cur = self.cur;
+                self.cur = self.cur + 1;
+                if let Some(segment) = &self.segments.segments[cur as usize] {
+                    return Some(segment);
+                }
+            }
         }
     }
 }

@@ -78,7 +78,7 @@ impl PipelineInner {
         match self {
             PipelineInner::Unconfigured => Err(DeviceError::PipelineNotConfigured),
             PipelineInner::Unprovisioned(inner) => inner.try_retransmit(ctx).await,
-            PipelineInner::Provisioned(_) => Err(DeviceError::AlreadyProvisioned),
+            PipelineInner::Provisioned(inner) => inner.try_retransmit(ctx).await,
         }
     }
 }
@@ -224,6 +224,17 @@ impl ProvisionedPipeline {
             (_, Err(e)) => Err(e),
             (Err(e), _) => Err(e),
         }
+    }
+
+    pub async fn try_retransmit<C: PipelineContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
+        if let Some(message) = self.lower.process_retransmits()? {
+            for message in message.iter() {
+                if let Some(message) = self.authentication.process_outbound(ctx, message)? {
+                    ctx.transmit_mesh_pdu(&message).await?;
+                }
+            }
+        }
+        Ok(())
     }
 }
 

@@ -54,6 +54,7 @@ impl ObfuscatedAndEncryptedNetworkPDU {
     }
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct CleartextNetworkPDU {
     pub(crate) network_key: NetworkKeyHandle,
