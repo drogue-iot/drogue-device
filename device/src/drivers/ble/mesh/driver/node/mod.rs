@@ -340,18 +340,22 @@ where
     }
 
     async fn do_loop(&self) -> Result<(), DeviceError> {
-        if let Some(next_state) = match *self.state.borrow() {
+        let current_state = self.state.borrow();
+
+        if let Some(next_state) = match *current_state {
             State::Unprovisioned => self.loop_unprovisioned().await,
             State::Provisioning => self.loop_provisioning().await,
             State::Provisioned => self.loop_provisioned().await,
         }? {
             if matches!(next_state, State::Provisioned) {
-                if !matches!(*self.state.borrow(), State::Provisioned) {
+                if !matches!(*current_state, State::Provisioned) {
                     // only connect during the first transition.
                     self.connect_elements()
                 }
             }
-            if next_state != *self.state.borrow() {
+            if next_state != *current_state {
+                info!("setting state");
+                drop(current_state);
                 *self.state.borrow_mut() = next_state;
                 self.pipeline.borrow_mut().state(next_state);
             };
