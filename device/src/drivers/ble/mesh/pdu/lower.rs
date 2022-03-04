@@ -236,7 +236,7 @@ pub enum LowerControlMessage {
     },
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Opcode {
     SegmentedAcknowledgement = 0x00,

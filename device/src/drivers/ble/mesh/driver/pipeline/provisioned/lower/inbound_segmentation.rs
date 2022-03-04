@@ -3,11 +3,11 @@ use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use heapless::Vec;
 
-pub struct Segmentation {
+pub struct InboundSegmentation {
     in_flight: [Option<InFlight>; 3],
 }
 
-impl Default for Segmentation {
+impl Default for InboundSegmentation {
     fn default() -> Self {
         Self {
             in_flight: Default::default(),
@@ -15,7 +15,7 @@ impl Default for Segmentation {
     }
 }
 
-impl Segmentation {
+impl InboundSegmentation {
     pub(crate) fn process_inbound(
         &mut self,
         src: UnicastAddress,
