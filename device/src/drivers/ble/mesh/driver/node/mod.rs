@@ -11,8 +11,8 @@ use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::vault::{StorageVault, Vault};
 use crate::drivers::ble::mesh::MESH_BEACON;
-use core::cell::RefCell;
 use core::cell::UnsafeCell;
+use core::cell::{Cell, RefCell};
 use core::future::Future;
 use embassy::blocking_mutex::kind::Noop;
 use embassy::channel::mpsc;
@@ -157,7 +157,7 @@ where
 {
     control_signal: &'signal Signal<MeshNodeMessage>,
     //
-    state: RefCell<State>,
+    state: Cell<State>,
     //
     transmitter: TX,
     receiver: RX,
@@ -189,7 +189,7 @@ where
     ) -> Self {
         Self {
             control_signal,
-            state: RefCell::new(State::Unprovisioned),
+            state: Cell::new(State::Unprovisioned),
             transmitter,
             receiver: receiver,
             configuration_manager,
@@ -340,23 +340,22 @@ where
     }
 
     async fn do_loop(&self) -> Result<(), DeviceError> {
-        let current_state = self.state.borrow();
+        let current_state = self.state.get();
 
-        if let Some(next_state) = match *current_state {
+        if let Some(next_state) = match current_state {
             State::Unprovisioned => self.loop_unprovisioned().await,
             State::Provisioning => self.loop_provisioning().await,
             State::Provisioned => self.loop_provisioned().await,
         }? {
             if matches!(next_state, State::Provisioned) {
-                if !matches!(*current_state, State::Provisioned) {
+                if !matches!(current_state, State::Provisioned) {
                     // only connect during the first transition.
                     self.connect_elements()
                 }
             }
-            if next_state != *current_state {
+            if next_state != current_state {
                 info!("setting state");
-                drop(current_state);
-                *self.state.borrow_mut() = next_state;
+                self.state.replace(next_state);
                 self.pipeline.borrow_mut().state(next_state);
             };
         }
@@ -390,11 +389,11 @@ where
         self.publish_outbound.initialize();
 
         if self.configuration_manager.is_provisioned() {
-            *self.state.borrow_mut() = State::Provisioned;
+            self.state.replace(State::Provisioned);
             self.connect_elements();
         }
 
-        self.pipeline.borrow_mut().state(*self.state.borrow());
+        self.pipeline.borrow_mut().state(self.state.get());
 
         loop {
             let loop_fut = self.do_loop();
