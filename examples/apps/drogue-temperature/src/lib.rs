@@ -186,7 +186,7 @@ static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
     DnsEntry::new("localhost", IpAddress::new_v4(127, 0, 0, 1)),
     DnsEntry::new(
         "http.sandbox.drogue.cloud",
-        IpAddress::new_v4(95, 216, 224, 167),
+        IpAddress::new_v4(65, 108, 135, 161),
     ),
 ]);
 
