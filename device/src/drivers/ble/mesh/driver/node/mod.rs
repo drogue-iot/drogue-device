@@ -41,9 +41,9 @@ pub trait Receiver {
 }
 
 pub(crate) struct OutboundChannel<'a> {
-    channel: UnsafeCell<Option<Channel<Noop, AccessMessage, 10>>>,
-    sender: UnsafeCell<Option<ChannelSender<'a, Noop, AccessMessage, 10>>>,
-    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, AccessMessage, 10>>>,
+    channel: UnsafeCell<Option<Channel<Noop, AccessMessage, 3>>>,
+    sender: UnsafeCell<Option<ChannelSender<'a, Noop, AccessMessage, 3>>>,
+    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, AccessMessage, 3>>>,
 }
 
 impl<'a> OutboundChannel<'a> {
@@ -90,9 +90,9 @@ pub struct OutboundPublishMessage {
 }
 
 pub(crate) struct OutboundPublishChannel<'a> {
-    channel: UnsafeCell<Option<Channel<Noop, OutboundPublishMessage, 10>>>,
-    sender: UnsafeCell<Option<ChannelSender<'a, Noop, OutboundPublishMessage, 10>>>,
-    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, OutboundPublishMessage, 10>>>,
+    channel: UnsafeCell<Option<Channel<Noop, OutboundPublishMessage, 3>>>,
+    sender: UnsafeCell<Option<ChannelSender<'a, Noop, OutboundPublishMessage, 3>>>,
+    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, OutboundPublishMessage, 3>>>,
 }
 
 impl<'a> OutboundPublishChannel<'a> {
@@ -129,7 +129,7 @@ impl<'a> OutboundPublishChannel<'a> {
         }
     }
 
-    fn clone_sender(&self) -> ChannelSender<'a, Noop, OutboundPublishMessage, 10> {
+    fn clone_sender(&self) -> ChannelSender<'a, Noop, OutboundPublishMessage, 3> {
         unsafe { &*self.sender.get() }.as_ref().unwrap().clone()
     }
 }

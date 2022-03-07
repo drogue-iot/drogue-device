@@ -27,7 +27,7 @@ use embassy::channel::mpsc::Sender as ChannelSender;
 use heapless::Vec;
 
 pub struct AppElementsContext {
-    pub(crate) sender: ChannelSender<'static, Noop, OutboundPublishMessage, 10>,
+    pub(crate) sender: ChannelSender<'static, Noop, OutboundPublishMessage, 3>,
     pub(crate) address: UnicastAddress,
 }
 
@@ -43,7 +43,7 @@ impl AppElementsContext {
 
 #[derive(Clone)]
 pub struct AppElementContext<M: Model> {
-    sender: ChannelSender<'static, Noop, OutboundPublishMessage, 10>,
+    sender: ChannelSender<'static, Noop, OutboundPublishMessage, 3>,
     address: UnicastAddress,
     _message: PhantomData<M>,
 }
