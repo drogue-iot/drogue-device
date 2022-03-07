@@ -3,15 +3,13 @@ use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use heapless::Vec;
 
-pub struct InboundSegmentation {
-    in_flight: [Option<InFlight>; 3],
-}
+static mut IN_FLIGHT: [Option<InFlight>; 3] = [None, None, None];
+
+pub struct InboundSegmentation {}
 
 impl Default for InboundSegmentation {
     fn default() -> Self {
-        Self {
-            in_flight: Default::default(),
-        }
+        Self {}
     }
 }
 
@@ -24,18 +22,20 @@ impl InboundSegmentation {
         seg_n: u8,
         segment_m: &Vec<u8, 12>,
     ) -> Result<(u32, Option<Vec<u8, 380>>), DeviceError> {
-        let in_flight_index = self.find_or_create_in_flight(src, seq_zero, seg_n)?;
+        unsafe {
+            let in_flight_index = self.find_or_create_in_flight(src, seq_zero, seg_n)?;
 
-        if let Some(in_flight) = &mut self.in_flight[in_flight_index] {
-            if let Some(all) = in_flight.process_inbound(seg_o, segment_m)? {
-                let block_ack = in_flight.block_ack();
-                self.in_flight[in_flight_index] = None;
-                Ok((block_ack, Some(all)))
+            if let Some(in_flight) = &mut IN_FLIGHT[in_flight_index] {
+                if let Some(all) = in_flight.process_inbound(seg_o, segment_m)? {
+                    let block_ack = in_flight.block_ack();
+                    IN_FLIGHT[in_flight_index] = None;
+                    Ok((block_ack, Some(all)))
+                } else {
+                    Ok((in_flight.block_ack(), None))
+                }
             } else {
-                Ok((in_flight.block_ack(), None))
+                Err(DeviceError::InsufficientBuffer)
             }
-        } else {
-            Err(DeviceError::InsufficientBuffer)
         }
     }
 
@@ -45,26 +45,27 @@ impl InboundSegmentation {
         seq_zero: u16,
         seg_n: u8,
     ) -> Result<usize, InsufficientBuffer> {
-        if let Some((index, _)) = self.in_flight.iter_mut().enumerate().find(|(_, e)| {
-            if let Some(e) = e {
-                e.src == src && e.seq_zero == seq_zero && e.seg_n == seg_n
-            } else {
-                false
-            }
-        }) {
-            Ok(index)
-        } else {
-            if let Some((index, _)) = self
-                .in_flight
-                .iter_mut()
-                .enumerate()
-                .find(|(_, e)| matches!(e, None))
-            {
-                let in_flight = InFlight::new(src, seq_zero, seg_n);
-                self.in_flight[index] = Some(in_flight);
+        unsafe {
+            if let Some((index, _)) = IN_FLIGHT.iter_mut().enumerate().find(|(_, e)| {
+                if let Some(e) = e {
+                    e.src == src && e.seq_zero == seq_zero && e.seg_n == seg_n
+                } else {
+                    false
+                }
+            }) {
                 Ok(index)
             } else {
-                Err(InsufficientBuffer)
+                if let Some((index, _)) = IN_FLIGHT
+                    .iter_mut()
+                    .enumerate()
+                    .find(|(_, e)| matches!(e, None))
+                {
+                    let in_flight = InFlight::new(src, seq_zero, seg_n);
+                    IN_FLIGHT[index] = Some(in_flight);
+                    Ok(index)
+                } else {
+                    Err(InsufficientBuffer)
+                }
             }
         }
     }

@@ -17,12 +17,6 @@ pub trait AuthenticationContext: MeshContext {
     fn find_network_keys_by_nid(&self, nid: u8) -> Result<Vec<NetworkDetails, 10>, DeviceError>;
 }
 
-pub struct AuthenticationOutput {
-    network: NetworkDetails,
-    dst: [u8; 2],
-    transport_pdu: Vec<u8, 28>,
-}
-
 pub struct Authentication {}
 
 impl Default for Authentication {

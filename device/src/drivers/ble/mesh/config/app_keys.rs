@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Default)]
 pub struct AppKeys {
-    keys: Vec<AppKeyDetails, 10>,
+    keys: Vec<AppKeyDetails, 3>,
 }
 
 impl AppKeys {
