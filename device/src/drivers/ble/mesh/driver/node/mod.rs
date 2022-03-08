@@ -11,8 +11,8 @@ use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::vault::{StorageVault, Vault};
 use crate::drivers::ble::mesh::MESH_BEACON;
-use core::cell::RefCell;
 use core::cell::UnsafeCell;
+use core::cell::{Cell, RefCell};
 use core::future::Future;
 use embassy::blocking_mutex::kind::Noop;
 use embassy::channel::mpsc;
@@ -147,20 +147,52 @@ pub enum MeshNodeMessage {
     Shutdown,
 }
 
-static mut OUTBOUND: OutboundChannel<'static> = OutboundChannel::new();
-static mut OUTBOUND_PUBLISH: OutboundPublishChannel<'static> = OutboundPublishChannel::new();
+pub struct ChannelState<'a> {
+    outbound: OutboundChannel<'a>,
+    publish_outbound: OutboundPublishChannel<'a>,
+}
 
-pub struct Node<'signal, E, TX, RX, S, R>
+impl<'a> ChannelState<'a> {
+    pub const fn new() -> Self {
+        Self {
+            outbound: OutboundChannel::new(),
+            publish_outbound: OutboundPublishChannel::new(),
+        }
+    }
+
+    pub fn initialize(&self) {
+        self.outbound.initialize();
+        self.publish_outbound.initialize();
+    }
+}
+
+pub struct NodeState<'a> {
+    pub channel: ChannelState<'a>,
+    pub control: Signal<MeshNodeMessage>,
+}
+
+impl<'a> NodeState<'a> {
+    pub const fn new() -> Self {
+        Self {
+            channel: ChannelState::new(),
+            control: Signal::new(),
+        }
+    }
+}
+
+pub struct Node<'a, E, TX, RX, S, R>
 where
-    E: ElementsHandler,
+    E: ElementsHandler<'a>,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
     R: RngCore + CryptoRng,
 {
-    control_signal: &'signal Signal<MeshNodeMessage>,
+    channel_state: &'a mut ChannelState<'a>,
+    control_signal: &'a Signal<MeshNodeMessage>,
+
     //
-    state: RefCell<State>,
+    state: Cell<State>,
     //
     transmitter: TX,
     receiver: RX,
@@ -168,21 +200,20 @@ where
     rng: RefCell<R>,
     pipeline: RefCell<Pipeline>,
     //
-    pub(crate) elements: Elements<E>,
-    //pub(crate) outbound: OutboundChannel<'static>,
-    //pub(crate) publish_outbound: OutboundPublishChannel<'static>,
+    pub(crate) elements: Elements<'a, E>,
 }
 
-impl<'signal, E, TX, RX, S, R> Node<'signal, E, TX, RX, S, R>
+impl<'a, E, TX, RX, S, R> Node<'a, E, TX, RX, S, R>
 where
-    E: ElementsHandler,
+    E: ElementsHandler<'a>,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
     R: RngCore + CryptoRng,
 {
     pub fn new(
-        control_signal: &'signal Signal<MeshNodeMessage>,
+        channel_state: &'a mut ChannelState<'a>,
+        control_signal: &'a Signal<MeshNodeMessage>,
         app_elements: E,
         capabilities: Capabilities,
         transmitter: TX,
@@ -191,17 +222,16 @@ where
         rng: R,
     ) -> Self {
         Self {
+            channel_state,
             control_signal,
-            state: RefCell::new(State::Unprovisioned),
+            state: Cell::new(State::Unprovisioned),
             transmitter,
-            receiver: receiver,
+            receiver,
             configuration_manager,
             rng: RefCell::new(rng),
             pipeline: RefCell::new(Pipeline::new(capabilities)),
             //
             elements: Elements::new(app_elements),
-            //outbound: OutboundChannel::new(),
-            //publish_outbound: OutboundPublishChannel::new(),
         }
     }
 
@@ -312,19 +342,17 @@ where
 
         let ack_timeout = ticker.next();
         let receive_fut = self.receiver.receive_bytes();
-        //let outbound_fut = self.outbound.next();
-        let outbound_fut = unsafe { OUTBOUND.next() };
-        //let outbound_publish_fut = self.publish_outbound.next();
-        let outbound_publish_fut = unsafe { OUTBOUND_PUBLISH.next() };
+        let outbound_fut = self.channel_state.outbound.next();
+        let publish_outbound_fut = self.channel_state.publish_outbound.next();
 
         pin_mut!(ack_timeout);
         pin_mut!(receive_fut);
         pin_mut!(outbound_fut);
-        pin_mut!(outbound_publish_fut);
+        pin_mut!(publish_outbound_fut);
 
         let result = select(
             select(receive_fut, ack_timeout),
-            select(outbound_fut, outbound_publish_fut),
+            select(outbound_fut, publish_outbound_fut),
         )
         .await;
         match result {
@@ -359,22 +387,21 @@ where
     }
 
     async fn do_loop(&self) -> Result<(), DeviceError> {
-        let current_state = self.state.borrow();
+        let current_state = self.state.get();
 
-        if let Some(next_state) = match *current_state {
+        if let Some(next_state) = match current_state {
             State::Unprovisioned => self.loop_unprovisioned().await,
             State::Provisioning => self.loop_provisioning().await,
             State::Provisioned => self.loop_provisioned().await,
         }? {
             if matches!(next_state, State::Provisioned) {
-                if !matches!(*current_state, State::Provisioned) {
+                if !matches!(current_state, State::Provisioned) {
                     // only connect during the first transition.
                     self.connect_elements()
                 }
             }
-            if next_state != *current_state {
-                drop(current_state);
-                *self.state.borrow_mut() = next_state;
+            if next_state != current_state {
+                self.state.set(next_state);
                 self.pipeline.borrow_mut().state(next_state);
             };
         }
@@ -383,8 +410,7 @@ where
 
     fn connect_elements(&self) {
         let ctx = AppElementsContext {
-            //sender: self.publish_outbound.clone_sender(),
-            sender: unsafe { OUTBOUND_PUBLISH.clone_sender() },
+            sender: self.channel_state.publish_outbound.clone_sender(),
             address: self.address().unwrap(),
         };
         self.elements.connect(ctx);
@@ -405,19 +431,14 @@ where
         #[cfg(feature = "defmt")]
         self.configuration_manager.display_configuration();
 
-        //self.outbound.initialize();
-        //self.publish_outbound.initialize();
-        unsafe {
-            OUTBOUND.initialize();
-            OUTBOUND_PUBLISH.initialize();
-        }
+        self.channel_state.initialize();
 
         if self.configuration_manager.is_provisioned() {
-            *self.state.borrow_mut() = State::Provisioned;
+            self.state.set(State::Provisioned);
             self.connect_elements();
         }
 
-        self.pipeline.borrow_mut().state(*self.state.borrow());
+        self.pipeline.borrow_mut().state(self.state.get());
 
         loop {
             let loop_fut = self.do_loop();
