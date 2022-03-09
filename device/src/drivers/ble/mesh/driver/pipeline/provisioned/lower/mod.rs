@@ -74,7 +74,7 @@ pub trait LowerContext: AuthenticationContext {
 }
 
 pub struct Lower<'a, const MAX_SEG: usize> {
-    replay_cache: ReplayCache,
+    replay_cache: ReplayCache<100>,
     inbound_segmentation: InboundSegmentation<'a, MAX_SEG>,
     outbound_segmentation: OutboundSegmentation<'a, MAX_SEG>,
 }
@@ -87,7 +87,7 @@ pub struct LowerConfig<'a, const MAX_SEG: usize> {
 impl<'a, const MAX_SEG: usize> Lower<'a, MAX_SEG> {
     pub fn new(config: LowerConfig<'a, MAX_SEG>) -> Self {
         Self {
-            replay_cache: Default::default(),
+            replay_cache: ReplayCache::new(),
             inbound_segmentation: InboundSegmentation::new(config.inbound),
             outbound_segmentation: OutboundSegmentation::new(config.outbound),
         }
