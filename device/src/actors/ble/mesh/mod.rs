@@ -189,7 +189,6 @@ where
             let control_signal = Signal::new();
 
             let mut node = Node::new(
-                &control_signal,
                 self.elements.take().unwrap(),
                 self.capabilities.take().unwrap(),
                 tx,
@@ -198,7 +197,7 @@ where
                 self.rng.take().unwrap(),
             );
 
-            let node_fut = node.run();
+            let node_fut = node.run(&control_signal);
             let handler_fut = handler.start();
             pin_mut!(node_fut);
             pin_mut!(handler_fut);

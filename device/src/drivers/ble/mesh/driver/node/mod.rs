@@ -11,8 +11,8 @@ use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::vault::{StorageVault, Vault};
 use crate::drivers::ble::mesh::MESH_BEACON;
-use core::cell::RefCell;
 use core::cell::UnsafeCell;
+use core::cell::{Cell, RefCell};
 use core::future::Future;
 use embassy::blocking_mutex::kind::Noop;
 use embassy::channel::mpsc;
@@ -149,7 +149,7 @@ pub enum MeshNodeMessage {
     Shutdown,
 }
 
-pub struct Node<'signal, E, TX, RX, S, R>
+pub struct Node<E, TX, RX, S, R>
 where
     E: ElementsHandler,
     TX: Transmitter,
@@ -157,9 +157,8 @@ where
     S: Storage,
     R: RngCore + CryptoRng,
 {
-    control_signal: &'signal Signal<MeshNodeMessage>,
     //
-    state: RefCell<State>,
+    state: Cell<State>,
     //
     transmitter: TX,
     receiver: RX,
@@ -172,7 +171,7 @@ where
     pub(crate) publish_outbound: OutboundPublishChannel<'static>,
 }
 
-impl<'signal, E, TX, RX, S, R> Node<'signal, E, TX, RX, S, R>
+impl<E, TX, RX, S, R> Node<E, TX, RX, S, R>
 where
     E: ElementsHandler,
     TX: Transmitter,
@@ -181,7 +180,6 @@ where
     R: RngCore + CryptoRng,
 {
     pub fn new(
-        control_signal: &'signal Signal<MeshNodeMessage>,
         app_elements: E,
         capabilities: Capabilities,
         transmitter: TX,
@@ -190,10 +188,9 @@ where
         rng: R,
     ) -> Self {
         Self {
-            control_signal,
-            state: RefCell::new(State::Unprovisioned),
+            state: Cell::new(State::Unprovisioned),
             transmitter,
-            receiver: receiver,
+            receiver,
             configuration_manager,
             rng: RefCell::new(rng),
             pipeline: RefCell::new(Pipeline::new(capabilities)),
@@ -356,22 +353,21 @@ where
     }
 
     async fn do_loop(&self) -> Result<(), DeviceError> {
-        let current_state = self.state.borrow();
+        let current_state = self.state.get();
 
-        if let Some(next_state) = match *current_state {
+        if let Some(next_state) = match current_state {
             State::Unprovisioned => self.loop_unprovisioned().await,
             State::Provisioning => self.loop_provisioning().await,
             State::Provisioned => self.loop_provisioned().await,
         }? {
             if matches!(next_state, State::Provisioned) {
-                if !matches!(*current_state, State::Provisioned) {
+                if !matches!(current_state, State::Provisioned) {
                     // only connect during the first transition.
                     self.connect_elements()
                 }
             }
-            if next_state != *current_state {
-                drop(current_state);
-                *self.state.borrow_mut() = next_state;
+            if next_state != current_state {
+                self.state.set(next_state);
                 self.pipeline.borrow_mut().state(next_state);
             };
         }
@@ -386,7 +382,7 @@ where
         self.elements.connect(ctx);
     }
 
-    pub async fn run(&mut self) -> Result<(), DeviceError> {
+    pub async fn run(&mut self, control: &Signal<MeshNodeMessage>) -> Result<(), DeviceError> {
         let mut rng = self.rng.borrow_mut();
         if let Err(e) = self.configuration_manager.initialize(&mut *rng).await {
             // try again as a force reset
@@ -405,15 +401,15 @@ where
         self.publish_outbound.initialize();
 
         if self.configuration_manager.is_provisioned() {
-            *self.state.borrow_mut() = State::Provisioned;
+            self.state.set(State::Provisioned);
             self.connect_elements();
         }
 
-        self.pipeline.borrow_mut().state(*self.state.borrow());
+        self.pipeline.borrow_mut().state(self.state.get());
 
         loop {
             let loop_fut = self.do_loop();
-            let signal_fut = self.control_signal.wait();
+            let signal_fut = control.wait();
 
             pin_mut!(loop_fut);
             pin_mut!(signal_fut);
