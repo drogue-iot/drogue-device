@@ -136,7 +136,7 @@ impl Network {
 #[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Networks {
-    networks: Vec<NetworkDetails, 3>,
+    networks: Vec<NetworkDetails, 10>,
 }
 
 impl Networks {

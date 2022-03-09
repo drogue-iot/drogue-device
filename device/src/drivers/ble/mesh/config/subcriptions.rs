@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Subscriptions {
-    subscriptions: Vec<Subscription, 10>,
+    subscriptions: Vec<Subscription, 20>,
 }
 
 impl Default for Subscriptions {
@@ -26,7 +26,7 @@ impl Subscriptions {
         element_address: &UnicastAddress,
         model_identifier: &ModelIdentifier,
     ) {
-        let mut matching: Vec<&Subscription, 10> = Vec::new();
+        let mut matching: Vec<&Subscription, 20> = Vec::new();
         for e in self.subscriptions.iter().filter(|e| {
             e.element_address == *element_address && e.model_identifier == *model_identifier
         }) {
