@@ -3,17 +3,30 @@ use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use heapless::Vec;
 
-static mut IN_FLIGHT: [Option<InFlight>; 3] = [None, None, None];
+pub struct InboundState<const MAX_SEG: usize> {
+    in_flight: [Option<InFlight>; MAX_SEG],
+}
 
-pub struct InboundSegmentation {}
-
-impl Default for InboundSegmentation {
-    fn default() -> Self {
-        Self {}
+impl<const MAX_SEG: usize> InboundState<MAX_SEG> {
+    pub const fn new() -> Self {
+        const INIT: Option<InFlight> = None;
+        Self {
+            in_flight: [INIT; MAX_SEG],
+        }
     }
 }
 
-impl InboundSegmentation {
+pub struct InboundSegmentation<'a, const MAX_SEG: usize> {
+    state: &'a mut InboundState<MAX_SEG>,
+}
+
+impl<'a, const MAX_SEG: usize> InboundSegmentation<'a, MAX_SEG> {
+    pub fn new(state: &'a mut InboundState<MAX_SEG>) -> Self {
+        Self { state }
+    }
+}
+
+impl<'a, const MAX_SEG: usize> InboundSegmentation<'a, MAX_SEG> {
     pub(crate) fn process_inbound(
         &mut self,
         src: UnicastAddress,
@@ -25,10 +38,10 @@ impl InboundSegmentation {
         unsafe {
             let in_flight_index = self.find_or_create_in_flight(src, seq_zero, seg_n)?;
 
-            if let Some(in_flight) = &mut IN_FLIGHT[in_flight_index] {
+            if let Some(in_flight) = &mut self.state.in_flight[in_flight_index] {
                 if let Some(all) = in_flight.process_inbound(seg_o, segment_m)? {
                     let block_ack = in_flight.block_ack();
-                    IN_FLIGHT[in_flight_index] = None;
+                    self.state.in_flight[in_flight_index] = None;
                     Ok((block_ack, Some(all)))
                 } else {
                     Ok((in_flight.block_ack(), None))
@@ -39,33 +52,37 @@ impl InboundSegmentation {
         }
     }
 
+    pub fn free(self) -> &'a mut InboundState<MAX_SEG> {
+        self.state
+    }
+
     fn find_or_create_in_flight(
         &mut self,
         src: UnicastAddress,
         seq_zero: u16,
         seg_n: u8,
     ) -> Result<usize, InsufficientBuffer> {
-        unsafe {
-            if let Some((index, _)) = IN_FLIGHT.iter_mut().enumerate().find(|(_, e)| {
-                if let Some(e) = e {
-                    e.src == src && e.seq_zero == seq_zero && e.seg_n == seg_n
-                } else {
-                    false
-                }
-            }) {
+        if let Some((index, _)) = self.state.in_flight.iter_mut().enumerate().find(|(_, e)| {
+            if let Some(e) = e {
+                e.src == src && e.seq_zero == seq_zero && e.seg_n == seg_n
+            } else {
+                false
+            }
+        }) {
+            Ok(index)
+        } else {
+            if let Some((index, _)) = self
+                .state
+                .in_flight
+                .iter_mut()
+                .enumerate()
+                .find(|(_, e)| matches!(e, None))
+            {
+                let in_flight = InFlight::new(src, seq_zero, seg_n);
+                self.state.in_flight[index] = Some(in_flight);
                 Ok(index)
             } else {
-                if let Some((index, _)) = IN_FLIGHT
-                    .iter_mut()
-                    .enumerate()
-                    .find(|(_, e)| matches!(e, None))
-                {
-                    let in_flight = InFlight::new(src, seq_zero, seg_n);
-                    IN_FLIGHT[index] = Some(in_flight);
-                    Ok(index)
-                } else {
-                    Err(InsufficientBuffer)
-                }
+                Err(InsufficientBuffer)
             }
         }
     }

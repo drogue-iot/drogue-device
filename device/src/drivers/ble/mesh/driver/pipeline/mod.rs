@@ -1,6 +1,6 @@
 use crate::drivers::ble::mesh::driver::node::State;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::{Mesh, MeshData};
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::Lower;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::{Lower, LowerConfig};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::Authentication;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::Relay;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::Upper;
@@ -25,27 +25,27 @@ pub mod unprovisioned;
 
 pub trait PipelineContext: UnprovisionedContext + ProvisionedContext {}
 
-pub struct Pipeline {
+pub struct Pipeline<'a, const MAX_SEG: usize> {
     mesh: Mesh,
     capabilities: Capabilities,
-    inner: PipelineInner,
+    inner: Option<PipelineInner<'a, MAX_SEG>>,
 }
 
-enum PipelineInner {
-    Unconfigured,
-    Unprovisioned(UnprovisionedPipeline),
-    Provisioned(ProvisionedPipeline),
+enum PipelineInner<'a, const MAX_SEG: usize> {
+    Unconfigured(PipelineConfig<'a, MAX_SEG>),
+    Unprovisioned(UnprovisionedPipeline, PipelineConfig<'a, MAX_SEG>),
+    Provisioned(ProvisionedPipeline<'a, MAX_SEG>),
 }
 
-impl PipelineInner {
+impl<'a, const MAX_SEG: usize> PipelineInner<'a, MAX_SEG> {
     async fn process_inbound<C: PipelineContext>(
         &mut self,
         ctx: &C,
         message: &mut MeshData,
     ) -> Result<Option<State>, DeviceError> {
         match self {
-            PipelineInner::Unconfigured => Ok(None),
-            PipelineInner::Unprovisioned(inner) => {
+            PipelineInner::Unconfigured(_) => Ok(None),
+            PipelineInner::Unprovisioned(inner, _) => {
                 if let MeshData::Provisioning(pdu) = message {
                     inner.process_inbound(ctx, pdu).await
                 } else {
@@ -68,17 +68,25 @@ impl PipelineInner {
         message: &AccessMessage,
     ) -> Result<(), DeviceError> {
         match self {
-            PipelineInner::Unconfigured => Err(DeviceError::NotProvisioned),
-            PipelineInner::Unprovisioned(_) => Err(DeviceError::NotProvisioned),
+            PipelineInner::Unconfigured(_) => Err(DeviceError::NotProvisioned),
+            PipelineInner::Unprovisioned(_, _) => Err(DeviceError::NotProvisioned),
             PipelineInner::Provisioned(inner) => inner.process_outbound(ctx, message).await,
         }
     }
 
     pub async fn try_retransmit<C: PipelineContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
         match self {
-            PipelineInner::Unconfigured => Err(DeviceError::PipelineNotConfigured),
-            PipelineInner::Unprovisioned(inner) => inner.try_retransmit(ctx).await,
+            PipelineInner::Unconfigured(_) => Err(DeviceError::PipelineNotConfigured),
+            PipelineInner::Unprovisioned(inner, _) => inner.try_retransmit(ctx).await,
             PipelineInner::Provisioned(inner) => inner.try_retransmit(ctx).await,
+        }
+    }
+
+    pub fn free(self) -> PipelineConfig<'a, MAX_SEG> {
+        match self {
+            PipelineInner::Unconfigured(c) => c,
+            PipelineInner::Unprovisioned(_, c) => c,
+            PipelineInner::Provisioned(inner) => inner.free(),
         }
     }
 }
@@ -134,19 +142,23 @@ impl UnprovisionedPipeline {
     }
 }
 
-struct ProvisionedPipeline {
+pub struct PipelineConfig<'a, const MAX_SEG: usize> {
+    pub lower: LowerConfig<'a, MAX_SEG>,
+}
+
+struct ProvisionedPipeline<'a, const MAX_SEG: usize> {
     authentication: Authentication,
     relay: Relay,
-    lower: Lower,
+    lower: Lower<'a, MAX_SEG>,
     upper: Upper,
 }
 
-impl ProvisionedPipeline {
-    fn new() -> Self {
+impl<'a, const MAX_SEG: usize> ProvisionedPipeline<'a, MAX_SEG> {
+    fn new(config: PipelineConfig<'a, MAX_SEG>) -> Self {
         Self {
             authentication: Default::default(),
             relay: Default::default(),
-            lower: Default::default(),
+            lower: Lower::new(config.lower),
             upper: Default::default(),
         }
     }
@@ -236,29 +248,39 @@ impl ProvisionedPipeline {
         }
         Ok(())
     }
+
+    fn free(self) -> PipelineConfig<'a, MAX_SEG> {
+        PipelineConfig {
+            lower: self.lower.free(),
+        }
+    }
 }
 
-impl Pipeline {
-    pub fn new(capabilities: Capabilities) -> Self {
+impl<'a, const MAX_SEG: usize> Pipeline<'a, MAX_SEG> {
+    pub fn new(config: PipelineConfig<'a, MAX_SEG>, capabilities: Capabilities) -> Self {
         Self {
             mesh: Default::default(),
             capabilities,
-            inner: PipelineInner::Unconfigured,
+            inner: Some(PipelineInner::Unconfigured(config)),
         }
     }
 
     pub(crate) fn state(&mut self, state: State) {
         match state {
             State::Unprovisioned => {
-                if !matches!(self.inner, PipelineInner::Unprovisioned(_)) {
-                    self.inner = PipelineInner::Unprovisioned(UnprovisionedPipeline::new(
-                        self.capabilities.clone(),
-                    ))
+                if !matches!(self.inner, Some(PipelineInner::Unprovisioned(_, _))) {
+                    let config = self.inner.take().unwrap().free();
+                    self.inner.replace(PipelineInner::Unprovisioned(
+                        UnprovisionedPipeline::new(self.capabilities.clone()),
+                        config,
+                    ));
                 }
             }
             State::Provisioned => {
-                if !matches!(self.inner, PipelineInner::Provisioned(_)) {
-                    self.inner = PipelineInner::Provisioned(ProvisionedPipeline::new())
+                if !matches!(self.inner, Some(PipelineInner::Provisioned(_))) {
+                    let config = self.inner.take().unwrap().free();
+                    self.inner
+                        .replace(PipelineInner::Provisioned(ProvisionedPipeline::new(config)));
                 }
             }
             _ => {}
@@ -271,7 +293,11 @@ impl Pipeline {
         data: &[u8],
     ) -> Result<Option<State>, DeviceError> {
         if let Some(mut result) = self.mesh.process_inbound(ctx, &data)? {
-            self.inner.process_inbound(ctx, &mut result).await
+            self.inner
+                .as_mut()
+                .unwrap()
+                .process_inbound(ctx, &mut result)
+                .await
         } else {
             Ok(None)
         }
@@ -282,10 +308,14 @@ impl Pipeline {
         ctx: &C,
         message: &AccessMessage,
     ) -> Result<(), DeviceError> {
-        self.inner.process_outbound(ctx, message).await
+        self.inner
+            .as_mut()
+            .unwrap()
+            .process_outbound(ctx, message)
+            .await
     }
 
     pub async fn try_retransmit<C: PipelineContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
-        self.inner.try_retransmit(ctx).await
+        self.inner.as_mut().unwrap().try_retransmit(ctx).await
     }
 }

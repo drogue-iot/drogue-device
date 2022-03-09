@@ -13,7 +13,10 @@ use crate::{Actor, Address, Inbox};
 use core::cell::RefCell;
 use core::future::Future;
 use embassy::blocking_mutex::kind::ThreadMode;
-use embassy::channel::mpsc::{self, Channel};
+use embassy::channel::{
+    mpsc::{self, Channel},
+    signal::Signal,
+};
 use futures::future::{select, Either};
 use futures::pin_mut;
 use heapless::Vec;
@@ -200,9 +203,10 @@ where
             );
 
             let node_state = self.node_state.take().unwrap();
+            let control = Signal::new();
+
             let mut node = Node::new(
-                &mut node_state.channel,
-                &node_state.control,
+                node_state.into_config(),
                 self.elements.take().unwrap(),
                 self.capabilities.take().unwrap(),
                 tx,
@@ -211,7 +215,7 @@ where
                 self.rng.take().unwrap(),
             );
 
-            let node_fut = node.run();
+            let node_fut = node.run(&control);
             let handler_fut = handler.start();
             pin_mut!(node_fut);
             pin_mut!(handler_fut);
@@ -231,7 +235,7 @@ where
                     Either::Left((Some(mut message), not_selected)) => {
                         match &mut message.message() {
                             MeshNodeMessage::ForceReset => {
-                                node_state.control.signal(MeshNodeMessage::ForceReset);
+                                control.signal(MeshNodeMessage::ForceReset);
                             }
                             _ => {
                                 // todo: handle others.

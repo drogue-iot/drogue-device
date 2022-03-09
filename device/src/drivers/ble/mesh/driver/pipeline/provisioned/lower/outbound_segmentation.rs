@@ -8,39 +8,54 @@ struct Entry {
     ts: Instant,
 }
 
-static mut IN_FLIGHT: [Option<Entry>; 3] = [None, None, None];
+pub struct OutboundState<const MAX_SEG: usize> {
+    in_flight: [Option<Entry>; MAX_SEG],
+}
 
-pub struct OutboundSegmentation {}
-
-impl Default for OutboundSegmentation {
-    fn default() -> Self {
-        Self {}
+impl<const MAX_SEG: usize> OutboundState<MAX_SEG> {
+    pub const fn new() -> Self {
+        const INIT: Option<Entry> = None;
+        Self {
+            in_flight: [INIT; MAX_SEG],
+        }
     }
 }
 
-impl OutboundSegmentation {
+pub struct OutboundSegmentation<'a, const MAX_SEG: usize> {
+    state: &'a mut OutboundState<MAX_SEG>,
+}
+
+impl<'a, const MAX_SEG: usize> OutboundSegmentation<'a, MAX_SEG> {
+    pub fn new(state: &'a mut OutboundState<MAX_SEG>) -> Self {
+        Self { state }
+    }
+
+    pub fn free(self) -> &'a mut OutboundState<MAX_SEG> {
+        self.state
+    }
+}
+
+impl<'a, const MAX_SEG: usize> OutboundSegmentation<'a, MAX_SEG> {
     pub fn register(
         &mut self,
         seq_zero: u16,
         segments: CleartextNetworkPDUSegments,
     ) -> Result<(), DeviceError> {
-        unsafe {
-            if let Some(entry) = IN_FLIGHT.iter_mut().find(|e| matches!(e, None)) {
-                *entry = Some(Entry {
-                    seq_zero,
-                    segments,
-                    ts: Instant::now(),
-                });
-                Ok(())
-            } else {
-                Err(DeviceError::InsufficientBuffer)
-            }
+        if let Some(entry) = self.state.in_flight.iter_mut().find(|e| matches!(e, None)) {
+            *entry = Some(Entry {
+                seq_zero,
+                segments,
+                ts: Instant::now(),
+            });
+            Ok(())
+        } else {
+            Err(DeviceError::InsufficientBuffer)
         }
     }
 
     pub fn ack(&mut self, seq_zero: u16, block_ack: u32) {
         unsafe {
-            if let Some(entry) = IN_FLIGHT.iter_mut().find(|e| {
+            if let Some(entry) = self.state.in_flight.iter_mut().find(|e| {
                 if let Some(entry) = e {
                     entry.seq_zero == seq_zero
                 } else {
@@ -64,17 +79,15 @@ impl OutboundSegmentation {
 
         let mut segments = CleartextNetworkPDUSegments::new_empty();
 
-        unsafe {
-            for e in IN_FLIGHT.iter_mut() {
-                if let Some(entry) = e {
-                    if now.duration_since(entry.ts) > Duration::from_secs(7) {
-                        *e = None
-                    } else {
-                        for s in &entry.segments.segments {
-                            if let Some(segment) = s {
-                                info!("rxmt!");
-                                segments.add(segment.clone())?;
-                            }
+        for e in self.state.in_flight.iter_mut() {
+            if let Some(entry) = e {
+                if now.duration_since(entry.ts) > Duration::from_secs(7) {
+                    *e = None
+                } else {
+                    for s in &entry.segments.segments {
+                        if let Some(segment) = s {
+                            info!("rxmt!");
+                            segments.add(segment.clone())?;
                         }
                     }
                 }
