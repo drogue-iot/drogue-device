@@ -100,6 +100,490 @@ impl AccessPayload {
     }
 }
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum Config {
+    Friend(Friend),
+    GATTProxy(GATTProxy),
+    HeartbeatPublication(HeartbeatPublication),
+    HeartbeatSubscription(HeartbeatSubscription),
+    KeyRefreshPhase(KeyRefreshPhase),
+    LowPowerNodePollTimeout(LowPowerNodePollTimeout),
+    NetKey(NetKey),
+    NetworkTransmit(NetworkTransmit),
+    NodeIdentity(NodeIdentity),
+    Relay(Relay),
+    SIGModel(SIGModel),
+    VendorModel(VendorModel),
+}
+
+#[allow(unused)]
+impl Config {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Friend(inner) => inner.opcode(),
+            Self::GATTProxy(inner) => inner.opcode(),
+            Self::HeartbeatPublication(inner) => inner.opcode(),
+            Self::HeartbeatSubscription(inner) => inner.opcode(),
+            Self::KeyRefreshPhase(inner) => inner.opcode(),
+            Self::LowPowerNodePollTimeout(inner) => inner.opcode(),
+            Self::NetKey(inner) => inner.opcode(),
+            Self::NetworkTransmit(inner) => inner.opcode(),
+            Self::NodeIdentity(inner) => inner.opcode(),
+            Self::Relay(inner) => inner.opcode(),
+            Self::SIGModel(inner) => inner.opcode(),
+            Self::VendorModel(inner) => inner.opcode(),
+        }
+    }
+
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        match self {
+            Self::Friend(inner) => inner.emit(xmit),
+            Self::GATTProxy(inner) => inner.emit(xmit),
+            Self::HeartbeatPublication(inner) => inner.emit(xmit),
+            Self::HeartbeatSubscription(inner) => inner.emit(xmit),
+            Self::KeyRefreshPhase(inner) => inner.emit(xmit),
+            Self::LowPowerNodePollTimeout(inner) => inner.emit(xmit),
+            Self::NetKey(inner) => inner.emit(xmit),
+            Self::NetworkTransmit(inner) => inner.emit(xmit),
+            Self::NodeIdentity(inner) => inner.emit(xmit),
+            Self::Relay(inner) => inner.emit(xmit),
+            Self::SIGModel(inner) => inner.emit(xmit),
+            Self::VendorModel(inner) => inner.emit(xmit),
+        }
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum Friend {
+    Get,
+    Set,
+    Status,
+}
+
+#[allow(unused)]
+impl Friend {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Get => CONFIG_FRIEND_GET,
+            Self::Set => CONFIG_FRIEND_SET,
+            Self::Status => CONFIG_FRIEND_STATUS,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum GATTProxy {
+    Get,
+    Set,
+    Status,
+}
+
+#[allow(unused)]
+impl GATTProxy {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Get => CONFIG_GATT_PROXY_GET,
+            Self::Set => CONFIG_GATT_PROXY_SET,
+            Self::Status => CONFIG_GATT_PROXY_STATUS,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum HeartbeatPublication {
+    Get,
+    Set,
+    Status,
+}
+
+#[allow(unused)]
+impl HeartbeatPublication {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Get => CONFIG_HEARTBEAT_PUBLICATION_GET,
+            Self::Set => CONFIG_HEARTBEAT_PUBLICATION_SET,
+            Self::Status => CONFIG_HEARTBEAT_PUBLICATION_STATUS,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum HeartbeatSubscription {
+    Get,
+    Set,
+    Status,
+}
+
+#[allow(unused)]
+impl HeartbeatSubscription {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Get => CONFIG_HEARTBEAT_SUBSCRIPTION_GET,
+            Self::Set => CONFIG_HEARTBEAT_SUBSCRIPTION_SET,
+            Self::Status => CONFIG_HEARTBEAT_SUBSCRIPTION_STATUS,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum KeyRefreshPhase {
+    Get,
+    Set,
+    Status,
+}
+
+#[allow(unused)]
+impl KeyRefreshPhase {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Get => CONFIG_KEY_REFRESH_PHASE_GET,
+            Self::Set => CONFIG_KEY_REFRESH_PHASE_SET,
+            Self::Status => CONFIG_KEY_REFRESH_PHASE_STATUS,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum LowPowerNodePollTimeout {
+    Get,
+    Status,
+}
+
+#[allow(unused)]
+impl LowPowerNodePollTimeout {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Get => CONFIG_LOW_POWER_NODE_POLLTIMEOUT_GET,
+            Self::Status => CONFIG_LOW_POWER_NODE_POLLTIMEOUT_STATUS,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum NetKey {
+    Add,
+    Delete,
+    Get,
+    List,
+    Status,
+    Update,
+}
+
+#[allow(unused)]
+impl NetKey {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Add => CONFIG_NETKEY_ADD,
+            Self::Delete => CONFIG_NETKEY_DELETE,
+            Self::Get => CONFIG_NETKEY_GET,
+            Self::List => CONFIG_NETKEY_LIST,
+            Self::Status => CONFIG_NETKEY_STATUS,
+            Self::Update => CONFIG_NETKEY_UPDATE,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum NetworkTransmit {
+    Get,
+    Set,
+    Status,
+}
+
+#[allow(unused)]
+impl NetworkTransmit {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Get => CONFIG_NETWORK_TRANSMIT_GET,
+            Self::Set => CONFIG_NETWORK_TRANSMIT_SET,
+            Self::Status => CONFIG_NETWORK_TRANSMIT_STATUS,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum NodeIdentity {
+    Get,
+    Set,
+    Status,
+}
+
+#[allow(unused)]
+impl NodeIdentity {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Get => CONFIG_NODE_IDENTITY_GET,
+            Self::Set => CONFIG_NODE_IDENTITY_SET,
+            Self::Status => CONFIG_NODE_IDENTITY_STATUS,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum Relay {
+    Get,
+    Set,
+    Status,
+}
+
+#[allow(unused)]
+impl Relay {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Get => CONFIG_RELAY_GET,
+            Self::Set => CONFIG_RELAY_SET,
+            Self::Status => CONFIG_RELAY_STATUS,
+        }
+    }
+
+    pub fn parse_get(parameters: &[u8]) -> Result<Self, ParseError> {
+        if parameters.is_empty() {
+            Ok(Self::Get)
+        } else {
+            Err(ParseError::InvalidLength)
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum SIGModel {
+    App(SIGModelApp),
+    Subscription(SIGModelSubscription),
+}
+
+#[allow(unused)]
+impl SIGModel {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::App(inner) => inner.opcode(),
+            Self::Subscription(inner) => inner.opcode(),
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum SIGModelApp {
+    Get,
+    List,
+}
+
+#[allow(unused)]
+impl SIGModelApp {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Get => CONFIG_SIG_MODEL_APP_GET,
+            Self::List => CONFIG_SIG_MODEL_APP_LIST,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum SIGModelSubscription {
+    Get,
+    List,
+}
+
+#[allow(unused)]
+impl SIGModelSubscription {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Get => CONFIG_SIG_MODEL_SUBSCRIPTION_GET,
+            Self::List => CONFIG_SIG_MODEL_SUBSCRIPTION_LIST,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum VendorModel {
+    App(VendorModelApp),
+    Susbcription(VendorModelSubscription),
+}
+
+#[allow(unused)]
+impl VendorModel {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::App(inner) => inner.opcode(),
+            Self::Susbcription(inner) => inner.opcode(),
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum VendorModelApp {
+    Get,
+    List,
+}
+
+#[allow(unused)]
+impl VendorModelApp {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Get => CONFIG_VENDOR_MODEL_APP_GET,
+            Self::List => CONFIG_VENDOR_MODEL_APP_LIST,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum VendorModelSubscription {
+    Get,
+    List,
+}
+
+#[allow(unused)]
+impl VendorModelSubscription {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Get => CONFIG_VENDOR_MODEL_SUBSCRIPTION_GET,
+            Self::List => CONFIG_VENDOR_MODEL_SUBSCRIPTION_LIST,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum Health {
+    Attention(Attention),
+    CurrentStatus,
+    Fault(Fault),
+    Period(Period),
+}
+
+#[allow(unused)]
+impl Health {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::CurrentStatus => HEALTH_CURRENT_STATUS,
+            Self::Attention(inner) => inner.opcode(),
+            Self::Fault(inner) => inner.opcode(),
+            Self::Period(inner) => inner.opcode(),
+        }
+    }
+
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum Attention {
+    Get,
+    Set,
+    SetUnacknowledged,
+}
+
+#[allow(unused)]
+impl Attention {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Get => HEALTH_ATTENTION_GET,
+            Self::Set => HEALTH_ATTENTION_SET,
+            Self::SetUnacknowledged => HEALTH_ATTENTION_SET_UNACKNOWLEDGED,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum Fault {
+    Clear,
+    ClearUnacknowledged,
+    Get,
+    Status,
+    Test,
+    TestUnacknowledged,
+}
+
+#[allow(unused)]
+impl Fault {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Clear => HEALTH_FAULT_CLEAR,
+            Self::ClearUnacknowledged => HEALTH_FAULT_CLEAR_UNACKNOWLEDGED,
+            Self::Get => HEALTH_FAULT_GET,
+            Self::Status => HEALTH_FAULT_STATUS,
+            Self::Test => HEALTH_FAULT_TEST,
+            Self::TestUnacknowledged => HEALTH_FAULT_TEST_UNACKNOWLEDGED,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum Period {
+    Get,
+    Set,
+    SetUnacknowledged,
+    Status,
+}
+
+#[allow(unused)]
+impl Period {
+    pub fn opcode(&self) -> Opcode {
+        match self {
+            Self::Get => HEALTH_PERIOD_GET,
+            Self::Set => HEALTH_PERIOD_SET,
+            Self::SetUnacknowledged => HEALTH_PERIOD_SET_UNACKNOWLEDGED,
+            Self::Status => HEALTH_PERIOD_STATUS,
+        }
+    }
+    pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {
+        todo!()
+    }
+}
+
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Opcode {
     OneOctet(u8),
@@ -203,6 +687,12 @@ macro_rules! opcode {
 opcode!( CONFIG_BEACON_GET 0x80, 0x09 );
 opcode!( CONFIG_BEACON_SET 0x80, 0x0A );
 opcode!( CONFIG_BEACON_STATUS 0x80, 0x0B );
+//opcode!( CONFIG_COMPOSITION_DATA_GET 0x80, 0x08 );
+//opcode!( CONFIG_COMPOSITION_DATA_STATUS 0x02 );
+//opcode!( CONFIG_CONFIG_MODEL_PUBLICATION_SET 0x03 );
+//opcode!( CONFIG_DEFAULT_TTL_GET 0x80, 0x0C );
+//opcode!( CONFIG_DEFAULT_TTL_SET 0x80, 0x0D );
+//opcode!( CONFIG_DEFAULT_TTL_STATUS 0x80, 0x0E );
 opcode!( CONFIG_FRIEND_GET 0x80, 0x0F );
 opcode!( CONFIG_FRIEND_SET 0x80, 0x10 );
 opcode!( CONFIG_FRIEND_STATUS 0x80, 0x11 );
@@ -220,6 +710,20 @@ opcode!( CONFIG_KEY_REFRESH_PHASE_SET 0x80, 0x16 );
 opcode!( CONFIG_KEY_REFRESH_PHASE_STATUS 0x80, 0x17 );
 opcode!( CONFIG_LOW_POWER_NODE_POLLTIMEOUT_GET 0x80, 0x2D );
 opcode!( CONFIG_LOW_POWER_NODE_POLLTIMEOUT_STATUS 0x80, 0x2E );
+//opcode!( CONFIG_MODEL_APP_BIND 0x80, 0x3D);
+//opcode!( CONFIG_MODEL_APP_STATUS 0x80, 0x3E);
+//opcode!( CONFIG_MODEL_APP_UNBIND 0x80, 0x3F);
+//opcode!( CONFIG_MODEL_PUBLICATION_GET 0x80, 0x18);
+//opcode!( CONFIG_MODEL_PUBLICATION_STATUS 0x80, 0x19);
+//opcode!( CONFIG_MODEL_PUBLICATION_VIRTUAL_ADDRESS_SET 0x80, 0x1A);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_ADD 0x80, 0x1B);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_DELETE 0x80, 0x1C);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_DELETE_ALL 0x80, 0x1D);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_OVERWRITE 0x80, 0x1E);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_STATUS 0x80, 0x1F);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_VIRTUAL_ADDRESS_ADD 0x80, 0x20);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_VIRTUAL_ADDRESS_DELETE 0x80, 0x21);
+// opcode!( CONFIG_MODEL_SUBSCRIPTION_VIRTUAL_ADDRESS_OVERWRITE 0x80, 0x22);
 opcode!( CONFIG_NETKEY_ADD 0x80, 0x40);
 opcode!( CONFIG_NETKEY_DELETE 0x80, 0x41);
 opcode!( CONFIG_NETKEY_GET 0x80, 0x42);

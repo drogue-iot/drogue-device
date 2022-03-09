@@ -47,7 +47,7 @@ pub(crate) struct OutboundChannel<'a> {
 }
 
 impl<'a> OutboundChannel<'a> {
-    const fn new() -> Self {
+    fn new() -> Self {
         Self {
             channel: UnsafeCell::new(None),
             sender: UnsafeCell::new(None),
@@ -96,7 +96,7 @@ pub(crate) struct OutboundPublishChannel<'a> {
 }
 
 impl<'a> OutboundPublishChannel<'a> {
-    const fn new() -> Self {
+    fn new() -> Self {
         Self {
             channel: UnsafeCell::new(None),
             sender: UnsafeCell::new(None),
@@ -147,9 +147,6 @@ pub enum MeshNodeMessage {
     Shutdown,
 }
 
-static mut OUTBOUND: OutboundChannel<'static> = OutboundChannel::new();
-static mut OUTBOUND_PUBLISH: OutboundPublishChannel<'static> = OutboundPublishChannel::new();
-
 pub struct Node<'signal, E, TX, RX, S, R>
 where
     E: ElementsHandler,
@@ -169,8 +166,8 @@ where
     pipeline: RefCell<Pipeline>,
     //
     pub(crate) elements: Elements<E>,
-    //pub(crate) outbound: OutboundChannel<'static>,
-    //pub(crate) publish_outbound: OutboundPublishChannel<'static>,
+    pub(crate) outbound: OutboundChannel<'static>,
+    pub(crate) publish_outbound: OutboundPublishChannel<'static>,
 }
 
 impl<'signal, E, TX, RX, S, R> Node<'signal, E, TX, RX, S, R>
@@ -200,8 +197,8 @@ where
             pipeline: RefCell::new(Pipeline::new(capabilities)),
             //
             elements: Elements::new(app_elements),
-            //outbound: OutboundChannel::new(),
-            //publish_outbound: OutboundPublishChannel::new(),
+            outbound: OutboundChannel::new(),
+            publish_outbound: OutboundPublishChannel::new(),
         }
     }
 
@@ -312,10 +309,8 @@ where
 
         let ack_timeout = ticker.next();
         let receive_fut = self.receiver.receive_bytes();
-        //let outbound_fut = self.outbound.next();
-        let outbound_fut = unsafe { OUTBOUND.next() };
-        //let outbound_publish_fut = self.publish_outbound.next();
-        let outbound_publish_fut = unsafe { OUTBOUND_PUBLISH.next() };
+        let outbound_fut = self.outbound.next();
+        let outbound_publish_fut = self.publish_outbound.next();
 
         pin_mut!(ack_timeout);
         pin_mut!(receive_fut);
@@ -383,8 +378,7 @@ where
 
     fn connect_elements(&self) {
         let ctx = AppElementsContext {
-            //sender: self.publish_outbound.clone_sender(),
-            sender: unsafe { OUTBOUND_PUBLISH.clone_sender() },
+            sender: self.publish_outbound.clone_sender(),
             address: self.address().unwrap(),
         };
         self.elements.connect(ctx);
@@ -405,12 +399,8 @@ where
         #[cfg(feature = "defmt")]
         self.configuration_manager.display_configuration();
 
-        //self.outbound.initialize();
-        //self.publish_outbound.initialize();
-        unsafe {
-            OUTBOUND.initialize();
-            OUTBOUND_PUBLISH.initialize();
-        }
+        self.outbound.initialize();
+        self.publish_outbound.initialize();
 
         if self.configuration_manager.is_provisioned() {
             *self.state.borrow_mut() = State::Provisioned;

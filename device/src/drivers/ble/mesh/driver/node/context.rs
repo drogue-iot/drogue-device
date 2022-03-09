@@ -6,7 +6,7 @@ use crate::drivers::ble::mesh::config::Configuration;
 use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::elements::{ElementContext, PrimaryElementContext};
-use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter, OUTBOUND};
+use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::LowerContext;
@@ -395,9 +395,7 @@ where
 
     fn transmit<'m>(&'m self, message: AccessMessage) -> Self::TransmitFuture<'m> {
         async move {
-            unsafe {
-                OUTBOUND.send(message).await;
-            }
+            self.outbound.send(message).await;
             Ok(())
         }
     }
