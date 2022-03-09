@@ -40,10 +40,12 @@ pub trait Receiver {
     fn receive_bytes<'m>(&'m self) -> Self::ReceiveFuture<'m>;
 }
 
+const MAX_MESSAGE: usize = 3;
+
 pub(crate) struct OutboundChannel<'a> {
-    channel: UnsafeCell<Option<Channel<Noop, AccessMessage, 10>>>,
-    sender: UnsafeCell<Option<ChannelSender<'a, Noop, AccessMessage, 10>>>,
-    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, AccessMessage, 10>>>,
+    channel: UnsafeCell<Option<Channel<Noop, AccessMessage, MAX_MESSAGE>>>,
+    sender: UnsafeCell<Option<ChannelSender<'a, Noop, AccessMessage, MAX_MESSAGE>>>,
+    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, AccessMessage, MAX_MESSAGE>>>,
 }
 
 impl<'a> OutboundChannel<'a> {
@@ -90,9 +92,9 @@ pub struct OutboundPublishMessage {
 }
 
 pub(crate) struct OutboundPublishChannel<'a> {
-    channel: UnsafeCell<Option<Channel<Noop, OutboundPublishMessage, 10>>>,
-    sender: UnsafeCell<Option<ChannelSender<'a, Noop, OutboundPublishMessage, 10>>>,
-    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, OutboundPublishMessage, 10>>>,
+    channel: UnsafeCell<Option<Channel<Noop, OutboundPublishMessage, MAX_MESSAGE>>>,
+    sender: UnsafeCell<Option<ChannelSender<'a, Noop, OutboundPublishMessage, MAX_MESSAGE>>>,
+    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, OutboundPublishMessage, MAX_MESSAGE>>>,
 }
 
 impl<'a> OutboundPublishChannel<'a> {
@@ -129,7 +131,7 @@ impl<'a> OutboundPublishChannel<'a> {
         }
     }
 
-    fn clone_sender(&self) -> ChannelSender<'a, Noop, OutboundPublishMessage, 10> {
+    fn clone_sender(&self) -> ChannelSender<'a, Noop, OutboundPublishMessage, MAX_MESSAGE> {
         unsafe { &*self.sender.get() }.as_ref().unwrap().clone()
     }
 }
