@@ -40,14 +40,16 @@ pub trait Receiver {
     fn receive_bytes<'m>(&'m self) -> Self::ReceiveFuture<'m>;
 }
 
+const MAX_MESSAGE: usize = 3;
+
 pub(crate) struct OutboundChannel<'a> {
-    channel: UnsafeCell<Option<Channel<Noop, AccessMessage, 3>>>,
-    sender: UnsafeCell<Option<ChannelSender<'a, Noop, AccessMessage, 3>>>,
-    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, AccessMessage, 3>>>,
+    channel: UnsafeCell<Option<Channel<Noop, AccessMessage, MAX_MESSAGE>>>,
+    sender: UnsafeCell<Option<ChannelSender<'a, Noop, AccessMessage, MAX_MESSAGE>>>,
+    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, AccessMessage, MAX_MESSAGE>>>,
 }
 
 impl<'a> OutboundChannel<'a> {
-    const fn new() -> Self {
+    fn new() -> Self {
         Self {
             channel: UnsafeCell::new(None),
             sender: UnsafeCell::new(None),
@@ -90,13 +92,13 @@ pub struct OutboundPublishMessage {
 }
 
 pub(crate) struct OutboundPublishChannel<'a> {
-    channel: UnsafeCell<Option<Channel<Noop, OutboundPublishMessage, 3>>>,
-    sender: UnsafeCell<Option<ChannelSender<'a, Noop, OutboundPublishMessage, 3>>>,
-    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, OutboundPublishMessage, 3>>>,
+    channel: UnsafeCell<Option<Channel<Noop, OutboundPublishMessage, MAX_MESSAGE>>>,
+    sender: UnsafeCell<Option<ChannelSender<'a, Noop, OutboundPublishMessage, MAX_MESSAGE>>>,
+    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, OutboundPublishMessage, MAX_MESSAGE>>>,
 }
 
 impl<'a> OutboundPublishChannel<'a> {
-    const fn new() -> Self {
+    fn new() -> Self {
         Self {
             channel: UnsafeCell::new(None),
             sender: UnsafeCell::new(None),
@@ -129,7 +131,7 @@ impl<'a> OutboundPublishChannel<'a> {
         }
     }
 
-    fn clone_sender(&self) -> ChannelSender<'a, Noop, OutboundPublishMessage, 3> {
+    fn clone_sender(&self) -> ChannelSender<'a, Noop, OutboundPublishMessage, MAX_MESSAGE> {
         unsafe { &*self.sender.get() }.as_ref().unwrap().clone()
     }
 }
@@ -147,50 +149,14 @@ pub enum MeshNodeMessage {
     Shutdown,
 }
 
-pub struct ChannelState<'a> {
-    outbound: OutboundChannel<'a>,
-    publish_outbound: OutboundPublishChannel<'a>,
-}
-
-impl<'a> ChannelState<'a> {
-    pub const fn new() -> Self {
-        Self {
-            outbound: OutboundChannel::new(),
-            publish_outbound: OutboundPublishChannel::new(),
-        }
-    }
-
-    pub fn initialize(&self) {
-        self.outbound.initialize();
-        self.publish_outbound.initialize();
-    }
-}
-
-pub struct NodeState<'a> {
-    pub channel: ChannelState<'a>,
-    pub control: Signal<MeshNodeMessage>,
-}
-
-impl<'a> NodeState<'a> {
-    pub const fn new() -> Self {
-        Self {
-            channel: ChannelState::new(),
-            control: Signal::new(),
-        }
-    }
-}
-
-pub struct Node<'a, E, TX, RX, S, R>
+pub struct Node<E, TX, RX, S, R>
 where
-    E: ElementsHandler<'a>,
+    E: ElementsHandler,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
     R: RngCore + CryptoRng,
 {
-    channel_state: &'a mut ChannelState<'a>,
-    control_signal: &'a Signal<MeshNodeMessage>,
-
     //
     state: Cell<State>,
     //
@@ -200,20 +166,20 @@ where
     rng: RefCell<R>,
     pipeline: RefCell<Pipeline>,
     //
-    pub(crate) elements: Elements<'a, E>,
+    pub(crate) elements: Elements<E>,
+    pub(crate) outbound: OutboundChannel<'static>,
+    pub(crate) publish_outbound: OutboundPublishChannel<'static>,
 }
 
-impl<'a, E, TX, RX, S, R> Node<'a, E, TX, RX, S, R>
+impl<E, TX, RX, S, R> Node<E, TX, RX, S, R>
 where
-    E: ElementsHandler<'a>,
+    E: ElementsHandler,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
     R: RngCore + CryptoRng,
 {
     pub fn new(
-        channel_state: &'a mut ChannelState<'a>,
-        control_signal: &'a Signal<MeshNodeMessage>,
         app_elements: E,
         capabilities: Capabilities,
         transmitter: TX,
@@ -222,8 +188,6 @@ where
         rng: R,
     ) -> Self {
         Self {
-            channel_state,
-            control_signal,
             state: Cell::new(State::Unprovisioned),
             transmitter,
             receiver,
@@ -232,6 +196,8 @@ where
             pipeline: RefCell::new(Pipeline::new(capabilities)),
             //
             elements: Elements::new(app_elements),
+            outbound: OutboundChannel::new(),
+            publish_outbound: OutboundPublishChannel::new(),
         }
     }
 
@@ -342,17 +308,17 @@ where
 
         let ack_timeout = ticker.next();
         let receive_fut = self.receiver.receive_bytes();
-        let outbound_fut = self.channel_state.outbound.next();
-        let publish_outbound_fut = self.channel_state.publish_outbound.next();
+        let outbound_fut = self.outbound.next();
+        let outbound_publish_fut = self.publish_outbound.next();
 
         pin_mut!(ack_timeout);
         pin_mut!(receive_fut);
         pin_mut!(outbound_fut);
-        pin_mut!(publish_outbound_fut);
+        pin_mut!(outbound_publish_fut);
 
         let result = select(
             select(receive_fut, ack_timeout),
-            select(outbound_fut, publish_outbound_fut),
+            select(outbound_fut, outbound_publish_fut),
         )
         .await;
         match result {
@@ -410,13 +376,13 @@ where
 
     fn connect_elements(&self) {
         let ctx = AppElementsContext {
-            sender: self.channel_state.publish_outbound.clone_sender(),
+            sender: self.publish_outbound.clone_sender(),
             address: self.address().unwrap(),
         };
         self.elements.connect(ctx);
     }
 
-    pub async fn run(&mut self) -> Result<(), DeviceError> {
+    pub async fn run(&mut self, control: &Signal<MeshNodeMessage>) -> Result<(), DeviceError> {
         let mut rng = self.rng.borrow_mut();
         if let Err(e) = self.configuration_manager.initialize(&mut *rng).await {
             // try again as a force reset
@@ -431,7 +397,8 @@ where
         #[cfg(feature = "defmt")]
         self.configuration_manager.display_configuration();
 
-        self.channel_state.initialize();
+        self.outbound.initialize();
+        self.publish_outbound.initialize();
 
         if self.configuration_manager.is_provisioned() {
             self.state.set(State::Provisioned);
@@ -442,7 +409,7 @@ where
 
         loop {
             let loop_fut = self.do_loop();
-            let signal_fut = self.control_signal.wait();
+            let signal_fut = control.wait();
 
             pin_mut!(loop_fut);
             pin_mut!(signal_fut);

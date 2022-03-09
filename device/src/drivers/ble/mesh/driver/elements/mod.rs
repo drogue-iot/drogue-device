@@ -26,13 +26,13 @@ use embassy::blocking_mutex::kind::Noop;
 use embassy::channel::mpsc::Sender as ChannelSender;
 use heapless::Vec;
 
-pub struct AppElementsContext<'a> {
-    pub(crate) sender: ChannelSender<'a, Noop, OutboundPublishMessage, 3>,
+pub struct AppElementsContext {
+    pub(crate) sender: ChannelSender<'static, Noop, OutboundPublishMessage, 3>,
     pub(crate) address: UnicastAddress,
 }
 
-impl<'a> AppElementsContext<'a> {
-    pub fn for_element_model<M: Model>(&self, element_number: u8) -> AppElementContext<'a, M> {
+impl AppElementsContext {
+    pub fn for_element_model<M: Model>(&self, element_number: u8) -> AppElementContext<M> {
         AppElementContext {
             sender: self.sender.clone(),
             address: self.address + element_number,
@@ -42,13 +42,13 @@ impl<'a> AppElementsContext<'a> {
 }
 
 #[derive(Clone)]
-pub struct AppElementContext<'a, M: Model> {
-    sender: ChannelSender<'a, Noop, OutboundPublishMessage, 3>,
+pub struct AppElementContext<M: Model> {
+    sender: ChannelSender<'static, Noop, OutboundPublishMessage, 3>,
     address: UnicastAddress,
     _message: PhantomData<M>,
 }
 
-impl<'a, M: Model> AppElementContext<'a, M> {
+impl<M: Model> AppElementContext<M> {
     async fn transmit<'m>(&'m self, message: OutboundPublishMessage) -> Result<(), DeviceError> {
         self.sender
             .send(message)
@@ -109,17 +109,15 @@ pub trait PrimaryElementContext: ElementContext {
     fn is_local(&self, addr: &UnicastAddress) -> bool;
 }
 
-pub struct Elements<'a, E: ElementsHandler<'a>> {
+pub struct Elements<E: ElementsHandler> {
     zero: ElementZero,
-    _a: core::marker::PhantomData<&'a E>,
     pub(crate) elements: E,
 }
 
-impl<'a, E: ElementsHandler<'a>> Elements<'a, E> {
+impl<E: ElementsHandler> Elements<E> {
     pub fn new(app_elements: E) -> Self {
         Self {
             zero: ElementZero::new(),
-            _a: core::marker::PhantomData,
             elements: app_elements,
         }
     }
@@ -188,7 +186,7 @@ impl<'a, E: ElementsHandler<'a>> Elements<'a, E> {
         Ok(())
     }
 
-    pub(crate) fn connect(&self, ctx: AppElementsContext<'a>) {
+    pub(crate) fn connect(&self, ctx: AppElementsContext) {
         self.elements.connect(ctx);
     }
 }

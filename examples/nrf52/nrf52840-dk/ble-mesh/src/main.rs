@@ -7,7 +7,7 @@
 use core::future::Future;
 #[cfg(feature = "defmt-rtt")]
 use defmt_rtt as _;
-use drogue_device::actors::ble::mesh::{MeshNode, MeshNodeMessage, NodeState};
+use drogue_device::actors::ble::mesh::{MeshNode, MeshNodeMessage};
 use drogue_device::actors::button::{ButtonEvent, ButtonEventHandler};
 use drogue_device::actors::led::LedMessage;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
@@ -52,7 +52,6 @@ use panic_probe as _;
 use panic_reset as _;
 
 type ConcreteMeshNode = MeshNode<
-    'static,
     CustomElementsHandler,
     SoftdeviceAdvertisingBearer,
     FlashStorage<Flash>,
@@ -175,15 +174,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
     };
 
     device.facilities.mount(spawner, facilities);
-    static mut NODE_STATE: NodeState<'static> = NodeState::new();
-    let mesh_node = MeshNode::new(
-        unsafe { &mut NODE_STATE },
-        elements,
-        capabilities,
-        bearer,
-        storage,
-        rng,
-    );
+    let mesh_node = MeshNode::new(elements, capabilities, bearer, storage, rng);
     let mesh_node = device.mesh.mount(spawner, mesh_node);
 
     let reset = MeshNodeReset(mesh_node);
@@ -206,12 +197,12 @@ pub struct CustomElementsHandler {
 
 impl CustomElementsHandler {}
 
-impl ElementsHandler<'static> for CustomElementsHandler {
+impl ElementsHandler for CustomElementsHandler {
     fn composition(&self) -> &Composition {
         &self.composition
     }
 
-    fn connect(&self, ctx: AppElementsContext<'static>) {
+    fn connect(&self, ctx: AppElementsContext) {
         let button_ctx = ctx.for_element_model::<GenericOnOffClient>(0);
         self.button
             .notify(MeshButtonMessage::Connect(button_ctx))
@@ -254,12 +245,12 @@ impl ElementsHandler<'static> for CustomElementsHandler {
 }
 
 pub enum MeshButtonMessage {
-    Connect(AppElementContext<'static, GenericOnOffClient>),
+    Connect(AppElementContext<GenericOnOffClient>),
     Event(Event),
 }
 
 pub struct MeshButtonPublisher {
-    ctx: Option<AppElementContext<'static, GenericOnOffClient>>,
+    ctx: Option<AppElementContext<GenericOnOffClient>>,
 }
 
 impl MeshButtonPublisher {
