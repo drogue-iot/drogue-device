@@ -4,7 +4,6 @@ use crate::drivers::ble::mesh::bearer::{Bearer, Handler};
 use crate::drivers::ble::mesh::composition::ElementsHandler;
 use crate::drivers::ble::mesh::config::configuration_manager::ConfigurationManager;
 pub use crate::drivers::ble::mesh::driver::node::MeshNodeMessage;
-pub use crate::drivers::ble::mesh::driver::node::NodeState;
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
@@ -14,6 +13,7 @@ use core::cell::RefCell;
 use core::future::Future;
 use embassy::blocking_mutex::kind::ThreadMode;
 use embassy::channel::mpsc::{self, Channel};
+use embassy::channel::signal::Signal;
 use futures::future::{select, Either};
 use futures::pin_mut;
 use heapless::Vec;
@@ -21,9 +21,9 @@ use rand_core::{CryptoRng, RngCore};
 
 const PDU_SIZE: usize = 384;
 
-pub struct MeshNode<'a, E, B, S, R>
+pub struct MeshNode<E, B, S, R>
 where
-    E: ElementsHandler<'a>,
+    E: ElementsHandler,
     B: Bearer,
     S: Storage,
     R: RngCore + CryptoRng,
@@ -34,32 +34,23 @@ where
     capabilities: Option<Capabilities>,
     transport: B,
     storage: Option<S>,
-    node_state: Option<&'a mut NodeState<'a>>,
     rng: Option<R>,
 }
 
-impl<'a, E, B, S, R> MeshNode<'a, E, B, S, R>
+impl<E, B, S, R> MeshNode<E, B, S, R>
 where
-    E: ElementsHandler<'a>,
+    E: ElementsHandler,
     B: Bearer,
     S: Storage,
     R: RngCore + CryptoRng,
 {
-    pub fn new(
-        state: &'a mut NodeState<'a>,
-        elements: E,
-        capabilities: Capabilities,
-        transport: B,
-        storage: S,
-        rng: R,
-    ) -> Self {
+    pub fn new(elements: E, capabilities: Capabilities, transport: B, storage: S, rng: R) -> Self {
         Self {
             channel: Channel::new(),
             elements: Some(elements),
             force_reset: false,
             capabilities: Some(capabilities),
             transport,
-            node_state: Some(state),
             storage: Some(storage),
             rng: Some(rng),
         }
@@ -158,20 +149,16 @@ where
     }
 }
 
-impl<'a, E, B, S, R> Actor for MeshNode<'a, E, B, S, R>
+impl<E, B, S, R> Actor for MeshNode<E, B, S, R>
 where
-    E: ElementsHandler<'a> + 'static,
+    E: ElementsHandler + 'static,
     B: Bearer + 'static,
     S: Storage + 'static,
     R: RngCore + CryptoRng + 'static,
 {
-    type Message<'m>
-    where
-        Self: 'm,
-    = MeshNodeMessage;
+    type Message<'m> = MeshNodeMessage;
     type OnMountFuture<'m, M>
     where
-        Self: 'm,
         M: 'm,
     = impl Future<Output = ()> + 'm;
 
@@ -199,10 +186,10 @@ where
                 self.force_reset,
             );
 
-            let node_state = self.node_state.take().unwrap();
+            let control_signal = Signal::new();
+
             let mut node = Node::new(
-                &mut node_state.channel,
-                &node_state.control,
+                &control_signal,
                 self.elements.take().unwrap(),
                 self.capabilities.take().unwrap(),
                 tx,
@@ -231,7 +218,7 @@ where
                     Either::Left((Some(mut message), not_selected)) => {
                         match &mut message.message() {
                             MeshNodeMessage::ForceReset => {
-                                node_state.control.signal(MeshNodeMessage::ForceReset);
+                                control_signal.signal(MeshNodeMessage::ForceReset);
                             }
                             _ => {
                                 // todo: handle others.
@@ -245,6 +232,7 @@ where
                 }
             }
 
+            #[cfg(feature = "defmt")]
             info!("shutting down");
         }
     }

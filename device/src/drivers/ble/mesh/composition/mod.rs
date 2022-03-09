@@ -8,10 +8,10 @@ use core::future::Future;
 use heapless::Vec;
 use serde::{Deserialize, Serialize};
 
-pub trait ElementsHandler<'a> {
+pub trait ElementsHandler {
     fn composition(&self) -> &Composition;
 
-    fn connect(&self, ctx: AppElementsContext<'a>);
+    fn connect(&self, ctx: AppElementsContext);
 
     type DispatchFuture<'m>: Future<Output = Result<(), DeviceError>> + 'm
     where
