@@ -7,13 +7,13 @@ use crate::drivers::ble::mesh::pdu::network::CleartextNetworkPDU;
 pub trait RelayContext: LowerContext {}
 
 pub struct Relay {
-    cache: NetworkMessageCache<100>,
+    cache: NetworkMessageCache,
 }
 
 impl Default for Relay {
     fn default() -> Self {
         Self {
-            cache: NetworkMessageCache::new(),
+            cache: Default::default(),
         }
     }
 }
