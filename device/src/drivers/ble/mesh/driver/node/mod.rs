@@ -3,10 +3,7 @@ use crate::drivers::ble::mesh::composition::ElementsHandler;
 use crate::drivers::ble::mesh::config::configuration_manager::ConfigurationManager;
 use crate::drivers::ble::mesh::config::network::NetworkKeyHandle;
 use crate::drivers::ble::mesh::driver::elements::{AppElementsContext, ElementContext, Elements};
-use crate::drivers::ble::mesh::driver::pipeline::{
-    provisioned::lower::{InboundState, LowerConfig, OutboundState},
-    Pipeline, PipelineConfig,
-};
+use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::ModelIdentifier;
 use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload};
@@ -150,9 +147,6 @@ pub enum MeshNodeMessage {
     Shutdown,
 }
 
-// Max segmentations - currently hardcoded
-const MAX_SEG: usize = 3;
-
 pub struct ChannelState<'a> {
     outbound: OutboundChannel<'a>,
     publish_outbound: OutboundPublishChannel<'a>,
@@ -173,36 +167,17 @@ impl<'a> ChannelState<'a> {
 }
 
 pub struct NodeState<'a> {
-    channel: ChannelState<'a>,
-    inbound: InboundState<MAX_SEG>,
-    outbound: OutboundState<MAX_SEG>,
+    pub channel: ChannelState<'a>,
+    pub control: Signal<MeshNodeMessage>,
 }
 
 impl<'a> NodeState<'a> {
     pub const fn new() -> Self {
         Self {
             channel: ChannelState::new(),
-            inbound: InboundState::new(),
-            outbound: OutboundState::new(),
+            control: Signal::new(),
         }
     }
-
-    pub fn into_config(&'a mut self) -> NodeConfig<'a> {
-        NodeConfig {
-            channel: &mut self.channel,
-            pipeline: PipelineConfig {
-                lower: LowerConfig {
-                    inbound: &mut self.inbound,
-                    outbound: &mut self.outbound,
-                },
-            },
-        }
-    }
-}
-
-pub struct NodeConfig<'a> {
-    pub channel: &'a mut ChannelState<'a>,
-    pub pipeline: PipelineConfig<'a, MAX_SEG>,
 }
 
 pub struct Node<'a, E, TX, RX, S, R>
@@ -214,6 +189,7 @@ where
     R: RngCore + CryptoRng,
 {
     channel_state: &'a mut ChannelState<'a>,
+    control_signal: &'a Signal<MeshNodeMessage>,
 
     //
     state: Cell<State>,
@@ -222,7 +198,7 @@ where
     receiver: RX,
     configuration_manager: ConfigurationManager<S>,
     rng: RefCell<R>,
-    pipeline: RefCell<Pipeline<'a, 3>>,
+    pipeline: RefCell<Pipeline>,
     //
     pub(crate) elements: Elements<'a, E>,
 }
@@ -236,7 +212,8 @@ where
     R: RngCore + CryptoRng,
 {
     pub fn new(
-        config: NodeConfig<'a>,
+        channel_state: &'a mut ChannelState<'a>,
+        control_signal: &'a Signal<MeshNodeMessage>,
         app_elements: E,
         capabilities: Capabilities,
         transmitter: TX,
@@ -245,13 +222,14 @@ where
         rng: R,
     ) -> Self {
         Self {
-            channel_state: config.channel,
+            channel_state,
+            control_signal,
             state: Cell::new(State::Unprovisioned),
             transmitter,
             receiver,
             configuration_manager,
             rng: RefCell::new(rng),
-            pipeline: RefCell::new(Pipeline::new(config.pipeline, capabilities)),
+            pipeline: RefCell::new(Pipeline::new(capabilities)),
             //
             elements: Elements::new(app_elements),
         }
@@ -438,7 +416,7 @@ where
         self.elements.connect(ctx);
     }
 
-    pub async fn run(&mut self, control: &Signal<MeshNodeMessage>) -> Result<(), DeviceError> {
+    pub async fn run(&mut self) -> Result<(), DeviceError> {
         let mut rng = self.rng.borrow_mut();
         if let Err(e) = self.configuration_manager.initialize(&mut *rng).await {
             // try again as a force reset
@@ -464,7 +442,7 @@ where
 
         loop {
             let loop_fut = self.do_loop();
-            let signal_fut = control.wait();
+            let signal_fut = self.control_signal.wait();
 
             pin_mut!(loop_fut);
             pin_mut!(signal_fut);

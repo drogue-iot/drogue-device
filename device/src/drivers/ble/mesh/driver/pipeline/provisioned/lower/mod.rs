@@ -19,10 +19,6 @@ use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
 use core::future::Future;
 use heapless::Vec;
 
-pub use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::{
-    inbound_segmentation::InboundState, outbound_segmentation::OutboundState,
-};
-
 pub trait LowerContext: AuthenticationContext {
     fn find_label_uuids_by_address(
         &self,
@@ -73,37 +69,26 @@ pub trait LowerContext: AuthenticationContext {
     fn is_locally_relevant(&self, dst: &Address) -> bool;
 }
 
-pub struct Lower<'a, const MAX_SEG: usize> {
+pub struct Lower {
     replay_cache: ReplayCache,
-    inbound_segmentation: InboundSegmentation<'a, MAX_SEG>,
-    outbound_segmentation: OutboundSegmentation<'a, MAX_SEG>,
+    inbound_segmentation: InboundSegmentation,
+    outbound_segmentation: OutboundSegmentation,
 }
 
-pub struct LowerConfig<'a, const MAX_SEG: usize> {
-    pub outbound: &'a mut OutboundState<MAX_SEG>,
-    pub inbound: &'a mut InboundState<MAX_SEG>,
-}
-
-impl<'a, const MAX_SEG: usize> Lower<'a, MAX_SEG> {
-    pub fn new(config: LowerConfig<'a, MAX_SEG>) -> Self {
+impl Default for Lower {
+    fn default() -> Self {
         Self {
             replay_cache: Default::default(),
-            inbound_segmentation: InboundSegmentation::new(config.inbound),
-            outbound_segmentation: OutboundSegmentation::new(config.outbound),
+            inbound_segmentation: Default::default(),
+            outbound_segmentation: Default::default(),
         }
-    }
-
-    pub fn free(self) -> LowerConfig<'a, MAX_SEG> {
-        let inbound = self.inbound_segmentation.free();
-        let outbound = self.outbound_segmentation.free();
-        LowerConfig { inbound, outbound }
     }
 }
 
 const SEGMENTED_ACCESS_MTU: usize = 12;
 const NONSEGMENTED_ACCESS_MUT: usize = 15;
 
-impl<'a, const MAX_SEG: usize> Lower<'a, MAX_SEG> {
+impl Lower {
     pub async fn process_inbound<C: LowerContext>(
         &mut self,
         ctx: &C,
