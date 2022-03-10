@@ -145,7 +145,11 @@ impl<E: ElementsHandler> Elements<E> {
             if element_index == 0 {
                 if self.zero.dispatch(ctx, message).await? {
                     info!("d<");
-                    self.elements.configure(&ctx.configuration());
+                    self.elements.configure(
+                        &ctx.configuration()
+                            .foundation_models()
+                            .configuration_model(),
+                    );
                     return Ok(());
                 }
             }

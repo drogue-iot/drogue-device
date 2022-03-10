@@ -1,3 +1,4 @@
+use embassy::time::Duration;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -47,6 +48,23 @@ impl ConfigurationModel {
 
     pub fn publish_period_mut(&mut self) -> &mut u8 {
         &mut self.publish_period
+    }
+
+    pub fn publish_period_duration(&self) -> Option<Duration> {
+        let steps = (self.publish_period & 0x3F) as u64;
+        let res = (self.publish_period & 0xC0) >> 6;
+
+        if steps == 0 {
+            return None;
+        }
+
+        match res {
+            0b00 => Some(Duration::from_millis(100 * steps)),
+            0b01 => Some(Duration::from_secs(steps)),
+            0b10 => Some(Duration::from_secs(10 * steps)),
+            0b11 => Some(Duration::from_secs(600 * steps)),
+            _ => None,
+        }
     }
 }
 
