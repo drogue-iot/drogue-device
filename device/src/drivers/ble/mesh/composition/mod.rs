@@ -1,3 +1,4 @@
+use crate::drivers::ble::mesh::config::Configuration;
 use crate::drivers::ble::mesh::driver::elements::AppElementsContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::ModelIdentifier;
@@ -12,6 +13,8 @@ pub trait ElementsHandler {
     fn composition(&self) -> &Composition;
 
     fn connect(&self, ctx: AppElementsContext);
+
+    fn configure(&self, _: &Configuration) {}
 
     type DispatchFuture<'m>: Future<Output = Result<(), DeviceError>> + 'm
     where

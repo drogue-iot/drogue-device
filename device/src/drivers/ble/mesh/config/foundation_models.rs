@@ -21,6 +21,7 @@ impl FoundationModels {
 pub struct ConfigurationModel {
     secure_beacon: bool,
     default_ttl: u8,
+    publish_period: u8,
 }
 
 impl ConfigurationModel {
@@ -39,6 +40,14 @@ impl ConfigurationModel {
     pub fn default_ttl_mut(&mut self) -> &mut u8 {
         &mut self.default_ttl
     }
+
+    pub fn publish_period(&self) -> u8 {
+        self.publish_period
+    }
+
+    pub fn publish_period_mut(&mut self) -> &mut u8 {
+        &mut self.publish_period
+    }
 }
 
 impl Default for ConfigurationModel {
@@ -46,6 +55,7 @@ impl Default for ConfigurationModel {
         Self {
             secure_beacon: true,
             default_ttl: 127,
+            publish_period: 0,
         }
     }
 }
