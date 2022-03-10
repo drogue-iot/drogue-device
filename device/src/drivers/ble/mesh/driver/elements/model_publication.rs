@@ -14,6 +14,10 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
             let status = if ctx.is_local(&set.element_address) {
                 let result = ctx
                     .update_configuration(|config| {
+                        *config
+                            .foundation_models_mut()
+                            .configuration_model_mut()
+                            .publish_period_mut() = set.publish_period;
                         if let Some(network) = config.network_mut() {
                             if let Ok(network) =
                                 network.find_by_app_key_index_mut(&set.app_key_index)

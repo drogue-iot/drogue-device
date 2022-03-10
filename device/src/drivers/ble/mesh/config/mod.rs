@@ -16,6 +16,8 @@ use p256::SecretKey;
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 
+pub use crate::drivers::ble::mesh::config::foundation_models::ConfigurationModel;
+
 #[cfg(feature = "defmt")]
 use crate::drivers::ble::mesh::composition::Composition;
 
