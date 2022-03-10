@@ -28,7 +28,7 @@ pub struct ObfuscatedAndEncryptedNetworkPDU {
 impl ObfuscatedAndEncryptedNetworkPDU {
     pub fn parse(data: &[u8]) -> Result<Self, ParseError> {
         let ivi_nid = data[0];
-        let ivi = ivi_nid & 0b10000000 >> 7;
+        let ivi = (ivi_nid & 0b10000000) >> 7;
         let nid = ivi_nid & 0b01111111;
         let obfuscated = [data[1], data[2], data[3], data[4], data[5], data[6]];
 
