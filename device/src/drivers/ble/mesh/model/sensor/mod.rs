@@ -7,6 +7,7 @@ use embassy::time::Duration;
 use heapless::Vec;
 use micromath::F32Ext;
 
+#[derive(Clone)]
 pub struct SensorServer<C, const NUM_SENSORS: usize, const NUM_COLUMNS: usize>
 where
     C: SensorConfig,
@@ -26,6 +27,7 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct SensorSetupServer<C, const NUM_SENSORS: usize, const NUM_COLUMNS: usize>
 where
     C: SensorSetupConfig,
@@ -48,13 +50,13 @@ pub struct RawValue<'m>(pub &'m [u8]);
 pub struct Tolerance(pub u16);
 
 #[cfg(feature = "defmt")]
-pub trait SensorConfig: defmt::Format {
+pub trait SensorConfig: defmt::Format + Clone {
     type Data<'m>: SensorData + defmt::Format;
     const DESCRIPTORS: &'static [SensorDescriptor];
 }
 
 #[cfg(not(feature = "defmt"))]
-pub trait SensorConfig {
+pub trait SensorConfig: Clone {
     type Data<'m>: SensorData;
     const DESCRIPTORS: &'static [SensorDescriptor];
 }
