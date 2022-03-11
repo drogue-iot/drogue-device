@@ -209,10 +209,7 @@ impl ElementsHandler for CustomElementsHandler {
             .ok();
     }
 
-    type DispatchFuture<'m>
-    where
-        Self: 'm,
-    = impl Future<Output = Result<(), DeviceError>> + 'm;
+    type DispatchFuture<'m> = impl Future<Output = Result<(), DeviceError>> + 'm where Self: 'm;
 
     fn dispatch<'m>(
         &'m self,
@@ -267,11 +264,10 @@ impl Default for MeshButtonPublisher {
 
 impl Actor for MeshButtonPublisher {
     type Message<'m> = MeshButtonMessage;
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         Self: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
 
     fn on_mount<'m, M>(
         &'m mut self,
@@ -341,15 +337,13 @@ impl ButtonEventHandler for ResetButtonHandler {
 pub struct MeshNodeReset(Address<ConcreteMeshNode>);
 
 impl Actor for MeshNodeReset {
-    type Message<'m>
+    type Message<'m> = ButtonEvent
     where
-        Self: 'm,
-    = ButtonEvent;
+        Self: 'm;
 
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
 
     fn on_mount<'m, M>(
         &'m mut self,

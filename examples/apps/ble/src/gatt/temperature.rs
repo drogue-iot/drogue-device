@@ -61,11 +61,10 @@ impl TemperatureMonitor {
 impl Actor for TemperatureMonitor {
     type Message<'m> = (Connection, TemperatureServiceEvent);
 
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         Self: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Address<Self>,

@@ -22,10 +22,9 @@ impl<U: Write + Read + 'static> EchoServer<U> {
 }
 
 impl<U: Write + Read + 'static> Actor for EchoServer<U> {
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
 
     fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where

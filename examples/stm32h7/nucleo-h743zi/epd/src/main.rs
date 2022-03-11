@@ -48,11 +48,11 @@ pub struct App {
     spi: EpdSpi,
     epd: Epd,
     presses: u16,
-    random: Random<RNG>,
+    random: Random<'static, RNG>,
 }
 
 impl App {
-    fn new(spi: EpdSpi, epd: Epd, random: Random<RNG>) -> Self {
+    fn new(spi: EpdSpi, epd: Epd, random: Random<'static, RNG>) -> Self {
         Self {
             spi,
             epd,
@@ -170,10 +170,9 @@ fn quantize_color(color: Rgb888) -> OctColor {
 impl Actor for App {
     type Message<'m> = Command;
 
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
 
     fn on_mount<'m, M>(
         &'m mut self,

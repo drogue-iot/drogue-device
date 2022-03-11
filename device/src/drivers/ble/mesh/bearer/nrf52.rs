@@ -155,11 +155,10 @@ impl Bearer for SoftdeviceAdvertisingBearer {
         }
     }
 
-    type ReceiveFuture<'m, H>
+    type ReceiveFuture<'m, H> = impl Future<Output = Result<(), BearerError>> + 'm
     where
         Self: 'm,
-        H: 'm,
-    = impl Future<Output = Result<(), BearerError>> + 'm;
+        H: 'm;
 
     fn start_receive<'m, H: Handler + 'm>(&'m self, handler: &'m H) -> Self::ReceiveFuture<'m, H> {
         async move {

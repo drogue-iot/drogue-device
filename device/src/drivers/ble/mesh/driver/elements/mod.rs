@@ -22,12 +22,12 @@ use core::cell::Ref;
 use core::convert::TryInto;
 use core::future::Future;
 use core::marker::PhantomData;
-use embassy::blocking_mutex::kind::Noop;
+use embassy::blocking_mutex::raw::NoopRawMutex;
 use embassy::channel::mpsc::Sender as ChannelSender;
 use heapless::Vec;
 
 pub struct AppElementsContext {
-    pub(crate) sender: ChannelSender<'static, Noop, OutboundPublishMessage, 3>,
+    pub(crate) sender: ChannelSender<'static, NoopRawMutex, OutboundPublishMessage, 3>,
     pub(crate) address: UnicastAddress,
 }
 
@@ -43,7 +43,7 @@ impl AppElementsContext {
 
 #[derive(Clone)]
 pub struct AppElementContext<M: Model> {
-    sender: ChannelSender<'static, Noop, OutboundPublishMessage, 3>,
+    sender: ChannelSender<'static, NoopRawMutex, OutboundPublishMessage, 3>,
     address: UnicastAddress,
     _message: PhantomData<M>,
 }

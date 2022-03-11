@@ -74,17 +74,10 @@ impl<D> Actor for LoraActor<D>
 where
     D: LoraDriver + 'static,
 {
-    type Message<'m>
-    where
-        D: 'm,
-    = LoraRequest<'m>;
+    type Message<'m> = LoraRequest<'m> where D: 'm;
     type Response = Option<Result<usize, LoraError>>;
 
-    type OnMountFuture<'m, M>
-    where
-        D: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where D: 'm, M: 'm + Inbox<Self>;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Address<Self>,

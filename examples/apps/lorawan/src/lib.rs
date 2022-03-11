@@ -45,10 +45,9 @@ impl<B> SendTrigger for B
 where
     B: Button + 'static,
 {
-    type TriggerFuture<'m>
+    type TriggerFuture<'m> = impl Future + 'm
     where
-        B: 'm,
-    = impl Future + 'm;
+        B: 'm;
     fn wait<'m>(&'m mut self) -> Self::TriggerFuture<'m> {
         self.wait_released()
     }
@@ -191,16 +190,14 @@ impl<B> Actor for App<B>
 where
     B: LoraBoard + 'static,
 {
-    type Message<'m>
+    type Message<'m> = Command
     where
-        B: 'm,
-    = Command;
+        B: 'm;
 
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         B: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
 
     fn on_mount<'m, M>(
         &'m mut self,
@@ -257,12 +254,11 @@ impl<B> Actor for AppTrigger<B>
 where
     B: LoraBoard + 'static,
 {
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         Self: 'm,
         B: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
 
     fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
@@ -279,10 +275,9 @@ where
 
 pub struct TimeTrigger(pub embassy::time::Duration);
 impl SendTrigger for TimeTrigger {
-    type TriggerFuture<'m>
+    type TriggerFuture<'m> = impl Future + 'm
     where
-        Self: 'm,
-    = impl Future + 'm;
+        Self: 'm;
     fn wait<'m>(&'m mut self) -> Self::TriggerFuture<'m> {
         embassy::time::Timer::after(self.0)
     }

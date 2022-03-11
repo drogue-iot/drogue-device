@@ -19,12 +19,12 @@ use drogue_temperature::*;
 use embassy_net::StaticConfigurator;
 use embassy_net::{Config as NetConfig, Ipv4Address, Ipv4Cidr};
 use embassy_stm32::eth::lan8742a::LAN8742A;
-use embassy_stm32::peripherals::RNG;
+use embassy_stm32::peripherals::{ETH, RNG};
 use embassy_stm32::rng::Rng;
 use embassy_stm32::{eth::Ethernet, Peripherals};
 use heapless::Vec;
 
-type EthernetDevice = Ethernet<'static, LAN8742A, 4, 4>;
+type EthernetDevice = Ethernet<'static, ETH, LAN8742A, 4, 4>;
 type SmolTcpPackage = SmolTcp<EthernetDevice, StaticConfigurator, 1, 2, 1024>;
 
 // Creates a newtype named `BSP` around the `NucleoH743` to avoid

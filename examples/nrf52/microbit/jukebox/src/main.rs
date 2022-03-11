@@ -10,7 +10,7 @@ use drogue_device::{
     Inbox,
 };
 
-use embassy_nrf::{gpio::NoPin, pwm::*, Peripherals};
+use embassy_nrf::{pwm::*, Peripherals};
 
 use core::future::Future;
 use embassy::time::{Duration, Instant, Timer};
@@ -27,7 +27,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let matrix = LED_MATRIX.mount(spawner, LedMatrixActor::new(board.led_matrix, None));
     let disco = DISCO.mount(spawner, Disco::new(matrix));
 
-    let pwm = SimplePwm::new(board.pwm0, board.p0_00, NoPin, NoPin, NoPin);
+    let pwm = SimplePwm::new_1ch(board.pwm0, board.p0_00);
     let mut speaker = PwmSpeaker::new(pwm);
 
     loop {
@@ -50,11 +50,10 @@ impl Disco {
 impl Actor for Disco {
     type Message<'m> = Note;
 
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
-        M: 'm,
-        Self: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>,
+        Self: 'm;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Address<Self>,

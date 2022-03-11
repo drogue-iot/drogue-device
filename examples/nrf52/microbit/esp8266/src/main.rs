@@ -21,7 +21,7 @@ use drogue_temperature::*;
 use embassy::util::Forever;
 use embassy_nrf::{
     buffered_uarte::{BufferedUarte, State},
-    gpio::{Level, NoPin, Output, OutputDrive},
+    gpio::{Level, Output, OutputDrive},
     interrupt,
     peripherals::{P0_09, P0_10, TIMER0, UARTE0},
     uarte, Peripherals,
@@ -84,7 +84,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let irq = interrupt::take!(UARTE0_UART0);
     let u = unsafe {
         let state = STATE.put(State::new());
-        BufferedUarte::new(
+        BufferedUarte::new_without_flow_control(
             state,
             board.uarte0,
             board.timer0,
@@ -93,8 +93,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
             irq,
             board.p0_13,
             board.p0_01,
-            NoPin,
-            NoPin,
             config,
             &mut RX_BUFFER,
             &mut TX_BUFFER,

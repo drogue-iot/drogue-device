@@ -19,6 +19,7 @@ fn main() -> Result<(), anyhow::Error> {
         ["check", example] => check(&[example]),
         ["build", example] => build(&[example], false),
         ["fmt"] => fmt(),
+        ["fix"] => fix(),
         ["update"] => update(),
         ["docs"] => docs(),
         ["matrix"] => matrix(),
@@ -37,9 +38,13 @@ fn main() -> Result<(), anyhow::Error> {
 }
 
 static WORKSPACES: &[&str] = &[
-    "examples/nrf52/microbit",
+    "examples/nrf52/microbit/ble-temperature",
+    "examples/nrf52/microbit/compass",
+    "examples/nrf52/microbit/esp8266",
+    "examples/nrf52/microbit/jukebox",
+    "examples/nrf52/microbit/rak811",
     "examples/nrf52/adafruit-feather-sense",
-    "examples/nrf52/nrf52840-dk",
+    "examples/nrf52/nrf52840-dk/ble-mesh",
     "examples/nrf52/nrf52840-dk/bootloader-dfu",
     "examples/stm32l0/lora-discovery",
     "examples/stm32l1/rak811",
@@ -89,6 +94,13 @@ fn fmt() -> Result<(), anyhow::Error> {
     let _p = xshell::pushd(root_dir())?;
     cmd!("cargo fmt").run()?;
     do_crates(WORKSPACES, &mut fmt_crate)?;
+    Ok(())
+}
+
+fn fix() -> Result<(), anyhow::Error> {
+    let _p = xshell::pushd(root_dir())?;
+    cmd!("cargo fix").run()?;
+    do_crates(WORKSPACES, &mut fix_crate)?;
     Ok(())
 }
 
@@ -218,6 +230,13 @@ fn fmt_crate(project_file: PathBuf) -> Result<(), anyhow::Error> {
     println!("Formatting {}", project_file.to_str().unwrap_or(""));
     let _p = xshell::pushd(project_file.parent().unwrap())?;
     cmd!("cargo fmt").run()?;
+    Ok(())
+}
+
+fn fix_crate(project_file: PathBuf) -> Result<(), anyhow::Error> {
+    println!("Fixing {}", project_file.to_str().unwrap_or(""));
+    let _p = xshell::pushd(project_file.parent().unwrap())?;
+    cmd!("cargo fix").run()?;
     Ok(())
 }
 

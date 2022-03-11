@@ -19,7 +19,7 @@ use atomic_polyfill::{AtomicBool, Ordering};
 use buffer::Buffer;
 use core::{future::Future, pin::Pin};
 use embassy::{
-    blocking_mutex::kind::ThreadMode,
+    blocking_mutex::raw::NoopRawMutex,
     channel::{
         mpsc::{self, Channel, Receiver, Sender},
         signal::Signal,
@@ -32,7 +32,7 @@ use futures::pin_mut;
 use protocol::{Command, ConnectionType, Response as AtResponse};
 
 pub const BUFFER_LEN: usize = 512;
-type DriverMutex = ThreadMode;
+type DriverMutex = NoopRawMutex;
 
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -448,10 +448,9 @@ impl<'a> Esp8266Controller<'a> {
 }
 
 impl<'a> WifiSupplicant for Esp8266Controller<'a> {
-    type JoinFuture<'m>
+    type JoinFuture<'m> = impl Future<Output = Result<IpAddress, JoinError>> + 'm
     where
-        'a: 'm,
-    = impl Future<Output = Result<IpAddress, JoinError>> + 'm;
+        'a: 'm;
     fn join<'m>(&'m mut self, join_info: Join<'m>) -> Self::JoinFuture<'m> {
         async move {
             match join_info {
@@ -465,10 +464,9 @@ impl<'a> WifiSupplicant for Esp8266Controller<'a> {
 impl<'a> TcpStack for Esp8266Controller<'a> {
     type SocketHandle = u8;
 
-    type OpenFuture<'m>
+    type OpenFuture<'m> = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm
     where
-        'a: 'm,
-    = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm;
+        'a: 'm;
     fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
         async move {
             self.socket_pool
@@ -478,10 +476,9 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
         }
     }
 
-    type ConnectFuture<'m>
+    type ConnectFuture<'m> = impl Future<Output = Result<(), TcpError>> + 'm
     where
-        'a: 'm,
-    = impl Future<Output = Result<(), TcpError>> + 'm;
+        'a: 'm;
     fn connect<'m>(
         &'m mut self,
         handle: Self::SocketHandle,
@@ -498,10 +495,9 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
         }
     }
 
-    type WriteFuture<'m>
+    type WriteFuture<'m> = impl Future<Output = Result<usize, TcpError>> + 'm
     where
-        'a: 'm,
-    = impl Future<Output = Result<usize, TcpError>> + 'm;
+        'a: 'm;
     fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
         async move {
             self.process_notifications();
@@ -553,10 +549,9 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
         }
     }
 
-    type ReadFuture<'m>
+    type ReadFuture<'m> = impl Future<Output = Result<usize, TcpError>> + 'm
     where
-        'a: 'm,
-    = impl Future<Output = Result<usize, TcpError>> + 'm;
+        'a: 'm;
     fn read<'m>(
         &'m mut self,
         handle: Self::SocketHandle,
@@ -622,10 +617,9 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
         }
     }
 
-    type CloseFuture<'m>
+    type CloseFuture<'m> = impl Future<Output = Result<(), TcpError>> + 'm
     where
-        'a: 'm,
-    = impl Future<Output = Result<(), TcpError>> + 'm;
+        'a: 'm;
     fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
         async move {
             self.socket_pool.close(handle);

@@ -11,7 +11,7 @@ use crate::drivers::ble::mesh::storage::Storage;
 use crate::{Actor, Address, Inbox};
 use core::cell::RefCell;
 use core::future::Future;
-use embassy::blocking_mutex::kind::ThreadMode;
+use embassy::blocking_mutex::raw::NoopRawMutex;
 use embassy::channel::mpsc::{self, Channel};
 use embassy::channel::signal::Signal;
 use futures::future::{select, Either};
@@ -21,6 +21,8 @@ use rand_core::{CryptoRng, RngCore};
 
 const PDU_SIZE: usize = 384;
 
+type NodeMutex = NoopRawMutex;
+
 pub struct MeshNode<E, B, S, R>
 where
     E: ElementsHandler,
@@ -28,7 +30,7 @@ where
     S: Storage,
     R: RngCore + CryptoRng,
 {
-    channel: Channel<ThreadMode, Vec<u8, PDU_SIZE>, 6>,
+    channel: Channel<NodeMutex, Vec<u8, PDU_SIZE>, 6>,
     elements: Option<E>,
     force_reset: bool,
     capabilities: Option<Capabilities>,
@@ -65,11 +67,11 @@ where
 }
 
 struct BearerReceiver<'c> {
-    receiver: RefCell<mpsc::Receiver<'c, ThreadMode, Vec<u8, PDU_SIZE>, 6>>,
+    receiver: RefCell<mpsc::Receiver<'c, NodeMutex, Vec<u8, PDU_SIZE>, 6>>,
 }
 
 impl<'c> BearerReceiver<'c> {
-    fn new(receiver: mpsc::Receiver<'c, ThreadMode, Vec<u8, PDU_SIZE>, 6>) -> Self {
+    fn new(receiver: mpsc::Receiver<'c, NodeMutex, Vec<u8, PDU_SIZE>, 6>) -> Self {
         Self {
             receiver: RefCell::new(receiver),
         }
@@ -77,10 +79,9 @@ impl<'c> BearerReceiver<'c> {
 }
 
 impl<'c> Receiver for BearerReceiver<'c> {
-    type ReceiveFuture<'m>
+    type ReceiveFuture<'m> = impl Future<Output = Result<Vec<u8, PDU_SIZE>, DeviceError>>
     where
-        Self: 'm,
-    = impl Future<Output = Result<Vec<u8, PDU_SIZE>, DeviceError>>;
+        Self: 'm;
 
     fn receive_bytes<'m>(&'m self) -> Self::ReceiveFuture<'m> {
         async move {
@@ -98,14 +99,14 @@ where
     B: Bearer + 't,
 {
     transport: &'t B,
-    sender: mpsc::Sender<'c, ThreadMode, Vec<u8, PDU_SIZE>, 6>,
+    sender: mpsc::Sender<'c, NodeMutex, Vec<u8, PDU_SIZE>, 6>,
 }
 
 impl<'t, 'c, B> BearerHandler<'t, 'c, B>
 where
     B: Bearer + 't,
 {
-    fn new(transport: &'t B, sender: mpsc::Sender<'c, ThreadMode, Vec<u8, PDU_SIZE>, 6>) -> Self {
+    fn new(transport: &'t B, sender: mpsc::Sender<'c, NodeMutex, Vec<u8, PDU_SIZE>, 6>) -> Self {
         Self { transport, sender }
     }
 
@@ -136,10 +137,9 @@ impl<'t, B> Transmitter for BearerTransmitter<'t, B>
 where
     B: Bearer + 't,
 {
-    type TransmitFuture<'m>
+    type TransmitFuture<'m> = impl Future<Output = Result<(), DeviceError>>
     where
-        Self: 'm,
-    = impl Future<Output = Result<(), DeviceError>>;
+        Self: 'm;
 
     fn transmit_bytes<'m>(&'m self, bytes: &'m [u8]) -> Self::TransmitFuture<'m> {
         async move {
@@ -157,10 +157,9 @@ where
     R: RngCore + CryptoRng + 'static,
 {
     type Message<'m> = MeshNodeMessage;
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
 
     fn on_mount<'m, M>(
         &'m mut self,

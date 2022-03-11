@@ -152,18 +152,16 @@ pub enum DfuCommand<'m> {
 }
 
 impl<F: AsyncNorFlash + AsyncReadNorFlash> Actor for FirmwareManager<F> {
-    type Message<'m>
+    type Message<'m> = DfuCommand<'m>
     where
-        Self: 'm,
-    = DfuCommand<'m>;
+        Self: 'm;
 
     type Response = DfuResponse<F::Error>;
 
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         Self: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Address<Self>,

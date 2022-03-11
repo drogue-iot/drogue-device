@@ -33,17 +33,15 @@ impl SmolResponse {
 impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usize> Actor
     for SmolTcpStack<'buffer, POOL_SIZE, BACKLOG, BUF_SIZE>
 {
-    type Message<'m>
+    type Message<'m> = SmolRequest<'m>
     where
-        'buffer: 'm,
-    = SmolRequest<'m>;
+        'buffer: 'm;
     type Response = Option<SmolResponse>;
 
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         Self: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Address<Self>,
@@ -128,11 +126,10 @@ pub struct EmbassyNetTask;
 impl Actor for EmbassyNetTask {
     type Message<'m> = ();
 
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         Self: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
 
     fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where

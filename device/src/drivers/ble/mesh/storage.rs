@@ -74,10 +74,9 @@ impl<F> Storage for FlashStorage<F>
 where
     F: AsyncNorFlash + AsyncReadNorFlash,
 {
-    type StoreFuture<'m>
+    type StoreFuture<'m> = impl Future<Output = Result<(), ()>>
     where
-        Self: 'm,
-    = impl Future<Output = Result<(), ()>>;
+        Self: 'm;
 
     fn store<'m>(&'m mut self, keys: &'m Payload) -> Self::StoreFuture<'m> {
         async move {
@@ -92,10 +91,9 @@ where
         }
     }
 
-    type RetrieveFuture<'m>
+    type RetrieveFuture<'m> = impl Future<Output = Result<Option<Payload>, ()>>
     where
-        Self: 'm,
-    = impl Future<Output = Result<Option<Payload>, ()>>;
+        Self: 'm;
 
     fn retrieve<'m>(&'m mut self) -> Self::RetrieveFuture<'m> {
         async move {

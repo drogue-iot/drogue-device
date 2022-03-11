@@ -8,6 +8,9 @@ name = "microbit-esp8266"
 version = "0.1.0"
 description = "BBC micro:bit v2 + ESP8266 WiFi adapter"
 keywords = ["networking", "wifi", "esp8266", "microbit", "nrf", "nrf52", "cloud"]
+resolver = "2"
+
+[workspace]
 
 [dependencies]
 defmt = "0.3"
@@ -23,7 +26,7 @@ drogue-temperature = { path = "../../../apps/drogue-temperature", features = ["d
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 fixed = "1.10.0"
-nrf52833-pac = "0.10.1"
+nrf52833-pac = "0.11.0"
 
 embassy = { version = "0.1.0", default-features = false, features = ["defmt"] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
@@ -31,3 +34,42 @@ cfg-if = "1.0.0"
 
 [features]
 tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls"]
+
+[profile.dev]
+codegen-units = 1
+debug = 2
+debug-assertions = true
+incremental = false
+opt-level = 3
+overflow-checks = true
+
+[profile.release]
+codegen-units = 1
+debug = 2
+debug-assertions = false
+incremental = false
+lto = "fat"
+opt-level = 's'
+overflow-checks = false
+
+# do not optimize proc-macro crates = faster builds from scratch
+[profile.dev.build-override]
+codegen-units = 8
+debug = false
+debug-assertions = false
+opt-level = 0
+overflow-checks = false
+
+[profile.release.build-override]
+codegen-units = 8
+debug = false
+debug-assertions = false
+opt-level = 0
+overflow-checks = false
+
+[patch.crates-io]
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "6a3b3ca755073f73b24fad89a109fba7132d1312" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "6a3b3ca755073f73b24fad89a109fba7132d1312" }
+
+#embassy = { path = "../../../../../embassy/embassy" }
+#embassy-nrf = { path = "../../../../../embassy/embassy-nrf" }

@@ -51,14 +51,7 @@ where
     type Message<'m> = Command;
     type Response = Option<Result<SensorAcquisition<C>, T::Error>>;
 
-    type OnMountFuture<'m, M>
-    where
-        Self: 'm,
-        M: 'm,
-        P: 'm,
-        T: 'm,
-        C: 'm,
-    = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where Self: 'm, M: 'm + Inbox<Self>, P: 'm, T: 'm, C: 'm;
 
     fn on_mount<'m, M>(
         &'m mut self,
@@ -89,12 +82,7 @@ where
 {
     type Error = T::Error;
 
-    type CalibrateFuture<'m>
-    where
-        P: 'm,
-        T: 'm,
-        C: 'm,
-    = impl Future<Output = Result<(), Self::Error>> + 'm;
+    type CalibrateFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm where P: 'm, T: 'm, C: 'm;
 
     fn calibrate<'m>(&'m mut self) -> Self::CalibrateFuture<'m> {
         async move {
@@ -106,12 +94,7 @@ where
         }
     }
 
-    type ReadFuture<'m>
-    where
-        P: 'm,
-        T: 'm,
-        C: 'm,
-    = impl Future<Output = Result<SensorAcquisition<C>, Self::Error>> + 'm;
+    type ReadFuture<'m> = impl Future<Output = Result<SensorAcquisition<C>, Self::Error>> + 'm where P: 'm, T: 'm, C: 'm;
 
     fn temperature<'m>(&'m mut self) -> Self::ReadFuture<'m> {
         async move {

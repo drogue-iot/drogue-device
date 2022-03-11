@@ -144,10 +144,9 @@ impl<'c, S: Storage> Vault for StorageVault<'c, S> {
         self.config().uuid().unwrap()
     }
 
-    type SetPeerPublicKeyFuture<'m>
+    type SetPeerPublicKeyFuture<'m> = impl Future<Output = Result<(), DeviceError>>
     where
-        Self: 'm,
-    = impl Future<Output = Result<(), DeviceError>>;
+        Self: 'm;
 
     fn set_peer_public_key<'m>(&'m mut self, pk: PublicKey) -> Self::SetPeerPublicKeyFuture<'m> {
         async move {
@@ -189,10 +188,9 @@ impl<'c, S: Storage> Vault for StorageVault<'c, S> {
         .map_err(|_| DeviceError::CryptoError("n_k1"))
     }
 
-    type SetProvisioningDataFuture<'m>
+    type SetProvisioningDataFuture<'m> = impl Future<Output = Result<(), DeviceError>>
     where
-        Self: 'm,
-    = impl Future<Output = Result<(), DeviceError>>;
+        Self: 'm;
 
     fn set_provisioning_data<'m>(
         &'m mut self,
