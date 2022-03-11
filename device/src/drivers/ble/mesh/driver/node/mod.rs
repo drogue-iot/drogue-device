@@ -206,7 +206,8 @@ where
     }
 
     async fn publish(&self, publish: OutboundPublishMessage) -> Result<(), DeviceError> {
-        if let Some(network) = self.configuration_manager.configuration().network() {
+        let network = self.configuration_manager.configuration().network().clone();
+        if let Some(network) = network {
             if let Some((network, publication)) =
                 network.find_publication(&publish.element_address, &publish.model_identifier)
             {
