@@ -149,6 +149,19 @@ pub enum MeshNodeMessage {
     Shutdown,
 }
 
+pub trait ActivitySignal {
+    fn unprovisioned(&self) {}
+    fn provisioned(&self) {}
+    fn transmit_start(&self) {}
+    fn transmit_stop(&self) {}
+    fn receive_start(&self) {}
+    fn receive_stop(&self) {}
+}
+
+pub struct NoOpActivitySignal;
+
+impl ActivitySignal for NoOpActivitySignal {}
+
 pub struct Node<E, TX, RX, S, R>
 where
     E: ElementsHandler,
@@ -169,6 +182,7 @@ where
     pub(crate) elements: Elements<E>,
     pub(crate) outbound: OutboundChannel<'static>,
     pub(crate) publish_outbound: OutboundPublishChannel<'static>,
+    //
 }
 
 impl<E, TX, RX, S, R> Node<E, TX, RX, S, R>
@@ -325,10 +339,12 @@ where
         match result {
             Either::Left((inner, _)) => match inner {
                 Either::Left((Ok(inbound), _)) => {
-                    self.pipeline
+                    let result = self
+                        .pipeline
                         .borrow_mut()
                         .process_inbound(self, &*inbound)
-                        .await
+                        .await;
+                    result
                 }
                 Either::Right((_, _)) => {
                     self.pipeline.borrow_mut().try_retransmit(self).await?;

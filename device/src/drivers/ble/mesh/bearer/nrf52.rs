@@ -166,8 +166,8 @@ impl Bearer for SoftdeviceAdvertisingBearer {
             //let config = ScanConfig::default();
             let config = ScanConfig {
                 active: false,
-                interval: 50,
-                window: 100,
+                interval: 240,
+                window: 240,
                 ..Default::default()
             };
             loop {

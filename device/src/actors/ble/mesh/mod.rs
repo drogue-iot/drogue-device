@@ -4,7 +4,9 @@ use crate::drivers::ble::mesh::bearer::{Bearer, Handler};
 use crate::drivers::ble::mesh::composition::ElementsHandler;
 use crate::drivers::ble::mesh::config::configuration_manager::ConfigurationManager;
 pub use crate::drivers::ble::mesh::driver::node::MeshNodeMessage;
-use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
+use crate::drivers::ble::mesh::driver::node::{
+    ActivitySignal, NoOpActivitySignal, Node, Receiver, Transmitter,
+};
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
@@ -21,12 +23,13 @@ use rand_core::{CryptoRng, RngCore};
 
 const PDU_SIZE: usize = 384;
 
-pub struct MeshNode<E, B, S, R>
+pub struct MeshNode<E, B, S, R, A>
 where
     E: ElementsHandler,
     B: Bearer,
     S: Storage,
     R: RngCore + CryptoRng,
+    A: ActivitySignal,
 {
     channel: Channel<ThreadMode, Vec<u8, PDU_SIZE>, 6>,
     elements: Option<E>,
@@ -35,16 +38,25 @@ where
     transport: B,
     storage: Option<S>,
     rng: Option<R>,
+    activity: Option<A>,
 }
 
-impl<E, B, S, R> MeshNode<E, B, S, R>
+impl<E, B, S, R, A> MeshNode<E, B, S, R, A>
 where
     E: ElementsHandler,
     B: Bearer,
     S: Storage,
     R: RngCore + CryptoRng,
+    A: ActivitySignal,
 {
-    pub fn new(elements: E, capabilities: Capabilities, transport: B, storage: S, rng: R) -> Self {
+    pub fn new(
+        elements: E,
+        capabilities: Capabilities,
+        transport: B,
+        storage: S,
+        rng: R,
+        activity: A,
+    ) -> Self {
         Self {
             channel: Channel::new(),
             elements: Some(elements),
@@ -53,6 +65,7 @@ where
             transport,
             storage: Some(storage),
             rng: Some(rng),
+            activity: Some(activity),
         }
     }
 
@@ -64,19 +77,33 @@ where
     }
 }
 
-struct BearerReceiver<'c> {
+struct BearerReceiver<'c, 'a, A>
+where
+    A: ActivitySignal + 'a,
+{
     receiver: RefCell<mpsc::Receiver<'c, ThreadMode, Vec<u8, PDU_SIZE>, 6>>,
+    activity: &'a A,
 }
 
-impl<'c> BearerReceiver<'c> {
-    fn new(receiver: mpsc::Receiver<'c, ThreadMode, Vec<u8, PDU_SIZE>, 6>) -> Self {
+impl<'c, 'a, A> BearerReceiver<'c, 'a, A>
+where
+    A: ActivitySignal + 'a,
+{
+    fn new(
+        receiver: mpsc::Receiver<'c, ThreadMode, Vec<u8, PDU_SIZE>, 6>,
+        activity: &'a A,
+    ) -> Self {
         Self {
             receiver: RefCell::new(receiver),
+            activity,
         }
     }
 }
 
-impl<'c> Receiver for BearerReceiver<'c> {
+impl<'c, 'a, A> Receiver for BearerReceiver<'c, 'a, A>
+where
+    A: ActivitySignal + 'a,
+{
     type ReceiveFuture<'m>
     where
         Self: 'm,
@@ -86,6 +113,8 @@ impl<'c> Receiver for BearerReceiver<'c> {
         async move {
             loop {
                 if let Some(bytes) = self.receiver.borrow_mut().recv().await {
+                    self.activity.receive_start();
+                    self.activity.receive_stop();
                     return Ok(bytes);
                 }
             }
@@ -125,16 +154,19 @@ where
     }
 }
 
-struct BearerTransmitter<'t, B>
+struct BearerTransmitter<'t, 'a, B, A>
 where
     B: Bearer + 't,
+    A: ActivitySignal + 'a,
 {
     transport: &'t B,
+    activity: &'a A,
 }
 
-impl<'t, B> Transmitter for BearerTransmitter<'t, B>
+impl<'t, 'a, B, A> Transmitter for BearerTransmitter<'t, 'a, B, A>
 where
     B: Bearer + 't,
+    A: ActivitySignal + 'a,
 {
     type TransmitFuture<'m>
     where
@@ -143,18 +175,21 @@ where
 
     fn transmit_bytes<'m>(&'m self, bytes: &'m [u8]) -> Self::TransmitFuture<'m> {
         async move {
+            self.activity.transmit_start();
             self.transport.transmit(bytes).await?;
+            self.activity.transmit_stop();
             Ok(())
         }
     }
 }
 
-impl<E, B, S, R> Actor for MeshNode<E, B, S, R>
+impl<E, B, S, R, A> Actor for MeshNode<E, B, S, R, A>
 where
     E: ElementsHandler + 'static,
     B: Bearer + 'static,
     S: Storage + 'static,
     R: RngCore + CryptoRng + 'static,
+    A: ActivitySignal + 'static,
 {
     type Message<'m> = MeshNodeMessage;
     type OnMountFuture<'m, M>
@@ -173,11 +208,14 @@ where
         async move {
             let (sender, receiver) = mpsc::split(&mut self.channel);
 
+            let activity = self.activity.take().unwrap();
+
             let tx = BearerTransmitter {
                 transport: &self.transport,
+                activity: &activity,
             };
 
-            let rx = BearerReceiver::new(receiver);
+            let rx = BearerReceiver::new(receiver, &activity);
             let handler = BearerHandler::new(&self.transport, sender);
 
             let configuration_manager = ConfigurationManager::new(

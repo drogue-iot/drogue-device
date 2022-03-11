@@ -18,6 +18,7 @@ use drogue_device::drivers::ble::mesh::composition::{
     ProductIdentifier, VersionIdentifier,
 };
 use drogue_device::drivers::ble::mesh::driver::elements::{AppElementContext, AppElementsContext};
+use drogue_device::drivers::ble::mesh::driver::node::{ActivitySignal, NoOpActivitySignal};
 use drogue_device::drivers::ble::mesh::driver::DeviceError;
 use drogue_device::drivers::ble::mesh::model::generic::onoff::{
     GenericOnOffClient, GenericOnOffMessage, GenericOnOffServer, Set, GENERIC_ONOFF_CLIENT,
@@ -38,7 +39,7 @@ use embassy::time::{Duration, Timer};
 use embassy_nrf::config::Config;
 use embassy_nrf::gpio::{Level, OutputDrive, Pull};
 use embassy_nrf::interrupt::Priority;
-use embassy_nrf::peripherals::{P0_11, P0_13, P0_25};
+use embassy_nrf::peripherals::{P0_11, P0_13, P0_16, P0_25};
 use embassy_nrf::{gpio::Input, gpio::Output, Peripherals};
 use futures::future::{select, Either};
 use futures::pin_mut;
@@ -56,10 +57,14 @@ type ConcreteMeshNode = MeshNode<
     SoftdeviceAdvertisingBearer,
     FlashStorage<Flash>,
     SoftdeviceRng,
+    //NoOpActivitySignal,
+    ActivityLed,
 >;
 
 pub struct MyDevice {
     #[allow(dead_code)]
+    activity_led:
+        ActorContext<actors::led::Led<drivers::led::Led<Output<'static, P0_16>, ActiveLow>>, 10>,
     led: ActorContext<actors::led::Led<drivers::led::Led<Output<'static, P0_13>, ActiveLow>>>,
     button_publisher: ActorContext<MeshButtonPublisher>,
     button: ActorContext<
@@ -125,6 +130,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
     };
 
     let device = DEVICE.configure(MyDevice {
+        activity_led: ActorContext::new(),
         led: ActorContext::new(),
         button: ActorContext::new(),
         button_publisher: ActorContext::new(),
@@ -133,6 +139,14 @@ async fn main(spawner: Spawner, p: Peripherals) {
         reset: ActorContext::new(),
         reset_button: ActorContext::new(),
     });
+
+    let activity_led = actors::led::Led::new(drivers::led::Led::<_, ActiveLow>::new(Output::new(
+        p.P0_16,
+        Level::Low,
+        OutputDrive::Standard,
+    )));
+
+    let activity_led = device.activity_led.mount(spawner, activity_led);
 
     let led = actors::led::Led::new(drivers::led::Led::<_, ActiveLow>::new(Output::new(
         p.P0_13,
@@ -174,7 +188,15 @@ async fn main(spawner: Spawner, p: Peripherals) {
     };
 
     device.facilities.mount(spawner, facilities);
-    let mesh_node = MeshNode::new(elements, capabilities, bearer, storage, rng);
+    //let mesh_node = MeshNode::new(elements, capabilities, bearer, storage, rng, NoOpActivitySignal);
+    let mesh_node = MeshNode::new(
+        elements,
+        capabilities,
+        bearer,
+        storage,
+        rng,
+        ActivityLed(activity_led),
+    );
     let mesh_node = device.mesh.mount(spawner, mesh_node);
 
     let reset = MeshNodeReset(mesh_node);
@@ -395,5 +417,31 @@ impl Actor for MeshNodeReset {
                 }
             }
         }
+    }
+}
+
+pub struct ActivityLed(
+    Address<actors::led::Led<drivers::led::Led<Output<'static, P0_16>, ActiveLow>>>,
+);
+
+impl ActivitySignal for ActivityLed {
+    fn unprovisioned(&self) {}
+
+    fn provisioned(&self) {}
+
+    fn transmit_start(&self) {
+        self.0.notify(LedMessage::On).ok();
+    }
+
+    fn transmit_stop(&self) {
+        self.0.notify(LedMessage::Off).ok();
+    }
+
+    fn receive_start(&self) {
+        self.0.notify(LedMessage::On).ok();
+    }
+
+    fn receive_stop(&self) {
+        self.0.notify(LedMessage::Off).ok();
     }
 }
