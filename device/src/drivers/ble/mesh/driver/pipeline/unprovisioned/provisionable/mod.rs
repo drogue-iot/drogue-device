@@ -94,6 +94,7 @@ impl Provisionable {
     ) -> Result<Option<ProvisioningPDU>, DeviceError> {
         match pdu {
             ProvisioningPDU::Invite(invite) => {
+                info!("invite");
                 self.transcript.add_invite(&invite)?;
                 self.transcript.add_capabilities(&self.capabilities)?;
                 Ok(Some(ProvisioningPDU::Capabilities(
@@ -102,6 +103,7 @@ impl Provisionable {
             }
             ProvisioningPDU::Capabilities(_) => Ok(None),
             ProvisioningPDU::Start(start) => {
+                info!("start");
                 self.transcript.add_start(&start)?;
                 let auth_value = determine_auth_value(ctx, &start)?;
                 // TODO actually let the device/app/thingy know what it is so that it can blink/flash/accept input
@@ -109,6 +111,7 @@ impl Provisionable {
                 Ok(None)
             }
             ProvisioningPDU::PublicKey(public_key) => {
+                info!("public_key");
                 self.transcript.add_pubkey_provisioner(&public_key)?;
                 let peer_pk_x = public_key.x;
                 let peer_pk_y = public_key.y;
@@ -138,6 +141,7 @@ impl Provisionable {
             }
             ProvisioningPDU::InputComplete => Ok(None),
             ProvisioningPDU::Confirmation(_confirmation) => {
+                info!("confirmation");
                 // todo verify the confirmation from the provisioner.
                 let mut random_device = [0; 16];
                 ctx.rng_fill(&mut random_device);
@@ -146,6 +150,7 @@ impl Provisionable {
                 Ok(Some(ProvisioningPDU::Confirmation(confirmation_device)))
             }
             ProvisioningPDU::Random(random) => {
+                info!("random");
                 self.random_provisioner.replace(random.random);
                 Ok(Some(ProvisioningPDU::Random(Random {
                     random: self
@@ -154,6 +159,7 @@ impl Provisionable {
                 })))
             }
             ProvisioningPDU::Data(mut data) => {
+                info!("data");
                 let mut provisioning_salt = [0; 48];
                 provisioning_salt[0..16]
                     .copy_from_slice(&self.transcript.confirmation_salt()?.into_bytes());

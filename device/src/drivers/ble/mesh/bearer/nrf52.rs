@@ -31,7 +31,7 @@ impl Nrf52BleMeshFacilities {
                 accuracy: 7,
             }),
             conn_gap: Some(raw::ble_gap_conn_cfg_t {
-                conn_count: 6,
+                conn_count: 2,
                 event_length: 24,
             }),
             gap_role_count: Some(raw::ble_gap_cfg_role_count_t {
@@ -136,7 +136,7 @@ impl Bearer for SoftdeviceAdvertisingBearer {
                 adv,
                 &peripheral::Config {
                     max_events: Some(3),
-                    interval: 400,
+                    interval: 50,
                     ..Default::default()
                 },
             )
@@ -165,7 +165,9 @@ impl Bearer for SoftdeviceAdvertisingBearer {
         async move {
             //let config = ScanConfig::default();
             let config = ScanConfig {
-                interval: 400,
+                active: false,
+                interval: 50,
+                window: 100,
                 ..Default::default()
             };
             loop {
