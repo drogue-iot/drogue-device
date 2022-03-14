@@ -26,6 +26,7 @@ use embassy::blocking_mutex::raw::NoopRawMutex;
 use embassy::channel::mpsc::Sender as ChannelSender;
 use heapless::Vec;
 
+#[derive(Clone)]
 pub struct AppElementsContext {
     pub(crate) sender: ChannelSender<'static, NoopRawMutex, OutboundPublishMessage, 3>,
     pub(crate) address: UnicastAddress,
@@ -38,6 +39,10 @@ impl AppElementsContext {
             address: self.address + element_number,
             _message: PhantomData,
         }
+    }
+
+    pub fn address(&self) -> UnicastAddress {
+        self.address
     }
 }
 
