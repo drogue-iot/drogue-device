@@ -128,16 +128,17 @@ impl<E: ElementsHandler> Elements<E> {
     }
 
     pub(crate) async fn dispatch<C: PrimaryElementContext>(
-        &self,
+        &mut self,
         ctx: &C,
         message: &AccessMessage,
     ) -> Result<(), DeviceError> {
         info!("d>");
+        let composition = self.elements.composition().clone();
         let unicast_element_index = match &message.dst {
             Address::Unicast(addr) => {
                 let primary_addr = ctx.address().ok_or(DeviceError::NotProvisioned)?;
                 let element_index = *addr - primary_addr;
-                if element_index < self.elements.composition().elements.len() as u8 {
+                if element_index < composition.elements.len() as u8 {
                     Some(element_index)
                 } else {
                     None
@@ -158,7 +159,7 @@ impl<E: ElementsHandler> Elements<E> {
                     return Ok(());
                 }
             }
-            let element = &self.elements.composition().elements[element_index as usize];
+            let element = &composition.elements[element_index as usize];
             for model in &element.models {
                 self.elements
                     .dispatch(element_index as u8, model, message)
@@ -171,8 +172,7 @@ impl<E: ElementsHandler> Elements<E> {
         if let Some(network) = ctx.configuration().network() {
             let primary_addr = ctx.address().ok_or(DeviceError::NotProvisioned)?;
             // non-unicast, give everyone a chance to respond
-            for (element_index, element) in self.elements.composition().elements.iter().enumerate()
-            {
+            for (element_index, element) in composition.elements.iter().enumerate() {
                 // non-unicast, check every element.
                 let element_address = primary_addr + element_index as u8;
                 for model in &element.models {
@@ -196,7 +196,7 @@ impl<E: ElementsHandler> Elements<E> {
         Ok(())
     }
 
-    pub(crate) fn connect(&self, ctx: AppElementsContext) {
+    pub(crate) fn connect(&mut self, ctx: AppElementsContext) {
         self.elements.connect(ctx);
     }
 }
