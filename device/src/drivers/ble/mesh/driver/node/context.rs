@@ -181,7 +181,7 @@ where
         if let Address::Unicast(addr) = addr {
             if let Ok(primary_addr) = self.primary_unicast_address() {
                 let element_index = *addr - primary_addr;
-                element_index < self.elements.elements.composition().elements.len() as u8
+                element_index < self.elements.borrow().elements.composition().elements.len() as u8
             } else {
                 false
             }
@@ -360,7 +360,7 @@ where
         Self: 'm;
 
     fn dispatch_access<'m>(&'m self, message: &'m AccessMessage) -> Self::DispatchFuture<'m> {
-        async move { self.elements.dispatch(self, message).await }
+        async move { self.elements.borrow_mut().dispatch(self, message).await }
     }
 }
 

@@ -12,16 +12,16 @@ use serde::{Deserialize, Serialize};
 pub trait ElementsHandler {
     fn composition(&self) -> &Composition;
 
-    fn connect(&self, ctx: AppElementsContext);
+    fn connect(&mut self, ctx: AppElementsContext);
 
-    fn configure(&self, _: &ConfigurationModel) {}
+    fn configure(&mut self, _: &ConfigurationModel) {}
 
     type DispatchFuture<'m>: Future<Output = Result<(), DeviceError>> + 'm
     where
         Self: 'm;
 
     fn dispatch<'m>(
-        &'m self,
+        &'m mut self,
         element: u8,
         model_identifier: &'m ModelIdentifier,
         message: &'m AccessMessage,

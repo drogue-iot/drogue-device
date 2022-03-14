@@ -168,7 +168,7 @@ where
     rng: RefCell<R>,
     pipeline: RefCell<Pipeline>,
     //
-    pub(crate) elements: Elements<E>,
+    pub(crate) elements: RefCell<Elements<E>>,
     pub(crate) outbound: OutboundChannel<'static>,
     pub(crate) publish_outbound: OutboundPublishChannel<'static>,
 }
@@ -197,7 +197,7 @@ where
             rng: RefCell::new(rng),
             pipeline: RefCell::new(Pipeline::new(capabilities)),
             //
-            elements: Elements::new(app_elements),
+            elements: RefCell::new(Elements::new(app_elements)),
             outbound: OutboundChannel::new(),
             publish_outbound: OutboundPublishChannel::new(),
         }
@@ -382,7 +382,7 @@ where
             sender: self.publish_outbound.clone_sender(),
             address: self.address().unwrap(),
         };
-        self.elements.connect(ctx);
+        self.elements.borrow_mut().connect(ctx);
     }
 
     pub async fn run(&mut self, control: &Signal<MeshNodeMessage>) -> Result<(), DeviceError> {

@@ -202,7 +202,7 @@ impl ElementsHandler for CustomElementsHandler {
         &self.composition
     }
 
-    fn connect(&self, ctx: AppElementsContext) {
+    fn connect(&mut self, ctx: AppElementsContext) {
         let button_ctx = ctx.for_element_model::<GenericOnOffClient>(0);
         self.button
             .notify(MeshButtonMessage::Connect(button_ctx))
@@ -212,7 +212,7 @@ impl ElementsHandler for CustomElementsHandler {
     type DispatchFuture<'m> = impl Future<Output = Result<(), DeviceError>> + 'm where Self: 'm;
 
     fn dispatch<'m>(
-        &'m self,
+        &'m mut self,
         element: u8,
         model_identifier: &'m ModelIdentifier,
         message: &'m AccessMessage,
