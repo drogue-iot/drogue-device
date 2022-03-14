@@ -30,17 +30,10 @@ impl<F> Actor for SharedFlash<F>
 where
     F: AsyncNorFlash + AsyncReadNorFlash,
 {
-    type Message<'m>
-    where
-        Self: 'm,
-    = FlashOp<'m>;
+    type Message<'m> = FlashOp<'m> where Self: 'm;
     type Response = Option<Result<(), F::Error>>;
 
-    type OnMountFuture<'m, M>
-    where
-        Self: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where Self: 'm, M: 'm + Inbox<Self>;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Address<Self>,
@@ -107,7 +100,7 @@ where
 {
     const READ_SIZE: usize = F::READ_SIZE;
 
-    type ReadFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a;
+    type ReadFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a where Self: 'a;
     fn read<'a>(&'a mut self, address: u32, data: &'a mut [u8]) -> Self::ReadFuture<'a> {
         async move {
             self.0
@@ -131,7 +124,7 @@ where
     const WRITE_SIZE: usize = F::WRITE_SIZE;
     const ERASE_SIZE: usize = F::ERASE_SIZE;
 
-    type WriteFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a;
+    type WriteFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a where Self: 'a;
     fn write<'a>(&'a mut self, offset: u32, data: &'a [u8]) -> Self::WriteFuture<'a> {
         async move {
             self.0
@@ -142,7 +135,7 @@ where
         }
     }
 
-    type EraseFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a;
+    type EraseFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a where Self: 'a;
     fn erase<'a>(&'a mut self, from: u32, to: u32) -> Self::EraseFuture<'a> {
         async move {
             self.0

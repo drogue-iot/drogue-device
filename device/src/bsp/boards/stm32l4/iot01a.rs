@@ -29,7 +29,7 @@ pub type I2c2 = i2c::I2c<'static, I2C2, DMA1_CH4, DMA1_CH5>;
 
 pub type Hts221Ready = ExtiInput<'static, PD15>;
 
-pub type Rng = rng::Rng<RNG>;
+pub type Rng = rng::Rng<'static, RNG>;
 
 pub type WifiWake = Output<'static, PB13>;
 pub type WifiReset = Output<'static, PE8>;

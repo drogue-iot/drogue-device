@@ -13,10 +13,7 @@ where
 {
     type Error = ();
 
-    type OnFuture<'m>
-    where
-        P: 'm,
-    = impl Future<Output = Result<(), Self::Error>> + 'm;
+    type OnFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm where P: 'm;
     fn on<'m>(&'m mut self, x: usize, y: usize) -> Self::OnFuture<'m> {
         async move {
             self.request(MatrixCommand::On(x, y)).map_err(|_| ())?.await;
@@ -24,10 +21,7 @@ where
         }
     }
 
-    type OffFuture<'m>
-    where
-        P: 'm,
-    = impl Future<Output = Result<(), Self::Error>> + 'm;
+    type OffFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm where P: 'm;
     fn off<'m>(&'m mut self, x: usize, y: usize) -> Self::OffFuture<'m> {
         async move {
             self.request(MatrixCommand::Off(x, y))
@@ -37,10 +31,7 @@ where
         }
     }
 
-    type ClearFuture<'m>
-    where
-        P: 'm,
-    = impl Future<Output = Result<(), Self::Error>> + 'm;
+    type ClearFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm where P: 'm;
     fn clear<'m>(&'m mut self) -> Self::ClearFuture<'m> {
         async move {
             self.request(MatrixCommand::Clear).map_err(|_| ())?.await;
@@ -48,10 +39,7 @@ where
         }
     }
 
-    type ApplyFuture<'m>
-    where
-        P: 'm,
-    = impl Future<Output = Result<(), Self::Error>> + 'm;
+    type ApplyFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm where P: 'm;
     fn apply<'m>(&'m mut self, frame: &'m dyn ToFrame<COLS, ROWS>) -> Self::ApplyFuture<'m> {
         async move {
             self.request(MatrixCommand::ApplyFrame(frame))
@@ -85,10 +73,7 @@ where
     P: OutputPin + 'static,
 {
     type Error = ();
-    type ScrollFuture<'m>
-    where
-        P: 'm,
-    = impl Future<Output = Result<(), Self::Error>> + 'm;
+    type ScrollFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm where P: 'm;
 
     fn scroll<'m>(&'m mut self, text: &'m str) -> Self::ScrollFuture<'m> {
         async move {
@@ -103,10 +88,7 @@ where
         }
     }
 
-    type ScrollWithSpeedFuture<'m>
-    where
-        P: 'm,
-    = impl Future<Output = Result<(), Self::Error>> + 'm;
+    type ScrollWithSpeedFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm where P: 'm;
 
     fn scroll_with_speed<'m>(
         &'m mut self,
@@ -160,11 +142,7 @@ where
 {
     type Message<'m> = MatrixCommand<'m, COLS, ROWS>;
 
-    type OnMountFuture<'m, M>
-    where
-        P: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where P: 'm, M: 'm + Inbox<Self>;
 
     fn on_mount<'m, M>(
         &'m mut self,

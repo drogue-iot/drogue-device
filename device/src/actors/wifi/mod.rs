@@ -128,17 +128,10 @@ impl<N: Adapter> AdapterActor<N> {
 }
 
 impl<N: Adapter> Actor for AdapterActor<N> {
-    type Message<'m>
-    where
-        N: 'm,
-    = AdapterRequest<'m>;
+    type Message<'m> = AdapterRequest<'m> where N: 'm;
     type Response = Option<AdapterResponse>;
 
-    type OnMountFuture<'m, M>
-    where
-        N: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where N: 'm, M: 'm + Inbox<Self>;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Address<Self>,

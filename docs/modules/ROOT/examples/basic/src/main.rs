@@ -42,10 +42,7 @@ impl Game {
 
 impl Actor for Game {
     type Message<'m> = GameMessage;
-    type OnMountFuture<'m, M>
-    where
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where M: 'm + Inbox<Self>;
 
     fn on_mount<'m, M>(
         &'m mut self,

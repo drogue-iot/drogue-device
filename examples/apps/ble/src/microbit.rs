@@ -116,10 +116,9 @@ impl<C> GattEventHandler<MicrobitGattServer> for MicrobitGattHandler<C>
 where
     C: ConnectionStateListener,
 {
-    type OnEventFuture<'m>
+    type OnEventFuture<'m> = impl core::future::Future<Output = ()> + 'm
     where
-        C: 'm,
-    = impl core::future::Future<Output = ()> + 'm;
+        C: 'm;
     fn on_event<'m>(&'m mut self, event: GattEvent<MicrobitGattServer>) -> Self::OnEventFuture<'m> {
         async move {
             match event {

@@ -26,10 +26,7 @@ impl<'a, const N: usize> StaticDnsResolver<'a, N> {
     }
 }
 impl<'a, const N: usize> DnsResolver<1> for StaticDnsResolver<'a, N> {
-    type ResolveFuture<'m>
-    where
-        'a: 'm,
-    = impl Future<Output = Result<[IpAddress; 1], DnsError>> + 'm;
+    type ResolveFuture<'m> = impl Future<Output = Result<[IpAddress; 1], DnsError>> + 'm where 'a: 'm;
     fn resolve<'m>(&'m self, host: &'m str) -> Self::ResolveFuture<'m> {
         async move {
             for entry in self.entries.iter() {

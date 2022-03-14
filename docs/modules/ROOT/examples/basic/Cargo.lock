@@ -243,7 +243,7 @@ dependencies = [
  "embassy",
  "embassy-nrf",
  "embedded-hal 0.2.6",
- "embedded-hal 1.0.0-alpha.6",
+ "embedded-hal 1.0.0-alpha.7",
  "embedded-hal-async",
  "embedded-storage",
  "embedded-storage-async",
@@ -267,7 +267,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=3d6b8bd9832d5a29cab4aa21434663e6ea6f4488#3d6b8bd9832d5a29cab4aa21434663e6ea6f4488"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=6a3b3ca755073f73b24fad89a109fba7132d1312#6a3b3ca755073f73b24fad89a109fba7132d1312"
 dependencies = [
  "atomic-polyfill",
  "cfg-if",
@@ -276,6 +276,7 @@ dependencies = [
  "defmt",
  "embassy-macros",
  "embedded-hal 0.2.6",
+ "embedded-hal-async",
  "futures",
  "heapless",
  "pin-project",
@@ -284,7 +285,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=3d6b8bd9832d5a29cab4aa21434663e6ea6f4488#3d6b8bd9832d5a29cab4aa21434663e6ea6f4488"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=6a3b3ca755073f73b24fad89a109fba7132d1312#6a3b3ca755073f73b24fad89a109fba7132d1312"
 dependencies = [
  "cortex-m",
  "embassy",
@@ -295,7 +296,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=3d6b8bd9832d5a29cab4aa21434663e6ea6f4488#3d6b8bd9832d5a29cab4aa21434663e6ea6f4488"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=6a3b3ca755073f73b24fad89a109fba7132d1312#6a3b3ca755073f73b24fad89a109fba7132d1312"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -306,7 +307,7 @@ dependencies = [
 [[package]]
 name = "embassy-nrf"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=3d6b8bd9832d5a29cab4aa21434663e6ea6f4488#3d6b8bd9832d5a29cab4aa21434663e6ea6f4488"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=6a3b3ca755073f73b24fad89a109fba7132d1312#6a3b3ca755073f73b24fad89a109fba7132d1312"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -317,7 +318,7 @@ dependencies = [
  "embassy-macros",
  "embedded-dma",
  "embedded-hal 0.2.6",
- "embedded-hal 1.0.0-alpha.6",
+ "embedded-hal 1.0.0-alpha.7",
  "embedded-hal-async",
  "embedded-storage",
  "fixed",
@@ -349,8 +350,8 @@ dependencies = [
 
 [[package]]
 name = "embedded-hal"
-version = "1.0.0-alpha.6"
-source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy#1fa64a1d2f9cc1a1ae632dbfcc4064a9f6504a3f"
+version = "1.0.0-alpha.7"
+source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy2#3d58bc1ac8aa3ff9c841585cdd341e4406340457"
 dependencies = [
  "nb 1.0.0",
 ]
@@ -358,9 +359,9 @@ dependencies = [
 [[package]]
 name = "embedded-hal-async"
 version = "0.0.1"
-source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy#1fa64a1d2f9cc1a1ae632dbfcc4064a9f6504a3f"
+source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy2#3d58bc1ac8aa3ff9c841585cdd341e4406340457"
 dependencies = [
- "embedded-hal 1.0.0-alpha.6",
+ "embedded-hal 1.0.0-alpha.7",
 ]
 
 [[package]]
@@ -593,9 +594,9 @@ dependencies = [
 
 [[package]]
 name = "nrf52833-pac"
-version = "0.10.1"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd69bdb25903e18e098c040ef31dc863814437af010dea8bd55aa31f686cb461"
+checksum = "7dd2b96c950afd2887102113c5194cb5c985a13aff0eac5fb976a76cd6e62a21"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",

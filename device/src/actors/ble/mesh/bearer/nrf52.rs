@@ -4,11 +4,10 @@ use core::future::Future;
 
 impl Actor for Nrf52BleMeshFacilities {
     type Message<'m> = ();
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()>
     where
         Self: 'm,
-        M: 'm,
-    = impl Future<Output = ()>;
+        M: 'm + Inbox<Self>;
 
     fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where

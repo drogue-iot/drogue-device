@@ -6,12 +6,12 @@ use core::task::{Context, Poll};
 use embassy::util::Forever;
 
 use embassy::{
-    blocking_mutex::kind::Noop,
+    blocking_mutex::raw::NoopRawMutex,
     channel::mpsc::{self, Channel, Receiver, RecvFuture, Sender},
     executor::{raw::TaskStorage as Task, SpawnError, Spawner},
 };
 
-type ActorMutex = Noop;
+type ActorMutex = NoopRawMutex;
 
 /// Trait that each actor must implement. An Actor must specify a message type
 /// it acts on, and an implementation of `on_mount` which is invoked when the
@@ -36,7 +36,7 @@ pub trait Actor: Sized {
     type OnMountFuture<'m, M>: Future<Output = ()>
     where
         Self: 'm,
-        M: 'm;
+        M: 'm + Inbox<Self>;
 
     /// Called when an actor is mounted (activated). The actor will be provided with the
     /// address to itself, and an inbox used to receive incoming messages.

@@ -33,11 +33,7 @@ where
 
     type Response = Option<Result<(), <I as ErrorType>::Error>>;
 
-    type OnMountFuture<'m, M>
-    where
-        Self: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where Self: 'm, M: 'm + Inbox<Self>;
 
     fn on_mount<'m, M>(
         &'m mut self,
@@ -86,10 +82,7 @@ impl<I: I2c<SevenBitAddress> + 'static> I2c for Address<I2cPeripheral<I>>
 where
     <I as ErrorType>::Error: Send,
 {
-    type ReadFuture<'a>
-    where
-        I: 'a,
-    = impl Future<Output = Result<(), Self::Error>> + 'a;
+    type ReadFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a where I: 'a;
 
     fn read<'a>(&'a mut self, address: u8, buffer: &'a mut [u8]) -> Self::ReadFuture<'a> {
         async move {
@@ -100,10 +93,7 @@ where
         }
     }
 
-    type WriteFuture<'a>
-    where
-        I: 'a,
-    = impl Future<Output = Result<(), Self::Error>> + 'a;
+    type WriteFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a where I: 'a;
     fn write<'a>(&'a mut self, address: u8, bytes: &'a [u8]) -> Self::WriteFuture<'a> {
         async move {
             self.request(I2cRequest::Write(address.into(), bytes))
@@ -113,10 +103,7 @@ where
         }
     }
 
-    type WriteReadFuture<'a>
-    where
-        I: 'a,
-    = impl Future<Output = Result<(), Self::Error>> + 'a;
+    type WriteReadFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a where I: 'a;
 
     fn write_read<'a>(
         &'a mut self,
@@ -132,16 +119,13 @@ where
         }
     }
 
-    type TransactionFuture<'a>
-    where
-        I: 'a,
-    = impl Future<Output = Result<(), Self::Error>> + 'a;
+    type TransactionFuture<'a, 'b> = impl Future<Output = Result<(), Self::Error>> + 'a where Self: 'a, 'b: 'a;
 
-    fn transaction<'a>(
+    fn transaction<'a, 'b>(
         &'a mut self,
         address: u8,
-        operations: &mut [embedded_hal_async::i2c::Operation<'a>],
-    ) -> Self::TransactionFuture<'a> {
+        operations: &'a mut [embedded_hal_async::i2c::Operation<'b>],
+    ) -> Self::TransactionFuture<'a, 'b> {
         let _ = address;
         let _ = operations;
         async move { todo!() }

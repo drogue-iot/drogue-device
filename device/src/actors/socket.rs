@@ -72,10 +72,9 @@ mod tls {
     where
         A: TcpActor + 'static,
     {
-        type ReadFuture<'m>
+        type ReadFuture<'m> = impl Future<Output = Result<usize, TlsError>> + 'm
         where
-            Self: 'm,
-        = impl Future<Output = Result<usize, TlsError>> + 'm;
+            Self: 'm;
         fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m> {
             async move {
                 Ok(Socket::read(self, buf)
@@ -89,10 +88,9 @@ mod tls {
     where
         A: TcpActor + 'static,
     {
-        type WriteFuture<'m>
+        type WriteFuture<'m> = impl Future<Output = Result<usize, TlsError>> + 'm
         where
-            Self: 'm,
-        = impl Future<Output = Result<usize, TlsError>> + 'm;
+            Self: 'm;
         fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
             async move {
                 Ok(Socket::write(self, buf)

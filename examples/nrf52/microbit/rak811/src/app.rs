@@ -29,16 +29,14 @@ impl<D: LoraDriver> App<D> {
 }
 
 impl<D: LoraDriver> Actor for App<D> {
-    type Message<'m>
+    type Message<'m> = Command
     where
-        D: 'm,
-    = Command;
+        D: 'm;
 
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         D: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Address<Self>,

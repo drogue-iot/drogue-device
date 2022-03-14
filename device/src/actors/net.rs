@@ -46,10 +46,7 @@ where
     A: TcpActor + 'static,
 {
     type Connection = Socket<A>;
-    type ConnectFuture<'m>
-    where
-        A: 'm,
-    = impl Future<Output = Result<Self::Connection, NetworkError>> + 'm;
+    type ConnectFuture<'m> = impl Future<Output = Result<Self::Connection, NetworkError>> + 'm where A: 'm;
 
     fn connect<'m>(&'m mut self, _: &'m str, ip: IpAddress, port: u16) -> Self::ConnectFuture<'m> {
         async move {
@@ -77,10 +74,7 @@ impl<A> NetworkConnection for Socket<A>
 where
     A: TcpActor + 'static,
 {
-    type WriteFuture<'m>
-    where
-        A: 'm,
-    = impl Future<Output = Result<usize, NetworkError>> + 'm;
+    type WriteFuture<'m> = impl Future<Output = Result<usize, NetworkError>> + 'm where A: 'm;
     fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
         async move {
             Socket::write(self, buf)
@@ -89,10 +83,7 @@ where
         }
     }
 
-    type ReadFuture<'m>
-    where
-        A: 'm,
-    = impl Future<Output = Result<usize, NetworkError>> + 'm;
+    type ReadFuture<'m> = impl Future<Output = Result<usize, NetworkError>> + 'm where A: 'm;
     fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m> {
         async move {
             Socket::read(self, buf)
@@ -101,10 +92,7 @@ where
         }
     }
 
-    type CloseFuture<'m>
-    where
-        A: 'm,
-    = impl Future<Output = Result<(), NetworkError>> + 'm;
+    type CloseFuture<'m> = impl Future<Output = Result<(), NetworkError>> + 'm where A: 'm;
     fn close<'m>(self) -> Self::CloseFuture<'m> {
         async move { Socket::close(self).await.map_err(|e| NetworkError::Tcp(e)) }
     }
@@ -206,13 +194,12 @@ mod tls {
         CipherSuite: TlsCipherSuite + 'a,
     {
         type Connection = TlsNetworkConnection<'a, A, CipherSuite>;
-        type ConnectFuture<'m>
+        type ConnectFuture<'m> = impl Future<Output = Result<Self::Connection, NetworkError>> + 'm
         where
             'a: 'm,
             A: 'm,
             RNG: 'm,
-            CipherSuite: 'm,
-        = impl Future<Output = Result<Self::Connection, NetworkError>> + 'm;
+            CipherSuite: 'm;
 
         fn connect<'m>(
             &'m mut self,
@@ -296,12 +283,11 @@ mod tls {
         A: TcpActor + 'static,
         CipherSuite: TlsCipherSuite + 'a,
     {
-        type WriteFuture<'m>
+        type WriteFuture<'m> = impl Future<Output = Result<usize, NetworkError>> + 'm
         where
             'a: 'm,
             A: 'm,
-            CipherSuite: 'm,
-        = impl Future<Output = Result<usize, NetworkError>> + 'm;
+            CipherSuite: 'm;
         fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
             async move {
                 self.connection
@@ -311,12 +297,11 @@ mod tls {
             }
         }
 
-        type ReadFuture<'m>
+        type ReadFuture<'m> = impl Future<Output = Result<usize, NetworkError>> + 'm
         where
             'a: 'm,
             A: 'm,
-            CipherSuite: 'm,
-        = impl Future<Output = Result<usize, NetworkError>> + 'm;
+            CipherSuite: 'm;
         fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m> {
             async move {
                 self.connection

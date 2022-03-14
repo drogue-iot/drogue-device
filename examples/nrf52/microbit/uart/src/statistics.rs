@@ -32,10 +32,9 @@ impl TryFrom<ButtonEvent> for StatisticsCommand {
 impl Actor for Statistics {
     type Message<'a> = StatisticsCommand;
 
-    type OnMountFuture<'a, M>
+    type OnMountFuture<'a, M> = impl Future<Output = ()> + 'a
     where
-        M: 'a,
-    = impl Future<Output = ()> + 'a;
+        M: 'a + Inbox<Self>;
 
     fn on_mount<'m, M>(
         &'m mut self,

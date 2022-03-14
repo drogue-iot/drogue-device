@@ -49,10 +49,9 @@ where
         self.rng.borrow_mut().fill_bytes(dest);
     }
 
-    type SetPeerPublicKeyFuture<'m>
+    type SetPeerPublicKeyFuture<'m> = impl Future<Output = Result<(), DeviceError>>
     where
-        Self: 'm,
-    = impl Future<Output = Result<(), DeviceError>>;
+        Self: 'm;
 
     fn set_peer_public_key<'m>(&'m self, pk: PublicKey) -> Self::SetPeerPublicKeyFuture<'m> {
         async move { self.vault().set_peer_public_key(pk).await }
@@ -62,10 +61,9 @@ where
         self.vault().public_key()
     }
 
-    type SetProvisioningDataFuture<'m>
+    type SetProvisioningDataFuture<'m> = impl Future<Output = Result<(), DeviceError>>
     where
-        Self: 'm,
-    = impl Future<Output = Result<(), DeviceError>>;
+        Self: 'm;
 
     fn set_provisioning_data<'m>(
         &'m self,
@@ -132,10 +130,9 @@ where
         self.vault().uuid()
     }
 
-    type TransmitAdvertisingFuture<'m>
+    type TransmitAdvertisingFuture<'m> = impl Future<Output = Result<(), DeviceError>>
     where
-        Self: 'm,
-    = impl Future<Output = Result<(), DeviceError>>;
+        Self: 'm;
 
     fn transmit_advertising_pdu<'m>(
         &'m self,
@@ -149,10 +146,9 @@ where
         }
     }
 
-    type TransmitMeshFuture<'m>
+    type TransmitMeshFuture<'m> = impl Future<Output = Result<(), DeviceError>>
     where
-        Self: 'm,
-    = impl Future<Output = Result<(), DeviceError>>;
+        Self: 'm;
 
     fn transmit_mesh_pdu<'m>(
         &'m self,
@@ -309,10 +305,9 @@ where
             .decrypt_application_key(&aid, nonce, bytes, mic, additional_data)
     }
 
-    type NextSequenceFuture<'m>
+    type NextSequenceFuture<'m> = impl Future<Output = Result<u32, DeviceError>> + 'm
     where
-        Self: 'm,
-    = impl Future<Output = Result<u32, DeviceError>> + 'm;
+        Self: 'm;
 
     fn next_sequence<'m>(&'m self) -> Self::NextSequenceFuture<'m> {
         async move { self.configuration_manager.next_sequence().await }
@@ -360,10 +355,9 @@ where
     S: Storage,
     TX: Transmitter,
 {
-    type DispatchFuture<'m>
+    type DispatchFuture<'m> = impl Future<Output = Result<(), DeviceError>> + 'm
     where
-        Self: 'm,
-    = impl Future<Output = Result<(), DeviceError>> + 'm;
+        Self: 'm;
 
     fn dispatch_access<'m>(&'m self, message: &'m AccessMessage) -> Self::DispatchFuture<'m> {
         async move { self.elements.dispatch(self, message).await }
@@ -388,10 +382,9 @@ where
     S: Storage,
     TX: Transmitter,
 {
-    type TransmitFuture<'m>
+    type TransmitFuture<'m> = impl Future<Output = Result<(), DeviceError>> + 'm
     where
-        Self: 'm,
-    = impl Future<Output = Result<(), DeviceError>> + 'm;
+        Self: 'm;
 
     fn transmit<'m>(&'m self, message: AccessMessage) -> Self::TransmitFuture<'m> {
         async move {
@@ -417,10 +410,9 @@ where
     S: Storage,
     R: RngCore + CryptoRng,
 {
-    type NodeResetFuture<'m>
+    type NodeResetFuture<'m> = impl Future<Output = ()>
     where
-        Self: 'm,
-    = impl Future<Output = ()>;
+        Self: 'm;
 
     fn node_reset<'m>(&'m self) -> Self::NodeResetFuture<'m> {
         async move { self.configuration_manager.node_reset().await }
@@ -434,11 +426,10 @@ where
         self.configuration_manager.configuration()
     }
 
-    type UpdateConfigurationFuture<'m, F>
+    type UpdateConfigurationFuture<'m, F> = impl Future<Output = Result<(), DeviceError>>
     where
         Self: 'm,
-        F: 'm,
-    = impl Future<Output = Result<(), DeviceError>>;
+        F: 'm;
 
     fn update_configuration<F: FnOnce(&mut Configuration) -> Result<(), DeviceError>>(
         &self,

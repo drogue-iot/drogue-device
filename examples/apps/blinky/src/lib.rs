@@ -85,10 +85,9 @@ pub enum Command {
 impl<B: BlinkyBoard> Actor for BlinkyApp<B> {
     type Message<'m> = Command;
 
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Address<Self>,

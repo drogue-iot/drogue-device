@@ -17,7 +17,7 @@ use core::{
     sync::atomic::{AtomicBool, Ordering},
 };
 use embassy::{
-    blocking_mutex::kind::ThreadMode,
+    blocking_mutex::raw::NoopRawMutex,
     channel::{
         mpsc::{self, Channel, Receiver, Sender},
         signal::Signal,
@@ -30,7 +30,7 @@ use futures::pin_mut;
 pub use protocol::*;
 
 const RECV_BUFFER_LEN: usize = 256;
-type DriverMutex = ThreadMode;
+type DriverMutex = NoopRawMutex;
 
 pub struct Initialized {
     signal: Signal<Result<LoraRegion, LoraError>>,
@@ -256,10 +256,9 @@ fn log_unexpected(r: Response) -> Result<(), LoraError> {
 }
 
 impl<'a> LoraDriver for Rak811Controller<'a> {
-    type JoinFuture<'m>
+    type JoinFuture<'m> = impl Future<Output = Result<(), LoraError>> + 'm
     where
-        'a: 'm,
-    = impl Future<Output = Result<(), LoraError>> + 'm;
+        'a: 'm;
     fn join<'m>(&'m mut self, mode: JoinMode) -> Self::JoinFuture<'m> {
         async move {
             let mode = match mode {
@@ -304,10 +303,9 @@ impl<'a> LoraDriver for Rak811Controller<'a> {
         }
     }
 
-    type SendFuture<'m>
+    type SendFuture<'m> = impl Future<Output = Result<(), LoraError>> + 'm
     where
-        'a: 'm,
-    = impl Future<Output = Result<(), LoraError>> + 'm;
+        'a: 'm;
     fn send<'m>(&'m mut self, qos: QoS, port: Port, data: &'m [u8]) -> Self::SendFuture<'m> {
         async move {
             let response = self.send_command(Command::Send(qos, port, data)).await?;
@@ -328,10 +326,9 @@ impl<'a> LoraDriver for Rak811Controller<'a> {
         }
     }
 
-    type SendRecvFuture<'m>
+    type SendRecvFuture<'m> = impl Future<Output = Result<usize, LoraError>> + 'm
     where
-        'a: 'm,
-    = impl Future<Output = Result<usize, LoraError>> + 'm;
+        'a: 'm;
     fn send_recv<'m>(
         &'m mut self,
         _qos: QoS,
@@ -431,16 +428,14 @@ where
     UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
     RESET: OutputPin + 'static,
 {
-    type Message<'m>
+    type Message<'m> = ()
     where
-        'a: 'm,
-    = ();
+        'a: 'm;
 
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         'a: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
     fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
         M: Inbox<Self> + 'm,

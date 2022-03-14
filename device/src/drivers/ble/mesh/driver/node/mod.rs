@@ -14,7 +14,7 @@ use crate::drivers::ble::mesh::MESH_BEACON;
 use core::cell::UnsafeCell;
 use core::cell::{Cell, RefCell};
 use core::future::Future;
-use embassy::blocking_mutex::kind::Noop;
+use embassy::blocking_mutex::raw::NoopRawMutex;
 use embassy::channel::mpsc;
 use embassy::channel::mpsc::{Channel, Receiver as ChannelReceiver, Sender as ChannelSender};
 use embassy::channel::signal::Signal;
@@ -43,9 +43,9 @@ pub trait Receiver {
 const MAX_MESSAGE: usize = 3;
 
 pub(crate) struct OutboundChannel<'a> {
-    channel: UnsafeCell<Option<Channel<Noop, AccessMessage, MAX_MESSAGE>>>,
-    sender: UnsafeCell<Option<ChannelSender<'a, Noop, AccessMessage, MAX_MESSAGE>>>,
-    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, AccessMessage, MAX_MESSAGE>>>,
+    channel: UnsafeCell<Option<Channel<NoopRawMutex, AccessMessage, MAX_MESSAGE>>>,
+    sender: UnsafeCell<Option<ChannelSender<'a, NoopRawMutex, AccessMessage, MAX_MESSAGE>>>,
+    receiver: UnsafeCell<Option<ChannelReceiver<'a, NoopRawMutex, AccessMessage, MAX_MESSAGE>>>,
 }
 
 impl<'a> OutboundChannel<'a> {
@@ -92,9 +92,11 @@ pub struct OutboundPublishMessage {
 }
 
 pub(crate) struct OutboundPublishChannel<'a> {
-    channel: UnsafeCell<Option<Channel<Noop, OutboundPublishMessage, MAX_MESSAGE>>>,
-    sender: UnsafeCell<Option<ChannelSender<'a, Noop, OutboundPublishMessage, MAX_MESSAGE>>>,
-    receiver: UnsafeCell<Option<ChannelReceiver<'a, Noop, OutboundPublishMessage, MAX_MESSAGE>>>,
+    channel: UnsafeCell<Option<Channel<NoopRawMutex, OutboundPublishMessage, MAX_MESSAGE>>>,
+    sender:
+        UnsafeCell<Option<ChannelSender<'a, NoopRawMutex, OutboundPublishMessage, MAX_MESSAGE>>>,
+    receiver:
+        UnsafeCell<Option<ChannelReceiver<'a, NoopRawMutex, OutboundPublishMessage, MAX_MESSAGE>>>,
 }
 
 impl<'a> OutboundPublishChannel<'a> {
@@ -131,7 +133,7 @@ impl<'a> OutboundPublishChannel<'a> {
         }
     }
 
-    fn clone_sender(&self) -> ChannelSender<'a, Noop, OutboundPublishMessage, MAX_MESSAGE> {
+    fn clone_sender(&self) -> ChannelSender<'a, NoopRawMutex, OutboundPublishMessage, MAX_MESSAGE> {
         unsafe { &*self.sender.get() }.as_ref().unwrap().clone()
     }
 }

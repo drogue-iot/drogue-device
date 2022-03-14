@@ -31,7 +31,7 @@ pub type Radio = Sx127xRadio<
     DummySwitch,
 >;
 
-pub type Rng = embassy_stm32::rng::Rng<RNG>;
+pub type Rng = embassy_stm32::rng::Rng<'static, RNG>;
 
 pub struct DummySwitch;
 impl RadioSwitch for DummySwitch {

@@ -342,10 +342,9 @@ where
     READY: InputPin + Wait + 'static,
     E: 'static,
 {
-    type JoinFuture<'m>
+    type JoinFuture<'m> = impl Future<Output = Result<IpAddress, JoinError>> + 'm
     where
-        SPI: 'm,
-    = impl Future<Output = Result<IpAddress, JoinError>> + 'm;
+        SPI: 'm;
     fn join<'m>(&'m mut self, join_info: Join<'m>) -> Self::JoinFuture<'m> {
         async move {
             match join_info {
@@ -368,10 +367,9 @@ where
 {
     type SocketHandle = u8;
 
-    type OpenFuture<'m>
+    type OpenFuture<'m> = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm
     where
-        SPI: 'm,
-    = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm;
+        SPI: 'm;
     fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
         async move {
             let h = self
@@ -384,10 +382,9 @@ where
         }
     }
 
-    type ConnectFuture<'m>
+    type ConnectFuture<'m> = impl Future<Output = Result<(), TcpError>> + 'm
     where
-        SPI: 'm,
-    = impl Future<Output = Result<(), TcpError>> + 'm;
+        SPI: 'm;
     fn connect<'m>(
         &'m mut self,
         handle: Self::SocketHandle,
@@ -439,10 +436,9 @@ where
         }
     }
 
-    type WriteFuture<'m>
+    type WriteFuture<'m> = impl Future<Output = Result<usize, TcpError>> + 'm
     where
-        SPI: 'm,
-    = impl Future<Output = Result<usize, TcpError>> + 'm;
+        SPI: 'm;
     fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
         async move {
             let mut response = [0u8; 32];
@@ -525,10 +521,9 @@ where
         }
     }
 
-    type ReadFuture<'m>
+    type ReadFuture<'m> = impl Future<Output = Result<usize, TcpError>> + 'm
     where
-        SPI: 'm,
-    = impl Future<Output = Result<usize, TcpError>> + 'm;
+        SPI: 'm;
     fn read<'m>(
         &'m mut self,
         handle: Self::SocketHandle,
@@ -638,10 +633,9 @@ where
         }
     }
 
-    type CloseFuture<'m>
+    type CloseFuture<'m> = impl Future<Output = Result<(), TcpError>> + 'm
     where
-        SPI: 'm,
-    = impl Future<Output = Result<(), TcpError>> + 'm;
+        SPI: 'm;
     fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
         async move {
             trace!("Closing connection for {}", handle);

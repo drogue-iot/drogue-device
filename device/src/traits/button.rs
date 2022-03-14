@@ -34,10 +34,7 @@ pub trait Button {
 }
 
 impl<P: InputPin + Wait> Button for P {
-    type WaitPressed<'m>
-    where
-        Self: 'm,
-    = impl Future<Output = ()> + 'm;
+    type WaitPressed<'m> = impl Future<Output = ()> + 'm where Self: 'm;
 
     fn wait_pressed<'m>(&'m mut self) -> Self::WaitPressed<'m>
     where
@@ -53,10 +50,7 @@ impl<P: InputPin + Wait> Button for P {
         }
     }
 
-    type WaitReleased<'m>
-    where
-        Self: 'm,
-    = impl Future<Output = ()> + 'm;
+    type WaitReleased<'m> = impl Future<Output = ()> + 'm where Self: 'm;
 
     fn wait_released<'m>(&'m mut self) -> Self::WaitReleased<'m>
     where
@@ -72,10 +66,7 @@ impl<P: InputPin + Wait> Button for P {
         }
     }
 
-    type WaitAny<'m>
-    where
-        Self: 'm,
-    = impl Future<Output = Event> + 'm;
+    type WaitAny<'m> = impl Future<Output = Event> + 'm where Self: 'm;
 
     fn wait_any<'m>(&'m mut self) -> Self::WaitAny<'m>
     where

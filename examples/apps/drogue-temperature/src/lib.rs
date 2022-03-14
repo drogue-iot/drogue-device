@@ -103,16 +103,14 @@ impl<B> Actor for App<B>
 where
     B: TemperatureBoard + 'static,
 {
-    type Message<'m>
+    type Message<'m> = Command
     where
-        B: 'm,
-    = Command;
+        B: 'm;
 
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         B: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Address<Self>,
@@ -304,12 +302,11 @@ impl<B> Actor for AppTrigger<B>
 where
     B: TemperatureBoard + 'static,
 {
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         Self: 'm,
         B: 'm,
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
 
     fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where
@@ -338,10 +335,7 @@ impl<B> SendTrigger for B
 where
     B: Button + 'static,
 {
-    type TriggerFuture<'m>
-    where
-        B: 'm,
-    = impl Future + 'm;
+    type TriggerFuture<'m> = impl Future + 'm where B: 'm;
     fn wait<'m>(&'m mut self) -> Self::TriggerFuture<'m> {
         self.wait_released()
     }
@@ -349,10 +343,7 @@ where
 
 pub struct TimeTrigger(pub embassy::time::Duration);
 impl SendTrigger for TimeTrigger {
-    type TriggerFuture<'m>
-    where
-        Self: 'm,
-    = impl Future + 'm;
+    type TriggerFuture<'m> = impl Future + 'm where Self: 'm;
     fn wait<'m>(&'m mut self) -> Self::TriggerFuture<'m> {
         embassy::time::Timer::after(self.0)
     }
@@ -365,46 +356,31 @@ impl embedded_hal_1::digital::ErrorType for AlwaysReady {
 }
 
 impl Wait for AlwaysReady {
-    type WaitForHighFuture<'a>
-    where
-        Self: 'a,
-    = impl Future<Output = Result<(), Self::Error>> + 'a;
+    type WaitForHighFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a where Self: 'a;
 
     fn wait_for_high<'a>(&'a mut self) -> Self::WaitForHighFuture<'a> {
         async move { Ok(()) }
     }
 
-    type WaitForLowFuture<'a>
-    where
-        Self: 'a,
-    = impl Future<Output = Result<(), Self::Error>> + 'a;
+    type WaitForLowFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a where Self: 'a;
 
     fn wait_for_low<'a>(&'a mut self) -> Self::WaitForLowFuture<'a> {
         async move { Ok(()) }
     }
 
-    type WaitForRisingEdgeFuture<'a>
-    where
-        Self: 'a,
-    = impl Future<Output = Result<(), Self::Error>> + 'a;
+    type WaitForRisingEdgeFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a where Self: 'a;
 
     fn wait_for_rising_edge<'a>(&'a mut self) -> Self::WaitForRisingEdgeFuture<'a> {
         async move { Ok(()) }
     }
 
-    type WaitForFallingEdgeFuture<'a>
-    where
-        Self: 'a,
-    = impl Future<Output = Result<(), Self::Error>> + 'a;
+    type WaitForFallingEdgeFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a where Self: 'a;
 
     fn wait_for_falling_edge<'a>(&'a mut self) -> Self::WaitForFallingEdgeFuture<'a> {
         async move { Ok(()) }
     }
 
-    type WaitForAnyEdgeFuture<'a>
-    where
-        Self: 'a,
-    = impl Future<Output = Result<(), Self::Error>> + 'a;
+    type WaitForAnyEdgeFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a where Self: 'a;
 
     fn wait_for_any_edge<'a>(&'a mut self) -> Self::WaitForAnyEdgeFuture<'a> {
         async move { Ok(()) }

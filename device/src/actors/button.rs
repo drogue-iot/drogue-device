@@ -67,12 +67,11 @@ pub trait FromButtonEvent<M> {
 }
 
 impl<P: traits::button::Button, H: ButtonEventHandler> Actor for Button<P, H> {
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
-        M: 'm,
+        M: 'm + Inbox<Self>,
         H: 'm,
-        P: 'm,
-    = impl Future<Output = ()> + 'm;
+        P: 'm;
 
     fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where

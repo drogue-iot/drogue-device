@@ -24,7 +24,7 @@ pub type PinUserButton = Input<'static, PA0>;
 pub type UserButton = Button<ExtiInput<'static, PA0>>;
 
 pub type Radio = SubGhzRadio<'static>;
-pub type Rng = embassy_stm32::rng::Rng<RNG>;
+pub type Rng = embassy_stm32::rng::Rng<'static, RNG>;
 
 pub struct NucleoWl55 {
     pub led_blue: LedBlue,

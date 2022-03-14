@@ -30,10 +30,9 @@ pub enum Message {
 impl Actor for PingPonger {
     type Message<'a> = Message;
 
-    type OnMountFuture<'m, M>
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+        M: 'm + Inbox<Self>;
     fn on_mount<'m, M>(
         &'m mut self,
         me: Address<Self>,

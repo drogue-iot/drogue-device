@@ -32,10 +32,7 @@ impl Actor for StdTcpActor {
     type Message<'m> = TcpRequest<'m, u8>;
     type Response = Option<TcpResponse<u8>>;
 
-    type OnMountFuture<'m, M>
-    where
-        M: 'm,
-    = impl Future<Output = ()> + 'm;
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where M: 'm + Inbox<Self>;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Address<Self>,

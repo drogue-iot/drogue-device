@@ -100,19 +100,13 @@ where
 {
     type Error = Hts221Error<<I as ErrorType>::Error>;
 
-    type CalibrateFuture<'m>
-    where
-        I: 'm,
-    = impl Future<Output = Result<(), Self::Error>> + 'm;
+    type CalibrateFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm where I: 'm;
 
     fn calibrate<'m>(&'m mut self) -> Self::CalibrateFuture<'m> {
         self.initialize()
     }
 
-    type ReadFuture<'m>
-    where
-        I: 'm,
-    = impl Future<Output = Result<SensorAcquisition<Celsius>, Self::Error>> + 'm;
+    type ReadFuture<'m> = impl Future<Output = Result<SensorAcquisition<Celsius>, Self::Error>> + 'm where I: 'm;
 
     fn temperature<'m>(&'m mut self) -> Self::ReadFuture<'m> {
         self.read()

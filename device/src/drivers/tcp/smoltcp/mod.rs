@@ -42,10 +42,9 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
 {
     type SocketHandle = SmolSocketHandle;
 
-    type OpenFuture<'m>
+    type OpenFuture<'m> = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm
     where
-        'buffer: 'm,
-    = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm;
+        'buffer: 'm;
 
     fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
         async move {
@@ -58,10 +57,9 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
         }
     }
 
-    type ConnectFuture<'m>
+    type ConnectFuture<'m> = impl Future<Output = Result<(), TcpError>> + 'm
     where
-        'buffer: 'm,
-    = impl Future<Output = Result<(), TcpError>> + 'm;
+        'buffer: 'm;
 
     fn connect<'m>(
         &'m mut self,
@@ -93,10 +91,9 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
         }
     }
 
-    type WriteFuture<'m>
+    type WriteFuture<'m> = impl Future<Output = Result<usize, TcpError>> + 'm
     where
-        'buffer: 'm,
-    = impl Future<Output = Result<usize, TcpError>> + 'm;
+        'buffer: 'm;
 
     fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
         async move {
@@ -108,10 +105,9 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
         }
     }
 
-    type ReadFuture<'m>
+    type ReadFuture<'m> = impl Future<Output = Result<usize, TcpError>> + 'm
     where
-        'buffer: 'm,
-    = impl Future<Output = Result<usize, TcpError>> + 'm;
+        'buffer: 'm;
 
     fn read<'m>(
         &'m mut self,
@@ -127,10 +123,9 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
         }
     }
 
-    type CloseFuture<'m>
+    type CloseFuture<'m> = impl Future<Output = Result<(), TcpError>> + 'm
     where
-        'buffer: 'm,
-    = impl Future<Output = Result<(), TcpError>> + 'm;
+        'buffer: 'm;
 
     fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
         async move {
