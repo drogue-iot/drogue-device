@@ -1,0 +1,24 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+edition = "2018"
+name = "std-rak811"
+version = "0.1.0"
+description = "RAK811 LoRa Adapter with AT command firmware"
+keywords = ["networking", "lora", "lorawan", "rak811"]
+resolver = "2"
+
+[dependencies]
+log = "0.4"
+env_logger = "0.8"
+
+drogue-device = { path = "../../../device", features = ["std", "lora+rak811", "time"], default-features = false }
+
+embassy = { version = "0.1.0", default-features = false, features = ["std"] }
+rand = "0.8"
+cfg-if = "1.0.0"
+embedded-hal = {version = "0.2.4", features = ["unproven"] }
+embedded-hal-async = { version = "0.0.1", git = "https://github.com/embassy-rs/embedded-hal", branch = "embassy2" }
+nix = "0.19.1"

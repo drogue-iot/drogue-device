@@ -1,20 +1,7 @@
 use core::future::Future;
-use drogue_device::{
-    actors::button::{ButtonEvent, FromButtonEvent},
-    traits::lora::*,
-    Actor, Address, Inbox,
-};
-pub enum Command {
+use drogue_device::{traits::lora::*, Actor, Address, Inbox};
+pub enum AppCommand {
     Send,
-}
-
-impl<D: LoraDriver> FromButtonEvent<Command> for App<D> {
-    fn from(event: ButtonEvent) -> Option<Command> {
-        match event {
-            ButtonEvent::Pressed => None,
-            ButtonEvent::Released => Some(Command::Send),
-        }
-    }
 }
 
 pub struct App<D: LoraDriver> {
@@ -29,7 +16,7 @@ impl<D: LoraDriver> App<D> {
 }
 
 impl<D: LoraDriver> Actor for App<D> {
-    type Message<'m> = Command
+    type Message<'m> = AppCommand
     where
         D: 'm;
 
@@ -46,16 +33,16 @@ impl<D: LoraDriver> Actor for App<D> {
         M: Inbox<Self> + 'm,
     {
         async move {
-            defmt::info!("Joining LoRaWAN network");
+            log::info!("Joining LoRaWAN network");
             self.driver.join(self.join_mode).await.unwrap();
-            defmt::info!("LoRaWAN network joined");
+            log::info!("LoRaWAN network joined");
             loop {
                 match inbox.next().await {
                     Some(mut m) => match m.message() {
-                        Command::Send => {
-                            defmt::info!("Sending data..");
+                        AppCommand::Send => {
+                            log::info!("Sending data..");
                             let result = self.driver.send(QoS::Confirmed, 1, b"ping").await;
-                            defmt::info!("Data sent: {:?}", result);
+                            log::info!("Data sent: {:?}", result);
                         }
                     },
                     _ => {}

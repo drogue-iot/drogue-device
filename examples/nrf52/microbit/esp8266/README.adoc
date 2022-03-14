@@ -13,6 +13,20 @@ The example can operate using plain TCP, or using TLS by enabling the `tls` feat
 * BBC micro:bit v2.0
 * ESP8266 module with AT-command firmware version 1.7.x or newer.
 
+===== Pin configuration
+
+Wire the ESP8266 module to the micro:bit as follows:
+
+| Microbit | ESP8266 |          Function |
+|       P1 |  GPIO15 |      Flow control |
+|       P2 |  GPIO13 |      Flow control |
+|       P8 |      EN |            Enable |
+|       P9 |     RST |             Reset |
+|      P14 |      RX |           UART RX | 
+|      P15 |      TX |           UART TX | 
+|        V |      V+ |             POWER | 
+|        G |     GND |            GROUND | 
+
 ==== Software
 
 * To build the example, you need to have link:https://rustup.rs/[rustup].

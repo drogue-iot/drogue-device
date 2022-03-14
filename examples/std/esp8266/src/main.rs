@@ -4,7 +4,6 @@
 
 mod serial;
 
-use async_io::Async;
 use drogue_device::{
     actors::wifi::{esp8266::*, AdapterRequest},
     domain::temperature::Celsius,
@@ -12,17 +11,16 @@ use drogue_device::{
     *,
 };
 use drogue_temperature::*;
-use embassy::io::FromStdIo;
 use embassy::time::Duration;
 use embedded_hal::digital::v2::OutputPin;
-use futures::io::BufReader;
 use nix::sys::termios;
 use serial::*;
 
 const WIFI_SSID: &str = drogue::config!("wifi-ssid");
 const WIFI_PSK: &str = drogue::config!("wifi-password");
 
-type UART = FromStdIo<BufReader<Async<SerialPort>>>;
+type TX = SerialWriter;
+type RX = SerialReader;
 type ENABLE = DummyPin;
 type RESET = DummyPin;
 
@@ -38,11 +36,11 @@ impl TemperatureBoard for StdBoard {
     type Rng = rand::rngs::OsRng;
 }
 
-pub struct WifiDriver(Esp8266Wifi<UART, ENABLE, RESET>);
+pub struct WifiDriver(Esp8266Wifi<TX, RX, ENABLE, RESET>);
 
 impl Package for WifiDriver {
-    type Configuration = <Esp8266Wifi<UART, ENABLE, RESET> as Package>::Configuration;
-    type Primary = <Esp8266Wifi<UART, ENABLE, RESET> as Package>::Primary;
+    type Configuration = <Esp8266Wifi<TX, RX, ENABLE, RESET> as Package>::Configuration;
+    type Primary = <Esp8266Wifi<TX, RX, ENABLE, RESET> as Package>::Primary;
 
     fn mount<S: ActorSpawner>(
         &'static self,
@@ -70,13 +68,12 @@ async fn main(spawner: embassy::executor::Spawner) {
 
     let baudrate = termios::BaudRate::B115200;
     let port = SerialPort::new("/dev/ttyUSB0", baudrate).unwrap();
-    let port = Async::new(port).unwrap();
-    let port = BufReader::new(port);
-    let port = FromStdIo::new(port);
+    let (tx, rx) = port.split();
 
     DEVICE
         .configure(TemperatureDevice::new(WifiDriver(Esp8266Wifi::new(
-            port,
+            tx,
+            rx,
             DummyPin {},
             DummyPin {},
         ))))

@@ -40,6 +40,7 @@ named!(
     pub ok<Response>,
     do_parse!(
         tuple!(
+            opt!(tag!("ATE0")),
             opt!(crlf),
             opt!(crlf),
             tag!("OK"),

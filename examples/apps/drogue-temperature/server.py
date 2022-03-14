@@ -5,6 +5,7 @@ import logging
 
 class S(BaseHTTPRequestHandler):
     def do_POST(self):
+        logging.info("POST")
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         logging.info("POST request,\nPath: %s\nHeaders:\n%s\n\nBody:\n%s\n",
@@ -16,8 +17,8 @@ class S(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(post_data)
 
-def run(server_class=HTTPServer, handler_class=S, port=8080):
-    logging.basicConfig(level=logging.INFO)
+def run(server_class=HTTPServer, handler_class=S, port=8088):
+    logging.basicConfig(level=logging.DEBUG)
     server_address = ('192.168.1.2', port)
     httpd = server_class(server_address, handler_class)
     logging.info('Starting httpd...\n')
@@ -28,4 +29,4 @@ def run(server_class=HTTPServer, handler_class=S, port=8080):
     httpd.server_close()
     logging.info('Stopping httpd...\n')
 
-run(port=12345)
+run(port=8088)

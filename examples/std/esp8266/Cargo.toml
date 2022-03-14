@@ -21,10 +21,9 @@ rand = "0.8"
 cfg-if = "1.0.0"
 
 embedded-hal = {version = "0.2.4", features = ["unproven"] }
+embedded-hal-async = { version = "0.0.1", git = "https://github.com/embassy-rs/embedded-hal", branch = "embassy2" }
 drogue-temperature = { path = "../../apps/drogue-temperature" }
 nix = "0.19.1"
-async-io = "1.3.1"
-futures = { version = "0.3.8", default-features = false, features = ["async-await"] }
 
 [features]
 tls = ["drogue-tls", "drogue-tls/log", "drogue-device/tls", "drogue-temperature/tls"]

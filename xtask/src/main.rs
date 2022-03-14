@@ -42,7 +42,6 @@ static WORKSPACES: &[&str] = &[
     "examples/nrf52/microbit/compass",
     "examples/nrf52/microbit/esp8266",
     "examples/nrf52/microbit/jukebox",
-    "examples/nrf52/microbit/rak811",
     "examples/nrf52/adafruit-feather-sense",
     "examples/nrf52/nrf52840-dk/ble-mesh",
     "examples/nrf52/nrf52840-dk/bootloader-dfu",

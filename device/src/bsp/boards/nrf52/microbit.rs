@@ -12,8 +12,8 @@ use embassy_nrf::interrupt;
 use embassy_nrf::{
     gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},
     peripherals::{
-        P0_00, P0_01, P0_08, P0_09, P0_10, P0_13, P0_14, P0_16, P0_23, P1_02, PPI_CH0, PPI_CH1,
-        PWM0, RNG, TIMER0, TWISPI0, UARTE0,
+        P0_00, P0_01, P0_02, P0_03, P0_04, P0_08, P0_09, P0_10, P0_13, P0_14, P0_16, P0_23, P1_02,
+        PPI_CH0, PPI_CH1, PWM0, RNG, TIMER0, TWISPI0, UARTE0,
     },
     pwm,
     temp::Temp,
@@ -36,6 +36,9 @@ pub struct Microbit {
     pub timer0: TIMER0,
     pub p0_00: P0_00,
     pub p0_01: P0_01,
+    pub p0_02: P0_02,
+    pub p0_03: P0_03,
+    pub p0_04: P0_04,
     pub p0_09: P0_09,
     pub p0_08: P0_08,
     pub p0_10: P0_10,
@@ -83,6 +86,9 @@ impl Board for Microbit {
             timer0: p.TIMER0,
             p0_00: p.P0_00,
             p0_01: p.P0_01,
+            p0_02: p.P0_02,
+            p0_03: p.P0_03,
+            p0_04: p.P0_04,
             p0_08: p.P0_08,
             p0_09: p.P0_09,
             p0_10: p.P0_10,
@@ -179,3 +185,14 @@ impl<'a, T: pwm::Instance> PwmSpeaker<'a, T> {
         }
     }
 }
+
+/*
+impl<'d, U: uarte::Instance, T: timer::Instance> crate::traits::serial::ReadUntilIdle
+    for uarte::UarteRxWithIdle<'d, U, T>
+{
+    type ReadUntilIdleFuture<'m> = impl Future<Output = Result<usize, Self::Error>> where Self: 'm;
+    fn read_until_idle<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadUntilIdleFuture<'m> {
+        async move { self.read_until_idle(buf).await }
+    }
+}
+*/

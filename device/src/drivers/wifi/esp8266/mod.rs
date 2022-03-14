@@ -17,18 +17,16 @@ use crate::traits::{
 };
 use atomic_polyfill::{AtomicBool, Ordering};
 use buffer::Buffer;
-use core::{future::Future, pin::Pin};
+use core::future::Future;
 use embassy::{
     blocking_mutex::raw::NoopRawMutex,
     channel::{
         mpsc::{self, Channel, Receiver, Sender},
         signal::Signal,
     },
-    io::{AsyncBufReadExt, AsyncWriteExt},
 };
 use embedded_hal::digital::v2::OutputPin;
-use futures::future::{select, Either};
-use futures::pin_mut;
+use embedded_hal_async::serial::{Read, Write};
 use protocol::{Command, ConnectionType, Response as AtResponse};
 
 pub const BUFFER_LEN: usize = 512;
@@ -63,11 +61,13 @@ impl Initialized {
         }
     }
 
-    async fn wait(&self) -> Result<(), DriverError> {
+    async fn wait(&self) -> Result<bool, DriverError> {
         if self.initialized.swap(true, Ordering::SeqCst) == false {
             self.signal.wait().await?;
+            Ok(true)
+        } else {
+            Ok(false)
         }
-        Ok(())
     }
 
     pub fn signal(&self, result: Result<(), DriverError>) {
@@ -75,26 +75,28 @@ impl Initialized {
     }
 }
 
-pub struct Esp8266Controller<'a> {
+pub struct Esp8266Controller<'a, TX>
+where
+    TX: Write,
+{
     initialized: &'a Initialized,
+    tx: TX,
     socket_pool: SocketPool,
-    command_producer: Sender<'a, DriverMutex, CommandBuffer, 2>,
     response_consumer: Receiver<'a, DriverMutex, AtResponse, 2>,
     notification_consumer: Receiver<'a, DriverMutex, AtResponse, 2>,
 }
 
-pub struct Esp8266Modem<'a, UART, ENABLE, RESET>
+pub struct Esp8266Modem<'a, RX, ENABLE, RESET>
 where
-    UART: AsyncBufReadExt + AsyncWriteExt + 'static,
+    RX: Read + 'static,
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
 {
     initialized: &'a Initialized,
-    uart: UART,
+    rx: RX,
     enable: ENABLE,
     reset: RESET,
     parse_buffer: Buffer,
-    command_consumer: Receiver<'a, DriverMutex, CommandBuffer, 2>,
     response_producer: Sender<'a, DriverMutex, AtResponse, 2>,
     notification_producer: Sender<'a, DriverMutex, AtResponse, 2>,
 }
@@ -116,56 +118,71 @@ impl Esp8266Driver {
         }
     }
 
-    pub fn initialize<'a, UART, ENABLE, RESET>(
+    pub fn initialize<'a, TX, RX, ENABLE, RESET>(
         &'a mut self,
-        uart: UART,
+        tx: TX,
+        rx: RX,
         enable: ENABLE,
         reset: RESET,
-    ) -> (Esp8266Controller<'a>, Esp8266Modem<'a, UART, ENABLE, RESET>)
+    ) -> (
+        Esp8266Controller<'a, TX>,
+        Esp8266Modem<'a, RX, ENABLE, RESET>,
+    )
     where
-        UART: AsyncBufReadExt + AsyncWriteExt + 'static,
+        TX: Write + 'static,
+        RX: Read + 'static,
         ENABLE: OutputPin + 'static,
         RESET: OutputPin + 'static,
     {
-        let (cp, cc) = mpsc::split(&mut self.command_channel);
         let (rp, rc) = mpsc::split(&mut self.response_channel);
         let (np, nc) = mpsc::split(&mut self.notification_channel);
 
-        let modem = Esp8266Modem::new(&self.initialized, uart, enable, reset, cc, rp, np);
-        let controller = Esp8266Controller::new(&self.initialized, cp, rc, nc);
+        let modem = Esp8266Modem::new(&self.initialized, rx, enable, reset, rp, np);
+        let controller = Esp8266Controller::new(&self.initialized, tx, rc, nc);
 
         (controller, modem)
     }
 }
 
-impl<'a, UART, ENABLE, RESET> Esp8266Modem<'a, UART, ENABLE, RESET>
+impl<'a, RX, ENABLE, RESET> Esp8266Modem<'a, RX, ENABLE, RESET>
 where
-    UART: AsyncBufReadExt + AsyncWriteExt + 'static,
+    RX: Read + 'static,
     ENABLE: OutputPin + 'static,
     RESET: OutputPin + 'static,
 {
     pub fn new(
         initialized: &'a Initialized,
-        uart: UART,
+        rx: RX,
         enable: ENABLE,
         reset: RESET,
-        command_consumer: Receiver<'a, DriverMutex, CommandBuffer, 2>,
         response_producer: Sender<'a, DriverMutex, AtResponse, 2>,
         notification_producer: Sender<'a, DriverMutex, AtResponse, 2>,
     ) -> Self {
         Self {
             initialized,
-            uart,
+            rx,
             enable,
             reset,
             parse_buffer: Buffer::new(),
-            command_consumer,
             response_producer,
             notification_producer,
         }
     }
 
+    /*
+                            self.disable_echo().await?;
+                            trace!("Echo disabled");
+                            self.enable_mux().await?;
+                            trace!("Mux enabled");
+                            self.set_recv_mode().await?;
+                            trace!("Recv mode configured");
+                            self.set_mode().await?;
+                            return Ok(());
+    */
+
     async fn initialize(&mut self) -> Result<(), DriverError> {
+        self.enable.set_high().ok().unwrap();
+        self.reset.set_high().ok().unwrap();
         let mut buffer: [u8; 1024] = [0; 1024];
         let mut pos = 0;
 
@@ -178,128 +195,36 @@ where
 
         let mut rx_buf = [0; 1];
         loop {
-            let result = uart_read(&mut self.uart, &mut rx_buf[..]).await;
+            let result = self.rx.read(&mut rx_buf[..]).await;
             match result {
-                Ok(c) => {
-                    if c > 0 {
-                        buffer[pos] = rx_buf[0];
-                        pos += 1;
-                        if pos >= READY.len() && buffer[pos - READY.len()..pos] == READY {
-                            self.disable_echo().await?;
-                            trace!("Echo disabled");
-                            self.enable_mux().await?;
-                            trace!("Mux enabled");
-                            self.set_recv_mode().await?;
-                            trace!("Recv mode configured");
-                            self.set_mode().await?;
-                            info!("ESP8266 initialized");
-                            return Ok(());
-                        }
+                Ok(_) => {
+                    buffer[pos] = rx_buf[0];
+                    pos += 1;
+                    if pos >= READY.len() && buffer[pos - READY.len()..pos] == READY {
+                        info!("ESP8266 initialized");
+                        return Ok(());
                     }
                 }
-                Err(e) => {
-                    error!("Error initializing ESP8266 modem: {:?}", e);
+                Err(_) => {
+                    error!("Error initializing ESP8266 modem");
                     return Err(DriverError::UnableToInitialize);
                 }
             }
         }
     }
 
-    async fn disable_echo(&mut self) -> Result<(), DriverError> {
-        uart_write(&mut self.uart, b"ATE0\r\n")
-            .await
-            .map_err(|_| DriverError::UnableToInitialize)?;
-        Ok(self
-            .wait_for_ok()
-            .await
-            .map_err(|_| DriverError::UnableToInitialize)?)
-    }
-
-    async fn enable_mux(&mut self) -> Result<(), DriverError> {
-        uart_write(&mut self.uart, b"AT+CIPMUX=1\r\n")
-            .await
-            .map_err(|_| DriverError::UnableToInitialize)?;
-        Ok(self
-            .wait_for_ok()
-            .await
-            .map_err(|_| DriverError::UnableToInitialize)?)
-    }
-
-    async fn set_recv_mode(&mut self) -> Result<(), DriverError> {
-        uart_write(&mut self.uart, b"AT+CIPRECVMODE=1\r\n")
-            .await
-            .map_err(|_| DriverError::UnableToInitialize)?;
-        Ok(self
-            .wait_for_ok()
-            .await
-            .map_err(|_| DriverError::UnableToInitialize)?)
-    }
-
-    async fn set_mode(&mut self) -> Result<(), DriverError> {
-        uart_write(&mut self.uart, b"AT+CWMODE_CUR=1\r\n")
-            .await
-            .map_err(|_| DriverError::UnableToInitialize)?;
-        Ok(self
-            .wait_for_ok()
-            .await
-            .map_err(|_| DriverError::UnableToInitialize)?)
-    }
-
-    async fn wait_for_ok(&mut self) -> Result<(), DriverError> {
-        let mut buf: [u8; 64] = [0; 64];
-        let mut pos = 0;
-
-        loop {
-            uart_read(&mut self.uart, &mut buf[pos..pos + 1])
-                .await
-                .map_err(|_| DriverError::ReadError)?;
-            pos += 1;
-            if buf[0..pos].ends_with(b"OK\r\n") {
-                return Ok(());
-            } else if buf[0..pos].ends_with(b"ERROR\r\n") {
-                return Err(DriverError::UnableToInitialize);
-            }
-        }
-    }
-
     /// Run the processing loop until an error is encountered
     pub async fn run(&mut self) -> ! {
-        // Result<(), DriverError> where Self: 'a {
         let result = self.initialize().await;
         self.initialized.signal(result);
+        let mut buf = [0; 1];
         loop {
-            let mut buf = [0; 1];
-            let (cmd, input) = {
-                let command_fut = self.command_consumer.recv();
-                let uart_fut = uart_read(&mut self.uart, &mut buf[..]);
-                pin_mut!(uart_fut);
-
-                match select(command_fut, uart_fut).await {
-                    Either::Left((s, _)) => (Some(s), None),
-                    Either::Right((r, _)) => (None, Some(r)),
+            if let Ok(_) = self.rx.read(&mut buf).await {
+                for b in &buf[..] {
+                    self.parse_buffer.write(*b).unwrap();
                 }
-            };
-            // We got command to write, write it
-            if let Some(Some((len, buf))) = cmd {
-                if let Err(e) = uart_write(&mut self.uart, &buf[0..len]).await {
-                    error!("Error writing command to uart: {:?}", e);
-                }
-            }
-
-            // We got input, digest it
-            if let Some(input) = input {
-                match input {
-                    Ok(len) => {
-                        for b in &buf[..len] {
-                            self.parse_buffer.write(*b).unwrap();
-                        }
-                        if let Err(e) = self.digest().await {
-                            error!("Error digesting modem input: {:?}", e);
-                        }
-                    }
-                    Err(e) => {
-                        error!("Error reading from uart: {:?}", e);
-                    }
+                if let Err(e) = self.digest().await {
+                    error!("Error digesting modem input: {:?}", e);
                 }
             }
         }
@@ -355,26 +280,30 @@ where
     }
 }
 
-impl<'a> Esp8266Controller<'a> {
+impl<'a, TX> Esp8266Controller<'a, TX>
+where
+    TX: Write,
+{
     pub fn new(
         initialized: &'a Initialized,
-        command_producer: Sender<'a, DriverMutex, CommandBuffer, 2>,
+        tx: TX,
         response_consumer: Receiver<'a, DriverMutex, AtResponse, 2>,
         notification_consumer: Receiver<'a, DriverMutex, AtResponse, 2>,
     ) -> Self {
         Self {
             initialized,
             socket_pool: SocketPool::new(),
-            command_producer,
+            tx,
             response_consumer,
             notification_consumer,
         }
     }
 
     async fn send<'c>(&mut self, command: Command<'c>) -> Result<AtResponse, DriverError> {
-        trace!("Sending command");
-        self.initialized.wait().await?;
-        trace!("Confirmed initialized");
+        if self.initialized.wait().await? {
+            debug!("Device initialized, setting up parameters");
+            self.initialize().await?;
+        }
         let mut bytes = command.as_bytes();
         trace!(
             "writing command {}",
@@ -383,13 +312,33 @@ impl<'a> Esp8266Controller<'a> {
 
         bytes.push_str("\r\n").unwrap();
         let bs = bytes.as_bytes();
-        let mut data = [0; 256];
-        data[0..bs.len()].copy_from_slice(&bs[0..bs.len()]);
-        self.command_producer
-            .send((bs.len(), data))
+
+        self.send_recv(&bs).await
+    }
+
+    async fn send_recv(&mut self, data: &[u8]) -> Result<AtResponse, DriverError> {
+        self.tx
+            .write(data)
             .await
             .map_err(|_| DriverError::WriteError)?;
         Ok(self.response_consumer.recv().await.unwrap())
+    }
+
+    async fn initialize(&mut self) -> Result<(), DriverError> {
+        // Initialize
+        self.send_recv(b"ATE0\r\n")
+            .await
+            .map_err(|_| DriverError::UnableToInitialize)?;
+        self.send_recv(b"AT+CIPMUX=1\r\n")
+            .await
+            .map_err(|_| DriverError::UnableToInitialize)?;
+        self.send_recv(b"AT+CIPRECVMODE=1\r\n")
+            .await
+            .map_err(|_| DriverError::UnableToInitialize)?;
+        self.send_recv(b"AT+CWMODE_CUR=1\r\n")
+            .await
+            .map_err(|_| DriverError::UnableToInitialize)?;
+        Ok(())
     }
 
     /*
@@ -405,7 +354,13 @@ impl<'a> Esp8266Controller<'a> {
     async fn join_wep(&mut self, ssid: &str, password: &str) -> Result<IpAddress, JoinError> {
         let command = Command::JoinAp { ssid, password };
         match self.send(command).await {
-            Ok(AtResponse::Ok) => self.get_ip_address().await.map_err(|_| JoinError::Unknown),
+            Ok(AtResponse::Ok) => {
+                let address = self.get_ip_address().await.map_err(|_| JoinError::Unknown);
+                if let Ok(address) = address {
+                    info!("Joined network IP address {:?}", address);
+                }
+                address
+            }
             Ok(AtResponse::WifiConnectionFailure(reason)) => {
                 warn!("Error connecting to wifi: {:?}", reason);
                 Err(JoinError::Unknown)
@@ -447,9 +402,13 @@ impl<'a> Esp8266Controller<'a> {
     }
 }
 
-impl<'a> WifiSupplicant for Esp8266Controller<'a> {
+impl<'a, TX> WifiSupplicant for Esp8266Controller<'a, TX>
+where
+    TX: Write,
+{
     type JoinFuture<'m> = impl Future<Output = Result<IpAddress, JoinError>> + 'm
     where
+        Self: 'm,
         'a: 'm;
     fn join<'m>(&'m mut self, join_info: Join<'m>) -> Self::JoinFuture<'m> {
         async move {
@@ -461,11 +420,15 @@ impl<'a> WifiSupplicant for Esp8266Controller<'a> {
     }
 }
 
-impl<'a> TcpStack for Esp8266Controller<'a> {
+impl<'a, TX> TcpStack for Esp8266Controller<'a, TX>
+where
+    TX: Write,
+{
     type SocketHandle = u8;
 
     type OpenFuture<'m> = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm
     where
+        Self: 'm,
         'a: 'm;
     fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
         async move {
@@ -478,6 +441,7 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
 
     type ConnectFuture<'m> = impl Future<Output = Result<(), TcpError>> + 'm
     where
+        Self: 'm,
         'a: 'm;
     fn connect<'m>(
         &'m mut self,
@@ -497,6 +461,7 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
 
     type WriteFuture<'m> = impl Future<Output = Result<usize, TcpError>> + 'm
     where
+        Self: 'm,
         'a: 'm;
     fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
         async move {
@@ -513,12 +478,7 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
                 Ok(AtResponse::Ok) => {
                     match self.response_consumer.recv().await.unwrap() {
                         AtResponse::ReadyForData => {
-                            let mut data = [0; 256];
-                            data[0..buf.len()].copy_from_slice(&buf[0..buf.len()]);
-                            self.command_producer
-                                .send((buf.len(), data))
-                                .await
-                                .map_err(|_| TcpError::WriteError)?;
+                            self.tx.write(buf).await.map_err(|_| TcpError::WriteError)?;
                             let mut data_sent: Option<usize> = None;
                             loop {
                                 match self.response_consumer.recv().await.unwrap() {
@@ -551,6 +511,7 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
 
     type ReadFuture<'m> = impl Future<Output = Result<usize, TcpError>> + 'm
     where
+        Self: 'm,
         'a: 'm;
     fn read<'m>(
         &'m mut self,
@@ -619,6 +580,7 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
 
     type CloseFuture<'m> = impl Future<Output = Result<(), TcpError>> + 'm
     where
+        Self: 'm,
         'a: 'm;
     fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
         async move {
@@ -633,20 +595,4 @@ impl<'a> TcpStack for Esp8266Controller<'a> {
             }
         }
     }
-}
-
-async fn uart_read<UART>(uart: &mut UART, rx_buf: &mut [u8]) -> Result<usize, embassy::io::Error>
-where
-    UART: AsyncBufReadExt + 'static,
-{
-    let mut uart = unsafe { Pin::new_unchecked(uart) };
-    uart.read(rx_buf).await
-}
-
-async fn uart_write<UART>(uart: &mut UART, buf: &[u8]) -> Result<(), embassy::io::Error>
-where
-    UART: AsyncWriteExt + 'static,
-{
-    let mut uart = unsafe { Pin::new_unchecked(uart) };
-    uart.write_all(buf).await
 }
