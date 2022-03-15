@@ -1,0 +1,39 @@
+== rak811 drogue-device example
+
+This example application runs out of the box on a linux PC connected to a RAK811 breakout module
+loader with AT firmware using UART to communicate.
+
+=== Prerequisites
+
+==== Hardware
+
+* RAK811 module with AT-command firmware version 2.x (3.x not yet supported by driver)
+
+==== Software
+
+To build and flash the example, you need to have
+link:https://rustup.rs/[rustup]. In practice
+you can use whatever tool you want to flash the device, but this guide
+will assume that `probe-run` is used (`cargo install probe-run`).
+
+=== Configuring
+
+_Over The Air Authentication_ (OTAA) credentials will come from these entries in `~/.drogue/config.toml`:
+
+....
+"dev-eui" = "..."
+"app-eui" = "..."
+"app-key" = "..."
+....
+
+=== Building
+
+To build the application:
+
+....
+RUST_LOG=info cargo build --release
+....
+
+....
+RUST_LOG=info cargo run --release
+....

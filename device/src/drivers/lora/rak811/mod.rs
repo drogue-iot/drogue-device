@@ -13,7 +13,6 @@ use crate::{
 pub use buffer::*;
 use core::{
     future::Future,
-    pin::Pin,
     sync::atomic::{AtomicBool, Ordering},
 };
 use embassy::{
@@ -22,11 +21,9 @@ use embassy::{
         mpsc::{self, Channel, Receiver, Sender},
         signal::Signal,
     },
-    io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt},
 };
 use embedded_hal::digital::v2::OutputPin;
-use futures::future::{select, Either};
-use futures::pin_mut;
+use embedded_hal_async::serial::{Read, Write};
 pub use protocol::*;
 
 const RECV_BUFFER_LEN: usize = 256;
@@ -60,27 +57,28 @@ impl Initialized {
 
 pub struct Rak811Driver {
     initialized: Initialized,
-    command_channel: Channel<DriverMutex, CommandBuffer, 2>,
     response_channel: Channel<DriverMutex, Response, 2>,
 }
 
-pub struct Rak811Controller<'a> {
+pub struct Rak811Controller<'a, TX>
+where
+    TX: Write + 'static,
+{
     config: LoraConfig,
     initialized: &'a Initialized,
-    command_producer: Sender<'a, DriverMutex, CommandBuffer, 2>,
     response_consumer: Receiver<'a, DriverMutex, Response, 2>,
+    tx: TX,
 }
 
-pub struct Rak811Modem<'a, UART, RESET>
+pub struct Rak811Modem<'a, RX, RESET>
 where
-    UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
+    RX: Read + 'static,
     RESET: OutputPin,
 {
     initialized: &'a Initialized,
-    uart: UART,
+    rx: RX,
     reset: RESET,
     parse_buffer: Buffer,
-    command_consumer: Receiver<'a, DriverMutex, CommandBuffer, 2>,
     response_producer: Sender<'a, DriverMutex, Response, 2>,
 }
 
@@ -88,48 +86,46 @@ impl Rak811Driver {
     pub fn new() -> Self {
         Self {
             initialized: Initialized::new(),
-            command_channel: Channel::new(),
             response_channel: Channel::new(),
         }
     }
 
-    pub fn initialize<'a, UART, RESET>(
+    pub fn initialize<'a, TX, RX, RESET>(
         &'a mut self,
-        uart: UART,
+        tx: TX,
+        rx: RX,
         reset: RESET,
-    ) -> (Rak811Controller<'a>, Rak811Modem<'a, UART, RESET>)
+    ) -> (Rak811Controller<'a, TX>, Rak811Modem<'a, RX, RESET>)
     where
-        UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
+        TX: Write + 'static,
+        RX: Read + 'static,
         RESET: OutputPin + 'static,
     {
-        let (cp, cc) = mpsc::split(&mut self.command_channel);
         let (rp, rc) = mpsc::split(&mut self.response_channel);
 
-        let modem = Rak811Modem::new(&self.initialized, uart, reset, cc, rp);
-        let controller = Rak811Controller::new(&self.initialized, cp, rc);
+        let modem = Rak811Modem::new(&self.initialized, rx, reset, rp);
+        let controller = Rak811Controller::new(&self.initialized, tx, rc);
 
         (controller, modem)
     }
 }
 
-impl<'a, UART, RESET> Rak811Modem<'a, UART, RESET>
+impl<'a, RX, RESET> Rak811Modem<'a, RX, RESET>
 where
-    UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
+    RX: Read + 'static,
     RESET: OutputPin + 'static,
 {
     pub fn new(
         initialized: &'a Initialized,
-        uart: UART,
+        rx: RX,
         reset: RESET,
-        command_consumer: Receiver<'a, DriverMutex, CommandBuffer, 2>,
         response_producer: Sender<'a, DriverMutex, Response, 2>,
     ) -> Self {
         Self {
             initialized,
-            uart,
+            rx,
             reset,
             parse_buffer: Buffer::new(),
-            command_consumer,
             response_producer,
         }
     }
@@ -157,16 +153,13 @@ where
 
     async fn process(&mut self) -> Result<(), LoraError> {
         let mut buf = [0; 1];
-        let mut uart = unsafe { Pin::new_unchecked(&mut self.uart) };
-        let len = uart
+        self.rx
             .read(&mut buf[..])
             .await
             .map_err(|_| LoraError::RecvError)?;
-        if len > 0 {
-            self.parse_buffer
-                .write(buf[0])
-                .map_err(|_| LoraError::RecvError)?;
-        }
+        self.parse_buffer
+            .write(buf[0])
+            .map_err(|_| LoraError::RecvError)?;
         Ok(())
     }
 
@@ -192,37 +185,15 @@ where
         self.initialized.signal(result);
         loop {
             let mut buf = [0; 1];
-            let (cmd, input) = {
-                let command_fut = self.command_consumer.recv();
-                let mut uart = unsafe { Pin::new_unchecked(&mut self.uart) };
-                let uart_fut = uart.read(&mut buf[..]);
-                pin_mut!(uart_fut);
-
-                match select(command_fut, uart_fut).await {
-                    Either::Left((s, _)) => (Some(s), None),
-                    Either::Right((r, _)) => (None, Some(r)),
-                }
-            };
-            // We got command to write, write it
-            if let Some(Some(s)) = cmd {
-                let mut uart = unsafe { Pin::new_unchecked(&mut self.uart) };
-                if let Err(e) = uart.write_all(s.as_bytes()).await {
-                    error!("Error writing command to uart: {:?}", e);
-                }
-            }
-
-            // We got input, digest it
-            if let Some(input) = input {
-                match input {
-                    Ok(len) => {
-                        for b in &buf[..len] {
-                            self.parse_buffer.write(*b).unwrap();
-                        }
-                        self.digest().await;
+            match self.rx.read(&mut buf[..]).await {
+                Ok(()) => {
+                    for b in &buf[..] {
+                        self.parse_buffer.write(*b).unwrap();
                     }
-                    Err(e) => {
-                        error!("Error reading from uart: {:?}", e);
-                    }
+                    self.digest().await;
+                }
+                Err(_) => {
+                    error!("Error reading from uart");
                 }
             }
         }
@@ -255,9 +226,13 @@ fn log_unexpected(r: Response) -> Result<(), LoraError> {
     Err(LoraError::OtherError)
 }
 
-impl<'a> LoraDriver for Rak811Controller<'a> {
+impl<'a, TX> LoraDriver for Rak811Controller<'a, TX>
+where
+    TX: Write,
+{
     type JoinFuture<'m> = impl Future<Output = Result<(), LoraError>> + 'm
     where
+        Self: 'm,
         'a: 'm;
     fn join<'m>(&'m mut self, mode: JoinMode) -> Self::JoinFuture<'m> {
         async move {
@@ -305,6 +280,7 @@ impl<'a> LoraDriver for Rak811Controller<'a> {
 
     type SendFuture<'m> = impl Future<Output = Result<(), LoraError>> + 'm
     where
+        Self: 'm,
         'a: 'm;
     fn send<'m>(&'m mut self, qos: QoS, port: Port, data: &'m [u8]) -> Self::SendFuture<'m> {
         async move {
@@ -328,6 +304,7 @@ impl<'a> LoraDriver for Rak811Controller<'a> {
 
     type SendRecvFuture<'m> = impl Future<Output = Result<usize, LoraError>> + 'm
     where
+        Self: 'm,
         'a: 'm;
     fn send_recv<'m>(
         &'m mut self,
@@ -340,16 +317,19 @@ impl<'a> LoraDriver for Rak811Controller<'a> {
     }
 }
 
-impl<'a> Rak811Controller<'a> {
+impl<'a, TX> Rak811Controller<'a, TX>
+where
+    TX: Write,
+{
     pub fn new(
         initialized: &'a Initialized,
-        command_producer: Sender<'a, DriverMutex, CommandBuffer, 2>,
+        tx: TX,
         response_consumer: Receiver<'a, DriverMutex, Response, 2>,
     ) -> Self {
         Self {
             config: LoraConfig::new(),
             initialized,
-            command_producer,
+            tx,
             response_consumer,
         }
     }
@@ -362,7 +342,10 @@ impl<'a> Rak811Controller<'a> {
         command.encode(&mut s);
         debug!("Sending command {}", s.as_str());
         s.push_str("\r\n").unwrap();
-        let _ = self.command_producer.send(s).await;
+        self.tx
+            .write(s.as_bytes())
+            .await
+            .map_err(|_| LoraError::SendError)?;
 
         let response = self.response_consumer.recv().await;
         Ok(response.unwrap())
@@ -398,43 +381,45 @@ impl<'a> Rak811Controller<'a> {
 }
 
 /// Convenience actor implementation of modem
-pub struct Rak811ModemActor<'a, UART, RESET>
+pub struct Rak811ModemActor<'a, RX, RESET>
 where
-    UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
+    RX: Read + 'static,
     RESET: OutputPin + 'static,
 {
-    modem: Rak811Modem<'a, UART, RESET>,
+    modem: Rak811Modem<'a, RX, RESET>,
 }
 
-impl<'a, UART, RESET> Rak811ModemActor<'a, UART, RESET>
+impl<'a, RX, RESET> Rak811ModemActor<'a, RX, RESET>
 where
-    UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
+    RX: Read + 'static,
     RESET: OutputPin + 'static,
 {
-    pub fn new(modem: Rak811Modem<'a, UART, RESET>) -> Self {
+    pub fn new(modem: Rak811Modem<'a, RX, RESET>) -> Self {
         Self { modem }
     }
 }
 
-impl<'a, UART, RESET> Unpin for Rak811ModemActor<'a, UART, RESET>
+impl<'a, RX, RESET> Unpin for Rak811ModemActor<'a, RX, RESET>
 where
-    UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
+    RX: Read + 'static,
     RESET: OutputPin + 'static,
 {
 }
 
-impl<'a, UART, RESET> Actor for Rak811ModemActor<'a, UART, RESET>
+impl<'a, RX, RESET> Actor for Rak811ModemActor<'a, RX, RESET>
 where
-    UART: AsyncBufRead + AsyncBufReadExt + AsyncWrite + AsyncWriteExt + 'static,
+    RX: Read + 'static,
     RESET: OutputPin + 'static,
 {
     type Message<'m> = ()
     where
+        Self: 'm,
         'a: 'm;
 
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         'a: 'm,
+        Self: 'm,
         M: 'm + Inbox<Self>;
     fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
     where

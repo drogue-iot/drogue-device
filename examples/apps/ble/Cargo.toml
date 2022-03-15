@@ -33,9 +33,9 @@ nrf52833 = ["nrf-softdevice/nrf52833"]
 withdefmt = ["nrf-softdevice/defmt"]
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "6a3b3ca755073f73b24fad89a109fba7132d1312" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "da9c0efaad594b48cfcdf641d353133d14cf98fe" }
 nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
 nrf-softdevice-s113 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
-#embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "6a3b3ca755073f73b24fad89a109fba7132d1312" }
-#embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "6a3b3ca755073f73b24fad89a109fba7132d1312" }
-#embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "6a3b3ca755073f73b24fad89a109fba7132d1312" }
+#embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "da9c0efaad594b48cfcdf641d353133d14cf98fe" }
+#embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "da9c0efaad594b48cfcdf641d353133d14cf98fe" }
+#embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "da9c0efaad594b48cfcdf641d353133d14cf98fe" }

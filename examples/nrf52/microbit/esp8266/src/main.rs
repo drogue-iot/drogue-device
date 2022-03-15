@@ -18,29 +18,30 @@ use drogue_device::{
     *,
 };
 use drogue_temperature::*;
-use embassy::util::Forever;
 use embassy_nrf::{
-    buffered_uarte::{BufferedUarte, State},
     gpio::{Level, Output, OutputDrive},
     interrupt,
-    peripherals::{P0_09, P0_10, TIMER0, UARTE0},
-    uarte, Peripherals,
+    peripherals::{P0_09, P0_10, UARTE0},
+    uarte,
+    uarte::{Uarte, UarteRx, UarteTx},
+    Peripherals,
 };
 
 const WIFI_SSID: &str = drogue::config!("wifi-ssid");
 const WIFI_PSK: &str = drogue::config!("wifi-password");
 
-type UART = BufferedUarte<'static, UARTE0, TIMER0>;
+type TX = UarteTx<'static, UARTE0>;
+type RX = UarteRx<'static, UARTE0>;
 type ENABLE = Output<'static, P0_09>;
 type RESET = Output<'static, P0_10>;
 
 bind_bsp!(Microbit, BSP);
 
-pub struct WifiDriver(Esp8266Wifi<UART, ENABLE, RESET>);
+pub struct WifiDriver(Esp8266Wifi<TX, RX, ENABLE, RESET>);
 
 impl Package for WifiDriver {
-    type Configuration = <Esp8266Wifi<UART, ENABLE, RESET> as Package>::Configuration;
-    type Primary = <Esp8266Wifi<UART, ENABLE, RESET> as Package>::Primary;
+    type Configuration = <Esp8266Wifi<TX, RX, ENABLE, RESET> as Package>::Configuration;
+    type Primary = <Esp8266Wifi<TX, RX, ENABLE, RESET> as Package>::Primary;
 
     fn mount<S: ActorSpawner>(
         &'static self,
@@ -77,27 +78,18 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     config.parity = uarte::Parity::EXCLUDED;
     config.baudrate = uarte::Baudrate::BAUD115200;
 
-    static mut TX_BUFFER: [u8; 8192] = [0u8; 8192];
-    static mut RX_BUFFER: [u8; 8192] = [0u8; 8192];
-    static mut STATE: Forever<State<'static, UARTE0, TIMER0>> = Forever::new();
-
     let irq = interrupt::take!(UARTE0_UART0);
-    let u = unsafe {
-        let state = STATE.put(State::new());
-        BufferedUarte::new_without_flow_control(
-            state,
-            board.uarte0,
-            board.timer0,
-            board.ppi_ch0,
-            board.ppi_ch1,
-            irq,
-            board.p0_13,
-            board.p0_01,
-            config,
-            &mut RX_BUFFER,
-            &mut TX_BUFFER,
-        )
-    };
+    let uart = Uarte::new_with_rtscts(
+        board.uarte0,
+        irq,
+        board.p0_13,
+        board.p0_01,
+        board.p0_03,
+        board.p0_04,
+        config,
+    );
+
+    let (tx, rx) = uart.split();
 
     let enable_pin = Output::new(board.p0_09, Level::Low, OutputDrive::Standard);
     let reset_pin = Output::new(board.p0_10, Level::Low, OutputDrive::Standard);
@@ -109,9 +101,15 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         network_config: (),
     };
 
+    #[cfg(feature = "tls")]
+    defmt::info!("Application configured to use TLS");
+
+    #[cfg(not(feature = "tls"))]
+    defmt::info!("Application configured to NOT use TLS");
+
     DEVICE
         .configure(TemperatureDevice::new(WifiDriver(Esp8266Wifi::new(
-            u, enable_pin, reset_pin,
+            tx, rx, enable_pin, reset_pin,
         ))))
         .mount(
             spawner,

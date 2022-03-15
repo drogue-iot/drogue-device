@@ -40,12 +40,12 @@ impl Buffer {
 
         let str = from_utf8(&self.buffer[0..self.pos]);
         match str {
-            Ok(s) => {
-                trace!("parsing {} [{}]", self.pos, s);
+            Ok(_) => {
+                //               trace!("parsing {} [{}]", self.pos, s);
             }
             Err(e) => {
-                let s = from_utf8(&self.buffer[0..e.valid_up_to()]).unwrap();
-                trace!("parsing {} [{}<truncated>] ({})", self.pos, s, e);
+                let _ = from_utf8(&self.buffer[0..e.valid_up_to()]).unwrap();
+                //                trace!("parsing {} [{}<truncated>] ({})", self.pos, s, e);
             }
         }
 
