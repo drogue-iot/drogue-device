@@ -4,7 +4,7 @@ This example application runs out of the box on the BBC micro:bit v2.0.
 It relies on a ESP8266 breakout module flashed with AT firmware. The micro:bit communicates with the
 ESP8266 using UART.
 
-The example can operate using plain TCP, or using TLS by enabling the `tls` feature flag.
+The examples uses MQTT to publish and subscribe to an MQTT broker.
 
 === Prerequisites
 
@@ -53,37 +53,20 @@ wifi-ssid = "..."
 wifi-password = "..."
 ....
 
-HTTP authentication will come from these entries in `~/.drogue/config.toml`:
+=== Running
+
+You can configure the IP constant to point to any MQTT broker to receive events, or you can use
+link:https://github.com/drogue-iot/drogue-cloud/[drogue cloud] locally. For simplicity, start a
+local MQTT broker like mosquitto.
 
 ....
-http-username = "..."
-http-password = "..."
-....
-
-For Drogue IoT Cloud, the username/password is stored in this form: `device_id@application`.
-
-=== Running with plain TCP
-
-You can configure the IP constant to point to any HTTP server to receive events, or you can use link:https://github.com/drogue-iot/drogue-cloud/[drogue cloud] locally. For simplicity, start a local HTTP server in python that echoes the HTTP payload back:
-
-....
-curl -s https://raw.githubusercontent.com/drogue-iot/drogue-device/main/apps/wifi/server.py | python3 
+mosquitto
 ....
 
 To run the firmware:
 
 ....
 cargo run --release
-....
-
-== Running with TLS
-
-When the `tls` flag is enabled, the example is configured to use the Drogue IoT Cloud sandbox. To use this example with your own Drogue IoT Cloud instance, you need to edit the HOST and PORT constants in `src/main.rs`. 
-
-To run the firmware:
-
-....
-cargo run --release --features tls
 ....
 
 == Troubleshooting

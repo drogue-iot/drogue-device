@@ -795,7 +795,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
 
 [[package]]
-name = "microbit-esp8266-http"
+name = "microbit-esp8266"
 version = "0.1.0"
 dependencies = [
  "cfg-if",
@@ -812,25 +812,6 @@ dependencies = [
  "nrf52833-pac",
  "panic-probe",
  "rand_core",
-]
-
-[[package]]
-name = "microbit-esp8266-mqtt"
-version = "0.1.0"
-dependencies = [
- "cfg-if",
- "cortex-m",
- "cortex-m-rt",
- "defmt",
- "defmt-rtt",
- "drogue-device",
- "embassy",
- "embassy-nrf",
- "fixed",
- "nrf52833-pac",
- "panic-probe",
- "rand_core",
- "rust-mqtt",
 ]
 
 [[package]]
@@ -1088,15 +1069,6 @@ name = "rust-ini"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e52c148ef37f8c375d49d5a73aa70713125b7f19095948a923f80afdeb22ec2"
-
-[[package]]
-name = "rust-mqtt"
-version = "0.0.1"
-source = "git+https://github.com/obabec/rust-mqtt.git?branch=main#9058093065f9a8cbb973aa96c52b9f873d170888"
-dependencies = [
- "heapless",
- "rand_core",
-]
 
 [[package]]
 name = "rustc_version"

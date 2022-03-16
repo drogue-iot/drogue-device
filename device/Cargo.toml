@@ -39,6 +39,9 @@ drogue-tls = { version = "0.5.0", default-features = false, features = ["async"]
 rand_core = { version = "0.6.2", default-features = false }
 rand = { version = "0.8.4", default-features = false, features = ["small_rng"], optional = true }
 
+# MQTT client
+rust-mqtt = { git = "https://github.com/obabec/rust-mqtt.git", branch = "main", default-features = false, optional = true }
+
 # If needed
 cortex-m = { version = "0.7", features = ["inline-asm"], optional = true }
 
@@ -98,6 +101,7 @@ lora = ["embassy-lora", "lorawan-device", "lorawan-encoding", "embassy/time"]
 wifi = []
 tls = ["drogue-tls"]
 dfu = ["embassy-boot", "cortex-m"]
+mqtt = ["rust-mqtt"]
 ble = [
     "p256",
     "p256/arithmetic",

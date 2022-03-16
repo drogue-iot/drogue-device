@@ -1,0 +1,30 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>",
+    "Ondrej Babec <obabec@redhat.com>"
+]
+edition = "2018"
+name = "microbit-esp8266-mqtt"
+version = "0.1.0"
+description = "BBC micro:bit v2 + ESP8266 WiFi adapter + MQTT"
+keywords = ["networking", "wifi", "esp8266", "microbit", "nrf", "nrf52", "cloud", "mqtt"]
+resolver = "2"
+
+[dependencies]
+defmt = "0.3"
+defmt-rtt = "0.3"
+panic-probe = { version = "0.3", features = ["print-defmt"] }
+
+rand_core = { version = "0.6.2", default-features = false }
+
+drogue-device = { path = "../../../../../device", features = ["bsp+microbit+temp", "wifi+esp8266", "defmt", "time"], default-features = false }
+cortex-m-rt = "0.6"
+cortex-m = { version = "0.7", features = ["inline-asm"] }
+fixed = "1.10.0"
+nrf52833-pac = "0.11.0"
+
+embassy = { version = "0.1.0", default-features = false, features = ["defmt"] }
+embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
+cfg-if = "1.0.0"
+rust-mqtt = { git = "https://github.com/obabec/rust-mqtt.git", branch = "main", default-features = false }
