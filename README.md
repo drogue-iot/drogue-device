@@ -7,12 +7,12 @@
 [![Matrix](https://img.shields.io/matrix/drogue-iot:matrix.org)](https://matrix.to/#/#drogue-iot:matrix.org)
 [![Bors enabled](https://bors.tech/images/badge_small.svg)](https://app.bors.tech/repositories/40676)
 
-Drogue device is a framework for embedded devices.
+Drogue device is a framework for building embedded applications.
 
 * Built using [rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.
 * Integrates with [embassy](https://github.com/embassy-rs/embassy), the embedded async project. 
 * Actor-based programming model for writing safe and composable applications.
-* Offers built-in drivers for internet connectivity, such as WiFi and LoRaWAN.
+* Offers built-in support for multiple connectivity options, such as BLE, BLE Mesh, WiFi and LoRaWAN.
 * All software is licensed under the Apache 2.0 open source license.
 
 See the [documentation](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and for some examples.
@@ -56,7 +56,8 @@ impl Actor for Counter {
 
     /// Drogue Device uses a feature from Nightly Rust called Generic Associated Types (GAT) in order
     /// to support async functions in traits such as Actor.
-    type OnMountFuture<'a, M> where M: 'a = impl core::future::Future<Output = ()> + 'a;
+    type OnMountFuture<'a, M> = impl core::future::Future<Output = ()> + 'a
+        where M: 'a + Inbox<Self>;
 
     /// An actor have to implement the on_mount method. on_mount() is invoked when the internals of an actor is ready,
     /// and the actor can begin to receive messages from an inbox.

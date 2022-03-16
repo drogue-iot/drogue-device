@@ -1,13 +1,13 @@
-== microbit-uart drogue-device example
+= microbit-uart drogue-device example
 
 This example application runs out of the box on the BBC micro:bit v2.0.
 It provides a UART echo server that will echo characters you write to
 the micro:bit serial interface, and it will display ascii characters on
 the 5x5 LED display.
 
-=== Prerequisites
+== Prerequisites
 
-==== Hardware
+=== Hardware
 
 * BBC micro:bit v2.0
 * USB to Serial cable
@@ -16,16 +16,17 @@ simplifying connecting to the serial pins
 
 Connect the TX to P15 and RX to P14 on the micro:bit.
 
-image:images/connector.jpg[micro:bit edge connector]
+image::https://raw.githubusercontent.com/drogue-iot/drogue-device/main/examples/nrf52/microbit/uart/images/connector.jpg[microbit
+edge connector]
 
-==== Software
+=== Software
 
 To build and flash the example, you need to have
 link:https://rustup.rs/[rustup]. In practice
 you can use whatever tool you want to flash the device, but this guide
 will assume that `probe-run` is used (`cargo install probe-run`).
 
-=== Building
+== Building
 
 To build the firmware:
 
@@ -33,7 +34,7 @@ To build the firmware:
 cargo build --release
 ....
 
-=== Flashing
+== Flashing
 
 Flashing the firmware uses `probe-run` which auto-detects the probe connected to your device. 
 The following command will build and flash the firmware and open the
@@ -51,7 +52,7 @@ powered).
 cargo run --release -- --probe <VID>:<PID>
 ....
 
-=== Using minicom program to talk to echo server
+== Using minicom program to talk to echo server
 
 Once the firmware is running, you can connect the serial console. I’m
 using minicom for this, but there are lots of options. The most

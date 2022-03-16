@@ -1,1 +1,1 @@
-* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/uart[BBC micro:bit v2 uart and matrix display]
+* xref:examples/nrf52/microbit/uart/README.adoc[BBC micro:bit v2 uart and matrix display]

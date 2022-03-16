@@ -8,7 +8,7 @@ with a variant that uses a `esp8266` WiFi module.
 All example can be run using `cargo run`, which in some cases require the `probe-run` tool (`cargo
 install probe-run`) to flash the program.
 
-=== Configuration
+== Configuration
 
 Any examples requiring user credentials, e.g. WiFi, HTTP, OTAA, will
 expect them in the top-level keys of `.drogue/config.toml`. Similar to
