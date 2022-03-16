@@ -33,7 +33,7 @@ use rust_mqtt::packet::v5::reason_codes::ReasonCode;
 
 use crate::traits::tcp;
 use crate::traits::tcp::TcpStack;
-use rust_mqtt::network::network_trait::{NetworkConnection, NetworkConnectionFactory};
+use rust_mqtt::network::{NetworkConnection, NetworkConnectionFactory};
 
 pub struct DrogueNetwork<A>
 where
@@ -46,7 +46,7 @@ impl<A> DrogueNetwork<A>
 where
     A: TcpActor + 'static,
 {
-    fn new(socket: Socket<A>) -> Self {
+    pub fn new(socket: Socket<A>) -> Self {
         Self { socket }
     }
 }
@@ -55,12 +55,12 @@ impl<A> NetworkConnection for DrogueNetwork<A>
 where
     A: TcpActor + 'static,
 {
-    type WriteFuture<'m>
+    type SendFuture<'m>
     where
         Self: 'm,
     = impl Future<Output = Result<(), ReasonCode>> + 'm;
 
-    type ReadFuture<'m>
+    type ReceiveFuture<'m>
     where
         Self: 'm,
     = impl Future<Output = Result<usize, ReasonCode>> + 'm;
@@ -70,17 +70,17 @@ where
         Self: 'm,
     = impl Future<Output = Result<(), ReasonCode>> + 'm;
 
-    fn send(&'m mut self, buffer: &'m mut [u8], len: usize) -> Self::WriteFuture<'m> {
+    fn send<'m>(&'m mut self, buffer: &'m [u8]) -> Self::SendFuture<'m> {
         async move {
             self.socket
-                .write(&buffer[0..len])
+                .write(buffer)
                 .await
                 .map_err(|_| ReasonCode::NetworkError)
                 .map(|_| ())
         }
     }
 
-    fn receive(&'m mut self, buffer: &'m mut [u8]) -> Self::ReadFuture<'m> {
+    fn receive<'m>(&'m mut self, buffer: &'m mut [u8]) -> Self::ReceiveFuture<'m> {
         async move {
             self.socket
                 .read(buffer)
@@ -95,58 +95,6 @@ where
                 .close()
                 .await
                 .map_err(|_| ReasonCode::NetworkError)
-        }
-    }
-}
-
-pub struct DrogueConnectionFactory<A>
-where
-    A: TcpActor + 'static,
-{
-    network: Address<A>,
-}
-
-impl<A> DrogueConnectionFactory<A>
-where
-    A: TcpActor + 'static,
-{
-    pub fn new(network: Address<A>) -> Self {
-        Self { network }
-    }
-}
-
-impl<A> NetworkConnectionFactory for DrogueConnectionFactory<A>
-where
-    A: TcpActor + 'static,
-{
-    type Connection = DrogueNetwork<A>;
-
-    type ConnectionFuture<'m>
-    where
-        Self: 'm,
-    = impl Future<Output = Result<Self::Connection, ReasonCode>> + 'm;
-
-    fn connect<'m>(&'m mut self, ip: [u8; 4], port: u16) -> Self::ConnectionFuture<'m> {
-        async move {
-            let mut socket = Socket::new(self.network.clone(), self.network.open().await.unwrap());
-
-            match socket
-                .connect(
-                    IpProtocol::Tcp,
-                    SocketAddress::new(IpAddress::new_v4(ip[0], ip[1], ip[2], ip[3]), port),
-                )
-                .await
-            {
-                Ok(_) => {
-                    trace!("Connection established");
-                    Ok(DrogueNetwork::new(socket))
-                }
-                Err(e) => {
-                    warn!("Error creating connection:");
-                    socket.close().await.map_err(|e| ReasonCode::NetworkError)?;
-                    Err(ReasonCode::NetworkError)
-                }
-            }
         }
     }
 }

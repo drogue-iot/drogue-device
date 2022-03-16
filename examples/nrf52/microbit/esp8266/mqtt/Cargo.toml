@@ -18,7 +18,7 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 
 rand_core = { version = "0.6.2", default-features = false }
 
-drogue-device = { path = "../../../../../device", features = ["bsp+microbit+temp", "wifi+esp8266", "defmt", "time"], default-features = false }
+drogue-device = { path = "../../../../../device", features = ["bsp+microbit+temp", "wifi+esp8266", "defmt", "time", "mqtt"], default-features = false }
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 fixed = "1.10.0"

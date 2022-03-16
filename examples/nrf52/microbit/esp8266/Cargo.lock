@@ -380,6 +380,7 @@ dependencies = [
  "moveslice",
  "nom 6.2.1",
  "rand_core",
+ "rust-mqtt",
 ]
 
 [[package]]
@@ -1092,7 +1093,7 @@ checksum = "3e52c148ef37f8c375d49d5a73aa70713125b7f19095948a923f80afdeb22ec2"
 [[package]]
 name = "rust-mqtt"
 version = "0.0.1"
-source = "git+https://github.com/obabec/rust-mqtt.git?branch=main#9058093065f9a8cbb973aa96c52b9f873d170888"
+source = "git+https://github.com/obabec/rust-mqtt.git?branch=main#b58e8318b61671463c8bf019d45e3894a0352619"
 dependencies = [
  "heapless",
  "rand_core",

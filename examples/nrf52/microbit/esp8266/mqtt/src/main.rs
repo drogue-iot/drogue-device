@@ -7,13 +7,19 @@
 use defmt_rtt as _;
 use panic_probe as _;
 
-use drogue_device::{actors::wifi::esp8266::*, drogue, traits::wifi::*, DeviceContext, Package};
 use drogue_device::{
+    actors::socket::*,
     actors::wifi::*,
     bsp::{boards::nrf52::microbit::*, Board},
+    clients::mqtt::*,
     domain::temperature::Celsius,
+    drivers::dns::*,
+    traits::dns::*,
+    traits::ip::*,
+    traits::tcp::*,
     *,
 };
+use drogue_device::{actors::wifi::esp8266::*, drogue, traits::wifi::*, DeviceContext, Package};
 use embassy::util::Forever;
 use embassy_nrf::{
     gpio::{Level, Output, OutputDrive},
@@ -23,10 +29,15 @@ use embassy_nrf::{
     uarte::{Uarte, UarteRx, UarteTx},
     Peripherals,
 };
-use rust_mqtt::*;
+use rust_mqtt::{
+    client::{client_config::ClientConfig, client_v5::MqttClientV5},
+    packet::v5::{property::Property, publish_packet::QualityOfService},
+};
 
 const WIFI_SSID: &str = drogue::config!("wifi-ssid");
 const WIFI_PSK: &str = drogue::config!("wifi-password");
+const HOST: &str = drogue::config!("hostname");
+const PORT: &str = drogue::config!("port");
 const USERNAME: &str = drogue::config!("mqtt-username");
 const PASSWORD: &str = drogue::config!("mqtt-password");
 const TOPIC: &str = drogue::config!("mqtt-topic");
@@ -76,8 +87,20 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     .await
     .unwrap();
 
+    let ips = DNS.resolve(HOST).await.expect("unable to resolve host");
+    let ip = ips[0];
+    let mut socket = Socket::new(wifi, wifi.open().await.unwrap());
+
+    socket
+        .connect(
+            IpProtocol::Tcp,
+            SocketAddress::new(ips[0], PORT.parse::<u16>().unwrap()),
+        )
+        .await
+        .expect("Error creating connection");
+
     let mut config = ClientConfig::new();
-    config.add_qos(qos);
+    config.add_qos(QualityOfService::QoS1);
     config.add_username("xyz");
     config.add_password(PASSWORD);
     config.max_packet_size = 60;
@@ -85,6 +108,20 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let mut recv_buffer = [0; 100];
     let mut write_buffer = [0; 100];
 
-    let mut client =
-        MqttClientV5::<_, 5>::new(wifi, &mut write_buffer, 100, &mut recv_buffer, 100, config);
+    let mut client = MqttClientV5::<_, 5>::new(
+        DrogueNetwork::new(socket),
+        &mut write_buffer,
+        100,
+        &mut recv_buffer,
+        100,
+        config,
+    );
 }
+
+static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
+    DnsEntry::new("localhost", IpAddress::new_v4(127, 0, 0, 1)),
+    DnsEntry::new(
+        "http.sandbox.drogue.cloud",
+        IpAddress::new_v4(65, 108, 135, 161),
+    ),
+]);
