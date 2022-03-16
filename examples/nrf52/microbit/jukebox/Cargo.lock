@@ -932,13 +932,3 @@ checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
 dependencies = [
  "linked-hash-map",
 ]
-
-[[patch.unused]]
-name = "nrf-softdevice"
-version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=c584deaf9d9e941f18457934a4a463e078f380ec#c584deaf9d9e941f18457934a4a463e078f380ec"
-
-[[patch.unused]]
-name = "nrf-softdevice-s113"
-version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=c584deaf9d9e941f18457934a4a463e078f380ec#c584deaf9d9e941f18457934a4a463e078f380ec"
