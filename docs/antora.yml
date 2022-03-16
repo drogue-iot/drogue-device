@@ -3,3 +3,4 @@ title: Drogue Device
 version: dev
 nav:
   - modules/ROOT/nav.adoc
+  - modules/ROOT/examples_nav.adoc

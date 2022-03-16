@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![deny(unused_must_use)]
 
+use std::collections::HashMap;
 use std::io::Write;
 use std::{env, fs, path::PathBuf};
 
@@ -263,6 +264,13 @@ const MAIN_CATEGORIES: [&str; 8] = [
     "basic", "ble", "wifi", "lorawan", "uart", "display", "other", "cloud",
 ];
 fn generate_examples_page() -> Result<(), anyhow::Error> {
+    let nav = root_dir()
+        .join("docs")
+        .join("modules")
+        .join("ROOT")
+        .join("examples_nav.adoc");
+    let mut nav = std::fs::File::create(nav).expect("unable to open file");
+    let mut nav_entries: HashMap<String, Vec<(String, String)>> = HashMap::new();
     for kw in MAIN_CATEGORIES {
         let output = root_dir()
             .join("docs")
@@ -296,11 +304,25 @@ fn generate_examples_page() -> Result<(), anyhow::Error> {
                             break;
                         }
                         if s == kw {
+                            if let Some(e) = nav_entries.get_mut(kw) {
+                                e.push((
+                                    format!("{}/README.adoc", relative.unwrap().display(),),
+                                    description.to_string(),
+                                ));
+                            } else {
+                                nav_entries.insert(
+                                    kw.to_string(),
+                                    vec![(
+                                        format!("{}/README.adoc", relative.unwrap().display(),),
+                                        description.to_string(),
+                                    )],
+                                );
+                            }
                             entries.push(format!(
-                            "* link:https://github.com/drogue-iot/drogue-device/tree/main/{}[{}]",
-                            relative.unwrap().display(),
-                            description
-                        ));
+                                "* xref:{}/README.adoc[{}]",
+                                relative.unwrap().display(),
+                                description
+                            ));
                         }
                     }
                 }
@@ -312,6 +334,17 @@ fn generate_examples_page() -> Result<(), anyhow::Error> {
         entries.sort();
         for entry in entries.iter() {
             writeln!(fh, "{}", entry).unwrap();
+        }
+    }
+    writeln!(nav, "* xref:examples.adoc[Examples]").unwrap();
+    for (kw, entries) in nav_entries.iter_mut() {
+        entries.sort();
+        let mut v: Vec<char> = kw.chars().collect();
+        v[0] = v[0].to_uppercase().nth(0).unwrap();
+        let s: String = v.into_iter().collect();
+        writeln!(nav, "** {}", s).unwrap();
+        for entry in entries.iter() {
+            writeln!(nav, "*** xref:{}[{}]", entry.0, entry.1).unwrap();
         }
     }
     Ok(())

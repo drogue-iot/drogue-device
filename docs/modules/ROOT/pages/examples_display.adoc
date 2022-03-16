@@ -1,4 +1,4 @@
-* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/compass[BBC micro:bit v2 compass showing direction in led display]
-* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/jukebox[BBC micro:bit v2 disco jukebox and light show]
-* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/uart[BBC micro:bit v2 uart and matrix display]
-* link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32h7/nucleo-h743zi/epd[STM32 Nucleo-H743 7-color e-paper display]
+* xref:examples/nrf52/microbit/compass/README.adoc[BBC micro:bit v2 compass showing direction in led display]
+* xref:examples/nrf52/microbit/jukebox/README.adoc[BBC micro:bit v2 disco jukebox and light show]
+* xref:examples/nrf52/microbit/uart/README.adoc[BBC micro:bit v2 uart and matrix display]
+* xref:examples/stm32h7/nucleo-h743zi/epd/README.adoc[STM32 Nucleo-H743 7-color e-paper display]
