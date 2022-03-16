@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![deny(unused_must_use)]
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::io::Write;
 use std::{env, fs, path::PathBuf};
 
@@ -270,7 +270,7 @@ fn generate_examples_page() -> Result<(), anyhow::Error> {
         .join("ROOT")
         .join("examples_nav.adoc");
     let mut nav = std::fs::File::create(nav).expect("unable to open file");
-    let mut nav_entries: HashMap<String, Vec<(String, String)>> = HashMap::new();
+    let mut nav_entries: BTreeMap<String, Vec<(String, String)>> = BTreeMap::new();
     for kw in MAIN_CATEGORIES {
         let output = root_dir()
             .join("docs")
