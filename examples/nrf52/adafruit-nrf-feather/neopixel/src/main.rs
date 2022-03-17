@@ -4,25 +4,12 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use core::future::Future;
-
 #[cfg(feature = "defmt-rtt")]
 use defmt_rtt as _;
-use drogue_device::actors::button::{ButtonEvent, ButtonEventHandler};
-use drogue_device::actors::led::LedMessage;
 use drogue_device::drivers::led::neopixel::{NeoPixel, Rgb8, BLUE, GREEN, RED};
-use drogue_device::drivers::ActiveLow;
-use drogue_device::traits::button::Event;
-use drogue_device::{actors, drivers, Actor, ActorContext, Address, DeviceContext, Inbox};
 use embassy::executor::Spawner;
 use embassy::time::{Duration, Timer};
-use embassy_nrf::config::Config;
-use embassy_nrf::gpio::{Level, OutputDrive, Pull};
-use embassy_nrf::interrupt::Priority;
-use embassy_nrf::peripherals::{P0_11, P0_13, P0_25};
-use embassy_nrf::{gpio::Input, gpio::Output, Peripherals};
-use futures::future::{select, Either};
-use futures::pin_mut;
+use embassy_nrf::Peripherals;
 #[cfg(feature = "panic-probe")]
 use panic_probe as _;
 
@@ -40,7 +27,7 @@ const COLORS: [Rgb8; 5] = [
 ];
 
 #[embassy::main]
-async fn main(spawner: Spawner, p: Peripherals) {
+async fn main(_spawner: Spawner, p: Peripherals) {
     let mut neopixel = defmt::unwrap!(NeoPixel::<'_, _, 1>::new(p.PWM0, p.P0_16));
 
     let mut dir = 1;
@@ -55,7 +42,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
             color_index = 0;
         }
         loop {
-            neopixel.set(&[color.scale(factor)]).await;
+            neopixel.set(&[color.scale(factor)]).await.ok();
             Timer::after(Duration::from_millis(10)).await;
 
             if dir == 1 {
@@ -63,7 +50,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
                 if factor >= 1.0 {
                     factor -= STEP_SIZE;
                     dir = -1;
-                    neopixel.set(&[color.scale(1.0)]).await;
+                    neopixel.set(&[color.scale(1.0)]).await.ok();
                     Timer::after(Duration::from_millis(500)).await;
                 }
             } else {
@@ -71,7 +58,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
                 if factor <= STEP_SIZE {
                     dir = 1;
                     factor += STEP_SIZE;
-                    neopixel.set(&[color.scale(0.0)]).await;
+                    neopixel.set(&[color.scale(0.0)]).await.ok();
                     Timer::after(Duration::from_millis(200)).await;
                     break;
                 }
