@@ -1,4 +1,5 @@
-* xref:concepts.adoc[Introduction]
+* xref:introduction.adoc[Introduction]
+* xref:concepts.adoc[Actors]
 * xref:getting_started.adoc[Getting Started]
 * xref:basic_application.adoc[Basic Application]
 * xref:drivers.adoc[Drivers]

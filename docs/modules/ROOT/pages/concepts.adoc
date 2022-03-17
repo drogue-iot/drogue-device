@@ -18,26 +18,25 @@ While processing an event, an actor may send a message to another actor, which i
 
 === Messages
 
-All messages are sent using async channels attached to each actor. The channel depth is configurable based on const generics. 
+All messages are sent using async channels attached to each actor. The channel depth is configurable based on const generics. Upon starting, the actor
+is given a handle to an `Inbox` from which it can await messages to arrive.
 
 === Addresses
 
 Each actor within the system has its own unique `Address` which is used to communicate with the actor (through it's FIFO). 
 There is an _async_ `request(msg)` method on each address to send a message asynchronously to the actor, which may only be used from another `async` context, as the sender must `.await` the response. There is also a _sync_ `notify(msg)` method on each address to send a message without awaiting a response.
 
-Specifically, the `Address` for a given actor may expose additional async methods or wrap an `Address` to facility fluent APIs for communicating with the underlying actor. For instance, the `Socket` type wraps an `Address` for actors that implement the `TcpSocket` trait.
+Specifically, the `Address` for a given actor may implement user provided traits to provide fluent APIs for communicating with the underlying actor. For instance, the `Socket` type wraps an `Address` for actors that implement the `TcpSocket` trait.
 
-=== State
+=== Lifecycle
 
-Each actor is wrapped in a state object which is executed by the embassy runtime. When each state is `mount(...)`ed into the system, its `Address<...>` is made available.
+Each actor is wrapped in an `ActorContext` object which is stored as a `static` (global). When the application starts, each context is `mount(...)`ed, and provided an instance of the actor to "run".
 
-Each Actor in the system defines the configuration it expects to get handed in its `mount()` implementation.
+During mount, the actor system will initialize the channels, and spawn the underlying `embassy` task. Once spawned, the actors `Address<...>` is made available.
 
-=== Bootstrap & Mounting
+=== Bootstrap
 
-A top-level `Device` struct created by the application writer, maintain members for each actor. A static instance of `DeviceContext` is created to hold a static reference to the `Device` struct.
-
-The application entry point is specified using a function marked with `#[embassy::main]`, and it will be passed a `Spawner` that is used when mounting actors and packages.
+As with any embassy application, the entry point is specified using an async function marked with `#[embassy::main]`, and it will be passed a `Spawner` that is passed to each actor context `mount(...)`.
 
 === Packages
 

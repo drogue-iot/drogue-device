@@ -17,7 +17,7 @@ In Rust, non-blocking operations can be implemented using async-await. Async-awa
 
 Actors make it convenient to write stateful concurrent systems using message passing. Actors only process one message at a time, and communicate with other actors by sending messages to their addresses. Actors compose easily due to their decoupled nature, making it easier to maintain an expanding code base.
 
-Actors in drogue-device are *async*, which means that they process messages using async-await support in Rust. This does not mean you have to write async code, but you will have the option to do so. The [async book](https://rust-lang.github.io/async-book/) is a great way to learn more about async Rust.
+Actors in drogue-device are *async*, which means that they process messages using async-await support in Rust. This does not mean you have to write async code, but you will have the option to do so. The link:https://rust-lang.github.io/async-book/[async book] is a great way to learn more about async Rust.
 
 Read more about actors xref:concepts.adoc[here].
 
