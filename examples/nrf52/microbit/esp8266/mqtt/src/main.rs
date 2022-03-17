@@ -117,14 +117,19 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         config,
     );
 
+    defmt::info!("Connecting to broker");
     client
         .connect_to_broker()
         .await
         .expect("error connecting to broker");
+
+    defmt::info!("Sending message");
     client
         .send_message("foo", "Hello, World")
         .await
         .expect("error sending message");
+
+    defmt::info!("Sent!");
 }
 
 static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
