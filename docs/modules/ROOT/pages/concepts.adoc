@@ -1,8 +1,4 @@
-= Concepts
-
-These sections explain some concepts of Drogue Device.
-
-== Actor System
+= Actors
 
 An _actor system_ is a framework that allows for isolating state within narrow contexts, making it easier to reason about system. Within a actor system, the primary component is an _Actor_, which represents the boundary of state usage. Each actor has exclusive access to its own state and only communicates with other actors through message-passing.
 

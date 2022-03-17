@@ -13,7 +13,7 @@ also provides a great programming experience.
 
 == Composition
 
-Code reuse and composition should be first class in embedded software! Drogue Device provides an Actor-based programming model for writing composable applications. With actors, you can transparently share access to peripherals, reuse application logic and compose other actors to build new functionality.
+Code reuse and composition should be first class in embedded software! Drogue Device provides an Actor-based programming model for writing composable applications. With actors, you can transparently share access to peripherals, reuse application logic and compose other actors to build new functionality. You can still use regular embassy tasks with Drogue Device.
 
 == IoT Ready
 
