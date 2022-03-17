@@ -101,7 +101,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     let mut config = ClientConfig::new();
     config.add_qos(QualityOfService::QoS1);
-    config.add_username("xyz");
+    config.add_username(USERNAME);
     config.add_password(PASSWORD);
     config.max_packet_size = 60;
     config.properties.push(Property::ReceiveMaximum(20));
