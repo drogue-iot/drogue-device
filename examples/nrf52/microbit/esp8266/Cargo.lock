@@ -1093,7 +1093,7 @@ checksum = "3e52c148ef37f8c375d49d5a73aa70713125b7f19095948a923f80afdeb22ec2"
 [[package]]
 name = "rust-mqtt"
 version = "0.0.1"
-source = "git+https://github.com/obabec/rust-mqtt.git?branch=main#b58e8318b61671463c8bf019d45e3894a0352619"
+source = "git+https://github.com/obabec/rust-mqtt.git?branch=main#19087016a64685b678f73b50b851169306ea6230"
 dependencies = [
  "heapless",
  "rand_core",
@@ -1243,9 +1243,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.88"
+version = "1.0.89"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebd69e719f31e88618baa1eaa6ee2de5c9a1c004f1e9ecdb58e8352a13f20a01"
+checksum = "ea297be220d52398dcc07ce15a209fce436d361735ac1db700cab3b6cdfb9f54"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1339,6 +1339,6 @@ dependencies = [
 
 [[package]]
 name = "zeroize"
-version = "1.5.3"
+version = "1.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50344758e2f40e3a1fcfc8f6f91aa57b5f8ebd8d27919fe6451f15aaaf9ee608"
+checksum = "7eb5728b8afd3f280a869ce1d4c554ffaed35f45c231fc41bfbd0381bef50317"
