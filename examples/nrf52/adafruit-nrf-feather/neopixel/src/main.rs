@@ -8,20 +8,20 @@ use core::future::Future;
 
 #[cfg(feature = "defmt-rtt")]
 use defmt_rtt as _;
-use drogue_device::{Actor, ActorContext, actors, Address, DeviceContext, drivers, Inbox};
 use drogue_device::actors::button::{ButtonEvent, ButtonEventHandler};
 use drogue_device::actors::led::LedMessage;
+use drogue_device::drivers::led::neopixel::{NeoPixel, Rgb8, BLUE, GREEN, RED};
 use drogue_device::drivers::ActiveLow;
-use drogue_device::drivers::led::neopixel::{BLUE, GREEN, NeoPixel, RED, Rgb8};
 use drogue_device::traits::button::Event;
+use drogue_device::{actors, drivers, Actor, ActorContext, Address, DeviceContext, Inbox};
 use embassy::executor::Spawner;
 use embassy::time::{Duration, Timer};
-use embassy_nrf::{gpio::Input, gpio::Output, Peripherals};
 use embassy_nrf::config::Config;
 use embassy_nrf::gpio::{Level, OutputDrive, Pull};
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::peripherals::{P0_11, P0_13, P0_25};
-use futures::future::{Either, select};
+use embassy_nrf::{gpio::Input, gpio::Output, Peripherals};
+use futures::future::{select, Either};
 use futures::pin_mut;
 #[cfg(feature = "panic-probe")]
 use panic_probe as _;
@@ -79,4 +79,3 @@ async fn main(spawner: Spawner, p: Peripherals) {
         }
     }
 }
-
