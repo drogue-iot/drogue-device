@@ -1,6 +1,6 @@
-use core::slice;
-use core::ops::Deref;
 use core::mem::transmute;
+use core::ops::Deref;
+use core::slice;
 use defmt::Format;
 use embassy::time::{Duration, Timer};
 use embassy::util::Unborrow;
@@ -60,19 +60,17 @@ impl Rgb8 {
     }
 }
 
-
-
 #[repr(C)]
 struct Raw<const N: usize> {
     words: [[u16; 24]; N],
-    end: [ u16; 40],
+    end: [u16; 40],
 }
 
 impl<const N: usize> Default for Raw<N> {
     fn default() -> Self {
         Self {
-            words: [ [0;24]; N],
-            end: [ RES; 40],
+            words: [[0; 24]; N],
+            end: [RES; 40],
         }
     }
 }
@@ -135,4 +133,3 @@ impl<'d, T: Instance, const N: usize> NeoPixel<'d, T, N> {
         Ok(())
     }
 }
-
