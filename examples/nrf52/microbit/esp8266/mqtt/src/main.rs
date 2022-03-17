@@ -118,8 +118,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     );
 
     client
-        .connect
-        .to_broker()
+        .connect_to_broker()
         .await
         .expect("error connecting to broker");
     client
