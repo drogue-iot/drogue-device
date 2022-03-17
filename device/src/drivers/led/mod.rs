@@ -6,6 +6,9 @@ pub use crate::drivers::ActiveLow;
 
 pub mod matrix;
 
+#[cfg(feature = "neopixel+nrf")]
+pub mod neopixel;
+
 pub trait Active<P>
 where
     P: OutputPin,

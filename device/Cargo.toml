@@ -46,6 +46,7 @@ cortex-m = { version = "0.7", features = ["inline-asm"], optional = true }
 futures = { version = "0.3", default-features = false }
 heapless = { version = "0.7", features = ["defmt-impl"] }
 embedded-hal = { version = "0.2", features = ["unproven"] }
+embassy-hal-common= { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", optional = true }
 embedded-hal-1 = { package = "embedded-hal", version = "1.0.0-alpha.7", git = "https://github.com/embassy-rs/embedded-hal", branch = "embassy2" }
 embedded-hal-async = { version = "0.0.1", git = "https://github.com/embassy-rs/embedded-hal", branch = "embassy2" }
 atomic-polyfill = "0.1"
@@ -121,6 +122,15 @@ ble = [
     "nrf-softdevice/s140",
     "nrf-softdevice/nrf52840",
     "nrf-softdevice-s140",
+]
+
+neopixel = [
+    "embassy-hal-common",
+]
+
+"neopixel+nrf" = [
+    "neopixel",
+    "embassy-nrf"
 ]
 
 "bsp+b_u585i_iot02a" = [ "embassy-stm32" ]
