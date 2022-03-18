@@ -1,7 +1,6 @@
 use core::mem::transmute;
 use core::ops::Add;
 use core::ops::Deref;
-use core::ptr;
 use core::slice;
 use defmt::Format;
 use embassy::time::{Duration, Timer};
@@ -239,7 +238,7 @@ impl<const N: usize> Deref for Raw<N> {
 
     fn deref(&self) -> &Self::Target {
         unsafe {
-            let ptr: *const u16 = transmute(self.words.as_ptr() as *const u16);
+            let ptr: *const u16 = transmute(self as *const _ as *const u16);
             slice::from_raw_parts(ptr, (N * 24) + 40)
         }
     }
@@ -272,8 +271,6 @@ impl<'d, T: Instance, const N: usize> NeoPixel<'d, T, N> {
 
         let raw: Raw<N> = pixels.into();
         let raw = &*raw;
-
-        let event = self.pwm.event_seq_end();
 
         let sequences = SingleSequencer::new(&mut self.pwm, &*raw, seq_config);
         sequences.start(SingleSequenceMode::Times(1))?;
