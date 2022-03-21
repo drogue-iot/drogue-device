@@ -38,6 +38,8 @@ Drogue device runs on any platform supported by embassy, which at the time of wr
 * Linux, Mac OS X or Windows
 * WASM (WebAssembly)
 
+Once you've found an example you like, you can run `cargo xtask clone <example_dir> <target_dir>` to create a copy with the correct dependencies and project files set up.
+
 ### Example Actor
 
 Following is a simple drogue-device application with a single Actor implementing concurrent access to a counter.
