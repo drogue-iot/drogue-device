@@ -22,7 +22,7 @@ drogue-device = { path = "../../../../device", default-features = false, feature
 cortex-m-rt = "0.7"
 cortex-m = "0.7"
 
-bsp-blinky-app = { path = "../../../apps/blinky" }
+drogue-blinky-app = { path = "../../../apps/blinky" }
 drogue-tls = { version = "0.5.0", default-features = false, features = ["async", "defmt"], optional = true}
 cfg-if = "1.0.0"
 

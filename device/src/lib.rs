@@ -141,3 +141,13 @@ pub fn print_value_size<T>(name: &'static str, val: &T) {
         core::mem::size_of_val::<T>(val)
     );*/
 }
+
+#[macro_export]
+macro_rules! unborrow {
+    ($($name:ident),*) => {
+        $(
+            #[allow(unused_mut)]
+            let mut $name = unsafe { $name.unborrow() };
+        )*
+    }
+}

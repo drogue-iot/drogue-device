@@ -6,7 +6,7 @@ authors = [
     "Dejan Bosanac <dbosanac@redhat.com>"
 ]
 edition = "2018"
-name = "bsp-blinky-app"
+name = "drogue-blinky-app"
 version = "0.1.0"
 description = "BSP Blinky App"
 keywords = ["ignore"]

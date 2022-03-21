@@ -1,3 +1,4 @@
+use crate::unborrow;
 use core::mem::transmute;
 use core::ops::Add;
 use core::ops::Deref;
@@ -5,7 +6,7 @@ use core::slice;
 use defmt::Format;
 use embassy::time::{Duration, Timer};
 use embassy::util::Unborrow;
-use embassy_hal_common::unborrow;
+//use embassy_hal_common::unborrow;
 use embassy_nrf::gpio::Pin;
 use embassy_nrf::pwm::{
     Config, Error, Instance, Prescaler, SequenceConfig, SequenceLoad, SequencePwm,

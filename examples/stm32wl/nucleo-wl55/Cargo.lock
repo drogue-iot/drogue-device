@@ -466,6 +466,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "drogue-lorawan-app"
+version = "0.1.0"
+dependencies = [
+ "defmt",
+ "drogue-device",
+ "embassy",
+ "heapless",
+]
+
+[[package]]
 name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -826,16 +836,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lorawan-app"
-version = "0.1.0"
-dependencies = [
- "defmt",
- "drogue-device",
- "embassy",
- "heapless",
-]
-
-[[package]]
 name = "lorawan-device"
 version = "0.2.0"
 source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=0de1a2a31933f7c97887b5718c1755fa5ab93a42#0de1a2a31933f7c97887b5718c1755fa5ab93a42"
@@ -908,12 +908,12 @@ dependencies = [
  "defmt",
  "defmt-rtt",
  "drogue-device",
+ "drogue-lorawan-app",
  "embassy",
  "embassy-lora",
  "embassy-stm32",
  "embedded-hal 0.2.7",
  "heapless",
- "lorawan-app",
  "panic-probe",
  "rand_core",
  "void",
