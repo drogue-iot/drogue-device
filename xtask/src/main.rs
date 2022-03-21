@@ -282,6 +282,10 @@ fn clone(example: &str, target_dir: &str) -> Result<(), anyhow::Error> {
         }
     }
 
+    fs::copy(
+        root_dir().join("rust-toolchain.toml"),
+        target_dir.join("rust-toolchain.toml"),
+    )?;
     fs::write(target_dir.join("Cargo.toml"), toml::to_string_pretty(&t)?)?;
 
     // Locate closes .cargo dir
