@@ -79,6 +79,11 @@ embedded-storage = { version = "0.3.0" }
 # Bootloader
 embassy-boot = { version = "0.1.0", optional = true }
 
+# USB
+usb-device = "0.2"
+usbd-serial = "0.1.1"
+nrf-usbd = { version = "0.1.1", optional = true }
+
 [dev-dependencies]
 embassy = { version = "0.1.0", features = ["std", "time", "time-tick-1mhz"]}
 #embassy = {path = "../../../embassy/embassy", features = ["std", "time", "time-tick-1mhz"]}
@@ -122,10 +127,10 @@ ble = [
     "nrf-softdevice/nrf52840",
     "nrf-softdevice-s140",
 ]
+usb = [ "nrf-usbd" ]
 
 neopixel = []
-"nrf" = [
-    "neopixel",
+nrf = [
     "embassy-nrf"
 ]
 

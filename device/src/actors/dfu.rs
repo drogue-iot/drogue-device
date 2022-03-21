@@ -42,19 +42,19 @@ impl<F: AsyncNorFlash + AsyncReadNorFlash> FirmwareManager<F> {
     async fn swap(&mut self) -> Result<(), F::Error> {
         // Ensure buffer flushed before we
         if self.b_offset > 0 {
-            info!("Flushing updater");
+            trace!("Flushing updater");
             for i in self.b_offset..self.buffer.len() {
                 self.buffer[i] = 0;
             }
             self.b_offset = self.buffer.len();
             self.flush().await?;
         }
-        info!("Marking as swappable");
+        trace!("Marking as swappable");
         self.updater.mark_update(&mut self.flash).await
     }
 
     async fn write(&mut self, data: &[u8]) -> Result<(), F::Error> {
-        info!("Writing {} bytes", data.len());
+        trace!("Writing {} bytes", data.len());
         self.buffer[self.b_offset..self.b_offset + data.len()].copy_from_slice(&data);
         self.b_offset += data.len();
         if self.b_offset == self.buffer.len() {
@@ -171,7 +171,7 @@ impl<F: AsyncNorFlash + AsyncReadNorFlash> Actor for FirmwareManager<F> {
         M: Inbox<Self> + 'm,
         Self: 'm,
     {
-        info!("Starting firmware manager");
+        trace!("Starting firmware manager");
         async move {
             loop {
                 if let Some(mut m) = inbox.next().await {
@@ -186,7 +186,7 @@ impl<F: AsyncNorFlash + AsyncReadNorFlash> Actor for FirmwareManager<F> {
                             let r = self.swap().await;
                             if let Ok(_) = r {
                                 info!("Resetting device");
-                                cortex_m::peripheral::SCB::sys_reset();
+                                //cortex_m::peripheral::SCB::sys_reset();
                             }
                             r
                         }
