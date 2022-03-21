@@ -20,7 +20,7 @@ defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 #panic-halt = "0.2"
 
-lorawan-app = { path = "../../apps/lorawan" }
+drogue-lorawan-app = { path = "../../apps/lorawan" }
 drogue-device = { path = "../../../device", features = ["lora", "defmt", "bsp+nucleo_wl55"], default-features = false }
 cortex-m-rt = ">=0.6.15,<0.8" #"0.7"
 cortex-m = { version = "0.7", features = ["inline-asm"] }

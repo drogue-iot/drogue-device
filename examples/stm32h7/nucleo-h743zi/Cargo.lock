@@ -204,15 +204,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bsp-blinky-app"
-version = "0.1.0"
-dependencies = [
- "defmt",
- "drogue-device",
- "embassy",
-]
-
-[[package]]
 name = "bxcan"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -523,6 +514,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3dd60d1080a57a05ab032377049e0591415d2b31afd7028356dbf3cc6dcb066"
 dependencies = [
  "generic-array 0.14.5",
+]
+
+[[package]]
+name = "drogue-blinky-app"
+version = "0.1.0"
+dependencies = [
+ "defmt",
+ "drogue-device",
+ "embassy",
 ]
 
 [[package]]
@@ -1181,11 +1181,11 @@ dependencies = [
 name = "nucleo-h743zi_blinky"
 version = "0.1.0"
 dependencies = [
- "bsp-blinky-app",
  "cortex-m",
  "cortex-m-rt",
  "defmt",
  "defmt-rtt",
+ "drogue-blinky-app",
  "drogue-device",
  "embassy",
  "embassy-stm32",

@@ -14,9 +14,9 @@ use drogue_device::{
     traits::lora::{LoraConfig, LoraMode, LoraRegion, SpreadingFactor},
     *,
 };
+use drogue_lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig};
 use embassy::executor::Spawner;
 use embassy_stm32::Peripherals;
-use drogue_lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig};
 
 bind_bsp!(NucleoWl55, BSP);
 
