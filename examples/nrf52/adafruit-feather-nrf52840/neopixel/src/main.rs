@@ -4,17 +4,13 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-#[cfg(feature = "defmt-rtt")]
 use defmt_rtt as _;
+use panic_probe as _;
+
 use drogue_device::drivers::led::neopixel::{CyclicBrightness, Filter, Gamma, NeoPixel, BLUE};
 use embassy::executor::Spawner;
 use embassy::time::{Duration, Timer};
 use embassy_nrf::Peripherals;
-#[cfg(feature = "panic-probe")]
-use panic_probe as _;
-
-#[cfg(not(feature = "panic-probe"))]
-use panic_reset as _;
 
 const STEP_SIZE: u8 = 2;
 

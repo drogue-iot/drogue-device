@@ -3,20 +3,9 @@
 version = 3
 
 [[package]]
-name = "Inflector"
-version = "0.11.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
-dependencies = [
- "lazy_static",
- "regex",
-]
-
-[[package]]
-name = "adafruit-feather-53840-sense-blinky"
+name = "adafruit-nrf-feather52840-neopixel"
 version = "0.1.0"
 dependencies = [
- "bsp-blinky-app",
  "cortex-m",
  "cortex-m-rt",
  "defmt",
@@ -24,9 +13,8 @@ dependencies = [
  "drogue-device",
  "embassy",
  "embassy-nrf",
- "embedded-hal 0.2.7",
- "nrf-softdevice",
- "nrf-softdevice-s140",
+ "futures",
+ "heapless",
  "panic-probe",
 ]
 
@@ -105,15 +93,6 @@ name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
-
-[[package]]
-name = "bsp-blinky-app"
-version = "0.1.0"
-dependencies = [
- "defmt",
- "drogue-device",
- "embassy",
-]
 
 [[package]]
 name = "bytemuck"
@@ -195,36 +174,12 @@ dependencies = [
 
 [[package]]
 name = "darling"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d706e75d87e35569db781a9b5e2416cff1236a47ed380831f959382ccd5f858"
-dependencies = [
- "darling_core 0.10.2",
- "darling_macro 0.10.2",
-]
-
-[[package]]
-name = "darling"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0d720b8683f8dd83c65155f0530560cba68cd2bf395f6513a483caee57ff7f4"
 dependencies = [
- "darling_core 0.13.1",
- "darling_macro 0.13.1",
-]
-
-[[package]]
-name = "darling_core"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0c960ae2da4de88a91b2d920c2a7233b400bc33cb28453a2987822d8392519b"
-dependencies = [
- "fnv",
- "ident_case",
- "proc-macro2",
- "quote",
- "strsim 0.9.3",
- "syn",
+ "darling_core",
+ "darling_macro",
 ]
 
 [[package]]
@@ -237,18 +192,7 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "strsim 0.10.0",
- "syn",
-]
-
-[[package]]
-name = "darling_macro"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9b5a2f4ac4969822c62224815d069952656cadc7084fdca9751e6d959189b72"
-dependencies = [
- "darling_core 0.10.2",
- "quote",
+ "strsim",
  "syn",
 ]
 
@@ -258,7 +202,7 @@ version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72c41b3b7352feb3211a0d743dc5700a4e3b60f51bd2b368892d1e0f9a95f44b"
 dependencies = [
- "darling_core 0.13.1",
+ "darling_core",
  "quote",
  "syn",
 ]
@@ -309,6 +253,7 @@ dependencies = [
  "atomic-polyfill",
  "base64",
  "critical-section",
+ "defmt",
  "drogue-device-macros",
  "embassy",
  "embassy-nrf",
@@ -343,7 +288,6 @@ dependencies = [
  "cfg-if",
  "cortex-m",
  "critical-section",
- "defmt",
  "embassy-macros",
  "embedded-hal 0.2.7",
  "embedded-hal-async",
@@ -368,7 +312,7 @@ name = "embassy-macros"
 version = "0.1.0"
 source = "git+https://github.com/embassy-rs/embassy.git?rev=da9c0efaad594b48cfcdf641d353133d14cf98fe#da9c0efaad594b48cfcdf641d353133d14cf98fe"
 dependencies = [
- "darling 0.13.1",
+ "darling",
  "proc-macro2",
  "quote",
  "syn",
@@ -383,6 +327,7 @@ dependencies = [
  "cortex-m",
  "cortex-m-rt",
  "critical-section",
+ "defmt",
  "embassy",
  "embassy-hal-common",
  "embassy-macros",
@@ -451,9 +396,9 @@ dependencies = [
 
 [[package]]
 name = "fixed"
-version = "1.13.1"
+version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3342b127378d13cfdbd56de8d7e7feec33a9772d5657b9605e59a6e4a337e36"
+checksum = "86d3f4dd10ddfcb0bd2b2efe9f18aff37ed48265fda3e20e5d53f046aba9d50a"
 dependencies = [
  "az",
  "bytemuck",
@@ -504,6 +449,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc4045962a5a5e935ee2fdedaa4e08284547402885ab326734432bed5d12966b"
 
 [[package]]
+name = "futures-macro"
+version = "0.3.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33c1e13800337f4d4d7a316bf45a567dbcb6ffe087f16424852d97e97a91f512"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "futures-sink"
 version = "0.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -522,6 +478,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8b7abd5d659d9b90c8cba917f6ec750a74e2dc23902ef9cd4cc8c8b22e6036a"
 dependencies = [
  "futures-core",
+ "futures-macro",
  "futures-sink",
  "futures-task",
  "pin-project-lite",
@@ -635,44 +592,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nrf-softdevice"
-version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=c584deaf9d9e941f18457934a4a463e078f380ec#c584deaf9d9e941f18457934a4a463e078f380ec"
-dependencies = [
- "cortex-m",
- "cortex-m-rt",
- "critical-section",
- "embassy",
- "embedded-storage",
- "embedded-storage-async",
- "fixed",
- "futures",
- "heapless",
- "nrf-softdevice-macro",
- "nrf-softdevice-s140",
- "nrf52840-pac",
- "num_enum",
-]
-
-[[package]]
-name = "nrf-softdevice-macro"
-version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=c584deaf9d9e941f18457934a4a463e078f380ec#c584deaf9d9e941f18457934a4a463e078f380ec"
-dependencies = [
- "Inflector",
- "darling 0.10.2",
- "proc-macro2",
- "quote",
- "syn",
- "uuid",
-]
-
-[[package]]
-name = "nrf-softdevice-s140"
-version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=c584deaf9d9e941f18457934a4a463e078f380ec#c584deaf9d9e941f18457934a4a463e078f380ec"
-
-[[package]]
 name = "nrf-usbd"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -712,26 +631,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a64b1ec5cda2586e284722486d802acf1f7dbdc623e2bfc57e65ca1cd099290"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "num_enum"
-version = "0.5.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf5395665662ef45796a4ff5486c5d41d29e0c09640af4c5f17fd94ee2c119c9"
-dependencies = [
- "num_enum_derive",
-]
-
-[[package]]
-name = "num_enum_derive"
-version = "0.5.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b0498641e53dd6ac1a4f22547548caa6864cc4933784319cd1775271c5a46ce"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -811,9 +710,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.15"
+version = "1.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "864d3e96a899863136fc6e99f3d7cae289dafe43bf2c5ac19b70df7210c0a145"
+checksum = "b4af2ec4714533fcdf07e886f17025ace8b997b9ce51204ee69b6da831c3da57"
 dependencies = [
  "proc-macro2",
 ]
@@ -962,21 +861,15 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "strsim"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6446ced80d6c486436db5c078dde11a9f73d42b57fb273121e160b84f63d894c"
-
-[[package]]
-name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
 name = "syn"
-version = "1.0.88"
+version = "1.0.89"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebd69e719f31e88618baa1eaa6ee2de5c9a1c004f1e9ecdb58e8352a13f20a01"
+checksum = "ea297be220d52398dcc07ce15a209fce436d361735ac1db700cab3b6cdfb9f54"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1009,12 +902,6 @@ name = "usb-device"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6be90410d4772074ea49525e2e753b65920b94b57eee21a6ef7b6a6fe6296245"
-
-[[package]]
-name = "uuid"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
 
 [[package]]
 name = "vcell"

@@ -6,9 +6,9 @@ authors = [
     "Dejan Bosanac <dbosanac@redhat.com>"
 ]
 edition = "2018"
-name = "lorawan-app"
+name = "drogue-lorawan-app"
 version = "0.1.0"
-description = "LoRaWAN App"
+description = "Drogue Device LoRaWAN Application"
 keywords = ["ignore"]
 
 [workspace]
