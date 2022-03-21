@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![deny(unused_must_use)]
 
+use core::str::FromStr;
 use std::collections::BTreeMap;
 use std::io::Write;
 use std::{env, fs, path::PathBuf};
@@ -23,6 +24,7 @@ fn main() -> Result<(), anyhow::Error> {
         ["fix"] => fix(),
         ["update"] => update(),
         ["docs"] => docs(),
+        ["clone", example, target] => clone(example, target),
         ["matrix"] => matrix(),
         ["clean"] => clean(root_dir()),
         _ => {
@@ -242,6 +244,103 @@ fn fix_crate(project_file: PathBuf) -> Result<(), anyhow::Error> {
 
 fn docs() -> Result<(), anyhow::Error> {
     generate_examples_page()
+}
+
+fn clone(example: &str, target_dir: &str) -> Result<(), anyhow::Error> {
+    let source_dir = root_dir().join(example);
+    let project_file = source_dir.join("Cargo.toml");
+
+    let target_dir = PathBuf::from_str(target_dir)?;
+
+    fs::create_dir_all(&target_dir)?;
+    let current_rev = cmd!("git rev-parse HEAD").output()?.stdout;
+    let mut current_rev = String::from_utf8(current_rev)?;
+    current_rev.pop();
+
+    let contents = fs::read_to_string(&project_file).expect("error reading file");
+    let mut t = contents.parse::<toml::Value>().unwrap();
+
+    if let Some(deps) = t.get_mut("dependencies") {
+        for dep in [
+            "drogue-device",
+            "drogue-lorawan-app",
+            "drogue-blinky-app",
+            "ble",
+        ]
+        .iter()
+        {
+            if let Some(toml::Value::Table(table)) = deps.get_mut(dep) {
+                table.remove("path");
+                table.insert(
+                    "git".to_string(),
+                    toml::Value::String(
+                        "https://github.com/drogue-iot/drogue-device.git".to_string(),
+                    ),
+                );
+                table.insert("rev".to_string(), toml::Value::String(current_rev.clone()));
+            }
+        }
+    }
+
+    fs::write(target_dir.join("Cargo.toml"), toml::to_string_pretty(&t)?)?;
+
+    // Locate closes .cargo dir
+    let mut cargo_dir: PathBuf = ".cargo".into();
+    loop {
+        let d = source_dir.join(&cargo_dir);
+        if d.exists() {
+            cargo_dir = d;
+            break;
+        }
+        let p: PathBuf = "..".into();
+        cargo_dir = p.join(cargo_dir);
+    }
+
+    // Copy files
+    fs::create_dir_all(&target_dir.join(".cargo"))?;
+    copy_files(
+        &cargo_dir,
+        vec!["config.toml".into()],
+        &target_dir.join(".cargo"),
+    )?;
+
+    // Copy files
+    copy_files(
+        &source_dir,
+        vec!["src".into(), "memory.x".into(), "build.rs".into()],
+        &target_dir,
+    )?;
+    Ok(())
+}
+
+fn copy_files(
+    source_dir: &PathBuf,
+    mut files: Vec<PathBuf>,
+    target_dir: &PathBuf,
+) -> Result<(), anyhow::Error> {
+    while !files.is_empty() {
+        let mut next_files = Vec::new();
+        for file in files.drain(..) {
+            let source_file = source_dir.join(&file);
+            if let Ok(metadata) = source_file.metadata() {
+                let file_type = metadata.file_type();
+                if file_type.is_dir() {
+                    fs::create_dir_all(&target_dir.join(&file))?;
+                    for entry in fs::read_dir(&source_file)? {
+                        let entry = entry?;
+                        let name = entry.file_name().into_string().unwrap();
+                        next_files.push(file.join(name));
+                    }
+                } else {
+                    let src = source_dir.join(&file);
+                    let dst = target_dir.join(&file);
+                    fs::copy(src, dst)?;
+                }
+            }
+        }
+        files = next_files;
+    }
+    Ok(())
 }
 
 fn clean(path: PathBuf) -> Result<(), anyhow::Error> {

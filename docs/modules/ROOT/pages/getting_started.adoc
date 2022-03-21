@@ -58,6 +58,17 @@ DEFMT_LOG=info cargo run --release
 
 IMPORTANT: The DEFMT_LOG environment variable controls the example log verbosity. If not set, you will not see anything logged to the console.
 
+== Creating your own project
+
+Found an example you like? Using the examples in tree have all the dependencies set up for you, but which dependencies should you specify when creating your own project? Since drogue-device is still using nightly rust, and still have dependencies
+that are not released on crates.io, we've prepared a mechanism for you to clone an example into its own folder.
+
+To create a project based on one of the microbit examples, run the following command in the toplevel folder of the drogue-device repository:
+
+```
+cargo xtask clone examples/nrf52/microbit/jukebox $HOME/myexample
+```
+
 == Whats next?
 
 Congratulations, you have your first Drogue Device application running! Here are some alternatives on where to go from here:
