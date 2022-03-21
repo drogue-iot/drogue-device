@@ -24,10 +24,10 @@ static DISCO: ActorContext<Disco> = ActorContext::new();
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let board = Microbit::new(p);
-    let matrix = LED_MATRIX.mount(spawner, LedMatrixActor::new(board.led_matrix, None));
+    let matrix = LED_MATRIX.mount(spawner, LedMatrixActor::new(board.display, None));
     let disco = DISCO.mount(spawner, Disco::new(matrix));
 
-    let pwm = SimplePwm::new_1ch(board.pwm0, board.p0_00);
+    let pwm = SimplePwm::new_1ch(board.pwm0, board.speaker);
     let mut speaker = PwmSpeaker::new(pwm);
 
     loop {

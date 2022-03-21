@@ -58,7 +58,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
 
     let mut matrix = device
         .matrix
-        .mount(spawner, LedMatrixActor::new(board.led_matrix, None));
+        .mount(spawner, LedMatrixActor::new(board.display, None));
     matrix.scroll("Hello, Drogue").await.unwrap();
     device
         .ble_service

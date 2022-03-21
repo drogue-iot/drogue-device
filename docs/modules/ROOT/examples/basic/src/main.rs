@@ -110,7 +110,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     static LED_MATRIX: ActorContext<LedMatrixActor> = ActorContext::new();
 
     // Mounting will start the display loop
-    let matrix = LED_MATRIX.mount(spawner, LedMatrixActor::new(board.led_matrix, None));
+    let matrix = LED_MATRIX.mount(spawner, LedMatrixActor::new(board.display, None));
 
     // An actor for the game logic
     static GAME: ActorContext<Game> = ActorContext::new();
@@ -120,6 +120,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     static BUTTON_A: ActorContext<Button<ButtonA, ButtonPressed<Game>>> = ActorContext::new();
     BUTTON_A.mount(
         spawner,
-        Button::new(board.button_a, ButtonPressed(game, GameMessage::Toggle)),
+        Button::new(board.btn_a, ButtonPressed(game, GameMessage::Toggle)),
     );
 }

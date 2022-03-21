@@ -30,11 +30,11 @@ static LED_MATRIX: ActorContext<LedMatrixActor<Output<'static, AnyPin>, 5, 5>> =
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let board = Microbit::new(p);
-    let mut matrix = LED_MATRIX.mount(spawner, LedMatrixActor::new(board.led_matrix, None));
+    let mut matrix = LED_MATRIX.mount(spawner, LedMatrixActor::new(board.display, None));
 
     let config = twim::Config::default();
     let irq = interrupt::take!(SPIM0_SPIS0_TWIM0_TWIS0_SPI0_TWI0);
-    let twi = twim::Twim::new(board.twispi0, irq, board.p0_16, board.p0_08, config);
+    let twi = twim::Twim::new(board.twispi0, irq, board.p23, board.p22, config);
 
     let mut sensor = Lsm303agr::new_with_i2c(twi);
     sensor.init().unwrap();
