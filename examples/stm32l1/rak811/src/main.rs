@@ -14,10 +14,10 @@ use drogue_device::{
     traits::lora::{LoraConfig, LoraMode, LoraRegion, SpreadingFactor},
     *,
 };
+use drogue_lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig, TimeTrigger};
 use embassy::executor::Spawner;
 use embassy::time::Duration;
 use embassy_stm32::Peripherals;
-use drogue_lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig, TimeTrigger};
 
 bind_bsp!(Rak811, BSP);
 
