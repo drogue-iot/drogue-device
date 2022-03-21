@@ -82,20 +82,20 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let uart = Uarte::new_with_rtscts(
         board.uarte0,
         irq,
-        board.p0_13,
-        board.p0_01,
-        board.p0_03,
-        board.p0_04,
+        board.p15,
+        board.p14,
+        board.p1,
+        board.p2,
         config,
     );
 
     let (tx, rx) = uart.split();
 
-    let enable_pin = Output::new(board.p0_09, Level::Low, OutputDrive::Standard);
-    let reset_pin = Output::new(board.p0_10, Level::Low, OutputDrive::Standard);
+    let enable_pin = Output::new(board.p9, Level::Low, OutputDrive::Standard);
+    let reset_pin = Output::new(board.p8, Level::Low, OutputDrive::Standard);
 
     let config = TemperatureBoardConfig {
-        send_trigger: board.button_a,
+        send_trigger: board.btn_a,
         sensor: board.temp,
         sensor_ready: AlwaysReady,
         network_config: (),

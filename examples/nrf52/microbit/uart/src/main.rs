@@ -50,24 +50,24 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let board = Microbit::new(p);
 
     let irq = interrupt::take!(UARTE0_UART0);
-    let uarte = uarte::Uarte::new(board.uarte0, irq, board.p0_13, board.p0_01, config);
+    let uarte = uarte::Uarte::new(board.uarte0, irq, board.p15, board.p14, config);
 
     static DEVICE: Forever<MyDevice> = Forever::new();
     let device = DEVICE.put(Default::default());
     let matrix = device
         .matrix
-        .mount(spawner, LedMatrixActor::new(board.led_matrix, None));
+        .mount(spawner, LedMatrixActor::new(board.display, None));
     let statistics = device.statistics.mount(spawner, Statistics::new());
     device
         .server
         .mount(spawner, EchoServer::new(uarte, matrix, statistics));
     device.button_a.mount(
         spawner,
-        Button::new(board.button_a, ButtonAHandler(statistics, matrix)),
+        Button::new(board.btn_a, ButtonAHandler(statistics, matrix)),
     );
     device
         .button_b
-        .mount(spawner, Button::new(board.button_b, ButtonBHandler(matrix)));
+        .mount(spawner, Button::new(board.btn_b, ButtonBHandler(matrix)));
 }
 
 pub struct ButtonAHandler(Address<Statistics>, Address<AppMatrix>);

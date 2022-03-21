@@ -1,0 +1,5 @@
+= Board Support Packages
+
+Drogue Device contains Board Support Packages for the most commonly used boards in the community. A Board Support Package makes it easier to use a particular board with Embassy and Drogue Device, and typically uses pin and peripheral names that match what is defined on the board itself or in the board documentation.
+
+You are free to choose if you wish to use Board Support Packages or not, but we have found they remove some of the common boilerplate for board peripherals that are commonly used, and makes it easier to mentally map the pin names used in your code to the pin names on the board.
