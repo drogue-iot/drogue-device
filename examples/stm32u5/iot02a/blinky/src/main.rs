@@ -5,7 +5,7 @@
 #![allow(incomplete_features)]
 #![feature(generic_associated_types)]
 
-use bsp_blinky_app::{BlinkyBoard, BlinkyConfiguration, BlinkyDevice};
+use drogue_blinky_app::{BlinkyBoard, BlinkyConfiguration, BlinkyDevice};
 use drogue_device::{bind_bsp, Board, DeviceContext};
 use embassy_stm32::Peripherals;
 
