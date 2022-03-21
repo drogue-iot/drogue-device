@@ -17,7 +17,7 @@ use drogue_device::{
 use embassy::executor::Spawner;
 use embassy::time::Duration;
 use embassy_stm32::Peripherals;
-use lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig, TimeTrigger};
+use drogue_lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig, TimeTrigger};
 
 bind_bsp!(Rak811, BSP);
 

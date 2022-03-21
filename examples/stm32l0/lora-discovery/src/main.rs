@@ -16,7 +16,7 @@ use drogue_device::{
 };
 use embassy::executor::Spawner;
 use embassy_stm32::Peripherals;
-use lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig};
+use drogue_lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig};
 
 bind_bsp!(LoraDiscovery, BSP);
 
