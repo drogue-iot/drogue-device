@@ -34,8 +34,8 @@ pub type AppMatrix = LedMatrixActor<Output<'static, AnyPin>, 5, 5>;
 
 #[derive(Default)]
 pub struct MyDevice {
-    button_a: ActorContext<Button<ButtonA, ButtonAHandler>>,
-    button_b: ActorContext<Button<ButtonB, ButtonBHandler>>,
+    button_a: ActorContext<Button<PinButtonA, ButtonAHandler>>,
+    button_b: ActorContext<Button<PinButtonB, ButtonBHandler>>,
     statistics: ActorContext<Statistics>,
     server: ActorContext<EchoServer<Uarte<'static, UARTE0>>>,
     matrix: ActorContext<AppMatrix>,
