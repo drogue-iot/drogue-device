@@ -30,8 +30,8 @@ pub type ButtonB = Button<Input<'static, P0_23>, ActiveLow>;
 
 pub struct Microbit {
     pub display: LedMatrix,
-    pub btn_a: ButtonA,
-    pub btn_b: ButtonB,
+    pub btn_a: PinButtonA,
+    pub btn_b: PinButtonB,
     pub uarte0: UARTE0,
     pub timer0: TIMER0,
     pub speaker: P0_00,
@@ -87,8 +87,8 @@ impl Board for Microbit {
 
         Self {
             display: LedMatrixDriver::new(rows, cols),
-            btn_a: Button::new(Input::new(p.P0_14, Pull::Up)),
-            btn_b: Button::new(Input::new(p.P0_23, Pull::Up)),
+            btn_a: Input::new(p.P0_14, Pull::Up),
+            btn_b: Input::new(p.P0_23, Pull::Up),
             uarte0: p.UARTE0,
             timer0: p.TIMER0,
             speaker: p.P0_00,

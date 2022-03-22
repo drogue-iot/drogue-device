@@ -64,7 +64,7 @@ impl TemperatureBoard for BSP {
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = TemperatureMonitor;
-    type SendTrigger = ButtonA;
+    type SendTrigger = PinButtonA;
     type Rng = Rng;
 }
 

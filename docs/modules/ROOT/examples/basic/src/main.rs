@@ -117,7 +117,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let game = GAME.mount(spawner, Game::new(matrix));
 
     // Actor for button 'A'
-    static BUTTON_A: ActorContext<Button<ButtonA, ButtonPressed<Game>>> = ActorContext::new();
+    static BUTTON_A: ActorContext<Button<PinButtonA, ButtonPressed<Game>>> = ActorContext::new();
     BUTTON_A.mount(
         spawner,
         Button::new(board.btn_a, ButtonPressed(game, GameMessage::Toggle)),
