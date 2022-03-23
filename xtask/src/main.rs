@@ -30,8 +30,9 @@ fn main() -> Result<(), anyhow::Error> {
         _ => {
             println!("USAGE:");
             println!("\tcargo xtask ci");
-            println!("\tcargo xtask check examples/nrf52/microbit");
-            println!("\tcargo xtask build examples/nrf52/microbit");
+            println!("\tcargo xtask check examples/nrf52/microbit/jukebox");
+            println!("\tcargo xtask build examples/nrf52/microbit/jukebox");
+            println!("\tcargo xtask clone examples/nrf52/microbit/jukebox target-folder");
             println!("\tcargo xtask update");
             println!("\tcargo xtask docs");
             println!("\tcargo xtask clean");
@@ -46,8 +47,8 @@ static WORKSPACES: &[&str] = &[
     "examples/nrf52/microbit/esp8266",
     "examples/nrf52/microbit/jukebox",
     "examples/nrf52/adafruit-feather-nrf52840/neopixel",
+    "examples/nrf52/adafruit-feather-nrf52840/bootloader-dfu",
     "examples/nrf52/nrf52840-dk/ble-mesh",
-    "examples/nrf52/nrf52840-dk/bootloader-dfu",
     "examples/stm32l0/lora-discovery",
     "examples/stm32l1/rak811",
     "examples/stm32l4/iot01a-wifi",

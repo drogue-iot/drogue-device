@@ -4,44 +4,50 @@ authors = [
     "Bob McWhirter <bmcwhirt@redhat.com>"
 ]
 edition = "2018"
-name = "nrf52840-bootloader-dfu"
+name = "adafruit-feather-nrf52840-bootloader-dfu"
 version = "0.1.0"
-description = "nrf52840-dk Bootloader DFU example"
-keywords = ["nrf52840", "nrf", "nrf52", "dfu"]
+description = "Adafruit Feather nRF52840 Bootloader DFU example"
+keywords = ["nrf52840", "nrf", "nrf52", "dfu", "bootloader", "feather", "adafruit", "ble", "usb"]
 resolver = "2"
 
 [workspace]
 
 [dependencies]
 defmt = { version = "0.3" }
-defmt-rtt = { version = "0.3", optional = true }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 panic-reset = { version = "0.1.1", optional = true }
 
-drogue-device = { path = "../../../../device", default-features = false, features = ["time", "dfu"] }
+drogue-device = { path = "../../../../device", default-features = false, features = ["time", "dfu", "usb", "bsp+adafruit_feather_nrf52840"] }
 
+embassy-boot-nrf = { version = "0.1.0", default-features = false, features = ["softdevice"] }
 embassy = { version = "0.1.0", default-features = false, features = [] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52840", "gpiote", "time-driver-rtc1"]}
-embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "da9c0efaad594b48cfcdf641d353133d14cf98fe", features = ["softdevice"] }
 
 cortex-m    = { version = "0.7.2" }
 cortex-m-rt = "0.7"
 heapless = "0.7"
 futures     = { version = "0.3.17", default-features = false, features = ["async-await"] }
 
-nrf-softdevice = { version = "0.1.0", features = ["ble-peripheral", "ble-central", "ble-gatt-server", "s140", "nrf52840"] }
+nrf-softdevice = { version = "0.1.0", features = ["ble-peripheral", "ble-gatt-server", "s140", "nrf52840", "critical-section-impl"] }
 nrf-softdevice-s140 = { version = "0.1.0" }
+nrf-softdevice-defmt-rtt = { version = "0.1.0", optional = true }
+
+usb-device = "0.2"
+usbd-serial = "0.1.1"
+nrf-usbd = "0.1.1"
 
 [features]
-default = ["b", "defmt-rtt", "panic-probe"]
-b = []
-a = [
-    "defmt-rtt",
+default = [
+    "panic-reset"
+]
+debug = [
     "panic-probe",
     "drogue-device/defmt",
     "nrf-softdevice/defmt",
     "embassy/defmt",
     "embassy-nrf/defmt",
+    "embassy-boot-nrf/defmt",
+    "nrf-softdevice-defmt-rtt",
 ]
 
 [profile.dev]
@@ -77,13 +83,15 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "da9c0efaad594b48cfcdf641d353133d14cf98fe" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "da9c0efaad594b48cfcdf641d353133d14cf98fe" }
-embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "da9c0efaad594b48cfcdf641d353133d14cf98fe" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "da9c0efaad594b48cfcdf641d353133d14cf98fe" }
+#embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "5c68f0bae7c4091ad34fb2a671e08a614d9beb9a" }
+#embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "5c68f0bae7c4091ad34fb2a671e08a614d9beb9a" }
+#embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "5c68f0bae7c4091ad34fb2a671e08a614d9beb9a" }
+#embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "5c68f0bae7c4091ad34fb2a671e08a614d9beb9a" }
 nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
 nrf-softdevice-s140 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
+nrf-softdevice-defmt-rtt = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
 
-#embassy = { path = "../../../../../embassy/embassy" }
-#embassy-nrf = { path = "../../../../../embassy/embassy-nrf" }
-#embassy-hal-common = { path = "../../../../../embassy/embassy-hal-common" }
+embassy = { path = "../../../../../../embassy/embassy" }
+embassy-nrf = { path = "../../../../../../embassy/embassy-nrf" }
+embassy-boot-nrf = { path = "../../../../../../embassy/embassy-boot/nrf" }
+embassy-boot = { path = "../../../../../../embassy/embassy-boot/boot" }
