@@ -36,7 +36,7 @@ Lets start with the types:
 
 [source,rust]
 ----
-include::example$basic/src/main.rs[lines="26..35"]
+include::example$basic/src/main.rs[lines="26..36"]
 ----
 
 The `Game` type holds on to the `Address` of the led matrix actor. The `Address` type is a handle that you can use to send messages to an `Actor`. In addition, we define the `GameMessage` message that our actor will expect to be notified
@@ -46,14 +46,14 @@ We can now have our `Game` type implement the `Actor` trait:
 
 [source,rust]
 ----
-include::example$basic/src/main.rs[lines="43..57"]
+include::example$basic/src/main.rs[lines="44..50"]
 ----
 
-The `Message` of an `Actor` defines the messages that our actor expects to handle. Next, the `OnMountFuture` associated type needs to be defined.
+The `Message` of an `Actor` defines the messages that our actor expects to handle.
 
-NOTE: Why do you have to define the `OnMountFuture` type? The rust compiler cannot automatically infer the size of the `on_mount` entry point, and needs some assistance in knowing what to do. This is only temporary until Rust supports basic async traits, so for now we'll have to live with it.
+NOTE: Why do you have to define the `actor` attribute? Rust does not yet support async methods in traits, and needs some assistance in knowing what to do. This is only temporary until Rust supports basic async traits, so for now we'll have to live with it.
 
-We can now define the main actor logic in the `on_mount` implementation. The type signature of this method needs to match the lifetimes of the `OnMountFuture` for the Rust compiler to cope with it.
+We can now define the main actor logic in the `on_mount` implementation.
 
 The `on_mount` entry point is called only once, and should contain the Actor main loop. The actor is handed an address to itself. This can be useful if you need to register the `Actor` with other actors or types. The `Address` type can be copied, so it's easy to pass around.
 
@@ -79,10 +79,8 @@ The game logic is implemented here:
 
 [source,rust,indent=0]
 ----
-include::example$basic/src/main.rs[lines="58..102"]
+include::example$basic/src/main.rs[lines="51..96"]
 ----
-
-NOTE: The `async move` keywords are used to tell the compiler to generate a future based on the code block within. Again this is something that will be hidden once Rust support async traits.
 
 You can see the use of the `self.matrix` which of type `Address`. The `on` method under the hood sends a message to a `LedMatrixActor` for toggling the LED at a given coordinate. The `inbox.next()` is an async funtion that completes when an event have been received.
 
@@ -94,7 +92,7 @@ With the game logic defined, we can now wire our three actors together in the ap
 
 [source,rust]
 ----
-include::example$basic/src/main.rs[lines="107..-1"]
+include::example$basic/src/main.rs[lines="98..-1"]
 ----
 
 The main entry point is defined using the `#[embassy::main]` macro. The entry point is also required to take a `Spawner` and a `Peripherals` argument.
