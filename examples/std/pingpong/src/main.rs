@@ -13,11 +13,19 @@ async fn main(spawner: embassy::executor::Spawner) {
         .format_timestamp_nanos()
         .init();
 
-    static PINGER: ActorContext<PingPonger> = ActorContext::new();
-    static PONGER: ActorContext<PingPonger> = ActorContext::new();
+    let ponger = spawn_actor!(
+        spawner,
+        PONGER,
+        PingPonger,
+        PingPonger("ponger", "pong", None)
+    );
 
-    let ponger = PONGER.mount(spawner, PingPonger("ponger", "pong", None));
-    PINGER.mount(spawner, PingPonger("pinger", "ping", Some(ponger)));
+    spawn_actor!(
+        spawner,
+        PINGER,
+        PingPonger,
+        PingPonger("pinger", "ping", Some(ponger))
+    );
 }
 
 pub struct PingPonger(&'static str, &'static str, Option<Address<PingPonger>>);

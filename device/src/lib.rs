@@ -151,3 +151,12 @@ macro_rules! unborrow {
         )*
     }
 }
+
+/// Spawn an actor given a spawner and the actors name, type and instance.
+#[macro_export]
+macro_rules! spawn_actor {
+    ($spawner:ident, $name:ident, $ty:ty, $instance:expr) => {{
+        static $name: ::drogue_device::ActorContext<$ty> = ::drogue_device::ActorContext::new();
+        $name.mount($spawner, $instance)
+    }};
+}
