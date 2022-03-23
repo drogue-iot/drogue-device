@@ -7,7 +7,7 @@ edition = "2018"
 name = "adafruit-feather-nrf52840-bootloader-dfu"
 version = "0.1.0"
 description = "Adafruit Feather nRF52840 Bootloader DFU example"
-keywords = ["nrf52840", "nrf", "nrf52", "dfu", "bootloader", "feather", "adafruit"]
+keywords = ["nrf52840", "nrf", "nrf52", "dfu", "bootloader", "feather", "adafruit", "ble", "usb"]
 resolver = "2"
 
 [workspace]
