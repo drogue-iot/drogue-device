@@ -1,6 +1,5 @@
 use core::future::Future;
 use drogue_device::actors::dfu::{DfuCommand, FirmwareManager};
-use drogue_device::actors::flash::SharedFlashHandle;
 use drogue_device::{Actor, Address, Inbox};
 use heapless::Vec;
 use nrf_softdevice::{
@@ -13,6 +12,7 @@ pub struct GattServer {
     pub firmware: FirmwareUpdateService,
 }
 
+// The FirmwareUpdate proprietary GATT service
 #[nrf_softdevice::gatt_service(uuid = "1861")]
 pub struct FirmwareUpdateService {
     #[characteristic(uuid = "1234", write)]
@@ -28,11 +28,12 @@ pub struct FirmwareUpdateService {
     pub version: Vec<u8, 16>,
 }
 
+// THe task running the BLE advertisement and discovery
 #[embassy::task]
 pub async fn bluetooth_task(
     sd: &'static Softdevice,
     server: &'static GattServer,
-    dfu: Address<FirmwareUpdater>,
+    dfu: Address<GattUpdater>,
 ) {
     #[rustfmt::skip]
     let adv_data = &[
@@ -70,21 +71,21 @@ pub async fn bluetooth_task(
     }
 }
 
-pub struct FirmwareUpdater {
+pub struct GattUpdater {
     service: &'static FirmwareUpdateService,
-    dfu: Address<FirmwareManager<SharedFlashHandle<Flash>>>,
+    dfu: Address<FirmwareManager<Flash>>,
 }
 
-impl FirmwareUpdater {
+impl GattUpdater {
     pub fn new(
         service: &'static FirmwareUpdateService,
-        dfu: Address<FirmwareManager<SharedFlashHandle<Flash>>>,
+        dfu: Address<FirmwareManager<Flash>>,
     ) -> Self {
         Self { service, dfu }
     }
 }
 
-impl Actor for FirmwareUpdater {
+impl Actor for GattUpdater {
     type Message<'m> = FirmwareUpdateServiceEvent;
 
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm

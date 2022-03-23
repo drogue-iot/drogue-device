@@ -5,7 +5,6 @@
 #![feature(type_alias_impl_trait)]
 
 use drogue_device::actors::dfu::{serial::SerialUpdater, usb::UsbUpdater, FirmwareManager};
-use drogue_device::actors::flash::{SharedFlash, SharedFlashHandle};
 use drogue_device::bsp::boards::nrf52::adafruit_feather_nrf52840::*;
 use drogue_device::ActorContext;
 use drogue_device::Board;
@@ -55,6 +54,100 @@ fn config() -> Config {
 #[embassy::main(config = "config()")]
 async fn main(s: Spawner, p: Peripherals) {
     let board = AdafruitFeatherNrf52840::new(p);
+
+    // Spawn the underlying softdevice task
+    let sd = enable_softdevice();
+    s.spawn(softdevice_task(sd)).unwrap();
+
+    let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
+    defmt::info!("Running firmware version {}", version);
+
+    // Watchdog will prevent bootloader from resetting. If your application hangs for more than 5 seconds
+    // (depending on bootloader config), it will enter bootloader which may swap the application back.
+    s.spawn(watchdog_task()).unwrap();
+
+    // The flash peripheral is special when running with softdevice
+    let flash = Flash::take(sd);
+
+    // The updater is the 'application' part of the bootloader that knows where bootloader
+    // settings and the firmware update partition is located based on memory.x linker script.
+    let updater = updater::new();
+
+    // The DFU actor provides a firmware update interface.
+    static DFU: ActorContext<FirmwareManager<Flash>> = ActorContext::new();
+    let dfu = DFU.mount(s, FirmwareManager::new(flash, updater));
+
+    // The SerialUpdater actor follows a fixed frame protocol that updates
+    // firmware using the DFU actor
+    static SERIAL: ActorContext<
+        SerialUpdater<'static, UarteTx<'static, UARTE0>, UarteRx<'static, UARTE0>, Flash>,
+    > = ActorContext::new();
+    let irq = interrupt::take!(UARTE0_UART0);
+    let mut config = uarte::Config::default();
+    config.parity = uarte::Parity::EXCLUDED;
+    config.baudrate = uarte::Baudrate::BAUD115200;
+    let uart = Uarte::new(board.uarte0, irq, board.rx, board.tx, config);
+    let (tx, rx) = uart.split();
+    SERIAL.mount(s, SerialUpdater::new(tx, rx, dfu, version.as_bytes()));
+
+    // Creates an USB bus instance, and mount a UsbUpdater actor that uses the same fixed
+    // frame protocol as the serial updater, but over USB.
+    static USBBUS: Forever<UsbBusAllocator<Usbd<UsbBus<'static, USBD>>>> = Forever::new();
+    let bus = USBBUS.put(UsbBus::new(board.usbd));
+    static mut TX: [u8; 1024] = [0; 1024];
+    static mut RX: [u8; 1024] = [0; 1024];
+    static USB: ActorContext<UsbUpdater<'static, Flash>> = ActorContext::new();
+    USB.mount(s, unsafe {
+        UsbUpdater::new(bus, &mut TX, &mut RX, dfu, version.as_bytes())
+    });
+
+    // Create a BLE GATT service that is capable of updating firmware
+    static GATT: Forever<GattServer> = Forever::new();
+    let server = GATT.put(gatt_server::register(sd).unwrap());
+    server
+        .firmware
+        .version_set(heapless::Vec::from_slice(version.as_bytes()).unwrap())
+        .unwrap();
+    static UPDATER: ActorContext<GattUpdater, 4> = ActorContext::new();
+
+    // Wires together the GATT service and the DFU actor
+    let updater = UPDATER.mount(s, GattUpdater::new(&server.firmware, dfu));
+
+    // Starts the bluetooth advertisement and GATT server
+    s.spawn(bluetooth_task(sd, server, updater)).unwrap();
+
+    // Finally, a blinker application.
+    s.spawn(blinker(board.blue_led)).unwrap();
+}
+
+const BLINK_INTERVAL: Duration = Duration::from_millis(300);
+
+#[embassy::task]
+async fn blinker(mut led: Output<'static, AnyPin>) {
+    loop {
+        Timer::after(BLINK_INTERVAL).await;
+        led.set_low();
+        Timer::after(BLINK_INTERVAL).await;
+        led.set_high();
+    }
+}
+
+#[embassy::task]
+async fn softdevice_task(sd: &'static Softdevice) {
+    sd.run().await;
+}
+
+// Keeps our system alive
+#[embassy::task]
+async fn watchdog_task() {
+    let mut handle = unsafe { embassy_nrf::wdt::WatchdogHandle::steal(0) };
+    loop {
+        handle.pet();
+        Timer::after(Duration::from_secs(2)).await;
+    }
+}
+
+fn enable_softdevice() -> &'static Softdevice {
     let config = nrf_softdevice::Config {
         clock: Some(raw::nrf_clock_lf_cfg_t {
             source: raw::NRF_CLOCK_LF_SRC_RC as u8,
@@ -88,99 +181,5 @@ async fn main(s: Spawner, p: Peripherals) {
         }),
         ..Default::default()
     };
-    let sd = Softdevice::enable(&config);
-    s.spawn(softdevice_task(sd)).unwrap();
-
-    // Watchdog will prevent bootloader from resetting. If your application hangs, it will enter bootloader which may swap the application back.
-    s.spawn(watchdog_task()).unwrap();
-
-    let flash = Flash::take(sd);
-
-    // The SharedFlash actor allows multiple components and tasks to access the flash.
-    static FLASH: ActorContext<SharedFlash<Flash>> = ActorContext::new();
-    let flash = FLASH.mount(s, SharedFlash::new(flash));
-
-    // The updater knows where bootloader settings and the firmware update partition is located based on memory.x
-    let updater = updater::new();
-
-    /// The DFU actor allows you to write to flash
-    static DFU: ActorContext<FirmwareManager<SharedFlashHandle<Flash>>> = ActorContext::new();
-    let dfu = DFU.mount(s, FirmwareManager::new(flash.into(), updater));
-
-    let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
-
-    defmt::info!("Running firmware version {}", version);
-
-    // The GATT server provides a custom FirmwareUpdateService GATT service
-    static GATT: Forever<GattServer> = Forever::new();
-    let server = GATT.put(gatt_server::register(sd).unwrap());
-    server
-        .firmware
-        .version_set(heapless::Vec::from_slice(version.as_bytes()).unwrap())
-        .unwrap();
-    static UPDATER: ActorContext<FirmwareUpdater, 4> = ActorContext::new();
-
-    // Wires together the GATT service and the DFU actor
-    let updater = UPDATER.mount(s, FirmwareUpdater::new(&server.firmware, dfu));
-
-    // Using serial port
-    static SERIAL: ActorContext<
-        SerialUpdater<
-            'static,
-            UarteTx<'static, UARTE0>,
-            UarteRx<'static, UARTE0>,
-            SharedFlashHandle<Flash>,
-        >,
-    > = ActorContext::new();
-    let irq = interrupt::take!(UARTE0_UART0);
-    let mut config = uarte::Config::default();
-    config.parity = uarte::Parity::EXCLUDED;
-    config.baudrate = uarte::Baudrate::BAUD115200;
-    let uart = Uarte::new(board.uarte0, irq, board.rx, board.tx, config);
-    let (tx, rx) = uart.split();
-    SERIAL.mount(s, SerialUpdater::new(tx, rx, dfu, version.as_bytes()));
-
-    // Using USB
-    // Wires together USB and DFU actor
-    static USBBUS: Forever<UsbBusAllocator<Usbd<UsbBus<'static, USBD>>>> = Forever::new();
-    let bus = USBBUS.put(UsbBus::new(board.usbd));
-    static mut TX: [u8; 1024] = [0; 1024];
-    static mut RX: [u8; 1024] = [0; 1024];
-    static USB: ActorContext<UsbUpdater<'static, SharedFlashHandle<Flash>>> = ActorContext::new();
-    USB.mount(s, unsafe {
-        UsbUpdater::new(bus, &mut TX, &mut RX, dfu, version.as_bytes())
-    });
-
-    // Starts the bluetooth advertisement and GATT server
-    s.spawn(bluetooth_task(sd, server, updater)).unwrap();
-
-    // The blinker
-    s.spawn(blinker(board.blue_led)).unwrap();
-}
-
-const BLINK_INTERVAL: Duration = Duration::from_millis(300);
-
-#[embassy::task]
-async fn blinker(mut led: Output<'static, AnyPin>) {
-    loop {
-        Timer::after(BLINK_INTERVAL).await;
-        led.set_low();
-        Timer::after(BLINK_INTERVAL).await;
-        led.set_high();
-    }
-}
-
-#[embassy::task]
-async fn softdevice_task(sd: &'static Softdevice) {
-    sd.run().await;
-}
-
-// Keeps our system alive
-#[embassy::task]
-async fn watchdog_task() {
-    let mut handle = unsafe { embassy_nrf::wdt::WatchdogHandle::steal(0) };
-    loop {
-        handle.pet();
-        Timer::after(Duration::from_secs(2)).await;
-    }
+    Softdevice::enable(&config)
 }
