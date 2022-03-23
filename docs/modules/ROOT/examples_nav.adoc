@@ -1,8 +1,8 @@
 * xref:examples.adoc[Examples]
 ** Basic
 *** xref:examples/rp/pico/blinky/README.adoc[Raspberry Pi Pico Blinky]
-*** xref:examples/std/package/README.adoc[Example application demonstrating how to write packages containing multiple actors]
-*** xref:examples/std/pingpong/README.adoc[Ping pong show how to use circular dependencies between actors]
+*** xref:examples/std/package/README.adoc[How to write a package containing multiple actors]
+*** xref:examples/std/pingpong/README.adoc[Using circular dependencies between actors]
 *** xref:examples/stm32h7/nucleo-h743zi/blinky/README.adoc[STM32 Nucleo-H743 blinky]
 *** xref:examples/stm32u5/iot02a/blinky/README.adoc[STM32 IoT Discovery board blinky]
 ** Ble

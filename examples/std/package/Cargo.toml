@@ -6,7 +6,7 @@ authors = [
 edition = "2018"
 name = "package"
 version = "0.1.0"
-description = "Example application demonstrating how to write packages containing multiple actors"
+description = "How to write a package containing multiple actors"
 keywords = ["basic", "std"]
 
 [dependencies]

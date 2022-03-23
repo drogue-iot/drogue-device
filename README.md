@@ -45,21 +45,20 @@ Once you've found an example you like, you can run `cargo xtask clone <example_d
 Following is a simple drogue-device application with a single Actor implementing concurrent access to a counter.
 
 ```rust
+use drogue_device::*;
+
 pub struct Counter {
     count: u32,
 }
 
 pub struct Increment;
 
-/// An Actor implements the Actor trait.
+/// An Actor implements the Actor trait. The actor attribute deals with some of the boilerplate needed until 
+/// Rust has async traits.
+#[actor]
 impl Actor for Counter {
     /// The Message associated type is the message types that the Actor can receive.
     type Message<'a> = Increment;
-
-    /// Drogue Device uses a feature from Nightly Rust called Generic Associated Types (GAT) in order
-    /// to support async functions in traits such as Actor.
-    type OnMountFuture<'a, M> = impl core::future::Future<Output = ()> + 'a
-        where M: 'a + Inbox<Self>;
 
     /// An actor have to implement the on_mount method. on_mount() is invoked when the internals of an actor is ready,
     /// and the actor can begin to receive messages from an inbox.
@@ -67,20 +66,14 @@ impl Actor for Counter {
     /// The following arguments are provided:
     /// * The address to 'self'
     /// * An inbox from which the actor can receive messages
-    fn on_mount<'m, M>(
-        &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
+    async fn on_mount<M>(&mut self, _: Address<Self>, inbox: &mut M) 
     where
         M: Inbox<Self> + 'm
     {
-        async move {
-            loop {
-                // Await the next message and increment the counter
-                if let Some(m) = inbox.next().await {
-                    self.count += 1;
-                }
+        loop {
+            // Await the next message and increment the counter
+            if let Some(m) = inbox.next().await {
+                self.count += 1;
             }
         }
     }
@@ -90,11 +83,8 @@ impl Actor for Counter {
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner) {
 
-    /// Actor state must be static for embassy
-    static COUNTER: ActorContext<Counter> = ActorContext::new();
-
-    /// Mounting the Actor will spawn an embassy task
-    let addr = COUNTER.mount(spawner, Counter {
+    /// Spawning an actor starts its embassy task
+    let addr = spawn_actor!(spawner, COUNTER, Counter, Counter {
         count: 0
     });
 

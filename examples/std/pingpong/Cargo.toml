@@ -6,7 +6,7 @@ authors = [
 edition = "2018"
 name = "pingpong"
 version = "0.1.0"
-description = "Ping pong show how to use circular dependencies between actors"
+description = "Using circular dependencies between actors"
 keywords = ["basic", "std"]
 
 [dependencies]

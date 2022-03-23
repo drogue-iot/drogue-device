@@ -95,6 +95,9 @@ runtime. An actor providing an atomic counter using the above driver is shown be
 ----
 #![feature(type_alias_impl_trait)]
 #![feature(generic_associated_types)]
+
+use drogue_device::*;
+
 pub struct AtomicCounter {
     counter: MyCounter
 }
@@ -104,6 +107,33 @@ pub enum CounterMessage {
     Add(u32),
 }
 
+#[actor]
+impl Actor for AtomicCounter {
+    type Message<'m> = CounterMessage;
+    type Response = u32;
+
+    async fn on_mount<M>(&mut self, _: Address<Self>, inbox: &mut M)
+    where
+        M: Inbox<Self> + 'm
+    {
+        loop {
+            if let Some(m) = inbox.next().await {
+                let value = match m.message() {
+                    CounterMessage::Increment => self.counter.increment().await,
+                    CounterMessage::Add(value) => self.counter.add(*value).await,
+                }
+                // Set the response value
+                message.set_response(value);
+            }
+        }
+    }
+}
+----
+
+Notice the `actor` attribute, which handles a lot of the boilerplate of writing actors. This actor expands the code to the following:
+
+[source, rust]
+----
 impl Actor for AtomicCounter {
     type Message<'m> = CounterMessage;
     type Response = u32;
@@ -132,5 +162,7 @@ impl Actor for AtomicCounter {
     }
 }
 ----
+
+Once Rust has native support for async traits, the attribute will no longer be necessary.
 
 Although a very complex way to implement an atomic counter, it gives you an idea of how actors provide exclusive access to a resource.

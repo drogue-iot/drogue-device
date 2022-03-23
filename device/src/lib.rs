@@ -34,13 +34,10 @@
 //! pub struct Increment;
 //!
 //! /// An Actor implements the Actor trait.
+//! #[drogue_device::actor]
 //! impl Actor for Counter {
 //!     /// The Message associated type is the message types that the Actor can receive.
 //!     type Message<'a> = Increment;
-//!
-//!     /// Drogue Device uses a feature from Nightly Rust called Generic Associated Types (GAT) in order
-//!     /// to support async functions in traits such as Actor.
-//!     type OnMountFuture<'a, M> where M: 'a = impl core::future::Future<Output = ()> + 'a;
 //!
 //!     /// An actor has to implement the on_mount method. on_mount() is invoked when the internals of an actor is ready,
 //!     /// and the actor can begin to receive messages from an inbox.
@@ -48,20 +45,14 @@
 //!     /// The following arguments are provided:
 //!     /// * The address to 'self'
 //!     /// * An inbox from which the actor can receive messages
-//!     fn on_mount<'m, M>(
-//!         &'m mut self,
-//!         _: Address<Self>,
-//!         inbox: &'m mut M,
-//!     ) -> Self::OnMountFuture<'m, M>
+//!     async fn on_mount<M>(&mut self, _: Address<Self>, inbox: &mut M) {
 //!     where
 //!         M: Inbox<Self> + 'm
 //!     {
-//!         async move {
-//!             loop {
-//!                 // Await the next message and increment the counter
-//!                 if let Some(m) = inbox.next().await {
-//!                     self.count += 1;
-//!                 }
+//!         loop {
+//!             // Await the next message and increment the counter
+//!             if let Some(m) = inbox.next().await {
+//!                 self.count += 1;
 //!             }
 //!         }
 //!     }
@@ -71,13 +62,8 @@
 //! #[embassy::main]
 //! async fn main(spawner: embassy::executor::Spawner) {
 //!
-//!     /// Actor state must be static for embassy
-//!     static COUNTER: ActorContext<Counter> = ActorContext::new();
-//!
 //!     // Mounting the Actor will spawn an embassy task
-//!     let addr = COUNTER.mount(spawner, Counter {
-//!         count: 0
-//!     });
+//!     let addr = drogue_device::spawn_actor!(spawner, COUNTER, Counter, Counter { count  0 });
 //!
 //!     // The actor address may be used in any embassy task to communicate with the actor.
 //!     addr.request(Increment).unwrap().await;
@@ -112,7 +98,7 @@ pub use bsp::Board;
 pub mod testutil;
 
 #[doc(hidden)]
-pub use drogue_device_macros::{self as drogue};
+pub use drogue_device_macros::{self as drogue, actor};
 
 #[allow(unused_variables)]
 pub fn print_stack(file: &'static str, line: u32) {
@@ -150,4 +136,13 @@ macro_rules! unborrow {
             let mut $name = unsafe { $name.unborrow() };
         )*
     }
+}
+
+/// Spawn an actor given a spawner and the actors name, type and instance.
+#[macro_export]
+macro_rules! spawn_actor {
+    ($spawner:ident, $name:ident, $ty:ty, $instance:expr) => {{
+        static $name: ::drogue_device::ActorContext<$ty> = ::drogue_device::ActorContext::new();
+        $name.mount($spawner, $instance)
+    }};
 }

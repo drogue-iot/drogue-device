@@ -1,6 +1,6 @@
+use crate::actor;
 use crate::kernel::actor::{Actor, Address, Inbox};
 use crate::traits;
-use core::future::Future;
 
 pub use crate::traits::button::Event as ButtonEvent;
 
@@ -66,23 +66,15 @@ pub trait FromButtonEvent<M> {
         Self: Sized;
 }
 
+#[actor]
 impl<P: traits::button::Button, H: ButtonEventHandler> Actor for Button<P, H> {
-    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
+    async fn on_mount<M>(&mut self, _: Address<Self>, _: &mut M)
     where
-        M: 'm + Inbox<Self>,
-        H: 'm,
-        P: 'm;
-
-    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
-    where
-        M: Inbox<Self> + 'm,
-        Self: 'm,
+        M: Inbox<Self>,
     {
-        async move {
-            loop {
-                let event = self.inner.wait_any().await;
-                self.handler.handle(event);
-            }
+        loop {
+            let event = self.inner.wait_any().await;
+            self.handler.handle(event);
         }
     }
 }
