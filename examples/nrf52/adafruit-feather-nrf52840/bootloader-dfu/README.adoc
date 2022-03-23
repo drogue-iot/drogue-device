@@ -1,0 +1,83 @@
+= Adarfuit nRF52840 Feather DFU example
+
+Example for the Adafruit nRF52840 Feather demonstrating bootloader and firmware update capabilities. The example assumes that the nRF softdevice is installed. With this example, you can use three different options to update the firmare:
+
+* BLE
+* USB
+* UART
+
+== Prerequisites
+
+=== Hardware
+
+* One of link:https://www.adafruit.com/product/4062[Adafruit nRF52840 Feather Express] or link:https://www.adafruit.com/product/4516[Adafruit nRF52840 Feather Sense] (requires soldering to the bottom debug pads).
+* A SWD debug probe such as link:https://github.com/probe-rs/rusty-probe[Rusty Probe] or using a link:https://www.raspberrypi.com/products/raspberry-pi-pico/[Raspberry Pi Pico] and load it with link:https://github.com/majbthrd/DapperMime[this firmware].
+
+=== Software
+
+Clone the link:https://github.com/embassy-rs/embassy[embassy repository]. This example will assume it's available locally in the `$EMBASSY_REPO` environment variable.
+
+Make sure you have the latest versions (`cargo install <tool>`) of these tools:
+
+* `probe-run`
+* `probe-rs-cli`
+* `cargo-flash`
+* `cargo-binutils`
+
+== Usage
+
+=== Erase current settings
+
+```
+probe-rs-cli erase --chip nRF52840_xxAA
+```
+
+=== Flash bootloader
+
+```
+cargo flash --manifest-path $EMBASSY_REPO/embassy-boot/nrf/Cargo.toml --release --features embassy-nrf/nrf52840,softdevice --chip nRF52840_xxAA
+```
+
+=== Flash nRF Softdevice
+
+Download the softdevice version 7.3.0 link:https://www.nordicsemi.com/Products/Development-software/s140/download[here].
+
+```
+probe-rs-cli download path-to-softdevice.hex --format Hex --chip nRF52840_xxAA
+```
+
+=== Flash application
+
+```
+cargo flash --release --chip nRF52840_xxAA
+```
+
+When started, the device will blink it's LED at a fixed interval. You can now modify the example, and DFU it to the device with the using BLE GATT. To do that, it's convenient to use the `drgdfu` tool (`cargo install https://github.com/drogue-iot/drgdfu`).
+
+=== Flashing a new revision using firmware update
+
+One change you can do is to adjust the BLINK_INTERVAL constant to a different value. We can then rebuild the application and flash it using the `drgdfu` tool.
+
+```
+REVISION=myupdate cargo objcopy --release -- -O binary update.bin
+```
+
+Modifying the version in `Cargo.toml` or passing a `REVISION` environment variable will compile the firmware with a new version identifier. This identifier can be used to decide if a firmware update is needed at all by the `drgdfu`.
+
+To use the `drgdfu` tool to update over BLE, generate a metadata file first:
+
+```
+drgdfu generate 0.2.0 update.bin > update.json
+```
+
+We can then use refer to the metadata file when running the DFU process (The MAC address can be found from discovering your device using any tool like `bluetoothsctl` and the command `scan on`):
+
+```
+drgdfu upload ble-gatt --device F8:56:35:45:1C:3C file update.json
+```
+
+Be patient! The firmware update process on the device takes up to 20-30 seconds.
+
+Once finished, the `drgdfu` tool will wait for the device to swap the new firmware and report back the expected version. If not, it will restart the DFU process.
+
+NOTE: When using the USB or serial update, the serial port might disappear when the swap is performed. Follow the instructions as provided by the tool.

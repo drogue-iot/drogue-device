@@ -4,28 +4,30 @@ use crate::drivers::{
     led::{ActiveHigh, ActiveLow, Led},
 };
 use embassy_nrf::{
-    gpio::{Input, Level, Output, OutputDrive, Pull},
+    gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},
     peripherals::{
         P0_02, P0_03, P0_04, P0_05, P0_06, P0_07, P0_08, P0_09, P0_10, P0_11, P0_12, P0_13, P0_14,
         P0_15, P0_16, P0_24, P0_25, P0_26, P0_27, P0_28, P0_29, P0_30, P0_31, P1_02, P1_08, P1_09,
-        P1_10, P1_15, PWM0,
+        PWM0, UARTE0, USBD,
     },
 };
 
-pub type PinLedRed = Output<'static, P1_15>;
+pub type PinLedRed = Output<'static, AnyPin>;
 pub type LedRed = Led<PinLedRed, ActiveHigh>;
 
-pub type PinLedBlue = Output<'static, P1_10>;
+pub type PinLedBlue = Output<'static, AnyPin>;
 pub type LedBlue = Led<PinLedBlue, ActiveHigh>;
 
 pub type PinSwitch = Input<'static, P1_02>;
 pub type Switch = Button<PinSwitch, ActiveLow>;
 
 pub struct AdafruitFeatherNrf52840 {
+    pub uarte0: UARTE0,
     pub pwm0: PWM0,
-    pub red_led: LedRed,
-    pub blue_led: LedBlue,
-    pub switch: Switch,
+    pub usbd: USBD,
+    pub red_led: PinLedRed,
+    pub blue_led: PinLedBlue,
+    pub switch: PinSwitch,
     pub d2: P0_10,
     pub tx: P0_25,
     pub rx: P0_24,
@@ -59,10 +61,12 @@ impl Board for AdafruitFeatherNrf52840 {
 
     fn new(p: Self::Peripherals) -> Self {
         Self {
+            uarte0: p.UARTE0,
             pwm0: p.PWM0,
-            red_led: Led::new(Output::new(p.P1_15, Level::Low, OutputDrive::Standard)),
-            blue_led: Led::new(Output::new(p.P1_10, Level::Low, OutputDrive::Standard)),
-            switch: Button::new(Input::new(p.P1_02, Pull::Up)),
+            usbd: p.USBD,
+            red_led: Output::new(p.P1_15.degrade(), Level::Low, OutputDrive::Standard),
+            blue_led: Output::new(p.P1_10.degrade(), Level::Low, OutputDrive::Standard),
+            switch: Input::new(p.P1_02, Pull::Up),
 
             d2: p.P0_10,
             tx: p.P0_25,
