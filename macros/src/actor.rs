@@ -102,7 +102,6 @@ impl VisitMut for CollectLifetimes {
 
 pub(crate) fn generate_actor(input: &mut Item) {
     let Item(input) = input;
-    println!("Input: {:?}", input);
     let on_mount_future: ImplItemType = parse_quote! {
         type OnMountFuture<'m, M> = impl core::future::Future<Output = ()> + 'm
             where Self: 'm, M: 'm + Inbox<Self>;
