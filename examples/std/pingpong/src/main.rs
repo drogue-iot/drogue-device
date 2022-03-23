@@ -34,7 +34,7 @@ pub enum Message {
     Register(Address<PingPonger>),
 }
 
-#[impl_actor]
+#[actor]
 impl Actor for PingPonger {
     type Message<'a> = Message;
     async fn on_mount<M>(&mut self, me: Address<Self>, inbox: &mut M)

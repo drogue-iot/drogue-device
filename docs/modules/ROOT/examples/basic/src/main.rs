@@ -8,9 +8,10 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use drogue_device::{
+    actor,
     actors::button::{Button, ButtonPressed},
     bsp::boards::nrf52::microbit::*,
-    impl_actor, spawn_actor,
+    spawn_actor,
     traits::led::LedMatrix as LedMatrixTrait,
     Actor, Address, Board, Inbox,
 };
@@ -40,7 +41,7 @@ impl Game {
     }
 }
 
-#[impl_actor]
+#[actor]
 impl Actor for Game {
     type Message<'m> = GameMessage;
 

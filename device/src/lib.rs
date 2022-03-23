@@ -34,7 +34,7 @@
 //! pub struct Increment;
 //!
 //! /// An Actor implements the Actor trait.
-//! #[drogue_device::impl_actor]
+//! #[drogue_device::actor]
 //! impl Actor for Counter {
 //!     /// The Message associated type is the message types that the Actor can receive.
 //!     type Message<'a> = Increment;
@@ -98,7 +98,7 @@ pub use bsp::Board;
 pub mod testutil;
 
 #[doc(hidden)]
-pub use drogue_device_macros::{self as drogue, impl_actor};
+pub use drogue_device_macros::{self as drogue, actor};
 
 #[allow(unused_variables)]
 pub fn print_stack(file: &'static str, line: u32) {

@@ -1,4 +1,4 @@
-use crate::impl_actor;
+use crate::actor;
 use crate::kernel::actor::{Actor, Address, Inbox};
 use crate::traits;
 
@@ -66,7 +66,7 @@ pub trait FromButtonEvent<M> {
         Self: Sized;
 }
 
-#[impl_actor]
+#[actor]
 impl<P: traits::button::Button, H: ButtonEventHandler> Actor for Button<P, H> {
     async fn on_mount<M>(&mut self, _: Address<Self>, _: &mut M)
     where

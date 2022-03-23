@@ -112,7 +112,7 @@ pub fn test(_: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn impl_actor(_: TokenStream, input: TokenStream) -> TokenStream {
+pub fn actor(_: TokenStream, input: TokenStream) -> TokenStream {
     let mut item = parse_macro_input!(input as Item);
     generate_actor(&mut item);
     TokenStream::from(quote!(#item))

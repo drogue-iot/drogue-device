@@ -53,9 +53,9 @@ pub struct Counter {
 
 pub struct Increment;
 
-/// An Actor implements the Actor trait. The impl_actor attribute deals with some of the boilerplate needed until 
+/// An Actor implements the Actor trait. The actor attribute deals with some of the boilerplate needed until 
 /// Rust has async traits.
-#[impl_actor]
+#[actor]
 impl Actor for Counter {
     /// The Message associated type is the message types that the Actor can receive.
     type Message<'a> = Increment;

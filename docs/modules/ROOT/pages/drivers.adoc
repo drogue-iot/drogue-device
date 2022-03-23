@@ -107,7 +107,7 @@ pub enum CounterMessage {
     Add(u32),
 }
 
-#[impl_actor]
+#[actor]
 impl Actor for AtomicCounter {
     type Message<'m> = CounterMessage;
     type Response = u32;
@@ -130,7 +130,7 @@ impl Actor for AtomicCounter {
 }
 ----
 
-Notice the `impl_actor` attribute, which handles a lot of the boilerplate of writing actors. This actor expands the code to the following:
+Notice the `actor` attribute, which handles a lot of the boilerplate of writing actors. This actor expands the code to the following:
 
 [source, rust]
 ----
