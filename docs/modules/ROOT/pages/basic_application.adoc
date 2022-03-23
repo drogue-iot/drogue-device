@@ -105,10 +105,9 @@ For some boards, Drogue Device provide a Board Support Package (BSP) that helps 
 the `Peripherals` type. The board simply helps setting them up and giving them a name that maps to your particular board. In our case, we can use the
 `Microbit` board.
 
-Finally, we create a static `ActorContext` instance for each of the actors in our system: LED_MATRIX, GAME, and BUTTON_A. The `ActorContext` must be
-static, as this is a requirement for spawning tasks in Embassy.
+Finally, we spawn an instance for each of the actors in our system: LED_MATRIX, GAME, and BUTTON_A.
 
-The Actors are started when they are `mounted`. When mounted, an `Address` handle of that actor is returned, and can be used as a parameter to other actors, or directly in the main function.
+An `Address` handle of the actor is returned when spawned, and can be used as a parameter to other actors, or directly in the main function.
 
 === Summary
 
