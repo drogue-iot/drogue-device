@@ -1,3 +1,3 @@
-* xref:examples/nrf52/adafruit-feather-nrf52840/bootloader-dfu/README.adoc[Adafruit Feather nRF52840 Bootloader DFU example]
-* xref:examples/nrf52/microbit/ble-temperature/README.adoc[BBC micro:bit v2 BLE temperature sensor]
-* xref:examples/nrf52/nrf52840-dk/ble-mesh/README.adoc[nrf52840-dk BLE Mesh example]
+* xref:examples/nrf52/adafruit-feather-nrf52840/bootloader-dfu/README.adoc[Adafruit Feather nRF52840 Bootloader DFU example] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/adafruit-feather-nrf52840/bootloader-dfu[github])
+* xref:examples/nrf52/microbit/ble-temperature/README.adoc[BBC micro:bit v2 BLE temperature sensor] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/ble-temperature[github])
+* xref:examples/nrf52/nrf52840-dk/ble-mesh/README.adoc[nrf52840-dk BLE Mesh example] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/nrf52840-dk/ble-mesh[github])

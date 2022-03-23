@@ -423,9 +423,10 @@ fn generate_examples_page() -> Result<(), anyhow::Error> {
                                 );
                             }
                             entries.push(format!(
-                                "* xref:{}/README.adoc[{}]",
+                                "* xref:{}/README.adoc[{}] (link:https://github.com/drogue-iot/drogue-device/tree/main/{}[github])",
                                 relative.unwrap().display(),
-                                description
+                                description,
+                                relative.unwrap().display(),
                             ));
                         }
                     }
