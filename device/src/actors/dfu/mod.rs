@@ -5,6 +5,8 @@ use embedded_storage::nor_flash::{NorFlashError, NorFlashErrorKind};
 use embedded_storage_async::nor_flash::{AsyncNorFlash, AsyncReadNorFlash};
 
 pub mod serial;
+
+#[cfg(feature = "usb")]
 pub mod usb;
 
 pub const PAGE_SIZE: usize = 4096;
