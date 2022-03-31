@@ -26,7 +26,7 @@ where
         async move {
             loop {
                 if let Some(mut m) = inbox.next().await {
-                    self.handle(m.message()).await;
+                    let _ = self.handle(m.message()).await;
                 }
             }
         }
