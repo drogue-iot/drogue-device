@@ -7,6 +7,7 @@
 *** xref:examples/stm32u5/iot02a/blinky/README.adoc[STM32 IoT Discovery board blinky]
 ** Ble
 *** xref:examples/nrf52/adafruit-feather-nrf52840/bootloader-dfu/README.adoc[Adafruit Feather nRF52840 Bootloader DFU example]
+*** xref:examples/nrf52/microbit/ble-dfu/README.adoc[Microbit Bootloader DFU example]
 *** xref:examples/nrf52/microbit/ble-temperature/README.adoc[BBC micro:bit v2 BLE temperature sensor]
 *** xref:examples/nrf52/nrf52840-dk/ble-mesh/README.adoc[nrf52840-dk BLE Mesh example]
 ** Cloud

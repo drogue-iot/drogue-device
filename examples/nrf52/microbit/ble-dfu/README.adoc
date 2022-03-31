@@ -1,0 +1,77 @@
+= Microbit BLE DFU example
+
+Example for the BBC Micro:bit demonstrating bootloader and firmware update capabilities. The example assumes that the nRF softdevice is installed. With this example, you can use BLE to update your microbit.
+
+== Prerequisites
+
+=== Hardware
+
+* BBC Micro:bit
+
+=== Software
+
+Clone the link:https://github.com/embassy-rs/embassy[embassy repository]. This example will assume it's available locally in the `$EMBASSY_REPO` environment variable.
+
+Make sure you have the latest versions (`cargo install <tool>`) of these tools:
+
+* `probe-run`
+* `probe-rs-cli`
+* `cargo-flash`
+* `cargo-binutils`
+
+== Usage
+
+=== Erase current settings
+
+```
+probe-rs-cli erase --chip nRF52833_xxAA
+```
+
+=== Flash bootloader
+
+```
+cp memory-bl.x $EMBASSY_REPO/embassy-boot/nrf/memory.x
+cargo flash --manifest-path $EMBASSY_REPO/embassy-boot/nrf/Cargo.toml --release --features embassy-nrf/nrf52833,softdevice --chip nRF52833_xxAA
+```
+
+=== Flash nRF Softdevice
+
+Download the softdevice version 7.3.0 link:https://www.nordicsemi.com/Products/Development-software/s113/download[here].
+
+```
+probe-rs-cli download path-to-softdevice.hex --format Hex --chip nRF52833_xxAA
+```
+
+=== Flash application
+
+```
+cargo flash --release --chip nRF52833_xxAA
+```
+
+When started, the device scroll the current version across the LED matrix.
+
+=== Flashing a new revision using firmware update
+
+One change you can do is to set the REVISION environment variable, which will adjust the text that is printed on the LED matrix. We can then rebuild the application and flash it using the `drgdfu` tool.
+
+```
+REVISION=myupdate cargo objcopy --release -- -O binary update.bin
+```
+
+Modifying the version in `Cargo.toml` or passing a `REVISION` environment variable will compile the firmware with a new version identifier. This identifier can be used to decide if a firmware update is needed at all by the `drgdfu`.
+
+To use the `drgdfu` tool to update over BLE, generate a metadata file first:
+
+```
+drgdfu generate --version myupdate --file update.bin > update.json
+```
+
+We can then use refer to the metadata file when running the DFU process (The MAC address can be found from discovering your device using any tool like `bluetoothsctl` and the command `scan on`):
+
+```
+drgdfu upload ble-gatt --device F8:56:35:45:1C:3C file update.json
+```
+
+Be patient! The firmware update process on the device takes up to 20-30 seconds.
+
+Once finished, the `drgdfu` tool will wait for the device to swap the new firmware and report back the expected version. If not, it will restart the DFU process.

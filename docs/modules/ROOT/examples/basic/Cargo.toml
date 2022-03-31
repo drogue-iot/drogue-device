@@ -26,5 +26,5 @@ embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf528
 futures = { version = "0.3", default-features = false }
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "5c68f0bae7c4091ad34fb2a671e08a614d9beb9a" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "5c68f0bae7c4091ad34fb2a671e08a614d9beb9a" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
