@@ -13,15 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: cache
-        id: cache-target
-        uses: actions/cache@v2
-        with:
-          path: target
-          key: ${{ runner.os }}-tests
-
       - name: Install drg tool
-        run: cargo install drg --version 0.8.1-alpha1
+        run: cargo install drg
 
       - name: Check
         run: cargo xtask test_examples
