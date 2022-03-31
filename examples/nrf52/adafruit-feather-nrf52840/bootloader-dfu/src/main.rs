@@ -6,6 +6,7 @@
 
 use drogue_device::actors::dfu::{serial::SerialUpdater, usb::UsbUpdater, FirmwareManager};
 use drogue_device::bsp::boards::nrf52::adafruit_feather_nrf52840::*;
+use drogue_device::drivers::ble::gatt::dfu::FirmwareGattService;
 use drogue_device::ActorContext;
 use drogue_device::Board;
 use embassy::executor::Spawner;
@@ -104,14 +105,13 @@ async fn main(s: Spawner, p: Peripherals) {
     // Create a BLE GATT service that is capable of updating firmware
     static GATT: Forever<GattServer> = Forever::new();
     let server = GATT.put(gatt_server::register(sd).unwrap());
-    server
-        .firmware
-        .version_set(heapless::Vec::from_slice(version.as_bytes()).unwrap())
-        .unwrap();
-    static UPDATER: ActorContext<GattUpdater, 4> = ActorContext::new();
+    static UPDATER: ActorContext<FirmwareGattService<Flash>, 4> = ActorContext::new();
 
     // Wires together the GATT service and the DFU actor
-    let updater = UPDATER.mount(s, GattUpdater::new(&server.firmware, dfu));
+    let updater = UPDATER.mount(
+        s,
+        FirmwareGattService::new(&server.firmware, dfu, version.as_bytes()).unwrap(),
+    );
 
     // Starts the bluetooth advertisement and GATT server
     s.spawn(bluetooth_task(sd, server, updater)).unwrap();
