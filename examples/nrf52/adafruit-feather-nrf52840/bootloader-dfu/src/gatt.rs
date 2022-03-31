@@ -1,7 +1,7 @@
-use core::future::Future;
-use drogue_device::actors::dfu::{DfuCommand, FirmwareManager};
-use drogue_device::{Actor, Address, Inbox};
-use heapless::Vec;
+use drogue_device::drivers::ble::gatt::dfu::{
+    FirmwareGattService, FirmwareService, FirmwareServiceEvent,
+};
+use drogue_device::Address;
 use nrf_softdevice::{
     ble::{gatt_server, peripheral},
     raw, Flash, Softdevice,
@@ -9,23 +9,7 @@ use nrf_softdevice::{
 
 #[nrf_softdevice::gatt_server]
 pub struct GattServer {
-    pub firmware: FirmwareUpdateService,
-}
-
-// The FirmwareUpdate proprietary GATT service
-#[nrf_softdevice::gatt_service(uuid = "1861")]
-pub struct FirmwareUpdateService {
-    #[characteristic(uuid = "1234", write)]
-    firmware: Vec<u8, 128>,
-
-    #[characteristic(uuid = "1235", read)]
-    offset: u32,
-
-    #[characteristic(uuid = "1236", write)]
-    control: u8,
-
-    #[characteristic(uuid = "1237", read)]
-    pub version: Vec<u8, 16>,
+    pub firmware: FirmwareService,
 }
 
 // THe task running the BLE advertisement and discovery
@@ -33,7 +17,7 @@ pub struct FirmwareUpdateService {
 pub async fn bluetooth_task(
     sd: &'static Softdevice,
     server: &'static GattServer,
-    dfu: Address<GattUpdater>,
+    dfu: Address<FirmwareGattService<'static, Flash>>,
 ) {
     #[rustfmt::skip]
     let adv_data = &[
@@ -67,67 +51,6 @@ pub async fn bluetooth_task(
 
         if let Err(e) = res {
             defmt::warn!("gatt_server run exited with error: {:?}", e);
-        }
-    }
-}
-
-pub struct GattUpdater {
-    service: &'static FirmwareUpdateService,
-    dfu: Address<FirmwareManager<Flash>>,
-}
-
-impl GattUpdater {
-    pub fn new(
-        service: &'static FirmwareUpdateService,
-        dfu: Address<FirmwareManager<Flash>>,
-    ) -> Self {
-        Self { service, dfu }
-    }
-}
-
-impl Actor for GattUpdater {
-    type Message<'m> = FirmwareUpdateServiceEvent;
-
-    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
-    where
-        Self: 'm,
-        M: 'm + Inbox<Self>;
-    fn on_mount<'m, M>(
-        &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
-    where
-        M: Inbox<Self> + 'm,
-    {
-        async move {
-            loop {
-                if let Some(mut m) = inbox.next().await {
-                    match m.message() {
-                        FirmwareUpdateServiceEvent::ControlWrite(value) => {
-                            defmt::info!("Processing control message {}", value);
-                            if *value == 1 {
-                                self.service.offset_set(0).ok();
-                                self.dfu.request(DfuCommand::Start).unwrap().await.unwrap();
-                            } else if *value == 2 {
-                                self.dfu.notify(DfuCommand::Finish).unwrap();
-                            } else if *value == 3 {
-                                self.dfu.notify(DfuCommand::Booted).unwrap();
-                            }
-                        }
-                        FirmwareUpdateServiceEvent::FirmwareWrite(value) => {
-                            let offset = self.service.offset_get().unwrap();
-                            defmt::info!("Writing {} bytes at offset {}", value.len(), offset);
-                            self.dfu
-                                .request(DfuCommand::WriteBlock(value))
-                                .unwrap()
-                                .await
-                                .unwrap();
-                            self.service.offset_set(offset + value.len() as u32).ok();
-                        }
-                    }
-                }
-            }
         }
     }
 }

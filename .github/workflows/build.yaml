@@ -15,13 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: cache
-        id: cache-target
-        uses: actions/cache@v2
-        with:
-          path: target
-          key: ${{ runner.os }}-device-batch
-
       - name: Build and test
         run: |
           curl -L -o /usr/local/bin/cargo-batch https://github.com/embassy-rs/cargo-batch/releases/download/batch-0.2.0/cargo-batch

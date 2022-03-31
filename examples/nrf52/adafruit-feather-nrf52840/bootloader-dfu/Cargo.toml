@@ -17,7 +17,7 @@ defmt = { version = "0.3" }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 panic-reset = { version = "0.1.1", optional = true }
 
-drogue-device = { path = "../../../../device", default-features = false, features = ["time", "dfu", "usb", "bsp+adafruit_feather_nrf52840"] }
+drogue-device = { path = "../../../../device", default-features = false, features = ["time", "dfu", "usb", "bsp+adafruit_feather_nrf52840", "ble+nrf52840"] }
 
 embassy-boot-nrf = { version = "0.1.0", default-features = false, features = ["softdevice"] }
 embassy = { version = "0.1.0", default-features = false, features = [] }

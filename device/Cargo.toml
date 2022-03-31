@@ -118,14 +118,22 @@ ble = [
     "uuid",
     "micromath"
 ]
-"ble+nrf52840" = [
+"ble+nrf-softdevice" = [
     "ble",
     "nrf-softdevice",
     "nrf-softdevice/ble-peripheral",
+]
+
+"ble+nrf-softdevice-s140" = [
+    "ble+nrf-softdevice",
     "nrf-softdevice/ble-central",
     "nrf-softdevice/s140",
-    "nrf-softdevice/nrf52840",
     "nrf-softdevice-s140",
+]
+
+"ble+nrf52840" = [
+    "ble+nrf-softdevice-s140",
+    "nrf-softdevice/nrf52840",
 ]
 usb = [ "nrf-usbd" ]
 
