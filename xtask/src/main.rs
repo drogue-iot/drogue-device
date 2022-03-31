@@ -43,6 +43,7 @@ fn main() -> Result<(), anyhow::Error> {
 
 static WORKSPACES: &[&str] = &[
     "examples/nrf52/microbit/ble-temperature",
+    "examples/nrf52/microbit/ble-dfu",
     "examples/nrf52/microbit/compass",
     "examples/nrf52/microbit/esp8266",
     "examples/nrf52/microbit/jukebox",

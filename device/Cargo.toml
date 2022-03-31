@@ -26,7 +26,8 @@ embassy-lora = { version = "0.1.0", default-features = false, optional = true }
 embassy-net = { version = "0.1.0", default-features = false, optional = true, features= ["tcp", "medium-ethernet", "pool-16" ]}
 embassy-traits = { version = "0.1.0", default-features = false, optional = true }
 #embassy-stm32 = {path = "../../../embassy/embassy-stm32", default-features = false, optional = true }
-nrf-softdevice = { version = "0.1.0", features = ["ble-peripheral", "ble-central", "ble-gatt-server", "s140", "nrf52840"], optional=true }
+nrf-softdevice = { version = "0.1.0", features = ["ble-peripheral", "ble-gatt-server"], optional=true }
+nrf-softdevice-s113 = { version = "0.1.0", optional=true }
 nrf-softdevice-s140 = { version = "0.1.0", optional=true }
 
 # Wifi Dependencies
@@ -131,9 +132,19 @@ ble = [
     "nrf-softdevice-s140",
 ]
 
+"ble+nrf-softdevice-s113" = [
+    "ble+nrf-softdevice",
+    "nrf-softdevice-s113",
+]
+
 "ble+nrf52840" = [
     "ble+nrf-softdevice-s140",
     "nrf-softdevice/nrf52840",
+]
+
+"ble+nrf52833" = [
+    "ble+nrf-softdevice-s113",
+    "nrf-softdevice/nrf52833",
 ]
 usb = [ "nrf-usbd" ]
 

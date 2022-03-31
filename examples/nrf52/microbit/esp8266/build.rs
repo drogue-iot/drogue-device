@@ -28,4 +28,10 @@ fn main() {
     // here, we ensure the build script is only re-run when
     // `memory.x` is changed.
     println!("cargo:rerun-if-changed=memory.x");
+
+    println!("cargo:rustc-link-arg-bins=--nmagic");
+    println!("cargo:rustc-link-arg-bins=-Tlink.x");
+    if env::var("CARGO_FEATURE_DEBUG").is_ok() {
+        println!("cargo:rustc-link-arg-bins=-Tdefmt.x");
+    }
 }
