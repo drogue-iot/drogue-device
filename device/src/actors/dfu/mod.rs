@@ -90,81 +90,6 @@ impl<F: AsyncNorFlash + AsyncReadNorFlash> FirmwareManager<F> {
     }
 }
 
-pub enum DfuResponse<E> {
-    Ok,
-    Err(E),
-}
-
-impl<E> From<Result<(), E>> for DfuResponse<E> {
-    fn from(result: Result<(), E>) -> Self {
-        match result {
-            Ok(_) => DfuResponse::Ok,
-            Err(e) => DfuResponse::Err(e),
-        }
-    }
-}
-
-#[cfg(feature = "defmt")]
-impl<E> DfuResponse<E>
-where
-    E: defmt::Format,
-{
-    pub fn unwrap(self) -> ()
-    where
-        E:,
-    {
-        match self {
-            Self::Ok => (),
-            Self::Err(e) => {
-                panic!("dfu error: {:?}", e);
-            }
-        }
-    }
-}
-
-#[cfg(feature = "log")]
-impl<E> DfuResponse<E>
-where
-    E: core::format::Debug,
-{
-    pub fn unwrap(self) -> ()
-    where
-        E:,
-    {
-        match self {
-            Self::Ok => (),
-            Self::Err(e) => {
-                panic!("dfu error: {:?}", e);
-            }
-        }
-    }
-}
-
-#[cfg(not(any(feature = "defmt", feature = "log")))]
-impl<E> DfuResponse<E> {
-    pub fn unwrap(self) -> ()
-    where
-        E:,
-    {
-        match self {
-            Self::Ok => (),
-            Self::Err(_) => {
-                panic!("dfu error")
-            }
-        }
-    }
-}
-
-impl<E> Default for DfuResponse<E> {
-    fn default() -> Self {
-        Self::Ok
-    }
-}
-
-pub enum DfuError {
-    Other,
-}
-
 pub enum DfuCommand<'m> {
     /// Start DFU process
     Start,
@@ -181,7 +106,7 @@ impl<F: AsyncNorFlash + AsyncReadNorFlash> Actor for FirmwareManager<F> {
     where
         Self: 'm;
 
-    type Response = DfuResponse<F::Error>;
+    type Response = Option<Result<(), F::Error>>;
 
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where

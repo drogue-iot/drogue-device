@@ -110,7 +110,7 @@ async fn main(s: Spawner, p: Peripherals) {
     // Wires together the GATT service and the DFU actor
     let updater = UPDATER.mount(
         s,
-        FirmwareGattService::new(&server.firmware, dfu, version.as_bytes()).unwrap(),
+        FirmwareGattService::new(&server.firmware, dfu, version.as_bytes(), 64).unwrap(),
     );
 
     // Starts the bluetooth advertisement and GATT server

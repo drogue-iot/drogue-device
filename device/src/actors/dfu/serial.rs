@@ -1,5 +1,5 @@
 use crate::{
-    actors::dfu::{DfuCommand, DfuResponse, FirmwareManager},
+    actors::dfu::{DfuCommand, FirmwareManager},
     Actor, Address, Inbox,
 };
 use core::future::Future;
@@ -138,7 +138,7 @@ where
             SerialCommand::Version => Ok(Some(SerialResponse::Version(self.version))),
             SerialCommand::Start => {
                 if let Ok(f) = self.dfu.request(DfuCommand::Start) {
-                    if let DfuResponse::Ok = f.await {
+                    if let Some(Ok(())) = f.await {
                         Ok(None)
                     } else {
                         Err(SerialError::Flash)
@@ -149,7 +149,7 @@ where
             }
             SerialCommand::Write(_, data) => {
                 if let Ok(f) = self.dfu.request(DfuCommand::WriteBlock(&data[..])) {
-                    if let DfuResponse::Ok = f.await {
+                    if let Some(Ok(())) = f.await {
                         Ok(None)
                     } else {
                         Err(SerialError::Flash)
@@ -167,7 +167,7 @@ where
             }
             SerialCommand::Sync => {
                 if let Ok(f) = self.dfu.request(DfuCommand::Booted) {
-                    if let DfuResponse::Ok = f.await {
+                    if let Some(Ok(())) = f.await {
                         Ok(None)
                     } else {
                         Err(SerialError::Flash)
