@@ -55,6 +55,7 @@ where
             .version_set(Vec::from_slice(version)?)
             .map_err(|_| ())?;
         service.next_version_set(Vec::new()).map_err(|_| ())?;
+        service.offset_set(0).map_err(|_| ())?;
         service.mtu_set(mtu).map_err(|_| ())?;
         Ok(Self { service, dfu })
     }
