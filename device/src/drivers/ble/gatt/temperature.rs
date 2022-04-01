@@ -1,5 +1,5 @@
-use core::future::Future;
 use crate::{Actor, Address, Inbox};
+use core::future::Future;
 use nrf_softdevice::ble::Connection;
 use nrf_softdevice::{temperature_celsius, Softdevice};
 
