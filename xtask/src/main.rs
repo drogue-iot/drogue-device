@@ -63,7 +63,6 @@ static WORKSPACES: &[&str] = &[
     //"examples/wasm/browser",
     "examples/std",
     "docs/modules/ROOT/examples/basic",
-    //"apps/ble",
 ];
 
 fn ci(batch: bool) -> Result<(), anyhow::Error> {
