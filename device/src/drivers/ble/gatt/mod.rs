@@ -7,6 +7,7 @@ pub mod temperature;
 use nrf_softdevice::{raw, Softdevice};
 
 /// Enable softdevice with a given name
+#[cfg(feature = "ble-peripheral")]
 pub fn enable_softdevice(name: &'static str) -> &'static Softdevice {
     let config = nrf_softdevice::Config {
         clock: Some(raw::nrf_clock_lf_cfg_t {
