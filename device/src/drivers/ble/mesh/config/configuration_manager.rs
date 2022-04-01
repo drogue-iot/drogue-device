@@ -4,6 +4,7 @@ use crate::drivers::ble::mesh::config::Configuration;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::CONFIGURATION_SERVER;
 use crate::drivers::ble::mesh::storage::{Payload, Storage};
+use atomic_polyfill::{AtomicBool, Ordering};
 use core::cell::Ref;
 use core::cell::RefCell;
 use heapless::Vec;
@@ -17,7 +18,7 @@ pub struct ConfigurationManager<S: Storage> {
     config: RefCell<Configuration>,
     composition: Composition,
     runtime_seq: RefCell<u32>,
-    force_reset: bool,
+    force_reset: AtomicBool,
 }
 
 impl<S: Storage> ConfigurationManager<S> {
@@ -38,16 +39,16 @@ impl<S: Storage> ConfigurationManager<S> {
             storage: RefCell::new(storage),
             config: RefCell::new(Default::default()),
             composition,
-            force_reset,
+            force_reset: AtomicBool::new(force_reset),
             runtime_seq: RefCell::new(0),
         }
     }
 
     pub(crate) async fn initialize<R: RngCore + CryptoRng>(
-        &mut self,
+        &self,
         rng: &mut R,
     ) -> Result<(), DeviceError> {
-        if self.force_reset {
+        if self.force_reset.load(Ordering::SeqCst) {
             info!("Performing FORCE RESET");
             self.update_configuration(|config| {
                 *config = Configuration::default();
@@ -175,7 +176,7 @@ impl<S: Storage> ConfigurationManager<S> {
         Ok(seq)
     }
 
-    pub(crate) fn reset(&mut self) {
-        self.force_reset = true;
+    pub(crate) fn reset(&self) {
+        self.force_reset.store(true, Ordering::SeqCst);
     }
 }

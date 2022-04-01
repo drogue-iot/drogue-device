@@ -4,10 +4,9 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use drogue_device::actors::dfu::FirmwareManager;
 use drogue_device::bsp::boards::nrf52::microbit::*;
 use drogue_device::drivers::ble::gatt::{dfu::FirmwareGattService, enable_softdevice};
-use drogue_device::traits::led::{LedMatrix as _, TextDisplay};
+use drogue_device::firmware::FirmwareManager;
 use drogue_device::ActorContext;
 use drogue_device::Board;
 use embassy::executor::Spawner;
@@ -18,7 +17,7 @@ use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::Peripherals;
 use nrf_softdevice::ble::gatt_server;
-use nrf_softdevice::{raw, Flash, Softdevice};
+use nrf_softdevice::{Flash, Softdevice};
 
 #[cfg(feature = "panic-probe")]
 use panic_probe as _;
@@ -63,18 +62,14 @@ async fn main(s: Spawner, p: Peripherals) {
 
     // The updater is the 'application' part of the bootloader that knows where bootloader
     // settings and the firmware update partition is located based on memory.x linker script.
-    let updater = updater::new();
-
-    // The DFU actor provides a firmware update interface.
-    static DFU: ActorContext<FirmwareManager<Flash>> = ActorContext::new();
-    let dfu = DFU.mount(s, FirmwareManager::new(flash, updater));
+    let dfu = FirmwareManager::new(flash, updater::new());
 
     // Create a BLE GATT service that is capable of updating firmware
     static GATT: Forever<GattServer> = Forever::new();
     let server = GATT.put(gatt_server::register(sd).unwrap());
-    static UPDATER: ActorContext<FirmwareGattService<Flash>, 4> = ActorContext::new();
 
-    // Wires together the GATT service and the DFU actor
+    // Wires together the GATT service and the firmware manager
+    static UPDATER: ActorContext<FirmwareGattService<'static, Flash>> = ActorContext::new();
     let updater = UPDATER.mount(
         s,
         FirmwareGattService::new(&server.firmware, dfu, version.as_bytes(), 64).unwrap(),
@@ -83,15 +78,10 @@ async fn main(s: Spawner, p: Peripherals) {
     // Starts the bluetooth advertisement and GATT server
     s.spawn(bluetooth_task(sd, server, updater)).unwrap();
 
-    // LED matrix
-    static LED_MATRIX: ActorContext<LedMatrixActor, 3> = ActorContext::new();
-    let mut matrix = LED_MATRIX.mount(s, LedMatrixActor::new(board.display, None));
-
     // Finally, a blinker application.
+    let mut display = board.display;
     loop {
-        let _ = matrix.enable();
-        let _ = matrix.scroll(version).await;
-        let _ = matrix.disable();
+        let _ = display.scroll(version).await;
         Timer::after(Duration::from_secs(5)).await;
     }
 }

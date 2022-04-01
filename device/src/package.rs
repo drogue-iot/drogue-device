@@ -22,8 +22,6 @@ pub trait Package {
 }
 
 impl<A: Actor + 'static, const QUEUE_SIZE: usize> Package for ActorContext<A, QUEUE_SIZE>
-where
-    [SignalSlot<ActorResponse<A>>; QUEUE_SIZE]: Default,
 {
     type Primary = A;
     type Configuration = A;

@@ -77,8 +77,9 @@ cargo xtask update
 ## Directory layout
 
 * `device` - the source of the drogue-device framework
-  * `device/src/traits` - traits provided by drogue that can be used in actors or directly, such as WiFi or LoRa
-  * `device/src/drivers` - drivers that implement traits for a one or more peripherals
+  * `device/src/traits` - traits provided by drogue that can be used in async code, such as TCP, WiFi or LoRa
+  * `device/src/drivers` - async drivers that implement traits for a one or more peripherals
+  * `device/src/network` - network connectivity, common network implementations, HTTP clients,
   * `device/src/actors` - common actors that can be used in applications
   * `device/src/bsp` - board support packages for boards commonly used in drogue device 
 * `actor` - the actor framework

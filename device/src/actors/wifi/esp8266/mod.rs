@@ -1,7 +1,7 @@
 use super::AdapterActor;
 use crate::drivers::wifi::esp8266::*;
 use crate::package::*;
-use crate::{Actor, ActorContext, ActorSpawner, Address, Inbox};
+use crate::{Actor, Inbox, Address};
 use core::{
     cell::{RefCell, UnsafeCell},
     future::Future,

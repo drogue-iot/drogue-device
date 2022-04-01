@@ -1,5 +1,4 @@
 use crate::unborrow;
-use core::marker::PhantomData;
 use core::mem::transmute;
 use core::ops::Add;
 use core::ops::Deref;
@@ -87,7 +86,7 @@ impl<const N: usize> RawPwmRgbw8<N> {
             if cur > N {
                 return Err(Error::SequenceTooLong);
             }
-            color.fill_pwm_words(&mut raw.words[cur]);
+            color.fill_pwm_words(&mut raw.words[cur]).ok().unwrap();
             cur += 1;
         }
         Ok(raw)
@@ -108,7 +107,7 @@ impl<const N: usize> Into<RawPwmRgbw8<N>> for &[Rgbw8; N] {
         let mut raw = RawPwmRgbw8::default();
         let mut cur = 0;
         for color in self {
-            color.fill_pwm_words(&mut raw.words[cur]);
+            color.fill_pwm_words(&mut raw.words[cur]).ok().unwrap();
             cur += 1;
         }
         raw

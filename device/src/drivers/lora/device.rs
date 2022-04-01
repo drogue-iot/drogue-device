@@ -20,26 +20,21 @@ impl radio::Timer for DriverTimer {
     }
 }
 
-pub struct LoraDevice<'a, R, RNG>
+pub struct LoraDevice<R, RNG>
 where
-    R: Radio + 'a,
-    RNG: RngCore + 'a,
+    R: Radio,
+    RNG: RngCore,
 {
-    device: LorawanDevice<'a, R, Crypto, DriverTimer, RNG>,
+    device: LorawanDevice<R, Crypto, DriverTimer, RNG>,
 }
 
 const RX_DELAY1: u32 = 5000;
-impl<'a, R, RNG> LoraDevice<'a, R, RNG>
+impl<R, RNG> LoraDevice<R, RNG>
 where
-    R: Radio + 'a,
-    RNG: RngCore + 'a,
+    R: Radio,
+    RNG: RngCore,
 {
-    pub fn new(
-        config: &LoraConfig,
-        radio: R,
-        rng: RNG,
-        radio_buffer: &'a mut [u8],
-    ) -> Result<Self, LoraError> {
+    pub fn new(config: &LoraConfig, radio: R, rng: RNG) -> Result<Self, LoraError> {
         let data_rate = to_datarate(config.spreading_factor.unwrap_or(SpreadingFactor::SF7));
         let region = to_region(config.region.unwrap_or(LoraRegion::EU868));
         if let Err(e) = region {
@@ -47,21 +42,20 @@ where
         }
         let mut region = region.unwrap();
         region.set_receive_delay1(RX_DELAY1);
-        let mut device = LorawanDevice::new(region, radio, DriverTimer, rng, radio_buffer);
+        let mut device = LorawanDevice::new(region, radio, DriverTimer, rng);
         device.set_datarate(data_rate);
         Ok(Self { device })
     }
 }
 
-impl<'a, R, RNG> LoraDriver for LoraDevice<'a, R, RNG>
+impl<R, RNG> LoraDriver for LoraDevice<R, RNG>
 where
-    R: Radio + 'a,
-    RNG: RngCore + 'a,
+    R: Radio,
+    RNG: RngCore,
 {
     type JoinFuture<'m> = impl Future<Output = Result<(), LoraError>> + 'm
     where
-        'a: 'm,
-        R: 'm;
+        Self: 'm;
     fn join<'m>(&'m mut self, mode: JoinMode) -> Self::JoinFuture<'m> {
         let join_mode = to_lorajoinmode(mode);
         async move {
@@ -75,8 +69,7 @@ where
 
     type SendFuture<'m> = impl Future<Output = Result<(), LoraError>> + 'm
     where
-        'a: 'm,
-        R: 'm;
+        Self: 'm;
     fn send<'m>(&'m mut self, qos: QoS, port: Port, data: &'m [u8]) -> Self::SendFuture<'m> {
         async move {
             self.device
@@ -96,8 +89,7 @@ where
 
     type SendRecvFuture<'m> = impl Future<Output = Result<usize, LoraError>> + 'm
     where
-        'a: 'm,
-        R: 'm;
+        Self: 'm;
     fn send_recv<'m>(
         &'m mut self,
         qos: QoS,

@@ -5,7 +5,6 @@ use crate::drivers::common::socket_pool::SocketPool;
 use embedded_hal::digital::v2::OutputPin;
 use embedded_hal_1::digital::blocking::InputPin;
 
-use crate::actors::wifi::Adapter;
 use crate::traits::{
     ip::{IpAddress, IpProtocol, SocketAddress},
     tcp::{TcpError, TcpStack},
@@ -67,7 +66,7 @@ impl<'a, CS: OutputPin + 'a> Drop for Cs<'a, CS> {
     }
 }
 
-pub struct EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
+pub struct EsWifi<SPI, CS, RESET, WAKEUP, READY, E>
 where
     SPI: Transfer<u8, Error = E>,
     CS: OutputPin + 'static,
@@ -84,7 +83,7 @@ where
     socket_pool: SocketPool,
 }
 
-impl<SPI, CS, RESET, WAKEUP, READY, E> EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
+impl<SPI, CS, RESET, WAKEUP, READY, E> EsWifi<SPI, CS, RESET, WAKEUP, READY, E>
 where
     SPI: Transfer<u8, Error = E>,
     CS: OutputPin + 'static,
@@ -332,8 +331,7 @@ where
     }
 }
 
-impl<SPI, CS, RESET, WAKEUP, READY, E> WifiSupplicant
-    for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
+impl<SPI, CS, RESET, WAKEUP, READY, E> WifiSupplicant for EsWifi<SPI, CS, RESET, WAKEUP, READY, E>
 where
     SPI: Transfer<u8, Error = E>,
     CS: OutputPin + 'static,
@@ -355,8 +353,7 @@ where
     }
 }
 
-impl<SPI, CS, RESET, WAKEUP, READY, E> TcpStack
-    for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
+impl<SPI, CS, RESET, WAKEUP, READY, E> TcpStack for EsWifi<SPI, CS, RESET, WAKEUP, READY, E>
 where
     SPI: Transfer<u8, Error = E>,
     CS: OutputPin + 'static,
@@ -666,17 +663,4 @@ where
             }
         }
     }
-}
-
-impl<SPI, CS, RESET, WAKEUP, READY, E> Adapter
-    for EsWifiController<SPI, CS, RESET, WAKEUP, READY, E>
-where
-    SPI: Transfer<u8, Error = E>,
-    CS: OutputPin + 'static,
-    RESET: OutputPin + 'static,
-    WAKEUP: OutputPin + 'static,
-    READY: InputPin + Wait + 'static,
-    READY: InputPin + Wait + 'static,
-    E: 'static,
-{
 }

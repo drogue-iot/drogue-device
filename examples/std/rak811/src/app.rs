@@ -16,21 +16,19 @@ impl<D: LoraDriver> App<D> {
 }
 
 impl<D: LoraDriver> Actor for App<D> {
-    type Message<'m> = AppCommand
-    where
-        D: 'm;
+    type Message<'m> = AppCommand;
 
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         D: 'm,
-        M: 'm + Inbox<Self>;
+        M: 'm + Inbox<Self::Message<'m>>;
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
+        _: Address<Self::Message<'m>>,
+        mut inbox: M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<Self::Message<'m>> + 'm,
     {
         async move {
             log::info!("Joining LoRaWAN network");
@@ -38,14 +36,11 @@ impl<D: LoraDriver> Actor for App<D> {
             log::info!("LoRaWAN network joined");
             loop {
                 match inbox.next().await {
-                    Some(mut m) => match m.message() {
-                        AppCommand::Send => {
-                            log::info!("Sending data..");
-                            let result = self.driver.send(QoS::Confirmed, 1, b"ping").await;
-                            log::info!("Data sent: {:?}", result);
-                        }
-                    },
-                    _ => {}
+                    AppCommand::Send => {
+                        log::info!("Sending data..");
+                        let result = self.driver.send(QoS::Confirmed, 1, b"ping").await;
+                        log::info!("Data sent: {:?}", result);
+                    }
                 }
             }
         }

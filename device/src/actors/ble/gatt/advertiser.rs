@@ -1,7 +1,8 @@
 use crate::{Actor, Address, Inbox};
 use core::future::Future;
 use heapless::Vec;
-use nrf_softdevice::ble::{peripheral, Connection};
+use nrf_softdevice::ble::peripheral;
+pub use nrf_softdevice::ble::Connection;
 use nrf_softdevice::{raw, Softdevice};
 
 pub trait Acceptor {
@@ -28,10 +29,14 @@ impl<A: Acceptor> Actor for BleAdvertiser<A> {
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         Self: 'm,
-        M: 'm + Inbox<Self>;
-    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
+        M: 'm + Inbox<Self::Message<'m>>;
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Address<Self::Message<'m>>,
+        _: M,
+    ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<Self::Message<'m>> + 'm,
     {
         let mut adv_data: Vec<u8, 31> = Vec::new();
         #[rustfmt::skip]
@@ -67,5 +72,12 @@ impl<A: Acceptor> Actor for BleAdvertiser<A> {
                 self.acceptor.accept(conn).ok().unwrap();
             }
         }
+    }
+}
+
+impl Acceptor for Address<Connection> {
+    type Error = ();
+    fn accept(&mut self, connection: Connection) -> Result<(), Self::Error> {
+        self.try_notify(connection).map_err(|_| ())
     }
 }

@@ -6,7 +6,6 @@ mod buffer;
 mod parser;
 mod protocol;
 use crate::traits::lora::*;
-use drogue_actor::{Actor, Address, Inbox};
 
 pub use buffer::*;
 use core::{
@@ -15,10 +14,7 @@ use core::{
 };
 use embassy::{
     blocking_mutex::raw::NoopRawMutex,
-    channel::{
-        mpsc::{self, Channel, Receiver, Sender},
-        signal::Signal,
-    },
+    channel::{Channel, Receiver, Sender, Signal},
 };
 use embedded_hal::digital::v2::OutputPin;
 use embedded_hal_async::serial::{Read, Write};
@@ -33,7 +29,7 @@ pub struct Initialized {
 }
 
 impl Initialized {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             signal: Signal::new(),
             initialized: AtomicBool::new(false),
@@ -81,7 +77,7 @@ where
 }
 
 impl Rak811Driver {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             initialized: Initialized::new(),
             response_channel: Channel::new(),
@@ -99,7 +95,8 @@ impl Rak811Driver {
         RX: Read + 'static,
         RESET: OutputPin + 'static,
     {
-        let (rp, rc) = mpsc::split(&mut self.response_channel);
+        let rp = self.response_channel.sender();
+        let rc = self.response_channel.receiver();
 
         let modem = Rak811Modem::new(&self.initialized, rx, reset, rp);
         let controller = Rak811Controller::new(&self.initialized, tx, rc);
@@ -265,7 +262,7 @@ where
             let response = self.send_command(Command::Join(mode)).await?;
             match response {
                 Response::Ok => {
-                    let response = self.response_consumer.recv().await.unwrap();
+                    let response = self.response_consumer.recv().await;
                     match response {
                         Response::Recv(EventCode::JoinedSuccess, _, _, _) => Ok(()),
                         r => log_unexpected(r),
@@ -285,7 +282,7 @@ where
             let response = self.send_command(Command::Send(qos, port, data)).await?;
             match response {
                 Response::Ok => {
-                    let response = self.response_consumer.recv().await.unwrap();
+                    let response = self.response_consumer.recv().await;
                     let expected_code = match qos {
                         QoS::Unconfirmed => EventCode::TxUnconfirmed,
                         QoS::Confirmed => EventCode::TxConfirmed,
@@ -346,7 +343,7 @@ where
             .map_err(|_| LoraError::SendError)?;
 
         let response = self.response_consumer.recv().await;
-        Ok(response.unwrap())
+        Ok(response)
     }
 
     async fn send_command_ok<'m>(&mut self, command: Command<'m>) -> Result<(), LoraError> {
@@ -375,58 +372,5 @@ where
         }
         debug!("Config applied");
         Ok(())
-    }
-}
-
-/// Convenience actor implementation of modem
-pub struct Rak811ModemActor<'a, RX, RESET>
-where
-    RX: Read + 'static,
-    RESET: OutputPin + 'static,
-{
-    modem: Rak811Modem<'a, RX, RESET>,
-}
-
-impl<'a, RX, RESET> Rak811ModemActor<'a, RX, RESET>
-where
-    RX: Read + 'static,
-    RESET: OutputPin + 'static,
-{
-    pub fn new(modem: Rak811Modem<'a, RX, RESET>) -> Self {
-        Self { modem }
-    }
-}
-
-impl<'a, RX, RESET> Unpin for Rak811ModemActor<'a, RX, RESET>
-where
-    RX: Read + 'static,
-    RESET: OutputPin + 'static,
-{
-}
-
-impl<'a, RX, RESET> Actor for Rak811ModemActor<'a, RX, RESET>
-where
-    RX: Read + 'static,
-    RESET: OutputPin + 'static,
-{
-    type Message<'m> = ()
-    where
-        Self: 'm,
-        'a: 'm;
-
-    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
-    where
-        'a: 'm,
-        Self: 'm,
-        M: 'm + Inbox<Self>;
-    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
-    where
-        M: Inbox<Self> + 'm,
-    {
-        async move {
-            loop {
-                self.modem.run().await;
-            }
-        }
     }
 }

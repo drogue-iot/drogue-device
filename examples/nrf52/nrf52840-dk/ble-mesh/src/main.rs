@@ -4,11 +4,14 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use core::future::Future;
+use core::{
+    convert::{Infallible, TryFrom},
+    future::Future,
+};
 #[cfg(feature = "defmt-rtt")]
 use defmt_rtt as _;
-use drogue_device::actors::ble::mesh::{MeshNode, MeshNodeMessage};
-use drogue_device::actors::button::{ButtonEvent, ButtonEventHandler};
+use drogue_device::actors::ble::mesh::{MeshNode, MeshNodeMessage, NodeMutex};
+use drogue_device::actors::button::ButtonEvent;
 use drogue_device::actors::led::LedMessage;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
     Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceRng,
@@ -33,8 +36,10 @@ use drogue_device::drivers::ble::mesh::storage::FlashStorage;
 use drogue_device::drivers::ActiveLow;
 use drogue_device::traits::button::Event;
 use drogue_device::{actors, drivers, Actor, ActorContext, Address, DeviceContext, Inbox};
+use embassy::channel::{Channel, Receiver, Sender};
 use embassy::executor::Spawner;
 use embassy::time::{Duration, Timer};
+use embassy::util::Forever;
 use embassy_nrf::config::Config;
 use embassy_nrf::gpio::{Level, OutputDrive, Pull};
 use embassy_nrf::interrupt::Priority;
@@ -52,6 +57,7 @@ use panic_probe as _;
 use panic_reset as _;
 
 type ConcreteMeshNode = MeshNode<
+    'static,
     CustomElementsHandler,
     SoftdeviceAdvertisingBearer,
     FlashStorage<Flash>,
@@ -65,16 +71,16 @@ pub struct MyDevice {
     button: ActorContext<
         actors::button::Button<
             drivers::button::Button<Input<'static, P0_11>, ActiveLow>,
-            MeshButtonPublisherConnector,
+            MeshButtonMessage,
         >,
     >,
     facilities: ActorContext<Nrf52BleMeshFacilities>,
-    mesh: ActorContext<ConcreteMeshNode>,
+    mesh: Forever<ConcreteMeshNode>,
     reset: ActorContext<MeshNodeReset>,
     reset_button: ActorContext<
         actors::button::Button<
             drivers::button::Button<Input<'static, P0_25>, ActiveLow>,
-            ResetButtonHandler,
+            ButtonEvent,
         >,
     >,
 }
@@ -129,7 +135,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
         button: ActorContext::new(),
         button_publisher: ActorContext::new(),
         facilities: ActorContext::new(),
-        mesh: ActorContext::new(),
+        mesh: Forever::new(),
         reset: ActorContext::new(),
         reset_button: ActorContext::new(),
     });
@@ -145,11 +151,9 @@ async fn main(spawner: Spawner, p: Peripherals) {
     let button_publisher = MeshButtonPublisher::new();
     let button_publisher = device.button_publisher.mount(spawner, button_publisher);
 
-    let button_publisher_connector = MeshButtonPublisherConnector(button_publisher);
-
     let button = actors::button::Button::new(
         drivers::button::Button::new(Input::new(p.P0_11, Pull::Up)),
-        button_publisher_connector,
+        button_publisher,
     );
     let _button = device.button.mount(spawner, button);
 
@@ -175,37 +179,45 @@ async fn main(spawner: Spawner, p: Peripherals) {
 
     device.facilities.mount(spawner, facilities);
     let mesh_node = MeshNode::new(elements, capabilities, bearer, storage, rng);
-    let mesh_node = device.mesh.mount(spawner, mesh_node);
+    let mesh_node = device.mesh.put(mesh_node);
 
-    let reset = MeshNodeReset(mesh_node);
+    static CONTROL: Channel<NodeMutex, MeshNodeMessage, 2> = Channel::new();
+    spawner.spawn(run(mesh_node, CONTROL.receiver())).unwrap();
+
+    let reset = MeshNodeReset(CONTROL.sender());
     let reset = device.reset.mount(spawner, reset);
 
-    let reset_handler = ResetButtonHandler(reset);
     let reset_button = actors::button::Button::new(
         drivers::button::Button::new(Input::new(p.P0_25, Pull::Up)),
-        reset_handler,
+        reset,
     );
     let _reset_button = device.reset_button.mount(spawner, reset_button);
+}
+
+#[embassy::task]
+pub async fn run(
+    node: &'static mut ConcreteMeshNode,
+    control: Receiver<'static, NodeMutex, MeshNodeMessage, 2>,
+) {
+    node.run(control).await;
 }
 
 #[allow(unused)]
 pub struct CustomElementsHandler {
     composition: Composition,
-    led: Address<actors::led::Led<drivers::led::Led<Output<'static, P0_13>, ActiveLow>>>,
-    button: Address<MeshButtonPublisher>,
+    led: Address<LedMessage>,
+    button: Address<MeshButtonMessage>,
 }
 
-impl CustomElementsHandler {}
-
-impl ElementsHandler for CustomElementsHandler {
+impl ElementsHandler<'static> for CustomElementsHandler {
     fn composition(&self) -> &Composition {
         &self.composition
     }
 
-    fn connect(&mut self, ctx: AppElementsContext) {
+    fn connect(&mut self, ctx: AppElementsContext<'static>) {
         let button_ctx = ctx.for_element_model::<GenericOnOffClient>(0);
         self.button
-            .notify(MeshButtonMessage::Connect(button_ctx))
+            .try_notify(MeshButtonMessage::Connect(button_ctx))
             .ok();
     }
 
@@ -225,9 +237,9 @@ impl ElementsHandler for CustomElementsHandler {
                     match message {
                         GenericOnOffMessage::Set(set) => {
                             if set.on_off == 0 {
-                                self.led.request(LedMessage::Off).unwrap().await;
+                                self.led.notify(LedMessage::Off).await;
                             } else {
-                                self.led.request(LedMessage::On).unwrap().await;
+                                self.led.notify(LedMessage::On).await;
                             }
                         }
                         _ => {
@@ -242,12 +254,12 @@ impl ElementsHandler for CustomElementsHandler {
 }
 
 pub enum MeshButtonMessage {
-    Connect(AppElementContext<GenericOnOffClient>),
+    Connect(AppElementContext<'static, GenericOnOffClient>),
     Event(Event),
 }
 
 pub struct MeshButtonPublisher {
-    ctx: Option<AppElementContext<GenericOnOffClient>>,
+    ctx: Option<AppElementContext<'static, GenericOnOffClient>>,
 }
 
 impl MeshButtonPublisher {
@@ -267,51 +279,49 @@ impl Actor for MeshButtonPublisher {
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         Self: 'm,
-        M: 'm + Inbox<Self>;
+        M: 'm + Inbox<MeshButtonMessage>;
 
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
+        _: Address<MeshButtonMessage>,
+        mut inbox: M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<MeshButtonMessage> + 'm,
     {
         async move {
             loop {
-                if let Some(mut message) = inbox.next().await {
-                    match message.message() {
-                        MeshButtonMessage::Connect(ctx) => {
-                            defmt::info!("connected to mesh {}", ctx.address());
-                            self.ctx.replace(ctx.clone());
-                        }
-                        MeshButtonMessage::Event(event) => match event {
-                            Event::Pressed => {
-                                if let Some(ctx) = &self.ctx {
-                                    ctx.publish(GenericOnOffMessage::SetUnacknowledged(Set {
-                                        on_off: 1,
-                                        tid: 0,
-                                        transition_time: 0,
-                                        delay: 0,
-                                    }))
-                                    .await
-                                    .ok();
-                                }
-                            }
-                            Event::Released => {
-                                if let Some(ctx) = &self.ctx {
-                                    ctx.publish(GenericOnOffMessage::SetUnacknowledged(Set {
-                                        on_off: 0,
-                                        tid: 0,
-                                        transition_time: 0,
-                                        delay: 0,
-                                    }))
-                                    .await
-                                    .ok();
-                                }
-                            }
-                        },
+                match inbox.next().await {
+                    MeshButtonMessage::Connect(ctx) => {
+                        defmt::info!("connected to mesh {}", ctx.address());
+                        self.ctx.replace(ctx.clone());
                     }
+                    MeshButtonMessage::Event(event) => match event {
+                        Event::Pressed => {
+                            if let Some(ctx) = &self.ctx {
+                                ctx.publish(GenericOnOffMessage::SetUnacknowledged(Set {
+                                    on_off: 1,
+                                    tid: 0,
+                                    transition_time: 0,
+                                    delay: 0,
+                                }))
+                                .await
+                                .ok();
+                            }
+                        }
+                        Event::Released => {
+                            if let Some(ctx) = &self.ctx {
+                                ctx.publish(GenericOnOffMessage::SetUnacknowledged(Set {
+                                    on_off: 0,
+                                    tid: 0,
+                                    transition_time: 0,
+                                    delay: 0,
+                                }))
+                                .await
+                                .ok();
+                            }
+                        }
+                    },
                 }
             }
         }
@@ -320,71 +330,56 @@ impl Actor for MeshButtonPublisher {
 
 pub struct MeshButtonPublisherConnector(Address<MeshButtonPublisher>);
 
-impl ButtonEventHandler for MeshButtonPublisherConnector {
-    fn handle(&mut self, event: Event) {
-        self.0.notify(MeshButtonMessage::Event(event)).ok();
+impl TryFrom<ButtonEvent> for MeshButtonMessage {
+    type Error = Infallible;
+    fn try_from(event: ButtonEvent) -> Result<Self, Self::Error> {
+        Ok(MeshButtonMessage::Event(event))
     }
 }
 
-pub struct ResetButtonHandler(Address<MeshNodeReset>);
-
-impl ButtonEventHandler for ResetButtonHandler {
-    fn handle(&mut self, event: Event) {
-        self.0.notify(event).ok();
-    }
-}
-
-pub struct MeshNodeReset(Address<ConcreteMeshNode>);
+pub struct ResetButtonHandler(Address<MeshNodeMessage>);
+pub struct MeshNodeReset(Sender<'static, NodeMutex, MeshNodeMessage, 2>);
 
 impl Actor for MeshNodeReset {
-    type Message<'m> = ButtonEvent
-    where
-        Self: 'm;
-
+    type Message<'m> = ButtonEvent;
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
-        M: 'm + Inbox<Self>;
+        M: 'm + Inbox<ButtonEvent>;
 
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
+        _: Address<ButtonEvent>,
+        mut inbox: M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<ButtonEvent> + 'm,
         Self: 'm,
     {
         async move {
             loop {
-                let mut message = inbox.next().await;
-                if let Some(inner) = &mut message {
-                    match inner.message() {
-                        ButtonEvent::Pressed => {
-                            defmt::warn!(
-                                "continue holding button 4 for 5 seconds to perform reset"
-                            );
-                            drop(message);
-                            let next_event_fut = inbox.next();
-                            let timeout_fut = Timer::after(Duration::from_secs(5));
+                match inbox.next().await {
+                    ButtonEvent::Pressed => {
+                        defmt::warn!("continue holding button 4 for 5 seconds to perform reset");
+                        let next_event_fut = inbox.next();
+                        let timeout_fut = Timer::after(Duration::from_secs(5));
 
-                            pin_mut!(next_event_fut);
-                            pin_mut!(timeout_fut);
+                        pin_mut!(next_event_fut);
+                        pin_mut!(timeout_fut);
 
-                            let result = select(next_event_fut, timeout_fut).await;
-                            match result {
-                                Either::Left((_, _)) => {
-                                    // nothing
-                                    defmt::warn!("reset cancelled")
-                                }
-                                Either::Right((_, _)) => {
-                                    defmt::warn!("performing reset");
-                                    self.0.notify(MeshNodeMessage::ForceReset).ok();
-                                }
+                        let result = select(next_event_fut, timeout_fut).await;
+                        match result {
+                            Either::Left((_, _)) => {
+                                // nothing
+                                defmt::warn!("reset cancelled")
+                            }
+                            Either::Right((_, _)) => {
+                                defmt::warn!("performing reset");
+                                self.0.send(MeshNodeMessage::ForceReset).await;
                             }
                         }
-                        ButtonEvent::Released => {
-                            // nothing
-                        }
+                    }
+                    ButtonEvent::Released => {
+                        // nothing
                     }
                 }
             }

@@ -13,7 +13,7 @@ where
 {
     ready: P,
     sensor: T,
-    _scale: core::marker::PhantomData<&'static C>,
+    dest: Address<SensorAcquisition<C>>,
 }
 
 impl<P, T, C> Temperature<P, T, C>
@@ -22,11 +22,11 @@ where
     T: TemperatureSensor<C> + 'static,
     C: TemperatureScale + 'static,
 {
-    pub fn new(ready: P, sensor: T) -> Self {
+    pub fn new(ready: P, sensor: T, dest: Address<SensorAcquisition<C>>) -> Self {
         Self {
             sensor,
             ready,
-            _scale: core::marker::PhantomData,
+            dest,
         }
     }
 
@@ -37,71 +37,31 @@ where
     }
 }
 
-pub enum Command {
-    ReadTemperature,
-    Calibrate,
-}
-
 impl<P, T, C> Actor for Temperature<P, T, C>
 where
     P: Wait + InputPin + 'static,
     T: TemperatureSensor<C> + 'static,
     C: TemperatureScale + 'static,
 {
-    type Message<'m> = Command;
-    type Response = Option<Result<SensorAcquisition<C>, T::Error>>;
-
-    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where Self: 'm, M: 'm + Inbox<Self>, P: 'm, T: 'm, C: 'm;
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where Self: 'm, M: 'm + Inbox<Self::Message<'m>>;
 
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
+        _: Address<Self::Message<'m>>,
+        _: M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<Self::Message<'m>> + 'm,
     {
         async move {
             let _ = self.sensor.calibrate().await;
             loop {
-                if let Some(mut m) = inbox.next().await {
-                    self.wait_ready().await;
-                    let data = self.sensor.temperature().await;
-                    m.set_response(Some(data));
+                self.wait_ready().await;
+                let data = self.sensor.temperature().await;
+                if let Ok(data) = data {
+                    self.dest.notify(data).await;
                 }
             }
-        }
-    }
-}
-
-impl<P, T, C> TemperatureSensor<C> for Address<Temperature<P, T, C>>
-where
-    P: Wait + InputPin + 'static,
-    T: TemperatureSensor<C> + 'static,
-    C: TemperatureScale + 'static,
-{
-    type Error = T::Error;
-
-    type CalibrateFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm where P: 'm, T: 'm, C: 'm;
-
-    fn calibrate<'m>(&'m mut self) -> Self::CalibrateFuture<'m> {
-        async move {
-            self.request(Command::Calibrate)
-                .unwrap()
-                .await
-                .unwrap()
-                .map(|_| ())
-        }
-    }
-
-    type ReadFuture<'m> = impl Future<Output = Result<SensorAcquisition<C>, Self::Error>> + 'm where P: 'm, T: 'm, C: 'm;
-
-    fn temperature<'m>(&'m mut self) -> Self::ReadFuture<'m> {
-        async move {
-            self.request(Command::ReadTemperature)
-                .unwrap()
-                .await
-                .unwrap()
         }
     }
 }

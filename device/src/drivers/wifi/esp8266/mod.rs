@@ -20,10 +20,7 @@ use buffer::Buffer;
 use core::future::Future;
 use embassy::{
     blocking_mutex::raw::NoopRawMutex,
-    channel::{
-        mpsc::{self, Channel, Receiver, Sender},
-        signal::Signal,
-    },
+    channel::{Channel, Receiver, Sender, Signal},
 };
 use embedded_hal::digital::v2::OutputPin;
 use embedded_hal_async::serial::{Read, Write};
@@ -46,15 +43,13 @@ pub enum DriverError {
     OperationNotSupported,
 }
 
-type CommandBuffer = (usize, [u8; 256]);
-
 pub struct Initialized {
     signal: Signal<Result<(), DriverError>>,
     initialized: AtomicBool,
 }
 
 impl Initialized {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             signal: Signal::new(),
             initialized: AtomicBool::new(false),
@@ -103,23 +98,21 @@ where
 
 pub struct Esp8266Driver {
     initialized: Initialized,
-    command_channel: Channel<DriverMutex, CommandBuffer, 2>,
     response_channel: Channel<DriverMutex, AtResponse, 2>,
     notification_channel: Channel<DriverMutex, AtResponse, 2>,
 }
 
 impl Esp8266Driver {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             initialized: Initialized::new(),
-            command_channel: Channel::new(),
             response_channel: Channel::new(),
             notification_channel: Channel::new(),
         }
     }
 
     pub fn initialize<'a, TX, RX, ENABLE, RESET>(
-        &'a mut self,
+        &'a self,
         tx: TX,
         rx: RX,
         enable: ENABLE,
@@ -134,15 +127,26 @@ impl Esp8266Driver {
         ENABLE: OutputPin + 'static,
         RESET: OutputPin + 'static,
     {
-        let (rp, rc) = mpsc::split(&mut self.response_channel);
-        let (np, nc) = mpsc::split(&mut self.notification_channel);
-
-        let modem = Esp8266Modem::new(&self.initialized, rx, enable, reset, rp, np);
-        let controller = Esp8266Controller::new(&self.initialized, tx, rc, nc);
+        let modem = Esp8266Modem::new(
+            &self.initialized,
+            rx,
+            enable,
+            reset,
+            self.response_channel.sender(),
+            self.notification_channel.sender(),
+        );
+        let controller = Esp8266Controller::new(
+            &self.initialized,
+            tx,
+            self.response_channel.receiver(),
+            self.notification_channel.receiver(),
+        );
 
         (controller, modem)
     }
 }
+
+unsafe impl Sync for Esp8266Driver {}
 
 impl<'a, RX, ENABLE, RESET> Esp8266Modem<'a, RX, ENABLE, RESET>
 where
@@ -254,16 +258,10 @@ where
                 | AtResponse::DnsFail
                 | AtResponse::UnlinkFail
                 | AtResponse::IpAddresses(..) => {
-                    self.response_producer
-                        .send(response)
-                        .await
-                        .map_err(|_| DriverError::WriteError)?;
+                    self.response_producer.send(response).await;
                 }
                 AtResponse::Closed(..) | AtResponse::DataAvailable { .. } => {
-                    self.notification_producer
-                        .send(response)
-                        .await
-                        .map_err(|_| DriverError::WriteError)?;
+                    self.notification_producer.send(response).await;
                 }
                 AtResponse::WifiConnected => {
                     debug!("wifi connected");
@@ -321,7 +319,7 @@ where
             .write(data)
             .await
             .map_err(|_| DriverError::WriteError)?;
-        Ok(self.response_consumer.recv().await.unwrap())
+        Ok(self.response_consumer.recv().await)
     }
 
     async fn initialize(&mut self) -> Result<(), DriverError> {
@@ -476,12 +474,12 @@ where
 
             let result = match self.send(command).await {
                 Ok(AtResponse::Ok) => {
-                    match self.response_consumer.recv().await.unwrap() {
+                    match self.response_consumer.recv().await {
                         AtResponse::ReadyForData => {
                             self.tx.write(buf).await.map_err(|_| TcpError::WriteError)?;
                             let mut data_sent: Option<usize> = None;
                             loop {
-                                match self.response_consumer.recv().await.unwrap() {
+                                match self.response_consumer.recv().await {
                                     AtResponse::ReceivedDataToSend(len) => {
                                         data_sent.replace(len);
                                     }

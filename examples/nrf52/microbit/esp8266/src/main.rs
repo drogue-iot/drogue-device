@@ -10,13 +10,14 @@ use panic_probe as _;
 mod rng;
 use rng::*;
 
-use drogue_device::{actors::wifi::esp8266::*, drogue, traits::wifi::*, DeviceContext, Package};
 use drogue_device::{
-    actors::wifi::*,
     bsp::{boards::nrf52::microbit::*, Board},
     domain::temperature::Celsius,
+    drivers::wifi::esp8266::*,
+    network::tcp::*,
     *,
 };
+use drogue_device::{drogue, traits::wifi::*, DeviceContext};
 use drogue_temperature::*;
 use embassy_nrf::{
     gpio::{Level, Output, OutputDrive},
@@ -37,30 +38,8 @@ type RESET = Output<'static, P0_10>;
 
 bind_bsp!(Microbit, BSP);
 
-pub struct WifiDriver(Esp8266Wifi<TX, RX, ENABLE, RESET>);
-
-impl Package for WifiDriver {
-    type Configuration = <Esp8266Wifi<TX, RX, ENABLE, RESET> as Package>::Configuration;
-    type Primary = <Esp8266Wifi<TX, RX, ENABLE, RESET> as Package>::Primary;
-
-    fn mount<S: ActorSpawner>(
-        &'static self,
-        config: Self::Configuration,
-        spawner: S,
-    ) -> Address<Self::Primary> {
-        let wifi = self.0.mount(config, spawner);
-        wifi.notify(AdapterRequest::Join(Join::Wpa {
-            ssid: WIFI_SSID.trim_end(),
-            password: WIFI_PSK.trim_end(),
-        }))
-        .unwrap();
-        wifi
-    }
-}
-
 impl TemperatureBoard for BSP {
-    type NetworkPackage = WifiDriver;
-    type Network = <WifiDriver as Package>::Primary;
+    type Network = SharedTcpStack<'static, Esp8266Controller<'static, TX>>;
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = TemperatureMonitor;
@@ -94,11 +73,26 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let enable_pin = Output::new(board.p9, Level::Low, OutputDrive::Standard);
     let reset_pin = Output::new(board.p8, Level::Low, OutputDrive::Standard);
 
+    static WIFI: Esp8266Driver = Esp8266Driver::new();
+    let (mut network, modem) = WIFI.initialize(tx, rx, enable_pin, reset_pin);
+    spawner.spawn(wifi(modem)).unwrap();
+
+    network
+        .join(Join::Wpa {
+            ssid: WIFI_SSID.trim_end(),
+            password: WIFI_PSK.trim_end(),
+        })
+        .await
+        .expect("Error joining WiFi network");
+
+    static NETWORK: TcpStackState<Esp8266Controller<'static, TX>> = TcpStackState::new();
+    let network = NETWORK.initialize(network);
+
     let config = TemperatureBoardConfig {
         send_trigger: board.btn_a,
         sensor: board.temp,
         sensor_ready: AlwaysReady,
-        network_config: (),
+        network,
     };
 
     #[cfg(feature = "tls")]
@@ -108,9 +102,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     defmt::info!("Application configured to NOT use TLS");
 
     DEVICE
-        .configure(TemperatureDevice::new(WifiDriver(Esp8266Wifi::new(
-            tx, rx, enable_pin, reset_pin,
-        ))))
+        .configure(TemperatureDevice::new())
         .mount(
             spawner,
             Rng::new(nrf52833_pac::Peripherals::take().unwrap().RNG),
@@ -118,4 +110,9 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         )
         .await;
     defmt::info!("Application initialized. Press 'A' button to send data");
+}
+
+#[embassy::task]
+pub async fn wifi(mut modem: Esp8266Modem<'static, RX, ENABLE, RESET>) {
+    modem.run().await;
 }

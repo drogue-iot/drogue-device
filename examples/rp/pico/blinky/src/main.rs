@@ -26,6 +26,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     loop {
         cortex_m::asm::delay(1_000_000);
-        led.request(LedMessage::Toggle).unwrap().await;
+        led.notify(LedMessage::Toggle).await;
     }
 }

@@ -37,7 +37,6 @@
 //! #[embassy::main]
 //! async fn main(_spawner: Spawner, p: Peripherals) {
 //!     let mut led = Output::new(p.P0_13, Level::Low, OutputDrive::Standard);
-//!
 //!     loop {
 //!         led.set_high();
 //!         Timer::after(Duration::from_millis(300)).await;
@@ -48,10 +47,9 @@
 //! ~~~
 pub(crate) mod fmt;
 
-pub use drogue_actor::{Actor, ActorContext, ActorSpawner, Address, DeviceContext, Inbox};
-
-pub mod package;
-pub use package::*;
+pub use drogue_actor::{
+    Actor, ActorContext, ActorSpawner, Address, DeviceContext, Inbox, Request, Requester,
+};
 
 pub mod actors;
 
@@ -59,9 +57,14 @@ pub mod traits;
 
 pub mod drivers;
 
-pub mod clients;
+pub mod network;
 
 pub mod domain;
+
+#[cfg(feature = "dfu")]
+pub mod firmware;
+
+pub mod flash;
 
 pub mod bsp;
 pub use bsp::Board;

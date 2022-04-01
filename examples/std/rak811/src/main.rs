@@ -2,10 +2,7 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use core::cell::UnsafeCell;
-use drogue_device::{
-    drivers::lora::rak811::*, drogue, traits::lora::*, ActorContext, DeviceContext,
-};
+use drogue_device::{drivers::lora::rak811::*, drogue, traits::lora::*, ActorContext};
 use embassy::time::{Duration, Timer};
 use embedded_hal::digital::v2::OutputPin;
 
@@ -24,13 +21,8 @@ type TX = SerialWriter;
 type RX = SerialReader;
 type RESET = DummyPin;
 
-pub struct MyDevice {
-    driver: UnsafeCell<Rak811Driver>,
-    modem: ActorContext<Rak811ModemActor<'static, RX, RESET>>,
-    app: ActorContext<App<Rak811Controller<'static, TX>>>,
-}
-
-static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+static APP: ActorContext<App<Rak811Controller<'static, TX>>> = ActorContext::new();
+static mut DRIVER: Rak811Driver = Rak811Driver::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner) {
@@ -55,22 +47,22 @@ async fn main(spawner: embassy::executor::Spawner) {
         .region(LoraRegion::EU868)
         .lora_mode(LoraMode::WAN);
 
-    let device = DEVICE.configure(MyDevice {
-        driver: UnsafeCell::new(Rak811Driver::new()),
-        modem: ActorContext::new(),
-        app: ActorContext::new(),
-    });
+    let (mut controller, m) = unsafe { &mut DRIVER }.initialize(tx, rx, reset_pin);
+    spawner.spawn(modem(m)).unwrap();
 
-    let (mut controller, modem) =
-        unsafe { &mut *device.driver.get() }.initialize(tx, rx, reset_pin);
-    device.modem.mount(spawner, Rak811ModemActor::new(modem));
     controller.configure(&config).await.unwrap();
-    let app = device.app.mount(spawner, App::new(join_mode, controller));
+
+    let app = APP.mount(spawner, App::new(join_mode, controller));
 
     loop {
         let _ = app.notify(AppCommand::Send);
         Timer::after(Duration::from_secs(60)).await;
     }
+}
+
+#[embassy::task]
+async fn modem(mut m: Rak811Modem<'static, RX, RESET>) {
+    m.run().await;
 }
 
 pub struct DummyPin {}

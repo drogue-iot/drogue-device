@@ -7,7 +7,7 @@ edition = "2018"
 name = "adafruit-feather-nrf52840-bootloader-dfu"
 version = "0.1.0"
 description = "Adafruit Feather nRF52840 Bootloader DFU example"
-keywords = ["nrf52840", "nrf", "nrf52", "dfu", "bootloader", "feather", "adafruit", "ble", "usb"]
+keywords = ["nrf52840", "nrf", "nrf52", "dfu", "bootloader", "feather", "adafruit", "ble"]
 resolver = "2"
 
 [workspace]
@@ -17,7 +17,7 @@ defmt = { version = "0.3" }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 panic-reset = { version = "0.1.1", optional = true }
 
-drogue-device = { path = "../../../../device", default-features = false, features = ["time", "dfu", "usb", "bsp+adafruit_feather_nrf52840", "ble+nrf52840"] }
+drogue-device = { path = "../../../../device", default-features = false, features = ["time", "dfu", "bsp+adafruit_feather_nrf52840", "ble+nrf52840"] }
 
 embassy-boot-nrf = { version = "0.1.0", default-features = false, features = ["softdevice"] }
 embassy = { version = "0.1.0", default-features = false, features = [] }
@@ -31,10 +31,6 @@ futures     = { version = "0.3.17", default-features = false, features = ["async
 nrf-softdevice = { version = "0.1.0", features = ["ble-peripheral", "ble-gatt-server", "s140", "nrf52840", "critical-section-impl"] }
 nrf-softdevice-s140 = { version = "0.1.0" }
 nrf-softdevice-defmt-rtt = { version = "0.1.0", optional = true }
-
-usb-device = "0.2"
-usbd-serial = "0.1.1"
-nrf-usbd = "0.1.1"
 
 [features]
 default = [
@@ -83,10 +79,10 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
-embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
-embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
+embassy = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
+embassy-nrf = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
+embassy-boot = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
+embassy-boot-nrf = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
 nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
 nrf-softdevice-s140 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
 nrf-softdevice-defmt-rtt = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }

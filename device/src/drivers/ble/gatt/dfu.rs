@@ -1,7 +1,4 @@
-use crate::{
-    actors::dfu::{DfuCommand, FirmwareManager},
-    Address,
-};
+use crate::firmware::*;
 use embedded_storage_async::nor_flash::{AsyncNorFlash, AsyncReadNorFlash};
 use heapless::Vec;
 
@@ -38,7 +35,7 @@ where
     F: AsyncNorFlash + AsyncReadNorFlash + 'static,
 {
     service: &'a FirmwareService,
-    dfu: Address<FirmwareManager<F>>,
+    dfu: FirmwareManager<F>,
 }
 
 impl<'a, F> FirmwareGattService<'a, F>
@@ -47,7 +44,7 @@ where
 {
     pub fn new(
         service: &'a FirmwareService,
-        dfu: Address<FirmwareManager<F>>,
+        dfu: FirmwareManager<F>,
         version: &[u8],
         mtu: u8,
     ) -> Result<Self, ()> {
@@ -60,34 +57,22 @@ where
         Ok(Self { service, dfu })
     }
 
-    pub async fn handle(&self, event: &FirmwareServiceEvent) -> Result<(), ()> {
+    pub async fn handle(&mut self, event: &FirmwareServiceEvent) -> Result<(), ()> {
         match event {
             FirmwareServiceEvent::ControlWrite(value) => {
                 debug!("Write firmware control: {}", value);
                 if *value == 1 {
                     self.service.offset_set(0).ok();
-                    self.dfu
-                        .request(DfuCommand::Start)
-                        .map_err(|_| ())?
-                        .await
-                        .map_or(Err(()), |_| Ok(()))?;
+                    self.dfu.start().await;
                 } else if *value == 2 {
-                    self.dfu.notify(DfuCommand::Finish).map_err(|_| ())?
+                    let _ = self.dfu.finish().await;
                 } else if *value == 3 {
-                    self.dfu
-                        .request(DfuCommand::Booted)
-                        .map_err(|_| ())?
-                        .await
-                        .map_or(Err(()), |_| Ok(()))?;
+                    self.dfu.mark_booted().await.map_or(Err(()), |_| Ok(()))?;
                 }
             }
             FirmwareServiceEvent::FirmwareWrite(value) => {
                 let offset = self.service.offset_get().unwrap();
-                self.dfu
-                    .request(DfuCommand::WriteBlock(value))
-                    .map_err(|_| ())?
-                    .await
-                    .map_or(Err(()), |_| Ok(()))?;
+                self.dfu.write(value).await.map_or(Err(()), |_| Ok(()))?;
                 self.service.offset_set(offset + value.len() as u32).ok();
             }
             _ => {}

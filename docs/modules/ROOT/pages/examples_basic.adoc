@@ -1,5 +1,3 @@
 * xref:examples/rp/pico/blinky/README.adoc[Raspberry Pi Pico Blinky] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/rp/pico/blinky[github])
-* xref:examples/std/package/README.adoc[How to write a package containing multiple actors] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/package[github])
-* xref:examples/std/pingpong/README.adoc[Using circular dependencies between actors] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/pingpong[github])
 * xref:examples/stm32h7/nucleo-h743zi/blinky/README.adoc[STM32 Nucleo-H743 blinky] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32h7/nucleo-h743zi/blinky[github])
 * xref:examples/stm32u5/iot02a/blinky/README.adoc[STM32 IoT Discovery board blinky] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32u5/iot02a/blinky[github])

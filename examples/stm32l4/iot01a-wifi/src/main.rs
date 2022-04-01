@@ -12,9 +12,9 @@ use panic_probe as _;
 
 use drogue_device::drivers::sensors::hts221::Hts221;
 use drogue_device::{
-    actors::wifi::*,
     bsp::{boards::stm32l4::iot01a::*, Board},
     domain::temperature::Celsius,
+    network::tcp::*,
     traits::wifi::*,
     *,
 };
@@ -27,8 +27,7 @@ const WIFI_PSK: &str = drogue::config!("wifi-password");
 bind_bsp!(Iot01a, BSP);
 
 impl TemperatureBoard for BSP {
-    type NetworkPackage = ActorContext<AdapterActor<EsWifi>>;
-    type Network = AdapterActor<EsWifi>;
+    type Network = SharedTcpStack<'static, EsWifi>;
     type TemperatureScale = Celsius;
     type SendTrigger = UserButton;
     type Sensor = Hts221<I2c2>;
@@ -42,6 +41,7 @@ static DEVICE: DeviceContext<TemperatureDevice<BSP>> = DeviceContext::new();
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let board = Iot01a::new(p);
     let mut wifi = board.wifi;
+
     match wifi.start().await {
         Ok(()) => defmt::info!("Started..."),
         Err(err) => defmt::info!("Error... {}", err),
@@ -56,12 +56,15 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     .expect("Error joining wifi");
     defmt::info!("WiFi network joined");
 
-    let device = DEVICE.configure(TemperatureDevice::new(ActorContext::new()));
+    static NETWORK: TcpStackState<EsWifi> = TcpStackState::new();
+    let network = NETWORK.initialize(wifi);
+
+    let device = DEVICE.configure(TemperatureDevice::new());
     let config = TemperatureBoardConfig {
         send_trigger: board.user_button,
         sensor_ready: board.hts221_ready,
         sensor: Hts221::new(board.i2c2),
-        network_config: AdapterActor::new(wifi),
+        network,
     };
     device.mount(spawner, board.rng, config).await;
 

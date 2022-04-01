@@ -14,8 +14,8 @@ doctest = false
 embassy = { version = "0.1.0", default-features = false, features = ["executor-agnostic", "nightly"] }
 
 # LoRa dependencies
-lorawan-device = { git = "https://github.com/ivajloip/rust-lorawan.git", rev = "0de1a2a31933f7c97887b5718c1755fa5ab93a42", default-features = false, features = ["async"], optional = true }
-lorawan-encoding = { git = "https://github.com/ivajloip/rust-lorawan.git", rev = "0de1a2a31933f7c97887b5718c1755fa5ab93a42", default-features = false, features = ["default-crypto"], optional = true }
+lorawan-device = { git = "https://github.com/ivajloip/rust-lorawan.git", rev = "607d7ee4917e26998b5f130304becde969b6b434", default-features = false, features = ["async"], optional = true }
+lorawan-encoding = { git = "https://github.com/ivajloip/rust-lorawan.git", rev = "607d7ee4917e26998b5f130304becde969b6b434", default-features = false, features = ["default-crypto"], optional = true }
 #lorawan-encoding = { path = "../../../rust-lorawan/encoding", default-features = false, features = ["default-crypto", "defmt"], optional = true }
 #lorawan-device = { path = "../../../rust-lorawan/device", default-features = false, optional = true, features = ["withdefmt", "async"] }
 
@@ -81,11 +81,6 @@ embedded-storage = { version = "0.3.0" }
 # Bootloader
 embassy-boot = { version = "0.1.0", optional = true }
 
-# USB
-usb-device = "0.2"
-usbd-serial = "0.1.1"
-nrf-usbd = { version = "0.1.1", optional = true }
-
 [dev-dependencies]
 drogue-actor = { path = "../actor", features = ["std"] }
 embassy = { version = "0.1.0", features = ["std", "time", "time-tick-1mhz"]}
@@ -96,7 +91,11 @@ arrayvec = { version = "0.6" }
 
 [features]
 default = [ "std", "log", "time" ]
-std = ["embassy/std", "embassy/time"]
+defmt = [
+    "dep:defmt",
+    "embassy/defmt",
+]
+std = ["embassy/std", "embassy/time", "drogue-actor/std"]
 "lora+rak811" = ["nom", "moveslice"]
 "wifi+esp8266" = ["nom", "moveslice"]
 "tcp+smoltcp" = ["embassy-net" ]
@@ -150,7 +149,6 @@ ble-peripheral = []
     "ble+nrf-softdevice-s113",
     "nrf-softdevice/nrf52833",
 ]
-usb = [ "nrf-usbd" ]
 
 neopixel = []
 nrf = [
@@ -160,7 +158,7 @@ nrf = [
 "bsp+b_u585i_iot02a" = [ "embassy-stm32" ]
 "bsp+b_l4s5i_iot01a" = [ "embassy-stm32" ]
 "bsp+b_l475e_iot01a" = [ "embassy-stm32" ]
-"bsp+nucleo_h743zi" = [ "embassy-stm32"]
+"bsp+nucleo_h743zi" = [ "embassy-stm32" ]
 "bsp+nucleo_wl55" = [ "embassy-stm32", "embassy-stm32/subghz", "embassy-stm32/unstable-pac" ]
 "bsp+microbit" = [ "embassy-nrf", "embassy-nrf/gpiote" ]
 "bsp+microbit+temp" = ["bsp+microbit"]

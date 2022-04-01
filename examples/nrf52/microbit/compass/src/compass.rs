@@ -1,7 +1,8 @@
 use core::fmt::Debug;
+use drogue_device::bsp::boards::nrf52::microbit::LedMatrix;
 use drogue_device::domain::led::matrix::Frame;
 use drogue_device::drivers::led::matrix::fonts;
-use drogue_device::traits::led::{LedMatrix, ToFrame};
+use drogue_device::traits::led::ToFrame;
 use embassy::time::{Duration, Timer};
 use lsm303agr::{
     interface::{ReadData, WriteData},
@@ -44,7 +45,7 @@ where
     /// Calibrate the microbit using a simple game idea from the official microbit firmware. User
     /// have to move the microbit around to light up all LEDs, and we will sample min and max values
     /// until done.
-    pub async fn calibrate<M: LedMatrix<5, 5>>(&mut self, matrix: &mut M) {
+    pub async fn calibrate(&mut self, matrix: &mut LedMatrix) {
         defmt::info!("Calibrating... move the microbit around until all pixels are lit");
 
         pub struct Point(pub usize, pub usize);
@@ -82,7 +83,7 @@ where
         let mut visited = [false; PERIMETER_POINTS];
         let mut cursor = Point(2, 2);
 
-        matrix.clear().await.ok().unwrap();
+        matrix.clear();
         let (mut min_x, mut min_y, mut min_z) = (i32::MAX, i32::MAX, i32::MAX);
         let (mut max_x, mut max_y, mut max_z) = (i32::MIN, i32::MIN, i32::MIN);
         let mut samples = 0;
@@ -134,20 +135,17 @@ where
             for i in 0..PERIMETER_POINTS {
                 if cursor.0 == PERIMETER[i].0 && cursor.1 == PERIMETER[i].1 && !visited[i] {
                     visited[i] = true;
-                    matrix
-                        .on(PERIMETER[i].0, PERIMETER[i].1)
-                        .await
-                        .ok()
-                        .unwrap();
+                    matrix.on(PERIMETER[i].0, PERIMETER[i].1);
                     samples += 1;
                 }
             }
+            matrix.render();
 
-            Timer::after(Duration::from_millis(10)).await;
+            Timer::after(Duration::from_micros(500)).await;
         }
 
         defmt::info!("Calibration complete!");
-        matrix.clear().await.ok().unwrap();
+        matrix.clear();
 
         self.x_offset = (min_x + max_x) / 2;
         self.y_offset = (min_y + max_y) / 2;

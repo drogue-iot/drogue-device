@@ -11,13 +11,11 @@ use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::vault::{StorageVault, Vault};
 use crate::drivers::ble::mesh::MESH_BEACON;
-use core::cell::UnsafeCell;
 use core::cell::{Cell, RefCell};
 use core::future::Future;
-use embassy::blocking_mutex::raw::NoopRawMutex;
-use embassy::channel::mpsc;
-use embassy::channel::mpsc::{Channel, Receiver as ChannelReceiver, Sender as ChannelSender};
-use embassy::channel::signal::Signal;
+use core::marker::PhantomData;
+use embassy::blocking_mutex::raw::ThreadModeRawMutex;
+use embassy::channel::{Channel, Receiver as ChannelReceiver, Sender as ChannelSender};
 use embassy::time::{Duration, Ticker};
 use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
@@ -25,6 +23,8 @@ use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
 
 mod context;
+
+type NodeMutex = ThreadModeRawMutex;
 
 pub trait Transmitter {
     type TransmitFuture<'m>: Future<Output = Result<(), DeviceError>>
@@ -42,44 +42,23 @@ pub trait Receiver {
 
 const MAX_MESSAGE: usize = 3;
 
-pub(crate) struct OutboundChannel<'a> {
-    channel: UnsafeCell<Option<Channel<NoopRawMutex, AccessMessage, MAX_MESSAGE>>>,
-    sender: UnsafeCell<Option<ChannelSender<'a, NoopRawMutex, AccessMessage, MAX_MESSAGE>>>,
-    receiver: UnsafeCell<Option<ChannelReceiver<'a, NoopRawMutex, AccessMessage, MAX_MESSAGE>>>,
+pub(crate) struct OutboundChannel {
+    channel: Channel<NodeMutex, AccessMessage, MAX_MESSAGE>,
 }
 
-impl<'a> OutboundChannel<'a> {
+impl OutboundChannel {
     fn new() -> Self {
         Self {
-            channel: UnsafeCell::new(None),
-            sender: UnsafeCell::new(None),
-            receiver: UnsafeCell::new(None),
+            channel: Channel::new(),
         }
-    }
-
-    fn initialize(&self) {
-        unsafe { &mut *self.channel.get() }.replace(Channel::new());
-        let (sender, receiver) = mpsc::split(unsafe { &mut *self.channel.get() }.as_mut().unwrap());
-        unsafe { &mut *self.sender.get() }.replace(sender);
-        unsafe { &mut *self.receiver.get() }.replace(receiver);
     }
 
     async fn send(&self, message: AccessMessage) {
-        unsafe {
-            if let Some(sender) = &*self.sender.get() {
-                sender.send(message).await.ok();
-            }
-        }
+        self.channel.send(message).await;
     }
 
-    async fn next(&self) -> Option<AccessMessage> {
-        unsafe {
-            if let Some(receiver) = &mut *self.receiver.get() {
-                receiver.recv().await
-            } else {
-                None
-            }
-        }
+    async fn next(&self) -> AccessMessage {
+        self.channel.recv().await
     }
 }
 
@@ -92,49 +71,28 @@ pub struct OutboundPublishMessage {
 }
 
 pub(crate) struct OutboundPublishChannel<'a> {
-    channel: UnsafeCell<Option<Channel<NoopRawMutex, OutboundPublishMessage, MAX_MESSAGE>>>,
-    sender:
-        UnsafeCell<Option<ChannelSender<'a, NoopRawMutex, OutboundPublishMessage, MAX_MESSAGE>>>,
-    receiver:
-        UnsafeCell<Option<ChannelReceiver<'a, NoopRawMutex, OutboundPublishMessage, MAX_MESSAGE>>>,
+    channel: Channel<NodeMutex, OutboundPublishMessage, MAX_MESSAGE>,
+    _a: PhantomData<&'a ()>,
 }
 
 impl<'a> OutboundPublishChannel<'a> {
     fn new() -> Self {
         Self {
-            channel: UnsafeCell::new(None),
-            sender: UnsafeCell::new(None),
-            receiver: UnsafeCell::new(None),
+            channel: Channel::new(),
+            _a: PhantomData,
         }
-    }
-
-    fn initialize(&self) {
-        unsafe { &mut *self.channel.get() }.replace(Channel::new());
-        let (sender, receiver) = mpsc::split(unsafe { &mut *self.channel.get() }.as_mut().unwrap());
-        unsafe { &mut *self.sender.get() }.replace(sender);
-        unsafe { &mut *self.receiver.get() }.replace(receiver);
     }
 
     async fn send(&self, message: OutboundPublishMessage) {
-        unsafe {
-            if let Some(sender) = &*self.sender.get() {
-                sender.send(message).await.ok();
-            }
-        }
+        self.channel.send(message).await;
     }
 
-    async fn next(&self) -> Option<OutboundPublishMessage> {
-        unsafe {
-            if let Some(receiver) = &mut *self.receiver.get() {
-                receiver.recv().await
-            } else {
-                None
-            }
-        }
+    async fn next(&self) -> OutboundPublishMessage {
+        self.channel.recv().await
     }
 
-    fn clone_sender(&self) -> ChannelSender<'a, NoopRawMutex, OutboundPublishMessage, MAX_MESSAGE> {
-        unsafe { &*self.sender.get() }.as_ref().unwrap().clone()
+    fn sender(&'a self) -> ChannelSender<'a, NodeMutex, OutboundPublishMessage, MAX_MESSAGE> {
+        self.channel.sender()
     }
 }
 // --
@@ -151,13 +109,13 @@ pub enum MeshNodeMessage {
     Shutdown,
 }
 
-pub struct Node<E, TX, RX, S, R>
+pub struct Node<'a, E, TX, RX, S, R>
 where
-    E: ElementsHandler,
-    TX: Transmitter,
-    RX: Receiver,
-    S: Storage,
-    R: RngCore + CryptoRng,
+    E: ElementsHandler<'a>,
+    TX: Transmitter + 'a,
+    RX: Receiver + 'a,
+    S: Storage + 'a,
+    R: RngCore + CryptoRng + 'a,
 {
     //
     state: Cell<State>,
@@ -168,14 +126,14 @@ where
     rng: RefCell<R>,
     pipeline: RefCell<Pipeline>,
     //
-    pub(crate) elements: RefCell<Elements<E>>,
-    pub(crate) outbound: OutboundChannel<'static>,
-    pub(crate) publish_outbound: OutboundPublishChannel<'static>,
+    pub(crate) elements: RefCell<Elements<'a, E>>,
+    pub(crate) outbound: OutboundChannel,
+    pub(crate) publish_outbound: OutboundPublishChannel<'a>,
 }
 
-impl<E, TX, RX, S, R> Node<E, TX, RX, S, R>
+impl<'a, E, TX, RX, S, R> Node<'a, E, TX, RX, S, R>
 where
-    E: ElementsHandler,
+    E: ElementsHandler<'a>,
     TX: Transmitter,
     RX: Receiver,
     S: Storage,
@@ -339,23 +297,22 @@ where
                 _ => Ok(None),
             },
             Either::Right((inner, _)) => match inner {
-                Either::Left((Some(outbound), _)) => {
+                Either::Left((outbound, _)) => {
                     self.pipeline
                         .borrow_mut()
                         .process_outbound(self, &outbound)
                         .await?;
                     Ok(None)
                 }
-                Either::Right((Some(publish), _)) => {
+                Either::Right((publish, _)) => {
                     self.publish(publish).await?;
                     Ok(None)
                 }
-                _ => Ok(None),
             },
         }
     }
 
-    async fn do_loop(&self) -> Result<(), DeviceError> {
+    async fn do_loop(&'a self) -> Result<(), DeviceError> {
         let current_state = self.state.get();
 
         if let Some(next_state) = match current_state {
@@ -377,15 +334,18 @@ where
         Ok(())
     }
 
-    fn connect_elements(&self) {
-        let ctx = AppElementsContext {
-            sender: self.publish_outbound.clone_sender(),
+    fn connect_elements(&'a self) {
+        let ctx: AppElementsContext<'a> = AppElementsContext {
+            sender: self.publish_outbound.sender(),
             address: self.address().unwrap(),
         };
         self.elements.borrow_mut().connect(ctx);
     }
 
-    pub async fn run(&mut self, control: &Signal<MeshNodeMessage>) -> Result<(), DeviceError> {
+    pub async fn run<const N: usize>(
+        &'a self,
+        control: ChannelReceiver<'_, NodeMutex, MeshNodeMessage, N>,
+    ) -> Result<(), DeviceError> {
         let mut rng = self.rng.borrow_mut();
         if let Err(e) = self.configuration_manager.initialize(&mut *rng).await {
             // try again as a force reset
@@ -400,9 +360,6 @@ where
         #[cfg(feature = "defmt")]
         self.configuration_manager.display_configuration();
 
-        self.outbound.initialize();
-        self.publish_outbound.initialize();
-
         if self.configuration_manager.is_provisioned() {
             self.state.set(State::Provisioned);
             self.connect_elements();
@@ -412,7 +369,7 @@ where
 
         loop {
             let loop_fut = self.do_loop();
-            let signal_fut = control.wait();
+            let signal_fut = control.recv();
 
             pin_mut!(loop_fut);
             pin_mut!(signal_fut);

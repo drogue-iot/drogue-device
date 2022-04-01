@@ -76,7 +76,7 @@ impl<P: Pixel<C>, const C: usize> Filter<P, C> for Gamma {
     fn apply(&self, pixel: &P) -> Result<P, InvalidChannel> {
         let mut filtered = pixel.clone();
         for i in 0..C {
-            filtered.set(i, GAMMA8[pixel.get(i)? as usize]);
+            filtered.set(i, GAMMA8[pixel.get(i)? as usize])?;
         }
         Ok(filtered)
     }
@@ -103,8 +103,8 @@ impl<P: Pixel<C>, const C: usize> Filter<P, C> for Brightness {
         let mut filtered = pixel.clone();
         for i in 0..C {
             let val = pixel.get(i)?;
-            let filtered_val = (val as u16 * (self.0 as u16 + 1) / 256) as u8;
-            filtered.set(i, (pixel.get(i)? as u16 * (self.0 as u16 + 1) / 256) as u8);
+            let _filtered_val = (val as u16 * (self.0 as u16 + 1) / 256) as u8;
+            filtered.set(i, (pixel.get(i)? as u16 * (self.0 as u16 + 1) / 256) as u8)?;
         }
         Ok(filtered)
     }

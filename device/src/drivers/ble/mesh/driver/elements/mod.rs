@@ -22,18 +22,18 @@ use core::cell::Ref;
 use core::convert::TryInto;
 use core::future::Future;
 use core::marker::PhantomData;
-use embassy::blocking_mutex::raw::NoopRawMutex;
-use embassy::channel::mpsc::Sender as ChannelSender;
+use embassy::blocking_mutex::raw::ThreadModeRawMutex;
+use embassy::channel::channel::Sender as ChannelSender;
 use heapless::Vec;
 
 #[derive(Clone)]
-pub struct AppElementsContext {
-    pub(crate) sender: ChannelSender<'static, NoopRawMutex, OutboundPublishMessage, 3>,
+pub struct AppElementsContext<'a> {
+    pub(crate) sender: ChannelSender<'a, ThreadModeRawMutex, OutboundPublishMessage, 3>,
     pub(crate) address: UnicastAddress,
 }
 
-impl AppElementsContext {
-    pub fn for_element_model<M: Model>(&self, element_number: u8) -> AppElementContext<M> {
+impl<'a> AppElementsContext<'a> {
+    pub fn for_element_model<M: Model>(&self, element_number: u8) -> AppElementContext<'a, M> {
         AppElementContext {
             sender: self.sender.clone(),
             address: self.address + element_number,
@@ -47,18 +47,16 @@ impl AppElementsContext {
 }
 
 #[derive(Clone)]
-pub struct AppElementContext<M: Model> {
-    sender: ChannelSender<'static, NoopRawMutex, OutboundPublishMessage, 3>,
+pub struct AppElementContext<'a, M: Model> {
+    sender: ChannelSender<'a, ThreadModeRawMutex, OutboundPublishMessage, 3>,
     address: UnicastAddress,
     _message: PhantomData<M>,
 }
 
-impl<M: Model> AppElementContext<M> {
+impl<'a, M: Model> AppElementContext<'a, M> {
     async fn transmit<'m>(&'m self, message: OutboundPublishMessage) -> Result<(), DeviceError> {
-        self.sender
-            .send(message)
-            .await
-            .map_err(|_| DeviceError::InsufficientBuffer)
+        self.sender.send(message).await;
+        Ok(())
     }
 
     pub async fn publish<'m>(&self, message: M::Message<'m>) -> Result<(), DeviceError> {
@@ -114,16 +112,18 @@ pub trait PrimaryElementContext: ElementContext {
     fn is_local(&self, addr: &UnicastAddress) -> bool;
 }
 
-pub struct Elements<E: ElementsHandler> {
+pub struct Elements<'a, E: ElementsHandler<'a>> {
     zero: ElementZero,
     pub(crate) elements: E,
+    _a: PhantomData<&'a E>,
 }
 
-impl<E: ElementsHandler> Elements<E> {
+impl<'a, E: ElementsHandler<'a>> Elements<'a, E> {
     pub fn new(app_elements: E) -> Self {
         Self {
             zero: ElementZero::new(),
             elements: app_elements,
+            _a: PhantomData,
         }
     }
 
@@ -196,7 +196,7 @@ impl<E: ElementsHandler> Elements<E> {
         Ok(())
     }
 
-    pub(crate) fn connect(&mut self, ctx: AppElementsContext) {
+    pub(crate) fn connect(&mut self, ctx: AppElementsContext<'a>) {
         self.elements.connect(ctx);
     }
 }

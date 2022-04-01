@@ -1,9 +1,7 @@
-#[cfg(feature = "time")]
-pub mod matrix;
-
-use crate::actors::button::{ButtonEvent, ButtonEventHandler};
+use crate::actors::button::ButtonEvent;
 use crate::traits;
 use crate::{Actor, Address, Inbox};
+use core::convert::TryFrom;
 use core::future::Future;
 
 #[derive(Clone, Copy)]
@@ -31,15 +29,13 @@ where
     }
 }
 
-impl<P> ButtonEventHandler for Address<Led<P>>
-where
-    P: traits::led::Led,
-{
-    fn handle(&mut self, event: ButtonEvent) {
-        let _ = match event {
-            ButtonEvent::Pressed => self.notify(LedMessage::On),
-            ButtonEvent::Released => self.notify(LedMessage::Off),
-        };
+impl TryFrom<ButtonEvent> for LedMessage {
+    type Error = ();
+    fn try_from(event: ButtonEvent) -> Result<LedMessage, Self::Error> {
+        match event {
+            ButtonEvent::Pressed => Ok(LedMessage::On),
+            ButtonEvent::Released => Ok(LedMessage::Off),
+        }
     }
 }
 
@@ -47,59 +43,36 @@ impl<P> Actor for Led<P>
 where
     P: traits::led::Led,
 {
-    type Message<'m> = LedMessage where Self: 'm;
-
-    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where Self: 'm, M: 'm + Inbox<Self>;
-
+    type Message<'m> = LedMessage;
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where Self: 'm, M: Inbox<LedMessage> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
+        _: Address<LedMessage>,
+        mut inbox: M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<LedMessage> + 'm,
     {
         async move {
             loop {
-                if let Some(mut m) = inbox.next().await {
-                    let new_state = match *m.message() {
-                        LedMessage::On => true,
-                        LedMessage::Off => false,
-                        LedMessage::State(state) => state,
-                        LedMessage::Toggle => !self.state,
-                    };
-                    if self.state != new_state {
-                        match match new_state {
-                            true => self.led.on(),
-                            false => self.led.off(),
-                        } {
-                            Ok(_) => {
-                                self.state = new_state;
-                            }
-                            Err(_) => {}
+                let new_state = match inbox.next().await {
+                    LedMessage::On => true,
+                    LedMessage::Off => false,
+                    LedMessage::State(state) => state,
+                    LedMessage::Toggle => !self.state,
+                };
+                if self.state != new_state {
+                    match match new_state {
+                        true => self.led.on(),
+                        false => self.led.off(),
+                    } {
+                        Ok(_) => {
+                            self.state = new_state;
                         }
+                        Err(_) => {}
                     }
                 }
             }
         }
     }
 }
-
-/*
-impl<P> traits::led::Led for Address<Led<P>>
-where
-    P: traits::led::Led,
-{
-    type Error = ();
-
-    fn on(&mut self) -> Result<(), Self::Error> {
-        self.notify(LedMessage::On).map_err(|_| ())?;
-        Ok(())
-    }
-
-    fn off(&mut self) -> Result<(), Self::Error> {
-        self.notify(LedMessage::Off).map_err(|_| ())?;
-        Ok(())
-    }
-}
-*/
