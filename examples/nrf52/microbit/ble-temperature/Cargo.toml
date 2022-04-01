@@ -14,11 +14,11 @@ resolver = "2"
 
 [dependencies]
 defmt = { version = "0.3" }
-defmt-rtt = { version = "0.3", optional = true }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
-panic-reset = "0.1.0"
+panic-reset = { version = "0.1.1", optional = true }
+defmt-rtt = { version = "0.3.2", optional = true }
 
-drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "time", "bsp+microbit"] }
+drogue-device = { path = "../../../../device", default-features = false, features = ["time", "bsp+microbit"] }
 
 embassy = { version = "0.1.0", default-features = false, features = [] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "gpiote", "time-driver-rtc1"]}
@@ -33,11 +33,16 @@ ble = { path = "../../../apps/ble", features = ["nrf52833", "s113"] }
 
 [features]
 default = [
+    "panic-reset"
+]
+
+debug = [
     "defmt-rtt",
     "panic-probe",
     "drogue-device/defmt",
     "embassy/defmt",
     "embassy-nrf/defmt",
+    "drogue-device/defmt",
     "ble/defmt",
     "ble/withdefmt",
 ]

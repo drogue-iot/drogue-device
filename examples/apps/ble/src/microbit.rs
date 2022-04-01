@@ -1,5 +1,7 @@
 use super::*;
 use drogue_device::{ActorContext, ActorSpawner, Address, Package};
+use drogue_device::drivers::ble::gatt::temperature::*;
+use drogue_device::drivers::ble::gatt::device_info::*;
 use heapless::Vec;
 use nrf_softdevice::{ble::gatt_server, Softdevice};
 

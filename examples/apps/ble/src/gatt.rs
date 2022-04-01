@@ -5,12 +5,6 @@ use nrf_softdevice::ble::{
     Connection,
 };
 
-mod device_info;
-mod temperature;
-
-pub use device_info::*;
-pub use temperature::*;
-
 pub struct GattServer<S, E>
 where
     S: Server + 'static,
