@@ -1,11 +1,9 @@
 use super::tcp::TcpActor;
-use crate::{
-    kernel::actor::Address,
-    traits::{
-        ip::{IpProtocol, SocketAddress},
-        tcp::TcpError,
-    },
+use crate::traits::{
+    ip::{IpProtocol, SocketAddress},
+    tcp::TcpError,
 };
+use crate::Address;
 
 /// A Socket type for connecting to a network endpoint + sending and receiving data.
 #[derive(Clone, Copy)]

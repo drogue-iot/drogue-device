@@ -1,5 +1,4 @@
-use super::actor::{Actor, ActorContext, ActorResponse, ActorSpawner, Address};
-use super::signal::SignalSlot;
+use drogue_actor::{signal::SignalSlot, Actor, ActorContext, ActorResponse, ActorSpawner, Address};
 
 /// The package trait provides a way to bundle one or more actors and
 /// additional state in a package that can be used by other components.

@@ -1,6 +1,6 @@
 = Drogue Device
 
-Drogue Device is a framework for writing safe and efficient applications on microcontroller type of systems.
+Drogue Device is a distribution of libraries and drivers for building embedded applications in Rust.
 
 == Robustness
 
@@ -13,7 +13,7 @@ also provides a great programming experience.
 
 == Composition
 
-Code reuse and composition should be first class in embedded software! Drogue Device provides an Actor-based programming model for writing composable applications. With actors, you can transparently share access to peripherals, reuse application logic and compose other actors to build new functionality. You can still use regular embassy tasks with Drogue Device.
+Code reuse and composition should be first class in embedded software! Drogue Device provides both an Async task-based and an Actor-based programming model for writing efficient and composable applications. With actors, you can reuse application logic and compose other actors to build new functionality. You can still use regular embassy tasks with Drogue Device.
 
 == IoT Ready
 

@@ -1,6 +1,6 @@
 use crate::actor;
-use crate::kernel::actor::{Actor, Address, Inbox};
 use crate::traits;
+use crate::{Actor, Address, Inbox};
 
 pub use crate::traits::button::Event as ButtonEvent;
 
@@ -38,6 +38,23 @@ where
 {
     fn handle(&mut self, event: ButtonEvent) {
         if let ButtonEvent::Pressed = event {
+            let _ = self.0.notify(self.1.clone());
+        }
+    }
+}
+
+pub struct ButtonReleased<A>(pub Address<A>, pub A::Message<'static>)
+where
+    A: Actor + 'static,
+    A::Message<'static>: Clone;
+
+impl<A> ButtonEventHandler for ButtonReleased<A>
+where
+    A: Actor + 'static,
+    A::Message<'static>: Clone,
+{
+    fn handle(&mut self, event: ButtonEvent) {
+        if let ButtonEvent::Released = event {
             let _ = self.0.notify(self.1.clone());
         }
     }

@@ -12,7 +12,7 @@ mod tests {
     #[allow(dead_code)]
     struct TestDevicePressed {
         handler: ActorContext<TestHandler>,
-        button: ActorContext<Button<TestPin, Address<TestHandler>>>,
+        button: ActorContext<Button<TestPin, ButtonPressed<TestHandler>>>,
     }
 
     #[drogue_test]
@@ -26,10 +26,13 @@ mod tests {
             button: ActorContext::new(),
         });
         let handler_addr = device.handler.mount(spawner, TestHandler::new(notified));
-        device.button.mount(spawner, Button::new(pin, handler_addr));
+        device.button.mount(
+            spawner,
+            Button::new(pin, ButtonPressed(handler_addr, TestMessage(0))),
+        );
 
         assert!(notified.message().is_none());
-        pin.set_low();
+        pin.set_high();
         notified.wait_signaled().await.unwrap();
         assert_eq!(0, notified.message().unwrap().0);
     }
@@ -37,7 +40,7 @@ mod tests {
     #[allow(dead_code)]
     struct TestDeviceReleased {
         handler: ActorContext<TestHandler>,
-        button: ActorContext<Button<TestPin, Address<TestHandler>>>,
+        button: ActorContext<Button<TestPin, ButtonReleased<TestHandler>>>,
     }
 
     #[drogue_test]
@@ -52,11 +55,13 @@ mod tests {
         });
 
         let handler_addr = device.handler.mount(spawner, TestHandler::new(notified));
-        device.button.mount(spawner, Button::new(pin, handler_addr));
+        device.button.mount(
+            spawner,
+            Button::new(pin, ButtonReleased(handler_addr, TestMessage(1))),
+        );
 
-        println!("start");
         assert!(notified.message().is_none());
-        pin.set_high();
+        pin.set_low();
         notified.wait_signaled().await.unwrap();
         assert_eq!(1, notified.message().unwrap().0);
     }

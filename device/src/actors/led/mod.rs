@@ -1,11 +1,9 @@
 #[cfg(feature = "time")]
 pub mod matrix;
 
+use crate::actors::button::{ButtonEvent, ButtonEventHandler};
 use crate::traits;
-use crate::{
-    actors::button::{ButtonEvent, ButtonEventHandler},
-    kernel::{actor::Actor, actor::ActorError, actor::Address, actor::Inbox},
-};
+use crate::{Actor, Address, Inbox};
 use core::future::Future;
 
 #[derive(Clone, Copy)]
@@ -87,19 +85,21 @@ where
     }
 }
 
+/*
 impl<P> traits::led::Led for Address<Led<P>>
 where
     P: traits::led::Led,
 {
-    type Error = ActorError;
+    type Error = ();
 
     fn on(&mut self) -> Result<(), Self::Error> {
-        self.notify(LedMessage::On)?;
+        self.notify(LedMessage::On).map_err(|_| ())?;
         Ok(())
     }
 
     fn off(&mut self) -> Result<(), Self::Error> {
-        self.notify(LedMessage::Off)?;
+        self.notify(LedMessage::Off).map_err(|_| ())?;
         Ok(())
     }
 }
+*/

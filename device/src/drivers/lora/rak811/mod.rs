@@ -5,10 +5,8 @@
 mod buffer;
 mod parser;
 mod protocol;
-use crate::{
-    kernel::actor::{Actor, Address, Inbox},
-    traits::lora::*,
-};
+use crate::traits::lora::*;
+use drogue_actor::{Actor, Address, Inbox};
 
 pub use buffer::*;
 use core::{

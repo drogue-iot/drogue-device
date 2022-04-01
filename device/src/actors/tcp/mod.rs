@@ -5,12 +5,13 @@ pub mod smoltcp;
 pub mod std;
 
 use crate::{
-    kernel::actor::{Actor, Address},
     traits::{
         ip::{IpProtocol, SocketAddress},
         tcp::TcpError,
     },
+    {Actor, Address},
 };
+use core::future::Future;
 
 // Trait that defines the mapping from API to request and response to result.
 pub trait TcpActor: Actor {
@@ -92,14 +93,28 @@ pub enum TcpRequest<'m, H> {
     Close(H),
 }
 
-impl<'a, T> Address<T>
+pub trait TcpAddress<'a, T>
 where
     T: TcpActor + 'a,
 {
-    pub async fn open(&self) -> Result<T::SocketHandle, TcpError> {
-        let m = T::open();
-        T::into_response(Address::request(self, m).unwrap().await)
-            .unwrap()
-            .open()
+    type OpenFuture<'m>: Future<Output = Result<T::SocketHandle, TcpError>>
+    where
+        Self: 'm;
+    fn open<'m>(&'m self) -> Self::OpenFuture<'m>;
+}
+
+impl<'a, T> TcpAddress<'a, T> for Address<T>
+where
+    T: TcpActor + 'a,
+{
+    type OpenFuture<'m> = impl Future<Output = Result<T::SocketHandle, TcpError>> + 'm
+        where Self: 'm;
+    fn open<'m>(&'m self) -> Self::OpenFuture<'m> {
+        async move {
+            let m = T::open();
+            T::into_response(Address::request(self, m).unwrap().await)
+                .unwrap()
+                .open()
+        }
     }
 }

@@ -105,7 +105,10 @@ pub use tls::*;
 mod tls {
     use super::NetworkConnection;
     use super::NetworkError;
-    use crate::actors::{socket::*, tcp::TcpActor};
+    use crate::actors::{
+        socket::*,
+        tcp::{TcpActor, TcpAddress},
+    };
     use crate::traits::ip::{IpAddress, IpProtocol, SocketAddress};
     use crate::Address;
     use core::cell::UnsafeCell;

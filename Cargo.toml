@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "device",
+    "actor",
     "macros",
     "xtask",
     "examples/apps/blinky",

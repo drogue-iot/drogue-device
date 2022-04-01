@@ -1,4 +1,4 @@
-use super::signal::{SignalError, SignalFuture, SignalSlot, SignalStore};
+use crate::signal::{SignalError, SignalFuture, SignalSlot, SignalStore};
 use core::cell::UnsafeCell;
 use core::future::Future;
 use core::pin::Pin;
@@ -536,5 +536,12 @@ mod tests {
         while Pin::new(&mut fut_2).poll(&mut cx).is_pending() {
             step_actor(&mut actor_fut);
         }
+    }
+
+    // Perform a process step for an Actor, processing a single message
+    fn step_actor(actor_fut: &mut impl Future<Output = ()>) {
+        let waker = futures::task::noop_waker_ref();
+        let mut cx = std::task::Context::from_waker(waker);
+        let _ = unsafe { Pin::new_unchecked(&mut *actor_fut) }.poll(&mut cx);
     }
 }
