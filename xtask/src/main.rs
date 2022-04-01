@@ -91,6 +91,13 @@ fn update() -> Result<(), anyhow::Error> {
     let mut examples_dir = root_dir();
     examples_dir.push("examples");
     do_examples(examples_dir, &mut update_crate)?;
+
+    let mut docs_dir = root_dir();
+    docs_dir.push("docs");
+    docs_dir.push("modules");
+    docs_dir.push("ROOT");
+    docs_dir.push("examples");
+    do_examples(docs_dir, &mut update_crate)?;
     Ok(())
 }
 

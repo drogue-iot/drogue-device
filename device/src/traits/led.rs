@@ -72,6 +72,8 @@ pub trait LedMatrix<const ROWS: usize, const COLS: usize> {
     fn min_brightness(&mut self) -> Result<(), Self::Error>;
     fn increase_brightness(&mut self) -> Result<(), Self::Error>;
     fn decrease_brightness(&mut self) -> Result<(), Self::Error>;
+    fn enable(&mut self) -> Result<(), Self::Error>;
+    fn disable(&mut self) -> Result<(), Self::Error>;
 }
 
 pub trait ToFrame<const XSIZE: usize, const YSIZE: usize>: Sync {

@@ -7,7 +7,7 @@
 use drogue_device::actors::dfu::FirmwareManager;
 use drogue_device::bsp::boards::nrf52::microbit::*;
 use drogue_device::drivers::ble::gatt::dfu::FirmwareGattService;
-use drogue_device::traits::led::TextDisplay;
+use drogue_device::traits::led::{LedMatrix as _, TextDisplay};
 use drogue_device::ActorContext;
 use drogue_device::Board;
 use embassy::executor::Spawner;
@@ -84,13 +84,15 @@ async fn main(s: Spawner, p: Peripherals) {
     s.spawn(bluetooth_task(sd, server, updater)).unwrap();
 
     // LED matrix
-    static LED_MATRIX: ActorContext<LedMatrixActor> = ActorContext::new();
+    static LED_MATRIX: ActorContext<LedMatrixActor, 3> = ActorContext::new();
     let mut matrix = LED_MATRIX.mount(s, LedMatrixActor::new(board.display, None));
 
     // Finally, a blinker application.
     loop {
+        let _ = matrix.enable();
         let _ = matrix.scroll(version).await;
-        Timer::after(Duration::from_secs(2)).await;
+        let _ = matrix.disable();
+        Timer::after(Duration::from_secs(5)).await;
     }
 }
 

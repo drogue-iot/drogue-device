@@ -3,8 +3,11 @@ use crate::drivers::led::matrix::*;
 use crate::kernel::{actor::Actor, actor::Address, actor::Inbox};
 use crate::traits::led::{LedMatrix as LedMatrixTrait, TextDisplay, ToFrame};
 use core::future::Future;
-use embassy::time::{with_timeout, Duration, Instant, TimeoutError, Timer};
+use embassy::time::{Duration, Instant, Ticker, Timer};
 use embedded_hal::digital::v2::OutputPin;
+use futures::future::{select, Either};
+use futures::pin_mut;
+use futures::StreamExt;
 
 impl<P, const ROWS: usize, const COLS: usize> LedMatrixTrait<ROWS, COLS>
     for Address<LedMatrixActor<P, ROWS, COLS>>
@@ -66,6 +69,14 @@ where
         self.notify(MatrixCommand::DecreaseBrightness)
             .map_err(|_| ())
     }
+
+    fn enable(&mut self) -> Result<(), Self::Error> {
+        self.notify(MatrixCommand::Enable).map_err(|_| ())
+    }
+
+    fn disable(&mut self) -> Result<(), Self::Error> {
+        self.notify(MatrixCommand::Disable).map_err(|_| ())
+    }
 }
 
 impl<P, const ROWS: usize, const COLS: usize> TextDisplay for Address<LedMatrixActor<P, ROWS, COLS>>
@@ -119,6 +130,7 @@ where
 {
     refresh_interval: Duration,
     matrix: LedMatrix<P, ROWS, COLS>,
+    enabled: bool,
 }
 
 impl<P, const ROWS: usize, const COLS: usize> LedMatrixActor<P, ROWS, COLS>
@@ -132,6 +144,62 @@ where
         Self {
             matrix,
             refresh_interval: refresh_interval.unwrap_or(Duration::from_micros(500)),
+            enabled: true,
+        }
+    }
+
+    async fn handle(&mut self, command: MatrixCommand<'_, COLS, ROWS>) {
+        match command {
+            MatrixCommand::ApplyAsciiChar(c) => self.matrix.apply(c.to_frame()),
+            MatrixCommand::ApplyFrame(f) => self.matrix.apply(f.to_frame()),
+            MatrixCommand::ApplyText(s, effect, duration) => {
+                let mut animation: Animation<'_, COLS, ROWS> =
+                    Animation::new(AnimationData::Bytes(s.as_bytes()), effect, duration).unwrap();
+                loop {
+                    match animation.next(Instant::now()) {
+                        AnimationState::Apply(f) => {
+                            self.matrix.apply(f);
+                        }
+                        AnimationState::Wait => {}
+                        AnimationState::Done => {
+                            break;
+                        }
+                    }
+                    self.matrix.render();
+                    Timer::after(self.refresh_interval).await;
+                }
+            }
+            MatrixCommand::ApplyAnimation(a, effect, duration) => {
+                let mut animation =
+                    Animation::new(AnimationData::Frames(a), effect, duration).unwrap();
+
+                loop {
+                    match animation.next(Instant::now()) {
+                        AnimationState::Apply(f) => {
+                            self.matrix.apply(f);
+                        }
+                        AnimationState::Wait => {}
+                        AnimationState::Done => {
+                            break;
+                        }
+                    }
+                    self.matrix.render();
+                    Timer::after(self.refresh_interval).await;
+                }
+            }
+            MatrixCommand::On(x, y) => self.matrix.on(x, y),
+            MatrixCommand::Off(x, y) => self.matrix.off(x, y),
+            MatrixCommand::Clear => self.matrix.clear(),
+            MatrixCommand::IncreaseBrightness => self.matrix.brightness += 1,
+            MatrixCommand::DecreaseBrightness => self.matrix.brightness -= 1,
+            MatrixCommand::MaxBrightness => self.matrix.brightness = Brightness::MAX,
+            MatrixCommand::MinBrightness => self.matrix.brightness = Brightness::MIN,
+            MatrixCommand::Enable => {
+                self.enabled = true;
+            }
+            MatrixCommand::Disable => {
+                self.enabled = false;
+            }
         }
     }
 }
@@ -153,66 +221,27 @@ where
         M: Inbox<Self> + 'm,
     {
         async move {
+            let mut ticker = Ticker::every(self.refresh_interval);
             loop {
-                match with_timeout(self.refresh_interval, inbox.next()).await {
-                    Ok(Some(mut m)) => match *m.message() {
-                        MatrixCommand::ApplyAsciiChar(c) => self.matrix.apply(c.to_frame()),
-                        MatrixCommand::ApplyFrame(f) => self.matrix.apply(f.to_frame()),
-                        MatrixCommand::ApplyText(s, effect, duration) => {
-                            let mut animation: Animation<'_, COLS, ROWS> = Animation::new(
-                                AnimationData::Bytes(s.as_bytes()),
-                                effect,
-                                duration,
-                            )
-                            .unwrap();
-                            loop {
-                                match animation.next(Instant::now()) {
-                                    AnimationState::Apply(f) => {
-                                        self.matrix.apply(f);
-                                    }
-                                    AnimationState::Wait => {}
-                                    AnimationState::Done => {
-                                        break;
-                                    }
-                                }
-                                self.matrix.render();
-                                Timer::after(self.refresh_interval).await;
+                if self.enabled {
+                    let next = inbox.next();
+                    let tick = ticker.next();
+                    pin_mut!(next);
+                    pin_mut!(tick);
+                    match select(next, tick).await {
+                        Either::Left((l, _)) => {
+                            if let Some(mut m) = l {
+                                self.handle(*m.message()).await;
                             }
                         }
-                        MatrixCommand::ApplyAnimation(a, effect, duration) => {
-                            let mut animation =
-                                Animation::new(AnimationData::Frames(a), effect, duration).unwrap();
-
-                            loop {
-                                match animation.next(Instant::now()) {
-                                    AnimationState::Apply(f) => {
-                                        self.matrix.apply(f);
-                                    }
-                                    AnimationState::Wait => {}
-                                    AnimationState::Done => {
-                                        break;
-                                    }
-                                }
-                                self.matrix.render();
-                                Timer::after(self.refresh_interval).await;
-                            }
-                        }
-                        MatrixCommand::On(x, y) => self.matrix.on(x, y),
-                        MatrixCommand::Off(x, y) => self.matrix.off(x, y),
-                        MatrixCommand::Clear => self.matrix.clear(),
-                        MatrixCommand::IncreaseBrightness => self.matrix.brightness += 1,
-                        MatrixCommand::DecreaseBrightness => self.matrix.brightness -= 1,
-                        MatrixCommand::MaxBrightness => self.matrix.brightness = Brightness::MAX,
-                        MatrixCommand::MinBrightness => self.matrix.brightness = Brightness::MIN,
-
-                        MatrixCommand::Render => {
+                        Either::Right((_, _)) => {
                             self.matrix.render();
                         }
-                    },
-                    Err(TimeoutError) => {
-                        self.matrix.render();
                     }
-                    _ => {}
+                } else {
+                    if let Some(mut m) = inbox.next().await {
+                        self.handle(*m.message()).await;
+                    }
                 }
             }
         }
@@ -228,7 +257,6 @@ pub enum MatrixCommand<'m, const XSIZE: usize, const YSIZE: usize> {
     MaxBrightness,
     MinBrightness,
     Clear,
-    Render,
     ApplyAsciiChar(char),
     ApplyFrame(&'m dyn ToFrame<XSIZE, YSIZE>),
     ApplyText(&'m str, AnimationEffect, Duration),
@@ -237,6 +265,8 @@ pub enum MatrixCommand<'m, const XSIZE: usize, const YSIZE: usize> {
         AnimationEffect,
         Duration,
     ),
+    Enable,
+    Disable,
 }
 
 #[derive(Clone, Copy)]
