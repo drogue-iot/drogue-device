@@ -11,3 +11,23 @@ pub struct DeviceInformationService {
     #[characteristic(uuid = "00002a29-0000-1000-8000-00805f9b34fb", read)]
     pub manufacturer_name: Vec<u8, 32>,
 }
+
+impl DeviceInformationService {
+    pub fn initialize(
+        &self,
+        model: &[u8],
+        serial_number: &[u8],
+        manufacturer_name: &[u8],
+        hardware_revision: &[u8],
+    ) -> Result<(), ()> {
+        self.model_number_set(Vec::from_slice(model)?)
+            .map_err(|_| ())?;
+        self.serial_number_set(Vec::from_slice(serial_number)?)
+            .map_err(|_| ())?;
+        self.manufacturer_name_set(Vec::from_slice(manufacturer_name)?)
+            .map_err(|_| ())?;
+        self.hardware_revision_set(Vec::from_slice(hardware_revision)?)
+            .map_err(|_| ())?;
+        Ok(())
+    }
+}

@@ -1,5 +1,5 @@
+use crate::{Actor, Address, Inbox};
 use core::future::Future;
-use drogue_device::{Actor, Address, Inbox};
 use heapless::Vec;
 use nrf_softdevice::ble::{peripheral, Connection};
 use nrf_softdevice::{raw, Softdevice};
@@ -49,7 +49,7 @@ impl<A: Acceptor> Actor for BleAdvertiser<A> {
         let scan_data = &[
             0x03, 0x03, 0xA, 0x18,
         ];
-        info!("advertising started!");
+        debug!("advertising started!");
 
         async move {
             loop {
@@ -62,7 +62,7 @@ impl<A: Acceptor> Actor for BleAdvertiser<A> {
                     .await
                     .unwrap();
 
-                info!("connection established: {}", conn.handle());
+                debug!("connection established: {}", conn.handle());
 
                 self.acceptor.accept(conn).ok().unwrap();
             }

@@ -119,6 +119,7 @@ ble = [
     "uuid",
     "micromath"
 ]
+ble-peripheral = []
 "ble+nrf-softdevice" = [
     "ble",
     "nrf-softdevice",
@@ -133,6 +134,7 @@ ble = [
 ]
 
 "ble+nrf-softdevice-s113" = [
+    "ble-peripheral",
     "ble+nrf-softdevice",
     "nrf-softdevice-s113",
 ]
