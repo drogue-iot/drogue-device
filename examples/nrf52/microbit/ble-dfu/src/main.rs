@@ -84,7 +84,7 @@ async fn main(s: Spawner, p: Peripherals) {
     s.spawn(bluetooth_task(sd, server, updater)).unwrap();
 
     // LED matrix
-    static LED_MATRIX: ActorContext<LedMatrixActor> = ActorContext::new();
+    static LED_MATRIX: ActorContext<LedMatrixActor, 3> = ActorContext::new();
     let mut matrix = LED_MATRIX.mount(s, LedMatrixActor::new(board.display, None));
 
     // Finally, a blinker application.
