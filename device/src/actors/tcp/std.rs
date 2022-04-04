@@ -1,8 +1,8 @@
 use super::{TcpActor, TcpRequest, TcpResponse};
 use crate::drivers::common::socket_pool::SocketPool;
-use crate::kernel::actor::{Actor, Address, Inbox};
 use crate::traits::ip::{IpProtocol, SocketAddress};
 use crate::traits::tcp::TcpError;
+use crate::{Actor, Address, Inbox};
 use core::future::Future;
 use std::collections::HashMap;
 use std::io::{Read, Write};

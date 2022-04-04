@@ -1,8 +1,5 @@
-use crate::actors::button::{ButtonEvent, ButtonEventHandler};
-use crate::kernel::{
-    actor::{Actor, ActorSpawner, Address, Inbox},
-    device::DeviceContext,
-};
+use crate::device::DeviceContext;
+use crate::{Actor, ActorSpawner, Address, Inbox};
 use core::cell::RefCell;
 use core::future::Future;
 use core::pin::Pin;
@@ -72,15 +69,6 @@ impl<D> Drop for TestContext<D> {
 #[derive(Copy, Clone, Debug)]
 pub struct TestMessage(pub u32);
 
-impl ButtonEventHandler for Address<TestHandler> {
-    fn handle(&mut self, event: ButtonEvent) {
-        match event {
-            ButtonEvent::Pressed => self.notify(TestMessage(1)).unwrap(),
-            ButtonEvent::Released => self.notify(TestMessage(0)).unwrap(),
-        }
-    }
-}
-
 /// A dummy actor that does nothing
 #[derive(Default)]
 pub struct DummyActor {}
@@ -94,7 +82,7 @@ impl DummyActor {
 impl Actor for DummyActor {
     type Message<'m> = TestMessage;
 
-    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where M: 'm + Inbox<DummyActor>;
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where M: 'm + Inbox<Self>;
     fn on_mount<'m, M>(
         &'m mut self,
         _: Address<Self>,
@@ -105,9 +93,7 @@ impl Actor for DummyActor {
     {
         async move {
             loop {
-                if let Some(mut m) = inbox.next().await {
-                    m.set_response(());
-                }
+                if let Some(_) = inbox.next().await {}
             }
         }
     }

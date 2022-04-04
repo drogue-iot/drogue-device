@@ -5,7 +5,7 @@
 #[cfg(feature = "std")]
 mod tests {
     use core::future::Future;
-    use drogue_device::*;
+    use drogue_actor::*;
     use embassy::executor::Spawner;
     use std::sync::atomic::{AtomicU32, Ordering};
     use std::{sync::mpsc, thread, time::Duration};
@@ -20,7 +20,7 @@ mod tests {
 
         pub struct Add(u32);
         impl Actor for MyActor {
-            type Message<'a> = Add;
+            type Message<'m> = Add;
 
             type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where M: 'm + Inbox<Self>;
 
@@ -52,7 +52,7 @@ mod tests {
                 },
             );
 
-            a_addr.request(Add(10)).unwrap().await;
+            let _ = a_addr.notify(Add(10));
         }
 
         std::thread::spawn(move || {

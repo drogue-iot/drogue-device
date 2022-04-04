@@ -71,14 +71,21 @@ where
     }
 }
 
-impl<I: I2c<SevenBitAddress> + 'static> embedded_hal_1::i2c::ErrorType for Address<I2cPeripheral<I>>
+pub struct I2cHandle<I: I2c<SevenBitAddress> + 'static>
+where
+    <I as ErrorType>::Error: Send,
+{
+    address: Address<I2cPeripheral<I>>,
+}
+
+impl<I: I2c<SevenBitAddress> + 'static> embedded_hal_1::i2c::ErrorType for I2cHandle<I>
 where
     <I as ErrorType>::Error: Send,
 {
     type Error = <I as ErrorType>::Error;
 }
 
-impl<I: I2c<SevenBitAddress> + 'static> I2c for Address<I2cPeripheral<I>>
+impl<I: I2c<SevenBitAddress> + 'static> I2c for I2cHandle<I>
 where
     <I as ErrorType>::Error: Send,
 {
@@ -86,7 +93,8 @@ where
 
     fn read<'a>(&'a mut self, address: u8, buffer: &'a mut [u8]) -> Self::ReadFuture<'a> {
         async move {
-            self.request(I2cRequest::Read(address.into(), buffer))
+            self.address
+                .request(I2cRequest::Read(address.into(), buffer))
                 .unwrap()
                 .await
                 .unwrap()
@@ -96,7 +104,8 @@ where
     type WriteFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a where I: 'a;
     fn write<'a>(&'a mut self, address: u8, bytes: &'a [u8]) -> Self::WriteFuture<'a> {
         async move {
-            self.request(I2cRequest::Write(address.into(), bytes))
+            self.address
+                .request(I2cRequest::Write(address.into(), bytes))
                 .unwrap()
                 .await
                 .unwrap()
@@ -112,7 +121,8 @@ where
         buffer: &'a mut [u8],
     ) -> Self::WriteReadFuture<'a> {
         async move {
-            self.request(I2cRequest::WriteRead(address.into(), bytes, buffer))
+            self.address
+                .request(I2cRequest::WriteRead(address.into(), bytes, buffer))
                 .unwrap()
                 .await
                 .unwrap()

@@ -1,0 +1,35 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+edition = "2018"
+name = "drogue-actor"
+version = "0.1.0"
+
+[lib]
+doctest = false
+
+[dependencies]
+embassy = { version = "0.1.0", default-features = false, features = ["executor-agnostic", "nightly"] }
+drogue-device-macros = { path = "../macros" }
+atomic-polyfill = "0.1"
+
+# Logging alternatives
+log = { version = "0.4", optional = true }
+defmt = { version = "0.3", optional = true }
+
+embedded-hal = { version = "0.2", features = ["unproven"] }
+embedded-hal-1 = { package = "embedded-hal", version = "1.0.0-alpha.7", git = "https://github.com/embassy-rs/embedded-hal", branch = "embassy2" }
+embedded-hal-async = { version = "0.0.1", git = "https://github.com/embassy-rs/embedded-hal", branch = "embassy2" }
+
+futures = { version = "0.3", default-features = false }
+
+[dev-dependencies]
+embassy = { version = "0.1.0", features = ["std", "time", "time-tick-1mhz"]}
+futures = { version = "0.3", default-features = false, features = ["executor"] }
+
+[features]
+default = [ "std", "log", "time" ]
+std = ["embassy/std", "embassy/time"]
+time = []

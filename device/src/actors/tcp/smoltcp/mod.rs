@@ -65,7 +65,7 @@ impl<
             );
         }
         let addr = self.driver.mount(spawner, SmolTcpStack::new());
-        unwrap!(addr.notify(SmolRequest::Initialize));
+        let _ = addr.notify(SmolRequest::Initialize);
         self.embassy_net.mount(spawner, EmbassyNetTask);
         addr
     }

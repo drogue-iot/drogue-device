@@ -7,30 +7,24 @@
 [![Matrix](https://img.shields.io/matrix/drogue-iot:matrix.org)](https://matrix.to/#/#drogue-iot:matrix.org)
 [![Bors enabled](https://bors.tech/images/badge_small.svg)](https://app.bors.tech/repositories/40676)
 
-Drogue device is a framework for building embedded applications.
+Drogue device is a distribution of libraries and drivers for building embedded applications in Rust.
 
 * Built using [rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.
-* Integrates with [embassy](https://github.com/embassy-rs/embassy), the embedded async project. 
-* Actor-based programming model for writing safe and composable applications.
-* Offers built-in support for multiple connectivity options, such as BLE, BLE Mesh, WiFi and LoRaWAN.
+* Based on [embassy](https://github.com/embassy-rs/embassy), the embedded async project. 
+* Offers built-in support for IoT with drivers for BLE, BLE Mesh, WiFi and LoRaWAN.
+* Async programming model for writing safe and efficient applications.
+* Provides an (optional) actor framework for encapsulating state and composing applications.
 * All software is licensed under the Apache 2.0 open source license.
 
 See the [documentation](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and for some examples.
 
 Go to our [homepage](https://www.drogue.io) to learn more about the Drogue IoT project.
 
-## What are Actors?
-
-Actors make it convenient to write stateful concurrent systems using message passing. Actors only process one message at a time, and communicate with other actors by sending messages to their addresses. Actors compose easily due to their decoupled nature, making it easier to maintain an expanding code base.
-
-Actors in drogue-device are *async*, which means that they process messages using async-await support in Rust. This does not mean you have to write async code, but you will have the option to do so. The [async book](https://rust-lang.github.io/async-book/) is a great way to learn more about async Rust.
-
-
 ## Example application
 
 An overview of the examples can be found in the [documentation](https://book.drogue.io/drogue-device/dev/examples.html).
 
-Drogue device runs on any platform supported by embassy, which at the time of writing includes:
+Drogue device runs on any hardware supported by embassy, which at the time of writing includes:
 
 * nRF52 
 * STM32
@@ -40,59 +34,21 @@ Drogue device runs on any platform supported by embassy, which at the time of wr
 
 Once you've found an example you like, you can run `cargo xtask clone <example_dir> <target_dir>` to create a copy with the correct dependencies and project files set up.
 
-### Example Actor
+### A basic blinky application
 
-Following is a simple drogue-device application with a single Actor implementing concurrent access to a counter.
+~~~rust
+#[embassy::main]
+async fn main(_spawner: Spawner, p: Peripherals) {
+    let mut led = Output::new(p.P0_13, Level::Low, OutputDrive::Standard);
 
-```rust
-use drogue_device::*;
-
-pub struct Counter {
-    count: u32,
-}
-
-pub struct Increment;
-
-/// An Actor implements the Actor trait. The actor attribute deals with some of the boilerplate needed until 
-/// Rust has async traits.
-#[actor]
-impl Actor for Counter {
-    /// The Message associated type is the message types that the Actor can receive.
-    type Message<'a> = Increment;
-
-    /// An actor have to implement the on_mount method. on_mount() is invoked when the internals of an actor is ready,
-    /// and the actor can begin to receive messages from an inbox.
-    ///
-    /// The following arguments are provided:
-    /// * The address to 'self'
-    /// * An inbox from which the actor can receive messages
-    async fn on_mount<M>(&mut self, _: Address<Self>, inbox: &mut M) 
-    where
-        M: Inbox<Self> + 'm
-    {
-        loop {
-            // Await the next message and increment the counter
-            if let Some(m) = inbox.next().await {
-                self.count += 1;
-            }
-        }
+    loop {
+        led.set_high();
+        Timer::after(Duration::from_millis(300)).await;
+        led.set_low();
+        Timer::after(Duration::from_millis(300)).await;
     }
 }
-
-/// The entry point of the application is using the embassy runtime.
-#[embassy::main]
-async fn main(spawner: embassy::executor::Spawner) {
-
-    /// Spawning an actor starts its embassy task
-    let addr = spawn_actor!(spawner, COUNTER, Counter, Counter {
-        count: 0
-    });
-
-    /// The actor address may be used in any embassy task to communicate with the actor.
-    addr.request(Increment).unwrap().await;
-}
-```
-
+~~~
 
 ## Building
 
@@ -121,11 +77,11 @@ cargo xtask update
 ## Directory layout
 
 * `device` - the source of the drogue-device framework
-  * `device/src/kernel` - the actor framework
   * `device/src/traits` - traits provided by drogue that can be used in actors or directly, such as WiFi or LoRa
   * `device/src/drivers` - drivers that implement traits for a one or more peripherals
   * `device/src/actors` - common actors that can be used in applications
   * `device/src/bsp` - board support packages for boards commonly used in drogue device 
+* `actor` - the actor framework
 * `macros` - macros used by drogue-device and application code
 * `examples` - examples for different platforms and boards
 

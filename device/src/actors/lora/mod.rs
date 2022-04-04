@@ -1,7 +1,5 @@
-use crate::{
-    kernel::actor::{Actor, Address, Inbox},
-    traits::lora::*,
-};
+use crate::traits::lora::*;
+use crate::{Actor, Address, Inbox};
 use core::future::Future;
 
 /// Messages handled by lora actor

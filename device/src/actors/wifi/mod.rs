@@ -1,11 +1,11 @@
 use super::tcp::{TcpActor, TcpResponse};
 use crate::{
-    kernel::actor::{Actor, Address, Inbox},
     traits::{
         ip::{IpAddress, IpProtocol, SocketAddress},
         tcp::TcpStack,
         wifi::{Join, JoinError, WifiSupplicant},
     },
+    {Actor, Address, Inbox},
 };
 use core::future::Future;
 

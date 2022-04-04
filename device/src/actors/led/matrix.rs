@@ -1,7 +1,7 @@
 use crate::domain::led::matrix::*;
 use crate::drivers::led::matrix::*;
-use crate::kernel::{actor::Actor, actor::Address, actor::Inbox};
 use crate::traits::led::{LedMatrix as LedMatrixTrait, TextDisplay, ToFrame};
+use crate::{Actor, Address, Inbox};
 use core::future::Future;
 use embassy::time::{Duration, Instant, Ticker, Timer};
 use embedded_hal::digital::v2::OutputPin;

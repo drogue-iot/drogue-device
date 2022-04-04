@@ -110,20 +110,17 @@ pub enum CounterMessage {
 #[actor]
 impl Actor for AtomicCounter {
     type Message<'m> = CounterMessage;
-    type Response = u32;
 
-    async fn on_mount<M>(&mut self, _: Address<Self>, inbox: &mut M)
+    async fn on_mount<M>(&mut self, _: Address<CounterMessage>, mut inbox: M)
     where
-        M: Inbox<Self> + 'm
+        M: Inbox<CounterMessage>
     {
         loop {
-            if let Some(m) = inbox.next().await {
-                let value = match m.message() {
+            if let Some(mut m) = inbox.next().await {
+                match *m.message() {
                     CounterMessage::Increment => self.counter.increment().await,
                     CounterMessage::Add(value) => self.counter.add(*value).await,
                 }
-                // Set the response value
-                message.set_response(value);
             }
         }
     }
@@ -136,12 +133,11 @@ Notice the `actor` attribute, which handles a lot of the boilerplate of writing 
 ----
 impl Actor for AtomicCounter {
     type Message<'m> = CounterMessage;
-    type Response = u32;
 
     type OnMountFuture<'m> = impl Future<Output = ()> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Address<Self>,
+        _: Address<CounterMessage>,
         inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
@@ -149,13 +145,11 @@ impl Actor for AtomicCounter {
     {
         async move {
             loop {
-                if let Some(m) = inbox.next().await {
-                    let value = match m.message() {
+                if let Some(mut m) = inbox.next().await {
+                    match *m.message() {
                         CounterMessage::Increment => self.counter.increment().await,
                         CounterMessage::Add(value) => self.counter.add(*value).await,
                     }
-                    // Set the response value
-                    message.set_response(value);
                 }
             }
         }
