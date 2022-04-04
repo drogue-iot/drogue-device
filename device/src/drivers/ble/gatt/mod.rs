@@ -4,6 +4,7 @@ pub mod dfu;
 pub mod temperature;
 
 // DROGUE GATT BASE UUID: "-b0cd-11ec-871f-d45ddf138840"
+#[cfg(feature = "ble-peripheral")]
 use nrf_softdevice::{raw, Softdevice};
 
 /// Enable softdevice with a given name
