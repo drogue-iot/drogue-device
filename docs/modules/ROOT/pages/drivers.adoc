@@ -116,8 +116,8 @@ impl Actor for AtomicCounter {
         M: Inbox<CounterMessage>
     {
         loop {
-            if let Some(m) = inbox.next().await {
-                match m {
+            if let Some(mut m) = inbox.next().await {
+                match *m.message() {
                     CounterMessage::Increment => self.counter.increment().await,
                     CounterMessage::Add(value) => self.counter.add(*value).await,
                 }
@@ -138,15 +138,15 @@ impl Actor for AtomicCounter {
     fn on_mount<'m, M>(
         &'m mut self,
         _: Address<CounterMessage>,
-        mut inbox: M,
+        inbox: &'m mut M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<CounterMessage> + 'm
+        M: Inbox<Self> + 'm
     {
         async move {
             loop {
-                if let Some(m) = inbox.next().await {
-                    match m {
+                if let Some(mut m) = inbox.next().await {
+                    match *m.message() {
                         CounterMessage::Increment => self.counter.increment().await,
                         CounterMessage::Add(value) => self.counter.add(*value).await,
                     }
