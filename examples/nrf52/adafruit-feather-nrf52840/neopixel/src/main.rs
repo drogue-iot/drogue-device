@@ -9,8 +9,8 @@ use panic_probe as _;
 
 use drogue_device::{
     bsp::boards::nrf52::adafruit_feather_nrf52840::AdafruitFeatherNrf52840,
+    drivers::led::neopixel::filter::{CyclicBrightness, Filter, Gamma},
     drivers::led::neopixel::rgbw::{NeoPixelRgbw, BLUE},
-    drivers::led::neopixel::filter::{CyclicBrightness, Gamma, Filter},
     Board,
 };
 use embassy::executor::Spawner;
