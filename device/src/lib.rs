@@ -66,9 +66,6 @@ pub mod domain;
 pub mod bsp;
 pub use bsp::Board;
 
-#[cfg(feature = "std")]
-pub use drogue_actor::testutil;
-
 #[doc(hidden)]
 pub use drogue_device_macros::{self as drogue, actor};
 

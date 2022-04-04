@@ -4,7 +4,8 @@
 
 #[cfg(feature = "std")]
 mod tests {
-    use drogue_device::{actors::button::*, testutil::*, *};
+    use drogue_actor::testutil::*;
+    use drogue_device::{actors::button::*, *};
     #[allow(unused_imports)]
     use drogue_device_macros::test as drogue_test;
     use embassy::executor::Spawner;
