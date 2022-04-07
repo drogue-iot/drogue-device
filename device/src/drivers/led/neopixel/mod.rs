@@ -1,5 +1,3 @@
-use defmt::Format;
-
 pub mod filter;
 pub mod rgb;
 pub mod rgbw;
@@ -12,7 +10,7 @@ const RES: u16 = 0x8000;
 
 pub struct InvalidChannel;
 
-pub trait Pixel<const N: usize>: Copy + Clone + Format {
+pub trait Pixel<const N: usize>: Copy + Clone {
     const CHANNELS: usize = N;
 
     fn fill_pwm_words(&self, dst: &mut [u16]) -> Result<(), InvalidChannel> {

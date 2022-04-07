@@ -4,7 +4,6 @@ use core::mem::transmute;
 use core::ops::Add;
 use core::ops::Deref;
 use core::slice;
-use defmt::Format;
 use embassy::time::{Duration, Timer};
 use embassy::util::Unborrow;
 //use embassy_hal_common::unborrow;
@@ -22,7 +21,8 @@ pub const RED: Rgbw8 = Rgbw8::new(0xFF, 0x00, 0x00, 0x00);
 pub const GREEN: Rgbw8 = Rgbw8::new(0x00, 0xFF, 0x00, 0x00);
 pub const BLUE: Rgbw8 = Rgbw8::new(0x00, 0x00, 0xFF, 0x00);
 
-#[derive(Copy, Clone, Format, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Rgbw8 {
     r: u8,
     g: u8,
@@ -72,7 +72,7 @@ impl Add for Rgbw8 {
     }
 }
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[repr(C)]
 struct RawPwmRgbw8<const N: usize> {
     words: [[u16; 32]; N],
