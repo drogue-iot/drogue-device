@@ -190,6 +190,7 @@ impl<'d, T: Instance, const N: usize> NeoPixelRgbw<'d, T, N> {
                 .apply(pixel)
                 .map_err(|_| Error::SequenceTimesAtLeastOne)?;
         }
+        filter.complete();
         self.set(&filtered).await
     }
 }

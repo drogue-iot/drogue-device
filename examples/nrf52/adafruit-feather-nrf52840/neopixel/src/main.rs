@@ -9,7 +9,8 @@ use panic_probe as _;
 
 use drogue_device::{
     bsp::boards::nrf52::adafruit_feather_nrf52840::AdafruitFeatherNrf52840,
-    drivers::led::neopixel::{CyclicBrightness, Filter, Gamma, NeoPixel, BLUE},
+    drivers::led::neopixel::filter::{CyclicBrightness, Filter, Gamma},
+    drivers::led::neopixel::rgbw::{NeoPixelRgbw, BLUE},
     Board,
 };
 use embassy::executor::Spawner;
@@ -21,9 +22,9 @@ const STEP_SIZE: u8 = 2;
 #[embassy::main]
 async fn main(_spawner: Spawner, p: Peripherals) {
     let board = AdafruitFeatherNrf52840::new(p);
-    let mut neopixel = defmt::unwrap!(NeoPixel::<'_, _, 1>::new(board.pwm0, board.neopixel));
+    let mut neopixel = defmt::unwrap!(NeoPixelRgbw::<'_, _, 1>::new(board.pwm0, board.neopixel));
 
-    let cyclic = CyclicBrightness::new(64, 127, STEP_SIZE);
+    let cyclic = CyclicBrightness::new(1, 254, STEP_SIZE);
     let mut filter = cyclic.and(Gamma);
     loop {
         neopixel.set_with_filter(&[BLUE], &mut filter).await.ok();
