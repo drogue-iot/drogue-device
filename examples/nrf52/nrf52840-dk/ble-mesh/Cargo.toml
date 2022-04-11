@@ -76,12 +76,10 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-#embassy = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
-#embassy-nrf = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
-#embassy-hal-common = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
+embassy = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
+embassy-nrf = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
 nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
 nrf-softdevice-s140 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
 
-embassy = { path = "../../../../../../embassy/embassy" }
-embassy-nrf = { path = "../../../../../../embassy/embassy-nrf" }
-embassy-hal-common = { path = "../../../../../../embassy/embassy-hal-common" }
+#embassy = { path = "../../../../../../embassy/embassy" }
+#embassy-nrf = { path = "../../../../../../embassy/embassy-nrf" }

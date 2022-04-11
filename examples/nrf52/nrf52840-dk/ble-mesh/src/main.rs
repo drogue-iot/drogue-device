@@ -153,7 +153,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
 
     let button = actors::button::Button::new(
         drivers::button::Button::new(Input::new(p.P0_11, Pull::Up)),
-        button_publisher,
+        button_publisher.clone(),
     );
     let _button = device.button.mount(spawner, button);
 

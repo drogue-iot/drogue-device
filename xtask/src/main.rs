@@ -119,21 +119,38 @@ fn generate_batch_command(
     cmds: Vec<&str>,
 ) -> Result<xshell::Cmd, anyhow::Error> {
     let mut crate_target: Vec<(String, Option<String>)> = Vec::new();
+    const MAX_LEVEL: usize = 3;
     do_crates(workspaces, &mut |project_dir| {
-        let config_file = project_dir.join(".cargo").join("config.toml");
-        if config_file.exists() {
-            let contents = fs::read_to_string(&config_file).expect("error reading file");
-            let t = contents.parse::<toml::Value>().unwrap();
-            if let Some(build) = t.get("build") {
-                let target = if let Some(toml::Value::String(target)) = build.get("target") {
-                    Some(target.clone())
-                } else {
-                    None
-                };
-                crate_target.push((
-                    project_dir.join("Cargo.toml").to_str().unwrap().to_string(),
-                    target,
-                ));
+        let mut level = 0;
+        let mut folder = project_dir.clone();
+        loop {
+            let config_file = folder.join(".cargo").join("config.toml");
+            if config_file.exists() {
+                let contents = fs::read_to_string(&config_file).expect("error reading file");
+                let t = contents.parse::<toml::Value>().unwrap();
+                if let Some(build) = t.get("build") {
+                    let target = if let Some(toml::Value::String(target)) = build.get("target") {
+                        Some(target.clone())
+                    } else {
+                        None
+                    };
+                    crate_target.push((
+                        project_dir.join("Cargo.toml").to_str().unwrap().to_string(),
+                        target,
+                    ));
+                }
+                break;
+            } else {
+                // Use no target if reached max backtracking
+                if level > MAX_LEVEL {
+                    crate_target.push((
+                        project_dir.join("Cargo.toml").to_str().unwrap().to_string(),
+                        None,
+                    ));
+                    break;
+                }
+                folder = folder.join("..");
+                level += 1;
             }
         }
         Ok(())

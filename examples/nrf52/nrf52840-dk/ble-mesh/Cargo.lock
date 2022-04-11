@@ -484,6 +484,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
+source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
 dependencies = [
  "atomic-polyfill",
  "cfg-if",
@@ -501,6 +502,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
+source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
 dependencies = [
  "cortex-m",
  "embassy",
@@ -511,6 +513,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
+source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
 dependencies = [
  "darling 0.13.4",
  "proc-macro2",
@@ -521,6 +524,7 @@ dependencies = [
 [[package]]
 name = "embassy-nrf"
 version = "0.1.0"
+source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -545,6 +549,7 @@ dependencies = [
 [[package]]
 name = "embassy-usb"
 version = "0.1.0"
+source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
 dependencies = [
  "embassy",
  "heapless",
