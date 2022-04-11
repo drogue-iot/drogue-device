@@ -104,7 +104,7 @@ pub(crate) fn generate_actor(input: &mut Item) {
     let Item(input) = input;
     let on_mount_future: ImplItemType = parse_quote! {
         type OnMountFuture<'m, M> = impl core::future::Future<Output = ()> + 'm
-            where Self: 'm, M: 'm + Inbox<Self>;
+            where Self: 'm, M: 'm + Inbox<Self::Message<'m>>;
     };
 
     input.items.push(ImplItem::Type(on_mount_future));
@@ -199,7 +199,6 @@ fn transform_sig(sig: &mut Signature) {
                 let s = arg.span().clone();
                 if let Pat::Ident(ident) = &mut *arg.pat {
                     ident.by_ref = None;
-                    ident.mutability = None;
                 }
 
                 if let Type::Reference(r) = &mut *arg.ty {

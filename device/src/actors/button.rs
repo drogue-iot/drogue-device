@@ -1,97 +1,53 @@
-use crate::actor;
 use crate::traits;
 use crate::{Actor, Address, Inbox};
+use core::convert::TryFrom;
+use core::future::Future;
 
 pub use crate::traits::button::Event as ButtonEvent;
 
-pub struct ButtonEventDispatcher<A: 'static + Actor + FromButtonEvent<A::Message<'static>>> {
-    address: Address<A>,
-}
-
-impl<A: Actor + FromButtonEvent<A::Message<'static>>> ButtonEventHandler
-    for ButtonEventDispatcher<A>
-{
-    fn handle(&mut self, event: ButtonEvent) {
-        if let Some(m) = A::from(event) {
-            let _ = self.address.notify(m);
-        }
-    }
-}
-
-impl<A: Actor + FromButtonEvent<A::Message<'static>>> Into<ButtonEventDispatcher<A>>
-    for Address<A>
-{
-    fn into(self) -> ButtonEventDispatcher<A> {
-        ButtonEventDispatcher { address: self }
-    }
-}
-
-pub struct ButtonPressed<A>(pub Address<A>, pub A::Message<'static>)
-where
-    A: Actor + 'static,
-    A::Message<'static>: Clone;
-
-impl<A> ButtonEventHandler for ButtonPressed<A>
-where
-    A: Actor + 'static,
-    A::Message<'static>: Clone,
-{
-    fn handle(&mut self, event: ButtonEvent) {
-        if let ButtonEvent::Pressed = event {
-            let _ = self.0.notify(self.1.clone());
-        }
-    }
-}
-
-pub struct ButtonReleased<A>(pub Address<A>, pub A::Message<'static>)
-where
-    A: Actor + 'static,
-    A::Message<'static>: Clone;
-
-impl<A> ButtonEventHandler for ButtonReleased<A>
-where
-    A: Actor + 'static,
-    A::Message<'static>: Clone,
-{
-    fn handle(&mut self, event: ButtonEvent) {
-        if let ButtonEvent::Released = event {
-            let _ = self.0.notify(self.1.clone());
-        }
-    }
-}
-
 //pub struct Button<P: Wait + InputPin, H: ButtonEventHandler> {
-pub struct Button<P: traits::button::Button, H: ButtonEventHandler> {
+pub struct Button<P: traits::button::Button, H: 'static> {
     inner: P,
-    handler: H,
+    handler: Address<H>,
 }
 
 //impl<P: Wait + InputPin, H: ButtonEventHandler> Button<P, H> {
-impl<P: traits::button::Button, H: ButtonEventHandler> Button<P, H> {
-    pub fn new(inner: P, handler: H) -> Self {
+impl<P: traits::button::Button, H> Button<P, H>
+where
+    H: 'static,
+{
+    pub fn new(inner: P, handler: Address<H>) -> Self {
         Self { inner, handler }
     }
 }
 
-pub trait ButtonEventHandler {
-    fn handle(&mut self, event: ButtonEvent);
-}
-
-pub trait FromButtonEvent<M> {
-    fn from(event: ButtonEvent) -> Option<M>
+impl<P: traits::button::Button, H> Actor for Button<P, H>
+where
+    H: TryFrom<ButtonEvent> + 'static,
+{
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where Self: 'm, M: Inbox<()> + 'm;
+    fn on_mount<'m, M>(&'m mut self, _: Address<()>, _: M) -> Self::OnMountFuture<'m, M>
     where
-        Self: Sized;
-}
-
-#[actor]
-impl<P: traits::button::Button, H: ButtonEventHandler> Actor for Button<P, H> {
-    async fn on_mount<M>(&mut self, _: Address<Self>, _: &mut M)
-    where
-        M: Inbox<Self>,
+        M: Inbox<()> + 'm,
     {
-        loop {
-            let event = self.inner.wait_any().await;
-            self.handler.handle(event);
+        async move {
+            loop {
+                let event = self.inner.wait_any().await;
+                if let Ok(e) = H::try_from(event) {
+                    let _ = self.handler.try_notify(e);
+                }
+            }
         }
+    }
+}
+
+#[cfg(feature = "std")]
+impl TryFrom<ButtonEvent> for drogue_actor::testutil::TestMessage {
+    type Error = core::convert::Infallible;
+    fn try_from(event: ButtonEvent) -> Result<Self, Self::Error> {
+        Ok(match event {
+            ButtonEvent::Pressed => drogue_actor::testutil::TestMessage(0),
+            ButtonEvent::Released => drogue_actor::testutil::TestMessage(1),
+        })
     }
 }

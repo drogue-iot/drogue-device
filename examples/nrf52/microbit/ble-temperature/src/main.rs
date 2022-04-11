@@ -9,14 +9,14 @@ use defmt_rtt as _;
 
 use drogue_device::{
     actors::ble::gatt::{advertiser::*, server::*, temperature::*},
-    actors::led::matrix::MatrixCommand,
-    bsp::boards::nrf52::microbit::{LedMatrixActor, Microbit},
+    bsp::boards::nrf52::microbit::{LedMatrix, Microbit},
     drivers::ble::gatt::{device_info::*, enable_softdevice, temperature::*},
     drivers::led::matrix::fonts,
-    traits::led::TextDisplay,
+    traits::led::ToFrame,
     Address, Board, *,
 };
 use embassy::executor::Spawner;
+use embassy::time::Duration;
 use embassy::util::Forever;
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
@@ -28,8 +28,6 @@ use panic_probe as _;
 
 #[cfg(not(feature = "panic-probe"))]
 use panic_reset as _;
-
-pub struct LedConnectionState(Address<LedMatrixActor>);
 
 // Application must run at a lower priority than softdevice
 fn config() -> Config {
@@ -44,14 +42,8 @@ async fn main(spawner: Spawner, p: Peripherals) {
     let board = Microbit::new(p);
     let sd = enable_softdevice("Drogue Device Temperature");
 
-    let mut matrix = spawn_actor!(
-        spawner,
-        LED_MATRIX,
-        LedMatrixActor,
-        LedMatrixActor::new(board.display, None)
-    );
-
-    matrix.scroll("Hello, Drogue").await.unwrap();
+    let mut matrix = board.display;
+    matrix.scroll("Hello, Drogue").await;
 
     static SERVER: Forever<MicrobitGattServer> = Forever::new();
     let server = SERVER.put(gatt_server::register(sd).unwrap());
@@ -69,13 +61,13 @@ async fn main(spawner: Spawner, p: Peripherals) {
     };
     let handler = spawn_actor!(spawner, GATT_HANDLER, MicrobitGattHandler, handler);
 
-    type GS = GattServer<MicrobitGattServer, MicrobitGattHandler>;
+    type GS = GattServer<MicrobitGattServer>;
     let acceptor = spawn_actor!(spawner, GATT_SERVER, GS, GS::new(server, handler));
 
     spawn_actor!(
         spawner,
         ADVERTISER,
-        BleAdvertiser<Address<GS>>,
+        BleAdvertiser<Address<Connection>>,
         BleAdvertiser::new(sd, "Drogue Temperature", acceptor)
     );
 }
@@ -88,45 +80,38 @@ pub struct MicrobitGattServer {
 
 // Handler that gets the dispatched GATT events
 struct MicrobitGattHandler {
-    temperature: Address<TemperatureMonitor>,
-    matrix: Address<LedMatrixActor>,
+    temperature: Address<MonitorEvent>,
+    matrix: LedMatrix,
 }
 
 #[actor]
 impl Actor for MicrobitGattHandler {
     type Message<'m> = GattEvent<MicrobitGattServer>;
 
-    async fn on_mount<M>(&mut self, _: Address<Self>, inbox: &mut M)
+    async fn on_mount<M>(&mut self, _: Address<Self::Message<'m>>, mut inbox: M)
     where
-        M: Inbox<Self>,
+        M: Inbox<Self::Message<'m>>,
     {
         loop {
-            if let Some(mut m) = inbox.next().await {
-                match m.message() {
-                    GattEvent::Write(e) => {
-                        if let MicrobitGattServerEvent::Temperature(e) = e {
-                            self.temperature
-                                .request(MonitorEvent::Event(e))
-                                .unwrap()
-                                .await;
-                        }
+            match inbox.next().await {
+                GattEvent::Write(e) => {
+                    if let MicrobitGattServerEvent::Temperature(e) = e {
+                        self.temperature.notify(MonitorEvent::Event(e)).await;
                     }
-                    GattEvent::Connected(c) => {
-                        self.temperature
-                            .request(MonitorEvent::AddConnection(c))
-                            .unwrap()
-                            .await;
-                        let _ = self
-                            .matrix
-                            .notify(MatrixCommand::ApplyFrame(&fonts::CHECK_MARK));
-                    }
-                    GattEvent::Disconnected(c) => {
-                        self.temperature
-                            .request(MonitorEvent::RemoveConnection(c))
-                            .unwrap()
-                            .await;
-                        self.matrix.scroll("Disconnected").await.unwrap();
-                    }
+                }
+                GattEvent::Connected(c) => {
+                    self.temperature
+                        .notify(MonitorEvent::AddConnection(c))
+                        .await;
+                    self.matrix
+                        .display(fonts::CHECK_MARK.to_frame(), Duration::from_secs(2))
+                        .await;
+                }
+                GattEvent::Disconnected(c) => {
+                    self.temperature
+                        .notify(MonitorEvent::RemoveConnection(c))
+                        .await;
+                    self.matrix.scroll("Disconnected").await;
                 }
             }
         }

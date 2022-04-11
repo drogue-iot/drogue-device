@@ -5,7 +5,6 @@
 use core::fmt::Write;
 use core::future::Future;
 use drogue_device::{
-    actors,
     traits::{
         button::Button,
         led::Led,
@@ -68,7 +67,6 @@ pub struct LoraDevice<B>
 where
     B: LoraBoard + 'static,
 {
-    driver: ActorContext<actors::lora::LoraActor<B::Driver>>,
     trigger: ActorContext<AppTrigger<B>>,
     app: ActorContext<App<B>>,
 }
@@ -79,16 +77,13 @@ where
 {
     pub fn new() -> Self {
         Self {
-            driver: ActorContext::new(),
             trigger: ActorContext::new(),
             app: ActorContext::new(),
         }
     }
 
     pub async fn mount(&'static self, spawner: Spawner, config: LoraDeviceConfig<B>) {
-        let driver = self
-            .driver
-            .mount(spawner, actors::lora::LoraActor::new(config.driver));
+        let driver = config.driver;
         let app = self.app.mount(
             spawner,
             App::new(config.join_led, config.tx_led, config.command_led, driver),
@@ -112,7 +107,7 @@ where
     join_led: Option<B::JoinLed>,
     tx_led: Option<B::TxLed>,
     command_led: Option<B::CommandLed>,
-    driver: Address<actors::lora::LoraActor<B::Driver>>,
+    driver: B::Driver,
 }
 
 impl<B> App<B>
@@ -123,7 +118,7 @@ where
         join_led: Option<B::JoinLed>,
         tx_led: Option<B::TxLed>,
         command_led: Option<B::CommandLed>,
-        driver: Address<actors::lora::LoraActor<B::Driver>>,
+        driver: B::Driver,
     ) -> Self {
         Self {
             join_led,
@@ -197,15 +192,15 @@ where
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         B: 'm,
-        M: 'm + Inbox<Self>;
+        M: 'm + Inbox<Self::Message<'m>>;
 
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
+        _: Address<Self::Message<'m>>,
+        mut inbox: M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<Self::Message<'m>> + 'm,
     {
         async move {
             let join_mode = JoinMode::OTAA {
@@ -223,19 +218,16 @@ where
             self.join_led.as_mut().map(|l| l.off().ok());
             loop {
                 match inbox.next().await {
-                    Some(mut m) => match m.message() {
-                        Command::Tick => {
-                            self.tick();
-                        }
-                        Command::Send => {
-                            self.send().await;
-                        }
-                        Command::TickAndSend => {
-                            self.tick();
-                            self.send().await;
-                        }
-                    },
-                    _ => {}
+                    Command::Tick => {
+                        self.tick();
+                    }
+                    Command::Send => {
+                        self.send().await;
+                    }
+                    Command::TickAndSend => {
+                        self.tick();
+                        self.send().await;
+                    }
                 }
             }
         }
@@ -247,7 +239,7 @@ where
     B: LoraBoard + 'static,
 {
     trigger: B::SendTrigger,
-    app: Address<App<B>>,
+    app: Address<Command>,
 }
 
 impl<B> Actor for AppTrigger<B>
@@ -258,16 +250,20 @@ where
     where
         Self: 'm,
         B: 'm,
-        M: 'm + Inbox<Self>;
+        M: 'm + Inbox<Self::Message<'m>>;
 
-    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Address<Self::Message<'m>>,
+        _: M,
+    ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<Self::Message<'m>> + 'm,
     {
         async move {
             loop {
                 self.trigger.wait().await;
-                let _ = self.app.request(Command::TickAndSend).unwrap().await;
+                self.app.notify(Command::TickAndSend).await;
             }
         }
     }

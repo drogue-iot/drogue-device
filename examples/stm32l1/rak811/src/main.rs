@@ -28,7 +28,7 @@ impl LoraBoard for BSP {
     type TxLed = LedRed;
     type CommandLed = LedRed;
     type SendTrigger = TimeTrigger;
-    type Driver = Device<'static, Radio, Rng>;
+    type Driver = Device<Radio, Rng>;
 }
 
 #[embassy::main(config = "Rak811::config()")]
@@ -52,7 +52,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
     )
     .await
     .unwrap();
-    let lora = unsafe { Device::new(&config, radio, board.rng, &mut RADIO_BUF).unwrap() };
+    let lora = Device::new(&config, radio, board.rng).unwrap();
     let config = LoraDeviceConfig {
         join_led: Some(board.led_red),
         tx_led: None,

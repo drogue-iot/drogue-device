@@ -30,23 +30,24 @@ include::example$basic/src/main.rs[lines="7..8"]
 
 Lets define the basic game first. We'll model the game as an actor named `Game`, and it will drive the entire game logic and interact with the LED matrix and the 'A' button on the micro:bit board.
 
-Luckily, Drogue Device already have actors for buttons and LED matrices, so we only need to create the `Game` actor.
+Luckily, Drogue Device already have actors for buttons and a LED matrix driver, so we only need to create the `Game` actor.
 
 Lets start with the types:
 
 [source,rust]
 ----
-include::example$basic/src/main.rs[lines="26..36"]
+include::example$basic/src/main.rs[lines="26..50"]
 ----
 
-The `Game` type holds on to the `Address` of the led matrix actor. The `Address` type is a handle that you can use to send messages to an `Actor`. In addition, we define the `GameMessage` message that our actor will expect to be notified
-of whenever the button is pressed.
+The `Game` type holds on to the led matrix. In addition, we define the `GameMessage` message that our actor will expect to be notified of whenever the button is pressed.
+The `Address` type is a handle that you can use to send messages to an `Actor`. Our Game actor will be reachable using an `Address<GameCommand>` instance, which you get when mounting an actor. The predefined `Button` actor
+can work with any handle that implements the `TryFrom<ButtonEvent>` trait, so we'll add an implemented for our `GameMessage` type.
 
 We can now have our `Game` type implement the `Actor` trait:
 
 [source,rust]
 ----
-include::example$basic/src/main.rs[lines="44..50"]
+include::example$basic/src/main.rs[lines="52..59"]
 ----
 
 The `Message` of an `Actor` defines the messages that our actor expects to handle.
@@ -55,7 +56,7 @@ NOTE: Why do you have to define the `actor` attribute? Rust does not yet support
 
 We can now define the main actor logic in the `on_mount` implementation.
 
-The `on_mount` entry point is called only once, and should contain the Actor main loop. The actor is handed an address to itself. This can be useful if you need to register the `Actor` with other actors or types. The `Address` type can be copied, so it's easy to pass around.
+The `on_mount` entry point is called only once, and should contain the Actor main loop. The actor is handed an address to itself. This can be useful if you need to register the `Actor` with other actors or types. The `Address` type can be cloned, so it's easy to pass around.
 
 The `Inbox` parameter is a handle that the actor can use to wait for incoming messages.
 
@@ -79,12 +80,17 @@ The game logic is implemented here:
 
 [source,rust,indent=0]
 ----
-include::example$basic/src/main.rs[lines="51..96"]
+include::example$basic/src/main.rs[lines="60..118"]
 ----
 
-You can see the use of the `self.matrix` which of type `Address`. The `on` method under the hood sends a message to a `LedMatrixActor` for toggling the LED at a given coordinate. The `inbox.next()` is an async funtion that completes when an event have been received.
+The LedMatrix has an `on` and `off` method to toggle the LED at a given coordinate. In order to render the current LedMatrix state, we need
+to call a render function at the desired refresh interval. The "outer" loop does just that until one of the 'game logic' futures are completing.
 
-The `Timer` type can be used to asynchronously wait for an event. Finally, the `futures` `select` function can be used to "race" two async functions for completion.
+The `inbox.next()` is an async funtion that completes when an event have been received (i.e. button has been pressed).
+
+The `Timer` type can be used to asynchronously wait for an event. The `futures` `select` function can be used to "race" two async functions for completion.
+
+Therefore, the outer select races the rending loop and the `inbox.next()` and timer, whereas they are raced against eachother. If there is an event or timeout, we update the game state.
 
 === Application main
 
@@ -92,7 +98,7 @@ With the game logic defined, we can now wire our three actors together in the ap
 
 [source,rust]
 ----
-include::example$basic/src/main.rs[lines="98..-1"]
+include::example$basic/src/main.rs[lines="122..-1"]
 ----
 
 The main entry point is defined using the `#[embassy::main]` macro. The entry point is also required to take a `Spawner` and a `Peripherals` argument.

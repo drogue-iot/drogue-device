@@ -5,13 +5,12 @@ use nrf_softdevice::ble::{
     Connection,
 };
 
-pub struct GattServer<S, E>
+pub struct GattServer<S>
 where
     S: Server + 'static,
-    E: Actor<Message<'static> = GattEvent<S>> + 'static,
 {
     server: &'static S,
-    handler: Address<E>,
+    handler: Address<GattEvent<S>>,
 }
 
 pub enum GattEvent<S>
@@ -23,74 +22,53 @@ where
     Disconnected(Connection),
 }
 
-impl<S, E> GattServer<S, E>
+impl<S> GattServer<S>
 where
     S: Server,
-    E: Actor<Message<'static> = GattEvent<S>> + 'static,
 {
-    pub fn new(server: &'static S, handler: Address<E>) -> Self {
+    pub fn new(server: &'static S, handler: Address<GattEvent<S>>) -> Self {
         Self { server, handler }
     }
 }
 
-impl<S, E> Actor for GattServer<S, E>
+impl<S> Actor for GattServer<S>
 where
     S: Server,
-    E: Actor<Message<'static> = GattEvent<S>> + 'static,
 {
     type Message<'m> = Connection;
 
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         Self: 'm,
-        M: 'm + Inbox<Self>;
+        M: 'm + Inbox<Connection>;
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
+        _: Address<Connection>,
+        mut inbox: M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<Connection> + 'm,
     {
         async move {
             let handler = self.handler.clone();
             loop {
-                if let Some(mut m) = inbox.next().await {
-                    let conn = m.message();
+                let conn = inbox.next().await;
 
-                    let _ = handler
-                        .request(GattEvent::Connected(conn.clone()))
-                        .unwrap()
-                        .await;
+                let _ = handler.try_notify(GattEvent::Connected(conn.clone()));
 
-                    // Run the GATT server on the connection. This returns when the connection gets disconnected.
-                    let res = gatt_server::run(conn, self.server, |e| {
-                        trace!("GATT write event received");
-                        let _ = handler.notify(GattEvent::Write(e));
-                    })
-                    .await;
+                // Run the GATT server on the connection. This returns when the connection gets disconnected.
+                let res = gatt_server::run(&conn, self.server, |e| {
+                    trace!("GATT write event received");
+                    let _ = handler.try_notify(GattEvent::Write(e));
+                })
+                .await;
 
-                    let _ = handler
-                        .request(GattEvent::Disconnected(conn.clone()))
-                        .unwrap()
-                        .await;
+                let _ = handler.try_notify(GattEvent::Disconnected(conn.clone()));
 
-                    if let Err(e) = res {
-                        info!("gatt_server exited with error: {:?}", e);
-                    }
+                if let Err(e) = res {
+                    info!("gatt_server exited with error: {:?}", e);
                 }
             }
         }
-    }
-}
-
-impl<S, E> super::advertiser::Acceptor for Address<GattServer<S, E>>
-where
-    S: Server,
-    E: Actor<Message<'static> = GattEvent<S>> + 'static,
-{
-    type Error = ();
-    fn accept(&mut self, connection: Connection) -> Result<(), Self::Error> {
-        self.notify(connection).map_err(|_| ())
     }
 }

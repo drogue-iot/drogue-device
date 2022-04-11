@@ -7,6 +7,7 @@ use crate::{
     },
     {Actor, Address, Inbox},
 };
+use drogue_actor::{Actor, Address, Inbox};
 use core::future::Future;
 
 #[cfg(feature = "wifi+esp8266")]

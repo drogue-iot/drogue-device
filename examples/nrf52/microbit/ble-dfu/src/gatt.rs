@@ -1,10 +1,8 @@
-use drogue_device::drivers::ble::gatt::dfu::{
-    FirmwareGattService, FirmwareService, FirmwareServiceEvent,
-};
+use drogue_device::drivers::ble::gatt::dfu::{FirmwareService, FirmwareServiceEvent};
 use drogue_device::Address;
 use nrf_softdevice::{
     ble::{gatt_server, peripheral},
-    raw, Flash, Softdevice,
+    raw, Softdevice,
 };
 
 #[nrf_softdevice::gatt_server]
@@ -17,7 +15,7 @@ pub struct GattServer {
 pub async fn bluetooth_task(
     sd: &'static Softdevice,
     server: &'static GattServer,
-    dfu: Address<FirmwareGattService<'static, Flash>>,
+    dfu: Address<FirmwareServiceEvent>,
 ) {
     #[rustfmt::skip]
     let adv_data = &[

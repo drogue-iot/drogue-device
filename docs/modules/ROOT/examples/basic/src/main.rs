@@ -7,27 +7,25 @@
 use defmt_rtt as _;
 use panic_probe as _;
 
+use core::convert::TryFrom;
 use drogue_device::{
     actor,
-    actors::button::{Button, ButtonPressed},
+    actors::button::{Button, ButtonEvent},
     bsp::boards::nrf52::microbit::*,
-    spawn_actor,
-    traits::led::LedMatrix as LedMatrixTrait,
-    Actor, Address, Board, Inbox,
+    spawn_actor, Actor, Address, Board, Inbox,
 };
-
-use embassy::time::{Duration, Timer};
+use embassy::time::{Duration, Ticker, Timer};
 use embassy_nrf::Peripherals;
 
 use futures::{
     future::{select, Either},
-    pin_mut,
+    pin_mut, StreamExt,
 };
 
 /// A simple game where the led matrix is traversed at a fixed interval and you press the button
 /// to light a red. You win when the whole board is lit.
 struct Game {
-    matrix: Address<LedMatrixActor>,
+    matrix: LedMatrix,
 }
 
 #[derive(Clone)]
@@ -35,8 +33,18 @@ pub enum GameMessage {
     Toggle,
 }
 
+impl TryFrom<ButtonEvent> for GameMessage {
+    type Error = ();
+    fn try_from(event: ButtonEvent) -> Result<Self, Self::Error> {
+        match event {
+            ButtonEvent::Released => Ok(GameMessage::Toggle),
+            _ => Err(()),
+        }
+    }
+}
+
 impl Game {
-    pub fn new(matrix: Address<LedMatrixActor>) -> Self {
+    pub fn new(matrix: LedMatrix) -> Self {
         Self { matrix }
     }
 }
@@ -45,9 +53,9 @@ impl Game {
 impl Actor for Game {
     type Message<'m> = GameMessage;
 
-    async fn on_mount<M>(&mut self, _: Address<Self>, inbox: &mut M)
+    async fn on_mount<M>(&mut self, _: Address<GameMessage>, mut inbox: M)
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<GameMessage> + 'm,
     {
         defmt::info!("Starting game! Press the 'A' button to lit the LED at the cursor.");
         let speed = Duration::from_millis(200);
@@ -57,25 +65,39 @@ impl Actor for Game {
         let (mut x, mut y) = (0, 0);
         let mut done = false;
 
+        let mut render = Ticker::every(Duration::from_millis(5));
         while !done {
-            self.matrix.on(x, y).await.unwrap();
+            self.matrix.on(x, y);
             // Race timeout and button press
             let timeout = Timer::after(speed);
             let event = inbox.next();
             pin_mut!(timeout);
             pin_mut!(event);
-            match select(timeout, event).await {
-                // Timeout
-                Either::Left(_) => {}
-                // Set/unset
-                Either::Right(_) => {
-                    coordinates[y][x] = !coordinates[y][x];
+
+            let mut logic = select(timeout, event);
+            loop {
+                let tick = render.next();
+                pin_mut!(tick);
+                match select(tick, &mut logic).await {
+                    Either::Left((_, _)) => {
+                        self.matrix.render();
+                    }
+                    Either::Right((f, _)) => match f {
+                        Either::Left(_) => {
+                            break;
+                        }
+                        Either::Right(_) => {
+                            // Set/unset
+                            coordinates[y][x] = !coordinates[y][x];
+                            break;
+                        }
+                    },
                 }
             }
 
             // Unlit only if we're not set
             if !coordinates[y][x] {
-                self.matrix.off(x, y).await.unwrap();
+                self.matrix.off(x, y)
             }
 
             // Check if game is done
@@ -92,6 +114,7 @@ impl Actor for Game {
             x = cursor % 5;
             y = (cursor / 5) % 5;
             cursor += 1;
+            self.matrix.render();
         }
     }
 }
@@ -101,17 +124,9 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     // Using a board support package to simplify setup
     let board = Microbit::new(p);
 
-    // Spawning will start the display loop
-    let matrix = spawn_actor!(
-        spawner,
-        LED_MATRIX,
-        LedMatrixActor,
-        LedMatrixActor::new(board.display, None)
-    );
-
     // An actor for the game logic
-    let game = spawn_actor!(spawner, GAME, Game, Game::new(matrix));
+    let game = spawn_actor!(spawner, GAME, Game, Game::new(board.display));
 
     // Actor for button 'A'
-    spawn_actor!(spawner, BUTTON_A, Button<PinButtonA, ButtonPressed<Game>>, Button::new(board.btn_a, ButtonPressed(game, GameMessage::Toggle)));
+    spawn_actor!(spawner, BUTTON_A, Button<PinButtonA, GameMessage>, Button::new(board.btn_a, game));
 }

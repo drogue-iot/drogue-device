@@ -10,14 +10,21 @@ members = [
 resolver = "2"
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
-embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
-embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
-embassy-traits = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
+embassy = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
+embassy-stm32 = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
+embassy-nrf = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
+embassy-lora = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
+embassy-net = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
+embassy-traits = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
 nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
 nrf-softdevice-s140 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
 
 # embassy = { path = "../../../../../embassy/embassy" }
 # embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
+
+#embassy = { path = "../../embassy/embassy" }
+#embassy-stm32 = { path = "../../embassy/embassy-stm32" }
+#embassy-nrf = { path = "../../embassy/embassy-nrf" }
+#embassy-lora = { path = "../../embassy/embassy-lora" }
+#embassy-net = { path = "../../embassy/embassy-net" }
+#embassy-traits = { path = "../../embassy/embassy-traits" }

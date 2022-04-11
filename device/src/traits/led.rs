@@ -42,9 +42,16 @@ pub trait TextDisplay {
         speed: embassy::time::Duration,
     ) -> Self::ScrollWithSpeedFuture<'m>;
 
-    fn putc(&mut self, c: char) -> Result<(), Self::Error>;
+    type DisplayFuture<'m>: core::future::Future<Output = Result<(), Self::Error>>
+    where
+        Self: 'm;
+    fn display<'m>(
+        &'m mut self,
+        c: char,
+        duration: embassy::time::Duration,
+    ) -> Self::DisplayFuture<'m>;
 }
-
+/*
 pub trait LedMatrix<const ROWS: usize, const COLS: usize> {
     type Error;
 
@@ -75,6 +82,7 @@ pub trait LedMatrix<const ROWS: usize, const COLS: usize> {
     fn enable(&mut self) -> Result<(), Self::Error>;
     fn disable(&mut self) -> Result<(), Self::Error>;
 }
+*/
 
 pub trait ToFrame<const XSIZE: usize, const YSIZE: usize>: Sync {
     fn to_frame(&self) -> Frame<XSIZE, YSIZE>;

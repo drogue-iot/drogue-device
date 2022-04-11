@@ -27,7 +27,7 @@ impl LoraBoard for BSP {
     type TxLed = LedGreen;
     type CommandLed = LedYellow;
     type SendTrigger = UserButton;
-    type Driver = Device<'static, Radio, Rng>;
+    type Driver = Device<Radio, Rng>;
 }
 
 #[embassy::main(config = "NucleoWl55::config(true)")]
@@ -41,8 +41,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
 
     defmt::info!("Configuring with config {:?}", config);
 
-    static mut RADIO_BUF: [u8; 256] = [0; 256];
-    let lora = unsafe { Device::new(&config, board.radio, board.rng, &mut RADIO_BUF).unwrap() };
+    let lora = Device::new(&config, board.radio, board.rng).unwrap();
 
     let config = LoraDeviceConfig {
         join_led: Some(board.led_blue),

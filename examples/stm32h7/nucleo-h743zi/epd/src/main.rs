@@ -9,8 +9,7 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use core::fmt::Write;
-use core::future::Future;
-use drogue_device::actors::button::{Button, ButtonEvent, ButtonEventDispatcher, FromButtonEvent};
+use drogue_device::actors::button::{Button, ButtonEvent};
 use drogue_device::{Actor, ActorContext, Address, DeviceContext, Inbox};
 use embassy::time::Delay;
 use embassy_stm32::dma::NoDma;
@@ -167,27 +166,18 @@ fn quantize_color(color: Rgb888) -> OctColor {
     }
 }
 
+#[drogue_device::actor]
 impl Actor for App {
     type Message<'m> = Command;
 
-    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
+    async fn on_mount<M>(&mut self, _: Address<Self::Message<'m>>, mut inbox: M)
     where
-        M: 'm + Inbox<Self>;
-
-    fn on_mount<'m, M>(
-        &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
-    where
-        M: Inbox<Self> + 'm,
+        M: Inbox<Self::Message<'m>> + 'm,
     {
-        async move {
-            loop {
-                let _msg = inbox.next().await;
-                self.presses += 1;
-                self.draw().await;
-            }
+        loop {
+            let _msg = inbox.next().await;
+            self.presses += 1;
+            self.draw().await;
         }
     }
 }
@@ -197,21 +187,19 @@ pub enum Command {
     Draw,
 }
 
-impl FromButtonEvent<Command> for App {
-    fn from(event: ButtonEvent) -> Option<Command>
-    where
-        Self: Sized,
-    {
+impl core::convert::TryFrom<ButtonEvent> for Command {
+    type Error = ();
+    fn try_from(event: ButtonEvent) -> Result<Self, Self::Error> {
         match event {
-            ButtonEvent::Pressed => Some(Command::Draw),
-            ButtonEvent::Released => None,
+            ButtonEvent::Pressed => Ok(Command::Draw),
+            ButtonEvent::Released => Err(()),
         }
     }
 }
 
 pub struct MyDevice {
     app: ActorContext<App>,
-    button: ActorContext<Button<ExtiInput<'static, PC13>, ButtonEventDispatcher<App>>>,
+    button: ActorContext<Button<ExtiInput<'static, PC13>, Command>>,
 }
 
 static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();

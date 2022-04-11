@@ -21,21 +21,20 @@ mod tests {
         pub struct Add(u32);
         impl Actor for MyActor {
             type Message<'m> = Add;
-
-            type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where M: 'm + Inbox<Self>;
+            type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where M: 'm + Inbox<Add>;
 
             fn on_mount<'m, M>(
                 &'m mut self,
-                _: Address<Self>,
-                inbox: &'m mut M,
+                _: Address<Add>,
+                mut inbox: M,
             ) -> Self::OnMountFuture<'m, M>
             where
-                M: Inbox<Self> + 'm,
+                M: Inbox<Add> + 'm,
             {
                 async move {
                     loop {
-                        let mut message = inbox.next().await.unwrap();
-                        self.value.fetch_add(message.message().0, Ordering::SeqCst);
+                        let message = inbox.next().await;
+                        self.value.fetch_add(message.0, Ordering::SeqCst);
                     }
                 }
             }
@@ -52,7 +51,7 @@ mod tests {
                 },
             );
 
-            let _ = a_addr.notify(Add(10));
+            let _ = a_addr.try_notify(Add(10));
         }
 
         std::thread::spawn(move || {

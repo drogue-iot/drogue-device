@@ -1,4 +1,4 @@
-use crate::actors::net::*;
+use crate::network::connection::*;
 use crate::traits::dns::{DnsError, DnsResolver};
 use core::fmt::{Display, Write};
 use core::{num::ParseIntError, str::Utf8Error};

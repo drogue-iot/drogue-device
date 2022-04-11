@@ -4,7 +4,7 @@
 #![feature(type_alias_impl_trait)]
 #![feature(generic_associated_types)]
 #![feature(associated_type_defaults)]
-//! Drogue Actor is an open source async, no-alloc framework for embedded devices. It integrates with [embassy](https://github.com/embassy-rs/embassy), the embedded async project.
+//! Drogue Actor is an open source async, no-alloc actor framework for embedded devices. It integrates with [embassy](https://github.com/embassy-rs/embassy), the embedded async project.
 //!
 //! See [the book](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and running some examples.
 //!
@@ -23,7 +23,7 @@
 //! #![feature(type_alias_impl_trait)]
 //! #![feature(const_fn_trait_bound)]
 //!
-//! # use drogue_device::*;
+//! # use drogue_actor::*;
 //!
 //! /// A Counter that we wish to create an Actor for.
 //! pub struct Counter {
@@ -45,8 +45,8 @@
 //!     /// The following arguments are provided:
 //!     /// * The address to 'self'
 //!     /// * An inbox from which the actor can receive messages
-//!     async fn on_mount<M>(&mut self, _: Address<Self::Message<'m>>, inbox: &mut M)
-//!         where M: Inbox<Self> {
+//!     async fn on_mount<M>(&mut self, _: Address<Self::Message<'m>>, mut inbox: M)
+//!         where M: Inbox<Self::Message<'m>> {
 //!     {
 //!         loop {
 //!             // Await the next message and increment the counter
@@ -62,7 +62,7 @@
 //! async fn main(spawner: embassy::executor::Spawner) {
 //!
 //!     // Mounting the Actor will spawn an embassy task
-//!     let addr = drogue_device::spawn_actor!(spawner, COUNTER, Counter, Counter { count  0 });
+//!     let addr = drogue_actor::spawn_actor!(spawner, COUNTER, Counter, Counter { count  0 });
 //!
 //!     // The actor address may be used in any embassy task to communicate with the actor.
 //!     let _ = addr.notify(Increment);
@@ -74,7 +74,6 @@ pub(crate) mod fmt;
 
 mod actor;
 mod device;
-pub mod signal;
 
 pub use actor::*;
 pub use device::*;

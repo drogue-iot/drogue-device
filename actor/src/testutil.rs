@@ -81,19 +81,18 @@ impl DummyActor {
 
 impl Actor for DummyActor {
     type Message<'m> = TestMessage;
-
-    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where M: 'm + Inbox<Self>;
+    type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where M: 'm + Inbox<TestMessage>;
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
+        _: Address<TestMessage>,
+        mut inbox: M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<TestMessage> + 'm,
     {
         async move {
             loop {
-                if let Some(_) = inbox.next().await {}
+                inbox.next().await;
             }
         }
     }
@@ -112,22 +111,21 @@ impl TestHandler {
 
 impl Actor for TestHandler {
     type Message<'m> = TestMessage;
-
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
-        M: 'm + Inbox<Self>;
+        M: 'm + Inbox<TestMessage>;
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
+        _: Address<TestMessage>,
+        mut inbox: M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<TestMessage> + 'm,
     {
         async move {
             loop {
-                let mut message = inbox.next().await.unwrap();
-                self.on_message.signal(*message.message());
+                let message = inbox.next().await;
+                self.on_message.signal(message);
             }
         }
     }

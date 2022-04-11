@@ -34,25 +34,23 @@ impl Actor for Statistics {
 
     type OnMountFuture<'a, M> = impl Future<Output = ()> + 'a
     where
-        M: 'a + Inbox<Self>;
+        M: 'a + Inbox<Self::Message<'a>>;
 
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
+        _: Address<Self::Message<'m>>,
+        mut inbox: M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<Self::Message<'m>> + 'm,
     {
         async move {
             loop {
-                if let Some(mut m) = inbox.next().await {
-                    match *m.message() {
-                        StatisticsCommand::PrintStatistics => {
-                            defmt::info!("Character count: {}", self.character_counter)
-                        }
-                        StatisticsCommand::IncrementCharacterCount => self.character_counter += 1,
+                match inbox.next().await {
+                    StatisticsCommand::PrintStatistics => {
+                        defmt::info!("Character count: {}", self.character_counter)
                     }
+                    StatisticsCommand::IncrementCharacterCount => self.character_counter += 1,
                 }
             }
         }

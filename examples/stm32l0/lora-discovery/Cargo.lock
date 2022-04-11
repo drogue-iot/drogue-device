@@ -280,9 +280,9 @@ dependencies = [
 
 [[package]]
 name = "critical-section"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc1e89b93912c97878305b70ef6b011bfc74622e7b79a9d4a0676c7663496bcd"
+checksum = "95da181745b56d4bd339530ec393508910c909c784e8962d15d722bacf0bcbcd"
 dependencies = [
  "bare-metal 1.0.0",
  "cfg-if",
@@ -348,9 +348,9 @@ dependencies = [
 
 [[package]]
 name = "darling"
-version = "0.13.2"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e92cb285610dd935f60ee8b4d62dd1988bd12b7ea50579bd6a138201525318e"
+checksum = "a01d95850c592940db9b8194bc39f4bc0e89dee5c4265e4b1807c34a9aba453c"
 dependencies = [
  "darling_core",
  "darling_macro",
@@ -358,9 +358,9 @@ dependencies = [
 
 [[package]]
 name = "darling_core"
-version = "0.13.2"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c29e95ab498b18131ea460b2c0baa18cbf041231d122b0b7bfebef8c8e88989"
+checksum = "859d65a907b6852c9361e3185c862aae7fafd2887876799fa55f5f99dc40d610"
 dependencies = [
  "fnv",
  "ident_case",
@@ -372,9 +372,9 @@ dependencies = [
 
 [[package]]
 name = "darling_macro"
-version = "0.13.2"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b21dd6b221dd547528bd6fb15f1a3b7ab03b9a06f76bff288a8c629bcfbe7f0e"
+checksum = "9c972679f83bdf9c42bd905396b6c3588a843a17f0f16dfcfa3e2c5d57441835"
 dependencies = [
  "darling_core",
  "quote",
@@ -465,8 +465,6 @@ dependencies = [
  "lorawan-device",
  "lorawan-encoding",
  "rand_core",
- "usb-device",
- "usbd-serial",
 ]
 
 [[package]]
@@ -500,12 +498,13 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=a9e63167e1ec230ca3d28da771378f5f4936a840#a9e63167e1ec230ca3d28da771378f5f4936a840"
+source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
 dependencies = [
  "atomic-polyfill",
  "cfg-if",
  "cortex-m",
  "critical-section",
+ "defmt",
  "embassy-macros",
  "embedded-hal 0.2.7",
  "embedded-hal-async",
@@ -517,7 +516,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=a9e63167e1ec230ca3d28da771378f5f4936a840#a9e63167e1ec230ca3d28da771378f5f4936a840"
+source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
 dependencies = [
  "cortex-m",
  "embassy",
@@ -528,7 +527,7 @@ dependencies = [
 [[package]]
 name = "embassy-lora"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=a9e63167e1ec230ca3d28da771378f5f4936a840#a9e63167e1ec230ca3d28da771378f5f4936a840"
+source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
 dependencies = [
  "bit_field",
  "embassy",
@@ -543,7 +542,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=a9e63167e1ec230ca3d28da771378f5f4936a840#a9e63167e1ec230ca3d28da771378f5f4936a840"
+source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -554,7 +553,7 @@ dependencies = [
 [[package]]
 name = "embassy-stm32"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=a9e63167e1ec230ca3d28da771378f5f4936a840#a9e63167e1ec230ca3d28da771378f5f4936a840"
+source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
 dependencies = [
  "atomic-polyfill",
  "bare-metal 1.0.0",
@@ -860,9 +859,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.121"
+version = "0.2.122"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efaa7b300f3b5fe8eb6bf21ce3895e1751d9665086af2d64b42f19701015ff4f"
+checksum = "ec647867e2bf0772e28c8bcde4f0d19a9216916e890543b5a03ed8ef27b8f259"
 
 [[package]]
 name = "linked-hash-map"
@@ -912,7 +911,7 @@ dependencies = [
 [[package]]
 name = "lorawan-device"
 version = "0.2.0"
-source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=0de1a2a31933f7c97887b5718c1755fa5ab93a42#0de1a2a31933f7c97887b5718c1755fa5ab93a42"
+source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=607d7ee4917e26998b5f130304becde969b6b434#607d7ee4917e26998b5f130304becde969b6b434"
 dependencies = [
  "as-slice 0.2.1",
  "futures",
@@ -925,7 +924,7 @@ dependencies = [
 [[package]]
 name = "lorawan-encoding"
 version = "0.6.2"
-source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=0de1a2a31933f7c97887b5718c1755fa5ab93a42#0de1a2a31933f7c97887b5718c1755fa5ab93a42"
+source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=607d7ee4917e26998b5f130304becde969b6b434#607d7ee4917e26998b5f130304becde969b6b434"
 dependencies = [
  "aes",
  "cmac",
@@ -1090,18 +1089,18 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.36"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7342d5883fbccae1cc37a2353b09c87c9b0f3afd73f5fb9bba687a1f733b029"
+checksum = "ec757218438d5fda206afc041538b2f6d889286160d649a86a24d37e1235afd1"
 dependencies = [
  "unicode-xid",
 ]
 
 [[package]]
 name = "quote"
-version = "1.0.17"
+version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "632d02bff7f874a36f33ea8bb416cd484b90cc66c1194b1a1110d067a7013f58"
+checksum = "a1feb54ed693b93a84e14094943b84b7c4eae204c512b7ccb95ab0c66d278ad1"
 dependencies = [
  "proc-macro2",
 ]
@@ -1323,7 +1322,7 @@ dependencies = [
 [[package]]
 name = "stm32-metapac"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=a9e63167e1ec230ca3d28da771378f5f4936a840#a9e63167e1ec230ca3d28da771378f5f4936a840"
+source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
@@ -1334,7 +1333,7 @@ dependencies = [
 [[package]]
 name = "stm32-metapac-gen"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=a9e63167e1ec230ca3d28da771378f5f4936a840#a9e63167e1ec230ca3d28da771378f5f4936a840"
+source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
 dependencies = [
  "chiptool",
  "proc-macro2",
@@ -1371,9 +1370,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.90"
+version = "1.0.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "704df27628939572cd88d33f171cd6f896f4eaca85252c6e0a72d8d8287ee86f"
+checksum = "b683b2b825c8eef438b77c36a06dc262294da3d5a5813fac20da149241dcd44d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1441,17 +1440,6 @@ name = "usb-device"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6be90410d4772074ea49525e2e753b65920b94b57eee21a6ef7b6a6fe6296245"
-
-[[package]]
-name = "usbd-serial"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db75519b86287f12dcf0d171c7cf4ecc839149fe9f3b720ac4cfce52959e1dfe"
-dependencies = [
- "embedded-hal 0.2.7",
- "nb 0.1.3",
- "usb-device",
-]
 
 [[package]]
 name = "vcell"

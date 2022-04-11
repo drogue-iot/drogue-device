@@ -9,10 +9,10 @@ use core::future::Future;
 use heapless::Vec;
 use serde::{Deserialize, Serialize};
 
-pub trait ElementsHandler {
+pub trait ElementsHandler<'a> {
     fn composition(&self) -> &Composition;
 
-    fn connect(&mut self, ctx: AppElementsContext);
+    fn connect(&mut self, ctx: AppElementsContext<'a>);
 
     fn configure(&mut self, _: &ConfigurationModel) {}
 

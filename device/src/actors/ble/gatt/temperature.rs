@@ -53,26 +53,25 @@ impl TemperatureMonitor {
     }
 }
 
-pub enum MonitorEvent<'m> {
-    AddConnection(&'m Connection),
-    RemoveConnection(&'m Connection),
-    Event(&'m TemperatureServiceEvent),
+pub enum MonitorEvent {
+    AddConnection(Connection),
+    RemoveConnection(Connection),
+    Event(TemperatureServiceEvent),
 }
 
 impl Actor for TemperatureMonitor {
-    type Message<'m> = MonitorEvent<'m>;
-
+    type Message<'m> = MonitorEvent;
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         Self: 'm,
-        M: 'm + Inbox<Self>;
+        M: 'm + Inbox<MonitorEvent>;
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
+        _: Address<MonitorEvent>,
+        mut inbox: M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<MonitorEvent> + 'm,
     {
         async move {
             loop {
@@ -83,21 +82,17 @@ impl Actor for TemperatureMonitor {
                 pin_mut!(ticker_fut);
 
                 match select(inbox_fut, ticker_fut).await {
-                    Either::Left((r, _)) => {
-                        if let Some(mut m) = r {
-                            match m.message() {
-                                MonitorEvent::AddConnection(conn) => {
-                                    self.add_connection(conn);
-                                }
-                                MonitorEvent::RemoveConnection(conn) => {
-                                    self.remove_connection(conn);
-                                }
-                                MonitorEvent::Event(event) => {
-                                    self.handle_event(event);
-                                }
-                            }
+                    Either::Left((m, _)) => match m {
+                        MonitorEvent::AddConnection(conn) => {
+                            self.add_connection(&conn);
                         }
-                    }
+                        MonitorEvent::RemoveConnection(conn) => {
+                            self.remove_connection(&conn);
+                        }
+                        MonitorEvent::Event(event) => {
+                            self.handle_event(&event);
+                        }
+                    },
                     Either::Right((_, _)) => {
                         let value: i8 = temperature_celsius(self.sd).unwrap().to_num();
                         trace!("Measured temperature: {}℃", value);

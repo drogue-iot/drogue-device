@@ -5,20 +5,21 @@
 
 pub(crate) mod fmt;
 
+use core::convert::TryFrom;
 use core::future::Future;
 use drogue_device::{
     actors::sensors::Temperature,
-    actors::tcp::TcpActor,
-    clients::http::*,
+    actors::transformer::Transformer,
     domain::{
         temperature::{Celsius, TemperatureScale},
         SensorAcquisition,
     },
     drivers::dns::*,
     drogue,
+    network::clients::http::*,
     traits::button::Button,
-    traits::{ip::*, sensors::temperature::TemperatureSensor},
-    Actor, ActorContext, Address, Inbox, Package,
+    traits::{ip::*, sensors::temperature::TemperatureSensor, tcp::*},
+    Actor, ActorContext, Address, Inbox,
 };
 use embassy::executor::Spawner;
 use embedded_hal::digital::v2::InputPin;
@@ -30,7 +31,7 @@ use serde::{Deserialize, Serialize};
 use drogue_tls::Aes128GcmSha256;
 
 #[cfg(feature = "tls")]
-use drogue_device::actors::net::TlsConnectionFactory;
+use drogue_device::network::connection::TlsConnectionFactory;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -76,7 +77,7 @@ type ConnectionFactory<B> = TlsConnectionFactory<
 >;
 
 #[cfg(not(feature = "tls"))]
-type ConnectionFactory<B> = Address<<B as TemperatureBoard>::Network>;
+type ConnectionFactory<B> = <B as TemperatureBoard>::Network;
 
 impl<B> App<B>
 where
@@ -99,6 +100,20 @@ where
     }
 }
 
+impl<B> TryFrom<SensorAcquisition<B>> for Command
+where
+    B: TemperatureScale,
+{
+    type Error = Infallible;
+    fn try_from(s: SensorAcquisition<B>) -> Result<Self, Self::Error> {
+        Ok(Command::Update(TemperatureData {
+            geoloc: None,
+            temp: Some(s.temperature.raw_value()),
+            hum: Some(s.relative_humidity),
+        }))
+    }
+}
+
 impl<B> Actor for App<B>
 where
     B: TemperatureBoard + 'static,
@@ -110,70 +125,67 @@ where
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         B: 'm,
-        M: 'm + Inbox<Self>;
+        M: 'm + Inbox<Command>;
     fn on_mount<'m, M>(
         &'m mut self,
-        _: Address<Self>,
-        inbox: &'m mut M,
+        _: Address<Command>,
+        mut inbox: M,
     ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<Command> + 'm,
     {
         async move {
             let mut counter: usize = 0;
             let mut data: Option<TemperatureData> = None;
             loop {
                 match inbox.next().await {
-                    Some(mut m) => match m.message() {
-                        Command::Update(d) => {
-                            data.replace(d.clone());
-                        }
-                        Command::Send => {
-                            if let Some(sensor_data) = data.as_ref() {
-                                info!("Sending temperature measurement number {}", counter);
-                                counter += 1;
-                                let mut client = HttpClient::new(
-                                    &mut self.connection_factory,
-                                    &DNS,
-                                    self.host,
-                                    self.port,
-                                    self.username,
-                                    self.password,
-                                );
+                    Command::Update(d) => {
+                        data.replace(d.clone());
+                    }
+                    Command::Send => {
+                        if let Some(sensor_data) = data.as_ref() {
+                            info!("Sending temperature measurement number {}", counter);
+                            counter += 1;
+                            let mut client = HttpClient::new(
+                                &mut self.connection_factory,
+                                &DNS,
+                                self.host,
+                                self.port,
+                                self.username,
+                                self.password,
+                            );
 
-                                let tx: String<128> =
-                                    serde_json_core::ser::to_string(&sensor_data).unwrap();
-                                let mut rx_buf = [0; 1024];
-                                let response = client
-                                    .request(
-                                        Request::post()
-                                            // Pass on schema
-                                            .path("/v1/foo?data_schema=urn:drogue:iot:temperature")
-                                            .payload(tx.as_bytes())
-                                            .content_type(ContentType::ApplicationJson),
-                                        &mut rx_buf[..],
-                                    )
-                                    .await;
-                                match response {
-                                    Ok(response) => {
-                                        info!("Response status: {:?}", response.status);
-                                        if let Some(payload) = response.payload {
-                                            let s = core::str::from_utf8(payload).unwrap();
-                                            trace!("Payload: {}", s);
-                                        } else {
-                                            trace!("No response body");
-                                        }
-                                    }
-                                    Err(e) => {
-                                        warn!("Error doing HTTP request: {:?}", e);
+                            let tx: String<128> =
+                                serde_json_core::ser::to_string(&sensor_data).unwrap();
+                            let mut rx_buf = [0; 1024];
+                            let response = client
+                                .request(
+                                    Request::post()
+                                        // Pass on schema
+                                        .path("/v1/foo?data_schema=urn:drogue:iot:temperature")
+                                        .payload(tx.as_bytes())
+                                        .content_type(ContentType::ApplicationJson),
+                                    &mut rx_buf[..],
+                                )
+                                .await;
+                            match response {
+                                Ok(response) => {
+                                    info!("Response status: {:?}", response.status);
+                                    if let Some(payload) = response.payload {
+                                        let s = core::str::from_utf8(payload).unwrap();
+                                        trace!("Payload: {}", s);
+                                    } else {
+                                        trace!("No response body");
                                     }
                                 }
-                            } else {
-                                info!("Not temperature measurement received yet");
+                                Err(e) => {
+                                    warn!("Error doing HTTP request: {:?}", e);
+                                }
                             }
+                        } else {
+                            info!("Not temperature measurement received yet");
                         }
-                    },
-                    _ => {}
+                    }
                 }
             }
         }
@@ -189,8 +201,7 @@ static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
 ]);
 
 pub trait TemperatureBoard {
-    type NetworkPackage: Package<Primary = Self::Network>;
-    type Network: TcpActor;
+    type Network: TcpStack + Clone;
     type TemperatureScale: TemperatureScale;
     type Sensor: TemperatureSensor<Self::TemperatureScale>;
     type SensorReadyIndicator: Wait + InputPin;
@@ -209,10 +220,10 @@ pub struct TemperatureDevice<B>
 where
     B: TemperatureBoard + 'static,
 {
-    network: B::NetworkPackage,
     app: ActorContext<App<B>, 3>,
     trigger: ActorContext<AppTrigger<B>>,
     sensor: ActorContext<Temperature<B::SensorReadyIndicator, B::Sensor, B::TemperatureScale>>,
+    bridge: ActorContext<Transformer<SensorAcquisition<B::TemperatureScale>, Command>>,
 }
 
 pub struct TemperatureBoardConfig<B>
@@ -222,19 +233,19 @@ where
     pub sensor: B::Sensor,
     pub sensor_ready: B::SensorReadyIndicator,
     pub send_trigger: B::SendTrigger,
-    pub network_config: <B::NetworkPackage as Package>::Configuration,
+    pub network: B::Network,
 }
 
 impl<B> TemperatureDevice<B>
 where
     B: TemperatureBoard + 'static,
 {
-    pub fn new(network: B::NetworkPackage) -> Self {
+    pub fn new() -> Self {
         Self {
-            network,
             sensor: ActorContext::new(),
             trigger: ActorContext::new(),
             app: ActorContext::new(),
+            bridge: ActorContext::new(),
         }
     }
 
@@ -244,7 +255,7 @@ where
         _rng: B::Rng,
         config: TemperatureBoardConfig<B>,
     ) {
-        let network = self.network.mount(config.network_config, spawner);
+        let network = config.network;
         #[cfg(feature = "tls")]
         let network = {
             static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
@@ -261,14 +272,14 @@ where
                 network,
             ),
         );
-        let sensor = self.sensor.mount(
+        let bridge = self.bridge.mount(spawner, Transformer::new(app.clone()));
+        self.sensor.mount(
             spawner,
-            Temperature::new(config.sensor_ready, config.sensor),
+            Temperature::new(config.sensor_ready, config.sensor, bridge),
         );
-        self.trigger.mount(
-            spawner,
-            AppTrigger::new(config.send_trigger, sensor, app.into()),
-        );
+
+        self.trigger
+            .mount(spawner, AppTrigger::new(config.send_trigger, app));
     }
 }
 
@@ -277,24 +288,15 @@ where
     B: TemperatureBoard + 'static,
 {
     trigger: B::SendTrigger,
-    sensor: Address<Temperature<B::SensorReadyIndicator, B::Sensor, B::TemperatureScale>>,
-    app: Address<App<B>>,
+    app: Address<Command>,
 }
 
 impl<B> AppTrigger<B>
 where
     B: TemperatureBoard + 'static,
 {
-    pub fn new(
-        trigger: B::SendTrigger,
-        sensor: Address<Temperature<B::SensorReadyIndicator, B::Sensor, B::TemperatureScale>>,
-        app: Address<App<B>>,
-    ) -> Self {
-        Self {
-            trigger,
-            sensor,
-            app,
-        }
+    pub fn new(trigger: B::SendTrigger, app: Address<Command>) -> Self {
+        Self { trigger, app }
     }
 }
 
@@ -306,26 +308,20 @@ where
     where
         Self: 'm,
         B: 'm,
-        M: 'm + Inbox<Self>;
+        M: 'm + Inbox<Self::Message<'m>>;
 
-    fn on_mount<'m, M>(&'m mut self, _: Address<Self>, _: &'m mut M) -> Self::OnMountFuture<'m, M>
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Address<Self::Message<'m>>,
+        _: M,
+    ) -> Self::OnMountFuture<'m, M>
     where
-        M: Inbox<Self> + 'm,
+        M: Inbox<Self::Message<'m>> + 'm,
     {
         async move {
             loop {
                 self.trigger.wait().await;
-                trace!("Trigger activated! Requesting sensor data");
-                if let Ok(data) = self.sensor.temperature().await {
-                    let data = TemperatureData {
-                        geoloc: None,
-                        temp: Some(data.temperature.raw_value()),
-                        hum: Some(data.relative_humidity),
-                    };
-                    trace!("Updating temperature data: {:?}", data);
-                    let _ = self.app.request(Command::Update(data)).unwrap().await;
-                }
-                let _ = self.app.request(Command::Send).unwrap().await;
+                self.app.notify(Command::Send).await;
             }
         }
     }

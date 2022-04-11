@@ -27,7 +27,7 @@ impl LoraBoard for BSP {
     type TxLed = LedGreen;
     type CommandLed = LedYellow;
     type SendTrigger = UserButton;
-    type Driver = Device<'static, Radio, Rng>;
+    type Driver = Device<Radio, Rng>;
 }
 
 #[embassy::main(config = "LoraDiscovery::config()")]
@@ -39,8 +39,6 @@ async fn main(spawner: Spawner, p: Peripherals) {
         .spreading_factor(SpreadingFactor::SF12);
 
     defmt::info!("Configuring with config {:?}", config);
-
-    static mut RADIO_BUF: [u8; 256] = [0; 256];
 
     let radio = Radio::new(
         board.spi1,
@@ -57,7 +55,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
         tx_led: Some(board.led_green),
         command_led: Some(board.led_yellow),
         send_trigger: board.user_button,
-        driver: unsafe { Device::new(&config, radio, board.rng, &mut RADIO_BUF).unwrap() },
+        driver: Device::new(&config, radio, board.rng).unwrap(),
     };
 
     DEVICE

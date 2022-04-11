@@ -4,9 +4,11 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use drogue_device::actors::dfu::{serial::SerialUpdater, usb::UsbUpdater, FirmwareManager};
 use drogue_device::bsp::boards::nrf52::adafruit_feather_nrf52840::*;
 use drogue_device::drivers::ble::gatt::dfu::FirmwareGattService;
+use drogue_device::firmware::serial::SerialUpdater;
+use drogue_device::firmware::FirmwareManager;
+use drogue_device::flash::{FlashState, SharedFlash};
 use drogue_device::ActorContext;
 use drogue_device::Board;
 use embassy::executor::Spawner;
@@ -16,18 +18,13 @@ use embassy_boot_nrf::updater;
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt;
 use embassy_nrf::interrupt::Priority;
-use embassy_nrf::peripherals::USBD;
-use embassy_nrf::uarte::{self, Uarte, UarteRx, UarteTx};
-use embassy_nrf::usb::UsbBus;
+use embassy_nrf::uarte::{self, Uarte};
 use embassy_nrf::{
     gpio::{AnyPin, Output},
-    peripherals::UARTE0,
     Peripherals,
 };
 use nrf_softdevice::ble::gatt_server;
 use nrf_softdevice::{raw, Flash, Softdevice};
-use nrf_usbd::Usbd;
-use usb_device::bus::UsbBusAllocator;
 
 #[cfg(feature = "panic-probe")]
 use panic_probe as _;
@@ -69,48 +66,45 @@ async fn main(s: Spawner, p: Peripherals) {
 
     // The flash peripheral is special when running with softdevice
     let flash = Flash::take(sd);
-
-    // The updater is the 'application' part of the bootloader that knows where bootloader
-    // settings and the firmware update partition is located based on memory.x linker script.
-    let updater = updater::new();
-
-    // The DFU actor provides a firmware update interface.
-    static DFU: ActorContext<FirmwareManager<Flash>> = ActorContext::new();
-    let dfu = DFU.mount(s, FirmwareManager::new(flash, updater));
+    static FLASH: FlashState<Flash> = FlashState::new();
+    let flash = FLASH.initialize(flash);
 
     // The SerialUpdater actor follows a fixed frame protocol that updates
     // firmware using the DFU actor
-    static SERIAL: ActorContext<
-        SerialUpdater<'static, UarteTx<'static, UARTE0>, UarteRx<'static, UARTE0>, Flash>,
-    > = ActorContext::new();
     let irq = interrupt::take!(UARTE0_UART0);
     let mut config = uarte::Config::default();
     config.parity = uarte::Parity::EXCLUDED;
     config.baudrate = uarte::Baudrate::BAUD115200;
     let uart = Uarte::new(board.uarte0, irq, board.rx, board.tx, config);
     let (tx, rx) = uart.split();
-    SERIAL.mount(s, SerialUpdater::new(tx, rx, dfu, version.as_bytes()));
 
-    // Creates an USB bus instance, and mount a UsbUpdater actor that uses the same fixed
-    // frame protocol as the serial updater, but over USB.
-    static USBBUS: Forever<UsbBusAllocator<Usbd<UsbBus<'static, USBD>>>> = Forever::new();
-    let bus = USBBUS.put(UsbBus::new(board.usbd));
-    static mut TX: [u8; 1024] = [0; 1024];
-    static mut RX: [u8; 1024] = [0; 1024];
-    static USB: ActorContext<UsbUpdater<'static, Flash>> = ActorContext::new();
-    USB.mount(s, unsafe {
-        UsbUpdater::new(bus, &mut TX, &mut RX, dfu, version.as_bytes())
-    });
+    // The updater is the 'application' part of the bootloader that knows where bootloader
+    // settings and the firmware update partition is located based on memory.x linker script.
+    let mut serial = SerialUpdater::new(
+        tx,
+        rx,
+        FirmwareManager::new(flash.clone(), updater::new()),
+        version.as_bytes(),
+    );
 
     // Create a BLE GATT service that is capable of updating firmware
     static GATT: Forever<GattServer> = Forever::new();
     let server = GATT.put(gatt_server::register(sd).unwrap());
-    static UPDATER: ActorContext<FirmwareGattService<Flash>, 4> = ActorContext::new();
 
     // Wires together the GATT service and the DFU actor
+    static UPDATER: ActorContext<FirmwareGattService<'static, SharedFlash<Flash>>, 4> =
+        ActorContext::new();
     let updater = UPDATER.mount(
         s,
-        FirmwareGattService::new(&server.firmware, dfu, version.as_bytes(), 64).unwrap(),
+        FirmwareGattService::new(
+            &server.firmware,
+            // The updater is the 'application' part of the bootloader that knows where bootloader
+            // settings and the firmware update partition is located based on memory.x linker script.
+            FirmwareManager::new(flash, updater::new()),
+            version.as_bytes(),
+            64,
+        )
+        .unwrap(),
     );
 
     // Starts the bluetooth advertisement and GATT server
@@ -118,6 +112,9 @@ async fn main(s: Spawner, p: Peripherals) {
 
     // Finally, a blinker application.
     s.spawn(blinker(board.blue_led)).unwrap();
+
+    // Run the serial updater in the main task
+    serial.run().await;
 }
 
 const BLINK_INTERVAL: Duration = Duration::from_millis(300);

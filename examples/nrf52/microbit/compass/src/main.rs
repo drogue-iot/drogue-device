@@ -5,18 +5,11 @@
 #![feature(type_alias_impl_trait)]
 
 use defmt_rtt as _;
-use drogue_device::{
-    actors::led::matrix::LedMatrixActor,
-    bsp::boards::nrf52::microbit::*,
-    traits::led::{LedMatrix as LedMatrixTrait, TextDisplay},
-    ActorContext, Board,
-};
+use drogue_device::traits::led::ToFrame;
+use drogue_device::{bsp::boards::nrf52::microbit::*, Board};
 
-use embassy::time::{Duration, Timer};
-use embassy_nrf::{
-    gpio::{AnyPin, Output},
-    interrupt, twim, Peripherals,
-};
+use embassy::time::Duration;
+use embassy_nrf::{interrupt, twim, Peripherals};
 use lsm303agr::{AccelOutputDataRate, Lsm303agr, MagOutputDataRate};
 
 mod compass;
@@ -24,13 +17,9 @@ use compass::*;
 
 use panic_probe as _;
 
-static LED_MATRIX: ActorContext<LedMatrixActor<Output<'static, AnyPin>, 5, 5>> =
-    ActorContext::new();
-
 #[embassy::main]
-async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
+async fn main(_s: embassy::executor::Spawner, p: Peripherals) {
     let board = Microbit::new(p);
-    let mut matrix = LED_MATRIX.mount(spawner, LedMatrixActor::new(board.display, None));
 
     let config = twim::Config::default();
     let irq = interrupt::take!(SPIM0_SPIS0_TWIM0_TWIS0_SPI0_TWI0);
@@ -43,18 +32,18 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let sensor = sensor.into_mag_continuous().ok().unwrap();
 
     // Use heading offset of 90 which seems accurate during testing
+    let mut display = board.display;
     let mut compass = MicrobitCompass::new(sensor, 90);
-    matrix
-        .scroll("Move micro:bit until LEDs are lit")
-        .await
-        .unwrap();
-    compass.calibrate(&mut matrix).await;
+    display
+        .scroll_with_speed("Move micro:bit until LEDs are lit", Duration::from_secs(10))
+        .await;
+    compass.calibrate(&mut display).await;
 
     loop {
         let direction: Direction = compass.heading().await.into();
         defmt::trace!("Direction: {:?}", direction);
-        matrix.apply(&direction).await.unwrap();
-
-        Timer::after(Duration::from_millis(10)).await;
+        display
+            .display(direction.to_frame(), Duration::from_millis(500))
+            .await;
     }
 }

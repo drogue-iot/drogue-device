@@ -26,6 +26,6 @@ embassy = { version = "0.1.0", default-features = false, features = ["wasm", "ex
 opt-level = "s"
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
+embassy = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
 
 #embassy = { path = "../../../../../embassy/embassy" }

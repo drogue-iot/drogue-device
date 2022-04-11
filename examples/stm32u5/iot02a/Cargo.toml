@@ -37,10 +37,10 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
-#embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
-embassy-macros = { git = "https://github.com/embassy-rs/embassy.git", rev = "a9e63167e1ec230ca3d28da771378f5f4936a840" }
+embassy = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
+embassy-stm32 = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
+#embassy-net = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
+embassy-macros = { git = "https://github.com/lulf/embassy.git", rev = "bc1dff34c0e5d44706c6387892d8f2c2f3539bd9" }
 
 #embassy = { path = "../../../../../embassy/embassy" }
 #embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
