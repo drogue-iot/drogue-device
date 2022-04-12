@@ -91,37 +91,13 @@ impl<M> Address<M> {
 }
 
 impl<M, R> Address<Request<M, R>> {
-    pub async fn request<I: Inbox<R>>(&self, message: M, reply_to: Address<R>, inbox: &mut I) -> R {
-        let message = Request::new(message, reply_to);
+    pub async fn request(&self, message: M) -> R {
+        let reply_to: Channel<NoopRawMutex, R, 1> = Channel::new();
+        // We guarantee that channel lives until we've been notified on it, at which
+        // point its out of reach for the replier.
+        let message = Request::new(message, unsafe { core::mem::transmute(&reply_to) });
         self.notify(message).await;
-        inbox.next().await
-    }
-}
-
-pub struct Requester<M, R, I>
-where
-    M: 'static,
-    R: 'static,
-    I: Inbox<R>,
-{
-    dest: Address<Request<M, R>>,
-    src: Address<R>,
-    inbox: I,
-}
-
-impl<M, R, I> Requester<M, R, I>
-where
-    M: 'static,
-    R: 'static,
-    I: Inbox<R>,
-{
-    pub fn new(dest: Address<Request<M, R>>, src: Address<R>, inbox: I) -> Self {
-        Self { dest, src, inbox }
-    }
-    pub async fn request(&mut self, message: M) -> R {
-        self.dest
-            .request(message, self.src.clone(), &mut self.inbox)
-            .await
+        reply_to.recv().await
     }
 }
 
@@ -133,19 +109,18 @@ impl<M> Clone for Address<M> {
     }
 }
 
+type ReplyTo<T> = Channel<NoopRawMutex, T, 1>;
+
 pub struct Request<M, R>
 where
     R: 'static,
 {
     message: Option<M>,
-    reply_to: Address<R>,
+    reply_to: &'static ReplyTo<R>,
 }
 
-impl<M, R> Request<M, R>
-where
-    R: 'static,
-{
-    pub fn new(message: M, reply_to: Address<R>) -> Self {
+impl<M, R> Request<M, R> {
+    fn new(message: M, reply_to: &'static ReplyTo<R>) -> Self {
         Self {
             message: Some(message),
             reply_to,
@@ -154,11 +129,11 @@ where
 
     pub async fn process<F: FnOnce(M) -> R>(mut self, f: F) {
         let reply = f(self.message.take().unwrap());
-        self.reply_to.notify(reply).await;
+        self.reply_to.send(reply).await;
     }
 
-    pub async fn reply(&self, value: R) {
-        self.reply_to.notify(value).await
+    pub async fn reply(self, value: R) {
+        self.reply_to.send(value).await
     }
 }
 

@@ -47,9 +47,7 @@
 //! ~~~
 pub(crate) mod fmt;
 
-pub use drogue_actor::{
-    Actor, ActorContext, ActorSpawner, Address, DeviceContext, Inbox, Request, Requester,
-};
+pub use drogue_actor::{Actor, ActorContext, ActorSpawner, Address, DeviceContext, Inbox, Request};
 
 pub mod actors;
 

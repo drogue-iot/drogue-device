@@ -50,9 +50,8 @@
 //!     {
 //!         loop {
 //!             // Await the next message and increment the counter
-//!             if let Some(m) = inbox.next().await {
-//!                 self.count += 1;
-//!             }
+//!             let _ = inbox.next().await;
+//!             self.count += 1;
 //!         }
 //!     }
 //! }
@@ -65,7 +64,7 @@
 //!     let addr = drogue_actor::spawn_actor!(spawner, COUNTER, Counter, Counter { count  0 });
 //!
 //!     // The actor address may be used in any embassy task to communicate with the actor.
-//!     let _ = addr.notify(Increment);
+//!     let _ = addr.notify(Increment).await;
 //! }
 //!```
 //!
