@@ -1,5 +1,6 @@
 use embassy::time::Duration;
 use serde::{Deserialize, Serialize};
+use crate::drivers::ble::mesh::model::foundation::configuration::relay::{Relay, RelayConfig};
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -23,6 +24,7 @@ pub struct ConfigurationModel {
     secure_beacon: bool,
     default_ttl: u8,
     publish_period: u8,
+    relay: RelayConfig,
 }
 
 impl ConfigurationModel {
@@ -66,6 +68,14 @@ impl ConfigurationModel {
             _ => None,
         }
     }
+
+    pub fn relay(&self) -> &RelayConfig {
+        &self.relay
+    }
+
+    pub fn relay_mut(&mut self) -> &mut RelayConfig {
+        &mut self.relay
+    }
 }
 
 impl Default for ConfigurationModel {
@@ -74,6 +84,8 @@ impl Default for ConfigurationModel {
             secure_beacon: true,
             default_ttl: 127,
             publish_period: 0,
+            relay: RelayConfig::default(),
         }
     }
 }
+

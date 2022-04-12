@@ -6,6 +6,7 @@ mod model_app;
 mod model_publication;
 mod model_subscription;
 mod node_reset;
+mod relay;
 
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
@@ -242,6 +243,10 @@ impl ElementZero {
                 }
                 ConfigurationMessage::ModelSubscription(message) => {
                     self::model_subscription::dispatch(ctx, access, message).await?;
+                }
+                ConfigurationMessage::Relay(message) => {
+                    self::relay::dispatch(ctx, access, message).await?;
+
                 }
             }
             Ok(true)

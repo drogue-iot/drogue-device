@@ -25,6 +25,9 @@ use crate::drivers::ble::mesh::model::foundation::configuration::model_subscript
 use crate::drivers::ble::mesh::model::foundation::configuration::node_reset::{
     NodeResetMessage, CONFIG_NODE_RESET,
 };
+use crate::drivers::ble::mesh::model::foundation::configuration::relay::{
+    RelayMessage, CONFIG_RELAY_GET, CONFIG_RELAY_SET, CONFIG_RELAY_STATUS,
+};
 use crate::drivers::ble::mesh::model::{Message, Model, ModelIdentifier};
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
@@ -40,6 +43,7 @@ pub mod model_app;
 pub mod model_publication;
 pub mod model_subscription;
 pub mod node_reset;
+pub mod relay;
 
 pub const CONFIGURATION_SERVER: ModelIdentifier = ModelIdentifier::SIG(0x0000);
 pub const CONFIGURATION_CLIENT: ModelIdentifier = ModelIdentifier::SIG(0x0001);
@@ -54,6 +58,7 @@ pub enum ConfigurationMessage {
     ModelApp(ModelAppMessage),
     ModelPublication(ModelPublicationMessage),
     ModelSubscription(ModelSubscriptionMessage),
+    Relay(RelayMessage),
 }
 
 impl Message for ConfigurationMessage {
@@ -67,6 +72,7 @@ impl Message for ConfigurationMessage {
             ConfigurationMessage::ModelApp(inner) => inner.opcode(),
             ConfigurationMessage::ModelPublication(inner) => inner.opcode(),
             ConfigurationMessage::ModelSubscription(inner) => inner.opcode(),
+            ConfigurationMessage::Relay(inner) => inner.opcode(),
         }
     }
 
@@ -83,6 +89,7 @@ impl Message for ConfigurationMessage {
             ConfigurationMessage::ModelApp(inner) => inner.emit_parameters(xmit),
             ConfigurationMessage::ModelPublication(inner) => inner.emit_parameters(xmit),
             ConfigurationMessage::ModelSubscription(inner) => inner.emit_parameters(xmit),
+            ConfigurationMessage::Relay(inner) => inner.emit_parameters(xmit),
         }
     }
 }
@@ -156,6 +163,13 @@ impl Model for ConfigurationServer {
                     ModelSubscriptionMessage::parse_virtual_address_add(parameters)?,
                 )))
             }
+            // Relay
+            CONFIG_RELAY_GET => Ok(Some(ConfigurationMessage::Relay(
+                RelayMessage::parse_get(parameters)?,
+            ))),
+            CONFIG_RELAY_SET => Ok(Some(ConfigurationMessage::Relay(
+                RelayMessage::parse_set(parameters)?,
+            ))),
             _ => Ok(None),
         }
     }
