@@ -66,11 +66,11 @@ pub struct Address<M>
 where
     M: 'static,
 {
-    state: DynamicSender<'static, ActorMutex, M>,
+    state: DynamicSender<'static, M>,
 }
 
 impl<M> Address<M> {
-    fn new(state: DynamicSender<'static, ActorMutex, M>) -> Self {
+    fn new(state: DynamicSender<'static, M>) -> Self {
         Self { state }
     }
 }

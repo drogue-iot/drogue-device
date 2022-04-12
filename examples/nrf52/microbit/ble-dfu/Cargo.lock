@@ -509,7 +509,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=ac3986e40ef297b90de19812aebccfe2e7f9ceec#ac3986e40ef297b90de19812aebccfe2e7f9ceec"
 dependencies = [
  "atomic-polyfill",
  "cfg-if",
@@ -527,7 +527,7 @@ dependencies = [
 [[package]]
 name = "embassy-boot"
 version = "0.1.0"
-source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=ac3986e40ef297b90de19812aebccfe2e7f9ceec#ac3986e40ef297b90de19812aebccfe2e7f9ceec"
 dependencies = [
  "defmt",
  "embassy",
@@ -538,7 +538,7 @@ dependencies = [
 [[package]]
 name = "embassy-boot-nrf"
 version = "0.1.0"
-source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=ac3986e40ef297b90de19812aebccfe2e7f9ceec#ac3986e40ef297b90de19812aebccfe2e7f9ceec"
 dependencies = [
  "cfg-if",
  "cortex-m 0.7.4",
@@ -555,7 +555,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=ac3986e40ef297b90de19812aebccfe2e7f9ceec#ac3986e40ef297b90de19812aebccfe2e7f9ceec"
 dependencies = [
  "cortex-m 0.7.4",
  "embassy",
@@ -566,7 +566,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=ac3986e40ef297b90de19812aebccfe2e7f9ceec#ac3986e40ef297b90de19812aebccfe2e7f9ceec"
 dependencies = [
  "darling 0.13.4",
  "proc-macro2",
@@ -577,7 +577,7 @@ dependencies = [
 [[package]]
 name = "embassy-nrf"
 version = "0.1.0"
-source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=ac3986e40ef297b90de19812aebccfe2e7f9ceec#ac3986e40ef297b90de19812aebccfe2e7f9ceec"
 dependencies = [
  "cfg-if",
  "cortex-m 0.7.4",
@@ -602,7 +602,7 @@ dependencies = [
 [[package]]
 name = "embassy-usb"
 version = "0.1.0"
-source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=ac3986e40ef297b90de19812aebccfe2e7f9ceec#ac3986e40ef297b90de19812aebccfe2e7f9ceec"
 dependencies = [
  "embassy",
  "heapless",
@@ -630,7 +630,7 @@ dependencies = [
 [[package]]
 name = "embedded-hal"
 version = "1.0.0-alpha.7"
-source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy2#3d58bc1ac8aa3ff9c841585cdd341e4406340457"
+source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy2#bc0e0ca74a64d65d1b6c994f186bb89eeb364965"
 dependencies = [
  "nb 1.0.0",
 ]
@@ -638,7 +638,7 @@ dependencies = [
 [[package]]
 name = "embedded-hal-async"
 version = "0.0.1"
-source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy2#3d58bc1ac8aa3ff9c841585cdd341e4406340457"
+source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy2#bc0e0ca74a64d65d1b6c994f186bb89eeb364965"
 dependencies = [
  "embedded-hal 1.0.0-alpha.7",
 ]

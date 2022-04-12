@@ -498,7 +498,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=ac3986e40ef297b90de19812aebccfe2e7f9ceec#ac3986e40ef297b90de19812aebccfe2e7f9ceec"
 dependencies = [
  "atomic-polyfill",
  "cfg-if",
@@ -516,7 +516,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=ac3986e40ef297b90de19812aebccfe2e7f9ceec#ac3986e40ef297b90de19812aebccfe2e7f9ceec"
 dependencies = [
  "cortex-m",
  "embassy",
@@ -527,7 +527,7 @@ dependencies = [
 [[package]]
 name = "embassy-lora"
 version = "0.1.0"
-source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=ac3986e40ef297b90de19812aebccfe2e7f9ceec#ac3986e40ef297b90de19812aebccfe2e7f9ceec"
 dependencies = [
  "bit_field",
  "embassy",
@@ -542,7 +542,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=ac3986e40ef297b90de19812aebccfe2e7f9ceec#ac3986e40ef297b90de19812aebccfe2e7f9ceec"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -553,7 +553,7 @@ dependencies = [
 [[package]]
 name = "embassy-stm32"
 version = "0.1.0"
-source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=ac3986e40ef297b90de19812aebccfe2e7f9ceec#ac3986e40ef297b90de19812aebccfe2e7f9ceec"
 dependencies = [
  "atomic-polyfill",
  "bare-metal 1.0.0",
@@ -592,7 +592,7 @@ dependencies = [
 [[package]]
 name = "embedded-hal"
 version = "1.0.0-alpha.7"
-source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy2#3d58bc1ac8aa3ff9c841585cdd341e4406340457"
+source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy2#bc0e0ca74a64d65d1b6c994f186bb89eeb364965"
 dependencies = [
  "nb 1.0.0",
 ]
@@ -600,7 +600,7 @@ dependencies = [
 [[package]]
 name = "embedded-hal-async"
 version = "0.0.1"
-source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy2#3d58bc1ac8aa3ff9c841585cdd341e4406340457"
+source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy2#bc0e0ca74a64d65d1b6c994f186bb89eeb364965"
 dependencies = [
  "embedded-hal 1.0.0-alpha.7",
 ]
@@ -1322,7 +1322,7 @@ dependencies = [
 [[package]]
 name = "stm32-metapac"
 version = "0.1.0"
-source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=ac3986e40ef297b90de19812aebccfe2e7f9ceec#ac3986e40ef297b90de19812aebccfe2e7f9ceec"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
@@ -1333,7 +1333,7 @@ dependencies = [
 [[package]]
 name = "stm32-metapac-gen"
 version = "0.1.0"
-source = "git+https://github.com/lulf/embassy.git?rev=bc1dff34c0e5d44706c6387892d8f2c2f3539bd9#bc1dff34c0e5d44706c6387892d8f2c2f3539bd9"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=ac3986e40ef297b90de19812aebccfe2e7f9ceec#ac3986e40ef297b90de19812aebccfe2e7f9ceec"
 dependencies = [
  "chiptool",
  "proc-macro2",
