@@ -4,26 +4,48 @@ use crate::shared::Handle;
 use crate::traits::firmware::Error;
 use core::future::Future;
 use embassy_boot::FirmwareUpdater;
+use embedded_storage::nor_flash::{NorFlashError, NorFlashErrorKind};
 use embedded_storage_async::nor_flash::{AsyncNorFlash, AsyncReadNorFlash};
 
 pub const PAGE_SIZE: usize = 4096;
 
-pub type SharedFirmwareManager<'a, F> = Handle<'a, FirmwareManager<F>>;
+pub type SharedFirmwareManager<'a, CONFIG> = Handle<'a, FirmwareManager<CONFIG>>;
 
-pub struct FirmwareManager<F: AsyncNorFlash + AsyncReadNorFlash> {
-    flash: F,
+pub trait FirmwareConfig {
+    type STATE: AsyncNorFlash + AsyncReadNorFlash;
+    type DFU: AsyncNorFlash;
+    const BLOCK_SIZE: usize;
+
+    fn state(&mut self) -> &mut Self::STATE;
+    fn dfu(&mut self) -> &mut Self::DFU;
+}
+
+#[repr(C, align(4))]
+struct Aligned([u8; PAGE_SIZE]);
+
+/// Manages the firmware of an application using a STATE flash storage for storing
+/// the state of firmware and update process, and DFU flash storage for writing the
+/// firmware.
+pub struct FirmwareManager<CONFIG>
+where
+    CONFIG: FirmwareConfig,
+{
+    config: CONFIG,
     updater: FirmwareUpdater,
-    buffer: [u8; PAGE_SIZE],
+    buffer: Aligned,
     b_offset: usize,
     f_offset: usize,
 }
 
-impl<F: AsyncNorFlash + AsyncReadNorFlash> FirmwareManager<F> {
-    pub fn new(flash: F, updater: FirmwareUpdater) -> Self {
+impl<CONFIG> FirmwareManager<CONFIG>
+where
+    CONFIG: FirmwareConfig,
+{
+    pub fn new(config: CONFIG, updater: FirmwareUpdater) -> Self {
         Self {
-            flash,
+            config,
             updater,
-            buffer: [0; PAGE_SIZE],
+            buffer: Aligned([0; PAGE_SIZE]),
             b_offset: 0,
             f_offset: 0,
         }
@@ -36,19 +58,22 @@ impl<F: AsyncNorFlash + AsyncReadNorFlash> FirmwareManager<F> {
     }
 
     /// Mark current firmware as successfully booted
-    pub async fn mark_booted(&mut self) -> Result<(), F::Error> {
-        self.updater.mark_booted(&mut self.flash).await
+    pub async fn mark_booted(&mut self) -> Result<(), NorFlashErrorKind> {
+        self.updater
+            .mark_booted(self.config.state())
+            .await
+            .map_err(|e| e.kind())
     }
 
     /// Finish firmware update: instruct flash to swap and reset device.
-    pub async fn finish(&mut self) -> Result<(), F::Error> {
+    pub async fn finish(&mut self) -> Result<(), NorFlashErrorKind> {
         self.swap().await?;
         cortex_m::peripheral::SCB::sys_reset();
     }
 
     /// Write data to flash. Contents are not guaranteed to be written until finish is called.
-    pub async fn write(&mut self, data: &[u8]) -> Result<(), F::Error> {
-        trace!("Writing {} bytes at b_offset {}", data.len(), self.b_offset);
+    pub async fn write(&mut self, data: &[u8]) -> Result<(), NorFlashErrorKind> {
+        info!("Writing {} bytes at b_offset {}", data.len(), self.b_offset);
         let mut remaining = data.len();
         while remaining > 0 {
             let to_copy = core::cmp::min(PAGE_SIZE - self.b_offset, remaining);
@@ -61,7 +86,7 @@ impl<F: AsyncNorFlash + AsyncReadNorFlash> FirmwareManager<F> {
                 data.len(),
                 remaining
             );*/
-            self.buffer[self.b_offset..self.b_offset + to_copy]
+            self.buffer.0[self.b_offset..self.b_offset + to_copy]
                 .copy_from_slice(&data[offset..offset + to_copy]);
             self.b_offset += to_copy;
 
@@ -71,7 +96,7 @@ impl<F: AsyncNorFlash + AsyncReadNorFlash> FirmwareManager<F> {
                 self.b_offset,
                 self.buffer.len()
             );*/
-            if self.b_offset == self.buffer.len() {
+            if self.b_offset == self.buffer.0.len() {
                 self.flush().await?;
             }
             remaining -= to_copy;
@@ -79,36 +104,43 @@ impl<F: AsyncNorFlash + AsyncReadNorFlash> FirmwareManager<F> {
         Ok(())
     }
 
-    async fn flush(&mut self) -> Result<(), F::Error> {
+    async fn flush(&mut self) -> Result<(), NorFlashErrorKind> {
         if self.b_offset > 0 {
             self.updater
                 .write_firmware(
                     self.f_offset,
-                    &self.buffer[..self.b_offset],
-                    &mut self.flash,
+                    &self.buffer.0[..self.b_offset],
+                    self.config.dfu(),
+                    CONFIG::BLOCK_SIZE,
                 )
-                .await?;
+                .await
+                .map_err(|e| e.kind())?;
             self.f_offset += self.b_offset;
             self.b_offset = 0;
         }
         Ok(())
     }
 
-    async fn swap(&mut self) -> Result<(), F::Error> {
+    async fn swap(&mut self) -> Result<(), NorFlashErrorKind> {
         // Ensure buffer flushed before we
         if self.b_offset > 0 {
-            for i in self.b_offset..self.buffer.len() {
-                self.buffer[i] = 0;
+            for i in self.b_offset..self.buffer.0.len() {
+                self.buffer.0[i] = 0;
             }
-            self.b_offset = self.buffer.len();
+            self.b_offset = self.buffer.0.len();
             self.flush().await?;
         }
-        self.updater.mark_update(&mut self.flash).await
+        self.updater
+            .mark_update(self.config.state())
+            .await
+            .map_err(|e| e.kind())?;
+        Ok(())
     }
 }
 
-impl<F: AsyncNorFlash + AsyncReadNorFlash> crate::traits::firmware::FirmwareManager
-    for FirmwareManager<F>
+impl<CONFIG> crate::traits::firmware::FirmwareManager for FirmwareManager<CONFIG>
+where
+    CONFIG: FirmwareConfig,
 {
     type StartFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
     where
@@ -152,8 +184,9 @@ impl<F: AsyncNorFlash + AsyncReadNorFlash> crate::traits::firmware::FirmwareMana
 }
 
 /// Implementation for shared resource
-impl<'a, F: AsyncNorFlash + AsyncReadNorFlash> crate::traits::firmware::FirmwareManager
-    for SharedFirmwareManager<'a, F>
+impl<'a, CONFIG> crate::traits::firmware::FirmwareManager for SharedFirmwareManager<'a, CONFIG>
+where
+    CONFIG: FirmwareConfig,
 {
     type StartFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
     where

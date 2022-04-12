@@ -1,3 +1,4 @@
+use super::PAGE_SIZE;
 use crate::traits::firmware::FirmwareManager;
 use embedded_hal_async::serial::*;
 use postcard::{from_bytes, to_slice};
@@ -117,10 +118,15 @@ where
                 self.dfu.start();
                 Ok(None)
             }
-            SerialCommand::Write(_, data) => match self.dfu.write(data).await {
-                Ok(_) => Ok(None),
-                Err(_) => Err(SerialError::Flash),
-            },
+            SerialCommand::Write(_, data) => {
+                for chunk in data.chunks(PAGE_SIZE) {
+                    match self.dfu.write(chunk).await {
+                        Ok(_) => {}
+                        Err(_) => return Err(SerialError::Flash),
+                    }
+                }
+                Ok(None)
+            }
             SerialCommand::Swap => match self.dfu.finish().await {
                 Ok(_) => Ok(None),
                 Err(_) => Err(SerialError::Flash),

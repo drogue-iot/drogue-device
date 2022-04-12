@@ -1,0 +1,52 @@
+[workspace]
+members = [
+    "application",
+    "bootloader",
+]
+resolver = "2"
+
+[profile.dev]
+codegen-units = 1
+debug = 2
+debug-assertions = true
+incremental = false
+opt-level = 3
+overflow-checks = true
+
+[profile.release]
+codegen-units = 1
+debug = 2
+debug-assertions = false
+incremental = false
+lto = "fat"
+opt-level = 's'
+overflow-checks = false
+
+# do not optimize proc-macro crates = faster builds from scratch
+[profile.dev.build-override]
+codegen-units = 8
+debug = false
+debug-assertions = false
+opt-level = 0
+overflow-checks = false
+
+[profile.release.build-override]
+codegen-units = 8
+debug = false
+debug-assertions = false
+opt-level = 0
+overflow-checks = false
+
+[patch.crates-io]
+#embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "ac3986e40ef297b90de19812aebccfe2e7f9ceec" }
+#embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "ac3986e40ef297b90de19812aebccfe2e7f9ceec" }
+#embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "ac3986e40ef297b90de19812aebccfe2e7f9ceec" }
+#embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "ac3986e40ef297b90de19812aebccfe2e7f9ceec" }
+nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
+nrf-softdevice-s140 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
+nrf-softdevice-defmt-rtt = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
+
+embassy = { path = "../../../../../../embassy/embassy" }
+embassy-nrf = { path = "../../../../../../embassy/embassy-nrf" }
+embassy-boot-nrf = { path = "../../../../../../embassy/embassy-boot/nrf" }
+embassy-boot = { path = "../../../../../../embassy/embassy-boot/boot" }

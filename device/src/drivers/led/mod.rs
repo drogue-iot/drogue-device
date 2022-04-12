@@ -4,9 +4,10 @@ use embedded_hal::digital::v2::{OutputPin, PinState};
 pub use crate::drivers::ActiveHigh;
 pub use crate::drivers::ActiveLow;
 
+#[cfg(feature = "time")]
 pub mod matrix;
 
-#[cfg(all(feature = "neopixel", feature = "nrf"))]
+#[cfg(all(feature = "neopixel", feature = "nrf", feature = "time"))]
 pub mod neopixel;
 
 pub trait Active<P>

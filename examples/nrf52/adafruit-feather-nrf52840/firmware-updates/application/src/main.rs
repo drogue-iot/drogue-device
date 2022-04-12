@@ -4,13 +4,15 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use drogue_device::bsp::boards::nrf52::adafruit_feather_nrf52840::*;
 use drogue_device::drivers::ble::gatt::dfu::FirmwareGattService;
 use drogue_device::firmware::serial::SerialUpdater;
-use drogue_device::firmware::FirmwareManager;
-use drogue_device::flash::{FlashState, SharedFlash};
+use drogue_device::firmware::{FirmwareConfig, FirmwareManager};
+use drogue_device::shared::Shared;
 use drogue_device::ActorContext;
 use drogue_device::Board;
+use drogue_device::{
+    bsp::boards::nrf52::adafruit_feather_nrf52840::*, firmware::SharedFirmwareManager,
+};
 use embassy::executor::Spawner;
 use embassy::time::{Duration, Timer};
 use embassy::util::Forever;
@@ -53,24 +55,26 @@ fn config() -> Config {
 async fn main(s: Spawner, p: Peripherals) {
     let board = AdafruitFeatherNrf52840::new(p);
 
+    let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
+    defmt::info!("Running firmware version {}", version);
+
     // Spawn the underlying softdevice task
     let sd = enable_softdevice();
     s.spawn(softdevice_task(sd)).unwrap();
-
-    let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
-    defmt::info!("Running firmware version {}", version);
 
     // Watchdog will prevent bootloader from resetting. If your application hangs for more than 5 seconds
     // (depending on bootloader config), it will enter bootloader which may swap the application back.
     s.spawn(watchdog_task()).unwrap();
 
-    // The flash peripheral is special when running with softdevice
-    let flash = Flash::take(sd);
-    static FLASH: FlashState<Flash> = FlashState::new();
-    let flash = FLASH.initialize(flash);
+    // Setup external flash
+    let qspi = board.external_flash.configure();
+    let fwconfig = FwConfig {
+        state: Flash::take(sd),
+        qspi,
+    };
 
     // The SerialUpdater actor follows a fixed frame protocol that updates
-    // firmware using the DFU actor
+    // firmware using a firmware manager.
     let irq = interrupt::take!(UARTE0_UART0);
     let mut config = uarte::Config::default();
     config.parity = uarte::Parity::EXCLUDED;
@@ -78,22 +82,19 @@ async fn main(s: Spawner, p: Peripherals) {
     let uart = Uarte::new(board.uarte0, irq, board.rx, board.tx, config);
     let (tx, rx) = uart.split();
 
+    static MANAGER: Shared<FirmwareManager<FwConfig>> = Shared::new();
+    let manager = MANAGER.initialize(FirmwareManager::new(fwconfig, updater::new()));
     // The updater is the 'application' part of the bootloader that knows where bootloader
     // settings and the firmware update partition is located based on memory.x linker script.
-    let mut serial = SerialUpdater::new(
-        tx,
-        rx,
-        FirmwareManager::new(flash.clone(), updater::new()),
-        version.as_bytes(),
-    );
+    let mut serial = SerialUpdater::new(tx, rx, manager.clone(), version.as_bytes());
 
-    // Create a BLE GATT service that is capable of updating firmware
+    //   // Create a BLE GATT service that is capable of updating firmware
     static GATT: Forever<GattServer> = Forever::new();
     let server = GATT.put(gatt_server::register(sd).unwrap());
 
     // Wires together the GATT service and the DFU actor
     static UPDATER: ActorContext<
-        FirmwareGattService<'static, FirmwareManager<SharedFlash<Flash>>>,
+        FirmwareGattService<'static, SharedFirmwareManager<'static, FwConfig>>,
         4,
     > = ActorContext::new();
     let updater = UPDATER.mount(
@@ -102,14 +103,14 @@ async fn main(s: Spawner, p: Peripherals) {
             &server.firmware,
             // The updater is the 'application' part of the bootloader that knows where bootloader
             // settings and the firmware update partition is located based on memory.x linker script.
-            FirmwareManager::new(flash, updater::new()),
+            manager,
             version.as_bytes(),
             64,
         )
         .unwrap(),
     );
 
-    // Starts the bluetooth advertisement and GATT server
+    //   // Starts the bluetooth advertisement and GATT server
     s.spawn(bluetooth_task(sd, server, updater)).unwrap();
 
     // Finally, a blinker application.
@@ -181,4 +182,23 @@ fn enable_softdevice() -> &'static Softdevice {
         ..Default::default()
     };
     Softdevice::enable(&config)
+}
+
+struct FwConfig<'d> {
+    state: Flash,
+    qspi: ExternalFlash<'d>,
+}
+
+impl<'d> FirmwareConfig for FwConfig<'d> {
+    type STATE = Flash;
+    type DFU = ExternalFlash<'d>;
+    const BLOCK_SIZE: usize = EXTERNAL_FLASH_BLOCK_SIZE;
+
+    fn state(&mut self) -> &mut Self::STATE {
+        &mut self.state
+    }
+
+    fn dfu(&mut self) -> &mut Self::DFU {
+        &mut self.qspi
+    }
 }

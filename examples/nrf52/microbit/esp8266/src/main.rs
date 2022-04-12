@@ -58,15 +58,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     config.baudrate = uarte::Baudrate::BAUD115200;
 
     let irq = interrupt::take!(UARTE0_UART0);
-    let uart = Uarte::new_with_rtscts(
-        board.uarte0,
-        irq,
-        board.p15,
-        board.p14,
-        board.p1,
-        board.p2,
-        config,
-    );
+    let uart = Uarte::new(board.uarte0, irq, board.p15, board.p14, config);
 
     let (tx, rx) = uart.split();
 

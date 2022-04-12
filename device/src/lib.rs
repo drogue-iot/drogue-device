@@ -67,6 +67,7 @@ pub mod firmware;
 pub mod flash;
 
 pub mod bsp;
+pub use bsp::boards;
 pub use bsp::Board;
 
 #[doc(hidden)]
