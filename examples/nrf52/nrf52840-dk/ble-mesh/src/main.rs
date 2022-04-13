@@ -36,7 +36,7 @@ use drogue_device::drivers::ble::mesh::storage::FlashStorage;
 use drogue_device::drivers::ActiveLow;
 use drogue_device::traits::button::Event;
 use drogue_device::{actors, drivers, Actor, ActorContext, Address, DeviceContext, Inbox};
-use embassy::channel::{Channel, Receiver, Sender};
+use embassy::channel::{Channel, DynamicReceiver, Sender};
 use embassy::executor::Spawner;
 use embassy::time::{Duration, Timer};
 use embassy::util::Forever;
@@ -182,7 +182,9 @@ async fn main(spawner: Spawner, p: Peripherals) {
     let mesh_node = device.mesh.put(mesh_node);
 
     static CONTROL: Channel<NodeMutex, MeshNodeMessage, 2> = Channel::new();
-    spawner.spawn(run(mesh_node, CONTROL.receiver())).unwrap();
+    spawner
+        .spawn(run(mesh_node, CONTROL.receiver().into()))
+        .unwrap();
 
     let reset = MeshNodeReset(CONTROL.sender());
     let reset = device.reset.mount(spawner, reset);
@@ -197,7 +199,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
 #[embassy::task]
 pub async fn run(
     node: &'static mut ConcreteMeshNode,
-    control: Receiver<'static, NodeMutex, MeshNodeMessage, 2>,
+    control: DynamicReceiver<'static, MeshNodeMessage>,
 ) {
     node.run(control).await;
 }

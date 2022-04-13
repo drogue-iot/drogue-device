@@ -11,7 +11,7 @@ use crate::drivers::ble::mesh::storage::Storage;
 use core::cell::RefCell;
 use core::future::Future;
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
-use embassy::channel::{self, Channel, Receiver as ChannelReceiver};
+use embassy::channel::{self, Channel, DynamicReceiver as ChannelReceiver};
 use futures::future::select;
 use futures::pin_mut;
 use heapless::Vec;
@@ -65,10 +65,7 @@ where
         }
     }
 
-    pub async fn run<const N: usize>(
-        &'a mut self,
-        control: ChannelReceiver<'_, NodeMutex, MeshNodeMessage, N>,
-    ) {
+    pub async fn run(&'a mut self, control: ChannelReceiver<'_, MeshNodeMessage>) {
         let sender = self.channel.sender();
         let receiver = self.channel.receiver();
         let tx = BearerTransmitter {

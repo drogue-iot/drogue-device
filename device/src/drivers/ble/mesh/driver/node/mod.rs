@@ -15,7 +15,7 @@ use core::cell::{Cell, RefCell};
 use core::future::Future;
 use core::marker::PhantomData;
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
-use embassy::channel::{Channel, Receiver as ChannelReceiver, Sender as ChannelSender};
+use embassy::channel::{Channel, DynamicReceiver as ChannelReceiver, Sender as ChannelSender};
 use embassy::time::{Duration, Ticker};
 use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
@@ -342,9 +342,9 @@ where
         self.elements.borrow_mut().connect(ctx);
     }
 
-    pub async fn run<const N: usize>(
+    pub async fn run(
         &'a self,
-        control: ChannelReceiver<'_, NodeMutex, MeshNodeMessage, N>,
+        control: ChannelReceiver<'_, MeshNodeMessage>,
     ) -> Result<(), DeviceError> {
         let mut rng = self.rng.borrow_mut();
         if let Err(e) = self.configuration_manager.initialize(&mut *rng).await {
