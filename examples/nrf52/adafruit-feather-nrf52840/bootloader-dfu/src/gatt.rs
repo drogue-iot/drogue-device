@@ -42,7 +42,7 @@ pub async fn bluetooth_task(
         defmt::info!("connection established");
         let res = gatt_server::run(&conn, server, |e| match e {
             GattServerEvent::Firmware(e) => {
-                let _ = dfu.notify(e);
+                let _ = dfu.try_notify(e);
             }
         })
         .await;

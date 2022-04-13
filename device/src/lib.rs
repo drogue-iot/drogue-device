@@ -59,6 +59,8 @@ pub mod network;
 
 pub mod domain;
 
+pub mod shared;
+
 #[cfg(feature = "dfu")]
 pub mod firmware;
 

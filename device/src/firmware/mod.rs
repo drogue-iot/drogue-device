@@ -1,10 +1,14 @@
 pub mod serial;
 
+use crate::shared::Handle;
+use crate::traits::firmware::Error;
+use core::future::Future;
 use embassy_boot::FirmwareUpdater;
-use embedded_storage::nor_flash::{NorFlashError, NorFlashErrorKind};
 use embedded_storage_async::nor_flash::{AsyncNorFlash, AsyncReadNorFlash};
 
 pub const PAGE_SIZE: usize = 4096;
+
+pub type SharedFirmwareManager<'a, F> = Handle<'a, FirmwareManager<F>>;
 
 pub struct FirmwareManager<F: AsyncNorFlash + AsyncReadNorFlash> {
     flash: F,
@@ -26,7 +30,7 @@ impl<F: AsyncNorFlash + AsyncReadNorFlash> FirmwareManager<F> {
     }
 
     /// Start firmware update sequence
-    pub async fn start(&mut self) {
+    pub fn start(&mut self) {
         self.b_offset = 0;
         self.f_offset = 0;
     }
@@ -38,28 +42,8 @@ impl<F: AsyncNorFlash + AsyncReadNorFlash> FirmwareManager<F> {
 
     /// Finish firmware update: instruct flash to swap and reset device.
     pub async fn finish(&mut self) -> Result<(), F::Error> {
-        let r = self.swap().await;
-        match r {
-            Ok(_) => {
-                trace!("Resetting device");
-                cortex_m::peripheral::SCB::sys_reset();
-            }
-            Err(ref e) => match e.kind() {
-                NorFlashErrorKind::Other => {
-                    trace!("FlashError::Other");
-                }
-                NorFlashErrorKind::NotAligned => {
-                    trace!("FlashError::NotAligned");
-                }
-                NorFlashErrorKind::OutOfBounds => {
-                    trace!("FlashError::OutOfBounds");
-                }
-                _ => {
-                    trace!("Unknown error");
-                }
-            },
-        }
-        r
+        self.swap().await?;
+        cortex_m::peripheral::SCB::sys_reset();
     }
 
     /// Write data to flash. Contents are not guaranteed to be written until finish is called.
@@ -120,5 +104,94 @@ impl<F: AsyncNorFlash + AsyncReadNorFlash> FirmwareManager<F> {
             self.flush().await?;
         }
         self.updater.mark_update(&mut self.flash).await
+    }
+}
+
+impl<F: AsyncNorFlash + AsyncReadNorFlash> crate::traits::firmware::FirmwareManager
+    for FirmwareManager<F>
+{
+    type StartFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
+    where
+        Self: 'm;
+    fn start<'m>(&'m mut self) -> Self::StartFuture<'m> {
+        async move {
+            FirmwareManager::start(self);
+            Ok(())
+        }
+    }
+
+    type MarkBootedFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
+    where
+        Self: 'm;
+    fn mark_booted<'m>(&'m mut self) -> Self::MarkBootedFuture<'m> {
+        async move {
+            FirmwareManager::mark_booted(self).await?;
+            Ok(())
+        }
+    }
+
+    type FinishFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
+    where
+        Self: 'm;
+    fn finish<'m>(&'m mut self) -> Self::FinishFuture<'m> {
+        async move {
+            FirmwareManager::finish(self).await?;
+            Ok(())
+        }
+    }
+
+    type WriteFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
+    where
+        Self: 'm;
+    fn write<'m>(&'m mut self, data: &'m [u8]) -> Self::WriteFuture<'m> {
+        async move {
+            FirmwareManager::write(self, data).await?;
+            Ok(())
+        }
+    }
+}
+
+/// Implementation for shared resource
+impl<'a, F: AsyncNorFlash + AsyncReadNorFlash> crate::traits::firmware::FirmwareManager
+    for SharedFirmwareManager<'a, F>
+{
+    type StartFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
+    where
+        Self: 'm;
+    fn start<'m>(&'m mut self) -> Self::StartFuture<'m> {
+        async move {
+            self.lock().await.start();
+            Ok(())
+        }
+    }
+
+    type MarkBootedFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
+    where
+        Self: 'm;
+    fn mark_booted<'m>(&'m mut self) -> Self::MarkBootedFuture<'m> {
+        async move {
+            self.lock().await.mark_booted().await?;
+            Ok(())
+        }
+    }
+
+    type FinishFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
+    where
+        Self: 'm;
+    fn finish<'m>(&'m mut self) -> Self::FinishFuture<'m> {
+        async move {
+            self.lock().await.finish().await?;
+            Ok(())
+        }
+    }
+
+    type WriteFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
+    where
+        Self: 'm;
+    fn write<'m>(&'m mut self, data: &'m [u8]) -> Self::WriteFuture<'m> {
+        async move {
+            self.lock().await.write(data).await?;
+            Ok(())
+        }
     }
 }

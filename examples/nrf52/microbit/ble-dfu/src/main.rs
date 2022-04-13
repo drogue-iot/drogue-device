@@ -69,7 +69,8 @@ async fn main(s: Spawner, p: Peripherals) {
     let server = GATT.put(gatt_server::register(sd).unwrap());
 
     // Wires together the GATT service and the firmware manager
-    static UPDATER: ActorContext<FirmwareGattService<'static, Flash>> = ActorContext::new();
+    static UPDATER: ActorContext<FirmwareGattService<'static, FirmwareManager<Flash>>> =
+        ActorContext::new();
     let updater = UPDATER.mount(
         s,
         FirmwareGattService::new(&server.firmware, dfu, version.as_bytes(), 64).unwrap(),

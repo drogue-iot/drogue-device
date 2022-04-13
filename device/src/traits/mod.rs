@@ -1,5 +1,6 @@
 pub mod button;
 pub mod dns;
+pub mod firmware;
 pub mod i2c;
 pub mod ip;
 pub mod led;

@@ -1,5 +1,4 @@
-use crate::firmware::*;
-use embedded_storage_async::nor_flash::{AsyncNorFlash, AsyncReadNorFlash};
+use crate::traits::firmware::*;
 use heapless::Vec;
 
 // The FirmwareUpdate GATT service
@@ -32,22 +31,17 @@ pub struct FirmwareService {
 
 pub struct FirmwareGattService<'a, F>
 where
-    F: AsyncNorFlash + AsyncReadNorFlash + 'static,
+    F: FirmwareManager + 'static,
 {
     service: &'a FirmwareService,
-    dfu: FirmwareManager<F>,
+    dfu: F,
 }
 
 impl<'a, F> FirmwareGattService<'a, F>
 where
-    F: AsyncNorFlash + AsyncReadNorFlash,
+    F: FirmwareManager,
 {
-    pub fn new(
-        service: &'a FirmwareService,
-        dfu: FirmwareManager<F>,
-        version: &[u8],
-        mtu: u8,
-    ) -> Result<Self, ()> {
+    pub fn new(service: &'a FirmwareService, dfu: F, version: &[u8], mtu: u8) -> Result<Self, ()> {
         service
             .version_set(Vec::from_slice(version)?)
             .map_err(|_| ())?;
@@ -63,7 +57,7 @@ where
                 debug!("Write firmware control: {}", value);
                 if *value == 1 {
                     self.service.offset_set(0).ok();
-                    self.dfu.start().await;
+                    self.dfu.start();
                 } else if *value == 2 {
                     let _ = self.dfu.finish().await;
                 } else if *value == 3 {

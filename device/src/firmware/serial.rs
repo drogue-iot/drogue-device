@@ -1,13 +1,12 @@
-use super::FirmwareManager;
+use crate::traits::firmware::FirmwareManager;
 use embedded_hal_async::serial::*;
-use embedded_storage_async::nor_flash::{AsyncNorFlash, AsyncReadNorFlash};
 use postcard::{from_bytes, to_slice};
 
 pub struct SerialUpdater<'a, TX, RX, F>
 where
     TX: Write + 'static,
     RX: Read + 'static,
-    F: AsyncNorFlash + AsyncReadNorFlash,
+    F: FirmwareManager,
 {
     tx: TX,
     rx: RX,
@@ -18,9 +17,9 @@ impl<'a, TX, RX, F> SerialUpdater<'a, TX, RX, F>
 where
     TX: Write,
     RX: Read,
-    F: AsyncNorFlash + AsyncReadNorFlash,
+    F: FirmwareManager,
 {
-    pub fn new(tx: TX, rx: RX, dfu: FirmwareManager<F>, version: &'a [u8]) -> Self {
+    pub fn new(tx: TX, rx: RX, dfu: F, version: &'a [u8]) -> Self {
         Self {
             tx,
             rx,
@@ -90,17 +89,17 @@ pub enum SerialError {
 
 pub struct SerialUpdateProtocol<'a, F>
 where
-    F: AsyncNorFlash + AsyncReadNorFlash,
+    F: FirmwareManager,
 {
-    dfu: FirmwareManager<F>,
+    dfu: F,
     version: &'a [u8],
 }
 
 impl<'a, F> SerialUpdateProtocol<'a, F>
 where
-    F: AsyncNorFlash + AsyncReadNorFlash,
+    F: FirmwareManager,
 {
-    pub fn new(dfu: FirmwareManager<F>, version: &'a [u8]) -> Self {
+    pub fn new(dfu: F, version: &'a [u8]) -> Self {
         Self { dfu, version }
     }
 
@@ -115,14 +114,14 @@ where
         match command {
             SerialCommand::Version => Ok(Some(SerialResponse::Version(self.version))),
             SerialCommand::Start => {
-                self.dfu.start().await;
+                self.dfu.start();
                 Ok(None)
             }
             SerialCommand::Write(_, data) => match self.dfu.write(data).await {
                 Ok(_) => Ok(None),
                 Err(_) => Err(SerialError::Flash),
             },
-            SerialCommand::Swap => match self.dfu.swap().await {
+            SerialCommand::Swap => match self.dfu.finish().await {
                 Ok(_) => Ok(None),
                 Err(_) => Err(SerialError::Flash),
             },
