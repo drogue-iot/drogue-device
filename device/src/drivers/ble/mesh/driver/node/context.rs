@@ -181,7 +181,7 @@ where
         if let Address::Unicast(addr) = addr {
             if let Ok(primary_addr) = self.primary_unicast_address() {
                 let element_index = *addr - primary_addr;
-                element_index < self.elements.borrow().elements.composition().elements.len() as u8
+                element_index < self.configuration_manager.composition().elements.len() as u8
             } else {
                 false
             }
