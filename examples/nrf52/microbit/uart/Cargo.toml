@@ -58,8 +58,8 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "ac3986e40ef297b90de19812aebccfe2e7f9ceec" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "ac3986e40ef297b90de19812aebccfe2e7f9ceec" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "de7dd59fa9553a1a6b75ff09238c9529277b95e7" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "de7dd59fa9553a1a6b75ff09238c9529277b95e7" }
 nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
 nrf-softdevice-s113 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "c584deaf9d9e941f18457934a4a463e078f380ec" }
 

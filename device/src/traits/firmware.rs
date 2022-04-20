@@ -1,13 +1,13 @@
 use core::future::Future;
 
-use embedded_storage::nor_flash::NorFlashError;
+use embedded_storage::nor_flash::NorFlashErrorKind;
 
 pub enum Error {
     Flash,
 }
 
-impl<E: NorFlashError> From<E> for Error {
-    fn from(_: E) -> Self {
+impl From<NorFlashErrorKind> for Error {
+    fn from(_: NorFlashErrorKind) -> Self {
         Error::Flash
     }
 }

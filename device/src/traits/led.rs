@@ -24,6 +24,7 @@ where
     }
 }
 
+#[cfg(feature = "time")]
 pub trait TextDisplay {
     type Error;
 
