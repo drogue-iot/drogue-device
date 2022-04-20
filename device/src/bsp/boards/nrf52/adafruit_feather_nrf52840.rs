@@ -87,15 +87,15 @@ impl ExternalFlashPins {
 
         // Setup QSPI
         let mut status = [4; 2];
-        q.custom_instruction_blocking(0x05, &[], &mut status[..1])
+        q.blocking_custom_instruction(0x05, &[], &mut status[..1])
             .unwrap();
 
-        q.custom_instruction_blocking(0x35, &[], &mut status[1..2])
+        q.blocking_custom_instruction(0x35, &[], &mut status[1..2])
             .unwrap();
 
         if status[1] & 0x02 == 0 {
             status[1] |= 0x02;
-            q.custom_instruction_blocking(0x01, &status, &mut [])
+            q.blocking_custom_instruction(0x01, &status, &mut [])
                 .unwrap();
         }
         q

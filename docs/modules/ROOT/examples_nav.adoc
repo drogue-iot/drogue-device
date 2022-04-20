@@ -4,7 +4,7 @@
 *** xref:examples/stm32h7/nucleo-h743zi/blinky/README.adoc[STM32 Nucleo-H743 blinky]
 *** xref:examples/stm32u5/iot02a/blinky/README.adoc[STM32 IoT Discovery board blinky]
 ** Ble
-*** xref:examples/nrf52/adafruit-feather-nrf52840/bootloader-dfu/README.adoc[Adafruit Feather nRF52840 Bootloader DFU example]
+*** xref:examples/nrf52/adafruit-feather-nrf52840/firmware-updates/application/README.adoc[Adafruit Feather nRF52840 Bootloader DFU example]
 *** xref:examples/nrf52/microbit/ble-dfu/README.adoc[Microbit Bootloader DFU example]
 *** xref:examples/nrf52/microbit/ble-temperature/README.adoc[BBC micro:bit v2 BLE temperature sensor]
 *** xref:examples/nrf52/nrf52840-dk/ble-mesh/README.adoc[nrf52840-dk BLE Mesh example]
@@ -23,6 +23,8 @@
 *** xref:examples/stm32l0/lora-discovery/README.adoc[STM32 LoRaWAN Discovery board connecting to The Things Network]
 *** xref:examples/stm32l1/rak811/README.adoc[RAK811 Tracker Node connecting to The Things Network]
 *** xref:examples/stm32wl/nucleo-wl55/README.adoc[STM32 Nucleo-WL55 using LoRaWAN connecting to The Things Network]
+** Other
+*** xref:examples/nrf52/adafruit-feather-nrf52840/firmware-updates/bootloader/README.adoc[Bootloader for nRF chips]
 ** Uart
 *** xref:examples/nrf52/microbit/uart/README.adoc[BBC micro:bit v2 uart and matrix display]
 ** Wifi

@@ -1,0 +1,1 @@
+* xref:examples/nrf52/adafruit-feather-nrf52840/firmware-updates/bootloader/README.adoc[Bootloader for nRF chips] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/adafruit-feather-nrf52840/firmware-updates/bootloader[github])

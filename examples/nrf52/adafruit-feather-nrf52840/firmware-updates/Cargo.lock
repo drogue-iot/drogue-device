@@ -522,7 +522,7 @@ dependencies = [
  "rand_core",
  "serde 1.0.136",
  "uluru",
- "uuid 1.0.0-alpha.1",
+ "uuid 1.0.0",
 ]
 
 [[package]]
@@ -558,6 +558,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
 dependencies = [
  "atomic-polyfill",
  "cfg-if",
@@ -575,6 +576,7 @@ dependencies = [
 [[package]]
 name = "embassy-boot"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
 dependencies = [
  "defmt",
  "embassy",
@@ -585,6 +587,7 @@ dependencies = [
 [[package]]
 name = "embassy-boot-nrf"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
 dependencies = [
  "cfg-if",
  "cortex-m 0.7.4",
@@ -601,6 +604,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
 dependencies = [
  "cortex-m 0.7.4",
  "embassy",
@@ -611,6 +615,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
 dependencies = [
  "darling 0.13.4",
  "proc-macro2",
@@ -621,6 +626,7 @@ dependencies = [
 [[package]]
 name = "embassy-nrf"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
 dependencies = [
  "cfg-if",
  "cortex-m 0.7.4",
@@ -646,6 +652,7 @@ dependencies = [
 [[package]]
 name = "embassy-usb"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
 dependencies = [
  "embassy",
  "heapless",
@@ -1432,9 +1439,9 @@ checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
 
 [[package]]
 name = "uuid"
-version = "1.0.0-alpha.1"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb3ab47baa004111b323696c6eaa2752e7356f7f77cf6b6dc7a2087368ce1ca4"
+checksum = "8cfcd319456c4d6ea10087ed423473267e1a071f3bc0aa89f80d60997843c6f0"
 
 [[package]]
 name = "vcell"

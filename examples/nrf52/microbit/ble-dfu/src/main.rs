@@ -6,7 +6,7 @@
 
 use drogue_device::bsp::boards::nrf52::microbit::*;
 use drogue_device::drivers::ble::gatt::{dfu::FirmwareGattService, enable_softdevice};
-use drogue_device::firmware::FirmwareManager;
+use drogue_device::firmware::{FirmwareConfig, FirmwareManager};
 use drogue_device::ActorContext;
 use drogue_device::Board;
 use embassy::executor::Spawner;
@@ -62,14 +62,14 @@ async fn main(s: Spawner, p: Peripherals) {
 
     // The updater is the 'application' part of the bootloader that knows where bootloader
     // settings and the firmware update partition is located based on memory.x linker script.
-    let dfu = FirmwareManager::new(flash, updater::new());
+    let dfu = FirmwareManager::new(FwConfig { flash }, updater::new());
 
     // Create a BLE GATT service that is capable of updating firmware
     static GATT: Forever<GattServer> = Forever::new();
     let server = GATT.put(gatt_server::register(sd).unwrap());
 
     // Wires together the GATT service and the firmware manager
-    static UPDATER: ActorContext<FirmwareGattService<'static, FirmwareManager<Flash>>> =
+    static UPDATER: ActorContext<FirmwareGattService<'static, FirmwareManager<FwConfig>>> =
         ActorContext::new();
     let updater = UPDATER.mount(
         s,
@@ -99,5 +99,23 @@ async fn watchdog_task() {
     loop {
         handle.pet();
         Timer::after(Duration::from_secs(2)).await;
+    }
+}
+
+struct FwConfig {
+    flash: Flash,
+}
+
+impl FirmwareConfig for FwConfig {
+    type STATE = Flash;
+    type DFU = Flash;
+    const BLOCK_SIZE: usize = 4096;
+
+    fn state(&mut self) -> &mut Self::STATE {
+        &mut self.flash
+    }
+
+    fn dfu(&mut self) -> &mut Self::DFU {
+        &mut self.flash
     }
 }
