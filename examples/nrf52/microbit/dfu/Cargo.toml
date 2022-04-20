@@ -4,10 +4,10 @@ authors = [
     "Bob McWhirter <bmcwhirt@redhat.com>"
 ]
 edition = "2018"
-name = "microbit-ble-dfu"
+name = "microbit-dfu"
 version = "0.1.0"
-description = "Microbit Bootloader DFU example"
-keywords = ["nrf52833", "nrf", "nrf52", "microbit", "dfu", "bootloader", "feather", "ble"]
+description = "Microbit Bootloader + DFU over BLE"
+keywords = ["nrf52833", "nrf", "nrf52", "microbit", "dfu", "bootloader", "ble"]
 resolver = "2"
 
 [workspace]
