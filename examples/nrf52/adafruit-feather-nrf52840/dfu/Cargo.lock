@@ -13,26 +13,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "adafruit-feather-nrf52840-bootloader"
-version = "0.1.0"
-dependencies = [
- "cfg-if",
- "cortex-m 0.7.4",
- "cortex-m-rt",
- "defmt",
- "defmt-rtt",
- "drogue-device",
- "embassy",
- "embassy-boot",
- "embassy-boot-nrf",
- "embassy-nrf",
- "embedded-storage",
- "embedded-storage-async",
- "nrf-softdevice-mbr",
-]
-
-[[package]]
-name = "adafruit-feather-nrf52840-bootloader-dfu"
+name = "adafruit-feather-nrf52840-dfu-app"
 version = "0.1.0"
 dependencies = [
  "cortex-m 0.7.4",
@@ -49,6 +30,25 @@ dependencies = [
  "nrf-softdevice-s140",
  "panic-probe",
  "panic-reset",
+]
+
+[[package]]
+name = "adafruit-feather-nrf52840-dfu-bl"
+version = "0.1.0"
+dependencies = [
+ "cfg-if",
+ "cortex-m 0.7.4",
+ "cortex-m-rt",
+ "defmt",
+ "defmt-rtt",
+ "drogue-device",
+ "embassy",
+ "embassy-boot",
+ "embassy-boot-nrf",
+ "embassy-nrf",
+ "embedded-storage",
+ "embedded-storage-async",
+ "nrf-softdevice-mbr",
 ]
 
 [[package]]
