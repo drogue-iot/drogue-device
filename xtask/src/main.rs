@@ -43,12 +43,12 @@ fn main() -> Result<(), anyhow::Error> {
 
 static WORKSPACES: &[&str] = &[
     "examples/nrf52/microbit/ble-temperature",
-    "examples/nrf52/microbit/ble-dfu",
+    "examples/nrf52/microbit/dfu",
     "examples/nrf52/microbit/compass",
     "examples/nrf52/microbit/esp8266",
     "examples/nrf52/microbit/jukebox",
     "examples/nrf52/adafruit-feather-nrf52840/neopixel",
-    "examples/nrf52/adafruit-feather-nrf52840/firmware-updates",
+    "examples/nrf52/adafruit-feather-nrf52840/dfu",
     "examples/nrf52/nrf52840-dk/ble-mesh",
     "examples/stm32l0/lora-discovery",
     "examples/stm32l1/rak811",
