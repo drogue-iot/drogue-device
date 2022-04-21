@@ -1,16 +1,28 @@
+use embassy::time::Instant;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
 
 use heapless::Vec;
+use crate::drivers::ble::mesh::driver::pipeline::mesh::{NetworkRetransmitDetails, PublishRetransmitDetails};
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::publish::Publish;
 
-pub trait UpperContext {}
+pub mod publish;
 
-pub struct Upper {}
+pub trait UpperContext {
+    fn publish_deadline(&self, deadline: Option<Instant>);
+}
+
+pub struct Upper {
+    publish: Publish,
+}
 
 impl Default for Upper {
     fn default() -> Self {
-        Self {}
+        Self {
+            publish: Default::default(),
+        }
     }
 }
 
@@ -36,8 +48,11 @@ impl Upper {
         &mut self,
         _ctx: &C,
         message: &AccessMessage,
+        publish: Option<(ModelKey, PublishRetransmitDetails)>,
     ) -> Result<Option<UpperPDU>, DeviceError> {
         // todo: split access and control handling, wrap with an enum, I guess.
+        self.publish.process_outbound(message, publish);
+
         let mut payload = Vec::new();
         message.emit(&mut payload)?;
         Ok(Some(UpperPDU::Access(UpperAccess {

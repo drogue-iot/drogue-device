@@ -1,14 +1,24 @@
-use futures::{join, pin_mut};
-use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::driver::node::State;
-use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
+use crate::drivers::ble::mesh::driver::pipeline::mesh::{
+    NetworkRetransmitDetails, PublishRetransmitDetails,
+};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::{Lower, LowerContext};
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::{Authentication, AuthenticationContext};
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::{Relay, RelayContext};
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::{
+    Authentication, AuthenticationContext,
+};
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::{
+    Relay, RelayContext,
+};
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::{
+    Correlation, ModelKey, Transmit,
+};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::{Upper, UpperContext};
+use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
+use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
+use futures::{join, pin_mut};
 
 pub mod access;
 pub mod lower;
@@ -20,8 +30,8 @@ pub trait ProvisionedContext:
 {
 }
 
-
 pub(crate) struct ProvisionedPipeline {
+    transmit: Transmit,
     authentication: Authentication,
     relay: Relay,
     lower: Lower,
@@ -31,6 +41,7 @@ pub(crate) struct ProvisionedPipeline {
 impl ProvisionedPipeline {
     pub(crate) fn new() -> Self {
         Self {
+            transmit: Transmit::default(),
             authentication: Default::default(),
             relay: Default::default(),
             lower: Default::default(),
@@ -64,7 +75,10 @@ impl ProvisionedPipeline {
                 // don't fail if we fail to encrypt a relay.
                 if let Ok(Some(outbound)) = self.authentication.process_outbound(ctx, &outbound) {
                     // don't fail if we fail to retransmit.
-                    ctx.transmit_mesh_pdu(&outbound).await.ok();
+                    //ctx.transmit_mesh_pdu(&outbound).await.ok();
+                    //ctx.enqueue_transmit(&outbound, ctx.relay_retransmit() ).await;
+                    self.transmit
+                        .process_outbound(ctx, outbound, None, &ctx.relay_retransmit());
                 }
             }
         }
@@ -75,6 +89,8 @@ impl ProvisionedPipeline {
         &mut self,
         ctx: &C,
         message: &AccessMessage,
+        publish: Option<(ModelKey, PublishRetransmitDetails)>,
+        network_retransmit: NetworkRetransmitDetails,
     ) -> Result<(), DeviceError> {
         trace!("outbound <<<< {}", message);
 
@@ -89,11 +105,19 @@ impl ProvisionedPipeline {
         };
 
         let transmit_fut = async move {
-            if let Some(message) = self.upper.process_outbound(ctx, message)? {
-                if let Some(message) = self.lower.process_outbound(ctx, message).await? {
+            if let Some(message) = self.upper.process_outbound(ctx, message, publish)? {
+                if let Some((seq_zero, message)) = self.lower.process_outbound(ctx, message).await?
+                {
                     for message in message.iter() {
                         if let Some(message) = self.authentication.process_outbound(ctx, message)? {
-                            ctx.transmit_mesh_pdu(&message).await?;
+                            self.transmit
+                                .process_outbound(
+                                    ctx,
+                                    message,
+                                    Correlation::new(seq_zero, publish.map(|inner| inner.0)),
+                                    &network_retransmit,
+                                )
+                                .await?;
                         }
                     }
                 }

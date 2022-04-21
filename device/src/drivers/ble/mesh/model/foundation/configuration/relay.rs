@@ -1,3 +1,4 @@
+use embassy::time::Duration;
 use crate::drivers::ble::mesh::model::Message;
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
@@ -46,8 +47,8 @@ impl Default for RelayConfig {
     fn default() -> Self {
         Self {
             relay: Relay::SupportedEnabled,
-            relay_retransmit_count: 0,
-            relay_retransmit_interval_steps: 0,
+            relay_retransmit_count: 1,
+            relay_retransmit_interval_steps: 20,
         }
     }
 }

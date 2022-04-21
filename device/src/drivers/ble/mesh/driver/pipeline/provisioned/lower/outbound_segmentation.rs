@@ -58,6 +58,7 @@ impl OutboundSegmentation {
     pub fn process_retransmits(
         &mut self,
     ) -> Result<Option<CleartextNetworkPDUSegments<64>>, DeviceError> {
+
         let now = Instant::now();
 
         let mut segments = CleartextNetworkPDUSegments::new_empty();

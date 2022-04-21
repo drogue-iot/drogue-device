@@ -4,6 +4,7 @@ use crate::drivers::ble::mesh::config::configuration_manager::ConfigurationManag
 use crate::drivers::ble::mesh::config::network::NetworkKeyHandle;
 use crate::drivers::ble::mesh::driver::elements::{AppElementsContext, ElementContext, Elements};
 use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
+use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::ModelIdentifier;
 use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload};
@@ -17,13 +18,16 @@ use core::marker::PhantomData;
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy::channel::{Channel, DynamicReceiver as ChannelReceiver, Sender as ChannelSender};
 use embassy::time::{Duration, Ticker};
+use embassy::util::select_all;
 use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
+use crate::drivers::ble::mesh::driver::node::deadline::Deadline;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 
-mod context;
-mod transmit_queue;
+pub(crate) mod context;
+pub(crate) mod deadline;
 
 type NodeMutex = ThreadModeRawMutex;
 
@@ -69,6 +73,12 @@ pub struct OutboundPublishMessage {
     pub(crate) element_address: UnicastAddress,
     pub(crate) model_identifier: ModelIdentifier,
     pub(crate) payload: AccessPayload,
+}
+
+impl OutboundPublishMessage {
+    pub fn model_key(&self) -> ModelKey {
+        ModelKey::new( self.element_address, self.model_identifier )
+    }
 }
 
 pub(crate) struct OutboundPublishChannel<'a> {
@@ -126,6 +136,7 @@ where
     configuration_manager: ConfigurationManager<S>,
     rng: RefCell<R>,
     pipeline: RefCell<Pipeline>,
+    pub(crate) deadline: RefCell<Deadline>,
     //
     pub(crate) elements: RefCell<Elements<'a, E>>,
     pub(crate) outbound: OutboundChannel,
@@ -155,6 +166,7 @@ where
             configuration_manager,
             rng: RefCell::new(rng),
             pipeline: RefCell::new(Pipeline::new(capabilities)),
+            deadline: RefCell::new( Default::default() ),
             //
             elements: RefCell::new(Elements::new(app_elements)),
             outbound: OutboundChannel::new(),
@@ -175,6 +187,7 @@ where
                 if let Some(app_key_details) =
                     network.find_app_key_by_index(&publication.app_key_index)
                 {
+                    let model_key = publish.model_key();
                     let message = AccessMessage {
                         ttl: publication.publish_ttl,
                         network_key: NetworkKeyHandle::from(network),
@@ -188,7 +201,7 @@ where
                     };
                     self.pipeline
                         .borrow_mut()
-                        .process_outbound(self, &message)
+                        .process_outbound(self, &message, Some((model_key, publication.into())), self.network_retransmit())
                         .await?;
                     return Ok(());
                 }
@@ -268,18 +281,19 @@ where
     async fn loop_provisioned(&self) -> Result<Option<State>, DeviceError> {
         let mut ticker = Ticker::every(Duration::from_millis(250));
 
-        let ack_timeout = ticker.next();
+        let mut deadline = self.deadline.borrow_mut();
+        let deadline_fut = deadline.next();
         let receive_fut = self.receiver.receive_bytes();
         let outbound_fut = self.outbound.next();
         let outbound_publish_fut = self.publish_outbound.next();
 
-        pin_mut!(ack_timeout);
+        pin_mut!(deadline_fut);
         pin_mut!(receive_fut);
         pin_mut!(outbound_fut);
         pin_mut!(outbound_publish_fut);
 
         let result = select(
-            select(receive_fut, ack_timeout),
+            select(receive_fut, deadline_fut),
             select(outbound_fut, outbound_publish_fut),
         )
         .await;
@@ -291,7 +305,8 @@ where
                         .process_inbound(self, &*inbound)
                         .await
                 }
-                Either::Right((_, _)) => {
+                Either::Right((expiration, _)) => {
+                    // TODO chunk into the correct portion of the pipeline.
                     self.pipeline.borrow_mut().try_retransmit(self).await?;
                     Ok(None)
                 }
@@ -301,7 +316,7 @@ where
                 Either::Left((outbound, _)) => {
                     self.pipeline
                         .borrow_mut()
-                        .process_outbound(self, &outbound)
+                        .process_outbound(self, &outbound, None, self.network_retransmit() )
                         .await?;
                     Ok(None)
                 }

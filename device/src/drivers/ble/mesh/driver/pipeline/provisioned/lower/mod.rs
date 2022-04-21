@@ -17,6 +17,7 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentic
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::replay_cache::ReplayCache;
 use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
 use core::future::Future;
+use embassy::time::Instant;
 use heapless::Vec;
 
 pub trait LowerContext: AuthenticationContext {
@@ -67,6 +68,8 @@ pub trait LowerContext: AuthenticationContext {
 
     fn has_any_subscription(&self, dst: &Address) -> bool;
     fn is_locally_relevant(&self, dst: &Address) -> bool;
+
+    fn ack_deadline(&self, deadline: Option<Instant>);
 }
 
 pub struct Lower {
@@ -345,7 +348,7 @@ impl Lower {
         &mut self,
         ctx: &C,
         pdu: UpperPDU,
-    ) -> Result<Option<CleartextNetworkPDUSegments>, DeviceError> {
+    ) -> Result<Option<(u16, CleartextNetworkPDUSegments)>, DeviceError> {
         match pdu {
             UpperPDU::Control(_control) => Ok(None),
             UpperPDU::Access(access) => {
@@ -435,12 +438,12 @@ impl Lower {
                     }
                     self.outbound_segmentation
                         .register(seq_zero as u16, segments.clone())?;
-                    Ok(Some(segments))
+                    Ok(Some(( seq_zero as u16, segments)))
                 } else {
                     let payload =
                         Vec::from_slice(&payload).map_err(|_| DeviceError::InsufficientBuffer)?;
                     // can ship unsegmented
-                    Ok(Some(CleartextNetworkPDUSegments::new(
+                    Ok(Some((seq_zero as u16, CleartextNetworkPDUSegments::new(
                         CleartextNetworkPDU {
                             network_key: access.network_key,
                             ivi: access.ivi,
@@ -455,7 +458,7 @@ impl Lower {
                                 message: LowerAccessMessage::Unsegmented(payload),
                             }),
                         },
-                    )))
+                    ))))
                 }
             }
         }

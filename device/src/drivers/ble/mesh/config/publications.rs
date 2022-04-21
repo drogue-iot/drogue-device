@@ -1,3 +1,4 @@
+use embassy::time::Duration;
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::model::foundation::configuration::AppKeyIndex;
 use crate::drivers::ble::mesh::model::{ModelIdentifier, Status};

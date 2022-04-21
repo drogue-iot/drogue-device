@@ -1,5 +1,5 @@
 use crate::drivers::ble::mesh::driver::node::State;
-use crate::drivers::ble::mesh::driver::pipeline::mesh::{Mesh, MeshData};
+use crate::drivers::ble::mesh::driver::pipeline::mesh::{Mesh, MeshData, NetworkRetransmitDetails, PublishRetransmitDetails};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::Lower;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::Authentication;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::Relay;
@@ -18,6 +18,7 @@ use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 use futures::{join, pin_mut};
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::UnprovisionedPipeline;
 
 
@@ -68,11 +69,13 @@ impl PipelineInner {
         &mut self,
         ctx: &C,
         message: &AccessMessage,
+        publish: Option<(ModelKey, PublishRetransmitDetails)>,
+        network_retransmit: NetworkRetransmitDetails,
     ) -> Result<(), DeviceError> {
         match self {
             PipelineInner::Unconfigured => Err(DeviceError::NotProvisioned),
             PipelineInner::Unprovisioned(_) => Err(DeviceError::NotProvisioned),
-            PipelineInner::Provisioned(inner) => inner.process_outbound(ctx, message).await,
+            PipelineInner::Provisioned(inner) => inner.process_outbound(ctx, message, publish, network_retransmit).await,
         }
     }
 
@@ -130,8 +133,10 @@ impl Pipeline {
         &mut self,
         ctx: &C,
         message: &AccessMessage,
+        publish: Option<(ModelKey, PublishRetransmitDetails)>,
+        network_retransmit: NetworkRetransmitDetails,
     ) -> Result<(), DeviceError> {
-        self.inner.process_outbound(ctx, message).await
+        self.inner.process_outbound(ctx, message, publish, network_retransmit).await
     }
 
     pub async fn try_retransmit<C: PipelineContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {

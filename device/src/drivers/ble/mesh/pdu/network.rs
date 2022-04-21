@@ -17,6 +17,7 @@ pub enum NetMic {
 }
 
 // todo: format vecs/arrays as hex
+#[derive(Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ObfuscatedAndEncryptedNetworkPDU {
     pub(crate) ivi: u8, /* 1 bit */

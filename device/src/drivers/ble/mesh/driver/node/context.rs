@@ -7,7 +7,7 @@ use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::elements::{ElementContext, PrimaryElementContext};
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
-use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
+use crate::drivers::ble::mesh::driver::pipeline::mesh::{MeshContext, NetworkRetransmitDetails};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::LowerContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
@@ -29,9 +29,12 @@ use cmac::crypto_mac::Output;
 use cmac::Cmac;
 use core::cell::Ref;
 use core::future::Future;
+use embassy::time::{Duration, Instant};
 use heapless::Vec;
 use p256::PublicKey;
 use rand_core::{CryptoRng, RngCore};
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
+use crate::drivers::ble::mesh::model::foundation::configuration::relay::Relay;
 
 // ------------------------------------------------------------------------
 // Unprovisioned pipeline context
@@ -130,6 +133,10 @@ where
         self.vault().uuid()
     }
 
+    fn network_retransmit(&self) -> NetworkRetransmitDetails {
+        self.configuration_manager.configuration().foundation_models().configuration.network_transmit().into()
+    }
+
     type TransmitAdvertisingFuture<'m> = impl Future<Output = Result<(), DeviceError>>
     where
         Self: 'm;
@@ -143,6 +150,20 @@ where
             pdu.emit(&mut bytes)
                 .map_err(|_| DeviceError::InsufficientBuffer)?;
             self.transmitter.transmit_bytes(&*bytes).await
+        }
+    }
+
+    type EnqueueTransmitFuture<'m> = impl Future<Output = Result<(), DeviceError>>
+    where
+    Self: 'm;
+
+    fn enqueue_transmit<'m>(
+        &'m self,
+        pdu: &'m ObfuscatedAndEncryptedNetworkPDU,
+        retransmit: NetworkRetransmitDetails
+    ) -> Self::EnqueueTransmitFuture<'m> {
+        async move {
+            Ok(())
         }
     }
 
@@ -205,6 +226,19 @@ where
 {
 }
 
+impl<'a, E, TX, RX, S, R> NetworkContext for Node<'a, E, TX, RX, S, R>
+    where
+        E: ElementsHandler<'a>,
+        R: CryptoRng + RngCore,
+        RX: Receiver,
+        S: Storage,
+        TX: Transmitter,
+{
+    fn network_deadline(&self, deadline: Option<Instant>) {
+        self.deadline.borrow_mut().network(deadline)
+    }
+}
+
 impl<'a, E, TX, RX, S, R> RelayContext for Node<'a, E, TX, RX, S, R>
 where
     E: ElementsHandler<'a>,
@@ -213,6 +247,13 @@ where
     S: Storage,
     TX: Transmitter,
 {
+    fn is_relay_enabled(&self) -> bool {
+        matches!( self.configuration_manager.configuration().foundation_models().configuration.relay().relay, Relay::SupportedEnabled )
+    }
+
+    fn relay_retransmit(&self) -> NetworkRetransmitDetails {
+        self.configuration_manager.configuration().foundation_models().configuration.relay().into()
+    }
 }
 
 impl<'a, E, TX, RX, S, R> AuthenticationContext for Node<'a, E, TX, RX, S, R>
@@ -335,6 +376,10 @@ where
     fn is_locally_relevant(&self, dst: &Address) -> bool {
         self.is_local_unicast(dst) || self.has_any_subscription(dst)
     }
+
+    fn ack_deadline(&self, deadline: Option<Instant>) {
+        self.deadline.borrow_mut().ack( deadline );
+    }
 }
 
 impl<'a, E, TX, RX, S, R> UpperContext for Node<'a, E, TX, RX, S, R>
@@ -345,6 +390,9 @@ where
     S: Storage,
     TX: Transmitter,
 {
+    fn publish_deadline(&self, deadline: Option<Instant>) {
+        self.deadline.borrow_mut().publish( deadline );
+    }
 }
 
 impl<'a, E, TX, RX, S, R> AccessContext for Node<'a, E, TX, RX, S, R>
