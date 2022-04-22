@@ -80,7 +80,8 @@ impl ProvisionedPipeline {
                     //ctx.transmit_mesh_pdu(&outbound).await.ok();
                     //ctx.enqueue_transmit(&outbound, ctx.relay_retransmit() ).await;
                     self.transmit
-                        .process_outbound(ctx, outbound, &ctx.relay_retransmit()).await?;
+                        .process_outbound(ctx, outbound, &ctx.relay_retransmit())
+                        .await?;
                 }
             }
         }
@@ -108,8 +109,7 @@ impl ProvisionedPipeline {
 
         let transmit_fut = async move {
             if let Some(message) = self.upper.process_outbound(ctx, message, publish)? {
-                if let Some(message) = self.lower.process_outbound(ctx, message).await?
-                {
+                if let Some(message) = self.lower.process_outbound(ctx, message).await? {
                     for message in message.iter() {
                         if let Some(message) = self.authentication.process_outbound(ctx, message)? {
                             self.transmit

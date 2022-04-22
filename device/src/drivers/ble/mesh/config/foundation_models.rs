@@ -1,6 +1,4 @@
-use crate::drivers::ble::mesh::model::foundation::configuration::network_transmit::{
-    NetworkTransmitConfig,
-};
+use crate::drivers::ble::mesh::model::foundation::configuration::network_transmit::NetworkTransmitConfig;
 use crate::drivers::ble::mesh::model::foundation::configuration::relay::RelayConfig;
 use embassy::time::Duration;
 use serde::{Deserialize, Serialize};

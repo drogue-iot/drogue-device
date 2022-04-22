@@ -443,8 +443,8 @@ impl Lower {
                     let payload =
                         Vec::from_slice(&payload).map_err(|_| DeviceError::InsufficientBuffer)?;
                     // can ship unsegmented
-                    Ok(Some(
-                        CleartextNetworkPDUSegments::new(CleartextNetworkPDU {
+                    Ok(Some(CleartextNetworkPDUSegments::new(
+                        CleartextNetworkPDU {
                             network_key: access.network_key,
                             ivi: access.ivi,
                             nid: access.nid,
@@ -457,8 +457,8 @@ impl Lower {
                                 aid,
                                 message: LowerAccessMessage::Unsegmented(payload),
                             }),
-                        }),
-                    ))
+                        },
+                    )))
                 }
             }
         }
