@@ -1,3 +1,4 @@
+use ccm::aead::generic_array::typenum::Exp;
 use crate::drivers::ble::mesh::driver::node::State;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::{Mesh, MeshData, NetworkRetransmitDetails, PublishRetransmitDetails};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::Lower;
@@ -18,6 +19,7 @@ use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 use futures::{join, pin_mut};
+use crate::drivers::ble::mesh::driver::node::deadline::Expiration;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::UnprovisionedPipeline;
 
@@ -87,6 +89,14 @@ impl PipelineInner {
             PipelineInner::Provisioned(inner) => inner.try_retransmit(ctx).await,
         }
     }
+
+    pub async fn retransmit<C: PipelineContext>(&mut self, ctx: &C, expiration: Expiration) -> Result<(), DeviceError> {
+        match self {
+            PipelineInner::Unconfigured => Err(DeviceError::PipelineNotConfigured),
+            PipelineInner::Unprovisioned(_) => Ok(()),
+            PipelineInner::Provisioned(inner) => inner.retransmit(ctx, expiration).await,
+        }
+    }
 }
 
 
@@ -141,5 +151,10 @@ impl Pipeline {
 
     pub async fn try_retransmit<C: PipelineContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
         self.inner.try_retransmit(ctx).await
+    }
+
+    pub async fn retransmit<C: PipelineContext>(&mut self, ctx: &C, expiration: Expiration) -> Result<(), DeviceError> {
+        self.inner.retransmit(ctx, expiration).await
+
     }
 }

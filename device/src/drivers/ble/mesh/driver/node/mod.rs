@@ -18,16 +18,18 @@ use core::marker::PhantomData;
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy::channel::{Channel, DynamicReceiver as ChannelReceiver, Sender as ChannelSender};
 use embassy::time::{Duration, Ticker};
-use embassy::util::select_all;
+use embassy::util::{Either3, select3, select_all};
 use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
-use crate::drivers::ble::mesh::driver::node::deadline::Deadline;
+use crate::drivers::ble::mesh::driver::node::deadline::{Deadline, Expiration};
+use crate::drivers::ble::mesh::driver::node::outbound::{Outbound, OutboundEvent, OutboundPublishMessage};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 
 pub(crate) mod context;
 pub(crate) mod deadline;
+pub(crate) mod outbound;
 
 type NodeMutex = ThreadModeRawMutex;
 
@@ -44,69 +46,6 @@ pub trait Receiver {
         Self: 'm;
     fn receive_bytes<'m>(&'m self) -> Self::ReceiveFuture<'m>;
 }
-
-const MAX_MESSAGE: usize = 3;
-
-pub(crate) struct OutboundChannel {
-    channel: Channel<NodeMutex, AccessMessage, MAX_MESSAGE>,
-}
-
-impl OutboundChannel {
-    fn new() -> Self {
-        Self {
-            channel: Channel::new(),
-        }
-    }
-
-    async fn send(&self, message: AccessMessage) {
-        self.channel.send(message).await;
-    }
-
-    async fn next(&self) -> AccessMessage {
-        self.channel.recv().await
-    }
-}
-
-// --
-
-pub struct OutboundPublishMessage {
-    pub(crate) element_address: UnicastAddress,
-    pub(crate) model_identifier: ModelIdentifier,
-    pub(crate) payload: AccessPayload,
-}
-
-impl OutboundPublishMessage {
-    pub fn model_key(&self) -> ModelKey {
-        ModelKey::new( self.element_address, self.model_identifier )
-    }
-}
-
-pub(crate) struct OutboundPublishChannel<'a> {
-    channel: Channel<NodeMutex, OutboundPublishMessage, MAX_MESSAGE>,
-    _a: PhantomData<&'a ()>,
-}
-
-impl<'a> OutboundPublishChannel<'a> {
-    fn new() -> Self {
-        Self {
-            channel: Channel::new(),
-            _a: PhantomData,
-        }
-    }
-
-    async fn send(&self, message: OutboundPublishMessage) {
-        self.channel.send(message).await;
-    }
-
-    async fn next(&self) -> OutboundPublishMessage {
-        self.channel.recv().await
-    }
-
-    fn sender(&'a self) -> ChannelSender<'a, NodeMutex, OutboundPublishMessage, MAX_MESSAGE> {
-        self.channel.sender()
-    }
-}
-// --
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum State {
@@ -139,8 +78,7 @@ where
     pub(crate) deadline: RefCell<Deadline>,
     //
     pub(crate) elements: RefCell<Elements<'a, E>>,
-    pub(crate) outbound: OutboundChannel,
-    pub(crate) publish_outbound: OutboundPublishChannel<'a>,
+    pub(crate) outbound: Outbound<'a>,
 }
 
 impl<'a, E, TX, RX, S, R> Node<'a, E, TX, RX, S, R>
@@ -169,8 +107,7 @@ where
             deadline: RefCell::new( Default::default() ),
             //
             elements: RefCell::new(Elements::new(app_elements)),
-            outbound: OutboundChannel::new(),
-            publish_outbound: OutboundPublishChannel::new(),
+            outbound: Default::default(),
         }
     }
 
@@ -191,6 +128,7 @@ where
                     let message = AccessMessage {
                         ttl: publication.publish_ttl,
                         network_key: NetworkKeyHandle::from(network),
+                        // todo: ivi isn't always zero.
                         ivi: 0,
                         nid: network.nid,
                         akf: true,
@@ -279,52 +217,49 @@ where
     }
 
     async fn loop_provisioned(&self) -> Result<Option<State>, DeviceError> {
-        let mut ticker = Ticker::every(Duration::from_millis(250));
-
         let mut deadline = self.deadline.borrow_mut();
         let deadline_fut = deadline.next();
         let receive_fut = self.receiver.receive_bytes();
         let outbound_fut = self.outbound.next();
-        let outbound_publish_fut = self.publish_outbound.next();
 
-        pin_mut!(deadline_fut);
-        pin_mut!(receive_fut);
-        pin_mut!(outbound_fut);
-        pin_mut!(outbound_publish_fut);
+        let result = select3(receive_fut, outbound_fut, deadline_fut).await;
 
-        let result = select(
-            select(receive_fut, deadline_fut),
-            select(outbound_fut, outbound_publish_fut),
-        )
-        .await;
         match result {
-            Either::Left((inner, _)) => match inner {
-                Either::Left((Ok(inbound), _)) => {
-                    self.pipeline
-                        .borrow_mut()
-                        .process_inbound(self, &*inbound)
-                        .await
+            Either3::First(Ok(inbound)) => {
+                self.pipeline
+                    .borrow_mut()
+                    .process_inbound(self, &*inbound)
+                    .await
+            }
+            Either3::Second(outbound) => {
+                match outbound {
+                    OutboundEvent::Access(access) => {
+                        self.pipeline
+                            .borrow_mut()
+                            .process_outbound(self, &access, None, self.network_retransmit() )
+                            .await?;
+                        Ok(None)
+                    }
+                    OutboundEvent::Publish(publish) => {
+                        self.publish(publish).await?;
+                        Ok(None)
+                    }
                 }
-                Either::Right((expiration, _)) => {
-                    // TODO chunk into the correct portion of the pipeline.
-                    self.pipeline.borrow_mut().try_retransmit(self).await?;
-                    Ok(None)
+            }
+            Either3::Third(expiration) => {
+                match expiration {
+                    Expiration::Network => {}
+                    Expiration::Publish => {}
+                    Expiration::Ack => {}
                 }
-                _ => Ok(None),
-            },
-            Either::Right((inner, _)) => match inner {
-                Either::Left((outbound, _)) => {
-                    self.pipeline
-                        .borrow_mut()
-                        .process_outbound(self, &outbound, None, self.network_retransmit() )
-                        .await?;
-                    Ok(None)
-                }
-                Either::Right((publish, _)) => {
-                    self.publish(publish).await?;
-                    Ok(None)
-                }
-            },
+                // TODO chunk into the correct portion of the pipeline.
+                self.pipeline.borrow_mut().try_retransmit(self).await?;
+                self.pipeline.borrow_mut().retransmit(self, expiration).await?;
+                Ok(None)
+            }
+            _ => {
+                Ok(None)
+            }
         }
     }
 
@@ -352,7 +287,7 @@ where
 
     fn connect_elements(&'a self) {
         let ctx: AppElementsContext<'a> = AppElementsContext {
-            sender: self.publish_outbound.sender(),
+            sender: self.outbound.publish.sender(),
             address: self.address().unwrap(),
         };
         self.elements.borrow_mut().connect(ctx);

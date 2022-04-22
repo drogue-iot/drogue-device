@@ -19,6 +19,7 @@ use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use futures::{join, pin_mut};
+use crate::drivers::ble::mesh::driver::node::deadline::Expiration;
 
 pub mod access;
 pub mod lower;
@@ -146,5 +147,19 @@ impl ProvisionedPipeline {
             }
         }
         Ok(())
+    }
+
+    pub async fn retransmit<C: PipelineContext>(&mut self, ctx: &C, expiration: Expiration) -> Result<(), DeviceError> {
+        match expiration {
+            Expiration::Network => {
+                self.transmit.retransmit(ctx).await
+            }
+            Expiration::Publish => {
+                Ok(())
+            }
+            Expiration::Ack => {
+                Ok(())
+            }
+        }
     }
 }

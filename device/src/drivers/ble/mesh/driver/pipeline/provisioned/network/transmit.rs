@@ -172,6 +172,10 @@ impl<const N: usize> Transmit<N> {
         }
     }
 
+    pub(crate) async fn retransmit<C: MeshContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
+        Ok(())
+    }
+
     async fn transmit_untransmitted<C: MeshContext>(&self, ctx: &C) -> Result<bool, DeviceError> {
         for each in self.items.borrow_mut().iter_mut().filter(|e| {
             if let Some(e) = e {

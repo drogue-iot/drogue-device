@@ -436,7 +436,7 @@ where
 
     fn transmit<'m>(&'m self, message: AccessMessage) -> Self::TransmitFuture<'m> {
         async move {
-            self.outbound.send(message).await;
+            self.outbound.access.send(message).await;
             Ok(())
         }
     }
