@@ -1,8 +1,10 @@
-use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::driver::node::State;
-use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::Provisionable;
-use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisioning_bearer::{BearerMessage, ProvisioningBearer};
+use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisioning_bearer::{
+    BearerMessage, ProvisioningBearer,
+};
+use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
+use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::generic_provisioning::Reason;
 use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
@@ -57,7 +59,10 @@ impl UnprovisionedPipeline {
         }
     }
 
-    pub(crate) async fn try_retransmit<C: PipelineContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
+    pub(crate) async fn try_retransmit<C: PipelineContext>(
+        &mut self,
+        ctx: &C,
+    ) -> Result<(), DeviceError> {
         self.provisioning_bearer.try_retransmit(ctx).await
     }
 }

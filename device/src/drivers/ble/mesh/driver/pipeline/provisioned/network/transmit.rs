@@ -9,10 +9,10 @@ use futures::{pin_mut, FutureExt};
 
 use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::{MeshContext, NetworkRetransmitDetails};
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::ModelIdentifier;
 use heapless::Vec;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
 
 #[derive(Copy, Clone, PartialEq)]
 pub struct ModelKey(UnicastAddress, ModelIdentifier);
@@ -90,11 +90,7 @@ impl<const N: usize> Transmit<N> {
         ctx.transmit_mesh_pdu(&pdu).await?;
 
         /// then look for a place to hang onto it for retransmits
-        if let Some(slot) = self
-            .items
-            .iter_mut()
-            .find(|e| matches!(e, None))
-        {
+        if let Some(slot) = self.items.iter_mut().find(|e| matches!(e, None)) {
             slot.replace(Item {
                 pdu,
                 count: network_retransmit.count,
@@ -130,14 +126,20 @@ impl<const N: usize> Transmit<N> {
         next_deadline
     }
 
-    pub(crate) async fn retransmit<C: NetworkContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
+    pub(crate) async fn retransmit<C: NetworkContext>(
+        &mut self,
+        ctx: &C,
+    ) -> Result<(), DeviceError> {
         self.transmit_untransmitted(ctx).await?;
         self.transmit_ready(ctx).await?;
         ctx.network_deadline(self.next_deadline(Instant::now()));
         Ok(())
     }
 
-    async fn transmit_untransmitted<C: NetworkContext>(&mut self, ctx: &C) -> Result<bool, DeviceError> {
+    async fn transmit_untransmitted<C: NetworkContext>(
+        &mut self,
+        ctx: &C,
+    ) -> Result<bool, DeviceError> {
         for each in self.items.iter_mut().filter(|e| {
             if let Some(e) = e {
                 matches!(e.last, None)

@@ -3,8 +3,13 @@ use crate::drivers::ble::mesh::composition::ElementsHandler;
 use crate::drivers::ble::mesh::config::configuration_manager::ConfigurationManager;
 use crate::drivers::ble::mesh::config::network::NetworkKeyHandle;
 use crate::drivers::ble::mesh::driver::elements::{AppElementsContext, ElementContext, Elements};
-use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
+use crate::drivers::ble::mesh::driver::node::deadline::{Deadline, Expiration};
+use crate::drivers::ble::mesh::driver::node::outbound::{
+    Outbound, OutboundEvent, OutboundPublishMessage,
+};
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
+use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::ModelIdentifier;
 use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload};
@@ -18,14 +23,11 @@ use core::marker::PhantomData;
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy::channel::{Channel, DynamicReceiver as ChannelReceiver, Sender as ChannelSender};
 use embassy::time::{Duration, Ticker};
-use embassy::util::{Either3, select3, select_all};
+use embassy::util::{select3, select_all, Either3};
 use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
-use crate::drivers::ble::mesh::driver::node::deadline::{Deadline, Expiration};
-use crate::drivers::ble::mesh::driver::node::outbound::{Outbound, OutboundEvent, OutboundPublishMessage};
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 
 pub(crate) mod context;
 pub(crate) mod deadline;
@@ -104,7 +106,7 @@ where
             configuration_manager,
             rng: RefCell::new(rng),
             pipeline: RefCell::new(Pipeline::new(capabilities)),
-            deadline: RefCell::new( Default::default() ),
+            deadline: RefCell::new(Default::default()),
             //
             elements: RefCell::new(Elements::new(app_elements)),
             outbound: Default::default(),
@@ -139,7 +141,12 @@ where
                     };
                     self.pipeline
                         .borrow_mut()
-                        .process_outbound(self, &message, Some((model_key, publication.into())), self.network_retransmit())
+                        .process_outbound(
+                            self,
+                            &message,
+                            Some((model_key, publication.into())),
+                            self.network_retransmit(),
+                        )
                         .await?;
                     return Ok(());
                 }
@@ -231,21 +238,19 @@ where
                     .process_inbound(self, &*inbound)
                     .await
             }
-            Either3::Second(outbound) => {
-                match outbound {
-                    OutboundEvent::Access(access) => {
-                        self.pipeline
-                            .borrow_mut()
-                            .process_outbound(self, &access, None, self.network_retransmit() )
-                            .await?;
-                        Ok(None)
-                    }
-                    OutboundEvent::Publish(publish) => {
-                        self.publish(publish).await?;
-                        Ok(None)
-                    }
+            Either3::Second(outbound) => match outbound {
+                OutboundEvent::Access(access) => {
+                    self.pipeline
+                        .borrow_mut()
+                        .process_outbound(self, &access, None, self.network_retransmit())
+                        .await?;
+                    Ok(None)
                 }
-            }
+                OutboundEvent::Publish(publish) => {
+                    self.publish(publish).await?;
+                    Ok(None)
+                }
+            },
             Either3::Third(expiration) => {
                 match expiration {
                     Expiration::Network => {}
@@ -254,12 +259,13 @@ where
                 }
                 // TODO chunk into the correct portion of the pipeline.
                 self.pipeline.borrow_mut().try_retransmit(self).await?;
-                self.pipeline.borrow_mut().retransmit(self, expiration).await?;
+                self.pipeline
+                    .borrow_mut()
+                    .retransmit(self, expiration)
+                    .await?;
                 Ok(None)
             }
-            _ => {
-                Ok(None)
-            }
+            _ => Ok(None),
         }
     }
 

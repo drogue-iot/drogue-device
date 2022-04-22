@@ -1,14 +1,16 @@
-use embassy::time::Instant;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
+use embassy::time::Instant;
 
-use heapless::Vec;
-use crate::drivers::ble::mesh::driver::pipeline::mesh::{NetworkRetransmitDetails, PublishRetransmitDetails};
+use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
+use crate::drivers::ble::mesh::driver::pipeline::mesh::{
+    NetworkRetransmitDetails, PublishRetransmitDetails,
+};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::publish::Publish;
 use core::future::Future;
-use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
+use heapless::Vec;
 
 pub mod publish;
 
@@ -17,7 +19,7 @@ pub trait UpperContext {
 
     type RepublishFuture<'m>: Future<Output = ()> + 'm
     where
-    Self: 'm;
+        Self: 'm;
 
     fn republish<'m>(&'m self, message: OutboundPublishMessage) -> Self::RepublishFuture<'m>;
 }
@@ -76,8 +78,7 @@ impl Upper {
         })))
     }
 
-    pub async fn retransmit<C:UpperContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
+    pub async fn retransmit<C: UpperContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
         self.publish.retransmit(ctx).await
-
     }
 }

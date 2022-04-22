@@ -50,7 +50,9 @@ impl From<&Publication> for PublishRetransmitDetails {
     fn from(publication: &Publication) -> Self {
         PublishRetransmitDetails {
             count: publication.publish_retransmit_count,
-            interval: Duration::from_millis( ( publication.publish_retransmit_interval_steps as u64 + 1) * 50),
+            interval: Duration::from_millis(
+                (publication.publish_retransmit_interval_steps as u64 + 1) * 50,
+            ),
         }
     }
 }

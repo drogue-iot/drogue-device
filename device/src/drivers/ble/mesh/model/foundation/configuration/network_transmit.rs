@@ -1,11 +1,11 @@
-use embassy::time::Duration;
 use crate::drivers::ble::mesh::model::Message;
 use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
-use serde::{Deserialize, Serialize};
 use crate::opcode;
+use embassy::time::Duration;
 use heapless::Vec;
+use serde::{Deserialize, Serialize};
 
 opcode!( CONFIG_NETWORK_TRANSMIT_GET 0x80, 0x23);
 opcode!( CONFIG_NETWORK_TRANSMIT_SET 0x80, 0x24);

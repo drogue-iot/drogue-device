@@ -1,12 +1,14 @@
-use embassy::time::Instant;
-use crate::drivers::ble::mesh::driver::pipeline::mesh::{NetworkRetransmitDetails, PublishRetransmitDetails};
+use crate::drivers::ble::mesh::driver::pipeline::mesh::{
+    NetworkRetransmitDetails, PublishRetransmitDetails,
+};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
+use embassy::time::Instant;
 
-use heapless::Vec;
-use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::UpperContext;
+use crate::drivers::ble::mesh::driver::DeviceError;
+use heapless::Vec;
 
 pub struct Entry {
     message: OutboundPublishMessage,
@@ -27,7 +29,6 @@ impl Default for Publish {
 }
 
 impl Publish {
-
     fn next_deadline(&self) -> Option<Instant> {
         let mut deadline = None;
 
@@ -54,17 +55,21 @@ impl Publish {
         publish: Option<(ModelKey, PublishRetransmitDetails)>,
     ) {
         if let Some(publish) = publish {
-            if let Some(prev) = self.cache.iter_mut().find(|e| if let Some(inner) = e {
-                inner.message.model_identifier == publish.0.model_identifier() && inner.message.element_address == publish.0.unicast_address()
-            } else {
-                false
+            if let Some(prev) = self.cache.iter_mut().find(|e| {
+                if let Some(inner) = e {
+                    inner.message.model_identifier == publish.0.model_identifier()
+                        && inner.message.element_address == publish.0.unicast_address()
+                } else {
+                    false
+                }
             }) {
                 prev.replace(Entry {
                     message: OutboundPublishMessage {
                         element_address: publish.0.unicast_address(),
                         model_identifier: publish.0.model_identifier(),
                         payload: message.payload.clone(),
-                    }.clone(),
+                    }
+                    .clone(),
                     retransmit: publish.1,
                     last: Instant::now(),
                 });
@@ -101,7 +106,7 @@ impl Publish {
             }
         }
 
-        ctx.publish_deadline( self.next_deadline() );
+        ctx.publish_deadline(self.next_deadline());
 
         Ok(())
     }

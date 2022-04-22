@@ -1,4 +1,6 @@
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::{CleartextNetworkPDUSegments, LowerContext};
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::{
+    CleartextNetworkPDUSegments, LowerContext,
+};
 use crate::drivers::ble::mesh::driver::DeviceError;
 use embassy::time::{Duration, Instant};
 
@@ -33,7 +35,7 @@ impl OutboundSegmentation {
                 seq_zero,
                 segments,
                 ttl,
-                deadline: Instant::now() + Duration::from_millis( 200 + 50 * ttl as u64),
+                deadline: Instant::now() + Duration::from_millis(200 + 50 * ttl as u64),
             });
             Ok(())
         } else {
@@ -50,7 +52,8 @@ impl OutboundSegmentation {
             }
         }) {
             if let Some(inner) = entry {
-                inner.deadline = Instant::now() + Duration::from_millis(200 + 50 * inner.ttl as u64);
+                inner.deadline =
+                    Instant::now() + Duration::from_millis(200 + 50 * inner.ttl as u64);
                 if inner.segments.ack(block_ack) {
                     *entry = None;
                 }
@@ -80,7 +83,6 @@ impl OutboundSegmentation {
         &mut self,
         ctx: &C,
     ) -> Result<Option<CleartextNetworkPDUSegments<64>>, DeviceError> {
-
         let now = Instant::now();
 
         let mut segments = CleartextNetworkPDUSegments::new_empty();
@@ -98,7 +100,7 @@ impl OutboundSegmentation {
             }
         }
 
-        ctx.ack_deadline( self.next_deadline() );
+        ctx.ack_deadline(self.next_deadline());
 
         Ok(Some(segments))
     }

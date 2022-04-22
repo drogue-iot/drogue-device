@@ -22,7 +22,7 @@ impl Default for Deadline {
         Self {
             network: None,
             publish: None,
-            ack: None
+            ack: None,
         }
     }
 }
@@ -114,42 +114,30 @@ impl Deadline {
         if let Some(network) = self.network {
             if let Some(prev) = &result {
                 if prev.1 > network {
-                    result.replace(
-                        (Expiration::Network, network)
-                    );
+                    result.replace((Expiration::Network, network));
                 }
             } else {
-                result.replace(
-                    (Expiration::Network, network)
-                );
+                result.replace((Expiration::Network, network));
             }
         }
 
         if let Some(publish) = self.publish {
             if let Some(prev) = &result {
                 if prev.1 > publish {
-                    result.replace(
-                        (Expiration::Publish, publish)
-                    );
+                    result.replace((Expiration::Publish, publish));
                 }
             } else {
-                result.replace(
-                    (Expiration::Publish, publish)
-                );
+                result.replace((Expiration::Publish, publish));
             }
         }
 
         if let Some(ack) = self.ack {
             if let Some(prev) = &result {
                 if prev.1 > ack {
-                    result.replace(
-                        (Expiration::Ack, ack)
-                    );
+                    result.replace((Expiration::Ack, ack));
                 }
             } else {
-                result.replace(
-                    (Expiration::Ack, ack)
-                );
+                result.replace((Expiration::Ack, ack));
             }
         }
 

@@ -14,7 +14,8 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 .configuration()
                 .foundation_models()
                 .configuration_model()
-                .relay().clone();
+                .relay()
+                .clone();
             ctx.transmit(access.create_response(ctx, RelayMessage::Status(val))?)
                 .await?;
         }

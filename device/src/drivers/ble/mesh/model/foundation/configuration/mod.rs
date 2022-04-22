@@ -42,9 +42,9 @@ pub mod default_ttl;
 pub mod model_app;
 pub mod model_publication;
 pub mod model_subscription;
+pub mod network_transmit;
 pub mod node_reset;
 pub mod relay;
-pub mod network_transmit;
 
 pub const CONFIGURATION_SERVER: ModelIdentifier = ModelIdentifier::SIG(0x0000);
 pub const CONFIGURATION_CLIENT: ModelIdentifier = ModelIdentifier::SIG(0x0001);
@@ -165,12 +165,12 @@ impl Model for ConfigurationServer {
                 )))
             }
             // Relay
-            CONFIG_RELAY_GET => Ok(Some(ConfigurationMessage::Relay(
-                RelayMessage::parse_get(parameters)?,
-            ))),
-            CONFIG_RELAY_SET => Ok(Some(ConfigurationMessage::Relay(
-                RelayMessage::parse_set(parameters)?,
-            ))),
+            CONFIG_RELAY_GET => Ok(Some(ConfigurationMessage::Relay(RelayMessage::parse_get(
+                parameters,
+            )?))),
+            CONFIG_RELAY_SET => Ok(Some(ConfigurationMessage::Relay(RelayMessage::parse_set(
+                parameters,
+            )?))),
             _ => Ok(None),
         }
     }

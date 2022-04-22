@@ -1,7 +1,9 @@
+use crate::drivers::ble::mesh::model::foundation::configuration::network_transmit::{
+    NetworkTransmitConfig, NetworkTransmitMessage,
+};
+use crate::drivers::ble::mesh::model::foundation::configuration::relay::{Relay, RelayConfig};
 use embassy::time::Duration;
 use serde::{Deserialize, Serialize};
-use crate::drivers::ble::mesh::model::foundation::configuration::network_transmit::{NetworkTransmitConfig, NetworkTransmitMessage};
-use crate::drivers::ble::mesh::model::foundation::configuration::relay::{Relay, RelayConfig};
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -99,4 +101,3 @@ impl Default for ConfigurationModel {
         }
     }
 }
-

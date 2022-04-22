@@ -1,28 +1,31 @@
-use ccm::aead::generic_array::typenum::Exp;
+use crate::drivers::ble::mesh::driver::node::deadline::Expiration;
 use crate::drivers::ble::mesh::driver::node::State;
-use crate::drivers::ble::mesh::driver::pipeline::mesh::{Mesh, MeshData, NetworkRetransmitDetails, PublishRetransmitDetails};
+use crate::drivers::ble::mesh::driver::pipeline::mesh::{
+    Mesh, MeshData, NetworkRetransmitDetails, PublishRetransmitDetails,
+};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::Lower;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::Authentication;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::Relay;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::Upper;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::{ProvisionedContext, ProvisionedPipeline};
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::{
+    ProvisionedContext, ProvisionedPipeline,
+};
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::{
     Provisionable, UnprovisionedContext,
 };
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisioning_bearer::{
     BearerMessage, ProvisioningBearer,
 };
+use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::UnprovisionedPipeline;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::generic_provisioning::Reason;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
+use ccm::aead::generic_array::typenum::Exp;
 use futures::{join, pin_mut};
-use crate::drivers::ble::mesh::driver::node::deadline::Expiration;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
-use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::UnprovisionedPipeline;
-
 
 pub mod mesh;
 pub mod provisioned;
@@ -77,7 +80,11 @@ impl PipelineInner {
         match self {
             PipelineInner::Unconfigured => Err(DeviceError::NotProvisioned),
             PipelineInner::Unprovisioned(_) => Err(DeviceError::NotProvisioned),
-            PipelineInner::Provisioned(inner) => inner.process_outbound(ctx, message, publish, network_retransmit).await,
+            PipelineInner::Provisioned(inner) => {
+                inner
+                    .process_outbound(ctx, message, publish, network_retransmit)
+                    .await
+            }
         }
     }
 
@@ -90,7 +97,11 @@ impl PipelineInner {
         }
     }
 
-    pub async fn retransmit<C: PipelineContext>(&mut self, ctx: &C, expiration: Expiration) -> Result<(), DeviceError> {
+    pub async fn retransmit<C: PipelineContext>(
+        &mut self,
+        ctx: &C,
+        expiration: Expiration,
+    ) -> Result<(), DeviceError> {
         match self {
             PipelineInner::Unconfigured => Err(DeviceError::PipelineNotConfigured),
             PipelineInner::Unprovisioned(_) => Ok(()),
@@ -98,7 +109,6 @@ impl PipelineInner {
         }
     }
 }
-
 
 impl Pipeline {
     pub fn new(capabilities: Capabilities) -> Self {
@@ -146,15 +156,20 @@ impl Pipeline {
         publish: Option<(ModelKey, PublishRetransmitDetails)>,
         network_retransmit: NetworkRetransmitDetails,
     ) -> Result<(), DeviceError> {
-        self.inner.process_outbound(ctx, message, publish, network_retransmit).await
+        self.inner
+            .process_outbound(ctx, message, publish, network_retransmit)
+            .await
     }
 
     pub async fn try_retransmit<C: PipelineContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
         self.inner.try_retransmit(ctx).await
     }
 
-    pub async fn retransmit<C: PipelineContext>(&mut self, ctx: &C, expiration: Expiration) -> Result<(), DeviceError> {
+    pub async fn retransmit<C: PipelineContext>(
+        &mut self,
+        ctx: &C,
+        expiration: Expiration,
+    ) -> Result<(), DeviceError> {
         self.inner.retransmit(ctx, expiration).await
-
     }
 }

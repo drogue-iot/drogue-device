@@ -6,17 +6,21 @@ use crate::drivers::ble::mesh::config::Configuration;
 use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::elements::{ElementContext, PrimaryElementContext};
+use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
 use crate::drivers::ble::mesh::driver::pipeline::mesh::{MeshContext, NetworkRetransmitDetails};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::LowerContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::RelayContext;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::UpperContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::ProvisionedContext;
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::UnprovisionedContext;
 use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::model::foundation::configuration::relay::Relay;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
@@ -33,10 +37,6 @@ use embassy::time::{Duration, Instant};
 use heapless::Vec;
 use p256::PublicKey;
 use rand_core::{CryptoRng, RngCore};
-use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
-use crate::drivers::ble::mesh::model::foundation::configuration::relay::Relay;
 
 // ------------------------------------------------------------------------
 // Unprovisioned pipeline context
@@ -136,7 +136,12 @@ where
     }
 
     fn network_retransmit(&self) -> NetworkRetransmitDetails {
-        self.configuration_manager.configuration().foundation_models().configuration.network_transmit().into()
+        self.configuration_manager
+            .configuration()
+            .foundation_models()
+            .configuration
+            .network_transmit()
+            .into()
     }
 
     type TransmitAdvertisingFuture<'m> = impl Future<Output = Result<(), DeviceError>>
@@ -215,12 +220,12 @@ where
 }
 
 impl<'a, E, TX, RX, S, R> NetworkContext for Node<'a, E, TX, RX, S, R>
-    where
-        E: ElementsHandler<'a>,
-        R: CryptoRng + RngCore,
-        RX: Receiver,
-        S: Storage,
-        TX: Transmitter,
+where
+    E: ElementsHandler<'a>,
+    R: CryptoRng + RngCore,
+    RX: Receiver,
+    S: Storage,
+    TX: Transmitter,
 {
     fn network_deadline(&self, deadline: Option<Instant>) {
         self.deadline.borrow_mut().network(deadline)
@@ -236,11 +241,24 @@ where
     TX: Transmitter,
 {
     fn is_relay_enabled(&self) -> bool {
-        matches!( self.configuration_manager.configuration().foundation_models().configuration.relay().relay, Relay::SupportedEnabled )
+        matches!(
+            self.configuration_manager
+                .configuration()
+                .foundation_models()
+                .configuration
+                .relay()
+                .relay,
+            Relay::SupportedEnabled
+        )
     }
 
     fn relay_retransmit(&self) -> NetworkRetransmitDetails {
-        self.configuration_manager.configuration().foundation_models().configuration.relay().into()
+        self.configuration_manager
+            .configuration()
+            .foundation_models()
+            .configuration
+            .relay()
+            .into()
     }
 }
 
@@ -366,7 +384,7 @@ where
     }
 
     fn ack_deadline(&self, deadline: Option<Instant>) {
-        self.deadline.borrow_mut().ack( deadline );
+        self.deadline.borrow_mut().ack(deadline);
     }
 }
 
@@ -379,13 +397,13 @@ where
     TX: Transmitter,
 {
     fn publish_deadline(&self, deadline: Option<Instant>) {
-        self.deadline.borrow_mut().publish( deadline );
+        self.deadline.borrow_mut().publish(deadline);
     }
 
     type RepublishFuture<'m> = impl Future<Output = ()> + 'm where Self: 'm;
 
     fn republish<'m>(&'m self, message: OutboundPublishMessage) -> Self::RepublishFuture<'m> {
-        self.outbound.publish.send( message )
+        self.outbound.publish.send(message)
     }
 }
 

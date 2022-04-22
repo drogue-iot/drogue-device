@@ -1,8 +1,8 @@
 use crate::drivers::ble::mesh::address::Address;
+use crate::drivers::ble::mesh::driver::pipeline::mesh::NetworkRetransmitDetails;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::LowerContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::network_message_cache::NetworkMessageCache;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::driver::pipeline::mesh::NetworkRetransmitDetails;
 use crate::drivers::ble::mesh::pdu::network::CleartextNetworkPDU;
 
 pub trait RelayContext: LowerContext {
@@ -29,7 +29,7 @@ impl Relay {
         pdu: &CleartextNetworkPDU,
     ) -> Result<Option<CleartextNetworkPDU>, DeviceError> {
         // if we are the src, drop.
-        if ! ctx.is_relay_enabled() {
+        if !ctx.is_relay_enabled() {
             return Ok(None);
         }
         if ctx.is_local_unicast(&Address::Unicast(pdu.src)) {

@@ -1,12 +1,12 @@
-use core::marker::PhantomData;
-use embassy::channel::{Channel, Sender};
 use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::driver::node::NodeMutex;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 use crate::drivers::ble::mesh::model::ModelIdentifier;
 use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload};
+use core::marker::PhantomData;
+use embassy::channel::{Channel, Sender};
 
-use embassy::util::{Either, select};
+use embassy::util::{select, Either};
 
 const MAX_MESSAGE: usize = 3;
 
@@ -41,7 +41,7 @@ pub struct OutboundPublishMessage {
 
 impl OutboundPublishMessage {
     pub fn model_key(&self) -> ModelKey {
-        ModelKey::new( self.element_address, self.model_identifier )
+        ModelKey::new(self.element_address, self.model_identifier)
     }
 }
 
@@ -72,7 +72,6 @@ impl<'a> OutboundPublishChannel<'a> {
 }
 // --
 
-
 pub struct Outbound<'a> {
     pub(crate) access: OutboundAccessChannel,
     pub(crate) publish: OutboundPublishChannel<'a>,
@@ -93,19 +92,13 @@ pub enum OutboundEvent {
 }
 
 impl<'a> Outbound<'a> {
-
     pub async fn next(&self) -> OutboundEvent {
         let access_fut = self.access.next();
         let publish_fut = self.publish.next();
 
-        match select( access_fut, publish_fut ).await {
-            Either::First(access) => {
-                OutboundEvent::Access(access)
-            }
-            Either::Second(publish) => {
-                OutboundEvent::Publish(publish)
-            }
+        match select(access_fut, publish_fut).await {
+            Either::First(access) => OutboundEvent::Access(access),
+            Either::Second(publish) => OutboundEvent::Publish(publish),
         }
     }
-
 }

@@ -1,3 +1,4 @@
+use crate::drivers::ble::mesh::driver::node::deadline::Expiration;
 use crate::drivers::ble::mesh::driver::node::State;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::{
     NetworkRetransmitDetails, PublishRetransmitDetails,
@@ -13,14 +14,13 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::{
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::{
     ModelKey, Transmit,
 };
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::{Upper, UpperContext};
 use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use futures::{join, pin_mut};
-use crate::drivers::ble::mesh::driver::node::deadline::Expiration;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
 
 pub mod access;
 pub mod lower;
@@ -113,11 +113,7 @@ impl ProvisionedPipeline {
                     for message in message.iter() {
                         if let Some(message) = self.authentication.process_outbound(ctx, message)? {
                             self.transmit
-                                .process_outbound(
-                                    ctx,
-                                    message,
-                                    &network_retransmit,
-                                )
+                                .process_outbound(ctx, message, &network_retransmit)
                                 .await?;
                         }
                     }
@@ -138,24 +134,20 @@ impl ProvisionedPipeline {
         }
     }
 
-    pub async fn retransmit<C: PipelineContext>(&mut self, ctx: &C, expiration: Expiration) -> Result<(), DeviceError> {
+    pub async fn retransmit<C: PipelineContext>(
+        &mut self,
+        ctx: &C,
+        expiration: Expiration,
+    ) -> Result<(), DeviceError> {
         match expiration {
-            Expiration::Network => {
-                self.transmit.retransmit(ctx).await
-            }
-            Expiration::Publish => {
-                self.upper.retransmit(ctx).await
-            }
+            Expiration::Network => self.transmit.retransmit(ctx).await,
+            Expiration::Publish => self.upper.retransmit(ctx).await,
             Expiration::Ack => {
                 if let Some(message) = self.lower.retransmit(ctx)? {
                     for message in message.iter() {
                         if let Some(message) = self.authentication.process_outbound(ctx, message)? {
                             self.transmit
-                                .process_outbound(
-                                    ctx,
-                                    message,
-                                    &ctx.network_retransmit(),
-                                )
+                                .process_outbound(ctx, message, &ctx.network_retransmit())
                                 .await?;
                         }
                     }

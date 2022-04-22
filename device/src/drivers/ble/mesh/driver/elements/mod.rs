@@ -11,6 +11,7 @@ mod relay;
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::config::Configuration;
+use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::{
     ConfigurationMessage, ConfigurationServer,
@@ -25,7 +26,6 @@ use core::marker::PhantomData;
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy::channel::channel::Sender as ChannelSender;
 use heapless::Vec;
-use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
 
 #[derive(Clone)]
 pub struct AppElementsContext<'a> {
@@ -246,7 +246,6 @@ impl ElementZero {
                 }
                 ConfigurationMessage::Relay(message) => {
                     self::relay::dispatch(ctx, access, message).await?;
-
                 }
             }
             Ok(true)
