@@ -348,7 +348,7 @@ impl Lower {
         &mut self,
         ctx: &C,
         pdu: UpperPDU,
-    ) -> Result<Option<(u16, CleartextNetworkPDUSegments)>, DeviceError> {
+    ) -> Result<Option<CleartextNetworkPDUSegments>, DeviceError> {
         match pdu {
             UpperPDU::Control(_control) => Ok(None),
             UpperPDU::Access(access) => {
@@ -438,13 +438,12 @@ impl Lower {
                     }
                     self.outbound_segmentation
                         .register(seq_zero as u16, ttl, segments.clone())?;
-                    Ok(Some((seq_zero as u16, segments)))
+                    Ok(Some(segments))
                 } else {
                     let payload =
                         Vec::from_slice(&payload).map_err(|_| DeviceError::InsufficientBuffer)?;
                     // can ship unsegmented
-                    Ok(Some((
-                        seq_zero as u16,
+                    Ok(Some(
                         CleartextNetworkPDUSegments::new(CleartextNetworkPDU {
                             network_key: access.network_key,
                             ivi: access.ivi,
@@ -459,7 +458,7 @@ impl Lower {
                                 message: LowerAccessMessage::Unsegmented(payload),
                             }),
                         }),
-                    )))
+                    ))
                 }
             }
         }

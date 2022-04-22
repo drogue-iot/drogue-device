@@ -13,7 +13,6 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessCont
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::LowerContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::RelayContext;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::UpperContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::ProvisionedContext;
@@ -33,7 +32,7 @@ use cmac::crypto_mac::Output;
 use cmac::Cmac;
 use core::cell::Ref;
 use core::future::Future;
-use embassy::time::{Duration, Instant};
+use embassy::time::Instant;
 use heapless::Vec;
 use p256::PublicKey;
 use rand_core::{CryptoRng, RngCore};

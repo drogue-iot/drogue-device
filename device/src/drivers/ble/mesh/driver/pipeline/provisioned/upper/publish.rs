@@ -1,6 +1,4 @@
-use crate::drivers::ble::mesh::driver::pipeline::mesh::{
-    NetworkRetransmitDetails, PublishRetransmitDetails,
-};
+use crate::drivers::ble::mesh::driver::pipeline::mesh::PublishRetransmitDetails;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use embassy::time::Instant;

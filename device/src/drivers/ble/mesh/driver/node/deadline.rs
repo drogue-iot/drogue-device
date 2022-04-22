@@ -1,7 +1,4 @@
-use core::future::Future;
-use core::pin::Pin;
-use core::task::{Context, Poll};
-use embassy::time::{Duration, Instant, Timer};
+use embassy::time::{Instant, Timer};
 use futures::future::pending;
 
 #[derive(Copy, Clone)]

@@ -3,7 +3,6 @@ use crate::drivers::ble::mesh::pdu::access::Opcode;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
-use embassy::time::Duration;
 use heapless::Vec;
 use serde::{Deserialize, Serialize};
 

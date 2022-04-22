@@ -1,11 +1,5 @@
-use crate::drivers::ble::mesh::pdu::network::{NetworkPDU, ObfuscatedAndEncryptedNetworkPDU};
-use core::future::Future;
-use core::pin::Pin;
-use embassy::blocking_mutex::raw::ThreadModeRawMutex;
-use embassy::channel::Channel;
-use embassy::time::{Duration, Instant, Timer};
-use futures::future::{select, Either};
-use futures::{pin_mut, FutureExt};
+use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
+use embassy::time::{Duration, Instant};
 
 use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::{MeshContext, NetworkRetransmitDetails};
@@ -89,7 +83,7 @@ impl<const N: usize> Transmit<N> {
         // At least transmit once on the network
         ctx.transmit_mesh_pdu(&pdu).await?;
 
-        /// then look for a place to hang onto it for retransmits
+        // then look for a place to hang onto it for retransmits
         if let Some(slot) = self.items.iter_mut().find(|e| matches!(e, None)) {
             slot.replace(Item {
                 pdu,

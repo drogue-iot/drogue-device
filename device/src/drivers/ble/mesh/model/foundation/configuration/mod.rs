@@ -26,7 +26,7 @@ use crate::drivers::ble::mesh::model::foundation::configuration::node_reset::{
     NodeResetMessage, CONFIG_NODE_RESET,
 };
 use crate::drivers::ble::mesh::model::foundation::configuration::relay::{
-    RelayMessage, CONFIG_RELAY_GET, CONFIG_RELAY_SET, CONFIG_RELAY_STATUS,
+    RelayMessage, CONFIG_RELAY_GET, CONFIG_RELAY_SET
 };
 use crate::drivers::ble::mesh::model::{Message, Model, ModelIdentifier};
 use crate::drivers::ble::mesh::pdu::access::Opcode;

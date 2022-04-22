@@ -3,29 +3,15 @@ use crate::drivers::ble::mesh::driver::node::State;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::{
     Mesh, MeshData, NetworkRetransmitDetails, PublishRetransmitDetails,
 };
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::Lower;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::Authentication;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::Relay;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::Upper;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::{
     ProvisionedContext, ProvisionedPipeline,
 };
-use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::{
-    Provisionable, UnprovisionedContext,
-};
-use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisioning_bearer::{
-    BearerMessage, ProvisioningBearer,
-};
+use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::UnprovisionedContext;
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::UnprovisionedPipeline;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::generic_provisioning::Reason;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
-use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
-use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
-use ccm::aead::generic_array::typenum::Exp;
-use futures::{join, pin_mut};
 
 pub mod mesh;
 pub mod provisioned;
@@ -93,7 +79,7 @@ impl PipelineInner {
         match self {
             PipelineInner::Unconfigured => Err(DeviceError::PipelineNotConfigured),
             PipelineInner::Unprovisioned(inner) => inner.try_retransmit(ctx).await,
-            PipelineInner::Provisioned(inner) => Ok(()),
+            PipelineInner::Provisioned(_inner) => Ok(()),
         }
     }
 

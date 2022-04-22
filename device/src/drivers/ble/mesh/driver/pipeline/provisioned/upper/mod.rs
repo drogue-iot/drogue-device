@@ -4,9 +4,7 @@ use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
 use embassy::time::Instant;
 
 use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
-use crate::drivers::ble::mesh::driver::pipeline::mesh::{
-    NetworkRetransmitDetails, PublishRetransmitDetails,
-};
+use crate::drivers::ble::mesh::driver::pipeline::mesh::PublishRetransmitDetails;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::publish::Publish;
 use core::future::Future;

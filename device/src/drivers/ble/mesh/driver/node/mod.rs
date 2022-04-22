@@ -1,4 +1,3 @@
-use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::composition::ElementsHandler;
 use crate::drivers::ble::mesh::config::configuration_manager::ConfigurationManager;
 use crate::drivers::ble::mesh::config::network::NetworkKeyHandle;
@@ -8,22 +7,19 @@ use crate::drivers::ble::mesh::driver::node::outbound::{
     Outbound, OutboundEvent, OutboundPublishMessage,
 };
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
-use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
 use crate::drivers::ble::mesh::driver::DeviceError;
-use crate::drivers::ble::mesh::model::ModelIdentifier;
-use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload};
+use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::vault::{StorageVault, Vault};
 use crate::drivers::ble::mesh::MESH_BEACON;
 use core::cell::{Cell, RefCell};
 use core::future::Future;
-use core::marker::PhantomData;
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
-use embassy::channel::{Channel, DynamicReceiver as ChannelReceiver, Sender as ChannelSender};
+use embassy::channel::DynamicReceiver as ChannelReceiver;
 use embassy::time::{Duration, Ticker};
-use embassy::util::{select3, select_all, Either3};
+use embassy::util::{select3, Either3};
 use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
 use heapless::Vec;
