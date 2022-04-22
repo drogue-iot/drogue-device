@@ -86,7 +86,7 @@ impl PipelineInner {
         match self {
             PipelineInner::Unconfigured => Err(DeviceError::PipelineNotConfigured),
             PipelineInner::Unprovisioned(inner) => inner.try_retransmit(ctx).await,
-            PipelineInner::Provisioned(inner) => inner.try_retransmit(ctx).await,
+            PipelineInner::Provisioned(inner) => Ok(()),
         }
     }
 

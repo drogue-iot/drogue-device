@@ -155,20 +155,6 @@ where
         }
     }
 
-    type EnqueueTransmitFuture<'m> = impl Future<Output = Result<(), DeviceError>>
-    where
-    Self: 'm;
-
-    fn enqueue_transmit<'m>(
-        &'m self,
-        pdu: &'m ObfuscatedAndEncryptedNetworkPDU,
-        retransmit: NetworkRetransmitDetails
-    ) -> Self::EnqueueTransmitFuture<'m> {
-        async move {
-            Ok(())
-        }
-    }
-
     type TransmitMeshFuture<'m> = impl Future<Output = Result<(), DeviceError>>
     where
         Self: 'm;

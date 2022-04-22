@@ -79,17 +79,6 @@ pub trait MeshContext {
         pdu: &'m ObfuscatedAndEncryptedNetworkPDU,
     ) -> Self::TransmitMeshFuture<'m>;
 
-    type EnqueueTransmitFuture<'m>: Future<Output = Result<(), DeviceError>>
-    where
-        Self: 'm;
-
-    /// Actually transmit the PDU onto the wire.
-    fn enqueue_transmit<'m>(
-        &'m self,
-        pdu: &'m ObfuscatedAndEncryptedNetworkPDU,
-        retransmit: NetworkRetransmitDetails,
-    ) -> Self::EnqueueTransmitFuture<'m>;
-
     fn primary_unicast_address(&self) -> Result<UnicastAddress, DeviceError>;
 
     fn is_local_unicast(&self, addr: &Address) -> bool;

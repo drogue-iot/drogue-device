@@ -437,7 +437,7 @@ impl Lower {
                         })?;
                     }
                     self.outbound_segmentation
-                        .register(seq_zero as u16, segments.clone())?;
+                        .register(seq_zero as u16, ttl, segments.clone())?;
                     Ok(Some(( seq_zero as u16, segments)))
                 } else {
                     let payload =
@@ -464,10 +464,11 @@ impl Lower {
         }
     }
 
-    pub fn process_retransmits(
+    pub fn retransmit<C: LowerContext>(
         &mut self,
+        ctx: &C,
     ) -> Result<Option<CleartextNetworkPDUSegments<64>>, DeviceError> {
-        self.outbound_segmentation.process_retransmits()
+        self.outbound_segmentation.retransmit(ctx)
     }
 }
 

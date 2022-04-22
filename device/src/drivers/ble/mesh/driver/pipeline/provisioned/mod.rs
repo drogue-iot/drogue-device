@@ -11,7 +11,7 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::{
     Relay, RelayContext,
 };
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::{
-    Correlation, ModelKey, Transmit,
+    ModelKey, Transmit,
 };
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::{Upper, UpperContext};
 use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
@@ -80,7 +80,7 @@ impl ProvisionedPipeline {
                     //ctx.transmit_mesh_pdu(&outbound).await.ok();
                     //ctx.enqueue_transmit(&outbound, ctx.relay_retransmit() ).await;
                     self.transmit
-                        .process_outbound(ctx, outbound, None, &ctx.relay_retransmit());
+                        .process_outbound(ctx, outbound, &ctx.relay_retransmit());
                 }
             }
         }
@@ -116,7 +116,6 @@ impl ProvisionedPipeline {
                                 .process_outbound(
                                     ctx,
                                     message,
-                                    Correlation::new(seq_zero, publish.map(|inner| inner.0)),
                                     &network_retransmit,
                                 )
                                 .await?;
@@ -139,17 +138,6 @@ impl ProvisionedPipeline {
         }
     }
 
-    pub async fn try_retransmit<C: PipelineContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
-        if let Some(message) = self.lower.process_retransmits()? {
-            for message in message.iter() {
-                if let Some(message) = self.authentication.process_outbound(ctx, message)? {
-                    ctx.transmit_mesh_pdu(&message).await?;
-                }
-            }
-        }
-        Ok(())
-    }
-
     pub async fn retransmit<C: PipelineContext>(&mut self, ctx: &C, expiration: Expiration) -> Result<(), DeviceError> {
         match expiration {
             Expiration::Network => {
@@ -159,6 +147,19 @@ impl ProvisionedPipeline {
                 self.upper.retransmit(ctx).await
             }
             Expiration::Ack => {
+                if let Some(message) = self.lower.retransmit(ctx)? {
+                    for message in message.iter() {
+                        if let Some(message) = self.authentication.process_outbound(ctx, message)? {
+                            self.transmit
+                                .process_outbound(
+                                    ctx,
+                                    message,
+                                    &ctx.network_retransmit(),
+                                )
+                                .await?;
+                        }
+                    }
+                }
                 Ok(())
             }
         }

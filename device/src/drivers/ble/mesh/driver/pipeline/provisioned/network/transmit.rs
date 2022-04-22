@@ -31,30 +31,11 @@ impl ModelKey {
     }
 }
 
-#[derive(Copy, Clone)]
-pub(crate) struct Correlation {
-    model_key: ModelKey,
-    seq_zero: u16,
-}
-
-impl Correlation {
-    pub fn new(seq_zero: u16, model_key: Option<ModelKey>) -> Option<Self> {
-        match model_key {
-            None => None,
-            Some(model_key) => Some(Correlation {
-                seq_zero,
-                model_key,
-            }),
-        }
-    }
-}
-
 pub(crate) struct Item {
     pdu: ObfuscatedAndEncryptedNetworkPDU,
     count: u8,
     interval: Duration,
     last: Option<Instant>,
-    correlation: Option<Correlation>,
 }
 
 impl Item {
@@ -90,10 +71,6 @@ impl<const N: usize> Default for Transmit<N> {
 /// The network transmit queue will retransmit, based upon configuration,
 /// network PDUs, unmodified. The *same* sequence number will be used
 /// for each retransmit.
-///
-/// Correlation is provided to allow for "old" publish messages to be purged
-/// in the case of a new publish arriving while a previous value is still being
-/// transmitted/retransmitted.
 impl<const N: usize> Transmit<N> {
     pub(crate) fn new() -> Self {
         Self {
@@ -107,7 +84,6 @@ impl<const N: usize> Transmit<N> {
         &mut self,
         ctx: &C,
         pdu: ObfuscatedAndEncryptedNetworkPDU,
-        correlation: Option<Correlation>,
         network_retransmit: &NetworkRetransmitDetails,
     ) -> Result<(), DeviceError> {
         // At least transmit once on the network
@@ -124,28 +100,8 @@ impl<const N: usize> Transmit<N> {
                 count: network_retransmit.count,
                 last: None,
                 interval: network_retransmit.interval,
-                correlation,
             });
         } /* else find one to purge? */
-
-        // remove any previous correlations
-        if let Some(new_correlation) = &correlation {
-            self.items
-                .iter_mut()
-                .filter(|e| {
-                    if let Some(inner) = e {
-                        if let Some(correlation) = &inner.correlation {
-                            if correlation.model_key == new_correlation.model_key {
-                                return correlation.seq_zero != new_correlation.seq_zero;
-                            }
-                        }
-                    }
-                    return false;
-                })
-                .for_each(|e| {
-                    e.take();
-                });
-        }
 
         Ok(())
     }
