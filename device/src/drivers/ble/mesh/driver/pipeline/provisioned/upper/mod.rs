@@ -7,11 +7,19 @@ use heapless::Vec;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::{NetworkRetransmitDetails, PublishRetransmitDetails};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::publish::Publish;
+use core::future::Future;
+use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
 
 pub mod publish;
 
 pub trait UpperContext {
     fn publish_deadline(&self, deadline: Option<Instant>);
+
+    type RepublishFuture<'m>: Future<Output = ()> + 'm
+    where
+    Self: 'm;
+
+    fn republish<'m>(&'m self, message: OutboundPublishMessage) -> Self::RepublishFuture<'m>;
 }
 
 pub struct Upper {
@@ -66,5 +74,10 @@ impl Upper {
             dst: message.dst,
             payload,
         })))
+    }
+
+    pub async fn retransmit<C:UpperContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
+        self.publish.retransmit(ctx).await
+
     }
 }

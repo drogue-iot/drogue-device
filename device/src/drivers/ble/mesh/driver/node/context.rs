@@ -33,7 +33,9 @@ use embassy::time::{Duration, Instant};
 use heapless::Vec;
 use p256::PublicKey;
 use rand_core::{CryptoRng, RngCore};
+use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 use crate::drivers::ble::mesh::model::foundation::configuration::relay::Relay;
 
 // ------------------------------------------------------------------------
@@ -392,6 +394,12 @@ where
 {
     fn publish_deadline(&self, deadline: Option<Instant>) {
         self.deadline.borrow_mut().publish( deadline );
+    }
+
+    type RepublishFuture<'m> = impl Future<Output = ()> + 'm where Self: 'm;
+
+    fn republish<'m>(&'m self, message: OutboundPublishMessage) -> Self::RepublishFuture<'m> {
+        self.outbound.publish.send( message )
     }
 }
 

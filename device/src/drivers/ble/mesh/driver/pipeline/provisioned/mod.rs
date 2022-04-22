@@ -20,6 +20,7 @@ use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use futures::{join, pin_mut};
 use crate::drivers::ble::mesh::driver::node::deadline::Expiration;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
 
 pub mod access;
 pub mod lower;
@@ -27,7 +28,7 @@ pub mod network;
 pub mod upper;
 
 pub trait ProvisionedContext:
-    AuthenticationContext + RelayContext + LowerContext + UpperContext + AccessContext
+    AuthenticationContext + RelayContext + LowerContext + UpperContext + AccessContext + NetworkContext
 {
 }
 
@@ -155,7 +156,7 @@ impl ProvisionedPipeline {
                 self.transmit.retransmit(ctx).await
             }
             Expiration::Publish => {
-                Ok(())
+                self.upper.retransmit(ctx).await
             }
             Expiration::Ack => {
                 Ok(())

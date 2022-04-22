@@ -32,6 +32,7 @@ impl OutboundAccessChannel {
 
 // --
 
+#[derive(Clone)]
 pub struct OutboundPublishMessage {
     pub(crate) element_address: UnicastAddress,
     pub(crate) model_identifier: ModelIdentifier,
@@ -57,7 +58,7 @@ impl<'a> OutboundPublishChannel<'a> {
         }
     }
 
-    async fn send(&self, message: OutboundPublishMessage) {
+    pub(crate) async fn send(&self, message: OutboundPublishMessage) {
         self.channel.send(message).await;
     }
 

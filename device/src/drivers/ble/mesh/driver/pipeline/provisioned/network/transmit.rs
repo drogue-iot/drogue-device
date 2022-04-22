@@ -1,5 +1,4 @@
 use crate::drivers::ble::mesh::pdu::network::{NetworkPDU, ObfuscatedAndEncryptedNetworkPDU};
-use core::cell::RefCell;
 use core::future::Future;
 use core::pin::Pin;
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
@@ -13,6 +12,7 @@ use crate::drivers::ble::mesh::driver::pipeline::mesh::{MeshContext, NetworkRetr
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::ModelIdentifier;
 use heapless::Vec;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
 
 #[derive(Copy, Clone, PartialEq)]
 pub struct ModelKey(UnicastAddress, ModelIdentifier);
@@ -20,6 +20,14 @@ pub struct ModelKey(UnicastAddress, ModelIdentifier);
 impl ModelKey {
     pub fn new(addr: UnicastAddress, model_id: ModelIdentifier) -> Self {
         Self(addr, model_id)
+    }
+
+    pub fn unicast_address(&self) -> UnicastAddress {
+        self.0
+    }
+
+    pub fn model_identifier(&self) -> ModelIdentifier {
+        self.1
     }
 }
 
@@ -68,7 +76,7 @@ impl Item {
 }
 
 pub(crate) struct Transmit<const N: usize = 15> {
-    items: RefCell<Vec<Option<Item>, N>>,
+    items: Vec<Option<Item>, N>,
     interval: Duration,
     count: u8,
 }
@@ -89,14 +97,14 @@ impl<const N: usize> Default for Transmit<N> {
 impl<const N: usize> Transmit<N> {
     pub(crate) fn new() -> Self {
         Self {
-            items: RefCell::new(Default::default()),
+            items: Default::default(),
             interval: Duration::from_millis(20),
             count: 2,
         }
     }
 
     pub(crate) async fn process_outbound<C: MeshContext>(
-        &self,
+        &mut self,
         ctx: &C,
         pdu: ObfuscatedAndEncryptedNetworkPDU,
         correlation: Option<Correlation>,
@@ -108,7 +116,6 @@ impl<const N: usize> Transmit<N> {
         /// then look for a place to hang onto it for retransmits
         if let Some(slot) = self
             .items
-            .borrow_mut()
             .iter_mut()
             .find(|e| matches!(e, None))
         {
@@ -124,7 +131,6 @@ impl<const N: usize> Transmit<N> {
         // remove any previous correlations
         if let Some(new_correlation) = &correlation {
             self.items
-                .borrow_mut()
                 .iter_mut()
                 .filter(|e| {
                     if let Some(inner) = e {
@@ -144,10 +150,10 @@ impl<const N: usize> Transmit<N> {
         Ok(())
     }
 
-    fn next_deadline(&self, now: Instant) -> Option<Duration> {
+    fn next_deadline(&self, now: Instant) -> Option<Instant> {
         let mut next_deadline = None;
 
-        for item in self.items.borrow().iter() {
+        for item in self.items.iter() {
             match (next_deadline, item) {
                 (Some(next), Some(item)) => {
                     let item_next_deadline = item.next_deadline(now);
@@ -165,19 +171,18 @@ impl<const N: usize> Transmit<N> {
             }
         }
 
-        if let Some(next_deadline) = next_deadline {
-            Some(next_deadline.duration_since(now))
-        } else {
-            None
-        }
+        next_deadline
     }
 
-    pub(crate) async fn retransmit<C: MeshContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
+    pub(crate) async fn retransmit<C: NetworkContext>(&mut self, ctx: &C) -> Result<(), DeviceError> {
+        self.transmit_untransmitted(ctx).await?;
+        self.transmit_ready(ctx).await?;
+        ctx.network_deadline(self.next_deadline(Instant::now()));
         Ok(())
     }
 
-    async fn transmit_untransmitted<C: MeshContext>(&self, ctx: &C) -> Result<bool, DeviceError> {
-        for each in self.items.borrow_mut().iter_mut().filter(|e| {
+    async fn transmit_untransmitted<C: NetworkContext>(&mut self, ctx: &C) -> Result<bool, DeviceError> {
+        for each in self.items.iter_mut().filter(|e| {
             if let Some(e) = e {
                 matches!(e.last, None)
             } else {
@@ -196,9 +201,9 @@ impl<const N: usize> Transmit<N> {
         Ok(true)
     }
 
-    async fn transmit_ready<C: MeshContext>(&self, ctx: &C) -> Result<bool, DeviceError> {
+    async fn transmit_ready<C: NetworkContext>(&mut self, ctx: &C) -> Result<bool, DeviceError> {
         let now = Instant::now();
-        if let Some(item) = self.items.borrow_mut().iter_mut().find(|e| {
+        if let Some(item) = self.items.iter_mut().find(|e| {
             if let Some(e) = e {
                 e.is_ready(now)
             } else {
