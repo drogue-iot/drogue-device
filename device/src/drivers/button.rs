@@ -32,7 +32,7 @@ impl Active for ActiveLow {
     }
 }
 
-pub struct Button<P, ACTIVE = ActiveHigh>
+pub struct Button<P, ACTIVE = ActiveLow>
 where
     P: Wait + InputPin + 'static,
     ACTIVE: Active,
