@@ -9,7 +9,8 @@
 *** xref:examples/nrf52/microbit/dfu/README.adoc[Microbit Bootloader + DFU over BLE]
 *** xref:examples/nrf52/nrf52840-dk/ble-mesh/README.adoc[nrf52840-dk BLE Mesh example]
 ** Cloud
-*** xref:examples/nrf52/microbit/esp8266/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter]
+*** xref:examples/nrf52/microbit/esp8266/http/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter + HTTP]
+*** xref:examples/nrf52/microbit/esp8266/mqtt/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter + MQTT]
 *** xref:examples/std/cloud/README.adoc[Example sending telemetry data from Drogue Device to Drogue Cloud]
 *** xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter]
 *** xref:examples/stm32l4/iot01a-wifi/README.adoc[STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi]
@@ -28,6 +29,7 @@
 ** Uart
 *** xref:examples/nrf52/microbit/uart/README.adoc[BBC micro:bit v2 uart and matrix display]
 ** Wifi
-*** xref:examples/nrf52/microbit/esp8266/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter]
+*** xref:examples/nrf52/microbit/esp8266/http/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter + HTTP]
+*** xref:examples/nrf52/microbit/esp8266/mqtt/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter + MQTT]
 *** xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter]
 *** xref:examples/stm32l4/iot01a-wifi/README.adoc[STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi]

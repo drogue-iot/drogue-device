@@ -332,4 +332,68 @@ mod tls {
             }
         }
     }
+
+    #[cfg(feature = "mqtt")]
+    pub use mqtt::*;
+
+    #[cfg(feature = "mqtt")]
+    mod mqtt {
+        use super::NetworkError;
+        use super::TlsNetworkConnection;
+        use crate::network::connection::NetworkConnection as DNetworkConnection;
+        use crate::traits::tcp::*;
+        use core::future::Future;
+        use drogue_tls::TlsCipherSuite;
+        use rust_mqtt::network::NetworkConnection;
+        use rust_mqtt::packet::v5::reason_codes::ReasonCode;
+
+        impl<'a, A, CipherSuite> NetworkConnection for TlsNetworkConnection<'a, A, CipherSuite>
+        where
+            A: TcpStack + Clone + 'static,
+            CipherSuite: TlsCipherSuite + 'a,
+        {
+            type SendFuture<'m>
+            = impl Future<Output=Result<(), ReasonCode>> + 'm
+            where
+                'a: 'm,
+                A: 'm,
+                CipherSuite: 'm;
+            fn send<'m>(&'m mut self, buf: &'m [u8]) -> Self::SendFuture<'m> {
+                async move {
+                    self.connection
+                        .write(buf)
+                        .await
+                        .map_err(|_e| ReasonCode::NetworkError)?;
+
+                    Ok(())
+                }
+            }
+
+            type ReceiveFuture<'m> = impl Future<Output=Result<usize, ReasonCode>> + 'm
+            where
+                'a: 'm,
+                A: 'm,
+                CipherSuite: 'm;
+            fn receive<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReceiveFuture<'m> {
+                async move {
+                    self.connection
+                        .read(buf)
+                        .await
+                        .map_err(|_e| ReasonCode::NetworkError)
+                }
+            }
+
+            type CloseFuture<'m> = impl Future<Output = Result<(), ReasonCode>>;
+            fn close<'m>(self) -> Self::CloseFuture<'m> {
+                async move {
+                    let result = match self.connection.close().await {
+                        Ok(socket) => DNetworkConnection::close(socket).await,
+                        Err(e) => Err(NetworkError::Tls(e)),
+                    };
+                    unsafe { &*self.buffer }.free();
+                    result.map_err(|_e| ReasonCode::NetworkError)
+                }
+            }
+        }
+    }
 }

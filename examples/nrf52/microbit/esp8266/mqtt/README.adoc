@@ -1,0 +1,78 @@
+== microbit-esp8266 drogue-device example
+
+This example application runs out of the box on the BBC micro:bit v2.0.
+It relies on a ESP8266 breakout module flashed with AT firmware. The micro:bit communicates with the
+ESP8266 using UART.
+
+The examples uses MQTT to publish and subscribe to an Drogue cloud sandbox.
+
+=== Prerequisites
+
+==== Hardware
+
+* BBC micro:bit v2.0
+* ESP8266 module with AT-command firmware version 1.7.x or newer.
+
+===== Pin configuration
+
+Wire the ESP8266 module to the micro:bit as follows:
+
+[cols="1,1,1]
+|===
+|Microbit |ESP8266 |Function
+
+|P1 |GPIO15 |Flow control
+
+|P2 |GPIO13 |Flow control
+
+|P8 |EN |Enable
+
+|P9 |RST |Reset
+
+|P14 |RX |UART RX
+
+|P15 |TX |UART TX
+
+|V |V+ |POWER
+
+|G |GND |GROUND
+|===
+
+==== Software
+
+* To build the example, you need to have link:https://rustup.rs/[rustup].
+* To flash the example on the device, you need `probe-run` installed (`cargo install probe-run`).
+* Drogue IoT Cloud. See link:https://github.com/drogue-iot/drogue-cloud/[drogue-cloud] for how to run that, or use the link:https://sandbox.drogue.cloud/[sandbox]. Example requires enabled TLS on the cloud side.
+
+=== Configuring
+
+Credentials for your local WiFi network will come from these entries in `~/.drogue/config.toml`:
+
+....
+wifi-ssid = "..."
+wifi-password = "..."
+....
+
+=== Running
+
+The example is expected to be run against Drogue cloud sandbox. There is script `echo.sh` that will create echo from the cloud side (listening on device mqtt integration and sending same message to command endpoint).
+The script is expected to be run like this:
+....
+./src/echo.sh your-application-in-cloud
+....
+
+To run the firmware:
+
+....
+cargo run --release
+....
+
+== Troubleshooting
+
+If you’re experiencing problems, try setting the `VID:PID` values to that of your probe (you can find that from lsusb once your board is powered).
+
+....
+cargo run --release -- --probe <VID>:<PID>
+....
+
+Once flashed, the device will reset and attempt to join the WiFi network. If successful, it will print a message to the RTT log. You can then press the 'A' button on the micro:bit board to send a test message from the device.

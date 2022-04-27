@@ -1,4 +1,5 @@
-* xref:examples/nrf52/microbit/esp8266/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/esp8266[github])
+* xref:examples/nrf52/microbit/esp8266/http/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter + HTTP] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/esp8266/http[github])
+* xref:examples/nrf52/microbit/esp8266/mqtt/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter + MQTT] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/esp8266/mqtt[github])
 * xref:examples/std/cloud/README.adoc[Example sending telemetry data from Drogue Device to Drogue Cloud] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/cloud[github])
 * xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/esp8266[github])
 * xref:examples/stm32l4/iot01a-wifi/README.adoc[STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32l4/iot01a-wifi[github])
