@@ -132,7 +132,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         .await
         .expect("Error creating connection");
 
-    static RECEIVER: ActorContext<Receiver> = Ac torContext::new();
+    static RECEIVER: ActorContext<Receiver> = ActorContext::new();
     let receiver = RECEIVER.mount(
         spawner,
         Receiver::new(board.display, DrogueNetwork::new(socket_receiver)),
@@ -207,11 +207,10 @@ pub enum ReceiverMessage {
 impl Actor for Receiver {
     type Message<'m> = ReceiverMessage;
 
-    fn on_mount<'m, M>(&'m mut self, _: Address<ReceiverMessage>, mut inbox: M) -> Self::OnMountFuture<'m, M>
+    async fn on_mount<M>(&mut self, _: Address<ReceiverMessage>, mut inbox: M)
         where
             M: Inbox<Self::Message<'m>> + 'm,
     {
-        async move {
             let mut config = ClientConfig::new(MQTTv5);
             config.add_qos(QualityOfService::QoS0);
             config.max_packet_size = 60;
@@ -247,7 +246,6 @@ impl Actor for Receiver {
                 }
                 Timer::after(Duration::from_secs(2)).await;
             }
-        }
     }
 }
 
