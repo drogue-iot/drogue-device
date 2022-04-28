@@ -131,8 +131,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let mut config = ClientConfig::new(MQTTv5, CountingRng(0));
     config.add_qos(QualityOfService::QoS0);
     config.keep_alive = u16::MAX;
-    //config.add_username(USERNAME);
-    //config.add_password(PASSWORD);
     let mut recv_buffer = [0; 100];
     let mut write_buffer = [0; 100];
 
@@ -200,8 +198,6 @@ impl Actor for Receiver {
             let mut config = ClientConfig::new(MQTTv5, CountingRng(0));
             config.add_qos(QualityOfService::QoS1);
             config.keep_alive = u16::MAX;
-            //config.add_username(USERNAME);
-            //config.add_password(PASSWORD);
             let mut recv_buffer = [0; 100];
             let mut write_buffer = [0; 100];
 
