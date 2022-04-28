@@ -23,14 +23,11 @@
  */
 
 use crate::network::socket::Socket;
-use crate::Address;
 use core::future::Future;
-use core::ops::Range;
 use rust_mqtt::packet::v5::reason_codes::ReasonCode;
 
-use crate::traits::tcp;
 use crate::traits::tcp::TcpStack;
-use rust_mqtt::network::{NetworkConnection, NetworkConnectionFactory};
+use rust_mqtt::network::NetworkConnection;
 
 pub struct DrogueNetwork<A>
     where
@@ -53,19 +50,13 @@ impl<A> NetworkConnection for DrogueNetwork<A>
         A: TcpStack + Clone + 'static,
 {
     type SendFuture<'m>
-        where
-            Self: 'm,
-    = impl Future<Output = Result<(), ReasonCode>> + 'm;
+    = impl Future<Output = Result<(), ReasonCode>> + 'm where Self: 'm;
 
     type ReceiveFuture<'m>
-        where
-            Self: 'm,
-    = impl Future<Output = Result<usize, ReasonCode>> + 'm;
+    = impl Future<Output = Result<usize, ReasonCode>> + 'm where Self: 'm;
 
     type CloseFuture<'m>
-        where
-            Self: 'm,
-    = impl Future<Output = Result<(), ReasonCode>> + 'm;
+    = impl Future<Output = Result<(), ReasonCode>> + 'm where Self: 'm;
 
     fn send<'m>(&'m mut self, buffer: &'m [u8]) -> Self::SendFuture<'m> {
         async move {
@@ -82,11 +73,11 @@ impl<A> NetworkConnection for DrogueNetwork<A>
            self.socket
             .read(buffer)
             .await
-            .map_err(|_| ReasonCode::NetworkError);
+            .map_err(|_| ReasonCode::NetworkError)
         }
     }
 
-    fn close<'m>(mut self) -> Self::CloseFuture<'m> {
+    fn close<'m>(self) -> Self::CloseFuture<'m> {
         async move {
             self.socket
                 .close()
