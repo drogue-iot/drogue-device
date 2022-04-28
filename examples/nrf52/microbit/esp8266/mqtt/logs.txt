@@ -1,0 +1,3833 @@
+INFO  Started
+INFO  Initializing ESP8266
+INFO  ESP8266 initialized
+DEBUG Device initialized, setting up parameters
+TRACE --> Ok
+TRACE --> Ok
+TRACE --> Ok
+TRACE --> Ok
+TRACE writing command AT+CWJAP_CUR="Red Hat Guest","Shadowman38"
+TRACE --> WifiConnected
+DEBUG wifi connected
+TRACE --> GotIp
+DEBUG wifi got ip
+TRACE --> Ok
+TRACE writing command AT+CIPSTA_CUR?
+TRACE --> IpAddresses: IpAddresses { ip: IpAddressV4(10, 200, 153, 159), gateway: IpAddressV4(10, 200, 159, 254), netmask: IpAddressV4(255, 255, 248, 0) }
+INFO  Joined network IP address V4(IpAddressV4(10, 200, 153, 159))
+INFO  Creating sockets
+TRACE writing command AT+CIPSTART=0,"TCP","10.200.155.38",1883
+TRACE --> Connect 0
+TRACE writing command AT+CIPSTART=1,"TCP","10.200.155.38",1883
+TRACE --> Connect 1
+INFO  [PUBLISHER] Connecting to broker
+TRACE Sending connect
+TRACE writing command AT+CIPSEND=0,39
+INFO  [RECEIVER] Connecting to broker!
+TRACE Sending connect
+TRACE --> Ok
+TRACE --> ReadyForData
+TRACE --> ReceivedDataToSend 39
+TRACE --> SendOk
+TRACE Waiting for connack
+TRACE Reading lenght of packet
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=0,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=0,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=0,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=0,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=0,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=0,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=0,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=0,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=0,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=0,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=0,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=0,1
+TRACE --> DataAvailable link_id(0), len(59)
+TRACE --> DataReceived
+INFO  Received 1 bytes from adapter
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=0,1
+TRACE --> DataReceived
+INFO  Received 1 bytes from adapter
+TRACE     Received data!
+TRACE Reading packet with target len 57
+INFO  Before remaining for Ulf
+INFO  Awaiting 57 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=0,57
+TRACE --> DataReceived
+INFO  Received 57 bytes from adapter
+TRACE Received packet with len: 59
+TRACE First byte of accepted packet: 20
+INFO  [PUBLISHER] Press 'A' button to send data
+TRACE writing command AT+CIPSEND=1,39
+TRACE --> Ok
+TRACE --> ReadyForData
+TRACE --> ReceivedDataToSend 39
+TRACE --> SendOk
+TRACE Waiting for connack
+TRACE Reading lenght of packet
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> DataAvailable link_id(1), len(59)
+TRACE --> DataReceived
+INFO  Received 1 bytes from adapter
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> DataReceived
+INFO  Received 1 bytes from adapter
+TRACE     Received data!
+TRACE Reading packet with target len 57
+INFO  Before remaining for Ulf
+INFO  Awaiting 57 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,57
+TRACE --> DataReceived
+INFO  Received 57 bytes from adapter
+TRACE Received packet with len: 59
+TRACE First byte of accepted packet: 20
+INFO  [RECEIVER] Subscribing to topic!
+TRACE writing command AT+CIPSEND=1,18
+TRACE --> Ok
+TRACE --> ReadyForData
+TRACE --> ReceivedDataToSend 18
+TRACE --> SendOk
+TRACE Reading lenght of packet
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> DataAvailable link_id(1), len(6)
+TRACE --> DataReceived
+INFO  Received 1 bytes from adapter
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> DataReceived
+INFO  Received 1 bytes from adapter
+TRACE     Received data!
+TRACE Reading packet with target len 4
+INFO  Before remaining for Ulf
+INFO  Awaiting 4 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,4
+TRACE --> DataReceived
+INFO  Received 4 bytes from adapter
+TRACE Received packet with len: 6
+TRACE First byte of accepted packet: 90
+INFO  [RECEIVER] Waiting for new message
+TRACE Reading lenght of packet
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+INFO  [PUBLISHER] sending message
+TRACE Sending message
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+TRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1
+^CTRACE --> Ok
+TRACE     Received data!
+TRACE     Reading in loop!
+INFO  Before remaining for Ulf
+INFO  Awaiting 1 bytes from adapter
+TRACE writing command AT+CIPRECVDATA=1,1

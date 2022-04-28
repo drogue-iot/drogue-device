@@ -79,15 +79,10 @@ impl<A> NetworkConnection for DrogueNetwork<A>
 
     fn receive<'m>(&'m mut self, buffer: &'m mut [u8]) -> Self::ReceiveFuture<'m> {
         async move {
-            let r = self
-                .socket
-                .read(buffer)
-                .await
-                .map_err(|_| ReasonCode::NetworkError);
-            if let Ok(0) = r {
-                embassy::time::Timer::after(embassy::time::Duration::from_millis(10)).await;
-            }
-            r
+           self.socket
+            .read(buffer)
+            .await
+            .map_err(|_| ReasonCode::NetworkError);
         }
     }
 
