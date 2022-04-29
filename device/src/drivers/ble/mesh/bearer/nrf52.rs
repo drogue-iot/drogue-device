@@ -130,7 +130,7 @@ impl Bearer for SoftdeviceAdvertisingBearer {
             peripheral::NonconnectableAdvertisement::NonscannableUndirected { adv_data: message };
 
         async move {
-            info!("tx>");
+            //info!("tx>");
             if let Err(err) = peripheral::advertise(
                 self.sd,
                 adv,
@@ -142,14 +142,14 @@ impl Bearer for SoftdeviceAdvertisingBearer {
             )
             .await
             {
-                info!("tx<");
+                //info!("tx<");
                 match err {
                     AdvertiseError::Timeout => Ok(()),
                     AdvertiseError::NoFreeConn => Err(BearerError::InsufficientResources),
                     AdvertiseError::Raw(_) => Err(BearerError::TransmissionFailure),
                 }
             } else {
-                info!("tx<");
+                //info!("tx<");
                 Ok(())
             }
         }
@@ -174,9 +174,9 @@ impl Bearer for SoftdeviceAdvertisingBearer {
                     let data = event.data;
                     let data = unsafe { &*slice_from_raw_parts(data.p_data, data.len as usize) };
                     if data.len() >= 2 && (data[1] == PB_ADV || data[1] == MESH_MESSAGE) {
-                        info!("rx>");
+                        //info!("rx>");
                         handler.handle(Vec::from_slice(data).unwrap());
-                        info!("rx<");
+                        //info!("rx<");
                     }
                     None
                 })

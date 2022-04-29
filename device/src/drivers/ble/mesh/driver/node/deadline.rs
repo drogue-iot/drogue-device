@@ -26,6 +26,7 @@ impl Default for Deadline {
 
 impl Deadline {
     pub fn network(&mut self, deadline: Option<Instant>) {
+        info!("network deadline {:?}", deadline);
         match (self.network, deadline) {
             (Some(a), Some(b)) if b < a => {
                 self.network.replace(b);
@@ -43,6 +44,7 @@ impl Deadline {
     }
 
     pub fn publish(&mut self, deadline: Option<Instant>) {
+        info!("publish deadline {:?}", deadline);
         match (self.publish, deadline) {
             (Some(a), Some(b)) if b < a => {
                 self.publish.replace(b);
@@ -60,6 +62,7 @@ impl Deadline {
     }
 
     pub fn ack(&mut self, deadline: Option<Instant>) {
+        info!("ack deadline {:?}", deadline);
         match (self.ack, deadline) {
             (Some(a), Some(b)) if b < a => {
                 self.ack.replace(b);

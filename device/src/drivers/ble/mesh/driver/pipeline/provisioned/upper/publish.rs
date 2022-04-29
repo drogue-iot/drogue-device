@@ -14,19 +14,21 @@ pub struct Entry {
     last: Instant,
 }
 
-pub struct Publish {
-    cache: Vec<Option<Entry>, 15>,
+pub struct Publish<const N: usize = 15> {
+    cache: Vec<Option<Entry>, N>,
 }
 
-impl Default for Publish {
+impl<const N: usize> Default for Publish<N> {
     fn default() -> Self {
-        Self {
-            cache: Default::default(),
+        let mut cache = Vec::new();
+        for _ in 0..N {
+            cache.push(None).ok();
         }
+        Self { cache }
     }
 }
 
-impl Publish {
+impl<const N: usize> Publish<N> {
     fn next_deadline(&self) -> Option<Instant> {
         let mut deadline = None;
 

@@ -3,6 +3,7 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::{
 };
 use crate::drivers::ble::mesh::driver::DeviceError;
 use embassy::time::{Duration, Instant};
+use heapless::Vec;
 
 struct Entry {
     ttl: u8,
@@ -11,19 +12,21 @@ struct Entry {
     deadline: Instant,
 }
 
-pub struct OutboundSegmentation {
-    in_flight: [Option<Entry>; 3],
+pub struct OutboundSegmentation<const N: usize = 3> {
+    in_flight: Vec<Option<Entry>, N>,
 }
 
-impl Default for OutboundSegmentation {
+impl<const N: usize> Default for OutboundSegmentation<N> {
     fn default() -> Self {
-        Self {
-            in_flight: Default::default(),
+        let mut in_flight = Vec::new();
+        for _ in 0..N {
+            in_flight.push(None).ok();
         }
+        Self { in_flight }
     }
 }
 
-impl OutboundSegmentation {
+impl<const N: usize> OutboundSegmentation<N> {
     pub fn register(
         &mut self,
         seq_zero: u16,

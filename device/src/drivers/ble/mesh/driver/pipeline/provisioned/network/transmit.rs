@@ -2,10 +2,11 @@ use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use embassy::time::{Duration, Instant};
 
 use crate::drivers::ble::mesh::address::UnicastAddress;
-use crate::drivers::ble::mesh::driver::pipeline::mesh::{MeshContext, NetworkRetransmitDetails};
+use crate::drivers::ble::mesh::driver::pipeline::mesh::NetworkRetransmitDetails;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::ModelIdentifier;
+use defmt::Format;
 use heapless::Vec;
 
 #[derive(Copy, Clone, PartialEq)]
@@ -25,6 +26,7 @@ impl ModelKey {
     }
 }
 
+#[derive(Format)]
 pub(crate) struct Item {
     pdu: ObfuscatedAndEncryptedNetworkPDU,
     count: u8,
@@ -67,14 +69,18 @@ impl<const N: usize> Default for Transmit<N> {
 /// for each retransmit.
 impl<const N: usize> Transmit<N> {
     pub(crate) fn new() -> Self {
+        let mut items = Vec::new();
+        for _ in 0..N {
+            items.push(None).ok();
+        }
         Self {
-            items: Default::default(),
+            items,
             interval: Duration::from_millis(20),
             count: 2,
         }
     }
 
-    pub(crate) async fn process_outbound<C: MeshContext>(
+    pub(crate) async fn process_outbound<C: NetworkContext>(
         &mut self,
         ctx: &C,
         pdu: ObfuscatedAndEncryptedNetworkPDU,
@@ -84,14 +90,17 @@ impl<const N: usize> Transmit<N> {
         ctx.transmit_mesh_pdu(&pdu).await?;
 
         // then look for a place to hang onto it for retransmits
-        if let Some(slot) = self.items.iter_mut().find(|e| matches!(e, None)) {
+        if let Some(slot) = self.items.iter_mut().find(|e| matches!(*e, None)) {
             slot.replace(Item {
                 pdu,
                 count: network_retransmit.count,
                 last: None,
                 interval: network_retransmit.interval,
             });
-        } /* else find one to purge? */
+        }
+
+        let next_deadline = self.next_deadline(Instant::now());
+        ctx.network_deadline(next_deadline);
 
         Ok(())
     }
@@ -126,7 +135,8 @@ impl<const N: usize> Transmit<N> {
     ) -> Result<(), DeviceError> {
         self.transmit_untransmitted(ctx).await?;
         self.transmit_ready(ctx).await?;
-        ctx.network_deadline(self.next_deadline(Instant::now()));
+        let next_deadline = self.next_deadline(Instant::now());
+        ctx.network_deadline(next_deadline);
         Ok(())
     }
 

@@ -2,7 +2,7 @@ use crate::drivers::ble::mesh::composition::ElementsHandler;
 use crate::drivers::ble::mesh::config::configuration_manager::ConfigurationManager;
 use crate::drivers::ble::mesh::config::network::NetworkKeyHandle;
 use crate::drivers::ble::mesh::driver::elements::{AppElementsContext, ElementContext, Elements};
-use crate::drivers::ble::mesh::driver::node::deadline::{Deadline, Expiration};
+use crate::drivers::ble::mesh::driver::node::deadline::Deadline;
 use crate::drivers::ble::mesh::driver::node::outbound::{
     Outbound, OutboundEvent, OutboundPublishMessage,
 };
@@ -227,6 +227,8 @@ where
 
         let result = select3(receive_fut, outbound_fut, deadline_fut).await;
 
+        drop(deadline);
+
         match result {
             Either3::First(Ok(inbound)) => {
                 self.pipeline
@@ -248,13 +250,6 @@ where
                 }
             },
             Either3::Third(expiration) => {
-                match expiration {
-                    Expiration::Network => {}
-                    Expiration::Publish => {}
-                    Expiration::Ack => {}
-                }
-                // TODO chunk into the correct portion of the pipeline.
-                self.pipeline.borrow_mut().try_retransmit(self).await?;
                 self.pipeline
                     .borrow_mut()
                     .retransmit(self, expiration)
