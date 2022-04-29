@@ -6,17 +6,20 @@ use crate::drivers::ble::mesh::config::Configuration;
 use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::elements::{ElementContext, PrimaryElementContext};
+use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
 use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
-use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
+use crate::drivers::ble::mesh::driver::pipeline::mesh::{MeshContext, NetworkRetransmitDetails};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::LowerContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::RelayContext;
+use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::UpperContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::ProvisionedContext;
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::UnprovisionedContext;
 use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::model::foundation::configuration::relay::Relay;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
@@ -29,6 +32,7 @@ use cmac::crypto_mac::Output;
 use cmac::Cmac;
 use core::cell::Ref;
 use core::future::Future;
+use embassy::time::Instant;
 use heapless::Vec;
 use p256::PublicKey;
 use rand_core::{CryptoRng, RngCore};
@@ -130,6 +134,15 @@ where
         self.vault().uuid()
     }
 
+    fn network_retransmit(&self) -> NetworkRetransmitDetails {
+        self.configuration_manager
+            .configuration()
+            .foundation_models()
+            .configuration
+            .network_transmit()
+            .into()
+    }
+
     type TransmitAdvertisingFuture<'m> = impl Future<Output = Result<(), DeviceError>>
     where
         Self: 'm;
@@ -205,6 +218,19 @@ where
 {
 }
 
+impl<'a, E, TX, RX, S, R> NetworkContext for Node<'a, E, TX, RX, S, R>
+where
+    E: ElementsHandler<'a>,
+    R: CryptoRng + RngCore,
+    RX: Receiver,
+    S: Storage,
+    TX: Transmitter,
+{
+    fn network_deadline(&self, deadline: Option<Instant>) {
+        self.deadline.borrow_mut().network(deadline)
+    }
+}
+
 impl<'a, E, TX, RX, S, R> RelayContext for Node<'a, E, TX, RX, S, R>
 where
     E: ElementsHandler<'a>,
@@ -213,6 +239,26 @@ where
     S: Storage,
     TX: Transmitter,
 {
+    fn is_relay_enabled(&self) -> bool {
+        matches!(
+            self.configuration_manager
+                .configuration()
+                .foundation_models()
+                .configuration
+                .relay()
+                .relay,
+            Relay::SupportedEnabled
+        )
+    }
+
+    fn relay_retransmit(&self) -> NetworkRetransmitDetails {
+        self.configuration_manager
+            .configuration()
+            .foundation_models()
+            .configuration
+            .relay()
+            .into()
+    }
 }
 
 impl<'a, E, TX, RX, S, R> AuthenticationContext for Node<'a, E, TX, RX, S, R>
@@ -335,6 +381,10 @@ where
     fn is_locally_relevant(&self, dst: &Address) -> bool {
         self.is_local_unicast(dst) || self.has_any_subscription(dst)
     }
+
+    fn ack_deadline(&self, deadline: Option<Instant>) {
+        self.deadline.borrow_mut().ack(deadline);
+    }
 }
 
 impl<'a, E, TX, RX, S, R> UpperContext for Node<'a, E, TX, RX, S, R>
@@ -345,6 +395,15 @@ where
     S: Storage,
     TX: Transmitter,
 {
+    fn publish_deadline(&self, deadline: Option<Instant>) {
+        self.deadline.borrow_mut().publish(deadline);
+    }
+
+    type RepublishFuture<'m> = impl Future<Output = ()> + 'm where Self: 'm;
+
+    fn republish<'m>(&'m self, message: OutboundPublishMessage) -> Self::RepublishFuture<'m> {
+        self.outbound.publish.send(message)
+    }
 }
 
 impl<'a, E, TX, RX, S, R> AccessContext for Node<'a, E, TX, RX, S, R>
@@ -388,7 +447,7 @@ where
 
     fn transmit<'m>(&'m self, message: AccessMessage) -> Self::TransmitFuture<'m> {
         async move {
-            self.outbound.send(message).await;
+            self.outbound.access.send(message).await;
             Ok(())
         }
     }

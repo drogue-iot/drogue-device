@@ -17,6 +17,7 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentic
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::replay_cache::ReplayCache;
 use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
 use core::future::Future;
+use embassy::time::Instant;
 use heapless::Vec;
 
 pub trait LowerContext: AuthenticationContext {
@@ -67,6 +68,8 @@ pub trait LowerContext: AuthenticationContext {
 
     fn has_any_subscription(&self, dst: &Address) -> bool;
     fn is_locally_relevant(&self, dst: &Address) -> bool;
+
+    fn ack_deadline(&self, deadline: Option<Instant>);
 }
 
 pub struct Lower {
@@ -434,7 +437,7 @@ impl Lower {
                         })?;
                     }
                     self.outbound_segmentation
-                        .register(seq_zero as u16, segments.clone())?;
+                        .register(seq_zero as u16, ttl, segments.clone())?;
                     Ok(Some(segments))
                 } else {
                     let payload =
@@ -461,10 +464,11 @@ impl Lower {
         }
     }
 
-    pub fn process_retransmits(
+    pub fn retransmit<C: LowerContext>(
         &mut self,
+        ctx: &C,
     ) -> Result<Option<CleartextNetworkPDUSegments<64>>, DeviceError> {
-        self.outbound_segmentation.process_retransmits()
+        self.outbound_segmentation.retransmit(ctx)
     }
 }
 

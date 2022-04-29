@@ -9,6 +9,7 @@ use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use heapless::Vec;
 
+#[derive(Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct AccessMessage {
     pub ttl: Option<u8>,
@@ -77,6 +78,7 @@ impl AccessMessage {
     }
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct AccessPayload {
     pub opcode: Opcode,

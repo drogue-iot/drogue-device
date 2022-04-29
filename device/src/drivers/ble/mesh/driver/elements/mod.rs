@@ -6,11 +6,12 @@ mod model_app;
 mod model_publication;
 mod model_subscription;
 mod node_reset;
+mod relay;
 
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::config::Configuration;
-use crate::drivers::ble::mesh::driver::node::OutboundPublishMessage;
+use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::{
     ConfigurationMessage, ConfigurationServer,
@@ -242,6 +243,9 @@ impl ElementZero {
                 }
                 ConfigurationMessage::ModelSubscription(message) => {
                     self::model_subscription::dispatch(ctx, access, message).await?;
+                }
+                ConfigurationMessage::Relay(message) => {
+                    self::relay::dispatch(ctx, access, message).await?;
                 }
             }
             Ok(true)
