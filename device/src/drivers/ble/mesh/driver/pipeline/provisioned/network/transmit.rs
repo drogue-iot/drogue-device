@@ -6,7 +6,6 @@ use crate::drivers::ble::mesh::driver::pipeline::mesh::NetworkRetransmitDetails;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::ModelIdentifier;
-use defmt::Format;
 use heapless::Vec;
 
 #[derive(Copy, Clone, PartialEq)]
@@ -26,7 +25,6 @@ impl ModelKey {
     }
 }
 
-#[derive(Format)]
 pub(crate) struct Item {
     pdu: ObfuscatedAndEncryptedNetworkPDU,
     count: u8,
