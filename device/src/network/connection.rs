@@ -332,4 +332,60 @@ mod tls {
             }
         }
     }
+
+    #[cfg(feature = "mqtt")]
+    mod mqtt {
+        use rust_mqtt::network::{NetworkConnection, NetworkError};
+        use rust_mqtt::packet::v5::reason_codes::ReasonCode;
+        use crate::network::connection::TlsNetworkConnection;
+
+        impl<'a, A, CipherSuite> NetworkConnection for TlsNetworkConnection<'a, A, CipherSuite>
+            where
+                A: TcpStack + Clone + 'static,
+                CipherSuite: TlsCipherSuite + 'a,
+        {
+            type SendFuture<'m>
+            = impl Future<Output = Result<(), ReasonCode>> + 'm
+            where
+            'a: 'm,
+            A: 'm,
+            CipherSuite: 'm;
+            fn send<'m>(&'m mut self, buf: &'m [u8]) -> Self::SendFuture<'m> {
+                async move {
+                    self.connection
+                        .write(buf)
+                        .await
+                        .map_err(|e| ReasonCode::NetworkError)
+                }
+            }
+
+            type ReceiveFuture<'m> = impl Future<Output = Result<usize, ReasonCode>> + 'm
+            where
+            'a: 'm,
+            A: 'm,
+            CipherSuite: 'm;
+            fn receive<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReceiveFuture<'m> {
+                async move {
+                    self.connection
+                        .read(buf)
+                        .await
+                        .map_err(|e| ReasonCode::NetworkError)
+                }
+            }
+
+            type CloseFuture<'m> = impl Future<Output = Result<(), ReasonCode>> + 'm
+            where
+            Self: 'm
+
+            fn close<'m>(self) -> Self::CloseFuture<'m> {
+                async move {
+                    let result = match self.connection.close().await {
+                        Ok(socket) => NetworkConnection::close(socket).await,
+                        Err(e) => Err(ReasonCode::NetworkError),
+                    };
+                    unsafe { &*self.buffer }.free();
+                    result
+                }
+            }
+    }
 }
