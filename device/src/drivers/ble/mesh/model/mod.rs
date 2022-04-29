@@ -17,6 +17,7 @@ use crate::drivers::ble::mesh::InsufficientBuffer;
 use heapless::Vec;
 use serde::{Deserialize, Serialize};
 
+pub mod firmware;
 pub mod foundation;
 pub mod generic;
 pub mod sensor;
