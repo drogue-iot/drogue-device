@@ -217,6 +217,7 @@ mod tls {
                     if let Some(buf) = unsafe { self.pool[i].assume_init_ref() }.allocate() {
                         idx = i;
                         buffer.replace(buf);
+                        break;
                     }
                 }
                 if buffer.is_none() {
