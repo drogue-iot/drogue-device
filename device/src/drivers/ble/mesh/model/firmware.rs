@@ -4,10 +4,13 @@ use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
 
+pub struct FirmwareUpdateClient;
 pub struct FirmwareUpdateServer;
 
 const COMPANY_IDENTIFIER: CompanyIdentifier = CompanyIdentifier(0x0003);
 
+pub const FIRMWARE_UPDATE_CLIENT: ModelIdentifier =
+    ModelIdentifier::Vendor(COMPANY_IDENTIFIER, 0x11ed);
 pub const FIRMWARE_UPDATE_SERVER: ModelIdentifier =
     ModelIdentifier::Vendor(COMPANY_IDENTIFIER, 0x11ec);
 
