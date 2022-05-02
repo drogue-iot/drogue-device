@@ -60,7 +60,6 @@ type TX = UarteTx<'static, UARTE0>;
 type RX = UarteRx<'static, UARTE0>;
 type ENABLE = Output<'static, P0_09>;
 type RESET = Output<'static, P0_10>;
-bind_bsp!(Microbit, BSP);
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
