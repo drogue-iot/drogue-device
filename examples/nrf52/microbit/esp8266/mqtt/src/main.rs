@@ -113,13 +113,13 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     defmt::info!("Creating sockets");
 
-    let c1 = conn_factory.connect(HOST, ips[0], PORT.parse::<u16>().unwrap()).await.unwrap();
-    let c2 = conn_factory.connect(HOST, ips[0], PORT.parse::<u16>().unwrap()).await.unwrap();
+    let connection_pub = conn_factory.connect(HOST, ips[0], PORT.parse::<u16>().unwrap()).await.unwrap();
+    let connection_recv = conn_factory.connect(HOST, ips[0], PORT.parse::<u16>().unwrap()).await.unwrap();
 
     static RECEIVER: ActorContext<Receiver> = ActorContext::new();
     RECEIVER.mount(
         spawner,
-        Receiver::new(board.display, c2),
+        Receiver::new(board.display, connection_recv),
     );
 
 
@@ -132,7 +132,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let mut write_buffer = [0; 1000];
 
     let mut client = MqttClient::<_, 20, CountingRng>::new(
-        c1,
+        connection_pub,
         &mut write_buffer,
         1000,
         &mut recv_buffer,
@@ -150,7 +150,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         defmt::info!("[PUBLISHER] message sent");
 
     }
-    //client.disconnect().await;
 }
 
 static DNS: StaticDnsResolver<'static, 3> = StaticDnsResolver::new(&[
