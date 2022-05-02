@@ -8,7 +8,7 @@ mod rng;
 use rng::*;
 
 use defmt_rtt as _;
-use drogue_tls::{Aes128GcmSha256, TlsConnection};
+use drogue_tls::Aes128GcmSha256;
 use panic_probe as _;
 
 use drogue_device::traits::button::Button;
@@ -16,7 +16,8 @@ use drogue_device::traits::button::Button;
 use drogue_device::bsp::boards::nrf52::microbit::LedMatrix;
 use drogue_device::drivers::wifi::esp8266::*;
 use drogue_device::{
-    bsp::boards::nrf52::microbit::*, drivers::dns::*, network::clients::mqtt::*, traits::ip::*, *,
+    bsp::boards::nrf52::microbit::*, drivers::dns::*, drivers::wifi::esp8266::Esp8266Controller,
+    traits::ip::*, *,
 };
 use embassy::time::{Duration, Timer};
 use embassy_nrf::{
@@ -31,14 +32,11 @@ use embassy_nrf::{
 use drogue_device::network::connection::{
     ConnectionFactory, TlsConnectionFactory, TlsNetworkConnection,
 };
-use drogue_device::network::socket::Socket;
 use drogue_device::network::tcp::TcpStackState;
 use drogue_device::shared::Handle;
 use drogue_device::traits::dns::DnsResolver;
-use drogue_device::traits::tcp::TcpStack;
 use drogue_device::traits::wifi::{Join, WifiSupplicant};
 use rust_mqtt::client::client_config::MqttVersion::MQTTv5;
-use rust_mqtt::network::NetworkConnection;
 use rust_mqtt::utils::rng_generator::CountingRng;
 use rust_mqtt::{
     client::{client::MqttClient, client_config::ClientConfig},
@@ -96,7 +94,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         .expect("Error joining WiFi network");
 
     static NETWORK: TcpStackState<Esp8266Controller<'static, TX>> = TcpStackState::new();
-    let mut network = NETWORK.initialize(network);
+    let network = NETWORK.initialize(network);
 
     let mut conn_factory = {
         static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
@@ -216,7 +214,7 @@ impl Actor for Receiver {
         let mut client = MqttClient::<
             TlsNetworkConnection<
                 '_,
-                Handle<'_, Esp8266Conroller<'static, UarteTx<'static, UARTE0>>>,
+                Handle<'_, Esp8266Controller<'static, UarteTx<'static, UARTE0>>>,
                 Aes128GcmSha256,
             >,
             20,
@@ -232,7 +230,8 @@ impl Actor for Receiver {
         defmt::info!("[RECEIVER] Connecting to broker!");
         client.connect_to_broker().await.unwrap();
         defmt::info!("[RECEIVER] Subscribing to topic!");
-        client.subscribe_to_topic(TOPIC_S).await;
+        let _res = client.subscribe_to_topic(TOPIC_S).await;
+
         loop {
             defmt::info!("[RECEIVER] Waiting for new message");
             let msg = client.receive_message().await;

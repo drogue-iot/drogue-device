@@ -341,16 +341,9 @@ mod tls {
         use super::NetworkError;
         use super::TlsNetworkConnection;
         use crate::network::connection::NetworkConnection as DNetworkConnection;
-        use crate::network::socket::*;
-        use crate::traits::{
-            ip::{IpAddress, IpProtocol, SocketAddress},
-            tcp::*,
-        };
-        use core::cell::UnsafeCell;
+        use crate::traits::tcp::*;
         use core::future::Future;
-        use core::mem::MaybeUninit;
-        use drogue_tls::{NoClock, TlsCipherSuite, TlsConfig, TlsConnection, TlsContext, TlsError};
-        use rand_core::{CryptoRng, RngCore};
+        use drogue_tls::TlsCipherSuite;
         use rust_mqtt::network::NetworkConnection;
         use rust_mqtt::packet::v5::reason_codes::ReasonCode;
 
@@ -370,7 +363,7 @@ mod tls {
                     self.connection
                         .write(buf)
                         .await
-                        .map_err(|e| ReasonCode::NetworkError)?;
+                        .map_err(|_e| ReasonCode::NetworkError)?;
 
                     Ok(())
                 }
@@ -386,7 +379,7 @@ mod tls {
                     self.connection
                         .read(buf)
                         .await
-                        .map_err(|e| ReasonCode::NetworkError)
+                        .map_err(|_e| ReasonCode::NetworkError)
                 }
             }
 
@@ -398,7 +391,7 @@ mod tls {
                         Err(e) => Err(NetworkError::Tls(e)),
                     };
                     unsafe { &*self.buffer }.free();
-                    result.map_err(|e| ReasonCode::NetworkError)
+                    result.map_err(|_e| ReasonCode::NetworkError)
                 }
             }
         }
