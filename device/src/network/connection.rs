@@ -102,6 +102,7 @@ where
 #[cfg(feature = "tls")]
 pub use tls::*;
 
+
 #[cfg(feature = "tls")]
 mod tls {
     use super::NetworkConnection;
@@ -334,10 +335,25 @@ mod tls {
     }
 
     #[cfg(feature = "mqtt")]
+    pub use mqtt::*;
+
+    #[cfg(feature = "mqtt")]
     mod mqtt {
-        use rust_mqtt::network::{NetworkConnection, NetworkError};
-        use rust_mqtt::packet::v5::reason_codes::ReasonCode;
-        use crate::network::connection::TlsNetworkConnection;
+       use rust_mqtt::network::NetworkConnection;
+       use super::NetworkError;
+       use crate::network::socket::*;
+       use crate::traits::{
+           ip::{IpAddress, IpProtocol, SocketAddress},
+           tcp::*,
+       };
+       use core::cell::UnsafeCell;
+       use core::future::Future;
+       use core::mem::MaybeUninit;
+       use drogue_tls::{NoClock, TlsCipherSuite, TlsConfig, TlsConnection, TlsContext, TlsError};
+       use rand_core::{CryptoRng, RngCore};
+       use rust_mqtt::packet::v5::reason_codes::ReasonCode;
+       use super::TlsNetworkConnection;
+       use crate::network::connection::NetworkConnection as DNetworkConnection;
 
         impl<'a, A, CipherSuite> NetworkConnection for TlsNetworkConnection<'a, A, CipherSuite>
             where
@@ -345,25 +361,27 @@ mod tls {
                 CipherSuite: TlsCipherSuite + 'a,
         {
             type SendFuture<'m>
-            = impl Future<Output = Result<(), ReasonCode>> + 'm
+            = impl Future<Output=Result<(), ReasonCode>> + 'm
             where
-            'a: 'm,
-            A: 'm,
-            CipherSuite: 'm;
+                'a: 'm,
+                A: 'm,
+                CipherSuite: 'm;
             fn send<'m>(&'m mut self, buf: &'m [u8]) -> Self::SendFuture<'m> {
                 async move {
                     self.connection
                         .write(buf)
                         .await
-                        .map_err(|e| ReasonCode::NetworkError)
+                        .map_err(|e| ReasonCode::NetworkError)?;
+
+                    Ok(())
                 }
             }
 
-            type ReceiveFuture<'m> = impl Future<Output = Result<usize, ReasonCode>> + 'm
+            type ReceiveFuture<'m> = impl Future<Output=Result<usize, ReasonCode>> + 'm
             where
-            'a: 'm,
-            A: 'm,
-            CipherSuite: 'm;
+                'a: 'm,
+                A: 'm,
+                CipherSuite: 'm;
             fn receive<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReceiveFuture<'m> {
                 async move {
                     self.connection
@@ -373,19 +391,17 @@ mod tls {
                 }
             }
 
-            type CloseFuture<'m> = impl Future<Output = Result<(), ReasonCode>> + 'm
-            where
-            Self: 'm
-
+            type CloseFuture<'m> = impl Future<Output = Result<(), ReasonCode>>;
             fn close<'m>(self) -> Self::CloseFuture<'m> {
                 async move {
                     let result = match self.connection.close().await {
-                        Ok(socket) => NetworkConnection::close(socket).await,
-                        Err(e) => Err(ReasonCode::NetworkError),
+                        Ok(socket) => DNetworkConnection::close(socket).await,
+                        Err(e) => Err(NetworkError::Tls(e)),
                     };
                     unsafe { &*self.buffer }.free();
-                    result
+                    result.map_err(|e| ReasonCode::NetworkError)
                 }
             }
+        }
     }
 }

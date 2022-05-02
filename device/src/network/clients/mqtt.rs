@@ -56,7 +56,7 @@ impl<A> NetworkConnection for DrogueNetwork<A>
     = impl Future<Output = Result<usize, ReasonCode>> + 'm where Self: 'm;
 
     type CloseFuture<'m>
-    = impl Future<Output = Result<(), ReasonCode>> + 'm where Self: 'm;
+    = impl Future<Output = Result<(), ReasonCode>> + 'm;
 
     fn send<'m>(&'m mut self, buffer: &'m [u8]) -> Self::SendFuture<'m> {
         async move {

@@ -4,7 +4,11 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
+mod rng;
+use rng::*;
+
 use defmt_rtt as _;
+use drogue_tls::{Aes128GcmSha256, TlsConnection};
 use panic_probe as _;
 
 use drogue_device::traits::button::Button;
@@ -33,7 +37,9 @@ use rust_mqtt::{
     client::{client_config::ClientConfig, client::MqttClient},
     packet::v5::publish_packet::QualityOfService,
 };
+use rust_mqtt::network::NetworkConnection;
 use rust_mqtt::utils::rng_generator::CountingRng;
+use drogue_device::network::connection::{ConnectionFactory, TlsConnectionFactory, TlsNetworkConnection};
 use drogue_device::network::socket::Socket;
 use drogue_device::network::tcp::TcpStackState;
 use drogue_device::traits::dns::DnsResolver;
@@ -48,12 +54,12 @@ const PORT: &str = drogue::config!("port");
 const USERNAME: &str = drogue::config!("mqtt-username");
 const PASSWORD: &str = drogue::config!("mqtt-password");
 const TOPIC: &str = drogue::config!("mqtt-topic");
+const TOPIC_S: &str = drogue::config!("mqtt-command-topic");
 
 type TX = UarteTx<'static, UARTE0>;
 type RX = UarteRx<'static, UARTE0>;
 type ENABLE = Output<'static, P0_09>;
 type RESET = Output<'static, P0_10>;
-
 bind_bsp!(Microbit, BSP);
 
 #[embassy::main]
@@ -96,50 +102,41 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let mut network = NETWORK.initialize(network);
 
 
+    let mut conn_factory = {
+        static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
+        static mut TLS_BUFFER_SEC: [u8; 16384] = [0; 16384];
+        TlsConnectionFactory::<'static, _ ,Aes128GcmSha256, _, 2>::new(network.clone(), Rng::new(nrf52833_pac::Peripherals::take().unwrap().RNG), unsafe { [&mut TLS_BUFFER, &mut TLS_BUFFER_SEC] })
+    };
 
     let ips = DNS.resolve(HOST).await.expect("unable to resolve host");
 
 
     defmt::info!("Creating sockets");
-    let mut socket_publish = Socket::new(network.clone(), network.open().await.unwrap());
 
-    socket_publish
-        .connect(
-            IpProtocol::Tcp,
-            SocketAddress::new(ips[0], PORT.parse::<u16>().unwrap()),
-        )
-        .await
-        .expect("Error creating connection");
-
-    let mut socket_receiver = Socket::new(network.clone(), network.open().await.unwrap());
-
-    socket_receiver
-        .connect(
-            IpProtocol::Tcp,
-            SocketAddress::new(ips[0], PORT.parse::<u16>().unwrap()),
-        )
-        .await
-        .expect("Error creating connection");
+    let c1 = conn_factory.connect(HOST, ips[0], PORT.parse::<u16>().unwrap()).await.unwrap();
+    let c2 = conn_factory.connect(HOST, ips[0], PORT.parse::<u16>().unwrap()).await.unwrap();
 
     static RECEIVER: ActorContext<Receiver> = ActorContext::new();
     RECEIVER.mount(
         spawner,
-        Receiver::new(board.display, DrogueNetwork::new(socket_receiver)),
+        Receiver::new(board.display, c2),
     );
 
 
     let mut config = ClientConfig::new(MQTTv5, CountingRng(0));
     config.add_qos(QualityOfService::QoS0);
+    config.add_username(USERNAME);
+    config.add_password(PASSWORD);
     config.keep_alive = u16::MAX;
-    let mut recv_buffer = [0; 100];
-    let mut write_buffer = [0; 100];
+    let mut recv_buffer = [0; 1000];
+    let mut write_buffer = [0; 1000];
 
     let mut client = MqttClient::<_, 20, CountingRng>::new(
-        DrogueNetwork::new(socket_publish),
+        c1,
         &mut write_buffer,
-        100,
+        1000,
         &mut recv_buffer,
-        100,
+        1000,
         config,
     );
     defmt::info!("[PUBLISHER] Connecting to broker");
@@ -149,16 +146,21 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         defmt::info!("[PUBLISHER] Press 'A' button to send data");
         button.wait_pressed().await;
         defmt::info!("[PUBLISHER] sending message");
-        client.send_message(TOPIC, "Hello world!").await.unwrap();
+        client.send_message(TOPIC, "{'temp':42}").await.unwrap();
         defmt::info!("[PUBLISHER] message sent");
+
     }
+    //client.disconnect().await;
 }
 
-static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
+static DNS: StaticDnsResolver<'static, 3> = StaticDnsResolver::new(&[
     DnsEntry::new("localhost", IpAddress::new_v4(127, 0, 0, 1)),
     DnsEntry::new(
         "broker.emqx.io",
-        IpAddress::new_v4(54, 184, 34, 50),
+        IpAddress::new_v4(100, 69, 164, 175),
+    ),     DnsEntry::new(
+        "mqtt.sandbox.drogue.cloud",
+        IpAddress::new_v4(65, 108, 135, 161),
     )
 ]);
 
@@ -170,14 +172,14 @@ pub async fn wifi(mut modem: Esp8266Modem<'static, RX, ENABLE, RESET>) {
 
 pub struct Receiver {
     display: LedMatrix,
-    socket: Option<DrogueNetwork<Handle<'static, Esp8266Controller<'static, TX>>>>,
+    connection: Option<TlsNetworkConnection<'static, Handle<'static, Esp8266Controller<'static, UarteTx<'static, UARTE0>>>, Aes128GcmSha256>>,
 }
 
 impl Receiver {
-    pub fn new(display: LedMatrix, socket: DrogueNetwork<Handle<'static, Esp8266Controller<'static, TX>>>) -> Self {
+    pub fn new(display: LedMatrix, connection: TlsNetworkConnection<'static, Handle<'static, Esp8266Controller<'static, UarteTx<'static, UARTE0>>>, Aes128GcmSha256>) -> Self {
         Self {
             display,
-            socket: Some(socket),
+            connection: Some(connection),
         }
     }
 }
@@ -197,22 +199,24 @@ impl Actor for Receiver {
     {
             let mut config = ClientConfig::new(MQTTv5, CountingRng(0));
             config.add_qos(QualityOfService::QoS1);
+            config.add_username(USERNAME);
+            config.add_password(PASSWORD);
             config.keep_alive = u16::MAX;
-            let mut recv_buffer = [0; 100];
-            let mut write_buffer = [0; 100];
+            let mut recv_buffer = [0; 1000];
+            let mut write_buffer = [0; 1000];
 
-            let mut client = MqttClient::<DrogueNetwork<Handle<'static, Esp8266Controller<'static, TX>>>, 20, CountingRng>::new(
-                self.socket.take().unwrap(),
+            let mut client = MqttClient::<TlsNetworkConnection<'_, Handle<'_, Esp8266Controller<'static, UarteTx<'static, UARTE0>>>, Aes128GcmSha256>, 20, CountingRng>::new(
+                self.connection.take().unwrap(),
                 &mut write_buffer,
-                100,
+                1000,
                 &mut recv_buffer,
-                100,
+                1000,
                 config,
             );
             defmt::info!("[RECEIVER] Connecting to broker!");
             client.connect_to_broker().await.unwrap();
             defmt::info!("[RECEIVER] Subscribing to topic!");
-            client.subscribe_to_topic(TOPIC).await.unwrap();
+            client.subscribe_to_topic(TOPIC_S).await;
             loop {
                 defmt::info!("[RECEIVER] Waiting for new message");
                 let msg = client.receive_message().await;

@@ -859,6 +859,7 @@ dependencies = [
  "defmt",
  "defmt-rtt",
  "drogue-device",
+ "drogue-tls",
  "embassy",
  "embassy-nrf",
  "fixed",
@@ -1114,8 +1115,7 @@ checksum = "3e52c148ef37f8c375d49d5a73aa70713125b7f19095948a923f80afdeb22ec2"
 [[package]]
 name = "rust-mqtt"
 version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e50b10e1cb1e654fc7242fcca9cad61c93313787203c97cd4b883f22ac2b6c1"
+source = "git+https://github.com/obabec/rust-mqtt?branch=tls-support#06665a09ab3e9703cf91c7c4bc5e9251d9c48581"
 dependencies = [
  "defmt",
  "heapless",
