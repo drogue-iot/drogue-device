@@ -102,7 +102,6 @@ where
 #[cfg(feature = "tls")]
 pub use tls::*;
 
-
 #[cfg(feature = "tls")]
 mod tls {
     use super::NetworkConnection;
@@ -339,26 +338,26 @@ mod tls {
 
     #[cfg(feature = "mqtt")]
     mod mqtt {
-       use rust_mqtt::network::NetworkConnection;
-       use super::NetworkError;
-       use crate::network::socket::*;
-       use crate::traits::{
-           ip::{IpAddress, IpProtocol, SocketAddress},
-           tcp::*,
-       };
-       use core::cell::UnsafeCell;
-       use core::future::Future;
-       use core::mem::MaybeUninit;
-       use drogue_tls::{NoClock, TlsCipherSuite, TlsConfig, TlsConnection, TlsContext, TlsError};
-       use rand_core::{CryptoRng, RngCore};
-       use rust_mqtt::packet::v5::reason_codes::ReasonCode;
-       use super::TlsNetworkConnection;
-       use crate::network::connection::NetworkConnection as DNetworkConnection;
+        use super::NetworkError;
+        use super::TlsNetworkConnection;
+        use crate::network::connection::NetworkConnection as DNetworkConnection;
+        use crate::network::socket::*;
+        use crate::traits::{
+            ip::{IpAddress, IpProtocol, SocketAddress},
+            tcp::*,
+        };
+        use core::cell::UnsafeCell;
+        use core::future::Future;
+        use core::mem::MaybeUninit;
+        use drogue_tls::{NoClock, TlsCipherSuite, TlsConfig, TlsConnection, TlsContext, TlsError};
+        use rand_core::{CryptoRng, RngCore};
+        use rust_mqtt::network::NetworkConnection;
+        use rust_mqtt::packet::v5::reason_codes::ReasonCode;
 
         impl<'a, A, CipherSuite> NetworkConnection for TlsNetworkConnection<'a, A, CipherSuite>
-            where
-                A: TcpStack + Clone + 'static,
-                CipherSuite: TlsCipherSuite + 'a,
+        where
+            A: TcpStack + Clone + 'static,
+            CipherSuite: TlsCipherSuite + 'a,
         {
             type SendFuture<'m>
             = impl Future<Output=Result<(), ReasonCode>> + 'm

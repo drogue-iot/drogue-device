@@ -30,15 +30,15 @@ use crate::traits::tcp::TcpStack;
 use rust_mqtt::network::NetworkConnection;
 
 pub struct DrogueNetwork<A>
-    where
-        A: TcpStack + Clone + 'static,
+where
+    A: TcpStack + Clone + 'static,
 {
     socket: Socket<A>,
 }
 
 impl<A> DrogueNetwork<A>
-    where
-        A: TcpStack + Clone + 'static,
+where
+    A: TcpStack + Clone + 'static,
 {
     pub fn new(socket: Socket<A>) -> Self {
         Self { socket }
@@ -46,8 +46,8 @@ impl<A> DrogueNetwork<A>
 }
 
 impl<A> NetworkConnection for DrogueNetwork<A>
-    where
-        A: TcpStack + Clone + 'static,
+where
+    A: TcpStack + Clone + 'static,
 {
     type SendFuture<'m>
     = impl Future<Output = Result<(), ReasonCode>> + 'm where Self: 'm;
@@ -55,8 +55,7 @@ impl<A> NetworkConnection for DrogueNetwork<A>
     type ReceiveFuture<'m>
     = impl Future<Output = Result<usize, ReasonCode>> + 'm where Self: 'm;
 
-    type CloseFuture<'m>
-    = impl Future<Output = Result<(), ReasonCode>> + 'm;
+    type CloseFuture<'m> = impl Future<Output = Result<(), ReasonCode>> + 'm;
 
     fn send<'m>(&'m mut self, buffer: &'m [u8]) -> Self::SendFuture<'m> {
         async move {
@@ -70,10 +69,10 @@ impl<A> NetworkConnection for DrogueNetwork<A>
 
     fn receive<'m>(&'m mut self, buffer: &'m mut [u8]) -> Self::ReceiveFuture<'m> {
         async move {
-           self.socket
-            .read(buffer)
-            .await
-            .map_err(|_| ReasonCode::NetworkError)
+            self.socket
+                .read(buffer)
+                .await
+                .map_err(|_| ReasonCode::NetworkError)
         }
     }
 
@@ -86,4 +85,3 @@ impl<A> NetworkConnection for DrogueNetwork<A>
         }
     }
 }
-
