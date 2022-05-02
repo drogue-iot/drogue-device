@@ -4,7 +4,7 @@ This example application runs out of the box on the BBC micro:bit v2.0.
 It relies on a ESP8266 breakout module flashed with AT firmware. The micro:bit communicates with the
 ESP8266 using UART.
 
-The examples uses MQTT to publish and subscribe to an MQTT broker.
+The examples uses MQTT to publish and subscribe to an Drogue cloud sandbox.
 
 === Prerequisites
 
@@ -55,12 +55,10 @@ wifi-password = "..."
 
 === Running
 
-You can configure the IP constant to point to any MQTT broker to receive events, or you can use
-link:https://github.com/drogue-iot/drogue-cloud/[drogue cloud] locally. For simplicity, start a
-local MQTT broker like mosquitto.
-
+The example is expected to be run against Drogue cloud sandbox. There is script `echo.sh` that will create echo from the cloud side (listening on device mqtt integration and sending same message to command endpoint).
+The script is expected to be run like this:
 ....
-mosquitto
+./src/echo.sh your-application-in-cloud
 ....
 
 To run the firmware:
