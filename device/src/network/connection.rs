@@ -1,6 +1,8 @@
 use super::socket::*;
-use crate::traits::{ip::*, tcp::*};
 use core::future::Future;
+use embedded_nal_async::*;
+
+use crate::network::tcp::TcpError;
 
 /// Trait for network connections
 pub trait ConnectionFactory: Sized {
@@ -8,12 +10,7 @@ pub trait ConnectionFactory: Sized {
     type ConnectFuture<'m>: Future<Output = Result<Self::Connection, NetworkError>>
     where
         Self: 'm;
-    fn connect<'m>(
-        &'m mut self,
-        host: &'m str,
-        ip: IpAddress,
-        port: u16,
-    ) -> Self::ConnectFuture<'m>;
+    fn connect<'m>(&'m mut self, host: &'m str, remote: SocketAddr) -> Self::ConnectFuture<'m>;
 }
 
 #[derive(Debug)]
@@ -41,22 +38,21 @@ pub trait NetworkConnection {
 
 impl<A> ConnectionFactory for A
 where
-    A: TcpStack + Clone + 'static,
+    A: TcpClientStack + Clone + 'static,
 {
     type Connection = Socket<A>;
     type ConnectFuture<'m> = impl Future<Output = Result<Self::Connection, NetworkError>> + 'm where A: 'm;
 
-    fn connect<'m>(&'m mut self, _: &'m str, ip: IpAddress, port: u16) -> Self::ConnectFuture<'m> {
+    fn connect<'m>(&'m mut self, _: &'m str, remote: SocketAddr) -> Self::ConnectFuture<'m> {
         async move {
             // info!("Allocate TLS buffer");
             let mut socket = Socket::new(
                 self.clone(),
-                self.open().await.map_err(|e| NetworkError::Tcp(e))?,
+                self.socket()
+                    .await
+                    .map_err(|_| NetworkError::Tcp(TcpError::OpenError))?,
             );
-            match socket
-                .connect(IpProtocol::Tcp, SocketAddress::new(ip, port))
-                .await
-            {
+            match socket.connect(remote).await {
                 Ok(_) => {
                     trace!("Connection established");
                     Ok(socket)
@@ -73,7 +69,7 @@ where
 
 impl<A> NetworkConnection for Socket<A>
 where
-    A: TcpStack + Clone + 'static,
+    A: TcpClientStack + Clone + 'static,
 {
     type WriteFuture<'m> = impl Future<Output = Result<usize, NetworkError>> + 'm where A: 'm;
     fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
@@ -107,14 +103,12 @@ mod tls {
     use super::NetworkConnection;
     use super::NetworkError;
     use crate::network::socket::*;
-    use crate::traits::{
-        ip::{IpAddress, IpProtocol, SocketAddress},
-        tcp::*,
-    };
+    use crate::network::tcp::TcpError;
     use core::cell::UnsafeCell;
     use core::future::Future;
     use core::mem::MaybeUninit;
     use drogue_tls::{NoClock, TlsCipherSuite, TlsConfig, TlsConnection, TlsContext, TlsError};
+    use embedded_nal_async::{SocketAddr, TcpClientStack};
     use rand_core::{CryptoRng, RngCore};
 
     use atomic_polyfill::{AtomicBool, Ordering};
@@ -151,7 +145,7 @@ mod tls {
 
     pub struct TlsConnectionFactory<'a, A, CipherSuite, RNG, const N: usize>
     where
-        A: TcpStack + Clone + 'static,
+        A: TcpClientStack + Clone + 'static,
         RNG: CryptoRng + RngCore + 'a,
         CipherSuite: TlsCipherSuite + 'static,
     {
@@ -163,7 +157,7 @@ mod tls {
 
     impl<'a, A, CipherSuite, RNG, const N: usize> TlsConnectionFactory<'a, A, CipherSuite, RNG, N>
     where
-        A: TcpStack + Clone + 'static,
+        A: TcpClientStack + Clone + 'static,
         RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'a,
     {
@@ -192,7 +186,7 @@ mod tls {
     impl<'a, A, CipherSuite, RNG, const N: usize> super::ConnectionFactory
         for TlsConnectionFactory<'a, A, CipherSuite, RNG, N>
     where
-        A: TcpStack + Clone + 'static,
+        A: TcpClientStack + Clone + 'static,
         RNG: CryptoRng + RngCore + 'static,
         CipherSuite: TlsCipherSuite + 'a,
     {
@@ -204,12 +198,7 @@ mod tls {
             RNG: 'm,
             CipherSuite: 'm;
 
-        fn connect<'m>(
-            &'m mut self,
-            host: &'m str,
-            ip: IpAddress,
-            port: u16,
-        ) -> Self::ConnectFuture<'m> {
+        fn connect<'m>(&'m mut self, host: &'m str, remote: SocketAddr) -> Self::ConnectFuture<'m> {
             async move {
                 let mut idx = 0;
                 let mut buffer = None;
@@ -229,14 +218,11 @@ mod tls {
                 let mut socket = Socket::new(
                     self.network.clone(),
                     self.network
-                        .open()
+                        .socket()
                         .await
-                        .map_err(|e| NetworkError::Tcp(e))?,
+                        .map_err(|_| NetworkError::Tcp(TcpError::OpenError))?,
                 );
-                match socket
-                    .connect(IpProtocol::Tcp, SocketAddress::new(ip, port))
-                    .await
-                {
+                match socket.connect(remote).await {
                     Ok(_) => {
                         trace!("Connection established");
                         let config = TlsConfig::new().with_server_name(host);
@@ -267,7 +253,7 @@ mod tls {
 
     pub struct TlsNetworkConnection<'a, A, CipherSuite>
     where
-        A: TcpStack + Clone + 'static,
+        A: TcpClientStack + Clone + 'static,
         CipherSuite: TlsCipherSuite + 'static,
     {
         buffer: *const TlsBuffer<'a>,
@@ -276,7 +262,7 @@ mod tls {
 
     impl<'a, A, CipherSuite> TlsNetworkConnection<'a, A, CipherSuite>
     where
-        A: TcpStack + Clone + 'static,
+        A: TcpClientStack + Clone + 'static,
         CipherSuite: TlsCipherSuite + 'a,
     {
         pub fn new(
@@ -285,115 +271,53 @@ mod tls {
         ) -> Self {
             Self { connection, buffer }
         }
+
+        pub async fn write(&mut self, buf: &[u8]) -> Result<usize, NetworkError> {
+            self.connection
+                .write(buf)
+                .await
+                .map_err(|e| NetworkError::Tls(e))
+        }
+
+        pub async fn read(&mut self, buf: &mut [u8]) -> Result<usize, NetworkError> {
+            self.connection
+                .read(buf)
+                .await
+                .map_err(|e| NetworkError::Tls(e))
+        }
+
+        pub async fn close(self) -> Result<(), NetworkError> {
+            let result = match self.connection.close().await {
+                Ok(socket) => NetworkConnection::close(socket).await,
+                Err(e) => Err(NetworkError::Tls(e)),
+            };
+            unsafe { &*self.buffer }.free();
+            result
+        }
     }
 
     impl<'a, A, CipherSuite> NetworkConnection for TlsNetworkConnection<'a, A, CipherSuite>
     where
-        A: TcpStack + Clone + 'static,
+        A: TcpClientStack + Clone + 'static,
         CipherSuite: TlsCipherSuite + 'a,
     {
         type WriteFuture<'m> = impl Future<Output = Result<usize, NetworkError>> + 'm
         where
-            'a: 'm,
-            A: 'm,
-            CipherSuite: 'm;
+            Self: 'm;
         fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
-            async move {
-                self.connection
-                    .write(buf)
-                    .await
-                    .map_err(|e| NetworkError::Tls(e))
-            }
+            async move { TlsNetworkConnection::write(self, buf).await }
         }
 
         type ReadFuture<'m> = impl Future<Output = Result<usize, NetworkError>> + 'm
         where
-            'a: 'm,
-            A: 'm,
-            CipherSuite: 'm;
+            Self: 'm;
         fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m> {
-            async move {
-                self.connection
-                    .read(buf)
-                    .await
-                    .map_err(|e| NetworkError::Tls(e))
-            }
+            async move { TlsNetworkConnection::read(self, buf).await }
         }
 
         type CloseFuture<'m> = impl Future<Output = Result<(), NetworkError>>;
         fn close<'m>(self) -> Self::CloseFuture<'m> {
-            async move {
-                let result = match self.connection.close().await {
-                    Ok(socket) => NetworkConnection::close(socket).await,
-                    Err(e) => Err(NetworkError::Tls(e)),
-                };
-                unsafe { &*self.buffer }.free();
-                result
-            }
-        }
-    }
-
-    #[cfg(feature = "mqtt")]
-    pub use mqtt::*;
-
-    #[cfg(feature = "mqtt")]
-    mod mqtt {
-        use super::NetworkError;
-        use super::TlsNetworkConnection;
-        use crate::network::connection::NetworkConnection as DNetworkConnection;
-        use crate::traits::tcp::*;
-        use core::future::Future;
-        use drogue_tls::TlsCipherSuite;
-        use rust_mqtt::network::NetworkConnection;
-        use rust_mqtt::packet::v5::reason_codes::ReasonCode;
-
-        impl<'a, A, CipherSuite> NetworkConnection for TlsNetworkConnection<'a, A, CipherSuite>
-        where
-            A: TcpStack + Clone + 'static,
-            CipherSuite: TlsCipherSuite + 'a,
-        {
-            type SendFuture<'m>
-            = impl Future<Output=Result<(), ReasonCode>> + 'm
-            where
-                'a: 'm,
-                A: 'm,
-                CipherSuite: 'm;
-            fn send<'m>(&'m mut self, buf: &'m [u8]) -> Self::SendFuture<'m> {
-                async move {
-                    self.connection
-                        .write(buf)
-                        .await
-                        .map_err(|_e| ReasonCode::NetworkError)?;
-
-                    Ok(())
-                }
-            }
-
-            type ReceiveFuture<'m> = impl Future<Output=Result<usize, ReasonCode>> + 'm
-            where
-                'a: 'm,
-                A: 'm,
-                CipherSuite: 'm;
-            fn receive<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReceiveFuture<'m> {
-                async move {
-                    self.connection
-                        .read(buf)
-                        .await
-                        .map_err(|_e| ReasonCode::NetworkError)
-                }
-            }
-
-            type CloseFuture<'m> = impl Future<Output = Result<(), ReasonCode>>;
-            fn close<'m>(self) -> Self::CloseFuture<'m> {
-                async move {
-                    let result = match self.connection.close().await {
-                        Ok(socket) => DNetworkConnection::close(socket).await,
-                        Err(e) => Err(NetworkError::Tls(e)),
-                    };
-                    unsafe { &*self.buffer }.free();
-                    result.map_err(|_e| ReasonCode::NetworkError)
-                }
-            }
+            async move { TlsNetworkConnection::close(self).await }
         }
     }
 }

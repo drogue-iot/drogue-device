@@ -1,14 +1,14 @@
 use crate::network::connection::*;
-use crate::traits::dns::{DnsError, DnsResolver};
 use core::fmt::{Display, Write};
 use core::{num::ParseIntError, str::Utf8Error};
+use embedded_nal_async::{AddrType, Dns, SocketAddr};
 
 use heapless::String;
 
 pub struct HttpClient<'a, C, D>
 where
     C: ConnectionFactory + 'a,
-    D: DnsResolver<1> + 'a,
+    D: Dns + 'a,
 {
     connection_factory: &'a mut C,
     dns_resolver: &'a D,
@@ -21,7 +21,7 @@ where
 impl<'a, C, D> HttpClient<'a, C, D>
 where
     C: ConnectionFactory + 'a,
-    D: DnsResolver<1> + 'a,
+    D: Dns + 'a,
 {
     pub fn new(
         connection_factory: &'a mut C,
@@ -46,11 +46,14 @@ where
         request: Request<'m>,
         rx_buf: &'m mut [u8],
     ) -> Result<Response<'m>, Error> {
-        let ips = self.dns_resolver.resolve(self.host).await?;
-        let ip = ips[0];
+        let ip = self
+            .dns_resolver
+            .get_host_by_name(self.host, AddrType::IPv4)
+            .await
+            .map_err(|_| Error::DnsLookupFailed)?;
         let mut connection = self
             .connection_factory
-            .connect(self.host, ip, self.port)
+            .connect(self.host, SocketAddr::new(ip, self.port))
             .await?;
 
         info!("Connected to {}:{}", self.host, self.port);
@@ -265,19 +268,13 @@ impl Display for Method {
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Error {
     Network(NetworkError),
-    Dns(DnsError),
+    DnsLookupFailed,
     Parse,
 }
 
 impl From<NetworkError> for Error {
     fn from(e: NetworkError) -> Error {
         Error::Network(e)
-    }
-}
-
-impl From<DnsError> for Error {
-    fn from(e: DnsError) -> Error {
-        Error::Dns(e)
     }
 }
 

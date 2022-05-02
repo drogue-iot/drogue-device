@@ -16,8 +16,7 @@ use drogue_device::traits::button::Button;
 use drogue_device::bsp::boards::nrf52::microbit::LedMatrix;
 use drogue_device::drivers::wifi::esp8266::*;
 use drogue_device::{
-    bsp::boards::nrf52::microbit::*, drivers::dns::*, drivers::wifi::esp8266::Esp8266Controller,
-    traits::ip::*, *,
+    bsp::boards::nrf52::microbit::*, drivers::dns::*, drivers::wifi::esp8266::Esp8266Controller, *,
 };
 use embassy::time::{Duration, Timer};
 use embassy_nrf::{
@@ -34,8 +33,8 @@ use drogue_device::network::connection::{
 };
 use drogue_device::network::tcp::TcpStackState;
 use drogue_device::shared::Handle;
-use drogue_device::traits::dns::DnsResolver;
 use drogue_device::traits::wifi::{Join, WifiSupplicant};
+use embedded_nal_async::*;
 use rust_mqtt::client::client_config::MqttVersion::MQTTv5;
 use rust_mqtt::utils::rng_generator::CountingRng;
 use rust_mqtt::{
@@ -106,18 +105,16 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         )
     };
 
-    let ips = DNS.resolve(HOST).await.expect("unable to resolve host");
+    let ip = DNS
+        .get_host_by_name(HOST, AddrType::IPv4)
+        .await
+        .expect("unable to resolve host");
 
     defmt::info!("Creating sockets");
+    let addr = SocketAddr::new(ip, PORT.parse::<u16>().unwrap());
 
-    let connection_pub = conn_factory
-        .connect(HOST, ips[0], PORT.parse::<u16>().unwrap())
-        .await
-        .unwrap();
-    let connection_recv = conn_factory
-        .connect(HOST, ips[0], PORT.parse::<u16>().unwrap())
-        .await
-        .unwrap();
+    let connection_pub = conn_factory.connect(HOST, addr).await.unwrap();
+    let connection_recv = conn_factory.connect(HOST, addr).await.unwrap();
 
     static RECEIVER: ActorContext<Receiver> = ActorContext::new();
     RECEIVER.mount(spawner, Receiver::new(board.display, connection_recv));
@@ -151,10 +148,10 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 }
 
 static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
-    DnsEntry::new("localhost", IpAddress::new_v4(127, 0, 0, 1)),
+    DnsEntry::new("localhost", IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
     DnsEntry::new(
         "mqtt.sandbox.drogue.cloud",
-        IpAddress::new_v4(65, 108, 135, 161),
+        IpAddr::V4(Ipv4Addr::new(65, 108, 135, 161)),
     ),
 ]);
 

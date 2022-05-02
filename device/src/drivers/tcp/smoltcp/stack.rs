@@ -1,11 +1,11 @@
 use super::socket_pool::PoolHandle;
 use super::socket_pool::SocketPool;
-use crate::traits::ip::{IpAddress, IpProtocol, SocketAddress};
-use crate::traits::tcp::{TcpError, TcpStack};
+use crate::network::tcp::TcpError;
 use core::future::Future;
 use core::marker::PhantomData;
 use embassy::io::{AsyncBufReadExt, AsyncWriteExt};
 use embassy_net::Ipv4Address;
+use embedded_nal_async::*;
 
 pub struct SmolTcpStack<
     'buffer,
@@ -33,16 +33,16 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
 #[derive(Debug, Copy, Clone)]
 pub struct SmolSocketHandle(PoolHandle);
 
-impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usize> TcpStack
+impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usize> TcpClientStack
     for SmolTcpStack<'buffer, POOL_SIZE, BACKLOG, BUF_SIZE>
 {
-    type SocketHandle = SmolSocketHandle;
+    type TcpSocket = SmolSocketHandle;
+    type Error = TcpError;
 
-    type OpenFuture<'m> = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm
+    type SocketFuture<'m> = impl Future<Output = Result<Self::TcpSocket, Self::Error>> + 'm
     where
-        'buffer: 'm;
-
-    fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
+        Self: 'm;
+    fn socket<'m>(&'m mut self) -> Self::SocketFuture<'m> {
         async move {
             let handle = self
                 .buffer_pool
@@ -53,45 +53,47 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
         }
     }
 
-    type ConnectFuture<'m> = impl Future<Output = Result<(), TcpError>> + 'm
+    type ConnectFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm
     where
-        'buffer: 'm;
-
+        Self: 'm;
     fn connect<'m>(
         &'m mut self,
-        handle: Self::SocketHandle,
-        proto: IpProtocol,
-        dst: SocketAddress,
+        handle: &'m mut Self::TcpSocket,
+        remote: SocketAddr,
     ) -> Self::ConnectFuture<'m> {
         async move {
-            match proto {
-                IpProtocol::Tcp => {
-                    let socket = self
-                        .buffer_pool
-                        .get_socket(handle.0)
-                        .map_err(|_| TcpError::WriteError)?;
-                    match dst.ip() {
-                        IpAddress::V4(addr) => {
-                            let [a, b, c, d] = addr.octets();
-                            let remote_addr = Ipv4Address::new(a, b, c, d);
-                            let remote_endpoint = (remote_addr, dst.port());
-                            socket
-                                .connect(remote_endpoint)
-                                .await
-                                .map_err(|_| TcpError::ConnectError)
-                        }
-                    }
+            let socket = self
+                .buffer_pool
+                .get_socket(handle.0)
+                .map_err(|_| TcpError::WriteError)?;
+            match remote.ip() {
+                IpAddr::V4(addr) => {
+                    let [a, b, c, d] = addr.octets();
+                    let remote_addr = Ipv4Address::new(a, b, c, d);
+                    let remote_endpoint = (remote_addr, remote.port());
+                    socket
+                        .connect(remote_endpoint)
+                        .await
+                        .map_err(|_| TcpError::ConnectError)
                 }
-                IpProtocol::Udp => Err(TcpError::ConnectError),
+                _ => Err(TcpError::ConnectError),
             }
         }
     }
 
-    type WriteFuture<'m> = impl Future<Output = Result<usize, TcpError>> + 'm
-    where
-        'buffer: 'm;
+    type IsConnectedFuture<'m> =
+        impl Future<Output = Result<bool, Self::Error>> + 'm where Self: 'm;
+    fn is_connected<'m>(&'m mut self, _handle: &'m Self::TcpSocket) -> Self::IsConnectedFuture<'m> {
+        async move { todo!() }
+    }
 
-    fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
+    type SendFuture<'m> =
+        impl Future<Output = Result<usize, Self::Error>> + 'm where Self: 'm;
+    fn send<'m>(
+        &'m mut self,
+        handle: &'m mut Self::TcpSocket,
+        buf: &'m [u8],
+    ) -> Self::SendFuture<'m> {
         async move {
             let socket = self
                 .buffer_pool
@@ -101,15 +103,13 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
         }
     }
 
-    type ReadFuture<'m> = impl Future<Output = Result<usize, TcpError>> + 'm
-    where
-        'buffer: 'm;
-
-    fn read<'m>(
+    type ReceiveFuture<'m> =
+        impl Future<Output = Result<usize, Self::Error>> + 'm where Self: 'm;
+    fn receive<'m>(
         &'m mut self,
-        handle: Self::SocketHandle,
+        handle: &'m mut Self::TcpSocket,
         buf: &'m mut [u8],
-    ) -> Self::ReadFuture<'m> {
+    ) -> Self::ReceiveFuture<'m> {
         async move {
             let socket = self
                 .buffer_pool
@@ -119,11 +119,9 @@ impl<'buffer, const POOL_SIZE: usize, const BACKLOG: usize, const BUF_SIZE: usiz
         }
     }
 
-    type CloseFuture<'m> = impl Future<Output = Result<(), TcpError>> + 'm
-    where
-        'buffer: 'm;
-
-    fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
+    type CloseFuture<'m> =
+        impl Future<Output = Result<(), Self::Error>> + 'm where Self: 'm;
+    fn close<'m>(&'m mut self, handle: Self::TcpSocket) -> Self::CloseFuture<'m> {
         async move {
             self.buffer_pool.unborrow(handle.0);
             Ok(())
