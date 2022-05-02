@@ -42,7 +42,7 @@ Wire the ESP8266 module to the micro:bit as follows:
 
 * To build the example, you need to have link:https://rustup.rs/[rustup].
 * To flash the example on the device, you need `probe-run` installed (`cargo install probe-run`).
-* A TCP server (ncat) or a service like Drogue IoT Cloud. See link:https://github.com/drogue-iot/drogue-cloud/[drogue-cloud] for how to run that, or use the link:https://sandbox.drogue.cloud/[sandbox] (requires TLS).
+* Drogue IoT Cloud. See link:https://github.com/drogue-iot/drogue-cloud/[drogue-cloud] for how to run that, or use the link:https://sandbox.drogue.cloud/[sandbox]. Example requires enabled TLS on the cloud side.
 
 === Configuring
 
