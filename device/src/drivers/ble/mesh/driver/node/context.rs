@@ -12,6 +12,7 @@ use crate::drivers::ble::mesh::driver::pipeline::mesh::{MeshContext, NetworkRetr
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::LowerContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::AuthenticationContext;
+#[cfg(feature = "ble-mesh-relay")]
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::RelayContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::UpperContext;
@@ -19,6 +20,7 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::ProvisionedContext
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::UnprovisionedContext;
 use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
+#[cfg(feature = "ble-mesh-relay")]
 use crate::drivers::ble::mesh::model::foundation::configuration::relay::Relay;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
@@ -231,6 +233,7 @@ where
     }
 }
 
+#[cfg(feature = "ble-mesh-relay")]
 impl<'a, E, TX, RX, S, R> RelayContext for Node<'a, E, TX, RX, S, R>
 where
     E: ElementsHandler<'a>,
@@ -239,6 +242,7 @@ where
     S: Storage,
     TX: Transmitter,
 {
+    #[cfg(feature = "ble-mesh-relay")]
     fn is_relay_enabled(&self) -> bool {
         matches!(
             self.configuration_manager
@@ -251,6 +255,12 @@ where
         )
     }
 
+    #[cfg(not(feature = "ble-mesh-relay"))]
+    fn is_relay_enabled(&self) -> bool {
+        false
+    }
+
+    #[cfg(feature = "ble-mesh-relay")]
     fn relay_retransmit(&self) -> NetworkRetransmitDetails {
         self.configuration_manager
             .configuration()

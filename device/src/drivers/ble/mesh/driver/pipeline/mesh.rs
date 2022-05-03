@@ -3,6 +3,7 @@ use crate::drivers::ble::mesh::config::publications::Publication;
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::network_transmit::NetworkTransmitConfig;
+#[cfg(feature = "ble-mesh-relay")]
 use crate::drivers::ble::mesh::model::foundation::configuration::relay::RelayConfig;
 use crate::drivers::ble::mesh::pdu::bearer::advertising;
 use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
@@ -18,6 +19,7 @@ pub struct NetworkRetransmitDetails {
     pub(crate) interval: Duration,
 }
 
+#[cfg(feature = "ble-mesh-relay")]
 impl From<&RelayConfig> for NetworkRetransmitDetails {
     fn from(config: &RelayConfig) -> Self {
         NetworkRetransmitDetails {

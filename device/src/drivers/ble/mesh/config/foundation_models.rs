@@ -1,4 +1,5 @@
 use crate::drivers::ble::mesh::model::foundation::configuration::network_transmit::NetworkTransmitConfig;
+#[cfg(feature = "ble-mesh-relay")]
 use crate::drivers::ble::mesh::model::foundation::configuration::relay::RelayConfig;
 use embassy::time::Duration;
 use serde::{Deserialize, Serialize};
@@ -26,6 +27,7 @@ pub struct ConfigurationModel {
     default_ttl: u8,
     publish_period: u8,
     network_transmit: NetworkTransmitConfig,
+    #[cfg(feature = "ble-mesh-relay")]
     relay: RelayConfig,
 }
 
@@ -71,10 +73,12 @@ impl ConfigurationModel {
         }
     }
 
+    #[cfg(feature = "ble-mesh-relay")]
     pub fn relay(&self) -> &RelayConfig {
         &self.relay
     }
 
+    #[cfg(feature = "ble-mesh-relay")]
     pub fn relay_mut(&mut self) -> &mut RelayConfig {
         &mut self.relay
     }
@@ -94,6 +98,7 @@ impl Default for ConfigurationModel {
             secure_beacon: true,
             default_ttl: 127,
             publish_period: 0,
+            #[cfg(feature = "ble-mesh-relay")]
             relay: RelayConfig::default(),
             network_transmit: NetworkTransmitConfig::default(),
         }
