@@ -36,7 +36,7 @@ pub trait ProvisionedContext:
 
 #[cfg(not(feature = "ble-mesh-relay"))]
 pub trait ProvisionedContext:
-AuthenticationContext + LowerContext + UpperContext + AccessContext + NetworkContext
+    AuthenticationContext + LowerContext + UpperContext + AccessContext + NetworkContext
 {
 }
 
