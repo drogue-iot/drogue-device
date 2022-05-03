@@ -8,6 +8,7 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::{Lower, Low
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentication::{
     Authentication, AuthenticationContext,
 };
+#[cfg(feature = "ble-mesh-relay")]
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::relay::{
     Relay, RelayContext,
 };
@@ -27,14 +28,22 @@ pub mod lower;
 pub mod network;
 pub mod upper;
 
+#[cfg(feature = "ble-mesh-relay")]
 pub trait ProvisionedContext:
     AuthenticationContext + RelayContext + LowerContext + UpperContext + AccessContext + NetworkContext
+{
+}
+
+#[cfg(not(feature = "ble-mesh-relay"))]
+pub trait ProvisionedContext:
+    AuthenticationContext + LowerContext + UpperContext + AccessContext + NetworkContext
 {
 }
 
 pub(crate) struct ProvisionedPipeline {
     transmit: Transmit,
     authentication: Authentication,
+    #[cfg(feature = "ble-mesh-relay")]
     relay: Relay,
     lower: Lower,
     upper: Upper,
@@ -45,6 +54,7 @@ impl ProvisionedPipeline {
         Self {
             transmit: Transmit::default(),
             authentication: Default::default(),
+            #[cfg(feature = "ble-mesh-relay")]
             relay: Default::default(),
             lower: Default::default(),
             upper: Default::default(),
@@ -72,8 +82,9 @@ impl ProvisionedPipeline {
                 }
             }
 
-            // Relaying is independent from processing it locally
+            #[cfg(feature = "ble-mesh-relay")]
             if let Some(outbound) = self.relay.process_inbound(ctx, &inboud_pdu)? {
+                // Relaying is independent from processing it locally
                 // don't fail if we fail to encrypt a relay.
                 if let Ok(Some(outbound)) = self.authentication.process_outbound(ctx, &outbound) {
                     // don't fail if we fail to retransmit.

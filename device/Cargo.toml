@@ -126,6 +126,8 @@ ble = [
     "micromath"
 ]
 ble-peripheral = []
+ble-mesh-relay = [ "ble" ]
+ble-mesh-lpn = [ "ble" ]
 "ble+nrf-softdevice" = [
     "ble",
     "nrf-softdevice",
