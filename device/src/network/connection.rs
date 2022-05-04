@@ -107,8 +107,8 @@ mod tls {
     use core::cell::UnsafeCell;
     use core::future::Future;
     use core::mem::MaybeUninit;
-    use embedded_tls::{NoClock, TlsCipherSuite, TlsConfig, TlsConnection, TlsContext, TlsError};
     use embedded_nal_async::{SocketAddr, TcpClientStack};
+    use embedded_tls::{NoClock, TlsCipherSuite, TlsConfig, TlsConnection, TlsContext, TlsError};
     use rand_core::{CryptoRng, RngCore};
 
     use atomic_polyfill::{AtomicBool, Ordering};

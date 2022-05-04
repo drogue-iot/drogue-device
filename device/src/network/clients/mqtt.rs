@@ -74,8 +74,8 @@ pub use tls::*;
 mod tls {
     use crate::network::connection::TlsNetworkConnection;
     use core::future::Future;
-    use embedded_tls::TlsCipherSuite;
     use embedded_nal_async::*;
+    use embedded_tls::TlsCipherSuite;
     use rust_mqtt::network::NetworkConnection;
     use rust_mqtt::packet::v5::reason_codes::ReasonCode;
 

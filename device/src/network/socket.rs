@@ -53,11 +53,11 @@ where
 mod tls {
     use super::Socket;
     use core::future::Future;
+    use embedded_nal_async::*;
     use embedded_tls::{
         traits::{AsyncRead, AsyncWrite},
         TlsError,
     };
-    use embedded_nal_async::*;
 
     impl<A> AsyncRead for Socket<A>
     where
