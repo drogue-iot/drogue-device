@@ -26,28 +26,12 @@ use crate::network::socket::Socket;
 use core::future::Future;
 use rust_mqtt::packet::v5::reason_codes::ReasonCode;
 
-use crate::traits::tcp::TcpStack;
+use embedded_nal_async::TcpClientStack;
 use rust_mqtt::network::NetworkConnection;
 
-pub struct DrogueNetwork<A>
+impl<A> NetworkConnection for Socket<A>
 where
-    A: TcpStack + Clone + 'static,
-{
-    socket: Socket<A>,
-}
-
-impl<A> DrogueNetwork<A>
-where
-    A: TcpStack + Clone + 'static,
-{
-    pub fn new(socket: Socket<A>) -> Self {
-        Self { socket }
-    }
-}
-
-impl<A> NetworkConnection for DrogueNetwork<A>
-where
-    A: TcpStack + Clone + 'static,
+    A: TcpClientStack + Clone + 'static,
 {
     type SendFuture<'m>
     = impl Future<Output = Result<(), ReasonCode>> + 'm where Self: 'm;
@@ -59,8 +43,7 @@ where
 
     fn send<'m>(&'m mut self, buffer: &'m [u8]) -> Self::SendFuture<'m> {
         async move {
-            self.socket
-                .write(buffer)
+            self.write(buffer)
                 .await
                 .map_err(|_| ReasonCode::NetworkError)
                 .map(|_| ())
@@ -69,8 +52,7 @@ where
 
     fn receive<'m>(&'m mut self, buffer: &'m mut [u8]) -> Self::ReceiveFuture<'m> {
         async move {
-            self.socket
-                .read(buffer)
+            self.read(buffer)
                 .await
                 .map_err(|_| ReasonCode::NetworkError)
         }
@@ -78,10 +60,57 @@ where
 
     fn close<'m>(self) -> Self::CloseFuture<'m> {
         async move {
-            self.socket
-                .close()
+            Socket::close(self)
                 .await
                 .map_err(|_| ReasonCode::NetworkError)
+        }
+    }
+}
+
+#[cfg(feature = "tls")]
+pub use tls::*;
+
+#[cfg(feature = "tls")]
+mod tls {
+    use crate::network::connection::TlsNetworkConnection;
+    use core::future::Future;
+    use drogue_tls::TlsCipherSuite;
+    use embedded_nal_async::*;
+    use rust_mqtt::network::NetworkConnection;
+    use rust_mqtt::packet::v5::reason_codes::ReasonCode;
+
+    impl<'a, A, CipherSuite> NetworkConnection for TlsNetworkConnection<'a, A, CipherSuite>
+    where
+        A: TcpClientStack + Clone + 'static,
+        CipherSuite: TlsCipherSuite + 'a,
+    {
+        type SendFuture<'m>
+            = impl Future<Output=Result<(), ReasonCode>> + 'm
+            where
+            Self: 'm;
+        fn send<'m>(&'m mut self, buf: &'m [u8]) -> Self::SendFuture<'m> {
+            async move {
+                self.write(buf)
+                    .await
+                    .map_err(|_e| ReasonCode::NetworkError)?;
+                Ok(())
+            }
+        }
+
+        type ReceiveFuture<'m> = impl Future<Output=Result<usize, ReasonCode>> + 'm
+            where
+            Self: 'm;
+        fn receive<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReceiveFuture<'m> {
+            async move { self.read(buf).await.map_err(|_e| ReasonCode::NetworkError) }
+        }
+
+        type CloseFuture<'m> = impl Future<Output = Result<(), ReasonCode>>;
+        fn close<'m>(self) -> Self::CloseFuture<'m> {
+            async move {
+                TlsNetworkConnection::close(self)
+                    .await
+                    .map_err(|_e| ReasonCode::NetworkError)
+            }
         }
     }
 }

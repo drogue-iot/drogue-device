@@ -23,7 +23,7 @@ static DEVICE: DeviceContext<TemperatureDevice<StdBoard>> = DeviceContext::new()
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner) {
     env_logger::builder()
-        .filter_level(log::LevelFilter::Info)
+        .filter_level(log::LevelFilter::Debug)
         .format_timestamp_nanos()
         .init();
 

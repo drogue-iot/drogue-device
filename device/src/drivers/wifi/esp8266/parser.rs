@@ -10,7 +10,7 @@ use nom::take_until;
 use nom::tuple;
 use nom::IResult;
 
-use crate::traits::ip::{IpAddress, IpAddressV4};
+use embedded_nal_async::Ipv4Addr;
 
 use super::{
     num::{atoi_u8, atoi_usize},
@@ -161,7 +161,7 @@ named!(
 
 #[rustfmt::skip]
 named!(
-    ip_addr<IpAddressV4>,
+    ip_addr<Ipv4Addr>,
     do_parse!(
         a: parse_u8 >>
         char!('.') >>
@@ -171,7 +171,7 @@ named!(
         char!('.') >>
         d: parse_u8 >>
         (
-            IpAddressV4::new(a, b, c, d)
+            Ipv4Addr::new(a, b, c, d)
         )
     )
 );
@@ -353,7 +353,7 @@ named!(
         crlf >>
         ok >>
         (
-            Response::IpAddress(IpAddress::V4(ip_addr))
+            Response::IpAddress(ip_addr)
         )
     )
 );

@@ -2,7 +2,7 @@
 use nom::{alt, char, complete, do_parse, named, tag, take_until};
 use nom::{character::streaming::digit1, IResult};
 
-use crate::traits::ip::{IpAddress, IpAddressV4};
+use embedded_nal_async::{IpAddr, Ipv4Addr};
 //use crate::util::nom::{parse_u8, parse_usize};
 
 named!(
@@ -22,13 +22,13 @@ named!(
 
 #[derive(Debug)]
 pub(crate) enum JoinResponse {
-    Ok(IpAddress),
+    Ok(IpAddr),
     JoinError,
 }
 
 #[rustfmt::skip]
 named!(
-    ip_addr<IpAddressV4>,
+    ip_addr<Ipv4Addr>,
     do_parse!(
         a: parse_u8 >>
         char!('.') >>
@@ -38,7 +38,7 @@ named!(
         char!('.') >>
         d: parse_u8 >>
         (
-            IpAddressV4::new(a, b, c, d)
+            Ipv4Addr::new(a, b, c, d)
         )
     )
 );
@@ -59,7 +59,7 @@ named!(
         ok >>
         (
             //log::info!("ip --> {:?}", ip );
-            JoinResponse::Ok(IpAddress::V4(ip))
+            JoinResponse::Ok(IpAddr::V4(ip))
         )
     )
 );

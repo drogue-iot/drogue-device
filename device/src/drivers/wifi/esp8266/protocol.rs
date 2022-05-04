@@ -1,14 +1,25 @@
 use super::BUFFER_LEN;
-use crate::traits::ip::{IpAddress, IpAddressV4, SocketAddress};
 use core::fmt;
 use core::fmt::{Debug, Write};
+use embedded_nal_async::{IpAddr, Ipv4Addr, SocketAddr};
 use heapless::String;
 
 #[derive(Debug)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ResolverAddresses {
-    pub resolver1: IpAddressV4,
-    pub resolver2: Option<IpAddressV4>,
+    pub resolver1: Ipv4Addr,
+    pub resolver2: Option<Ipv4Addr>,
+}
+
+#[cfg(feature = "defmt")]
+impl defmt::Format for ResolverAddresses {
+    fn format(&self, f: defmt::Formatter<'_>) {
+        defmt::write!(
+            f,
+            "resolver1: {}, resolver2: {}",
+            self.resolver1.octets(),
+            self.resolver2.map(|o| o.octets())
+        );
+    }
 }
 
 /// Type of socket connection.
@@ -33,19 +44,25 @@ pub enum WiFiMode {
 
 /// Commands to be sent to the ESP board.
 #[derive(Debug)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Command<'a> {
     QueryFirmwareInfo,
     SetMode(WiFiMode),
     JoinAp { ssid: &'a str, password: &'a str },
     QueryIpAddress,
-    StartConnection(usize, ConnectionType, SocketAddress),
+    StartConnection(usize, ConnectionType, SocketAddr),
     CloseConnection(usize),
     Send { link_id: usize, len: usize },
     Receive { link_id: usize, len: usize },
     QueryDnsResolvers,
     SetDnsResolvers(ResolverAddresses),
     GetHostByName { hostname: &'a str },
+}
+
+#[cfg(feature = "defmt")]
+impl<'a> defmt::Format for Command<'a> {
+    fn format(&self, f: defmt::Formatter<'_>) {
+        defmt::write!(f, "{}", &self.as_bytes());
+    }
 }
 
 impl<'a> Command<'a> {
@@ -79,9 +96,10 @@ impl<'a> Command<'a> {
                 }
                 write!(s, ",").unwrap();
                 match socket_addr.ip() {
-                    IpAddress::V4(ip) => {
+                    IpAddr::V4(ip) => {
                         write!(s, "\"{}\",{}", ip, socket_addr.port()).unwrap();
-                    } //IpAddress::V6(_) => panic!("IPv6 not supported"),
+                    }
+                    IpAddr::V6(_) => panic!("IPv6 not supported"),
                 }
                 s as String<256>
             }
@@ -139,7 +157,7 @@ pub enum Response {
     Connect(usize),
     Closed(usize),
     Resolvers(ResolverAddresses),
-    IpAddress(IpAddress),
+    IpAddress(Ipv4Addr),
     DnsFail,
     UnlinkFail,
 }
@@ -170,7 +188,10 @@ impl defmt::Format for Response {
             Response::IpAddresses(v) => defmt::write!(f, "IpAddresses: {}", v),
             Response::Connect(v) => defmt::write!(f, "Connect {}", v),
             Response::Closed(v) => defmt::write!(f, "Closed {}", v),
-            Response::IpAddress(v) => defmt::write!(f, "IpAddress {}", v),
+            Response::IpAddress(v) => {
+                let ip = v.octets();
+                defmt::write!(f, "IpAddress {}.{}.{}.{}", ip[0], ip[1], ip[2], ip[3])
+            }
             Response::Resolvers(v) => defmt::write!(f, "Resolvers {}", v),
             Response::DnsFail => defmt::write!(f, "DNS Fail"),
             Response::UnlinkFail => defmt::write!(f, "UnlinkFail"),
@@ -217,11 +238,23 @@ impl Debug for Response {
 
 /// IP addresses for the board, including its own address, netmask and gateway.
 #[derive(Debug)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct IpAddresses {
-    pub ip: IpAddressV4,
-    pub gateway: IpAddressV4,
-    pub netmask: IpAddressV4,
+    pub ip: Ipv4Addr,
+    pub gateway: Ipv4Addr,
+    pub netmask: Ipv4Addr,
+}
+
+#[cfg(feature = "defmt")]
+impl defmt::Format for IpAddresses {
+    fn format(&self, f: defmt::Formatter<'_>) {
+        defmt::write!(
+            f,
+            "ip: {}, gateway: {}, netmask: {}",
+            self.ip.octets(),
+            self.gateway.octets(),
+            self.netmask.octets(),
+        );
+    }
 }
 
 /// Version information for the ESP board.

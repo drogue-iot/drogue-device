@@ -5,11 +5,7 @@ use crate::drivers::common::socket_pool::SocketPool;
 use embedded_hal::digital::v2::OutputPin;
 use embedded_hal_1::digital::blocking::InputPin;
 
-use crate::traits::{
-    ip::{IpAddress, IpProtocol, SocketAddress},
-    tcp::{TcpError, TcpStack},
-    wifi::{Join, JoinError, WifiSupplicant},
-};
+use crate::traits::wifi::{Join, JoinError, WifiSupplicant};
 
 use core::fmt::Write as FmtWrite;
 use core::future::Future;
@@ -17,8 +13,10 @@ use embassy::time::{block_for, Duration, Timer};
 use embedded_hal_async::digital::Wait;
 //use embassy::traits::spi::*;
 use embedded_hal::blocking::spi::*;
+use embedded_nal_async::*;
 use heapless::String;
 
+use crate::network::tcp::TcpError;
 use parser::{CloseResponse, ConnectResponse, JoinResponse, ReadResponse, WriteResponse};
 
 #[derive(Debug)]
@@ -187,7 +185,7 @@ where
         Ok(())
     }
 
-    pub async fn join_wep(&mut self, ssid: &str, password: &str) -> Result<IpAddress, JoinError> {
+    pub async fn join_wep(&mut self, ssid: &str, password: &str) -> Result<IpAddr, JoinError> {
         let mut response = [0; 1024];
 
         self.send_string(command!(36, "CB=2"), &mut response)
@@ -340,7 +338,7 @@ where
     READY: InputPin + Wait + 'static,
     E: 'static,
 {
-    type JoinFuture<'m> = impl Future<Output = Result<IpAddress, JoinError>> + 'm
+    type JoinFuture<'m> = impl Future<Output = Result<IpAddr, JoinError>> + 'm
     where
         SPI: 'm;
     fn join<'m>(&'m mut self, join_info: Join<'m>) -> Self::JoinFuture<'m> {
@@ -353,7 +351,7 @@ where
     }
 }
 
-impl<SPI, CS, RESET, WAKEUP, READY, E> TcpStack for EsWifi<SPI, CS, RESET, WAKEUP, READY, E>
+impl<SPI, CS, RESET, WAKEUP, READY, E> TcpClientStack for EsWifi<SPI, CS, RESET, WAKEUP, READY, E>
 where
     SPI: Transfer<u8, Error = E>,
     CS: OutputPin + 'static,
@@ -362,12 +360,13 @@ where
     READY: InputPin + Wait + 'static,
     E: 'static,
 {
-    type SocketHandle = u8;
+    type TcpSocket = u8;
+    type Error = TcpError;
 
-    type OpenFuture<'m> = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm
+    type SocketFuture<'m> = impl Future<Output = Result<Self::TcpSocket, Self::Error>> + 'm
     where
-        SPI: 'm;
-    fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
+        Self: 'm;
+    fn socket<'m>(&'m mut self) -> Self::SocketFuture<'m> {
         async move {
             let h = self
                 .socket_pool
@@ -379,14 +378,13 @@ where
         }
     }
 
-    type ConnectFuture<'m> = impl Future<Output = Result<(), TcpError>> + 'm
+    type ConnectFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm
     where
-        SPI: 'm;
+        Self: 'm;
     fn connect<'m>(
         &'m mut self,
-        handle: Self::SocketHandle,
-        proto: IpProtocol,
-        dst: SocketAddress,
+        handle: &'m mut Self::TcpSocket,
+        remote: SocketAddr,
     ) -> Self::ConnectFuture<'m> {
         async move {
             let mut response = [0u8; 1024];
@@ -396,24 +394,22 @@ where
                     .await
                     .map_err(|_| TcpError::ConnectError)?;
 
-                match proto {
-                    IpProtocol::Tcp => {
-                        self.send_string(command!(8, "P1=0"), &mut response)
-                            .await
-                            .map_err(|_| TcpError::ConnectError)?;
-                    }
-                    IpProtocol::Udp => {
-                        self.send_string(command!(8, "P1=1"), &mut response)
-                            .await
-                            .map_err(|_| TcpError::ConnectError)?;
-                    }
+                self.send_string(command!(8, "P1=0"), &mut response)
+                    .await
+                    .map_err(|_| TcpError::ConnectError)?;
+                /*
+                IpProtocol::Udp => {
+                    self.send_string(command!(8, "P1=1"), &mut response)
+                        .await
+                        .map_err(|_| TcpError::ConnectError)?;
                 }
+                */
 
-                self.send_string(command!(32, "P3={}", dst.ip()), &mut response)
+                self.send_string(command!(32, "P3={}", remote.ip()), &mut response)
                     .await
                     .map_err(|_| TcpError::ConnectError)?;
 
-                self.send_string(command!(32, "P4={}", dst.port()), &mut response)
+                self.send_string(command!(32, "P4={}", remote.port()), &mut response)
                     .await
                     .map_err(|_| TcpError::ConnectError)?;
 
@@ -433,10 +429,19 @@ where
         }
     }
 
-    type WriteFuture<'m> = impl Future<Output = Result<usize, TcpError>> + 'm
-    where
-        SPI: 'm;
-    fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
+    type IsConnectedFuture<'m> =
+        impl Future<Output = Result<bool, Self::Error>> + 'm where Self: 'm;
+    fn is_connected<'m>(&'m mut self, handle: &'m Self::TcpSocket) -> Self::IsConnectedFuture<'m> {
+        async move { Ok(!self.socket_pool.is_closed(*handle)) }
+    }
+
+    type SendFuture<'m> =
+        impl Future<Output = Result<usize, Self::Error>> + 'm where Self: 'm;
+    fn send<'m>(
+        &'m mut self,
+        handle: &'m mut Self::TcpSocket,
+        buf: &'m [u8],
+    ) -> Self::SendFuture<'m> {
         async move {
             let mut response = [0u8; 32];
             let mut remaining = buf.len();
@@ -518,14 +523,13 @@ where
         }
     }
 
-    type ReadFuture<'m> = impl Future<Output = Result<usize, TcpError>> + 'm
-    where
-        SPI: 'm;
-    fn read<'m>(
+    type ReceiveFuture<'m> =
+        impl Future<Output = Result<usize, Self::Error>> + 'm where Self: 'm;
+    fn receive<'m>(
         &'m mut self,
-        handle: Self::SocketHandle,
+        handle: &'m mut Self::TcpSocket,
         buf: &'m mut [u8],
-    ) -> Self::ReadFuture<'m> {
+    ) -> Self::ReceiveFuture<'m> {
         async move {
             let mut pos = 0;
             //let buf_len = buf.len();
@@ -630,10 +634,9 @@ where
         }
     }
 
-    type CloseFuture<'m> = impl Future<Output = Result<(), TcpError>> + 'm
-    where
-        SPI: 'm;
-    fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
+    type CloseFuture<'m> =
+        impl Future<Output = Result<(), Self::Error>> + 'm where Self: 'm;
+    fn close<'m>(&'m mut self, handle: Self::TcpSocket) -> Self::CloseFuture<'m> {
         async move {
             trace!("Closing connection for {}", handle);
             self.socket_pool.close(handle);

@@ -18,12 +18,13 @@ use drogue_device::{
     drogue,
     network::clients::http::*,
     traits::button::Button,
-    traits::{ip::*, sensors::temperature::TemperatureSensor, tcp::*},
+    traits::sensors::temperature::TemperatureSensor,
     Actor, ActorContext, Address, Inbox,
 };
 use embassy::executor::Spawner;
 use embedded_hal::digital::v2::InputPin;
 use embedded_hal_async::digital::Wait;
+use embedded_nal_async::*;
 use heapless::String;
 use serde::{Deserialize, Serialize};
 
@@ -193,15 +194,15 @@ where
 }
 
 static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
-    DnsEntry::new("localhost", IpAddress::new_v4(127, 0, 0, 1)),
+    DnsEntry::new("localhost", IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
     DnsEntry::new(
         "http.sandbox.drogue.cloud",
-        IpAddress::new_v4(65, 108, 135, 161),
+        IpAddr::V4(Ipv4Addr::new(65, 108, 135, 161)),
     ),
 ]);
 
 pub trait TemperatureBoard {
-    type Network: TcpStack + Clone;
+    type Network: TcpClientStack + Clone;
     type TemperatureScale: TemperatureScale;
     type Sensor: TemperatureSensor<Self::TemperatureScale>;
     type SensorReadyIndicator: Wait + InputPin;

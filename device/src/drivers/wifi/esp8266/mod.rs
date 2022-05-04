@@ -10,11 +10,8 @@ mod protocol;
 
 use crate::drivers::common::socket_pool::SocketPool;
 
-use crate::traits::{
-    ip::{IpAddress, IpProtocol, SocketAddress},
-    tcp::{TcpError, TcpStack},
-    wifi::{Join, JoinError, WifiSupplicant},
-};
+use crate::network::tcp::TcpError;
+use crate::traits::wifi::{Join, JoinError, WifiSupplicant};
 use atomic_polyfill::{AtomicBool, Ordering};
 use buffer::Buffer;
 use core::future::Future;
@@ -24,6 +21,7 @@ use embassy::{
 };
 use embedded_hal::digital::v2::OutputPin;
 use embedded_hal_async::serial::{Read, Write};
+use embedded_nal_async::*;
 use protocol::{Command, ConnectionType, Response as AtResponse};
 
 pub const BUFFER_LEN: usize = 512;
@@ -349,7 +347,7 @@ where
     }
     */
 
-    async fn join_wep(&mut self, ssid: &str, password: &str) -> Result<IpAddress, JoinError> {
+    async fn join_wep(&mut self, ssid: &str, password: &str) -> Result<IpAddr, JoinError> {
         let command = Command::JoinAp { ssid, password };
         match self.send(command).await {
             Ok(AtResponse::Ok) => {
@@ -374,11 +372,11 @@ where
         }
     }
 
-    async fn get_ip_address(&mut self) -> Result<IpAddress, ()> {
+    async fn get_ip_address(&mut self) -> Result<IpAddr, ()> {
         let command = Command::QueryIpAddress;
 
         if let Ok(AtResponse::IpAddresses(addresses)) = self.send(command).await {
-            return Ok(IpAddress::V4(addresses.ip));
+            return Ok(IpAddr::V4(addresses.ip));
         }
 
         Err(())
@@ -404,7 +402,7 @@ impl<'a, TX> WifiSupplicant for Esp8266Controller<'a, TX>
 where
     TX: Write,
 {
-    type JoinFuture<'m> = impl Future<Output = Result<IpAddress, JoinError>> + 'm
+    type JoinFuture<'m> = impl Future<Output = Result<IpAddr, JoinError>> + 'm
     where
         Self: 'm,
         'a: 'm;
@@ -418,17 +416,17 @@ where
     }
 }
 
-impl<'a, TX> TcpStack for Esp8266Controller<'a, TX>
+impl<'a, TX> TcpClientStack for Esp8266Controller<'a, TX>
 where
     TX: Write,
 {
-    type SocketHandle = u8;
+    type TcpSocket = u8;
+    type Error = TcpError;
 
-    type OpenFuture<'m> = impl Future<Output = Result<Self::SocketHandle, TcpError>> + 'm
+    type SocketFuture<'m> = impl Future<Output = Result<Self::TcpSocket, Self::Error>> + 'm
     where
-        Self: 'm,
-        'a: 'm;
-    fn open<'m>(&'m mut self) -> Self::OpenFuture<'m> {
+        Self: 'm;
+    fn socket<'m>(&'m mut self) -> Self::SocketFuture<'m> {
         async move {
             self.socket_pool
                 .open()
@@ -437,18 +435,16 @@ where
         }
     }
 
-    type ConnectFuture<'m> = impl Future<Output = Result<(), TcpError>> + 'm
+    type ConnectFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm
     where
-        Self: 'm,
-        'a: 'm;
+        Self: 'm;
     fn connect<'m>(
         &'m mut self,
-        handle: Self::SocketHandle,
-        _: IpProtocol,
-        dst: SocketAddress,
+        handle: &'m mut Self::TcpSocket,
+        remote: SocketAddr,
     ) -> Self::ConnectFuture<'m> {
         async move {
-            let command = Command::StartConnection(handle as usize, ConnectionType::TCP, dst);
+            let command = Command::StartConnection(*handle as usize, ConnectionType::TCP, remote);
             if let Ok(AtResponse::Connect(..)) = self.send(command).await {
                 Ok(())
             } else {
@@ -457,18 +453,26 @@ where
         }
     }
 
-    type WriteFuture<'m> = impl Future<Output = Result<usize, TcpError>> + 'm
-    where
-        Self: 'm,
-        'a: 'm;
-    fn write<'m>(&'m mut self, handle: Self::SocketHandle, buf: &'m [u8]) -> Self::WriteFuture<'m> {
+    type IsConnectedFuture<'m> =
+        impl Future<Output = Result<bool, Self::Error>> + 'm where Self: 'm;
+    fn is_connected<'m>(&'m mut self, handle: &'m Self::TcpSocket) -> Self::IsConnectedFuture<'m> {
+        async move { Ok(!self.socket_pool.is_closed(*handle)) }
+    }
+
+    type SendFuture<'m> =
+        impl Future<Output = Result<usize, Self::Error>> + 'm where Self: 'm;
+    fn send<'m>(
+        &'m mut self,
+        handle: &'m mut Self::TcpSocket,
+        buf: &'m [u8],
+    ) -> Self::SendFuture<'m> {
         async move {
             self.process_notifications();
-            if self.socket_pool.is_closed(handle) {
+            if self.socket_pool.is_closed(*handle) {
                 return Err(TcpError::SocketClosed);
             }
             let command = Command::Send {
-                link_id: handle as usize,
+                link_id: *handle as usize,
                 len: buf.len(),
             };
 
@@ -507,15 +511,13 @@ where
         }
     }
 
-    type ReadFuture<'m> = impl Future<Output = Result<usize, TcpError>> + 'm
-    where
-        Self: 'm,
-        'a: 'm;
-    fn read<'m>(
+    type ReceiveFuture<'m> =
+        impl Future<Output = Result<usize, Self::Error>> + 'm where Self: 'm;
+    fn receive<'m>(
         &'m mut self,
-        handle: Self::SocketHandle,
+        handle: &'m mut Self::TcpSocket,
         buf: &'m mut [u8],
-    ) -> Self::ReadFuture<'m> {
+    ) -> Self::ReceiveFuture<'m> {
         async move {
             const BLOCK_SIZE: usize = 512;
             let mut rp = 0;
@@ -523,13 +525,13 @@ where
             while remaining > 0 {
                 let result = async {
                     self.process_notifications();
-                    if self.socket_pool.is_closed(handle) {
+                    if self.socket_pool.is_closed(*handle) {
                         return Err(TcpError::SocketClosed);
                     }
 
                     let recv_len = core::cmp::min(remaining, BLOCK_SIZE);
                     let command = Command::Receive {
-                        link_id: handle as usize,
+                        link_id: *handle as usize,
                         len: recv_len,
                     };
                     //                   info!("Awaiting {} bytes from adapter", recv_len);
@@ -576,11 +578,9 @@ where
         }
     }
 
-    type CloseFuture<'m> = impl Future<Output = Result<(), TcpError>> + 'm
-    where
-        Self: 'm,
-        'a: 'm;
-    fn close<'m>(&'m mut self, handle: Self::SocketHandle) -> Self::CloseFuture<'m> {
+    type CloseFuture<'m> =
+        impl Future<Output = Result<(), Self::Error>> + 'm where Self: 'm;
+    fn close<'m>(&'m mut self, handle: Self::TcpSocket) -> Self::CloseFuture<'m> {
         async move {
             self.socket_pool.close(handle);
             let command = Command::CloseConnection(handle as usize);
