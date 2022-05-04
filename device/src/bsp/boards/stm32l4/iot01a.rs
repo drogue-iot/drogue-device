@@ -58,8 +58,8 @@ impl Iot01a {
             PLLSource::HSI16,
             PLLClkDiv::Div2,
             PLLSrcDiv::Div1,
-            PLLMul::Mul10,
-            Some(PLLClkDiv::Div2),
+            PLLMul::Mul12,
+            Some(PLLClkDiv::Div4),
         );
         config.rcc.ahb_pre = AHBPrescaler::Div8;
         config.enable_debug_during_sleep = enable_debug;
