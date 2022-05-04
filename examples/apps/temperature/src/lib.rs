@@ -29,7 +29,7 @@ use heapless::String;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "tls")]
-use drogue_tls::Aes128GcmSha256;
+use embedded_tls::Aes128GcmSha256;
 
 #[cfg(feature = "tls")]
 use drogue_device::network::connection::TlsConnectionFactory;

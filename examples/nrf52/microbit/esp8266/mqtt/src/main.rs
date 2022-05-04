@@ -8,7 +8,7 @@ mod rng;
 use rng::*;
 
 use defmt_rtt as _;
-use drogue_tls::Aes128GcmSha256;
+use embedded_tls::Aes128GcmSha256;
 use panic_probe as _;
 
 use drogue_device::traits::button::Button;

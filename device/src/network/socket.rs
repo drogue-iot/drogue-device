@@ -53,7 +53,7 @@ where
 mod tls {
     use super::Socket;
     use core::future::Future;
-    use drogue_tls::{
+    use embedded_tls::{
         traits::{AsyncRead, AsyncWrite},
         TlsError,
     };

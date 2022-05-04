@@ -18,7 +18,7 @@ log = { version = "0.4", optional = true }
 heapless = "0.7"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde-json-core = { version = "0.4", default-features = false, features = ["heapless"] }
-drogue-tls = { version = "0.5.0", default-features = false, features = ["async"], optional = true}
+embedded-tls = { version = "0.6.0", default-features = false, features = ["async"], optional = true}
 rand_core = { version = "0.6.2", default-features = false }
 embedded-hal-1 = { package = "embedded-hal", version = "1.0.0-alpha.7", git = "https://github.com/embassy-rs/embedded-hal", branch = "embassy2" }
 embedded-hal-async = { version = "0.0.1", git = "https://github.com/embassy-rs/embedded-hal", branch = "embassy2" }
@@ -26,5 +26,5 @@ embedded-nal-async = "0.1.0"
 
 [features]
 default = ["std"]
-tls = ["drogue-tls", "drogue-device/tls"]
+tls = ["embedded-tls", "drogue-device/tls"]
 std = ["serde-json-core/std", "embassy/std"]
