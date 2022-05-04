@@ -57,9 +57,9 @@ impl Iot01a {
         config.rcc.mux = ClockSrc::PLL(
             PLLSource::HSI16,
             PLLClkDiv::Div2,
-            PLLSrcDiv::Div1,
+            PLLSrcDiv::Div2,
             PLLMul::Mul12,
-            Some(PLLClkDiv::Div4),
+            Some(PLLClkDiv::Div2),
         );
         config.rcc.ahb_pre = AHBPrescaler::Div8;
         config.enable_debug_during_sleep = enable_debug;
