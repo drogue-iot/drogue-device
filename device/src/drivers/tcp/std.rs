@@ -75,6 +75,7 @@ impl TcpClientStack for StdTcpStack {
     ) -> Self::SendFuture<'m> {
         async move {
             if let Some(mut s) = self.sockets.get(handle) {
+                trace!("Writing {} bytes to std stack", buffer.len());
                 s.write(buffer)
             } else {
                 Err(std::io::Error::new(
@@ -94,7 +95,11 @@ impl TcpClientStack for StdTcpStack {
     ) -> Self::ReceiveFuture<'m> {
         async move {
             if let Some(mut s) = self.sockets.get(socket) {
-                s.read(buffer)
+                let r = s.read(buffer);
+                if let Ok(r) = r {
+                    trace!("Receiving {} bytes from std stack", r);
+                }
+                r
             } else {
                 Err(std::io::Error::new(
                     std::io::ErrorKind::Other,

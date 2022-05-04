@@ -11,8 +11,7 @@ use core::fmt::Write as FmtWrite;
 use core::future::Future;
 use embassy::time::{block_for, Duration, Timer};
 use embedded_hal_async::digital::Wait;
-//use embassy::traits::spi::*;
-use embedded_hal::blocking::spi::*;
+use embedded_hal_async::spi::*;
 use embedded_nal_async::*;
 use heapless::String;
 
@@ -36,7 +35,6 @@ pub enum AdapterMode {
     Ethernet,
 }
 
-use Error::*;
 const NAK: u8 = 0x15;
 
 macro_rules! command {
@@ -69,14 +67,13 @@ impl<'a, CS: OutputPin + 'a> Drop for Cs<'a, CS> {
     }
 }
 
-pub struct EsWifi<SPI, CS, RESET, WAKEUP, READY, E>
+pub struct EsWifi<SPI, CS, RESET, WAKEUP, READY>
 where
-    SPI: Transfer<u8, Error = E>,
+    SPI: SpiBus<u8>,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
     READY: InputPin + Wait + 'static,
-    E: 'static,
 {
     spi: SPI,
     cs: CS,
@@ -86,14 +83,13 @@ where
     socket_pool: SocketPool,
 }
 
-impl<SPI, CS, RESET, WAKEUP, READY, E> EsWifi<SPI, CS, RESET, WAKEUP, READY, E>
+impl<SPI, CS, RESET, WAKEUP, READY> EsWifi<SPI, CS, RESET, WAKEUP, READY>
 where
-    SPI: Transfer<u8, Error = E>,
+    SPI: SpiBus<u8>,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
     READY: InputPin + Wait + 'static,
-    E: 'static,
 {
     pub fn new(spi: SPI, cs: CS, reset: RESET, wakeup: WAKEUP, ready: READY) -> Self {
         Self {
@@ -120,8 +116,10 @@ where
         Timer::after(Duration::from_millis(50)).await;
     }
 
-    async fn wait_ready(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
-        while self.ready.is_low().map_err(READY)? {
+    async fn wait_ready(
+        &mut self,
+    ) -> Result<(), Error<SPI::Error, CS::Error, RESET::Error, READY::Error>> {
+        while self.ready.is_low().map_err(Error::READY)? {
             // self.ready.wait_for_any_edge().await;
         }
         Ok(())
@@ -129,8 +127,8 @@ where
 
     async fn wait_not_ready(
         &mut self,
-    ) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
-        while self.ready.is_high().map_err(READY)? {
+    ) -> Result<(), Error<SPI::Error, CS::Error, RESET::Error, READY::Error>> {
+        while self.ready.is_high().map_err(Error::READY)? {
             self.ready.wait_for_any_edge().await.unwrap();
         }
         Ok(())
@@ -139,7 +137,7 @@ where
     pub async fn start(
         &mut self,
         mode: AdapterMode,
-    ) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
+    ) -> Result<(), Error<SPI::Error, CS::Error, RESET::Error, READY::Error>> {
         info!("Starting eS-WiFi adapter!");
 
         self.reset().await;
@@ -150,9 +148,9 @@ where
 
         self.wait_ready().await?;
         {
-            let _cs = Cs::new(&mut self.cs).map_err(CS)?;
+            let _cs = Cs::new(&mut self.cs).map_err(Error::CS)?;
             loop {
-                if self.ready.is_low().map_err(READY)? {
+                if self.ready.is_low().map_err(Error::READY)? {
                     break;
                 }
 
@@ -250,7 +248,7 @@ where
         &'a mut self,
         mut command: String<N>,
         response: &'a mut [u8],
-    ) -> Result<&'a [u8], Error<E, CS::Error, RESET::Error, READY::Error>> {
+    ) -> Result<&'a [u8], Error<SPI::Error, CS::Error, RESET::Error, READY::Error>> {
         if command.len() % 2 != 0 {
             command.push('\n').unwrap();
         }
@@ -261,12 +259,12 @@ where
         &'a mut self,
         command: &[u8],
         response: &'a mut [u8],
-    ) -> Result<&'a [u8], Error<E, CS::Error, RESET::Error, READY::Error>> {
+    ) -> Result<&'a [u8], Error<SPI::Error, CS::Error, RESET::Error, READY::Error>> {
         //trace!("send {:?}", core::str::from_utf8(&command[..]).unwrap());
 
         self.wait_ready().await?;
         {
-            let _cs = Cs::new(&mut self.cs).map_err(CS)?;
+            let _cs = Cs::new(&mut self.cs).map_err(Error::CS)?;
             for chunk in command.chunks(2) {
                 let mut xfer: [u8; 2] = [0; 2];
                 xfer[1] = chunk[0];
@@ -292,8 +290,8 @@ where
         spi: &mut SPI,
         rx: &mut [u8],
         _tx: &[u8],
-    ) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
-        spi.transfer(rx).map_err(SPI)?;
+    ) -> Result<(), Error<SPI::Error, CS::Error, RESET::Error, READY::Error>> {
+        spi.transfer_in_place(rx).await.map_err(Error::SPI)?;
         Ok(())
     }
 
@@ -301,16 +299,16 @@ where
         &'a mut self,
         response: &'a mut [u8],
         min_len: usize,
-    ) -> Result<&'a [u8], Error<E, CS::Error, RESET::Error, READY::Error>> {
+    ) -> Result<&'a [u8], Error<SPI::Error, CS::Error, RESET::Error, READY::Error>> {
         let mut pos = 0;
 
         //trace!("Awaiting response ready");
         self.wait_ready().await?;
         //trace!("Response ready... reading");
 
-        let _cs = Cs::new(&mut self.cs).map_err(CS)?;
+        let _cs = Cs::new(&mut self.cs).map_err(Error::CS)?;
 
-        while self.ready.is_high().map_err(READY)? && response.len() - pos > 0 {
+        while self.ready.is_high().map_err(Error::READY)? && response.len() - pos > 0 {
             //trace!("Receive pos({}), len({})", pos, response.len());
 
             let mut xfer: [u8; 2] = [0x0A, 0x0A];
@@ -327,7 +325,7 @@ where
 
         // Flush data
         let mut count = 0;
-        while self.ready.is_high().map_err(READY)? {
+        while self.ready.is_high().map_err(Error::READY)? {
             if count % 10000 == 0 {
                 break;
             }
@@ -350,14 +348,13 @@ where
     }
 }
 
-impl<SPI, CS, RESET, WAKEUP, READY, E> WifiSupplicant for EsWifi<SPI, CS, RESET, WAKEUP, READY, E>
+impl<SPI, CS, RESET, WAKEUP, READY> WifiSupplicant for EsWifi<SPI, CS, RESET, WAKEUP, READY>
 where
-    SPI: Transfer<u8, Error = E>,
+    SPI: SpiBus<u8>,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
     READY: InputPin + Wait + 'static,
-    E: 'static,
 {
     type JoinFuture<'m> = impl Future<Output = Result<IpAddr, JoinError>> + 'm
     where
@@ -372,14 +369,13 @@ where
     }
 }
 
-impl<SPI, CS, RESET, WAKEUP, READY, E> TcpClientStack for EsWifi<SPI, CS, RESET, WAKEUP, READY, E>
+impl<SPI, CS, RESET, WAKEUP, READY> TcpClientStack for EsWifi<SPI, CS, RESET, WAKEUP, READY>
 where
-    SPI: Transfer<u8, Error = E>,
+    SPI: SpiBus<u8>,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
     READY: InputPin + Wait + 'static,
-    E: 'static,
 {
     type TcpSocket = u8;
     type Error = TcpError;
@@ -470,13 +466,14 @@ where
             self.send_string(command!(8, "P0={}", handle), &mut response)
                 .await
                 .map_err(|_| TcpError::WriteError)?;
+            const MAX_RETRIES: usize = 10;
+            let mut retries = 0;
             while remaining > 0 {
                 // info!("Writing buf with len {}", len);
 
                 let to_send = core::cmp::min(1460, remaining);
                 trace!("Writing {} bytes to adapter", to_send);
 
-                remaining -= to_send;
                 async {
                     let mut prefix = command!(16, "S3={}", to_send).into_bytes();
 
@@ -487,10 +484,18 @@ where
                         (&prefix[..], &buf[1..to_send])
                     };
 
-                    self.wait_ready().await.map_err(|_| TcpError::WriteError)?;
+                    self.wait_ready().await.map_err(|_| {
+                        info!("Error waiting ready");
+                        TcpError::WriteError
+                    })?;
 
                     {
-                        let _cs = Cs::new(&mut self.cs).map_err(|_| TcpError::WriteError)?;
+                        let _cs = Cs::new(&mut self.cs).map_err(|_| {
+                            info!("Error setting CS");
+                            TcpError::WriteError
+                        })?;
+
+                        info!("Writing prefix of {} bytes", prefix.len());
                         for chunk in prefix.chunks(2) {
                             let mut xfer: [u8; 2] = [0; 2];
                             xfer[1] = chunk[0];
@@ -505,9 +510,13 @@ where
 
                             Self::spi_transfer(&mut self.spi, &mut xfer, &[a, b])
                                 .await
-                                .map_err(|_| TcpError::WriteError)?;
+                                .map_err(|_| {
+                                    info!("Error during prefix transfer");
+                                    TcpError::WriteError
+                                })?;
                         }
 
+                        info!("Writing data of {} bytes", data.len());
                         for chunk in data.chunks(2) {
                             let mut xfer: [u8; 2] = [0; 2];
                             xfer[1] = chunk[0];
@@ -522,20 +531,31 @@ where
 
                             Self::spi_transfer(&mut self.spi, &mut xfer, &[a, b])
                                 .await
-                                .map_err(|_| TcpError::WriteError)?;
+                                .map_err(|_| {
+                                    info!("Error during full transfer");
+                                    TcpError::WriteError
+                                })?;
                         }
                     }
 
-                    let response = self
-                        .receive(&mut response, 0)
-                        .await
-                        .map_err(|_| TcpError::WriteError)?;
+                    let response = self.receive(&mut response, 0).await.map_err(|_| {
+                        info!("Error receiving resopnse");
+                        TcpError::WriteError
+                    })?;
 
                     if let Ok((_, WriteResponse::Ok(len))) = parser::write_response(response) {
+                        remaining -= to_send;
                         Ok(len)
                     } else {
-                        //info!("response:  {:?}", core::str::from_utf8(&response).unwrap());
-                        Err(TcpError::WriteError)
+                        info!("Error reading response");
+                        info!("response:  {:?}", core::str::from_utf8(&response).unwrap());
+                        if retries < MAX_RETRIES {
+                            info!("Trying again");
+                            retries += 1;
+                            Ok(0)
+                        } else {
+                            Err(TcpError::WriteError)
+                        }
                     }
                 }
                 .await?;
@@ -570,7 +590,7 @@ where
                         .map_err(|_| TcpError::ReadError)?;
 
                     /*
-                    self.send_string(&command!(8, "R2=1000"), &mut response)
+                    self.send_string(&command!(8, "R2=10000"), &mut response)
                         .await
                         .map_err(|_| TcpError::ReadError)?;
                     */
@@ -692,14 +712,13 @@ where
 use core::task::Waker;
 use embassy_net::{Device, DeviceCapabilities, LinkState, PacketBuf, MTU};
 
-impl<SPI, CS, RESET, WAKEUP, READY, E> Device for EsWifi<SPI, CS, RESET, WAKEUP, READY, E>
+impl<SPI, CS, RESET, WAKEUP, READY> Device for EsWifi<SPI, CS, RESET, WAKEUP, READY>
 where
-    SPI: Transfer<u8, Error = E>,
+    SPI: SpiBus<u8>,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
     READY: InputPin + Wait + 'static,
-    E: 'static,
 {
     fn is_transmit_ready(&mut self) -> bool {
         todo!()

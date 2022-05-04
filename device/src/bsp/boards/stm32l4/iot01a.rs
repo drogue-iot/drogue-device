@@ -3,13 +3,13 @@ use crate::drivers::button::Button;
 use crate::drivers::led::{ActiveHigh, ActiveLow, Led};
 pub use crate::drivers::wifi::eswifi::AdapterMode;
 use crate::drivers::wifi::eswifi::EsWifi as EsWifiController;
-use embassy_stm32::dma::NoDma;
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
 use embassy_stm32::i2c;
 use embassy_stm32::interrupt;
 use embassy_stm32::peripherals::{
-    DMA1_CH4, DMA1_CH5, I2C2, PA5, PB13, PB14, PC13, PD15, PE0, PE1, PE8, RNG, SPI3,
+    DMA1_CH4, DMA1_CH5, DMA2_CH1, DMA2_CH2, I2C2, PA5, PB13, PB14, PC13, PD15, PE0, PE1, PE8, RNG,
+    SPI3,
 };
 use embassy_stm32::rcc::{AHBPrescaler, ClockSrc, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv};
 use embassy_stm32::rng;
@@ -36,10 +36,10 @@ pub type WifiWake = Output<'static, PB13>;
 pub type WifiReset = Output<'static, PE8>;
 pub type WifiCs = Output<'static, PE0>;
 pub type WifiReady = ExtiInput<'static, PE1>;
-type SPI = spi::Spi<'static, SPI3, NoDma, NoDma>; // DMA2_CH2, DMA2_CH1>;
+type SPI = spi::Spi<'static, SPI3, DMA2_CH2, DMA2_CH1>;
 type SpiError = spi::Error;
 
-pub type EsWifi = EsWifiController<SPI, WifiCs, WifiReset, WifiWake, WifiReady, SpiError>;
+pub type EsWifi = EsWifiController<SPI, WifiCs, WifiReset, WifiWake, WifiReady>;
 
 pub struct Iot01a {
     pub led_blue: LedBlue,
@@ -93,8 +93,8 @@ impl Board for Iot01a {
             p.PC10,
             p.PC12,
             p.PC11,
-            NoDma,
-            NoDma,
+            p.DMA2_CH2,
+            p.DMA2_CH1,
             Hertz(100_000),
             spi::Config::default(),
         );

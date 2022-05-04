@@ -225,7 +225,7 @@ mod tls {
                 match socket.connect(remote).await {
                     Ok(_) => {
                         trace!("Connection established");
-                        let config = TlsConfig::new().with_server_name(host);
+                        let config = TlsConfig::new().with_server_name("localhost");
                         let mut tls: TlsConnection<'a, Socket<A>, CipherSuite> =
                             TlsConnection::new(socket, buffer);
                         // FIXME: support configuring cert size when verification is supported on ARM Cortex M
