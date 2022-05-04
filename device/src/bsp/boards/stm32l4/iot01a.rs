@@ -1,6 +1,7 @@
 use crate::bsp::Board;
 use crate::drivers::button::Button;
 use crate::drivers::led::{ActiveHigh, ActiveLow, Led};
+pub use crate::drivers::wifi::eswifi::AdapterMode;
 use crate::drivers::wifi::eswifi::EsWifi as EsWifiController;
 use embassy_stm32::dma::NoDma;
 use embassy_stm32::exti::ExtiInput;

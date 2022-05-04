@@ -8,7 +8,7 @@ version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7fc95d1bdb8e6666b2b217308eeeb09f2d6728d104be3e31916cc74d15420331"
 dependencies = [
- "generic-array",
+ "generic-array 0.14.5",
 ]
 
 [[package]]
@@ -78,12 +78,45 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 
 [[package]]
+name = "as-slice"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45403b49e3954a4b8428a0ac21a4b7afadccf92bfd96273f1a58cd4812496ae0"
+dependencies = [
+ "generic-array 0.12.4",
+ "generic-array 0.13.3",
+ "generic-array 0.14.5",
+ "stable_deref_trait",
+]
+
+[[package]]
+name = "as-slice"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "516b6b4f0e40d50dcda9365d53964ec74560ad4284da2e7fc97122cd83174516"
+dependencies = [
+ "stable_deref_trait",
+]
+
+[[package]]
 name = "atomic-polyfill"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e14bf7b4f565e5e717d7a7a65b2a05c0b8c96e4db636d6f780f03b15108cdd1b"
 dependencies = [
  "critical-section",
+]
+
+[[package]]
+name = "atomic-pool"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b407ed6d721feca5f9432fcd24dec6857debbc8f5d86a75538d871ee85b8b1f"
+dependencies = [
+ "as-slice 0.1.5",
+ "as-slice 0.2.1",
+ "atomic-polyfill",
+ "stable_deref_trait",
 ]
 
 [[package]]
@@ -154,7 +187,7 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4152116fd6e9dadb291ae18fc1ec3575ed6d84c29642d97890f4b4a3417297e4"
 dependencies = [
- "generic-array",
+ "generic-array 0.14.5",
 ]
 
 [[package]]
@@ -204,7 +237,7 @@ version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12f8e7987cbd042a63249497f41aed09f8e65add917ea6566effbc56578d6801"
 dependencies = [
- "generic-array",
+ "generic-array 0.14.5",
 ]
 
 [[package]]
@@ -378,7 +411,7 @@ version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03c6a1d5fa1de37e071642dfa44ec552ca5b299adb128fab16138e24b548fd21"
 dependencies = [
- "generic-array",
+ "generic-array 0.14.5",
  "rand_core",
  "subtle",
  "zeroize",
@@ -390,7 +423,7 @@ version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bff07008ec701e8028e2ceb8f83f0e4274ee62bd2dbdc4fefff2e9a91824081a"
 dependencies = [
- "generic-array",
+ "generic-array 0.14.5",
  "subtle",
 ]
 
@@ -492,7 +525,7 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3dd60d1080a57a05ab032377049e0591415d2b31afd7028356dbf3cc6dcb066"
 dependencies = [
- "generic-array",
+ "generic-array 0.14.5",
 ]
 
 [[package]]
@@ -504,7 +537,7 @@ dependencies = [
  "embassy",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.7",
- "embedded-hal-async",
+ "embedded-hal-async 0.0.1",
  "futures",
 ]
 
@@ -519,10 +552,11 @@ dependencies = [
  "drogue-actor",
  "drogue-device-macros",
  "embassy",
+ "embassy-net",
  "embassy-stm32",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.7",
- "embedded-hal-async",
+ "embedded-hal-async 0.0.1",
  "embedded-nal",
  "embedded-nal-async",
  "embedded-storage",
@@ -557,7 +591,7 @@ dependencies = [
  "embassy",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.7",
- "embedded-hal-async",
+ "embedded-hal-async 0.0.1",
  "embedded-nal-async",
  "embedded-tls",
  "heapless",
@@ -582,7 +616,7 @@ dependencies = [
  "crypto-bigint",
  "der",
  "ff",
- "generic-array",
+ "generic-array 0.14.5",
  "group",
  "rand_core",
  "sec1",
@@ -593,7 +627,6 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
 dependencies = [
  "atomic-polyfill",
  "cfg-if",
@@ -602,7 +635,7 @@ dependencies = [
  "defmt",
  "embassy-macros",
  "embedded-hal 0.2.7",
- "embedded-hal-async",
+ "embedded-hal-async 0.1.0-alpha.0",
  "futures",
  "heapless",
  "pin-project",
@@ -611,7 +644,6 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
 dependencies = [
  "cortex-m",
  "embassy",
@@ -622,7 +654,6 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -631,9 +662,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "embassy-net"
+version = "0.1.0"
+dependencies = [
+ "as-slice 0.2.1",
+ "atomic-pool",
+ "embassy",
+ "futures",
+ "generic-array 0.14.5",
+ "heapless",
+ "managed",
+ "smoltcp",
+ "stable_deref_trait",
+]
+
+[[package]]
 name = "embassy-stm32"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
 dependencies = [
  "atomic-polyfill",
  "bare-metal 1.0.0",
@@ -647,8 +692,10 @@ dependencies = [
  "embassy-hal-common",
  "embassy-macros",
  "embedded-hal 0.2.7",
- "embedded-hal 1.0.0-alpha.7",
- "embedded-hal-async",
+ "embedded-hal 1.0.0-alpha.8",
+ "embedded-hal-async 0.1.0-alpha.0",
+ "embedded-storage",
+ "embedded-storage-async",
  "futures",
  "nb 1.0.0",
  "proc-macro2",
@@ -679,11 +726,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-hal"
+version = "1.0.0-alpha.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3babfc7fd332142a0b11aebf592992f211f4e01b6222fb04b03aba1bd80018d"
+dependencies = [
+ "nb 1.0.0",
+]
+
+[[package]]
 name = "embedded-hal-async"
 version = "0.0.1"
 source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy2#bc0e0ca74a64d65d1b6c994f186bb89eeb364965"
 dependencies = [
  "embedded-hal 1.0.0-alpha.7",
+]
+
+[[package]]
+name = "embedded-hal-async"
+version = "0.1.0-alpha.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b9f684248ddba6d9f33c40386e7d8954ec13ad3c49705af3264cf995cce5abd"
+dependencies = [
+ "embedded-hal 1.0.0-alpha.8",
 ]
 
 [[package]]
@@ -732,7 +797,7 @@ dependencies = [
  "aes-gcm",
  "defmt",
  "digest",
- "generic-array",
+ "generic-array 0.14.5",
  "heapless",
  "hkdf",
  "hmac",
@@ -852,6 +917,24 @@ dependencies = [
  "futures-task",
  "pin-project-lite",
  "pin-utils",
+]
+
+[[package]]
+name = "generic-array"
+version = "0.12.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ffdf9f34f1447443d37393cc6c2b8313aebddcd96906caf34e54c68d8e57d7bd"
+dependencies = [
+ "typenum",
+]
+
+[[package]]
+name = "generic-array"
+version = "0.13.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f797e67af32588215eaaab8327027ee8e71b9dd0b2b26996aedf20c030fce309"
+dependencies = [
+ "typenum",
 ]
 
 [[package]]
@@ -1050,6 +1133,12 @@ checksum = "abb12e687cfb44aa40f41fc3978ef76448f9b6038cad6aef4259d3c095a2382e"
 dependencies = [
  "cfg-if",
 ]
+
+[[package]]
+name = "managed"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ca88d725a0a943b096803bd34e73a4437208b6077654cc4ecb2947a5f91618d"
 
 [[package]]
 name = "memchr"
@@ -1373,7 +1462,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08da66b8b0965a5555b6bd6639e68ccba85e1e2506f5fbb089e93f8a04e1a2d1"
 dependencies = [
  "der",
- "generic-array",
+ "generic-array 0.14.5",
  "subtle",
  "zeroize",
 ]
@@ -1485,6 +1574,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "smoltcp"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2308a1657c8db1f5b4993bab4e620bdbe5623bd81f254cf60326767bb243237"
+dependencies = [
+ "bitflags",
+ "byteorder",
+ "managed",
+]
+
+[[package]]
 name = "spin"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1517,7 +1617,6 @@ dependencies = [
 [[package]]
 name = "stm32-metapac"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
@@ -1528,7 +1627,6 @@ dependencies = [
 [[package]]
 name = "stm32-metapac-gen"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
 dependencies = [
  "chiptool",
  "proc-macro2",
@@ -1636,7 +1734,7 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f214e8f697e925001e66ec2c6e37a4ef93f0f78c2eed7814394e10c62025b05"
 dependencies = [
- "generic-array",
+ "generic-array 0.14.5",
  "subtle",
 ]
 

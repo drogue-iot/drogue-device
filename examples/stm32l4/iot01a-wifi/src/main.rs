@@ -42,7 +42,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let board = Iot01a::new(p);
     let mut wifi = board.wifi;
 
-    match wifi.start().await {
+    match wifi.start(AdapterMode::Ethernet).await {
         Ok(()) => defmt::info!("Started..."),
         Err(err) => defmt::info!("Error... {}", err),
     }

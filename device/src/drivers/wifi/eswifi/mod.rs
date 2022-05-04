@@ -31,6 +31,11 @@ pub enum Error<SPI, CS, RESET, READY> {
     Transmitting,
 }
 
+pub enum AdapterMode {
+    TcpIp,
+    Ethernet,
+}
+
 use Error::*;
 const NAK: u8 = 0x15;
 
@@ -131,7 +136,10 @@ where
         Ok(())
     }
 
-    pub async fn start(&mut self) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
+    pub async fn start(
+        &mut self,
+        mode: AdapterMode,
+    ) -> Result<(), Error<E, CS::Error, RESET::Error, READY::Error>> {
         info!("Starting eS-WiFi adapter!");
 
         self.reset().await;
@@ -178,6 +186,19 @@ where
             // disable verbosity
             let mut resp = [0; 16];
             self.send_string(command!(8, "MT=1"), &mut resp).await?;
+            self.send_string(
+                command!(
+                    8,
+                    "PR={}",
+                    match mode {
+                        AdapterMode::TcpIp => 0,
+                        AdapterMode::Ethernet => 1,
+                    }
+                ),
+                &mut resp,
+            )
+            .await?;
+            info!("Response: {:?}", resp);
             //self.state = State::Ready;
             info!("eS-WiFi adapter is ready");
         }
@@ -665,5 +686,42 @@ where
                 Err(TcpError::CloseError)
             }
         }
+    }
+}
+
+use core::task::Waker;
+use embassy_net::{Device, DeviceCapabilities, LinkState, PacketBuf, MTU};
+
+impl<SPI, CS, RESET, WAKEUP, READY, E> Device for EsWifi<SPI, CS, RESET, WAKEUP, READY, E>
+where
+    SPI: Transfer<u8, Error = E>,
+    CS: OutputPin + 'static,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
+    READY: InputPin + Wait + 'static,
+    E: 'static,
+{
+    fn is_transmit_ready(&mut self) -> bool {
+        todo!()
+    }
+
+    fn transmit(&mut self, _: PacketBuf) {
+        todo!()
+    }
+
+    fn receive(&mut self) -> Option<PacketBuf> {
+        todo!()
+    }
+    fn register_waker(&mut self, _: &Waker) {
+        todo!()
+    }
+    fn capabilities(&mut self) -> DeviceCapabilities {
+        todo!()
+    }
+    fn link_state(&mut self) -> LinkState {
+        todo!()
+    }
+    fn ethernet_address(&mut self) -> [u8; 6] {
+        todo!()
     }
 }
