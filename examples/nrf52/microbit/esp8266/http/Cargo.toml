@@ -18,7 +18,7 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 rand_core = { version = "0.6.2", default-features = false }
 
 drogue-device = { path = "../../../../../device", features = ["bsp+microbit+temp", "wifi+esp8266", "defmt", "time"], default-features = false }
-drogue-tls = { version = "0.5.0", default-features = false, features = ["async", "defmt"], optional = true}
+embedded-tls = { version = "0.6.0", default-features = false, features = ["async", "defmt"], optional = true}
 #drogue-tls = {path = "../../../drogue-tls", default-features = false, optional = true}
 drogue-temperature = { path = "../../../../apps/temperature", features = ["defmt"], default-features = false }
 cortex-m-rt = "0.6"
@@ -31,4 +31,4 @@ embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf528
 cfg-if = "1.0.0"
 
 [features]
-tls = ["drogue-tls", "drogue-device/tls", "drogue-temperature/tls"]
+tls = ["embedded-tls", "drogue-device/tls", "drogue-temperature/tls"]

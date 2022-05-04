@@ -17,7 +17,7 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 drogue-device = { path = "../../../../device", features = ["defmt", "tcp+smoltcp", "tls", "bsp+nucleo_h743zi"], default-features = false }
-drogue-tls = { version = "0.5.0", default-features = false, features = ["async", "defmt"]}
+embedded-tls = { version = "0.6.0", default-features = false, features = ["async", "defmt"]}
 drogue-temperature = { path = "../../../apps/temperature", features = ["defmt", "tls"], default-features = false}
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["inline-asm"] }

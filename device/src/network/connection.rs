@@ -18,7 +18,7 @@ pub trait ConnectionFactory: Sized {
 pub enum NetworkError {
     Tcp(TcpError),
     #[cfg(feature = "tls")]
-    Tls(drogue_tls::TlsError),
+    Tls(embedded_tls::TlsError),
 }
 
 pub trait NetworkConnection {
@@ -107,8 +107,8 @@ mod tls {
     use core::cell::UnsafeCell;
     use core::future::Future;
     use core::mem::MaybeUninit;
-    use drogue_tls::{NoClock, TlsCipherSuite, TlsConfig, TlsConnection, TlsContext, TlsError};
     use embedded_nal_async::{SocketAddr, TcpClientStack};
+    use embedded_tls::{NoClock, TlsCipherSuite, TlsConfig, TlsConnection, TlsContext, TlsError};
     use rand_core::{CryptoRng, RngCore};
 
     use atomic_polyfill::{AtomicBool, Ordering};

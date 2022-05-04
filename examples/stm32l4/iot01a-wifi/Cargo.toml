@@ -27,7 +27,7 @@ cortex-m = "0.7"
 
 # embassy = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features=["defmt"] }
 # embassy-stm32 = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features = ["defmt", "stm32l432kc"] }
-drogue-tls = { version = "0.5.0", default-features = false, features = ["async", "defmt"], optional = true}
+embedded-tls = { version = "0.6.0", default-features = false, features = ["async", "defmt"], optional = true}
 # drogue-tls = {path = "../../../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
 cfg-if = "1.0.0"
 
@@ -42,7 +42,7 @@ embedded-hal = { version = "0.2.4", features = ["unproven"] }
 default = [
     "b-l4s5i-iot01a",
 ]
-tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls", "drogue-temperature/tls"]
+tls = ["embedded-tls", "embedded-tls/defmt", "drogue-device/tls", "drogue-temperature/tls"]
 b-l4s5i-iot01a = ["embassy-stm32/stm32l4s5vi", "drogue-device/bsp+b_l4s5i_iot01a"]
 b-l475e-iot01a = ["embassy-stm32/stm32l475vg", "drogue-device/bsp+b_l475e_iot01a"]
 

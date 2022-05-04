@@ -39,7 +39,7 @@ embedded-nal = "0.6.0"
 embedded-nal-async = "0.1.0"
 
 # TLS dependency
-drogue-tls = { version = "0.5.0", default-features = false, features = ["async"], optional = true}
+embedded-tls = { version = "0.6.0", default-features = false, features = ["async"], optional = true}
 #drogue-tls = {path = "../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
 rand_core = { version = "0.6.2", default-features = false }
 rand = { version = "0.8.4", default-features = false, features = ["small_rng"], optional = true }
@@ -112,7 +112,7 @@ time = []
 lora = ["embassy-lora", "lorawan-device", "lorawan-encoding", "embassy/time"]
 wifi = []
 mqtt = ["rust-mqtt"]
-tls = ["drogue-tls"]
+tls = ["embedded-tls"]
 dfu = ["embassy-boot", "cortex-m", "postcard", "serde"]
 ble = [
     "p256",

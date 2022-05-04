@@ -23,7 +23,7 @@ cortex-m-rt = "0.7"
 cortex-m = "0.7"
 
 drogue-blinky-app = { path = "../../../apps/blinky" }
-drogue-tls = { version = "0.5.0", default-features = false, features = ["async", "defmt"], optional = true}
+embedded-tls = { version = "0.6.0", default-features = false, features = ["async", "defmt"], optional = true}
 cfg-if = "1.0.0"
 
 atomic-polyfill = "0.1"
@@ -37,6 +37,6 @@ embedded-hal = { version = "0.2.4", features = ["unproven"] }
 default = [
     "b-u585i-iot02a",
 ]
-tls = ["drogue-tls", "drogue-tls/defmt", "drogue-device/tls"]
+tls = ["embedded-tls", "embedded-tls/defmt", "drogue-device/tls"]
 b-u585i-iot02a = ["embassy-stm32/stm32u585ai"]
 
