@@ -47,13 +47,13 @@ curl -s https://raw.githubusercontent.com/drogue-iot/drogue-device/main/apps/dro
 To run the firmware using a given chip:
 
 ....
-PROBE_RUN_CHIP=STM32L4S5VI cargo run --release --features b-l4s5i-iot01a
+PROBE_RUN_CHIP=STM32L4S5VI cargo run --release --features b-l4s5i-iot01a --no-default-features
 ....
 
 If you have the B-475E-IOT01A board, use the following parameters:
 
 ....
-PROBE_RUN_CHIP=STM32L475VG cargo run --release --features b-l475e-iot01a
+PROBE_RUN_CHIP=STM32L475VG cargo run --release --features b-l475e-iot01a --no-default-features
 ....
 
 
@@ -64,13 +64,13 @@ When the `tls` flag is enabled, the example is configured to use the Drogue IoT 
 To run the firmware using a given chip:
 
 ....
-PROBE_RUN_CHIP=STM32L4S5VI cargo run --release --features b-l4s5i-iot01a,tls
+DEFMT_LOG=info PROBE_RUN_CHIP=STM32L4S5VI cargo run --release --features b-l4s5i-iot01a,tls --no-default-features
 ....
 
 If you have the B-475E-IOT01A board, use the following parameters:
 
 ....
-PROBE_RUN_CHIP=STM32L475VG cargo run --release --features b-l475e-iot01a,tls
+DEFMT_LOG=info PROBE_RUN_CHIP=STM32L475VG cargo run --release --features b-l475e-iot01a,tls --no-default-features
 ....
 
 == Troubleshooting

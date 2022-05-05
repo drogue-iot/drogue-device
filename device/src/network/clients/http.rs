@@ -46,6 +46,7 @@ where
         request: Request<'m>,
         rx_buf: &'m mut [u8],
     ) -> Result<Response<'m>, Error> {
+        debug!("Resolving {}:{}", self.host, self.port);
         let ip = self
             .dns_resolver
             .get_host_by_name(self.host, AddrType::IPv4)
@@ -56,7 +57,7 @@ where
             .connect(self.host, SocketAddr::new(ip, self.port))
             .await?;
 
-        info!("Connected to {}:{}", self.host, self.port);
+        debug!("Connected to {}:{}", self.host, self.port);
 
         let mut combined: String<128> = String::new();
         write!(combined, "{}:{}", self.username, self.password).unwrap();
