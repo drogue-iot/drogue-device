@@ -228,3 +228,18 @@ where
         }
     }
 }
+
+#[cfg(feature = "nrf-softdevice")]
+impl FirmwareConfig for nrf_softdevice::Flash {
+    type STATE = nrf_softdevice::Flash;
+    type DFU = nrf_softdevice::Flash;
+    const BLOCK_SIZE: usize = 4096;
+
+    fn state(&mut self) -> &mut Self::STATE {
+        self
+    }
+
+    fn dfu(&mut self) -> &mut Self::DFU {
+        self
+    }
+}
