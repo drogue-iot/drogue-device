@@ -12,13 +12,13 @@ use embassy_stm32::peripherals::{PA0, PA1, PB11, PB15, PB9, PC6, RNG};
 use embassy_stm32::subghz::*;
 
 pub type PinLedBlue = Output<'static, PB15>;
-pub type LedBlue = Led<PinLedBlue, ActiveHigh>;
+pub type LedBlue = Led<PinLedBlue, ActiveLow>;
 
 pub type PinLedGreen = Output<'static, PB9>;
-pub type LedGreen = Led<PinLedGreen, ActiveHigh>;
+pub type LedGreen = Led<PinLedGreen, ActiveLow>;
 
 pub type PinLedYellow = Output<'static, PB11>;
-pub type LedYellow = Led<PinLedYellow, ActiveHigh>;
+pub type LedYellow = Led<PinLedYellow, ActiveLow>;
 
 pub type PinUserButtonB1 = Input<'static, PA0>;
 pub type UserButtonB1 = Button<ExtiInput<'static, PA0>>;
