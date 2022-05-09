@@ -12,7 +12,7 @@ pub struct EnvironmentSensingService {
     pub temperature: i16,
 
     #[characteristic(uuid = "2a21", read, write)]
-    pub period: u16,
+    pub period: u8,
 }
 
 pub struct MeasurementDescriptor {
