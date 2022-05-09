@@ -115,6 +115,7 @@ where
             self.render();
             Timer::after(REFRESH_INTERVAL).await;
         }
+        self.clear();
     }
 
     pub async fn scroll(&mut self, text: &str) {
@@ -143,6 +144,7 @@ where
             self.render();
             Timer::after(REFRESH_INTERVAL).await;
         }
+        self.clear();
     }
 
     pub async fn animate_frames(
@@ -166,6 +168,7 @@ where
             self.render();
             Timer::after(REFRESH_INTERVAL).await;
         }
+        self.clear();
     }
 }
 
