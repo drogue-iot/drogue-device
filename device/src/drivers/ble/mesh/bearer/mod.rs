@@ -1,6 +1,7 @@
 #[cfg(feature = "ble+nrf52840")]
 pub mod nrf52;
 
+/*
 use core::future::Future;
 
 pub trait Handler: Sized {
@@ -29,3 +30,5 @@ pub trait Bearer {
 
     fn transmit<'m>(&'m self, message: &'m [u8]) -> Self::TransmitFuture<'m>;
 }
+
+ */

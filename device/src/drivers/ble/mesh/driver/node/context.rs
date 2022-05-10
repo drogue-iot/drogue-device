@@ -3,11 +3,12 @@ use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::composition::{Composition, ElementsHandler};
 use crate::drivers::ble::mesh::config::network::NetworkDetails;
 use crate::drivers::ble::mesh::config::Configuration;
+use crate::drivers::ble::mesh::crypto;
 use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::elements::{ElementContext, PrimaryElementContext};
 use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
-use crate::drivers::ble::mesh::driver::node::{Node, Receiver, Transmitter};
+use crate::drivers::ble::mesh::driver::node::{Node, State};
 use crate::drivers::ble::mesh::driver::pipeline::mesh::{MeshContext, NetworkRetransmitDetails};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::LowerContext;
@@ -20,15 +21,13 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::ProvisionedContext
 use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::provisionable::UnprovisionedContext;
 use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::interface::{NetworkInterfaces, PDU};
 #[cfg(feature = "ble-mesh-relay")]
 use crate::drivers::ble::mesh::model::foundation::configuration::relay::Relay;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
-use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
-use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use crate::drivers::ble::mesh::provisioning::ProvisioningData;
 use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::vault::Vault;
-use crate::drivers::ble::mesh::{crypto, MESH_MESSAGE};
 use aes::Aes128;
 use cmac::crypto_mac::Output;
 use cmac::Cmac;
@@ -43,11 +42,10 @@ use rand_core::{CryptoRng, RngCore};
 // Unprovisioned pipeline context
 // ------------------------------------------------------------------------
 
-impl<'a, E, TX, RX, S, R> UnprovisionedContext for Node<'a, E, TX, RX, S, R>
+impl<'a, E, N, S, R> UnprovisionedContext for Node<'a, E, N, S, R>
 where
     E: ElementsHandler<'a>,
-    TX: Transmitter,
-    RX: Receiver,
+    N: NetworkInterfaces,
     S: Storage,
     R: RngCore + CryptoRng,
 {
@@ -79,7 +77,9 @@ where
         async move {
             self.vault()
                 .set_provisioning_data(provisioning_salt, data)
-                .await
+                .await?;
+            self.state.replace(State::Provisioned);
+            Ok(())
         }
     }
 
@@ -124,11 +124,10 @@ where
     }
 }
 
-impl<'a, E, TX, RX, S, R> MeshContext for Node<'a, E, TX, RX, S, R>
+impl<'a, E, N, S, R> MeshContext for Node<'a, E, N, S, R>
 where
     E: ElementsHandler<'a>,
-    TX: Transmitter,
-    RX: Receiver,
+    N: NetworkInterfaces,
     S: Storage,
     R: RngCore + CryptoRng,
 {
@@ -145,30 +144,13 @@ where
             .into()
     }
 
-    type TransmitAdvertisingFuture<'m> = impl Future<Output = Result<(), DeviceError>>
+    type TransmitFuture<'m> = impl Future<Output = Result<(), DeviceError>>
     where
         Self: 'm;
 
-    fn transmit_advertising_pdu<'m>(
-        &'m self,
-        pdu: AdvertisingPDU,
-    ) -> Self::TransmitAdvertisingFuture<'m> {
-        async move {
-            let mut bytes = Vec::<u8, 64>::new();
-            pdu.emit(&mut bytes)
-                .map_err(|_| DeviceError::InsufficientBuffer)?;
-            self.transmitter.transmit_bytes(&*bytes).await
-        }
-    }
-
-    type TransmitMeshFuture<'m> = impl Future<Output = Result<(), DeviceError>>
-    where
-        Self: 'm;
-
-    fn transmit_mesh_pdu<'m>(
-        &'m self,
-        pdu: &'m ObfuscatedAndEncryptedNetworkPDU,
-    ) -> Self::TransmitMeshFuture<'m> {
+    fn transmit<'m>(&'m self, pdu: &'m PDU) -> Self::TransmitFuture<'m> {
+        async move { Ok(self.network.transmit(pdu).await?) }
+        /*
         async move {
             let mut bytes = Vec::<u8, 64>::new();
             bytes
@@ -182,6 +164,7 @@ where
             bytes[0] = bytes.len() as u8 - 1;
             self.transmitter.transmit_bytes(&*bytes).await
         }
+         */
     }
 
     fn primary_unicast_address(&self) -> Result<UnicastAddress, DeviceError> {
@@ -210,23 +193,21 @@ where
 // Provisioned pipeline context
 // ------------------------------------------------------------------------
 
-impl<'a, E, TX, RX, S, R> ProvisionedContext for Node<'a, E, TX, RX, S, R>
+impl<'a, E, N, S, R> ProvisionedContext for Node<'a, E, N, S, R>
 where
     E: ElementsHandler<'a>,
+    N: NetworkInterfaces,
     R: CryptoRng + RngCore,
-    RX: Receiver,
     S: Storage,
-    TX: Transmitter,
 {
 }
 
-impl<'a, E, TX, RX, S, R> NetworkContext for Node<'a, E, TX, RX, S, R>
+impl<'a, E, N, S, R> NetworkContext for Node<'a, E, N, S, R>
 where
     E: ElementsHandler<'a>,
+    N: NetworkInterfaces,
     R: CryptoRng + RngCore,
-    RX: Receiver,
     S: Storage,
-    TX: Transmitter,
 {
     fn network_deadline(&self, deadline: Option<Instant>) {
         self.deadline.borrow_mut().network(deadline)
@@ -234,13 +215,12 @@ where
 }
 
 #[cfg(feature = "ble-mesh-relay")]
-impl<'a, E, TX, RX, S, R> RelayContext for Node<'a, E, TX, RX, S, R>
+impl<'a, E, N, S, R> RelayContext for Node<'a, E, N, S, R>
 where
     E: ElementsHandler<'a>,
+    N: NetworkInterfaces,
     R: CryptoRng + RngCore,
-    RX: Receiver,
     S: Storage,
-    TX: Transmitter,
 {
     #[cfg(feature = "ble-mesh-relay")]
     fn is_relay_enabled(&self) -> bool {
@@ -271,13 +251,12 @@ where
     }
 }
 
-impl<'a, E, TX, RX, S, R> AuthenticationContext for Node<'a, E, TX, RX, S, R>
+impl<'a, E, N, S, R> AuthenticationContext for Node<'a, E, N, S, R>
 where
     E: ElementsHandler<'a>,
+    N: NetworkInterfaces,
     R: CryptoRng + RngCore,
-    RX: Receiver,
     S: Storage,
-    TX: Transmitter,
 {
     fn iv_index(&self) -> Option<u32> {
         self.vault().iv_index()
@@ -292,13 +271,12 @@ where
     }
 }
 
-impl<'a, E, TX, RX, S, R> LowerContext for Node<'a, E, TX, RX, S, R>
+impl<'a, E, N, S, R> LowerContext for Node<'a, E, N, S, R>
 where
     E: ElementsHandler<'a>,
+    N: NetworkInterfaces,
     R: CryptoRng + RngCore,
-    RX: Receiver,
     S: Storage,
-    TX: Transmitter,
 {
     fn find_label_uuids_by_address(
         &self,
@@ -397,13 +375,12 @@ where
     }
 }
 
-impl<'a, E, TX, RX, S, R> UpperContext for Node<'a, E, TX, RX, S, R>
+impl<'a, E, N, S, R> UpperContext for Node<'a, E, N, S, R>
 where
     E: ElementsHandler<'a>,
+    N: NetworkInterfaces,
     R: CryptoRng + RngCore,
-    RX: Receiver,
     S: Storage,
-    TX: Transmitter,
 {
     fn publish_deadline(&self, deadline: Option<Instant>) {
         self.deadline.borrow_mut().publish(deadline);
@@ -416,13 +393,12 @@ where
     }
 }
 
-impl<'a, E, TX, RX, S, R> AccessContext for Node<'a, E, TX, RX, S, R>
+impl<'a, E, N, S, R> AccessContext for Node<'a, E, N, S, R>
 where
     E: ElementsHandler<'a>,
+    N: NetworkInterfaces,
     R: CryptoRng + RngCore,
-    RX: Receiver,
     S: Storage,
-    TX: Transmitter,
 {
     type DispatchFuture<'m> = impl Future<Output = Result<(), DeviceError>> + 'm
     where
@@ -433,23 +409,21 @@ where
     }
 }
 
-impl<'a, E, TX, RX, S, R> PipelineContext for Node<'a, E, TX, RX, S, R>
+impl<'a, E, N, S, R> PipelineContext for Node<'a, E, N, S, R>
 where
     E: ElementsHandler<'a>,
-    TX: Transmitter,
-    RX: Receiver,
+    N: NetworkInterfaces,
     S: Storage,
     R: RngCore + CryptoRng,
 {
 }
 
-impl<'a, E, TX, RX, S, R> ElementContext for Node<'a, E, TX, RX, S, R>
+impl<'a, E, N, S, R> ElementContext for Node<'a, E, N, S, R>
 where
     E: ElementsHandler<'a>,
+    N: NetworkInterfaces,
     R: CryptoRng + RngCore,
-    RX: Receiver,
     S: Storage,
-    TX: Transmitter,
 {
     type TransmitFuture<'m> = impl Future<Output = Result<(), DeviceError>> + 'm
     where
@@ -471,11 +445,10 @@ where
     }
 }
 
-impl<'a, E, TX, RX, S, R> PrimaryElementContext for Node<'a, E, TX, RX, S, R>
+impl<'a, E, N, S, R> PrimaryElementContext for Node<'a, E, N, S, R>
 where
     E: ElementsHandler<'a>,
-    TX: Transmitter,
-    RX: Receiver,
+    N: NetworkInterfaces,
     S: Storage,
     R: RngCore + CryptoRng,
 {

@@ -65,8 +65,8 @@ where
 
                 let _ = handler.try_notify(GattEvent::Disconnected(conn.clone()));
 
-                if let Err(e) = res {
-                    info!("gatt_server exited with error: {:?}", e);
+                if let Err(_e) = res {
+                    //info!("gatt_server exited with error: {:?}", e);
                 }
             }
         }

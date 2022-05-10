@@ -22,6 +22,7 @@ use drogue_device::drivers::ble::mesh::composition::{
 };
 use drogue_device::drivers::ble::mesh::driver::elements::{AppElementContext, AppElementsContext};
 use drogue_device::drivers::ble::mesh::driver::DeviceError;
+use drogue_device::drivers::ble::mesh::interface::pb_adv::AdvertisingOnlyNetworkInterfaces;
 use drogue_device::drivers::ble::mesh::model::generic::onoff::{
     GenericOnOffClient, GenericOnOffMessage, GenericOnOffServer, Set, GENERIC_ONOFF_CLIENT,
     GENERIC_ONOFF_SERVER,
@@ -59,7 +60,7 @@ use panic_reset as _;
 type ConcreteMeshNode = MeshNode<
     'static,
     CustomElementsHandler,
-    SoftdeviceAdvertisingBearer,
+    AdvertisingOnlyNetworkInterfaces<SoftdeviceAdvertisingBearer>,
     FlashStorage<Flash>,
     SoftdeviceRng,
 >;
@@ -178,7 +179,8 @@ async fn main(spawner: Spawner, p: Peripherals) {
     };
 
     device.facilities.mount(spawner, facilities);
-    let mesh_node = MeshNode::new(elements, capabilities, bearer, storage, rng);
+    let network = AdvertisingOnlyNetworkInterfaces::new(bearer);
+    let mesh_node = MeshNode::new(elements, capabilities, network, storage, rng);
     let mesh_node = device.mesh.put(mesh_node);
 
     static CONTROL: Channel<NodeMutex, MeshNodeMessage, 2> = Channel::new();

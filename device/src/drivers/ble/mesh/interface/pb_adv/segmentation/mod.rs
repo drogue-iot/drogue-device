@@ -2,26 +2,28 @@ use self::inbound::InboundSegments;
 use self::outbound::OutboundSegments;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::generic_provisioning::GenericProvisioningPDU;
+use crate::drivers::ble::mesh::interface::BearerError;
 use crate::drivers::ble::mesh::provisioning::ProvisioningPDU;
+use core::cell::RefCell;
 
 mod inbound;
 pub(crate) mod outbound;
 
 pub struct Segmentation {
-    inbound_segments: Option<InboundSegments>,
+    inbound_segments: RefCell<Option<InboundSegments>>,
 }
 
 impl Default for Segmentation {
     fn default() -> Self {
         Self {
-            inbound_segments: None,
+            inbound_segments: RefCell::new(None),
         }
     }
 }
 
 impl Segmentation {
     pub fn process_inbound(
-        &mut self,
+        &self,
         pdu: &GenericProvisioningPDU,
     ) -> Result<Option<ProvisioningPDU>, DeviceError> {
         match pdu {
@@ -30,23 +32,25 @@ impl Segmentation {
                     let pdu = ProvisioningPDU::parse(&*transaction_start.data)?;
                     Ok(Some(pdu))
                 } else {
-                    if let None = &mut self.inbound_segments {
+                    let mut borrowed_segments = self.inbound_segments.borrow_mut();
+                    if let None = *borrowed_segments {
                         if let Ok(segments) =
                             InboundSegments::new(transaction_start.seg_n, &transaction_start.data)
                         {
-                            self.inbound_segments.replace(segments);
+                            borrowed_segments.replace(segments);
                         }
                     }
                     Ok(None)
                 }
             }
             GenericProvisioningPDU::TransactionContinuation(transaction_continuation) => {
-                if let Some(segments) = &mut self.inbound_segments {
+                let mut borrowed_segments = self.inbound_segments.borrow_mut();
+                if let Some(segments) = &mut *borrowed_segments {
                     if let Ok(Some(provisioning_pdu)) = segments.receive(
                         transaction_continuation.segment_index,
                         &transaction_continuation.data,
                     ) {
-                        self.inbound_segments.take();
+                        borrowed_segments.take();
                         Ok(Some(provisioning_pdu))
                     } else {
                         Ok(None)
@@ -67,11 +71,8 @@ impl Segmentation {
         }
     }
 
-    pub fn process_outbound(
-        &mut self,
-        pdu: ProvisioningPDU,
-    ) -> Result<OutboundSegments, DeviceError> {
-        OutboundSegments::new(pdu)
+    pub fn process_outbound(&self, pdu: &ProvisioningPDU) -> Result<OutboundSegments, BearerError> {
+        OutboundSegments::new(pdu.clone())
     }
 }
 

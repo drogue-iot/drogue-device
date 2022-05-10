@@ -9,41 +9,26 @@ use crate::drivers::ble::mesh::driver::node::outbound::{
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
 use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
 use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::interface::{Beacon, NetworkInterfaces};
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
-use crate::drivers::ble::mesh::vault::{StorageVault, Vault};
-use crate::drivers::ble::mesh::MESH_BEACON;
+use crate::drivers::ble::mesh::vault::StorageVault;
 use core::cell::{Cell, RefCell};
-use core::future::Future;
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy::channel::DynamicReceiver as ChannelReceiver;
 use embassy::time::{Duration, Ticker};
 use embassy::util::{select3, Either3};
 use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt};
-use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
+//use crate::drivers::ble::mesh::model::foundation::configuration::ConfigurationMessage::Beacon;
 
 pub(crate) mod context;
 pub(crate) mod deadline;
 pub(crate) mod outbound;
 
 type NodeMutex = ThreadModeRawMutex;
-
-pub trait Transmitter {
-    type TransmitFuture<'m>: Future<Output = Result<(), DeviceError>>
-    where
-        Self: 'm;
-    fn transmit_bytes<'m>(&'m self, bytes: &'m [u8]) -> Self::TransmitFuture<'m>;
-}
-
-pub trait Receiver {
-    type ReceiveFuture<'m>: Future<Output = Result<Vec<u8, 384>, DeviceError>>
-    where
-        Self: 'm;
-    fn receive_bytes<'m>(&'m self) -> Self::ReceiveFuture<'m>;
-}
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum State {
@@ -57,19 +42,17 @@ pub enum MeshNodeMessage {
     Shutdown,
 }
 
-pub struct Node<'a, E, TX, RX, S, R>
+pub struct Node<'a, E, N, S, R>
 where
     E: ElementsHandler<'a>,
-    TX: Transmitter + 'a,
-    RX: Receiver + 'a,
+    N: NetworkInterfaces + 'a,
     S: Storage + 'a,
     R: RngCore + CryptoRng + 'a,
 {
     //
     state: Cell<State>,
     //
-    transmitter: TX,
-    receiver: RX,
+    network: N,
     configuration_manager: ConfigurationManager<S>,
     rng: RefCell<R>,
     pipeline: RefCell<Pipeline>,
@@ -79,26 +62,23 @@ where
     pub(crate) outbound: Outbound<'a>,
 }
 
-impl<'a, E, TX, RX, S, R> Node<'a, E, TX, RX, S, R>
+impl<'a, E, N, S, R> Node<'a, E, N, S, R>
 where
     E: ElementsHandler<'a>,
-    TX: Transmitter,
-    RX: Receiver,
+    N: NetworkInterfaces,
     S: Storage,
     R: RngCore + CryptoRng,
 {
     pub fn new(
         app_elements: E,
         capabilities: Capabilities,
-        transmitter: TX,
-        receiver: RX,
+        network: N,
         configuration_manager: ConfigurationManager<S>,
         rng: R,
     ) -> Self {
         Self {
             state: Cell::new(State::Unprovisioned),
-            transmitter,
-            receiver,
+            network,
             configuration_manager,
             rng: RefCell::new(rng),
             pipeline: RefCell::new(Pipeline::new(capabilities)),
@@ -152,9 +132,10 @@ where
     }
 
     async fn loop_unprovisioned(&self) -> Result<Option<State>, DeviceError> {
+        info!("unprovisioned");
         self.transmit_unprovisioned_beacon().await?;
 
-        let receive_fut = self.receiver.receive_bytes();
+        let receive_fut = self.network.receive();
 
         let mut ticker = Ticker::every(Duration::from_secs(3));
         let ticker_fut = ticker.next();
@@ -166,10 +147,7 @@ where
 
         match result {
             Either::Left((Ok(msg), _)) => {
-                self.pipeline
-                    .borrow_mut()
-                    .process_inbound(self, &*msg)
-                    .await
+                self.pipeline.borrow_mut().process_inbound(self, msg).await
             }
             Either::Right((_, _)) => {
                 self.transmit_unprovisioned_beacon().await?;
@@ -183,16 +161,12 @@ where
     }
 
     async fn transmit_unprovisioned_beacon(&self) -> Result<(), DeviceError> {
-        let mut adv_data: Vec<u8, 31> = Vec::new();
-        adv_data.extend_from_slice(&[20, MESH_BEACON, 0x00]).ok();
-        adv_data.extend_from_slice(&self.vault().uuid().0).ok();
-        adv_data.extend_from_slice(&[0xa0, 0x40]).ok();
-
-        self.transmitter.transmit_bytes(&*adv_data).await
+        Ok(self.network.beacon(Beacon::Unprovisioned).await?)
     }
 
     async fn loop_provisioning(&self) -> Result<Option<State>, DeviceError> {
-        let receive_fut = self.receiver.receive_bytes();
+        info!("provisioning");
+        let receive_fut = self.network.receive();
         let mut ticker = Ticker::every(Duration::from_secs(1));
         let ticker_fut = ticker.next();
 
@@ -203,13 +177,16 @@ where
 
         match result {
             Either::Left((Ok(inbound), _)) => {
-                self.pipeline
+                let next_state = self
+                    .pipeline
                     .borrow_mut()
-                    .process_inbound(self, &*inbound)
-                    .await
+                    .process_inbound(self, inbound)
+                    .await;
+                self.network.retransmit().await?;
+                next_state
             }
             Either::Right((_, _)) => {
-                self.pipeline.borrow_mut().try_retransmit(self).await?;
+                self.network.retransmit().await.ok();
                 Ok(None)
             }
             _ => {
@@ -222,7 +199,7 @@ where
     async fn loop_provisioned(&self) -> Result<Option<State>, DeviceError> {
         let mut deadline = self.deadline.borrow_mut();
         let deadline_fut = deadline.next();
-        let receive_fut = self.receiver.receive_bytes();
+        let receive_fut = self.network.receive();
         let outbound_fut = self.outbound.next();
 
         let result = select3(receive_fut, outbound_fut, deadline_fut).await;
@@ -233,7 +210,7 @@ where
             Either3::First(Ok(inbound)) => {
                 self.pipeline
                     .borrow_mut()
-                    .process_inbound(self, &*inbound)
+                    .process_inbound(self, inbound)
                     .await
             }
             Either3::Second(outbound) => match outbound {
@@ -311,6 +288,10 @@ where
         if self.configuration_manager.is_provisioned() {
             self.state.set(State::Provisioned);
             self.connect_elements();
+        } else {
+            if let Some(uuid) = self.configuration_manager.configuration().uuid() {
+                self.network.set_uuid(*uuid);
+            }
         }
 
         self.pipeline.borrow_mut().state(self.state.get());

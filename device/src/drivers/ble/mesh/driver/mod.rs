@@ -1,4 +1,4 @@
-use crate::drivers::ble::mesh::bearer::BearerError;
+use crate::drivers::ble::mesh::interface::NetworkError;
 use crate::drivers::ble::mesh::model::Status;
 use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
@@ -6,6 +6,7 @@ use cmac::crypto_mac::InvalidKeyLength;
 use postcard::Error;
 
 pub mod elements;
+pub mod gatt;
 pub mod node;
 mod pipeline;
 
@@ -33,12 +34,12 @@ pub enum DeviceError {
     InvalidState,
     NotProvisioned,
     Status(Status),
-    Bearer(BearerError),
+    Network(NetworkError),
 }
 
-impl From<BearerError> for DeviceError {
-    fn from(err: BearerError) -> Self {
-        Self::Bearer(err)
+impl From<NetworkError> for DeviceError {
+    fn from(err: NetworkError) -> Self {
+        Self::Network(err)
     }
 }
 

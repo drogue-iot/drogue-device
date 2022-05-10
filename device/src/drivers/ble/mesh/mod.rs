@@ -12,6 +12,7 @@ pub mod crypto;
 pub mod device;
 pub mod driver;
 pub mod generic_provisioning;
+pub mod interface;
 pub mod model;
 pub mod pdu;
 pub mod provisioning;
