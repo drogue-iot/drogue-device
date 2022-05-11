@@ -1,8 +1,8 @@
-use crate::drivers::ble::mesh::driver::pipeline::unprovisioned::segmentation::fcs;
-use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::generic_provisioning::{
     GenericProvisioningPDU, TransactionContinuation, TransactionStart,
 };
+use crate::drivers::ble::mesh::interface::pb_adv::segmentation::fcs;
+use crate::drivers::ble::mesh::interface::BearerError;
 use crate::drivers::ble::mesh::provisioning::ProvisioningPDU;
 use heapless::Vec;
 
@@ -16,7 +16,7 @@ pub struct OutboundSegments {
 }
 
 impl OutboundSegments {
-    pub fn new(pdu: ProvisioningPDU) -> Result<Self, DeviceError> {
+    pub fn new(pdu: ProvisioningPDU) -> Result<Self, BearerError> {
         let mut data = Vec::new();
         pdu.emit(&mut data)?;
         let fcs = fcs(&data);

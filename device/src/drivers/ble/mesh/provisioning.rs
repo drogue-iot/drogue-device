@@ -6,6 +6,7 @@ use core::convert::TryInto;
 use heapless::Vec;
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ProvisioningPDU {
     Invite(Invite),
@@ -20,6 +21,7 @@ pub enum ProvisioningPDU {
     Failed(Failed),
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Invite {
     pub attention_duration: u8,
@@ -204,6 +206,7 @@ impl PublicKey {
     }
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Confirmation {
     pub confirmation: [u8; 16],
@@ -231,6 +234,7 @@ impl Confirmation {
     }
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Random {
     pub random: [u8; 16],
@@ -258,6 +262,7 @@ impl Random {
     }
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Data {
     pub encrypted: [u8; 25],
@@ -378,6 +383,7 @@ impl defmt::Format for ProvisioningData {
     }
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Failed {
     pub error_code: ErrorCode,
@@ -939,6 +945,7 @@ impl AuthenticationMethod {
     }
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ErrorCode {
     Prohibited = 0x00,

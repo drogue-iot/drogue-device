@@ -5,6 +5,7 @@ use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::NetworkRetransmitDetails;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::interface::PDU;
 use crate::drivers::ble::mesh::model::ModelIdentifier;
 use heapless::Vec;
 
@@ -85,7 +86,8 @@ impl<const N: usize> Transmit<N> {
         network_retransmit: &NetworkRetransmitDetails,
     ) -> Result<(), DeviceError> {
         // At least transmit once on the network
-        ctx.transmit_mesh_pdu(&pdu).await?;
+        //ctx.transmit_mesh_pdu(&pdu).await?;
+        ctx.transmit(&PDU::Network(pdu.clone())).await?;
 
         // then look for a place to hang onto it for retransmits
         if let Some(slot) = self.items.iter_mut().find(|e| matches!(*e, None)) {
@@ -150,7 +152,7 @@ impl<const N: usize> Transmit<N> {
             }
         }) {
             if let Some(inner) = each {
-                ctx.transmit_mesh_pdu(&inner.pdu).await?;
+                ctx.transmit(&PDU::Network(inner.pdu.clone())).await?;
                 if inner.count > 1 {
                     inner.last.replace(Instant::now());
                     inner.count -= 1;
@@ -171,7 +173,7 @@ impl<const N: usize> Transmit<N> {
             }
         }) {
             if let Some(inner) = item {
-                ctx.transmit_mesh_pdu(&inner.pdu).await?;
+                ctx.transmit(&PDU::Network(inner.pdu.clone())).await?;
                 if inner.count > 1 {
                     inner.last.replace(now);
                     inner.count -= 1;

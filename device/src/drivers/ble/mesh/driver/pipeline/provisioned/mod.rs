@@ -19,6 +19,7 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::NetworkCo
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::{Upper, UpperContext};
 use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
+use crate::drivers::ble::mesh::interface::PDU;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use futures::{join, pin_mut};
@@ -78,7 +79,8 @@ impl ProvisionedPipeline {
             if let Some(ack) = ack {
                 if let Some(ack) = self.authentication.process_outbound(ctx, &ack)? {
                     // don't fail if we fail to transmit the ack.
-                    ctx.transmit_mesh_pdu(&ack).await.ok();
+                    //ctx.transmit_mesh_pdu(&ack).await.ok();
+                    ctx.transmit(&PDU::Network(ack)).await.ok();
                 }
             }
 
