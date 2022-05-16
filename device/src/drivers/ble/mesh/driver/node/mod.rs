@@ -18,8 +18,8 @@ use core::cell::{Cell, RefCell};
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy::channel::DynamicReceiver as ChannelReceiver;
 use embassy::time::{Duration, Ticker};
-use embassy::util::{select3, Either3};
-use futures::future::{select, Either};
+use embassy::util::{select4, Either4};
+use futures::future::{join, select, Either};
 use futures::{pin_mut, StreamExt};
 use rand_core::{CryptoRng, RngCore};
 //use crate::drivers::ble::mesh::model::foundation::configuration::ConfigurationMessage::Beacon;
@@ -29,6 +29,9 @@ pub(crate) mod deadline;
 pub(crate) mod outbound;
 
 type NodeMutex = ThreadModeRawMutex;
+
+#[derive(Copy, Clone)]
+pub struct NetworkId(pub [u8; 8]);
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum State {
@@ -132,7 +135,6 @@ where
     }
 
     async fn loop_unprovisioned(&self) -> Result<Option<State>, DeviceError> {
-        info!("unprovisioned");
         self.transmit_unprovisioned_beacon().await?;
 
         let receive_fut = self.network.receive();
@@ -165,7 +167,6 @@ where
     }
 
     async fn loop_provisioning(&self) -> Result<Option<State>, DeviceError> {
-        info!("provisioning");
         let receive_fut = self.network.receive();
         let mut ticker = Ticker::every(Duration::from_secs(1));
         let ticker_fut = ticker.next();
@@ -196,24 +197,38 @@ where
         }
     }
 
+    async fn transmit_provisioned_beacon(&self) -> Result<(), DeviceError> {
+        if let Some(network) = self.configuration_manager.configuration().network() {
+            if let Ok(network_id) = network.network_id() {
+                self.network.beacon(Beacon::Provisioned(network_id)).await?;
+            }
+        }
+        Ok(())
+    }
+
     async fn loop_provisioned(&self) -> Result<Option<State>, DeviceError> {
+        self.transmit_provisioned_beacon().await.ok();
+
         let mut deadline = self.deadline.borrow_mut();
         let deadline_fut = deadline.next();
         let receive_fut = self.network.receive();
         let outbound_fut = self.outbound.next();
 
-        let result = select3(receive_fut, outbound_fut, deadline_fut).await;
+        let mut ticker = Ticker::every(Duration::from_secs(1));
+        let ticker_fut = ticker.next();
+
+        let result = select4(receive_fut, outbound_fut, deadline_fut, ticker_fut).await;
 
         drop(deadline);
 
         match result {
-            Either3::First(Ok(inbound)) => {
+            Either4::First(Ok(inbound)) => {
                 self.pipeline
                     .borrow_mut()
                     .process_inbound(self, inbound)
                     .await
             }
-            Either3::Second(outbound) => match outbound {
+            Either4::Second(outbound) => match outbound {
                 OutboundEvent::Access(access) => {
                     self.pipeline
                         .borrow_mut()
@@ -226,7 +241,7 @@ where
                     Ok(None)
                 }
             },
-            Either3::Third(expiration) => {
+            Either4::Third(expiration) => {
                 self.pipeline
                     .borrow_mut()
                     .retransmit(self, expiration)
@@ -254,6 +269,7 @@ where
             if next_state != current_state {
                 self.state.set(next_state);
                 self.pipeline.borrow_mut().state(next_state);
+                self.network.set_state(next_state);
             };
         }
         Ok(())
@@ -294,8 +310,22 @@ where
             }
         }
 
+        self.network.set_state(self.state.get());
         self.pipeline.borrow_mut().state(self.state.get());
 
+        let network_fut = self.run_network();
+        let node_fut = self.run_node(control);
+
+        join(network_fut, node_fut).await;
+
+        Ok(())
+    }
+
+    async fn run_network(&self) {
+        self.network.run().await.ok();
+    }
+
+    async fn run_node(&'a self, control: ChannelReceiver<'_, MeshNodeMessage>) {
         loop {
             let loop_fut = self.do_loop();
             let signal_fut = control.recv();
@@ -303,12 +333,11 @@ where
             pin_mut!(loop_fut);
             pin_mut!(signal_fut);
 
+            //let result = select(loop_fut, signal_fut).await;
             let result = select(loop_fut, signal_fut).await;
 
-            match &result {
-                Either::Left((_, _)) => {
-                    // normal operation
-                }
+            match result {
+                Either::Left(_) => {}
                 Either::Right((control_message, _)) => match control_message {
                     MeshNodeMessage::ForceReset => {
                         self.configuration_manager.node_reset().await;

@@ -14,7 +14,7 @@ use drogue_device::actors::ble::mesh::{MeshNode, MeshNodeMessage, NodeMutex};
 use drogue_device::actors::button::ButtonEvent;
 use drogue_device::actors::led::LedMessage;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
-    Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceRng,
+    Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceGattBearer, SoftdeviceRng,
 };
 use drogue_device::drivers::ble::mesh::composition::{
     CompanyIdentifier, Composition, ElementDescriptor, ElementsHandler, Features, Location,
@@ -22,7 +22,7 @@ use drogue_device::drivers::ble::mesh::composition::{
 };
 use drogue_device::drivers::ble::mesh::driver::elements::{AppElementContext, AppElementsContext};
 use drogue_device::drivers::ble::mesh::driver::DeviceError;
-use drogue_device::drivers::ble::mesh::interface::pb_adv::AdvertisingOnlyNetworkInterfaces;
+use drogue_device::drivers::ble::mesh::interface::AdvertisingAndGattNetworkInterfaces;
 use drogue_device::drivers::ble::mesh::model::generic::onoff::{
     GenericOnOffClient, GenericOnOffMessage, GenericOnOffServer, Set, GENERIC_ONOFF_CLIENT,
     GENERIC_ONOFF_SERVER,
@@ -60,7 +60,7 @@ use panic_reset as _;
 type ConcreteMeshNode = MeshNode<
     'static,
     CustomElementsHandler,
-    AdvertisingOnlyNetworkInterfaces<SoftdeviceAdvertisingBearer>,
+    AdvertisingAndGattNetworkInterfaces<SoftdeviceAdvertisingBearer, SoftdeviceGattBearer, 66>,
     FlashStorage<Flash>,
     SoftdeviceRng,
 >;
@@ -113,7 +113,8 @@ const FEATURES: Features = Features {
 #[embassy::main(config = "config()")]
 async fn main(spawner: Spawner, p: Peripherals) {
     let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BLE Mesh");
-    let bearer = facilities.bearer();
+    let advertising_bearer = facilities.advertising_bearer();
+    let gatt_bearer = facilities.gatt_bearer();
     let rng = facilities.rng();
     let storage = FlashStorage::new(
         unsafe { &__storage as *const u8 as usize },
@@ -179,7 +180,9 @@ async fn main(spawner: Spawner, p: Peripherals) {
     };
 
     device.facilities.mount(spawner, facilities);
-    let network = AdvertisingOnlyNetworkInterfaces::new(bearer);
+    //let network = AdvertisingOnlyNetworkInterfaces::new(advertising_bearer);
+    let network = AdvertisingAndGattNetworkInterfaces::new(advertising_bearer, gatt_bearer);
+
     let mesh_node = MeshNode::new(elements, capabilities, network, storage, rng);
     let mesh_node = device.mesh.put(mesh_node);
 
@@ -306,8 +309,8 @@ impl Actor for MeshButtonPublisher {
                                 ctx.publish(GenericOnOffMessage::SetUnacknowledged(Set {
                                     on_off: 1,
                                     tid: 0,
-                                    transition_time: 0,
-                                    delay: 0,
+                                    transition_time: None,
+                                    delay: None,
                                 }))
                                 .await
                                 .ok();
@@ -318,8 +321,8 @@ impl Actor for MeshButtonPublisher {
                                 ctx.publish(GenericOnOffMessage::SetUnacknowledged(Set {
                                     on_off: 0,
                                     tid: 0,
-                                    transition_time: 0,
-                                    delay: 0,
+                                    transition_time: None,
+                                    delay: None,
                                 }))
                                 .await
                                 .ok();

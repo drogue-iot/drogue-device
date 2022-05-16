@@ -96,17 +96,26 @@ opcode!( GENERIC_ON_OFF_STATUS 0x82, 0x04 );
 pub struct Set {
     pub on_off: u8,
     pub tid: u8,
-    pub transition_time: u8,
-    pub delay: u8,
+    pub transition_time: Option<u8>,
+    pub delay: Option<u8>,
 }
 
 impl Set {
     fn parse(parameters: &[u8]) -> Result<Self, ParseError> {
-        if parameters.len() == 4 {
+        if parameters.len() >= 2 {
             let on_off = parameters[0];
             let tid = parameters[1];
-            let transition_time = parameters[2];
-            let delay = parameters[3];
+            let transition_time = if parameters.len() >= 3 {
+                Some(parameters[2])
+            } else {
+                None
+            };
+            let delay = if parameters.len() >= 4 {
+                Some(parameters[3])
+            } else {
+                None
+            };
+
             Ok(Self {
                 on_off,
                 tid,
@@ -124,9 +133,12 @@ impl Set {
     ) -> Result<(), InsufficientBuffer> {
         xmit.push(self.on_off).map_err(|_| InsufficientBuffer)?;
         xmit.push(self.tid).map_err(|_| InsufficientBuffer)?;
-        xmit.push(self.transition_time)
-            .map_err(|_| InsufficientBuffer)?;
-        xmit.push(self.delay).map_err(|_| InsufficientBuffer)?;
+        if let Some(transition_time) = self.transition_time {
+            xmit.push(transition_time).map_err(|_| InsufficientBuffer)?;
+            if let Some(delay) = self.delay {
+                xmit.push(delay).map_err(|_| InsufficientBuffer)?;
+            }
+        }
         Ok(())
     }
 }

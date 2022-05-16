@@ -1,22 +1,20 @@
 use crate::drivers::ble::mesh::device::Uuid;
+use crate::drivers::ble::mesh::driver::node::{NetworkId, State};
 use crate::drivers::ble::mesh::generic_provisioning::{
     GenericProvisioningPDU, ProvisioningBearerControl,
 };
-use crate::drivers::ble::mesh::interface::pb_adv::segmentation::outbound::{
+use crate::drivers::ble::mesh::interface::advertising::segmentation::outbound::{
     OutboundSegments, OutboundSegmentsIter,
 };
-use crate::drivers::ble::mesh::interface::pb_adv::segmentation::Segmentation;
+use crate::drivers::ble::mesh::interface::advertising::segmentation::Segmentation;
 use crate::drivers::ble::mesh::interface::PB_ADV_MTU;
-use crate::drivers::ble::mesh::interface::{
-    AdvertisingBearer, Beacon, BearerError, NetworkError, NetworkInterfaces, PDU,
-};
+use crate::drivers::ble::mesh::interface::{AdvertisingBearer, Beacon, BearerError, PDU};
 use crate::drivers::ble::mesh::pdu::bearer::advertising::AdvertisingPDU;
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use crate::drivers::ble::mesh::provisioning::ProvisioningPDU;
 use crate::drivers::ble::mesh::{MESH_BEACON, MESH_MESSAGE, PB_ADV};
 use core::cell::Cell;
 use core::cell::RefCell;
-use core::future::Future;
 use core::iter::Iterator;
 use heapless::Vec;
 
@@ -47,7 +45,15 @@ impl<B: AdvertisingBearer> AdvertisingBearerNetworkInterface<B> {
         }
     }
 
-    fn set_uuid(&self, uuid: Uuid) {
+    pub(super) fn set_network_id(&self, network_id: NetworkId) {
+        self.bearer.set_network_id(network_id);
+    }
+
+    pub(super) fn set_state(&self, state: State) {
+        self.bearer.set_state(state);
+    }
+
+    pub(super) fn set_uuid(&self, uuid: Uuid) {
         self.uuid.replace(Some(uuid));
     }
 
@@ -61,6 +67,9 @@ impl<B: AdvertisingBearer> AdvertisingBearerNetworkInterface<B> {
                     adv_data.extend_from_slice(&[0xa0, 0x40]).ok();
                     self.bearer.transmit(&adv_data).await?;
                 }
+            }
+            Beacon::Provisioned(_) => {
+                // not applicable to this role
             }
             Beacon::Secure => {
                 // nothing yet.
@@ -309,67 +318,6 @@ impl<B: AdvertisingBearer> AdvertisingBearerNetworkInterface<B> {
         pdu.emit(&mut bytes)
             .map_err(|_| BearerError::InsufficientResources)?;
         Ok(self.bearer.transmit(&bytes).await?)
-    }
-}
-
-pub struct AdvertisingOnlyNetworkInterfaces<B: AdvertisingBearer> {
-    interface: AdvertisingBearerNetworkInterface<B>,
-}
-
-impl<B: AdvertisingBearer> AdvertisingOnlyNetworkInterfaces<B> {
-    pub fn new(bearer: B) -> Self {
-        Self {
-            interface: AdvertisingBearerNetworkInterface::new(bearer),
-        }
-    }
-}
-
-impl<B: AdvertisingBearer> NetworkInterfaces for AdvertisingOnlyNetworkInterfaces<B> {
-    fn set_uuid(&self, uuid: Uuid) {
-        self.interface.set_uuid(uuid);
-    }
-
-    type RunFuture<'m> = impl Future<Output=Result<(), NetworkError>> + 'm
-    where
-    Self: 'm;
-
-    fn run<'m>(&'m self) -> Self::RunFuture<'m> {
-        async move {
-            /* nothing */
-            Ok(())
-        }
-    }
-
-    type ReceiveFuture<'m> = impl Future<Output=Result<PDU, NetworkError>> + 'm
-    where
-    Self: 'm;
-
-    fn receive<'m>(&'m self) -> Self::ReceiveFuture<'m> {
-        async move { Ok(self.interface.receive().await?) }
-    }
-
-    type TransmitFuture<'m> = impl Future<Output=Result<(), NetworkError>> + 'm
-    where
-    Self: 'm;
-
-    fn transmit<'m>(&'m self, pdu: &'m PDU) -> Self::TransmitFuture<'m> {
-        async move { Ok(self.interface.transmit(pdu).await?) }
-    }
-
-    type RetransmitFuture<'m> = impl Future<Output = Result<(), NetworkError>> + 'm
-    where
-    Self: 'm;
-
-    fn retransmit<'m>(&'m self) -> Self::RetransmitFuture<'m> {
-        async move { Ok(self.interface.retransmit().await?) }
-    }
-
-    type BeaconFuture<'m> = impl Future<Output=Result<(), NetworkError>> + 'm
-    where
-    Self: 'm;
-
-    fn beacon<'m>(&'m self, beacon: Beacon) -> Self::BeaconFuture<'m> {
-        async move { Ok(self.interface.beacon(beacon).await?) }
     }
 }
 

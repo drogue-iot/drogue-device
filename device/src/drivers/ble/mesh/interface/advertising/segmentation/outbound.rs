@@ -1,7 +1,7 @@
 use crate::drivers::ble::mesh::generic_provisioning::{
     GenericProvisioningPDU, TransactionContinuation, TransactionStart,
 };
-use crate::drivers::ble::mesh::interface::pb_adv::segmentation::fcs;
+use crate::drivers::ble::mesh::interface::advertising::segmentation::fcs;
 use crate::drivers::ble::mesh::interface::BearerError;
 use crate::drivers::ble::mesh::provisioning::ProvisioningPDU;
 use heapless::Vec;

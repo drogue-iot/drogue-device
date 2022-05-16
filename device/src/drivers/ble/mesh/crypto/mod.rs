@@ -140,6 +140,21 @@ pub fn aes_ccm_encrypt_detached(
     }
 }
 
+const ID64: [u8; 5] = [b'i', b'd', b'6', b'4', 0x01];
+
+pub fn k3(n: &[u8; 16]) -> Result<[u8; 8], InvalidKeyLength> {
+    let salt = s1(b"smk3")?;
+    let t = aes_cmac(&salt.into_bytes(), n)?;
+    let result = aes_cmac(&t.into_bytes(), &ID64)?.into_bytes();
+    if result.len() < 8 {
+        Err(InvalidKeyLength)
+    } else {
+        Ok(result[result.len() - 8..]
+            .try_into()
+            .map_err(|_| InvalidKeyLength)?)
+    }
+}
+
 const ID6: [u8; 4] = [b'i', b'd', b'6', 0x01];
 
 pub fn k4(n: &[u8]) -> Result<u8, InvalidKeyLength> {

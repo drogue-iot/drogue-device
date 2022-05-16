@@ -6,6 +6,9 @@ use crate::drivers::ble::mesh::config::app_keys::AppKeyDetails;
 use crate::drivers::ble::mesh::config::bindings::Bindings;
 use crate::drivers::ble::mesh::config::publications::{Publication, Publications};
 use crate::drivers::ble::mesh::config::subcriptions::Subscriptions;
+use crate::drivers::ble::mesh::crypto::k3;
+use crate::drivers::ble::mesh::driver::node::NetworkId;
+use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::foundation::configuration::{AppKeyIndex, NetKeyIndex};
 use crate::drivers::ble::mesh::model::{ModelIdentifier, Status};
 use crate::drivers::ble::mesh::provisioning::IVUpdateFlag;
@@ -38,6 +41,11 @@ impl Network {
             unicast_address,
             subscriptions: Default::default(),
         }
+    }
+
+    /// k3 network id
+    pub fn network_id(&self) -> Result<NetworkId, DeviceError> {
+        self.networks.network_id()
     }
 
     pub fn subscriptions(&self) -> &Subscriptions {
@@ -144,6 +152,10 @@ impl Networks {
         let mut networks = Vec::new();
         networks.push(primary_network_details).ok();
         Self { networks }
+    }
+
+    pub(crate) fn network_id(&self) -> Result<NetworkId, DeviceError> {
+        Ok(NetworkId(k3(&self.networks[0].network_key.0)?))
     }
 
     #[cfg(feature = "defmt")]
