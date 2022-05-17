@@ -79,6 +79,7 @@ where
                 .set_provisioning_data(provisioning_salt, data)
                 .await?;
             self.state.replace(State::Provisioned);
+            self.network.set_state(State::Provisioned);
             Ok(())
         }
     }

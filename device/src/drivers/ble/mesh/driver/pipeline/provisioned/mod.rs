@@ -112,11 +112,9 @@ impl ProvisionedPipeline {
 
         // local loopback.
         let loopback_fut = async move {
-            info!("l>");
             if ctx.is_locally_relevant(&message.dst) {
                 ctx.dispatch_access(&message).await?;
             }
-            info!("l<");
             Result::<(), DeviceError>::Ok(())
         };
 

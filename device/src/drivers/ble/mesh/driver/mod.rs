@@ -6,7 +6,6 @@ use cmac::crypto_mac::InvalidKeyLength;
 use postcard::Error;
 
 pub mod elements;
-pub mod gatt;
 pub mod node;
 mod pipeline;
 
