@@ -1,7 +1,9 @@
 use crate::drivers::ble::mesh::composition::ElementsHandler;
 use crate::drivers::ble::mesh::config::configuration_manager::ConfigurationManager;
 use crate::drivers::ble::mesh::config::network::NetworkKeyHandle;
-use crate::drivers::ble::mesh::driver::elements::{AppElementsContext, ElementContext, Elements};
+use crate::drivers::ble::mesh::driver::elements::{
+    AppElementsContext, ElementContext, Elements, PrimaryElementContext,
+};
 use crate::drivers::ble::mesh::driver::node::deadline::Deadline;
 use crate::drivers::ble::mesh::driver::node::outbound::{
     Outbound, OutboundEvent, OutboundPublishMessage,
@@ -33,6 +35,7 @@ type NodeMutex = ThreadModeRawMutex;
 #[derive(Copy, Clone)]
 pub struct NetworkId(pub [u8; 8]);
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Copy, Clone, PartialEq)]
 pub enum State {
     Unprovisioned,
@@ -135,6 +138,8 @@ where
     }
 
     async fn loop_unprovisioned(&self) -> Result<Option<State>, DeviceError> {
+        debug!("State: unprovisioned");
+
         self.transmit_unprovisioned_beacon().await?;
 
         let receive_fut = self.network.receive();
@@ -167,6 +172,7 @@ where
     }
 
     async fn loop_provisioning(&self) -> Result<Option<State>, DeviceError> {
+        debug!("State: provisioning");
         let receive_fut = self.network.receive();
         let mut ticker = Ticker::every(Duration::from_secs(1));
         let ticker_fut = ticker.next();
@@ -176,7 +182,7 @@ where
 
         let result = select(receive_fut, ticker_fut).await;
 
-        match result {
+        let next_state = match result {
             Either::Left((Ok(inbound), _)) => {
                 let next_state = self
                     .pipeline
@@ -194,7 +200,15 @@ where
                 // TODO handle this
                 Ok(None)
             }
+        };
+
+        if let Ok(None) = next_state {
+            if let Some(_) = self.configuration().network() {
+                return Ok(Some(State::Provisioned));
+            }
         }
+
+        next_state
     }
 
     async fn transmit_provisioned_beacon(&self) -> Result<(), DeviceError> {
@@ -207,6 +221,7 @@ where
     }
 
     async fn loop_provisioned(&self) -> Result<Option<State>, DeviceError> {
+        debug!("State: provisioned");
         self.transmit_provisioned_beacon().await.ok();
 
         let mut deadline = self.deadline.borrow_mut();
@@ -276,6 +291,7 @@ where
     }
 
     fn connect_elements(&'a self) {
+        debug!("Connecting elements");
         let ctx: AppElementsContext<'a> = AppElementsContext {
             sender: self.outbound.publish.sender(),
             address: self.address().unwrap(),

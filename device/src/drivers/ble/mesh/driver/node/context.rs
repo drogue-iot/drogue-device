@@ -8,7 +8,7 @@ use crate::drivers::ble::mesh::crypto::nonce::{ApplicationNonce, DeviceNonce};
 use crate::drivers::ble::mesh::device::Uuid;
 use crate::drivers::ble::mesh::driver::elements::{ElementContext, PrimaryElementContext};
 use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
-use crate::drivers::ble::mesh::driver::node::{Node, State};
+use crate::drivers::ble::mesh::driver::node::Node;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::{MeshContext, NetworkRetransmitDetails};
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::access::AccessContext;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::LowerContext;
@@ -78,8 +78,6 @@ where
             self.vault()
                 .set_provisioning_data(provisioning_salt, data)
                 .await?;
-            self.state.replace(State::Provisioned);
-            self.network.set_state(State::Provisioned);
             Ok(())
         }
     }

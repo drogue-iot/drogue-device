@@ -68,19 +68,27 @@ impl ProvisionedPipeline {
         pdu: &mut ObfuscatedAndEncryptedNetworkPDU,
     ) -> Result<Option<State>, DeviceError> {
         if let Some(inboud_pdu) = self.authentication.process_inbound(ctx, pdu)? {
-            let (ack, pdu) = self.lower.process_inbound(ctx, &inboud_pdu).await?;
+            let result = self.lower.process_inbound(ctx, &inboud_pdu).await;
+            let mut error = None;
+            match result {
+                Ok((ack, pdu)) => {
+                    if let Some(pdu) = pdu {
+                        if let Some(message) = self.upper.process_inbound(ctx, pdu)? {
+                            ctx.dispatch_access(&message).await?;
+                        }
+                    }
 
-            if let Some(pdu) = pdu {
-                if let Some(message) = self.upper.process_inbound(ctx, pdu)? {
-                    ctx.dispatch_access(&message).await?;
+                    if let Some(ack) = ack {
+                        if let Some(ack) = self.authentication.process_outbound(ctx, &ack)? {
+                            // don't fail if we fail to transmit the ack.
+                            //ctx.transmit_mesh_pdu(&ack).await.ok();
+                            ctx.transmit(&PDU::Network(ack)).await.ok();
+                        }
+                    }
                 }
-            }
-
-            if let Some(ack) = ack {
-                if let Some(ack) = self.authentication.process_outbound(ctx, &ack)? {
-                    // don't fail if we fail to transmit the ack.
-                    //ctx.transmit_mesh_pdu(&ack).await.ok();
-                    ctx.transmit(&PDU::Network(ack)).await.ok();
+                Err(err) => {
+                    // hold on, might relay
+                    error = Some(err);
                 }
             }
 
@@ -96,6 +104,9 @@ impl ProvisionedPipeline {
                         .process_outbound(ctx, outbound, &ctx.relay_retransmit())
                         .await?;
                 }
+            }
+            if let Some(err) = error {
+                return Err(err);
             }
         }
         Ok(None)
