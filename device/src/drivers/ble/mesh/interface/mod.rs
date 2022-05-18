@@ -225,15 +225,28 @@ impl<AB: AdvertisingBearer, GB: GattBearer<MTU>, const MTU: usize> NetworkInterf
 
     fn receive<'m>(&'m self) -> Self::ReceiveFuture<'m> {
         async move {
+            defmt::debug!("iface receive A");
             let adv_fut = self.advertising_interface.receive();
             let gatt_fut = self.gatt_interface.receive();
+            defmt::debug!("iface receive B");
             let result = select(adv_fut, gatt_fut).await;
+            defmt::debug!("iface receive C");
 
             match result {
                 Either::First(result) => Ok(result?),
                 Either::Second(result) => Ok(result?),
             }
         }
+        /*
+        async move {
+            Ok(self.gatt_interface.receive().await?)
+        }
+         */
+        /*
+        async move {
+            Ok(self.advertising_interface.receive().await?)
+        }
+         */
     }
 
     type TransmitFuture<'m> = impl Future<Output=Result<(), NetworkError>> + 'm
@@ -244,9 +257,10 @@ impl<AB: AdvertisingBearer, GB: GattBearer<MTU>, const MTU: usize> NetworkInterf
         //async move { Ok(self.advertising_interface.transmit(pdu).await?) }
         async move {
             let gatt_fut = self.gatt_interface.transmit(pdu);
-            let adv_fut = self.advertising_interface.transmit(pdu);
+            //let adv_fut = self.advertising_interface.transmit(pdu);
 
-            let _result = join(gatt_fut, adv_fut).await;
+            //let _result = join(gatt_fut, adv_fut).await;
+            gatt_fut.await?;
             Ok(())
         }
     }
@@ -265,7 +279,7 @@ impl<AB: AdvertisingBearer, GB: GattBearer<MTU>, const MTU: usize> NetworkInterf
 
     fn beacon<'m>(&'m self, beacon: Beacon) -> Self::BeaconFuture<'m> {
         async move {
-            self.advertising_interface.beacon(beacon).await?;
+            //self.advertising_interface.beacon(beacon).await?;
             self.gatt_interface.beacon(beacon).await?;
             Ok(())
         }

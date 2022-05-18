@@ -20,8 +20,8 @@ use core::cell::{Cell, RefCell};
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy::channel::DynamicReceiver as ChannelReceiver;
 use embassy::time::{Duration, Ticker};
-use embassy::util::{select4, Either4};
-use futures::future::{join, select, Either};
+use embassy::util::{select, select4, Either, Either4};
+use futures::future::join;
 use futures::{pin_mut, StreamExt};
 use rand_core::{CryptoRng, RngCore};
 //use crate::drivers::ble::mesh::model::foundation::configuration::ConfigurationMessage::Beacon;
@@ -147,16 +147,14 @@ where
         let mut ticker = Ticker::every(Duration::from_secs(3));
         let ticker_fut = ticker.next();
 
-        pin_mut!(receive_fut);
-        pin_mut!(ticker_fut);
+        //pin_mut!(receive_fut);
+        //pin_mut!(ticker_fut);
 
         let result = select(receive_fut, ticker_fut).await;
 
         match result {
-            Either::Left((Ok(msg), _)) => {
-                self.pipeline.borrow_mut().process_inbound(self, msg).await
-            }
-            Either::Right((_, _)) => {
+            Either::First(Ok(msg)) => self.pipeline.borrow_mut().process_inbound(self, msg).await,
+            Either::Second(_) => {
                 self.transmit_unprovisioned_beacon().await?;
                 Ok(None)
             }
@@ -177,13 +175,10 @@ where
         let mut ticker = Ticker::every(Duration::from_secs(1));
         let ticker_fut = ticker.next();
 
-        pin_mut!(receive_fut);
-        pin_mut!(ticker_fut);
-
         let result = select(receive_fut, ticker_fut).await;
 
         let next_state = match result {
-            Either::Left((Ok(inbound), _)) => {
+            Either::First(Ok(inbound)) => {
                 let next_state = self
                     .pipeline
                     .borrow_mut()
@@ -192,7 +187,7 @@ where
                 self.network.retransmit().await?;
                 next_state
             }
-            Either::Right((_, _)) => {
+            Either::Second(_) => {
                 self.network.retransmit().await.ok();
                 Ok(None)
             }
@@ -214,7 +209,9 @@ where
     async fn transmit_provisioned_beacon(&self) -> Result<(), DeviceError> {
         if let Some(network) = self.configuration_manager.configuration().network() {
             if let Ok(network_id) = network.network_id() {
+                debug!("pre-beacon");
                 self.network.beacon(Beacon::Provisioned(network_id)).await?;
+                debug!("post-beacon");
             }
         }
         Ok(())
@@ -229,7 +226,7 @@ where
         let receive_fut = self.network.receive();
         let outbound_fut = self.outbound.next();
 
-        let mut ticker = Ticker::every(Duration::from_secs(1));
+        let mut ticker = Ticker::every(Duration::from_millis(100));
         let ticker_fut = ticker.next();
 
         let result = select4(receive_fut, outbound_fut, deadline_fut, ticker_fut).await;
@@ -238,55 +235,74 @@ where
 
         match result {
             Either4::First(Ok(inbound)) => {
+                defmt::debug!("First");
                 self.pipeline
                     .borrow_mut()
                     .process_inbound(self, inbound)
                     .await
             }
-            Either4::Second(outbound) => match outbound {
-                OutboundEvent::Access(access) => {
-                    self.pipeline
-                        .borrow_mut()
-                        .process_outbound(self, &access, None, self.network_retransmit())
-                        .await?;
-                    Ok(None)
+            Either4::Second(outbound) => {
+                defmt::debug!("Second");
+                match outbound {
+                    OutboundEvent::Access(access) => {
+                        self.pipeline
+                            .borrow_mut()
+                            .process_outbound(self, &access, None, self.network_retransmit())
+                            .await?;
+                        Ok(None)
+                    }
+                    OutboundEvent::Publish(publish) => {
+                        self.publish(publish).await?;
+                        Ok(None)
+                    }
                 }
-                OutboundEvent::Publish(publish) => {
-                    self.publish(publish).await?;
-                    Ok(None)
-                }
-            },
+            }
             Either4::Third(expiration) => {
+                defmt::debug!("Third");
                 self.pipeline
                     .borrow_mut()
                     .retransmit(self, expiration)
                     .await?;
                 Ok(None)
             }
-            _ => Ok(None),
+            _ => {
+                defmt::debug!("All Others");
+                Ok(None)
+            }
         }
     }
 
     async fn do_loop(&'a self) -> Result<(), DeviceError> {
+        info!("loop-a");
         let current_state = self.state.get();
+        info!("loop-b");
 
         if let Some(next_state) = match current_state {
             State::Unprovisioned => self.loop_unprovisioned().await,
             State::Provisioning => self.loop_provisioning().await,
             State::Provisioned => self.loop_provisioned().await,
         }? {
+            info!("loop-c");
             if matches!(next_state, State::Provisioned) {
+                info!("loop-d");
                 if !matches!(current_state, State::Provisioned) {
+                    info!("loop-e");
                     // only connect during the first transition.
                     self.connect_elements()
                 }
             }
             if next_state != current_state {
+                info!("loop-f");
                 self.state.set(next_state);
+                info!("loop-g");
                 self.pipeline.borrow_mut().state(next_state);
+                info!("loop-h");
                 self.network.set_state(next_state);
+                info!("loop-i");
             };
+            info!("loop-j");
         }
+        info!("loop-k");
         Ok(())
     }
 
@@ -347,15 +363,15 @@ where
             let loop_fut = self.do_loop();
             let signal_fut = control.recv();
 
-            pin_mut!(loop_fut);
-            pin_mut!(signal_fut);
+            //pin_mut!(loop_fut);
+            //pin_mut!(signal_fut);
 
             //let result = select(loop_fut, signal_fut).await;
             let result = select(loop_fut, signal_fut).await;
 
             match result {
-                Either::Left(_) => {}
-                Either::Right((control_message, _)) => match control_message {
+                Either::First(_) => {}
+                Either::Second(control_message) => match control_message {
                     MeshNodeMessage::ForceReset => {
                         self.configuration_manager.node_reset().await;
                     }

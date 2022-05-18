@@ -51,7 +51,7 @@ pub trait Inbox<M> {
     fn next<'m>(&'m mut self) -> Self::NextFuture<'m>;
 }
 
-impl<M, const QUEUE_SIZE: usize> Inbox<M> for Receiver<'static, ActorMutex, M, QUEUE_SIZE> {
+impl<'ch, M: 'ch, const QUEUE_SIZE: usize> Inbox<M> for Receiver<'ch, ActorMutex, M, QUEUE_SIZE> {
     type NextFuture<'m> = impl Future<Output = M> + 'm where Self: 'm;
     fn next<'m>(&'m mut self) -> Self::NextFuture<'m> {
         async move { self.recv().await }

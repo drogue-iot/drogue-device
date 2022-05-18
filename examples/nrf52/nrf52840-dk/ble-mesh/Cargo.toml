@@ -15,7 +15,7 @@ resolver = "2"
 [dependencies]
 defmt = { version = "0.3" }
 defmt-rtt = { version = "0.3", optional = true }
-panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
+panic-probe = { version = "0.3", features = ["print-defmt"] }
 
 drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "time", "bsp+microbit", "ble+nrf52840", "ble-mesh-relay"] }
 
@@ -35,7 +35,6 @@ nrf-softdevice-s140 = { version = "0.1.0" }
 [features]
 default = [
     "defmt-rtt",
-    "panic-probe",
     "drogue-device/defmt",
     "embassy/defmt",
     "embassy-nrf/defmt",
@@ -56,8 +55,8 @@ codegen-units = 1
 debug = 2
 debug-assertions = false
 incremental = false
-lto = "fat"
-opt-level = 's'
+#lto = "fat"
+opt-level = 1
 overflow-checks = false
 
 # do not optimize proc-macro crates = faster builds from scratch
@@ -72,15 +71,15 @@ overflow-checks = false
 codegen-units = 8
 debug = 2
 debug-assertions = false
-opt-level = 0 
+opt-level = 1 
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "de7dd59fa9553a1a6b75ff09238c9529277b95e7" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "de7dd59fa9553a1a6b75ff09238c9529277b95e7" }
-nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "91a59a14083bf32baf2af64c4ebf368f937f7799" }
-nrf-softdevice-s140 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "91a59a14083bf32baf2af64c4ebf368f937f7799" }
-nrf-softdevice-macro = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "91a59a14083bf32baf2af64c4ebf368f937f7799" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "36a1f203648dcb402727ea3eb5d30cf1f6993795" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "36a1f203648dcb402727ea3eb5d30cf1f6993795" }
+nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice/", rev = "91a59a14083bf32baf2af64c4ebf368f937f7799" }
+nrf-softdevice-s140 = { git = "https://github.com/embassy-rs/nrf-softdevice/", rev = "91a59a14083bf32baf2af64c4ebf368f937f7799" }
+nrf-softdevice-macro = { git = "https://github.com/embassy-rs/nrf-softdevice/", rev = "91a59a14083bf32baf2af64c4ebf368f937f7799" }
 
 #embassy = { path = "../../../../../../embassy/embassy" }
 #embassy-nrf = { path = "../../../../../../embassy/embassy-nrf" }

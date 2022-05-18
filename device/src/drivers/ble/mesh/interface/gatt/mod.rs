@@ -39,7 +39,9 @@ impl<B: GattBearer<MTU>, const MTU: usize> GattBearerNetworkInterface<B, MTU> {
 
     pub async fn receive(&self) -> Result<PDU, BearerError> {
         loop {
+            defmt::debug!("receive A");
             let data = self.bearer.receive().await?;
+            defmt::debug!("receive B");
             let proxy_pdu = ProxyPDU::parse(&data)?;
             if let SAR::Complete = proxy_pdu.sar {
                 match proxy_pdu.message_type {
@@ -129,7 +131,9 @@ impl<B: GattBearer<MTU>, const MTU: usize> GattBearerNetworkInterface<B, MTU> {
 
                 adv_data.push(0x00)?; // network id
                 adv_data.extend_from_slice(&network_id.0)?;
+                debug!("pre-advertise");
                 self.bearer.advertise(&adv_data).await?;
+                debug!("post-advertise");
             }
             Beacon::Secure => {
                 // nothing yet

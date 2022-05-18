@@ -51,11 +51,7 @@ use futures::pin_mut;
 
 use nrf_softdevice::Flash;
 
-#[cfg(feature = "panic-probe")]
 use panic_probe as _;
-
-#[cfg(not(feature = "panic-probe"))]
-use panic_reset as _;
 
 type ConcreteMeshNode = MeshNode<
     'static,

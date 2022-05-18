@@ -25,7 +25,8 @@ where
 
 impl<F, T> Actor for Transformer<F, T>
 where
-    T: TryFrom<F>,
+    F: 'static,
+    T: TryFrom<F> + 'static,
 {
     type Message<'m> = F;
 

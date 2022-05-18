@@ -25,7 +25,7 @@ impl<A: Acceptor> BleAdvertiser<A> {
     }
 }
 
-impl<A: Acceptor> Actor for BleAdvertiser<A> {
+impl<A: Acceptor + 'static> Actor for BleAdvertiser<A> {
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         Self: 'm,

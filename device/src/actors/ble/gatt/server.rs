@@ -33,7 +33,7 @@ where
 
 impl<S> Actor for GattServer<S>
 where
-    S: Server,
+    S: Server + 'static,
 {
     type Message<'m> = Connection;
 

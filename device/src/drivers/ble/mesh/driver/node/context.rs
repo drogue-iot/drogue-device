@@ -44,10 +44,10 @@ use rand_core::{CryptoRng, RngCore};
 
 impl<'a, E, N, S, R> UnprovisionedContext for Node<'a, E, N, S, R>
 where
-    E: ElementsHandler<'a>,
-    N: NetworkInterfaces,
-    S: Storage,
-    R: RngCore + CryptoRng,
+    E: ElementsHandler<'a> + 'a,
+    N: NetworkInterfaces + 'a,
+    S: Storage + 'a,
+    R: RngCore + CryptoRng + 'a,
 {
     fn rng_fill(&self, dest: &mut [u8]) {
         self.rng.borrow_mut().fill_bytes(dest);
@@ -125,10 +125,10 @@ where
 
 impl<'a, E, N, S, R> MeshContext for Node<'a, E, N, S, R>
 where
-    E: ElementsHandler<'a>,
-    N: NetworkInterfaces,
-    S: Storage,
-    R: RngCore + CryptoRng,
+    E: ElementsHandler<'a> + 'a,
+    N: NetworkInterfaces + 'a,
+    S: Storage + 'a,
+    R: RngCore + CryptoRng + 'a,
 {
     fn uuid(&self) -> Uuid {
         self.vault().uuid()
@@ -177,8 +177,12 @@ where
     fn is_local_unicast(&self, addr: &Address) -> bool {
         if let Address::Unicast(addr) = addr {
             if let Ok(primary_addr) = self.primary_unicast_address() {
-                let element_index = *addr - primary_addr;
-                element_index < self.configuration_manager.composition().elements.len() as u8
+                if *addr >= primary_addr {
+                    let element_index = *addr - primary_addr;
+                    element_index < self.configuration_manager.composition().elements.len() as u8
+                } else {
+                    false
+                }
             } else {
                 false
             }
@@ -194,19 +198,19 @@ where
 
 impl<'a, E, N, S, R> ProvisionedContext for Node<'a, E, N, S, R>
 where
-    E: ElementsHandler<'a>,
-    N: NetworkInterfaces,
-    R: CryptoRng + RngCore,
-    S: Storage,
+    E: ElementsHandler<'a> + 'a,
+    N: NetworkInterfaces + 'a,
+    R: CryptoRng + RngCore + 'a,
+    S: Storage + 'a,
 {
 }
 
 impl<'a, E, N, S, R> NetworkContext for Node<'a, E, N, S, R>
 where
-    E: ElementsHandler<'a>,
-    N: NetworkInterfaces,
-    R: CryptoRng + RngCore,
-    S: Storage,
+    E: ElementsHandler<'a> + 'a,
+    N: NetworkInterfaces + 'a,
+    R: CryptoRng + RngCore + 'a,
+    S: Storage + 'a,
 {
     fn network_deadline(&self, deadline: Option<Instant>) {
         self.deadline.borrow_mut().network(deadline)
@@ -216,10 +220,10 @@ where
 #[cfg(feature = "ble-mesh-relay")]
 impl<'a, E, N, S, R> RelayContext for Node<'a, E, N, S, R>
 where
-    E: ElementsHandler<'a>,
-    N: NetworkInterfaces,
-    R: CryptoRng + RngCore,
-    S: Storage,
+    E: ElementsHandler<'a> + 'a,
+    N: NetworkInterfaces + 'a,
+    R: CryptoRng + RngCore + 'a,
+    S: Storage + 'a,
 {
     #[cfg(feature = "ble-mesh-relay")]
     fn is_relay_enabled(&self) -> bool {
@@ -252,10 +256,10 @@ where
 
 impl<'a, E, N, S, R> AuthenticationContext for Node<'a, E, N, S, R>
 where
-    E: ElementsHandler<'a>,
-    N: NetworkInterfaces,
-    R: CryptoRng + RngCore,
-    S: Storage,
+    E: ElementsHandler<'a> + 'a,
+    N: NetworkInterfaces + 'a,
+    R: CryptoRng + RngCore + 'a,
+    S: Storage + 'a,
 {
     fn iv_index(&self) -> Option<u32> {
         self.vault().iv_index()
@@ -272,10 +276,10 @@ where
 
 impl<'a, E, N, S, R> LowerContext for Node<'a, E, N, S, R>
 where
-    E: ElementsHandler<'a>,
-    N: NetworkInterfaces,
-    R: CryptoRng + RngCore,
-    S: Storage,
+    E: ElementsHandler<'a> + 'a,
+    N: NetworkInterfaces + 'a,
+    R: CryptoRng + RngCore + 'a,
+    S: Storage + 'a,
 {
     fn find_label_uuids_by_address(
         &self,
@@ -376,10 +380,10 @@ where
 
 impl<'a, E, N, S, R> UpperContext for Node<'a, E, N, S, R>
 where
-    E: ElementsHandler<'a>,
-    N: NetworkInterfaces,
-    R: CryptoRng + RngCore,
-    S: Storage,
+    E: ElementsHandler<'a> + 'a,
+    N: NetworkInterfaces + 'a,
+    R: CryptoRng + RngCore + 'a,
+    S: Storage + 'a,
 {
     fn publish_deadline(&self, deadline: Option<Instant>) {
         self.deadline.borrow_mut().publish(deadline);
@@ -394,10 +398,10 @@ where
 
 impl<'a, E, N, S, R> AccessContext for Node<'a, E, N, S, R>
 where
-    E: ElementsHandler<'a>,
-    N: NetworkInterfaces,
-    R: CryptoRng + RngCore,
-    S: Storage,
+    E: ElementsHandler<'a> + 'a,
+    N: NetworkInterfaces + 'a,
+    R: CryptoRng + RngCore + 'a,
+    S: Storage + 'a,
 {
     type DispatchFuture<'m> = impl Future<Output = Result<(), DeviceError>> + 'm
     where
@@ -410,19 +414,19 @@ where
 
 impl<'a, E, N, S, R> PipelineContext for Node<'a, E, N, S, R>
 where
-    E: ElementsHandler<'a>,
-    N: NetworkInterfaces,
-    S: Storage,
-    R: RngCore + CryptoRng,
+    E: ElementsHandler<'a> + 'a,
+    N: NetworkInterfaces + 'a,
+    S: Storage + 'a,
+    R: RngCore + CryptoRng + 'a,
 {
 }
 
 impl<'a, E, N, S, R> ElementContext for Node<'a, E, N, S, R>
 where
-    E: ElementsHandler<'a>,
-    N: NetworkInterfaces,
-    R: CryptoRng + RngCore,
-    S: Storage,
+    E: ElementsHandler<'a> + 'a,
+    N: NetworkInterfaces + 'a,
+    R: CryptoRng + RngCore + 'a,
+    S: Storage + 'a,
 {
     type TransmitFuture<'m> = impl Future<Output = Result<(), DeviceError>> + 'm
     where
@@ -446,10 +450,10 @@ where
 
 impl<'a, E, N, S, R> PrimaryElementContext for Node<'a, E, N, S, R>
 where
-    E: ElementsHandler<'a>,
-    N: NetworkInterfaces,
-    S: Storage,
-    R: RngCore + CryptoRng,
+    E: ElementsHandler<'a> + 'a,
+    N: NetworkInterfaces + 'a,
+    S: Storage + 'a,
+    R: RngCore + CryptoRng + 'a,
 {
     type NodeResetFuture<'m> = impl Future<Output = ()>
     where
