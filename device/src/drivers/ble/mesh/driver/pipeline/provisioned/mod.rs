@@ -21,9 +21,7 @@ use crate::drivers::ble::mesh::driver::pipeline::PipelineContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::interface::PDU;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
-use crate::drivers::ble::mesh::pdu::network::{
-    ObfuscatedAndEncryptedNetworkPDU,
-};
+use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use futures::{join, pin_mut};
 
 pub mod access;
