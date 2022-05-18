@@ -11,6 +11,7 @@ use core::cell::Cell;
 use core::cell::RefCell;
 use core::future::Future;
 use core::mem;
+use core::ops::Deref;
 use core::ptr::slice_from_raw_parts;
 use core::sync::atomic::Ordering;
 use embassy::channel::{Channel, Signal};
@@ -87,12 +88,17 @@ impl Nrf52BleMeshFacilities {
     }
 }
 
+pub enum ConnectionChannel {
+    Provisioning,
+    Proxy,
+}
+
 pub struct SoftdeviceGattBearer {
     sd: &'static Softdevice,
     connection: Signal<Connection>,
     current_connection: RefCell<Option<Connection>>,
-    provisioning_server: ProvisioningServer,
-    proxy_server: ProxyServer,
+    connection_channel: RefCell<Option<ConnectionChannel>>,
+    server: MeshGattServer,
     connected: AtomicBool,
     outbound: Channel<NodeMutex, Vec<u8, 66>, 5>,
     inbound: Channel<NodeMutex, Vec<u8, 66>, 5>,
@@ -104,11 +110,11 @@ impl SoftdeviceGattBearer {
     pub fn new(sd: &'static Softdevice) -> Self {
         Self {
             sd,
-            provisioning_server: gatt_server::register(sd).unwrap(),
-            proxy_server: gatt_server::register(sd).unwrap(),
+            server: gatt_server::register(sd).unwrap(),
             connection: Signal::new(),
             connected: AtomicBool::new(false),
             current_connection: RefCell::new(None),
+            connection_channel: RefCell::new(None),
             outbound: Channel::new(),
             inbound: Channel::new(),
             state: Cell::new(State::Unprovisioned),
@@ -118,51 +124,48 @@ impl SoftdeviceGattBearer {
 
     async fn run(&self) -> Result<(), BearerError> {
         loop {
-            if let State::Provisioned = self.state.get() {
-                let connection = self.connection.wait().await;
-                self.current_connection.borrow_mut().replace(connection);
-                gatt_server::run(
-                    self.current_connection.borrow().as_ref().unwrap(),
-                    &self.proxy_server,
-                    |e| match e {
-                        ProxyServerEvent::Proxy(event) => match event {
-                            ProxyServiceEvent::DataInWrite(data) => {
-                                self.inbound.try_send(data).ok();
+            let connection = self.connection.wait().await;
+            self.current_connection.borrow_mut().replace(connection);
+            gatt_server::run(
+                self.current_connection.borrow().as_ref().unwrap(),
+                &self.server,
+                |e| match e {
+                    MeshGattServerEvent::Proxy(event) => match event {
+                        ProxyServiceEvent::DataInWrite(data) => {
+                            self.inbound.try_send(data).ok();
+                        }
+                        ProxyServiceEvent::DataOutCccdWrite { notifications } => {
+                            if notifications {
+                                self.connection_channel
+                                    .replace(Some(ConnectionChannel::Proxy));
+                            } else {
+                                self.connection_channel.take();
                             }
-                            ProxyServiceEvent::DataOutCccdWrite { .. } => {}
-                            _ => {
-                                // ignorable
-                            }
-                        },
+                        }
+                        _ => { /* ignorable */ }
                     },
-                )
-                .await
-                .ok();
-                self.current_connection.borrow_mut().take();
-                self.connected.store(false, Ordering::Relaxed);
-            } else {
-                let connection = self.connection.wait().await;
-                self.current_connection.borrow_mut().replace(connection);
-                gatt_server::run(
-                    self.current_connection.borrow().as_ref().unwrap(),
-                    &self.provisioning_server,
-                    |e| match e {
-                        ProvisioningServerEvent::Provisioning(event) => match event {
-                            ProvisioningServiceEvent::DataInWrite(data) => {
-                                self.inbound.try_send(data).ok();
+                    MeshGattServerEvent::Provisioning(event) => match event {
+                        ProvisioningServiceEvent::DataInWrite(data) => {
+                            self.inbound.try_send(data).ok();
+                        }
+                        ProvisioningServiceEvent::DataOutCccdWrite { notifications } => {
+                            if notifications {
+                                self.connection_channel
+                                    .replace(Some(ConnectionChannel::Provisioning));
+                            } else {
+                                self.connection_channel.take();
                             }
-                            ProvisioningServiceEvent::DataOutCccdWrite { .. } => {}
-                            _ => {
-                                // ignorable
-                            }
-                        },
+                        }
+                        _ => { /* ignorable */ }
                     },
-                )
-                .await
-                .ok();
-                self.current_connection.borrow_mut().take();
-                self.connected.store(false, Ordering::Relaxed);
-            }
+                },
+            )
+            .await
+            .ok();
+
+            self.connection_channel.borrow_mut().take();
+            self.current_connection.borrow_mut().take();
+            self.connected.store(false, Ordering::Relaxed);
         }
     }
 }
@@ -203,20 +206,21 @@ impl GattBearer<66> for SoftdeviceGattBearer {
     fn transmit<'m>(&'m self, pdu: &'m Vec<u8, 66>) -> Self::TransmitFuture<'m> {
         //async move { Ok(()) }
         async move {
-            if let Some(connection) = self.current_connection.borrow().as_ref() {
-                match self.state.get() {
-                    State::Unprovisioned | State::Provisioning => {
-                        self.provisioning_server
+            if let Some(connection) = &*self.current_connection.borrow() {
+                match &*self.connection_channel.borrow() {
+                    Some(ConnectionChannel::Provisioning) => {
+                        self.server
                             .provisioning
-                            .data_out_notify(&connection, pdu.clone())
+                            .data_out_notify(connection, pdu.clone())
                             .map_err(|_| BearerError::TransmissionFailure)?;
                     }
-                    State::Provisioned => {
-                        self.proxy_server
+                    Some(ConnectionChannel::Proxy) => {
+                        self.server
                             .proxy
-                            .data_out_notify(&connection, pdu.clone())
+                            .data_out_notify(connection, pdu.clone())
                             .map_err(|_| BearerError::TransmissionFailure)?;
                     }
+                    _ => {}
                 }
             }
 
@@ -232,9 +236,6 @@ impl GattBearer<66> for SoftdeviceGattBearer {
                 return Ok(());
             }
             let scan_data: Vec<u8, 16> = Vec::new();
-            //scan_data.push(4)?;
-            //scan_data.push(0x09)?;
-            //scan_data.extend_from_slice(b"Bob")?;
 
             let adv = peripheral::ConnectableAdvertisement::ScannableUndirected {
                 adv_data,
@@ -359,8 +360,9 @@ impl AdvertisingBearer for SoftdeviceAdvertisingBearer {
 }
 
 #[nrf_softdevice::gatt_server]
-pub struct ProvisioningServer {
+pub struct MeshGattServer {
     provisioning: ProvisioningService,
+    proxy: ProxyService,
 }
 
 #[nrf_softdevice::gatt_service(uuid = "1827")]
@@ -369,11 +371,6 @@ pub struct ProvisioningService {
     pub data_in: Vec<u8, 66>,
     #[characteristic(uuid = "2adc", read, write, notify)]
     pub data_out: Vec<u8, 66>,
-}
-
-#[nrf_softdevice::gatt_server]
-pub struct ProxyServer {
-    proxy: ProxyService,
 }
 
 #[nrf_softdevice::gatt_service(uuid = "1828")]
