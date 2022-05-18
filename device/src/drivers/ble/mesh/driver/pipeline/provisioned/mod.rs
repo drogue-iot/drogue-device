@@ -22,9 +22,8 @@ use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::interface::PDU;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::network::{
-    CleartextNetworkPDU, ObfuscatedAndEncryptedNetworkPDU,
+    ObfuscatedAndEncryptedNetworkPDU,
 };
-use crate::drivers::ble::mesh::pdu::upper::UpperPDU;
 use futures::{join, pin_mut};
 
 pub mod access;

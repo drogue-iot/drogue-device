@@ -11,7 +11,6 @@ use core::cell::Cell;
 use core::cell::RefCell;
 use core::future::Future;
 use core::mem;
-use core::ops::Deref;
 use core::ptr::slice_from_raw_parts;
 use core::sync::atomic::Ordering;
 use embassy::channel::{Channel, Signal};

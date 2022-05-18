@@ -8,7 +8,6 @@ use crate::drivers::ble::mesh::driver::node::deadline::Deadline;
 use crate::drivers::ble::mesh::driver::node::outbound::{
     Outbound, OutboundEvent, OutboundPublishMessage,
 };
-use crate::drivers::ble::mesh::driver::node::State::Provisioning;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
 use crate::drivers::ble::mesh::driver::pipeline::Pipeline;
 use crate::drivers::ble::mesh::driver::DeviceError;
