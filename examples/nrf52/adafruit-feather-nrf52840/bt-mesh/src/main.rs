@@ -26,6 +26,8 @@ use drogue_device::drivers::ble::mesh::provisioning::{
 };
 use drogue_device::drivers::ble::mesh::storage::FlashStorage;
 use drogue_device::drivers::ble::mesh::InsufficientBuffer;
+use drogue_device::drivers::led::Led;
+use drogue_device::traits::led::Led as _;
 use drogue_device::{
     actors::ble::mesh::{MeshNode, MeshNodeMessage},
     drivers::ble::mesh::model::firmware::FIRMWARE_UPDATE_SERVER,
@@ -104,6 +106,7 @@ const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 async fn main(spawner: Spawner, p: Peripherals) {
     let board = AdafruitFeatherNrf52840::new(p);
     let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BT Mesh");
+    spawner.spawn(softdevice_task(facilities.sd())).unwrap();
 
     let advertising_bearer = facilities.advertising_bearer();
     let gatt_bearer = facilities.gatt_bearer();
@@ -145,18 +148,16 @@ async fn main(spawner: Spawner, p: Peripherals) {
         .ok();
 
     let elements = CustomElementsHandler {
+        led: Led::new(board.red_led),
         composition,
         publisher: device.publisher.sender().into(),
     };
-
     let network = AdvertisingAndGattNetworkInterfaces::new(advertising_bearer, gatt_bearer);
     let mesh_node = MeshNode::new(elements, capabilities, network, storage, rng);
     let mesh_node = device.mesh.put(mesh_node);
 
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
     defmt::info!("Running firmware version {}", version);
-
-    spawner.spawn(softdevice_task(facilities.sd())).unwrap();
 
     spawner
         .spawn(mesh_task(mesh_node, device.control.receiver().into()))
@@ -253,6 +254,7 @@ async fn watchdog_task() {
 
 #[allow(unused)]
 pub struct CustomElementsHandler {
+    led: LedRed,
     composition: Composition,
     publisher: DynamicSender<'static, PublisherMessage>,
 }
@@ -268,6 +270,7 @@ impl ElementsHandler<'static> for CustomElementsHandler {
     }
 
     fn connect(&mut self, ctx: AppElementsContext<'static>) {
+        self.led.on();
         let _ = self
             .publisher
             .try_send(PublisherMessage::Connect(ctx.clone()));

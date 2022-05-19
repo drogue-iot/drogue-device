@@ -7,7 +7,7 @@ MEMORY
   BOOTLOADER                        : ORIGIN = 0x000f8000, LENGTH = 24K
   BOOTLOADER_STATE                  : ORIGIN = 0x000fe000, LENGTH = 4K
   STORAGE                           : ORIGIN = 0x000ff000, LENGTH = 4K
-  RAM                               : ORIGIN = 0x20020000, LENGTH = 128K
+  RAM                               : ORIGIN = 0x2000c698, LENGTH = 211304
 
   /* DFU is stored in external flash */
   DFU                               : ORIGIN = 0x00000000, LENGTH = 266240
