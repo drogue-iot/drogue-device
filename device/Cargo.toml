@@ -157,7 +157,6 @@ ble-mesh-lpn = [ "ble" ]
 ]
 
 "ble+nrf52833" = [
-    "ble+nrf-softdevice-s113",
     "nrf-softdevice/nrf52833",
 ]
 

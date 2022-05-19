@@ -4,7 +4,7 @@ authors = [
     "Bob McWhirter <bmcwhirt@redhat.com>"
 ]
 edition = "2018"
-name = "microbit-dfu"
+name = "microbit-ble-dfu"
 version = "0.1.0"
 description = "Microbit Bootloader + DFU over BLE"
 keywords = ["nrf52833", "nrf", "nrf52", "microbit", "dfu", "bootloader", "ble"]
@@ -17,7 +17,7 @@ defmt = { version = "0.3" }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 panic-reset = { version = "0.1.1", optional = true }
 
-drogue-device = { path = "../../../../device", default-features = false, features = ["time", "dfu", "bsp+microbit", "ble+nrf52833"] }
+drogue-device = { path = "../../../../device", default-features = false, features = ["time", "dfu", "bsp+microbit", "ble+nrf52833", "ble+nrf-softdevice-s113"] }
 
 embassy-boot-nrf = { version = "0.1.0", default-features = false, features = ["softdevice"] }
 embassy = { version = "0.1.0", default-features = false, features = [] }

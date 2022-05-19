@@ -18,7 +18,7 @@ panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 panic-reset = { version = "0.1.1", optional = true }
 defmt-rtt = { version = "0.3.2", optional = true }
 
-drogue-device = { path = "../../../../device", default-features = false, features = ["time", "bsp+microbit", "ble+nrf52833"] }
+drogue-device = { path = "../../../../device", default-features = false, features = ["time", "bsp+microbit", "ble+nrf52833", "ble+nrf-softdevice-s113"] }
 
 embassy = { version = "0.1.0", default-features = false, features = [] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "gpiote", "time-driver-rtc1"]}

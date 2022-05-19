@@ -70,6 +70,10 @@ impl Nrf52BleMeshFacilities {
         sd
     }
 
+    pub fn sd(&self) -> &'static Softdevice {
+        self.sd
+    }
+
     pub fn advertising_bearer(&self) -> SoftdeviceAdvertisingBearer {
         SoftdeviceAdvertisingBearer::new(self.sd)
     }
