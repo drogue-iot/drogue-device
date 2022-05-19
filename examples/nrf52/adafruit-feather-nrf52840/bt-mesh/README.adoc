@@ -9,7 +9,7 @@ The example assumes that the nRF softdevice is installed.
 
 === Hardware
 
-* BBC Micro:bit
+* Adafruit Feather nRF52840
 
 === Software
 
