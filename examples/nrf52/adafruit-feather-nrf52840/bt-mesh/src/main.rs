@@ -5,6 +5,7 @@
 #![feature(type_alias_impl_trait)]
 
 use core::future::Future;
+use drogue_device::bsp::boards::nrf52::adafruit_feather_nrf52840::*;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
     Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceGattBearer, SoftdeviceRng,
 };
@@ -46,9 +47,6 @@ use embassy_nrf::Peripherals;
 use futures::StreamExt;
 use heapless::Vec;
 use nrf_softdevice::{temperature_celsius, Softdevice};
-use drogue_device::{
-    bsp::boards::nrf52::adafruit_feather_nrf52840::*, 
-};
 
 use nrf_softdevice::Flash;
 
@@ -105,7 +103,7 @@ const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 #[embassy::main(config = "config()")]
 async fn main(spawner: Spawner, p: Peripherals) {
     let board = AdafruitFeatherNrf52840::new(p);
-    let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BLE Mesh");
+    let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BT Mesh");
 
     let advertising_bearer = facilities.advertising_bearer();
     let gatt_bearer = facilities.gatt_bearer();
@@ -164,7 +162,6 @@ async fn main(spawner: Spawner, p: Peripherals) {
         .spawn(mesh_task(mesh_node, device.control.receiver().into()))
         .unwrap();
 
-    /*
     spawner
         .spawn(publisher_task(
             Duration::from_secs(60),
@@ -172,7 +169,6 @@ async fn main(spawner: Spawner, p: Peripherals) {
             device.publisher.receiver().into(),
         ))
         .unwrap();
-    */
 
     spawner.spawn(watchdog_task()).unwrap();
 
