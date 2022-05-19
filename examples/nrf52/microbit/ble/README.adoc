@@ -1,4 +1,4 @@
-= Microbit BLE DFU example
+= Microbit Bluetooth Low Energy example
 
 This example application runs out of the box on the BBC micro:bit v2.0. It starts a BLE (Bluetooth
 Low Energy) environment sensing service (as defined by specification) as well as a firmware update
