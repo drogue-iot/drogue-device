@@ -30,12 +30,17 @@ use drogue_device::drivers::led::Led;
 use drogue_device::traits::led::Led as _;
 use drogue_device::{
     actors::ble::mesh::{MeshNode, MeshNodeMessage},
-    drivers::ble::mesh::model::firmware::{FirmwareUpdateServer, FIRMWARE_UPDATE_SERVER},
+    drivers::ble::mesh::model::firmware::{
+        Control as FirmwareControl, FirmwareUpdateMessage, FirmwareUpdateServer,
+        Status as FirmwareStatus, FIRMWARE_UPDATE_SERVER,
+    },
     drivers::ble::mesh::model::sensor::{
         PropertyId, SensorConfig, SensorData, SensorDescriptor, SensorMessage, SensorServer,
         SensorStatus, SENSOR_SERVER,
     },
     drivers::ble::mesh::model::Model,
+    firmware::FirmwareManager,
+    flash::{FlashState, SharedFlash},
     Board, DeviceContext,
 };
 use embassy::channel::{Channel, DynamicReceiver, DynamicSender};
@@ -44,6 +49,7 @@ use embassy::time::{Duration, Timer};
 use embassy::util::Forever;
 use embassy::util::{select, Either};
 use embassy::{blocking_mutex::raw::NoopRawMutex, executor::Spawner};
+use embassy_boot_nrf::updater;
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::Peripherals;
@@ -66,7 +72,7 @@ type ConcreteMeshNode = MeshNode<
     'static,
     CustomElementsHandler,
     AdvertisingAndGattNetworkInterfaces<SoftdeviceAdvertisingBearer, SoftdeviceGattBearer, 66>,
-    FlashStorage<Flash>,
+    FlashStorage<SharedFlash<'static, Flash>>,
     SoftdeviceRng,
 >;
 
@@ -109,13 +115,12 @@ async fn main(spawner: Spawner, p: Peripherals) {
     let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BT Mesh");
     spawner.spawn(softdevice_task(facilities.sd())).unwrap();
 
+    static FLASH: FlashState<Flash> = FlashState::new();
+    let flash = FLASH.initialize(facilities.flash());
     let advertising_bearer = facilities.advertising_bearer();
     let gatt_bearer = facilities.gatt_bearer();
     let rng = facilities.rng();
-    let storage = FlashStorage::new(
-        unsafe { &__storage as *const u8 as usize },
-        facilities.flash(),
-    );
+    let storage = FlashStorage::new(unsafe { &__storage as *const u8 as usize }, flash.clone());
 
     let capabilities = Capabilities {
         number_of_elements: 2,
@@ -148,17 +153,24 @@ async fn main(spawner: Spawner, p: Peripherals) {
         )
         .ok();
 
+    let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
+    defmt::info!("Running firmware version {}", version);
+    let dfu = FirmwareManager::new(flash, updater::new());
+
     let elements = CustomElementsHandler {
         led: Led::new(board.red_led),
+        ctx: None,
+        fw_state: MeshFirmwareState {
+            next_offset: 0,
+            next_version: Vec::from_slice(version.as_bytes()).unwrap(),
+        },
+        dfu,
         composition,
         publisher: device.publisher.sender().into(),
     };
     let network = AdvertisingAndGattNetworkInterfaces::new(advertising_bearer, gatt_bearer);
     let mesh_node = MeshNode::new(elements, capabilities, network, storage, rng);
     let mesh_node = device.mesh.put(mesh_node);
-
-    let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
-    defmt::info!("Running firmware version {}", version);
 
     spawner
         .spawn(mesh_task(mesh_node, device.control.receiver().into()))
@@ -257,12 +269,20 @@ async fn watchdog_task() {
 pub struct CustomElementsHandler {
     led: LedRed,
     composition: Composition,
+    dfu: FirmwareManager<SharedFlash<'static, Flash>>,
     publisher: DynamicSender<'static, PublisherMessage>,
+    fw_state: MeshFirmwareState,
+    ctx: Option<AppElementsContext<'static>>,
 }
 
 pub enum PublisherMessage {
     Connect(AppElementsContext<'static>),
     SetPeriod(Duration),
+}
+
+pub struct MeshFirmwareState {
+    next_version: Vec<u8, 16>,
+    next_offset: u32,
 }
 
 impl ElementsHandler<'static> for CustomElementsHandler {
@@ -275,6 +295,7 @@ impl ElementsHandler<'static> for CustomElementsHandler {
         let _ = self
             .publisher
             .try_send(PublisherMessage::Connect(ctx.clone()));
+        self.ctx.replace(ctx);
     }
 
     fn configure(&mut self, config: &ConfigurationModel) {
@@ -288,14 +309,77 @@ impl ElementsHandler<'static> for CustomElementsHandler {
         &'m mut self,
         element: u8,
         model_identifier: &'m ModelIdentifier,
-        message: &'m AccessMessage,
+        access: &'m AccessMessage,
     ) -> Self::DispatchFuture<'m> {
         async move {
             if element == 0 && *model_identifier == FIRMWARE_UPDATE_SERVER {
                 if let Ok(Some(message)) =
-                    FirmwareUpdateServer::parse(message.opcode(), message.parameters())
+                    FirmwareUpdateServer::parse(access.opcode(), access.parameters())
                 {
                     defmt::info!("Received firmware message: {:?}", message);
+                    match message {
+                        FirmwareUpdateMessage::Get => {
+                            if let Some(ctx) = &self.ctx {
+                                let status = FirmwareUpdateMessage::Status(FirmwareStatus {
+                                    mtu: 16,
+                                    offset: self.fw_state.next_offset,
+                                    version: &self.fw_state.next_version,
+                                });
+
+                                let c = ctx.for_element_model::<FirmwareUpdateServer>(0);
+                                match c.publish(status).await {
+                                    Ok(_) => {
+                                        defmt::debug!("Published status response");
+                                    }
+                                    Err(e) => {
+                                        defmt::warn!("Error reporting status: {:?}", e);
+                                    }
+                                }
+                            }
+                        }
+                        FirmwareUpdateMessage::Control(control) => match control {
+                            FirmwareControl::Start => {
+                                self.fw_state.next_offset = 0;
+                                self.dfu.start();
+                            }
+                            FirmwareControl::Update => {
+                                if let Err(e) = self.dfu.finish().await {
+                                    defmt::warn!("Error marking firmware to be swapped: {:?}", e);
+                                }
+                            }
+                            FirmwareControl::NextVersion(version) => {
+                                if let Ok(v) = Vec::from_slice(version) {
+                                    self.fw_state.next_version = v;
+                                }
+                            }
+                            FirmwareControl::MarkBooted => {
+                                if let Err(e) = self.dfu.mark_booted().await {
+                                    defmt::warn!("Error marking firmware as good: {:?}", e);
+                                }
+                            }
+                        },
+                        FirmwareUpdateMessage::Write(write) => {
+                            if write.offset != self.fw_state.next_offset {
+                                defmt::warn!(
+                                    "Unexpected write at offset {}, was expecting {}",
+                                    write.offset,
+                                    self.fw_state.next_offset
+                                );
+                            } else {
+                                if let Err(e) = self.dfu.write(write.payload).await {
+                                    defmt::warn!(
+                                        "Error writing {} bytes at offset {}: {:?}",
+                                        write.payload.len(),
+                                        write.offset,
+                                        e
+                                    );
+                                } else {
+                                    self.fw_state.next_offset += write.payload.len() as u32;
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
                 }
             }
             Ok(())
