@@ -32,15 +32,16 @@ probe-rs-cli erase --chip nRF52833_xxAA
 === Flash bootloader
 
 ```
+cp memory-bl.x ../bootloader/memory.x
 cargo flash --manifest-path ../bootloader/Cargo.toml --release --chip nRF52833_xxAA
 ```
 
 === Flash nRF Softdevice
 
-Download the softdevice version 7.3.0 link:https://www.nordicsemi.com/Products/Development-software/s113/download[here].
+Download the softdevice version 7.3.0 link:https://www.nordicsemi.com/Products/Development-software/s140/download[here].
 
 ```
-probe-rs-cli download s113_nrf52_7.3.0_softdevice.hex --chip nRF52833_xxAA --format Hex
+probe-rs-cli download s140_nrf52_7.3.0_softdevice.hex --chip nRF52833_xxAA --format Hex
 ```
 
 === Flash application
