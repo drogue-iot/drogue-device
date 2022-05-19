@@ -26,13 +26,16 @@ use drogue_device::drivers::ble::mesh::provisioning::{
 };
 use drogue_device::drivers::ble::mesh::storage::FlashStorage;
 use drogue_device::drivers::ble::mesh::InsufficientBuffer;
+use drogue_device::drivers::led::Led;
+use drogue_device::traits::led::Led as _;
 use drogue_device::{
     actors::ble::mesh::{MeshNode, MeshNodeMessage},
-    drivers::ble::mesh::model::firmware::FIRMWARE_UPDATE_SERVER,
+    drivers::ble::mesh::model::firmware::{FirmwareUpdateServer, FIRMWARE_UPDATE_SERVER},
     drivers::ble::mesh::model::sensor::{
         PropertyId, SensorConfig, SensorData, SensorDescriptor, SensorMessage, SensorServer,
         SensorStatus, SENSOR_SERVER,
     },
+    drivers::ble::mesh::model::Model,
     Board, DeviceContext,
 };
 use embassy::channel::{Channel, DynamicReceiver, DynamicSender};
@@ -104,6 +107,7 @@ const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 async fn main(spawner: Spawner, p: Peripherals) {
     let board = AdafruitFeatherNrf52840::new(p);
     let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BT Mesh");
+    spawner.spawn(softdevice_task(facilities.sd())).unwrap();
 
     let advertising_bearer = facilities.advertising_bearer();
     let gatt_bearer = facilities.gatt_bearer();
@@ -145,10 +149,10 @@ async fn main(spawner: Spawner, p: Peripherals) {
         .ok();
 
     let elements = CustomElementsHandler {
+        led: Led::new(board.red_led),
         composition,
         publisher: device.publisher.sender().into(),
     };
-
     let network = AdvertisingAndGattNetworkInterfaces::new(advertising_bearer, gatt_bearer);
     let mesh_node = MeshNode::new(elements, capabilities, network, storage, rng);
     let mesh_node = device.mesh.put(mesh_node);
@@ -156,15 +160,13 @@ async fn main(spawner: Spawner, p: Peripherals) {
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
     defmt::info!("Running firmware version {}", version);
 
-    spawner.spawn(softdevice_task(facilities.sd())).unwrap();
-
     spawner
         .spawn(mesh_task(mesh_node, device.control.receiver().into()))
         .unwrap();
 
     spawner
         .spawn(publisher_task(
-            Duration::from_secs(60),
+            Duration::from_secs(10),
             facilities.sd(),
             device.publisher.receiver().into(),
         ))
@@ -220,7 +222,7 @@ async fn publisher_task(
             Either::Second(_) => {
                 let value: i8 = temperature_celsius(sd).unwrap().to_num();
                 defmt::info!("Measured temperature: {}℃", value);
-                let value = value as i16;
+                let value = value * 2;
                 if let Some(ctx) = &context {
                     // Report sensor data
                     let c = ctx.for_element_model::<SensorServer<SensorModel, 1, 1>>(0);
@@ -253,6 +255,7 @@ async fn watchdog_task() {
 
 #[allow(unused)]
 pub struct CustomElementsHandler {
+    led: LedRed,
     composition: Composition,
     publisher: DynamicSender<'static, PublisherMessage>,
 }
@@ -268,6 +271,7 @@ impl ElementsHandler<'static> for CustomElementsHandler {
     }
 
     fn connect(&mut self, ctx: AppElementsContext<'static>) {
+        let _ = self.led.on();
         let _ = self
             .publisher
             .try_send(PublisherMessage::Connect(ctx.clone()));
@@ -282,11 +286,20 @@ impl ElementsHandler<'static> for CustomElementsHandler {
     type DispatchFuture<'m> = impl Future<Output = Result<(), DeviceError>> + 'm where Self: 'm;
     fn dispatch<'m>(
         &'m mut self,
-        _element: u8,
-        _model_identifier: &'m ModelIdentifier,
-        _message: &'m AccessMessage,
+        element: u8,
+        model_identifier: &'m ModelIdentifier,
+        message: &'m AccessMessage,
     ) -> Self::DispatchFuture<'m> {
-        async move { Ok(()) }
+        async move {
+            if element == 0 && *model_identifier == FIRMWARE_UPDATE_SERVER {
+                if let Ok(Some(message)) =
+                    FirmwareUpdateServer::parse(message.opcode(), message.parameters())
+                {
+                    defmt::info!("Received firmware message: {:?}", message);
+                }
+            }
+            Ok(())
+        }
     }
 }
 
@@ -294,12 +307,12 @@ impl ElementsHandler<'static> for CustomElementsHandler {
 pub struct SensorModel;
 
 #[derive(Clone, defmt::Format)]
-pub struct Temperature(i16);
+pub struct Temperature(i8);
 
 impl SensorConfig for SensorModel {
     type Data<'m> = Temperature;
 
-    const DESCRIPTORS: &'static [SensorDescriptor] = &[SensorDescriptor::new(PropertyId(1), 1)];
+    const DESCRIPTORS: &'static [SensorDescriptor] = &[SensorDescriptor::new(PropertyId(0x4F), 1)];
 }
 
 impl SensorData for Temperature {
