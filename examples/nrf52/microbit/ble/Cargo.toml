@@ -4,9 +4,9 @@ authors = [
     "Bob McWhirter <bmcwhirt@redhat.com>"
 ]
 edition = "2018"
-name = "microbit-ble-dfu"
+name = "microbit-ble"
 version = "0.1.0"
-description = "Microbit Bootloader + DFU over BLE"
+description = "Microbit BLE Sensor example with DFU"
 keywords = ["nrf52833", "nrf", "nrf52", "microbit", "dfu", "bootloader", "ble"]
 resolver = "2"
 
@@ -17,7 +17,7 @@ defmt = { version = "0.3" }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 panic-reset = { version = "0.1.1", optional = true }
 
-drogue-device = { path = "../../../../device", default-features = false, features = ["time", "dfu", "bsp+microbit", "ble+nrf52833", "ble+nrf-softdevice-s113"] }
+drogue-device = { version = "0.1.0", path = "../../../../device", default-features = false, features = ["time", "dfu", "bsp+microbit", "ble+nrf52833", "ble+nrf-softdevice-s113"] }
 
 embassy-boot-nrf = { version = "0.1.0", default-features = false, features = ["softdevice"] }
 embassy = { version = "0.1.0", default-features = false, features = [] }
@@ -66,16 +66,16 @@ overflow-checks = false
 # do not optimize proc-macro crates = faster builds from scratch
 [profile.dev.build-override]
 codegen-units = 8
-debug = false
+debug = 2
 debug-assertions = false
 opt-level = 0
 overflow-checks = false
 
 [profile.release.build-override]
 codegen-units = 8
-debug = false
+debug = 2
 debug-assertions = false
-opt-level = 0
+opt-level = 0 
 overflow-checks = false
 
 [patch.crates-io]
@@ -83,12 +83,10 @@ embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "de7dd59fa9
 embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "de7dd59fa9553a1a6b75ff09238c9529277b95e7" }
 embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "de7dd59fa9553a1a6b75ff09238c9529277b95e7" }
 embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "de7dd59fa9553a1a6b75ff09238c9529277b95e7" }
-nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice/", rev = "91a59a14083bf32baf2af64c4ebf368f937f7799" }
-nrf-softdevice-s113 = { git = "https://github.com/embassy-rs/nrf-softdevice/", rev = "91a59a14083bf32baf2af64c4ebf368f937f7799" }
-nrf-softdevice-macro = { git = "https://github.com/embassy-rs/nrf-softdevice/", rev = "91a59a14083bf32baf2af64c4ebf368f937f7799" }
+nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "91a59a14083bf32baf2af64c4ebf368f937f7799" }
+nrf-softdevice-s113 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "91a59a14083bf32baf2af64c4ebf368f937f7799" }
+nrf-softdevice-macro = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "91a59a14083bf32baf2af64c4ebf368f937f7799" }
 nrf-softdevice-defmt-rtt = { git = "https://github.com/embassy-rs/nrf-softdevice/", rev = "91a59a14083bf32baf2af64c4ebf368f937f7799" }
 
 #embassy = { path = "../../../../../../embassy/embassy" }
 #embassy-nrf = { path = "../../../../../../embassy/embassy-nrf" }
-#embassy-boot-nrf = { path = "../../../../../../embassy/embassy-boot/nrf" }
-#embassy-boot = { path = "../../../../../../embassy/embassy-boot/boot" }
