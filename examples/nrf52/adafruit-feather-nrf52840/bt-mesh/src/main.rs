@@ -5,6 +5,7 @@
 #![feature(type_alias_impl_trait)]
 
 use core::future::Future;
+use drogue_device::bsp::boards::nrf52::adafruit_feather_nrf52840::*;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
     Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceGattBearer, SoftdeviceRng,
 };
@@ -36,10 +37,6 @@ use drogue_device::{
     },
     drivers::ble::mesh::model::Model,
     Board, DeviceContext,
-};
-use drogue_device::{
-    bsp::boards::nrf52::adafruit_feather_nrf52840::*,
-    drivers::ble::mesh::model::firmware::FirmwareUpdateMessage,
 };
 use embassy::channel::{Channel, DynamicReceiver, DynamicSender};
 use embassy::time::Ticker;
@@ -274,7 +271,7 @@ impl ElementsHandler<'static> for CustomElementsHandler {
     }
 
     fn connect(&mut self, ctx: AppElementsContext<'static>) {
-        self.led.on();
+        let _ = self.led.on();
         let _ = self
             .publisher
             .try_send(PublisherMessage::Connect(ctx.clone()));
