@@ -62,7 +62,6 @@ async fn main(s: Spawner, p: Peripherals) {
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
     defmt::info!("Running firmware version {}", version);
 
-
     // Create a BLE GATT server and make it static
     static GATT: Forever<GattServer> = Forever::new();
     let server = GATT.put(gatt_server::register(sd).unwrap());
