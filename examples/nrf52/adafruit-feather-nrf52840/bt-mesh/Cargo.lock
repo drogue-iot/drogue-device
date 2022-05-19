@@ -13,6 +13,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "adafruit-nrf-feather52840-bt-mesh"
+version = "0.1.0"
+dependencies = [
+ "cortex-m 0.7.4",
+ "cortex-m-rt",
+ "defmt",
+ "drogue-device",
+ "embassy",
+ "embassy-boot-nrf",
+ "embassy-nrf",
+ "futures",
+ "heapless",
+ "nrf-softdevice",
+ "nrf-softdevice-defmt-rtt",
+ "nrf-softdevice-s140",
+ "panic-probe",
+ "panic-reset",
+]
+
+[[package]]
 name = "aead"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -599,7 +619,7 @@ dependencies = [
  "embedded-storage-async",
  "fixed",
  "futures",
- "nrf52833-pac",
+ "nrf52840-pac",
  "rand_core",
 ]
 
@@ -924,26 +944,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
-name = "microbit-bt-mesh"
-version = "0.1.0"
-dependencies = [
- "cortex-m 0.7.4",
- "cortex-m-rt",
- "defmt",
- "drogue-device",
- "embassy",
- "embassy-boot-nrf",
- "embassy-nrf",
- "futures",
- "heapless",
- "nrf-softdevice",
- "nrf-softdevice-defmt-rtt",
- "nrf-softdevice-s140",
- "panic-probe",
- "panic-reset",
-]
-
-[[package]]
 name = "micromath"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -998,7 +998,7 @@ dependencies = [
  "heapless",
  "nrf-softdevice-macro",
  "nrf-softdevice-s140",
- "nrf52833-pac",
+ "nrf52840-pac",
  "num_enum",
 ]
 
@@ -1037,10 +1037,10 @@ version = "0.1.1"
 source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=91a59a14083bf32baf2af64c4ebf368f937f7799#91a59a14083bf32baf2af64c4ebf368f937f7799"
 
 [[package]]
-name = "nrf52833-pac"
+name = "nrf52840-pac"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dd2b96c950afd2887102113c5194cb5c985a13aff0eac5fb976a76cd6e62a21"
+checksum = "9efa9d1e910e3b825fd7e28f369363a8e036b386b77e21035b9f0e510de199cf"
 dependencies = [
  "cortex-m 0.7.4",
  "cortex-m-rt",

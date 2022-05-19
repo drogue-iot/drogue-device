@@ -1,6 +1,6 @@
-= Microbit Bluetooth Mesh example
+= Adafruit nRF52840 Feather Bluetooth Mesh example
 
-This example application runs out of the box on the BBC micro:bit v2.0. It starts as a Bluetooth Mesh
+This example application runs out of the box on the Adafruit nRF52840 Feather. It starts as a Bluetooth Mesh
 sensor server(as defined by specification) reporting from the on board temperature sensor.
 
 The example assumes that the nRF softdevice is installed.
@@ -26,14 +26,13 @@ Make sure you have the latest versions (`cargo install <tool>`) of these tools:
 === Erase current settings
 
 ```
-probe-rs-cli erase --chip nRF52833_xxAA
+probe-rs-cli erase --chip nRF52840_xxAA
 ```
 
 === Flash bootloader
 
 ```
-cp memory-bl.x ../bootloader/memory.x
-cargo flash --manifest-path ../bootloader/Cargo.toml --release --chip nRF52833_xxAA
+cargo flash --manifest-path ../bootloader/Cargo.toml --release --chip nRF52840_xxAA
 ```
 
 === Flash nRF Softdevice
@@ -41,18 +40,18 @@ cargo flash --manifest-path ../bootloader/Cargo.toml --release --chip nRF52833_x
 Download the softdevice version 7.3.0 link:https://www.nordicsemi.com/Products/Development-software/s140/download[here].
 
 ```
-probe-rs-cli download s140_nrf52_7.3.0_softdevice.hex --chip nRF52833_xxAA --format Hex
+probe-rs-cli download s140_nrf52_7.3.0_softdevice.hex --chip nRF52840_xxAA --format Hex
 ```
 
 === Flash application
 
 ```
-cargo flash --release --chip nRF52833_xxAA
+cargo flash --release --chip nRF52840_xxAA
 ```
 
-When started, the device will blink the letter 'A' on the LED matrix.
+When started, the device will blink blue LED.
 
-Once provisioned, the device will display a notification to the LED matrix.
+Once provisioned, the device will enable red LED.
 
 === Provisioning
 
