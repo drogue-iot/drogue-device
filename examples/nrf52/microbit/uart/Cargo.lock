@@ -1003,14 +1003,14 @@ dependencies = [
 [[patch.unused]]
 name = "nrf-softdevice"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=91a59a14083bf32baf2af64c4ebf368f937f7799#91a59a14083bf32baf2af64c4ebf368f937f7799"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=91a59a14083bf32baf2af64c4ebf368f937f7799#91a59a14083bf32baf2af64c4ebf368f937f7799"
 
 [[patch.unused]]
 name = "nrf-softdevice-macro"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=91a59a14083bf32baf2af64c4ebf368f937f7799#91a59a14083bf32baf2af64c4ebf368f937f7799"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=91a59a14083bf32baf2af64c4ebf368f937f7799#91a59a14083bf32baf2af64c4ebf368f937f7799"
 
 [[patch.unused]]
 name = "nrf-softdevice-s113"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=91a59a14083bf32baf2af64c4ebf368f937f7799#91a59a14083bf32baf2af64c4ebf368f937f7799"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=91a59a14083bf32baf2af64c4ebf368f937f7799#91a59a14083bf32baf2af64c4ebf368f937f7799"
