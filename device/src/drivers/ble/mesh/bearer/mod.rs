@@ -1,4 +1,4 @@
-#[cfg(feature = "ble+nrf52840")]
+#[cfg(feature = "ble+nrf-softdevice-s140")]
 pub mod nrf52;
 
 /*
