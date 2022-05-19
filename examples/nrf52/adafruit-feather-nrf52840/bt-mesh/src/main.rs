@@ -5,8 +5,6 @@
 #![feature(type_alias_impl_trait)]
 
 use core::future::Future;
-use drogue_device::bsp::boards::nrf52::microbit::*;
-use drogue_device::domain::led::matrix::Brightness;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
     Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceGattBearer, SoftdeviceRng,
 };
@@ -18,7 +16,6 @@ use drogue_device::drivers::ble::mesh::config::ConfigurationModel;
 use drogue_device::drivers::ble::mesh::driver::elements::AppElementsContext;
 use drogue_device::drivers::ble::mesh::driver::DeviceError;
 use drogue_device::drivers::ble::mesh::interface::AdvertisingAndGattNetworkInterfaces;
-use drogue_device::drivers::ble::mesh::interface::AdvertisingOnlyNetworkInterfaces;
 use drogue_device::drivers::ble::mesh::model::ModelIdentifier;
 use drogue_device::drivers::ble::mesh::pdu::access::AccessMessage;
 use drogue_device::drivers::ble::mesh::pdu::ParseError;
@@ -28,7 +25,6 @@ use drogue_device::drivers::ble::mesh::provisioning::{
 };
 use drogue_device::drivers::ble::mesh::storage::FlashStorage;
 use drogue_device::drivers::ble::mesh::InsufficientBuffer;
-use drogue_device::traits::led::ToFrame;
 use drogue_device::{
     actors::ble::mesh::{MeshNode, MeshNodeMessage},
     drivers::ble::mesh::model::firmware::FIRMWARE_UPDATE_SERVER,
@@ -50,6 +46,9 @@ use embassy_nrf::Peripherals;
 use futures::StreamExt;
 use heapless::Vec;
 use nrf_softdevice::{temperature_celsius, Softdevice};
+use drogue_device::{
+    bsp::boards::nrf52::adafruit_feather_nrf52840::*, 
+};
 
 use nrf_softdevice::Flash;
 
@@ -64,9 +63,8 @@ use panic_reset as _;
 
 type ConcreteMeshNode = MeshNode<
     'static,
-    MicrobitElementsHandler,
-    //AdvertisingAndGattNetworkInterfaces<SoftdeviceAdvertisingBearer, SoftdeviceGattBearer, 66>,
-    AdvertisingOnlyNetworkInterfaces<SoftdeviceAdvertisingBearer>,
+    CustomElementsHandler,
+    AdvertisingAndGattNetworkInterfaces<SoftdeviceAdvertisingBearer, SoftdeviceGattBearer, 66>,
     FlashStorage<Flash>,
     SoftdeviceRng,
 >;
@@ -106,7 +104,7 @@ const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 
 #[embassy::main(config = "config()")]
 async fn main(spawner: Spawner, p: Peripherals) {
-    let board = Microbit::new(p);
+    let board = AdafruitFeatherNrf52840::new(p);
     let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BLE Mesh");
 
     let advertising_bearer = facilities.advertising_bearer();
@@ -148,13 +146,12 @@ async fn main(spawner: Spawner, p: Peripherals) {
         )
         .ok();
 
-    let elements = MicrobitElementsHandler {
+    let elements = CustomElementsHandler {
         composition,
         publisher: device.publisher.sender().into(),
     };
 
-    let network = AdvertisingOnlyNetworkInterfaces::new(advertising_bearer);
-    //let network = AdvertisingAndGattNetworkInterfaces::new(advertising_bearer, gatt_bearer);
+    let network = AdvertisingAndGattNetworkInterfaces::new(advertising_bearer, gatt_bearer);
     let mesh_node = MeshNode::new(elements, capabilities, network, storage, rng);
     let mesh_node = device.mesh.put(mesh_node);
 
@@ -180,14 +177,14 @@ async fn main(spawner: Spawner, p: Peripherals) {
     spawner.spawn(watchdog_task()).unwrap();
 
     // Finally, a blinker application.
-    /*    let mut display = board.display;
-    display.set_brightness(Brightness::MAX);
+    const BLINK_INTERVAL: Duration = Duration::from_millis(300);
+    let mut led = board.blue_led;
     loop {
-        let _ = display
-            .display('A'.to_frame(), Duration::from_secs(1))
-            .await;
-        Timer::after(Duration::from_secs(1)).await;
-    }*/
+        Timer::after(BLINK_INTERVAL).await;
+        led.set_low();
+        Timer::after(BLINK_INTERVAL).await;
+        led.set_high();
+    }
 }
 
 #[embassy::task]
@@ -203,7 +200,6 @@ pub async fn mesh_task(
     node.run(control).await;
 }
 
-/*
 #[embassy::task]
 async fn publisher_task(
     interval: Duration,
@@ -248,7 +244,6 @@ async fn publisher_task(
         }
     }
 }
-*/
 
 // Keeps our system alive
 #[embassy::task]
@@ -261,7 +256,7 @@ async fn watchdog_task() {
 }
 
 #[allow(unused)]
-pub struct MicrobitElementsHandler {
+pub struct CustomElementsHandler {
     composition: Composition,
     publisher: DynamicSender<'static, PublisherMessage>,
 }
@@ -271,7 +266,7 @@ pub enum PublisherMessage {
     SetPeriod(Duration),
 }
 
-impl ElementsHandler<'static> for MicrobitElementsHandler {
+impl ElementsHandler<'static> for CustomElementsHandler {
     fn composition(&self) -> &Composition {
         &self.composition
     }

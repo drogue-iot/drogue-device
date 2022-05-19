@@ -1,0 +1,74 @@
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>"
+]
+edition = "2018"
+name = "adafruit-feather-nrf52840-dfu-bl"
+version = "0.1.0"
+description = "Bootloader for Adafruit nRF52840 chips"
+resolver = "2"
+
+[workspace]
+
+[dependencies]
+defmt = { version = "0.3", optional = true }
+defmt-rtt = { version = "0.3", optional = true }
+drogue-device = { path = "../../../../device", default-features = false, features = ["bsp+adafruit_feather_nrf52840"] }
+embassy = { version = "0.1.0", default-features = false }
+embassy-nrf = { version = "0.1.0", default-features = false, features = ["nightly", "nrf52840"] }
+embassy-boot = { version = "0.1.0", default-features = false }
+embassy-boot-nrf = { version = "0.1.0", default-features = false, features = ["softdevice"] }
+nrf-softdevice-mbr = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", branch = "master" }
+cortex-m = { version = "0.7" }
+cortex-m-rt = { version = "0.7" }
+embedded-storage = "0.3.0"
+embedded-storage-async = "0.3.0"
+cfg-if = "1.0.0"
+
+[features]
+defmt = [
+    "dep:defmt",
+    "embassy-boot/defmt",
+    "embassy-boot-nrf/defmt",
+    "embassy-nrf/defmt",
+]
+debug = ["defmt-rtt"]
+
+[profile.dev]
+codegen-units = 1
+debug = 2
+debug-assertions = true
+incremental = false
+opt-level = 3
+overflow-checks = true
+
+[profile.release]
+codegen-units = 1
+debug = 2
+debug-assertions = false
+incremental = false
+lto = "fat"
+opt-level = 's'
+overflow-checks = false
+
+# do not optimize proc-macro crates = faster builds from scratch
+[profile.dev.build-override]
+codegen-units = 8
+debug = false
+debug-assertions = false
+opt-level = 0
+overflow-checks = false
+
+[profile.release.build-override]
+codegen-units = 8
+debug = false
+debug-assertions = false
+opt-level = 0
+overflow-checks = false
+
+[patch.crates-io]
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "de7dd59fa9553a1a6b75ff09238c9529277b95e7" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "de7dd59fa9553a1a6b75ff09238c9529277b95e7" }
+embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "de7dd59fa9553a1a6b75ff09238c9529277b95e7" }
+embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "de7dd59fa9553a1a6b75ff09238c9529277b95e7" }

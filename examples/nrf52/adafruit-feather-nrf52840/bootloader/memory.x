@@ -3,14 +3,15 @@ MEMORY
   /* NOTE 1 K = 1 KiBi = 1024 bytes */
   MBR                               : ORIGIN = 0x00000000, LENGTH = 4K
   SOFTDEVICE                        : ORIGIN = 0x00001000, LENGTH = 155648
-  ACTIVE                            : ORIGIN = 0x00027000, LENGTH = 64K
-  FLASH                             : ORIGIN = 0x000f9000, LENGTH = 24K
-  BOOTLOADER_STATE                  : ORIGIN = 0x000ff000, LENGTH = 4K
+  ACTIVE                            : ORIGIN = 0x00027000, LENGTH = 256K
+  FLASH                             : ORIGIN = 0x000f8000, LENGTH = 24K
+  BOOTLOADER_STATE                  : ORIGIN = 0x000fe000, LENGTH = 4K
+  STORAGE                           : ORIGIN = 0x000ff000, LENGTH = 4K
   RAM                         (rwx) : ORIGIN = 0x20000008, LENGTH = 0x2fff8
   uicr_bootloader_start_address (r) : ORIGIN = 0x10001014, LENGTH = 0x4
 
   /* DFU is stored in external flash */
-  DFU                               : ORIGIN = 0x00000000, LENGTH = 68K
+  DFU                               : ORIGIN = 0x00000000, LENGTH = 266240
 }
 
 __bootloader_state_start = ORIGIN(BOOTLOADER_STATE);
