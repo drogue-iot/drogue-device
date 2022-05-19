@@ -17,11 +17,7 @@ use drogue_device::drivers::ble::mesh::config::ConfigurationModel;
 use drogue_device::drivers::ble::mesh::driver::elements::AppElementsContext;
 use drogue_device::drivers::ble::mesh::driver::DeviceError;
 use drogue_device::drivers::ble::mesh::interface::AdvertisingAndGattNetworkInterfaces;
-use drogue_device::drivers::ble::mesh::model::generic::onoff::{
-    GenericOnOffClient, GenericOnOffMessage, GenericOnOffServer, Set, GENERIC_ONOFF_CLIENT,
-    GENERIC_ONOFF_SERVER,
-};
-use drogue_device::drivers::ble::mesh::model::{Model, ModelIdentifier};
+use drogue_device::drivers::ble::mesh::model::ModelIdentifier;
 use drogue_device::drivers::ble::mesh::pdu::access::AccessMessage;
 use drogue_device::drivers::ble::mesh::pdu::ParseError;
 use drogue_device::drivers::ble::mesh::provisioning::{
@@ -31,7 +27,7 @@ use drogue_device::drivers::ble::mesh::provisioning::{
 use drogue_device::drivers::ble::mesh::storage::FlashStorage;
 use drogue_device::drivers::ble::mesh::InsufficientBuffer;
 use drogue_device::{
-    actors::ble::mesh::{MeshNode, MeshNodeMessage, NodeMutex},
+    actors::ble::mesh::{MeshNode, MeshNodeMessage},
     drivers::ble::mesh::model::firmware::FIRMWARE_UPDATE_SERVER,
     drivers::ble::mesh::model::sensor::{
         PropertyId, SensorConfig, SensorData, SensorDescriptor, SensorMessage, SensorServer,
@@ -39,17 +35,15 @@ use drogue_device::{
     },
     Board, DeviceContext,
 };
-use embassy::channel::{Channel, DynamicReceiver, DynamicSender, Sender};
+use embassy::channel::{Channel, DynamicReceiver, DynamicSender};
 use embassy::time::Ticker;
 use embassy::time::{Duration, Timer};
 use embassy::util::Forever;
 use embassy::util::{select, Either};
 use embassy::{blocking_mutex::raw::NoopRawMutex, executor::Spawner};
 use embassy_nrf::config::Config;
-use embassy_nrf::gpio::{Level, OutputDrive, Pull};
 use embassy_nrf::interrupt::Priority;
-use embassy_nrf::peripherals::{P0_11, P0_13, P0_25};
-use embassy_nrf::{gpio::Input, gpio::Output, Peripherals};
+use embassy_nrf::Peripherals;
 use futures::StreamExt;
 use heapless::Vec;
 use nrf_softdevice::{temperature_celsius, Softdevice};
@@ -160,6 +154,9 @@ async fn main(spawner: Spawner, p: Peripherals) {
     let mesh_node = MeshNode::new(elements, capabilities, network, storage, rng);
     let mesh_node = device.mesh.put(mesh_node);
 
+    let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
+    defmt::info!("Running firmware version {}", version);
+
     spawner.spawn(softdevice_task(facilities.sd())).unwrap();
 
     spawner
@@ -211,7 +208,7 @@ async fn publisher_task(
                     ticker = Ticker::every(interval);
                 }
             },
-            Either::Second(tick) => {
+            Either::Second(_) => {
                 let value: i8 = temperature_celsius(sd).unwrap().to_num();
                 defmt::info!("Measured temperature: {}℃", value);
                 let value = value as i16;
@@ -303,7 +300,7 @@ impl SensorData for Temperature {
 
     fn encode<const N: usize>(
         &self,
-        property: PropertyId,
+        _: PropertyId,
         xmit: &mut Vec<u8, N>,
     ) -> Result<(), InsufficientBuffer> {
         xmit.extend_from_slice(&self.0.to_le_bytes())
