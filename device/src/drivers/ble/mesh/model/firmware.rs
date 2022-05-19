@@ -26,16 +26,16 @@ pub enum FirmwareUpdateMessage<'m> {
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Write<'m> {
-    offset: u32,
-    payload: &'m [u8],
+    pub offset: u32,
+    pub payload: &'m [u8],
 }
 
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Status<'m> {
-    mtu: u8,
-    offset: u32,
-    version: &'m [u8],
+    pub mtu: u8,
+    pub offset: u32,
+    pub version: &'m [u8],
 }
 
 #[derive(Debug)]

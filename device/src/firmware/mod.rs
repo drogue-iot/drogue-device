@@ -1,5 +1,6 @@
 pub mod serial;
 
+use crate::flash::SharedFlash;
 use crate::shared::Handle;
 use crate::traits::firmware::Error;
 use core::future::Future;
@@ -234,6 +235,23 @@ impl FirmwareConfig for nrf_softdevice::Flash {
     type STATE = nrf_softdevice::Flash;
     type DFU = nrf_softdevice::Flash;
     const BLOCK_SIZE: usize = 4096;
+
+    fn state(&mut self) -> &mut Self::STATE {
+        self
+    }
+
+    fn dfu(&mut self) -> &mut Self::DFU {
+        self
+    }
+}
+
+impl<'a, F> FirmwareConfig for SharedFlash<'a, F>
+where
+    F: AsyncNorFlash + AsyncReadNorFlash,
+{
+    type STATE = SharedFlash<'a, F>;
+    type DFU = SharedFlash<'a, F>;
+    const BLOCK_SIZE: usize = F::ERASE_SIZE;
 
     fn state(&mut self) -> &mut Self::STATE {
         self
