@@ -5,7 +5,6 @@
 #![feature(type_alias_impl_trait)]
 
 use core::future::Future;
-use drogue_device::bsp::boards::nrf52::adafruit_feather_nrf52840::*;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
     Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceGattBearer, SoftdeviceRng,
 };
@@ -30,12 +29,17 @@ use drogue_device::drivers::led::Led;
 use drogue_device::traits::led::Led as _;
 use drogue_device::{
     actors::ble::mesh::{MeshNode, MeshNodeMessage},
-    drivers::ble::mesh::model::firmware::FIRMWARE_UPDATE_SERVER,
+    drivers::ble::mesh::model::firmware::{FirmwareUpdateServer, FIRMWARE_UPDATE_SERVER},
     drivers::ble::mesh::model::sensor::{
         PropertyId, SensorConfig, SensorData, SensorDescriptor, SensorMessage, SensorServer,
         SensorStatus, SENSOR_SERVER,
     },
+    drivers::ble::mesh::model::Model,
     Board, DeviceContext,
+};
+use drogue_device::{
+    bsp::boards::nrf52::adafruit_feather_nrf52840::*,
+    drivers::ble::mesh::model::firmware::FirmwareUpdateMessage,
 };
 use embassy::channel::{Channel, DynamicReceiver, DynamicSender};
 use embassy::time::Ticker;
@@ -165,7 +169,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
 
     spawner
         .spawn(publisher_task(
-            Duration::from_secs(60),
+            Duration::from_secs(10),
             facilities.sd(),
             device.publisher.receiver().into(),
         ))
@@ -221,7 +225,7 @@ async fn publisher_task(
             Either::Second(_) => {
                 let value: i8 = temperature_celsius(sd).unwrap().to_num();
                 defmt::info!("Measured temperature: {}℃", value);
-                let value = value as i16;
+                let value = value * 2;
                 if let Some(ctx) = &context {
                     // Report sensor data
                     let c = ctx.for_element_model::<SensorServer<SensorModel, 1, 1>>(0);
@@ -285,11 +289,20 @@ impl ElementsHandler<'static> for CustomElementsHandler {
     type DispatchFuture<'m> = impl Future<Output = Result<(), DeviceError>> + 'm where Self: 'm;
     fn dispatch<'m>(
         &'m mut self,
-        _element: u8,
-        _model_identifier: &'m ModelIdentifier,
-        _message: &'m AccessMessage,
+        element: u8,
+        model_identifier: &'m ModelIdentifier,
+        message: &'m AccessMessage,
     ) -> Self::DispatchFuture<'m> {
-        async move { Ok(()) }
+        async move {
+            if element == 0 && *model_identifier == FIRMWARE_UPDATE_SERVER {
+                if let Ok(Some(message)) =
+                    FirmwareUpdateServer::parse(message.opcode(), message.parameters())
+                {
+                    defmt::info!("Received firmware message: {:?}", message);
+                }
+            }
+            Ok(())
+        }
     }
 }
 
@@ -297,12 +310,12 @@ impl ElementsHandler<'static> for CustomElementsHandler {
 pub struct SensorModel;
 
 #[derive(Clone, defmt::Format)]
-pub struct Temperature(i16);
+pub struct Temperature(i8);
 
 impl SensorConfig for SensorModel {
     type Data<'m> = Temperature;
 
-    const DESCRIPTORS: &'static [SensorDescriptor] = &[SensorDescriptor::new(PropertyId(1), 1)];
+    const DESCRIPTORS: &'static [SensorDescriptor] = &[SensorDescriptor::new(PropertyId(0x4F), 1)];
 }
 
 impl SensorData for Temperature {
