@@ -344,7 +344,10 @@ impl ElementsHandler<'static> for CustomElementsHandler {
                             }
                             FirmwareControl::Update => {
                                 if let Err(e) = self.dfu.finish().await {
-                                    defmt::warn!("Error marking firmware to be swapped: {:?}", e);
+                                    defmt::warn!(
+                                        "Error marking firmware to be swapped: {:?}",
+                                        defmt::Debug2Format(&e)
+                                    );
                                 }
                             }
                             FirmwareControl::NextVersion(version) => {
@@ -354,7 +357,10 @@ impl ElementsHandler<'static> for CustomElementsHandler {
                             }
                             FirmwareControl::MarkBooted => {
                                 if let Err(e) = self.dfu.mark_booted().await {
-                                    defmt::warn!("Error marking firmware as good: {:?}", e);
+                                    defmt::warn!(
+                                        "Error marking firmware as good: {:?}",
+                                        defmt::Debug2Format(&e)
+                                    );
                                 }
                             }
                         },
@@ -371,7 +377,7 @@ impl ElementsHandler<'static> for CustomElementsHandler {
                                         "Error writing {} bytes at offset {}: {:?}",
                                         write.payload.len(),
                                         write.offset,
-                                        e
+                                        defmt::Debug2Format(&e),
                                     );
                                 } else {
                                     self.fw_state.next_offset += write.payload.len() as u32;
