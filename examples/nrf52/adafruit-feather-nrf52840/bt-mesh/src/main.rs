@@ -7,7 +7,7 @@
 use core::future::Future;
 use drogue_device::bsp::boards::nrf52::adafruit_feather_nrf52840::*;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
-    Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceGattBearer, SoftdeviceRng,
+    Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceRng,
 };
 use drogue_device::drivers::ble::mesh::composition::{
     CompanyIdentifier, Composition, ElementDescriptor, ElementsHandler, Features, Location,
@@ -16,7 +16,7 @@ use drogue_device::drivers::ble::mesh::composition::{
 use drogue_device::drivers::ble::mesh::config::ConfigurationModel;
 use drogue_device::drivers::ble::mesh::driver::elements::AppElementsContext;
 use drogue_device::drivers::ble::mesh::driver::DeviceError;
-use drogue_device::drivers::ble::mesh::interface::AdvertisingAndGattNetworkInterfaces;
+use drogue_device::drivers::ble::mesh::interface::AdvertisingOnlyNetworkInterfaces;
 use drogue_device::drivers::ble::mesh::model::ModelIdentifier;
 use drogue_device::drivers::ble::mesh::pdu::access::AccessMessage;
 use drogue_device::drivers::ble::mesh::pdu::ParseError;
@@ -71,7 +71,7 @@ use panic_reset as _;
 type ConcreteMeshNode = MeshNode<
     'static,
     CustomElementsHandler,
-    AdvertisingAndGattNetworkInterfaces<SoftdeviceAdvertisingBearer, SoftdeviceGattBearer, 66>,
+    AdvertisingOnlyNetworkInterfaces<SoftdeviceAdvertisingBearer>,
     FlashStorage<SharedFlash<'static, Flash>>,
     SoftdeviceRng,
 >;
@@ -118,7 +118,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
     static FLASH: FlashState<Flash> = FlashState::new();
     let flash = FLASH.initialize(facilities.flash());
     let advertising_bearer = facilities.advertising_bearer();
-    let gatt_bearer = facilities.gatt_bearer();
+    //let gatt_bearer = facilities.gatt_bearer();
     let rng = facilities.rng();
     let storage = FlashStorage::new(unsafe { &__storage as *const u8 as usize }, flash.clone());
 
@@ -168,7 +168,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
         composition,
         publisher: device.publisher.sender().into(),
     };
-    let network = AdvertisingAndGattNetworkInterfaces::new(advertising_bearer, gatt_bearer);
+    let network = AdvertisingOnlyNetworkInterfaces::new(advertising_bearer);
     let mesh_node = MeshNode::new(elements, capabilities, network, storage, rng);
     let mesh_node = device.mesh.put(mesh_node);
 
