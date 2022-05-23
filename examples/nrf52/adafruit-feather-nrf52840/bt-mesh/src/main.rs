@@ -5,7 +5,6 @@
 #![feature(type_alias_impl_trait)]
 
 use core::future::Future;
-use drogue_device::bsp::boards::nrf52::adafruit_feather_nrf52840::*;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
     Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceRng,
 };
@@ -43,6 +42,7 @@ use drogue_device::{
     flash::{FlashState, SharedFlash},
     Board, DeviceContext,
 };
+use drogue_device::{bsp::boards::nrf52::adafruit_feather_nrf52840::*, traits::button::Button};
 use embassy::channel::{Channel, DynamicReceiver, DynamicSender};
 use embassy::time::Ticker;
 use embassy::time::{Duration, Timer};
@@ -123,7 +123,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
     let storage = FlashStorage::new(unsafe { &__storage as *const u8 as usize }, flash.clone());
 
     let capabilities = Capabilities {
-        number_of_elements: 2,
+        number_of_elements: 1,
         algorithms: Algorithms::default(),
         public_key_type: PublicKeyType::default(),
         static_oob_type: StaticOOBType::default(),
@@ -177,6 +177,13 @@ async fn main(spawner: Spawner, p: Peripherals) {
         .unwrap();
 
     spawner
+        .spawn(reset_task(
+            Switch::new(board.switch),
+            device.control.sender().into(),
+        ))
+        .unwrap();
+
+    spawner
         .spawn(publisher_task(
             Duration::from_secs(10),
             facilities.sd(),
@@ -208,6 +215,14 @@ pub async fn mesh_task(
     control: DynamicReceiver<'static, MeshNodeMessage>,
 ) {
     node.run(control).await;
+}
+
+#[embassy::task]
+pub async fn reset_task(mut button: Switch, control: DynamicSender<'static, MeshNodeMessage>) {
+    loop {
+        button.wait_released().await;
+        control.send(MeshNodeMessage::ForceReset).await;
+    }
 }
 
 #[embassy::task]
