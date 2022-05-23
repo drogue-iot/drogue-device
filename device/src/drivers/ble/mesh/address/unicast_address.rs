@@ -64,6 +64,6 @@ impl Sub<UnicastAddress> for UnicastAddress {
     type Output = u8;
 
     fn sub(self, rhs: UnicastAddress) -> Self::Output {
-        (self.0.overflowing_sub(rhs.0)).0 as u8
+        (self.0 - rhs.0) as u8
     }
 }
