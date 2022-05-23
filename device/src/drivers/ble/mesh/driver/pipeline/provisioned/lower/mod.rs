@@ -92,6 +92,92 @@ const SEGMENTED_ACCESS_MTU: usize = 12;
 const NONSEGMENTED_ACCESS_MUT: usize = 15;
 
 impl Lower {
+    fn decrypt_payload<C: LowerContext>(
+        &mut self,
+        ctx: &C,
+        pdu: &CleartextNetworkPDU,
+        access: &LowerAccess,
+        szmic: SzMic,
+        seq: u32,
+        trans_mic: &[u8],
+        mut payload: Vec<u8, 380>,
+    ) -> Result<Option<UpperPDU>, DeviceError> {
+        let dst = if access.akf {
+            // decrypt with aid key
+            let nonce = ApplicationNonce::new(
+                szmic,
+                seq,
+                pdu.src,
+                pdu.dst,
+                ctx.iv_index().ok_or(DeviceError::CryptoError(
+                    "inbound unsegmented akf access pdu",
+                ))?,
+            );
+            if let Some(label_uuids) = ctx.find_label_uuids_by_address(pdu.dst)? {
+                let mut temp_payload = Vec::<u8, 380>::new();
+                if let Some(label_uuid) = label_uuids.iter().find(|label_uuid| {
+                    temp_payload.clear();
+                    if let Err(_) = temp_payload.extend_from_slice(&payload) {
+                        false
+                    } else {
+                        if matches!(
+                            ctx.decrypt_application_key(
+                                access.aid,
+                                nonce,
+                                &mut temp_payload,
+                                &trans_mic,
+                                Some(&label_uuid.uuid),
+                            ),
+                            Ok(_)
+                        ) {
+                            payload.clear();
+                            if let Err(_) = payload.extend_from_slice(&temp_payload) {
+                                false
+                            } else {
+                                true
+                            }
+                        } else {
+                            false
+                        }
+                    }
+                }) {
+                    Address::LabelUuid(*label_uuid)
+                } else {
+                    return Err(DeviceError::CryptoError("inbound label-uuid access pdu"));
+                }
+            } else {
+                ctx.decrypt_application_key(access.aid, nonce, &mut payload, &trans_mic, None)?;
+                pdu.dst
+            }
+        } else {
+            // decrypt with device key
+            if !ctx.is_local_unicast(&pdu.dst) {
+                return Ok(None);
+            }
+            let nonce = DeviceNonce::new(
+                szmic,
+                seq,
+                pdu.src,
+                pdu.dst,
+                ctx.iv_index()
+                    .ok_or(DeviceError::CryptoError("inbound device access pdu"))?,
+            );
+            ctx.decrypt_device_key(nonce, &mut payload, &trans_mic)?;
+            pdu.dst
+        };
+        Ok(Some(UpperPDU::Access(UpperAccess {
+            ttl: Some(pdu.ttl),
+            network_key: pdu.network_key,
+            ivi: pdu.ivi,
+            nid: pdu.nid,
+            akf: access.akf,
+            aid: access.aid,
+            src: pdu.src,
+            dst,
+            payload,
+        })))
+    }
+
     pub async fn process_inbound<C: LowerContext>(
         &mut self,
         ctx: &C,
@@ -103,7 +189,7 @@ impl Lower {
                     LowerAccessMessage::Unsegmented(ref payload) => {
                         // TransMIC is 32 bits for unsegmented access messages.
                         let (payload, trans_mic) = payload.split_at(payload.len() - 4);
-                        let mut payload = Vec::from_slice(payload)
+                        let payload = Vec::from_slice(payload)
                             .map_err(|_| DeviceError::InsufficientBuffer)?;
 
                         if self
@@ -113,93 +199,16 @@ impl Lower {
                             return Ok((None, None));
                         }
 
-                        let dst = if access.akf {
-                            // decrypt with aid key
-                            let nonce = ApplicationNonce::new(
-                                SzMic::Bit32,
-                                pdu.seq,
-                                pdu.src,
-                                pdu.dst,
-                                ctx.iv_index().ok_or(DeviceError::CryptoError(
-                                    "inbound unsegmented akf access pdu",
-                                ))?,
-                            );
-                            if let Some(label_uuids) = ctx.find_label_uuids_by_address(pdu.dst)? {
-                                let mut temp_payload = Vec::<u8, 380>::new();
-                                if let Some(label_uuid) = label_uuids.iter().find(|label_uuid| {
-                                    temp_payload.clear();
-                                    if let Err(_) = temp_payload.extend_from_slice(&payload) {
-                                        false
-                                    } else {
-                                        if matches!(
-                                            ctx.decrypt_application_key(
-                                                access.aid,
-                                                nonce,
-                                                &mut temp_payload,
-                                                &trans_mic,
-                                                Some(&label_uuid.uuid),
-                                            ),
-                                            Ok(_)
-                                        ) {
-                                            payload.clear();
-                                            if let Err(_) = payload.extend_from_slice(&temp_payload)
-                                            {
-                                                false
-                                            } else {
-                                                true
-                                            }
-                                        } else {
-                                            false
-                                        }
-                                    }
-                                }) {
-                                    Address::LabelUuid(*label_uuid)
-                                } else {
-                                    return Err(DeviceError::CryptoError(
-                                        "inbound label-uuid access pdu",
-                                    ));
-                                }
-                            } else {
-                                ctx.decrypt_application_key(
-                                    access.aid,
-                                    nonce,
-                                    &mut payload,
-                                    &trans_mic,
-                                    None,
-                                )?;
-                                pdu.dst
-                            }
-                        } else {
-                            // decrypt with device key
-                            if !ctx.is_local_unicast(&pdu.dst) {
-                                return Ok((None, None));
-                            }
-                            let nonce = DeviceNonce::new(
-                                SzMic::Bit32,
-                                pdu.seq,
-                                pdu.src,
-                                pdu.dst,
-                                ctx.iv_index()
-                                    .ok_or(DeviceError::CryptoError("inbound device access pdu"))?,
-                            );
-                            ctx.decrypt_device_key(nonce, &mut payload, &trans_mic)?;
-                            pdu.dst
-                        };
-
-                        Ok((
-                            None,
-                            Some(UpperPDU::Access(UpperAccess {
-                                ttl: Some(pdu.ttl),
-                                network_key: pdu.network_key,
-                                ivi: pdu.ivi,
-                                nid: pdu.nid,
-                                akf: access.akf,
-                                aid: access.aid,
-                                src: pdu.src,
-                                dst,
-                                payload,
-                            })),
-                        ))
+                        let upper = self.decrypt_payload(
+                            ctx,
+                            pdu,
+                            access,
+                            SzMic::Bit32,
+                            pdu.seq,
+                            trans_mic,
+                            payload,
+                        )?;
+                        Ok((None, upper))
                     }
                     LowerAccessMessage::Segmented {
                         szmic,
@@ -255,7 +264,7 @@ impl Lower {
                                 SzMic::Bit64 => payload.split_at(payload.len() - 8),
                             };
 
-                            let mut payload = Vec::from_slice(payload)
+                            let payload = Vec::from_slice(payload)
                                 .map_err(|_| DeviceError::InsufficientBuffer)?;
 
                             let seq_auth = Self::seq_auth(
@@ -274,38 +283,10 @@ impl Lower {
                                 return Ok((None, None));
                             }
 
-                            if access.akf {
-                                // todo decrypt with aid key
-                            } else {
-                                // decrypt with device key
-                                if !ctx.is_local_unicast(&pdu.dst) {
-                                    return Ok((None, None));
-                                }
-                                let nonce = DeviceNonce::new(
-                                    *szmic,
-                                    seq_auth,
-                                    pdu.src,
-                                    pdu.dst,
-                                    ctx.iv_index().ok_or(DeviceError::CryptoError(
-                                        "inbound segmented device access pdu",
-                                    ))?,
-                                );
-                                ctx.decrypt_device_key(nonce, &mut payload, &trans_mic)?;
-                            }
-                            Ok((
-                                Some(ack),
-                                Some(UpperPDU::Access(UpperAccess {
-                                    ttl: Some(pdu.ttl),
-                                    network_key: pdu.network_key,
-                                    ivi: pdu.ivi,
-                                    nid: pdu.nid,
-                                    akf: access.akf,
-                                    aid: access.aid,
-                                    src: pdu.src,
-                                    dst: pdu.dst,
-                                    payload,
-                                })),
-                            ))
+                            let upper = self.decrypt_payload(
+                                ctx, pdu, access, *szmic, seq_auth, trans_mic, payload,
+                            )?;
+                            Ok((Some(ack), upper))
                         } else {
                             Ok((Some(ack), None))
                         }

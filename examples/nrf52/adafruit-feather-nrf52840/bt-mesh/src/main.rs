@@ -5,9 +5,8 @@
 #![feature(type_alias_impl_trait)]
 
 use core::future::Future;
-use drogue_device::bsp::boards::nrf52::adafruit_feather_nrf52840::*;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
-    Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceGattBearer, SoftdeviceRng,
+    Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceRng,
 };
 use drogue_device::drivers::ble::mesh::composition::{
     CompanyIdentifier, Composition, ElementDescriptor, ElementsHandler, Features, Location,
@@ -16,7 +15,7 @@ use drogue_device::drivers::ble::mesh::composition::{
 use drogue_device::drivers::ble::mesh::config::ConfigurationModel;
 use drogue_device::drivers::ble::mesh::driver::elements::AppElementsContext;
 use drogue_device::drivers::ble::mesh::driver::DeviceError;
-use drogue_device::drivers::ble::mesh::interface::AdvertisingAndGattNetworkInterfaces;
+use drogue_device::drivers::ble::mesh::interface::AdvertisingOnlyNetworkInterfaces;
 use drogue_device::drivers::ble::mesh::model::ModelIdentifier;
 use drogue_device::drivers::ble::mesh::pdu::access::AccessMessage;
 use drogue_device::drivers::ble::mesh::pdu::ParseError;
@@ -43,6 +42,7 @@ use drogue_device::{
     flash::{FlashState, SharedFlash},
     Board, DeviceContext,
 };
+use drogue_device::{bsp::boards::nrf52::adafruit_feather_nrf52840::*, traits::button::Button};
 use embassy::channel::{Channel, DynamicReceiver, DynamicSender};
 use embassy::time::Ticker;
 use embassy::time::{Duration, Timer};
@@ -71,7 +71,7 @@ use panic_reset as _;
 type ConcreteMeshNode = MeshNode<
     'static,
     CustomElementsHandler,
-    AdvertisingAndGattNetworkInterfaces<SoftdeviceAdvertisingBearer, SoftdeviceGattBearer, 66>,
+    AdvertisingOnlyNetworkInterfaces<SoftdeviceAdvertisingBearer>,
     FlashStorage<SharedFlash<'static, Flash>>,
     SoftdeviceRng,
 >;
@@ -118,12 +118,12 @@ async fn main(spawner: Spawner, p: Peripherals) {
     static FLASH: FlashState<Flash> = FlashState::new();
     let flash = FLASH.initialize(facilities.flash());
     let advertising_bearer = facilities.advertising_bearer();
-    let gatt_bearer = facilities.gatt_bearer();
+    //let gatt_bearer = facilities.gatt_bearer();
     let rng = facilities.rng();
     let storage = FlashStorage::new(unsafe { &__storage as *const u8 as usize }, flash.clone());
 
     let capabilities = Capabilities {
-        number_of_elements: 2,
+        number_of_elements: 1,
         algorithms: Algorithms::default(),
         public_key_type: PublicKeyType::default(),
         static_oob_type: StaticOOBType::default(),
@@ -168,12 +168,19 @@ async fn main(spawner: Spawner, p: Peripherals) {
         composition,
         publisher: device.publisher.sender().into(),
     };
-    let network = AdvertisingAndGattNetworkInterfaces::new(advertising_bearer, gatt_bearer);
+    let network = AdvertisingOnlyNetworkInterfaces::new(advertising_bearer);
     let mesh_node = MeshNode::new(elements, capabilities, network, storage, rng);
     let mesh_node = device.mesh.put(mesh_node);
 
     spawner
         .spawn(mesh_task(mesh_node, device.control.receiver().into()))
+        .unwrap();
+
+    spawner
+        .spawn(reset_task(
+            Switch::new(board.switch),
+            device.control.sender().into(),
+        ))
         .unwrap();
 
     spawner
@@ -208,6 +215,14 @@ pub async fn mesh_task(
     control: DynamicReceiver<'static, MeshNodeMessage>,
 ) {
     node.run(control).await;
+}
+
+#[embassy::task]
+pub async fn reset_task(mut button: Switch, control: DynamicSender<'static, MeshNodeMessage>) {
+    loop {
+        button.wait_released().await;
+        control.send(MeshNodeMessage::ForceReset).await;
+    }
 }
 
 #[embassy::task]
