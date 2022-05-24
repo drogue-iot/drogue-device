@@ -123,7 +123,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
     let storage = FlashStorage::new(unsafe { &__storage as *const u8 as usize }, flash.clone());
 
     let capabilities = Capabilities {
-        number_of_elements: 1,
+        number_of_elements: 2,
         algorithms: Algorithms::default(),
         public_key_type: PublicKeyType::default(),
         static_oob_type: StaticOOBType::default(),
@@ -146,11 +146,10 @@ async fn main(spawner: Spawner, p: Peripherals) {
         FEATURES,
     );
     composition
-        .add_element(
-            ElementDescriptor::new(Location(0x0001))
-                .add_model(SENSOR_SERVER)
-                .add_model(FIRMWARE_UPDATE_SERVER),
-        )
+        .add_element(ElementDescriptor::new(Location(0x0001)).add_model(SENSOR_SERVER))
+        .ok();
+    composition
+        .add_element(ElementDescriptor::new(Location(0x0002)).add_model(FIRMWARE_UPDATE_SERVER))
         .ok();
 
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
@@ -334,7 +333,7 @@ impl ElementsHandler<'static> for CustomElementsHandler {
                 access.opcode(),
                 access.parameters().len()
             );
-            if element == 0 && *model_identifier == FIRMWARE_UPDATE_SERVER {
+            if element == 1 && *model_identifier == FIRMWARE_UPDATE_SERVER {
                 match FirmwareUpdateServer::parse(access.opcode(), access.parameters()) {
                     Ok(Some(message)) => {
                         defmt::info!("Received firmware message: {:?}", message);
