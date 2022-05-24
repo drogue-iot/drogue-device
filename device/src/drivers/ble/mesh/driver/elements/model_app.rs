@@ -48,8 +48,11 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 },
             };
 
-            ctx.transmit(access.create_response(ctx.address().ok_or(DeviceError::NotProvisioned)?, ModelAppMessage::Status(response))?)
-                .await?;
+            ctx.transmit(access.create_response(
+                ctx.address().ok_or(DeviceError::NotProvisioned)?,
+                ModelAppMessage::Status(response),
+            )?)
+            .await?;
         }
         ModelAppMessage::Unbind(unbind) => {
             let result = ctx
@@ -84,8 +87,11 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 },
             };
 
-            ctx.transmit(access.create_response(ctx.address().ok_or(DeviceError::NotProvisioned)?, ModelAppMessage::Status(response))?)
-                .await?;
+            ctx.transmit(access.create_response(
+                ctx.address().ok_or(DeviceError::NotProvisioned)?,
+                ModelAppMessage::Status(response),
+            )?)
+            .await?;
         }
         _ => {
             // not applicable to server role

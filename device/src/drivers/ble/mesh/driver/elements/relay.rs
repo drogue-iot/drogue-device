@@ -16,8 +16,11 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 .configuration_model()
                 .relay()
                 .clone();
-            ctx.transmit(access.create_response(ctx.address().ok_or(DeviceError::NotProvisioned)?, RelayMessage::Status(val))?)
-                .await?;
+            ctx.transmit(access.create_response(
+                ctx.address().ok_or(DeviceError::NotProvisioned)?,
+                RelayMessage::Status(val),
+            )?)
+            .await?;
         }
         RelayMessage::Set(val) => {
             ctx.update_configuration(|config| {
@@ -28,8 +31,11 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 Ok(())
             })
             .await?;
-            ctx.transmit(access.create_response(ctx.address().ok_or(DeviceError::NotProvisioned)?, RelayMessage::Status(*val))?)
-                .await?;
+            ctx.transmit(access.create_response(
+                ctx.address().ok_or(DeviceError::NotProvisioned)?,
+                RelayMessage::Status(*val),
+            )?)
+            .await?;
         }
         _ => {
             // not applicable to server role
