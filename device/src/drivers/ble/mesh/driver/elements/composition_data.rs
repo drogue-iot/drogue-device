@@ -14,7 +14,7 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
         CompositionDataMessage::Get(page) => {
             if *page == 0 {
                 ctx.transmit(access.create_response(
-                    ctx,
+                    ctx.address().ok_or(DeviceError::NotProvisioned)?,
                     CompositionDataMessage::Status(CompositionStatus {
                         page: 0,
                         data: ctx.composition().clone(),

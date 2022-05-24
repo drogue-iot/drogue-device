@@ -15,8 +15,11 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 .foundation_models()
                 .configuration_model()
                 .secure_beacon();
-            ctx.transmit(access.create_response(ctx, BeaconMessage::Status(val))?)
-                .await?;
+            ctx.transmit(access.create_response(
+                ctx.address().ok_or(DeviceError::NotProvisioned)?,
+                BeaconMessage::Status(val),
+            )?)
+            .await?;
         }
         BeaconMessage::Set(val) => {
             ctx.update_configuration(|config| {
@@ -27,8 +30,11 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 Ok(())
             })
             .await?;
-            ctx.transmit(access.create_response(ctx, BeaconMessage::Status(*val))?)
-                .await?;
+            ctx.transmit(access.create_response(
+                ctx.address().ok_or(DeviceError::NotProvisioned)?,
+                BeaconMessage::Status(*val),
+            )?)
+            .await?;
         }
         _ => {
             // not applicable to server role

@@ -47,10 +47,10 @@ pub enum Control<'m> {
     NextVersion(&'m [u8]),
 }
 
-opcode!( FIRMWARE_UPDATE_GET 0x82, 0x31 );
-opcode!( FIRMWARE_UPDATE_STATUS 0x51 );
-opcode!( FIRMWARE_UPDATE_CONTROL 0x52 );
-opcode!( FIRMWARE_UPDATE_WRITE 0x53 );
+opcode!( FIRMWARE_UPDATE_GET 0xF0, 0x03, 0x00);
+opcode!( FIRMWARE_UPDATE_STATUS 0xF1, 0x03, 0x00);
+opcode!( FIRMWARE_UPDATE_CONTROL 0xF2, 0x03, 0x00);
+opcode!( FIRMWARE_UPDATE_WRITE 0xF3, 0x03, 0x00);
 
 impl<'m> Message for FirmwareUpdateMessage<'m> {
     fn opcode(&self) -> Opcode {

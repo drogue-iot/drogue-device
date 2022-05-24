@@ -293,6 +293,7 @@ where
     fn connect_elements(&'a self) {
         debug!("Connecting elements");
         let ctx: AppElementsContext<'a> = AppElementsContext {
+            access_sender: self.outbound.access.sender(),
             sender: self.outbound.publish.sender(),
             address: self.address().unwrap(),
         };

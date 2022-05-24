@@ -15,8 +15,11 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 .foundation_models()
                 .configuration_model()
                 .default_ttl();
-            ctx.transmit(access.create_response(ctx, DefaultTTLMessage::Status(val))?)
-                .await?;
+            ctx.transmit(access.create_response(
+                ctx.address().ok_or(DeviceError::NotProvisioned)?,
+                DefaultTTLMessage::Status(val),
+            )?)
+            .await?;
         }
         DefaultTTLMessage::Set(val) => {
             ctx.update_configuration(|config| {
@@ -27,8 +30,11 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 Ok(())
             })
             .await?;
-            ctx.transmit(access.create_response(ctx, DefaultTTLMessage::Status(*val))?)
-                .await?;
+            ctx.transmit(access.create_response(
+                ctx.address().ok_or(DeviceError::NotProvisioned)?,
+                DefaultTTLMessage::Status(*val),
+            )?)
+            .await?;
         }
         _ => {
             // not applicable to server role

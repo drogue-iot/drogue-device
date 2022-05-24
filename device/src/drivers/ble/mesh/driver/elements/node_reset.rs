@@ -10,8 +10,11 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
 ) -> Result<(), DeviceError> {
     match message {
         NodeResetMessage::Reset => {
-            ctx.transmit(access.create_response(ctx, NodeResetMessage::Status)?)
-                .await?;
+            ctx.transmit(access.create_response(
+                ctx.address().ok_or(DeviceError::NotProvisioned)?,
+                NodeResetMessage::Status,
+            )?)
+            .await?;
             ctx.node_reset().await;
         }
         _ => {

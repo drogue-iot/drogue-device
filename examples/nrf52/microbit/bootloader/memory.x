@@ -3,8 +3,8 @@ MEMORY
   /* NOTE 1 K = 1 KiBi = 1024 bytes */
   MBR                               : ORIGIN = 0x00000000, LENGTH = 4K
   SOFTDEVICE                        : ORIGIN = 0x00001000, LENGTH = 114688
-  ACTIVE                            : ORIGIN = 0x00027000, LENGTH = 159744
-  DFU                               : ORIGIN = 0x0004E000, LENGTH = 163840
+  ACTIVE                            : ORIGIN = 0x0001C000, LENGTH = 184320
+  DFU                               : ORIGIN = 0x00049000, LENGTH = 188416
   FLASH                             : ORIGIN = 0x00077000, LENGTH = 24K
   BOOTLOADER_STATE                  : ORIGIN = 0x0007D000, LENGTH = 4K
   RAM                         (rwx) : ORIGIN = 0x20000008, LENGTH = 0x1fff8
