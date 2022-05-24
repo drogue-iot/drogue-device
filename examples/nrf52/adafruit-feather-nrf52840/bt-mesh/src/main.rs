@@ -327,79 +327,91 @@ impl ElementsHandler<'static> for CustomElementsHandler {
         access: &'m AccessMessage,
     ) -> Self::DispatchFuture<'m> {
         async move {
+            defmt::debug!(
+                "Received access message for element {}, model {:?}. Opcode 0x{:x}, Param len: {:?}",
+                element,
+                model_identifier,
+                access.opcode(),
+                access.parameters().len()
+            );
             if element == 0 && *model_identifier == FIRMWARE_UPDATE_SERVER {
-                if let Ok(Some(message)) =
-                    FirmwareUpdateServer::parse(access.opcode(), access.parameters())
-                {
-                    defmt::info!("Received firmware message: {:?}", message);
-                    match message {
-                        FirmwareUpdateMessage::Get => {
-                            if let Some(ctx) = &self.ctx {
-                                let status = FirmwareUpdateMessage::Status(FirmwareStatus {
-                                    mtu: 16,
-                                    offset: self.fw_state.next_offset,
-                                    version: &self.fw_state.next_version,
-                                });
+                match FirmwareUpdateServer::parse(access.opcode(), access.parameters()) {
+                    Ok(Some(message)) => {
+                        defmt::info!("Received firmware message: {:?}", message);
+                        match message {
+                            FirmwareUpdateMessage::Get => {
+                                if let Some(ctx) = &self.ctx {
+                                    let status = FirmwareUpdateMessage::Status(FirmwareStatus {
+                                        mtu: 16,
+                                        offset: self.fw_state.next_offset,
+                                        version: &self.fw_state.next_version,
+                                    });
 
-                                let c = ctx.for_element_model::<FirmwareUpdateServer>(0);
-                                match c.publish(status).await {
-                                    Ok(_) => {
-                                        defmt::debug!("Published status response");
+                                    match ctx.respond(access, status).await {
+                                        Ok(_) => {
+                                            defmt::debug!("Sent status response");
+                                        }
+                                        Err(e) => {
+                                            defmt::warn!("Error reporting status: {:?}", e);
+                                        }
                                     }
-                                    Err(e) => {
-                                        defmt::warn!("Error reporting status: {:?}", e);
+                                }
+                            }
+                            FirmwareUpdateMessage::Control(control) => match control {
+                                FirmwareControl::Start => {
+                                    self.fw_state.next_offset = 0;
+                                    self.dfu.start();
+                                }
+                                FirmwareControl::Update => {
+                                    if let Err(e) = self.dfu.finish().await {
+                                        defmt::warn!(
+                                            "Error marking firmware to be swapped: {:?}",
+                                            defmt::Debug2Format(&e)
+                                        );
                                     }
                                 }
-                            }
-                        }
-                        FirmwareUpdateMessage::Control(control) => match control {
-                            FirmwareControl::Start => {
-                                self.fw_state.next_offset = 0;
-                                self.dfu.start();
-                            }
-                            FirmwareControl::Update => {
-                                if let Err(e) = self.dfu.finish().await {
-                                    defmt::warn!(
-                                        "Error marking firmware to be swapped: {:?}",
-                                        defmt::Debug2Format(&e)
-                                    );
+                                FirmwareControl::NextVersion(version) => {
+                                    if let Ok(v) = Vec::from_slice(version) {
+                                        self.fw_state.next_version = v;
+                                    }
                                 }
-                            }
-                            FirmwareControl::NextVersion(version) => {
-                                if let Ok(v) = Vec::from_slice(version) {
-                                    self.fw_state.next_version = v;
+                                FirmwareControl::MarkBooted => {
+                                    if let Err(e) = self.dfu.mark_booted().await {
+                                        defmt::warn!(
+                                            "Error marking firmware as good: {:?}",
+                                            defmt::Debug2Format(&e)
+                                        );
+                                    }
                                 }
-                            }
-                            FirmwareControl::MarkBooted => {
-                                if let Err(e) = self.dfu.mark_booted().await {
+                            },
+                            FirmwareUpdateMessage::Write(write) => {
+                                if write.offset != self.fw_state.next_offset {
                                     defmt::warn!(
-                                        "Error marking firmware as good: {:?}",
-                                        defmt::Debug2Format(&e)
-                                    );
-                                }
-                            }
-                        },
-                        FirmwareUpdateMessage::Write(write) => {
-                            if write.offset != self.fw_state.next_offset {
-                                defmt::warn!(
-                                    "Unexpected write at offset {}, was expecting {}",
-                                    write.offset,
-                                    self.fw_state.next_offset
-                                );
-                            } else {
-                                if let Err(e) = self.dfu.write(write.payload).await {
-                                    defmt::warn!(
-                                        "Error writing {} bytes at offset {}: {:?}",
-                                        write.payload.len(),
+                                        "Unexpected write at offset {}, was expecting {}",
                                         write.offset,
-                                        defmt::Debug2Format(&e),
+                                        self.fw_state.next_offset
                                     );
                                 } else {
-                                    self.fw_state.next_offset += write.payload.len() as u32;
+                                    if let Err(e) = self.dfu.write(write.payload).await {
+                                        defmt::warn!(
+                                            "Error writing {} bytes at offset {}: {:?}",
+                                            write.payload.len(),
+                                            write.offset,
+                                            defmt::Debug2Format(&e),
+                                        );
+                                    } else {
+                                        self.fw_state.next_offset += write.payload.len() as u32;
+                                    }
                                 }
                             }
+                            _ => {}
                         }
-                        _ => {}
+                    }
+                    Ok(None) => {
+                        defmt::info!("No parseable message!");
+                    }
+                    Err(e) => {
+                        defmt::warn!("Error parsing firmware update message: {:?}", e);
                     }
                 }
             }
