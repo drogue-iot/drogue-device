@@ -10,14 +10,16 @@ use embassy::util::{select, Either};
 
 const MAX_MESSAGE: usize = 3;
 
-pub(crate) struct OutboundAccessChannel {
+pub(crate) struct OutboundAccessChannel<'a> {
     channel: Channel<NodeMutex, AccessMessage, MAX_MESSAGE>,
+    _a: PhantomData<&'a ()>,
 }
 
-impl OutboundAccessChannel {
+impl<'a> OutboundAccessChannel<'a> {
     fn new() -> Self {
         Self {
             channel: Channel::new(),
+            _a: PhantomData,
         }
     }
 
@@ -27,6 +29,10 @@ impl OutboundAccessChannel {
 
     async fn next(&self) -> AccessMessage {
         self.channel.recv().await
+    }
+
+    pub(crate) fn sender(&'a self) -> Sender<'a, NodeMutex, AccessMessage, MAX_MESSAGE> {
+        self.channel.sender()
     }
 }
 
@@ -73,7 +79,7 @@ impl<'a> OutboundPublishChannel<'a> {
 // --
 
 pub struct Outbound<'a> {
-    pub(crate) access: OutboundAccessChannel,
+    pub(crate) access: OutboundAccessChannel<'a>,
     pub(crate) publish: OutboundPublishChannel<'a>,
 }
 

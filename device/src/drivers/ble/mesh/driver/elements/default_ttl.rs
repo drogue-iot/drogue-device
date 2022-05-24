@@ -15,7 +15,7 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 .foundation_models()
                 .configuration_model()
                 .default_ttl();
-            ctx.transmit(access.create_response(ctx, DefaultTTLMessage::Status(val))?)
+            ctx.transmit(access.create_response(ctx.address().ok_or(DeviceError::NotProvisioned)?, DefaultTTLMessage::Status(val))?)
                 .await?;
         }
         DefaultTTLMessage::Set(val) => {
@@ -27,7 +27,7 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 Ok(())
             })
             .await?;
-            ctx.transmit(access.create_response(ctx, DefaultTTLMessage::Status(*val))?)
+            ctx.transmit(access.create_response(ctx.address().ok_or(DeviceError::NotProvisioned)?, DefaultTTLMessage::Status(*val))?)
                 .await?;
         }
         _ => {

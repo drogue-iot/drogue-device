@@ -1,7 +1,6 @@
 use crate::drivers::ble::mesh::address::{Address, UnicastAddress};
 use crate::drivers::ble::mesh::app::ApplicationKeyIdentifier;
 use crate::drivers::ble::mesh::config::network::NetworkKeyHandle;
-use crate::drivers::ble::mesh::driver::elements::ElementContext;
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::model::Message;
 use crate::drivers::ble::mesh::pdu::upper::UpperAccess;
@@ -56,9 +55,9 @@ impl AccessMessage {
         self.payload.emit(xmit)
     }
 
-    pub fn create_response<C: ElementContext, M: Message>(
+    pub(crate) fn create_response<M: Message>(
         &self,
-        ctx: &C,
+        src: UnicastAddress,
         response: M,
     ) -> Result<Self, DeviceError> {
         let mut parameters = Vec::new();
@@ -67,7 +66,7 @@ impl AccessMessage {
             .map_err(|_| InsufficientBuffer)?;
         Ok(Self {
             ttl: None,
-            src: ctx.address().ok_or(DeviceError::NotProvisioned)?,
+            src,
             dst: self.src.into(),
             payload: AccessPayload {
                 opcode: response.opcode(),

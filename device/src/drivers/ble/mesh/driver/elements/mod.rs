@@ -31,6 +31,7 @@ use heapless::Vec;
 #[derive(Clone)]
 pub struct AppElementsContext<'a> {
     pub(crate) sender: ChannelSender<'a, ThreadModeRawMutex, OutboundPublishMessage, 3>,
+    pub(crate) access_sender: ChannelSender<'a, ThreadModeRawMutex, AccessMessage, 3>,
     pub(crate) address: UnicastAddress,
 }
 
@@ -45,6 +46,16 @@ impl<'a> AppElementsContext<'a> {
 
     pub fn address(&self) -> UnicastAddress {
         self.address
+    }
+
+    pub async fn respond<M: Message>(
+        &self,
+        access: &AccessMessage,
+        response: M,
+    ) -> Result<(), DeviceError> {
+        let m = access.create_response(self.address, response)?;
+        self.access_sender.send(m).await;
+        Ok(())
     }
 }
 

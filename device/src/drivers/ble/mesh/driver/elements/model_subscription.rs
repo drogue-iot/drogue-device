@@ -37,7 +37,7 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
             };
 
             let response = add.create_status_response(status);
-            ctx.transmit(access.create_response(ctx, ModelSubscriptionMessage::Status(response))?)
+            ctx.transmit(access.create_response(ctx.address().ok_or(DeviceError::NotProvisioned)?, ModelSubscriptionMessage::Status(response))?)
                 .await?;
             Ok(())
         }

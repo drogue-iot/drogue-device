@@ -41,7 +41,7 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 indexes: add.indexes,
             };
 
-            ctx.transmit(access.create_response(ctx, AppKeyMessage::Status(response))?)
+            ctx.transmit(access.create_response(ctx.address().ok_or(DeviceError::NotProvisioned)?, AppKeyMessage::Status(response))?)
                 .await?;
         }
         AppKeyMessage::Get(get) => {
@@ -68,7 +68,7 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 },
             };
 
-            ctx.transmit(access.create_response(ctx, AppKeyMessage::List(response))?)
+            ctx.transmit(access.create_response(ctx.address().ok_or(DeviceError::NotProvisioned)?, AppKeyMessage::List(response))?)
                 .await?;
         }
         /*

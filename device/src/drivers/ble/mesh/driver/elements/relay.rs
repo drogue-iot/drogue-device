@@ -16,7 +16,7 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 .configuration_model()
                 .relay()
                 .clone();
-            ctx.transmit(access.create_response(ctx, RelayMessage::Status(val))?)
+            ctx.transmit(access.create_response(ctx.address().ok_or(DeviceError::NotProvisioned)?, RelayMessage::Status(val))?)
                 .await?;
         }
         RelayMessage::Set(val) => {
@@ -28,7 +28,7 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 Ok(())
             })
             .await?;
-            ctx.transmit(access.create_response(ctx, RelayMessage::Status(*val))?)
+            ctx.transmit(access.create_response(ctx.address().ok_or(DeviceError::NotProvisioned)?, RelayMessage::Status(*val))?)
                 .await?;
         }
         _ => {

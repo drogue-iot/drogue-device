@@ -48,7 +48,7 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 },
             };
 
-            ctx.transmit(access.create_response(ctx, ModelAppMessage::Status(response))?)
+            ctx.transmit(access.create_response(ctx.address().ok_or(DeviceError::NotProvisioned)?, ModelAppMessage::Status(response))?)
                 .await?;
         }
         ModelAppMessage::Unbind(unbind) => {
@@ -84,7 +84,7 @@ pub(crate) async fn dispatch<C: PrimaryElementContext>(
                 },
             };
 
-            ctx.transmit(access.create_response(ctx, ModelAppMessage::Status(response))?)
+            ctx.transmit(access.create_response(ctx.address().ok_or(DeviceError::NotProvisioned)?, ModelAppMessage::Status(response))?)
                 .await?;
         }
         _ => {
