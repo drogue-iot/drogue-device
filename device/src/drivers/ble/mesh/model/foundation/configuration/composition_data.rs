@@ -70,7 +70,7 @@ impl CompositionStatus {
             .map_err(|_| InsufficientBuffer)?;
         self.data.features.emit(xmit)?;
         for element in self.data.elements.iter() {
-            xmit.extend_from_slice(&element.loc.0.to_be_bytes())
+            xmit.extend_from_slice(&element.loc.0.to_le_bytes())
                 .map_err(|_| InsufficientBuffer)?;
             let sig_models: Vec<_, 10> = element
                 .models
