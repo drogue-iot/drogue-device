@@ -6,7 +6,7 @@ pub mod proxy;
 pub mod upper;
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum ParseError {
     InvalidPDUFormat,
     InvalidValue,

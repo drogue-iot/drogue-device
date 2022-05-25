@@ -9,6 +9,7 @@ pub mod elements;
 pub mod node;
 mod pipeline;
 
+#[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DeviceError {
     PipelineNotConfigured,

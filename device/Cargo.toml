@@ -125,7 +125,6 @@ ble = [
     "serde",
     "postcard",
     "uluru",
-    "cortex-m",
     "uuid",
     "micromath"
 ]

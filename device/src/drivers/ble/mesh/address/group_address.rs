@@ -1,7 +1,7 @@
 use crate::drivers::ble::mesh::address::{Address, InvalidAddress};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Copy, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum GroupAddress {
     RFU(u16),

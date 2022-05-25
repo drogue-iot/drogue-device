@@ -4,7 +4,10 @@ use crate::drivers::ble::mesh::pdu::ParseError;
 use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
 
+#[derive(Debug)]
 pub struct FirmwareUpdateClient;
+
+#[derive(Debug)]
 pub struct FirmwareUpdateServer;
 
 const COMPANY_IDENTIFIER: CompanyIdentifier = CompanyIdentifier(0x0003);
@@ -77,6 +80,30 @@ impl<'m> Message for FirmwareUpdateMessage<'m> {
 
 impl Model for FirmwareUpdateServer {
     const IDENTIFIER: ModelIdentifier = FIRMWARE_UPDATE_SERVER;
+    type Message<'m> = FirmwareUpdateMessage<'m>;
+
+    fn parse<'m>(
+        opcode: Opcode,
+        parameters: &'m [u8],
+    ) -> Result<Option<Self::Message<'m>>, ParseError> {
+        match opcode {
+            FIRMWARE_UPDATE_GET => Ok(Some(FirmwareUpdateMessage::Get)),
+            FIRMWARE_UPDATE_STATUS => Ok(Some(FirmwareUpdateMessage::Status(Status::parse(
+                parameters,
+            )?))),
+            FIRMWARE_UPDATE_CONTROL => Ok(Some(FirmwareUpdateMessage::Control(Control::parse(
+                parameters,
+            )?))),
+            FIRMWARE_UPDATE_WRITE => Ok(Some(FirmwareUpdateMessage::Write(Write::parse(
+                parameters,
+            )?))),
+            _ => Ok(None),
+        }
+    }
+}
+
+impl Model for FirmwareUpdateClient {
+    const IDENTIFIER: ModelIdentifier = FIRMWARE_UPDATE_CLIENT;
     type Message<'m> = FirmwareUpdateMessage<'m>;
 
     fn parse<'m>(

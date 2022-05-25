@@ -5,7 +5,7 @@ use cmac::crypto_mac::InvalidKeyLength;
 use core::convert::TryInto;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Copy, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Debug)]
 pub struct VirtualAddress(pub(crate) u16);
 
 impl VirtualAddress {
@@ -40,7 +40,7 @@ impl Into<Address> for VirtualAddress {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Debug)]
 pub struct LabelUuid {
     pub(crate) uuid: [u8; 16],
     address: VirtualAddress,
