@@ -5,10 +5,10 @@ use crate::drivers::ble::mesh::InsufficientBuffer;
 use crate::opcode;
 use heapless::Vec;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct GenericOnOffServer;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct GenericOnOffClient;
 
 pub const GENERIC_ONOFF_SERVER: ModelIdentifier = ModelIdentifier::SIG(0x1000);
