@@ -4,7 +4,7 @@ use core::ops::Add;
 use core::ops::Sub;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, PartialOrd)]
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, PartialOrd, Debug)]
 pub struct UnicastAddress(pub(crate) u16);
 
 impl core::fmt::LowerHex for UnicastAddress {
