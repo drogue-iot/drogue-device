@@ -26,7 +26,7 @@ impl Bindings {
         if !matching.is_empty() {
             info!("      App Keys:");
             for binding in matching.iter() {
-                info!("        [{}]", binding.app_key_index);
+                info!("        [{:?}]", binding.app_key_index);
             }
         }
     }

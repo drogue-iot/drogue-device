@@ -4,8 +4,14 @@ use core::ops::Add;
 use core::ops::Sub;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Copy, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Debug)]
 pub struct UnicastAddress(pub(crate) u16);
+
+impl core::fmt::LowerHex for UnicastAddress {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> Result<(), core::fmt::Error> {
+        self.0.fmt(f)
+    }
+}
 
 impl UnicastAddress {
     pub fn as_bytes(&self) -> [u8; 2] {

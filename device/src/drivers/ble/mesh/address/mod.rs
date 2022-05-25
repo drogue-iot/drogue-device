@@ -9,7 +9,7 @@ pub use virtual_address::{LabelUuid, VirtualAddress};
 use crate::drivers::ble::mesh::pdu::ParseError;
 use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct InvalidAddress;
 
@@ -19,7 +19,7 @@ impl From<InvalidAddress> for ParseError {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Address {
     Unassigned,

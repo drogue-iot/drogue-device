@@ -285,7 +285,7 @@ impl Networks {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Default)]
+#[derive(Serialize, Deserialize, Copy, Clone, Default, Debug)]
 pub struct NetworkKey([u8; 16]);
 
 impl NetworkKey {
@@ -465,7 +465,7 @@ impl NetworkDetails {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct NetworkKeyHandle {
     pub(crate) network_key: NetworkKey,

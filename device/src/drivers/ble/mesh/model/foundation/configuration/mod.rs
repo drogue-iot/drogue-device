@@ -188,7 +188,7 @@ impl Model for ConfigurationServer {
 // ------------------------------------------------------------------------
 // ------------------------------------------------------------------------
 
-#[derive(Serialize, Deserialize, PartialEq, Copy, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Copy, Clone, Debug)]
 pub struct KeyIndex(u16);
 
 #[cfg(feature = "defmt")]
@@ -260,7 +260,7 @@ impl KeyIndex {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Copy, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Copy, Clone, Debug)]
 pub struct NetKeyIndex(KeyIndex);
 
 impl NetKeyIndex {
@@ -280,7 +280,7 @@ impl defmt::Format for NetKeyIndex {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Copy, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Copy, Clone, Debug)]
 pub struct AppKeyIndex(KeyIndex);
 
 impl AppKeyIndex {

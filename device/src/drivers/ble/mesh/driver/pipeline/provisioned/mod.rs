@@ -119,7 +119,7 @@ impl ProvisionedPipeline {
         publish: Option<(ModelKey, PublishRetransmitDetails)>,
         network_retransmit: NetworkRetransmitDetails,
     ) -> Result<(), DeviceError> {
-        trace!("outbound <<<< {}", message);
+        trace!("outbound <<<< {:?}", message);
 
         // local loopback.
         let loopback_fut = async move {

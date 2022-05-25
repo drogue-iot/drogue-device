@@ -16,7 +16,7 @@ use crate::drivers::ble::mesh::InsufficientBuffer;
 use heapless::Vec;
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum NetworkError {
     InvalidLink,
     InvalidTransaction,
@@ -89,7 +89,7 @@ pub trait NetworkInterfaces {
 }
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum BearerError {
     InvalidLink,
     InvalidTransaction,
