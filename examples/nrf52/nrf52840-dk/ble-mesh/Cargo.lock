@@ -919,7 +919,7 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=91a59a14083bf32baf2af64c4ebf368f937f7799#91a59a14083bf32baf2af64c4ebf368f937f7799"
+source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=a5026485151138112b522a27c4a340614d7a7512#a5026485151138112b522a27c4a340614d7a7512"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
@@ -940,7 +940,7 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice-macro"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=91a59a14083bf32baf2af64c4ebf368f937f7799#91a59a14083bf32baf2af64c4ebf368f937f7799"
+source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=a5026485151138112b522a27c4a340614d7a7512#a5026485151138112b522a27c4a340614d7a7512"
 dependencies = [
  "Inflector",
  "darling 0.10.2",
@@ -953,7 +953,7 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice-s140"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=91a59a14083bf32baf2af64c4ebf368f937f7799#91a59a14083bf32baf2af64c4ebf368f937f7799"
+source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=a5026485151138112b522a27c4a340614d7a7512#a5026485151138112b522a27c4a340614d7a7512"
 
 [[package]]
 name = "nrf52840-ble-mesh"

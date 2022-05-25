@@ -22,7 +22,7 @@ use embassy::channel::DynamicReceiver as ChannelReceiver;
 use embassy::time::{Duration, Ticker};
 use embassy::util::{select, select4, Either, Either4};
 use futures::future::join;
-use futures::{pin_mut, StreamExt};
+use futures::StreamExt;
 use rand_core::{CryptoRng, RngCore};
 //use crate::drivers::ble::mesh::model::foundation::configuration::ConfigurationMessage::Beacon;
 

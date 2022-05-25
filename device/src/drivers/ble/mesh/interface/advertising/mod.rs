@@ -15,7 +15,6 @@ use crate::drivers::ble::mesh::provisioning::ProvisioningPDU;
 use crate::drivers::ble::mesh::{MESH_BEACON, MESH_MESSAGE, PB_ADV};
 use core::cell::Cell;
 use core::cell::RefCell;
-use core::future::pending;
 use core::iter::Iterator;
 use heapless::Vec;
 

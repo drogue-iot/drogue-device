@@ -537,7 +537,7 @@ checksum = "546c37ac5d9e56f55e73b677106873d9d9f5190605e41a856503623648488cae"
 [[package]]
 name = "nrf-softdevice-mbr"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#91a59a14083bf32baf2af64c4ebf368f937f7799"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#a5026485151138112b522a27c4a340614d7a7512"
 
 [[package]]
 name = "nrf52833-pac"
@@ -796,19 +796,19 @@ dependencies = [
 [[patch.unused]]
 name = "nrf-softdevice"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=91a59a14083bf32baf2af64c4ebf368f937f7799#91a59a14083bf32baf2af64c4ebf368f937f7799"
+source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=a5026485151138112b522a27c4a340614d7a7512#a5026485151138112b522a27c4a340614d7a7512"
 
 [[patch.unused]]
 name = "nrf-softdevice-defmt-rtt"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=91a59a14083bf32baf2af64c4ebf368f937f7799#91a59a14083bf32baf2af64c4ebf368f937f7799"
+source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=a5026485151138112b522a27c4a340614d7a7512#a5026485151138112b522a27c4a340614d7a7512"
 
 [[patch.unused]]
 name = "nrf-softdevice-macro"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=91a59a14083bf32baf2af64c4ebf368f937f7799#91a59a14083bf32baf2af64c4ebf368f937f7799"
+source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=a5026485151138112b522a27c4a340614d7a7512#a5026485151138112b522a27c4a340614d7a7512"
 
 [[patch.unused]]
 name = "nrf-softdevice-s140"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=91a59a14083bf32baf2af64c4ebf368f937f7799#91a59a14083bf32baf2af64c4ebf368f937f7799"
+source = "git+https://github.com/embassy-rs/nrf-softdevice/?rev=a5026485151138112b522a27c4a340614d7a7512#a5026485151138112b522a27c4a340614d7a7512"
