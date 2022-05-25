@@ -20,4 +20,5 @@ pub mod status;
 pub mod storage;
 pub mod vault;
 
+#[derive(Debug)]
 pub struct InsufficientBuffer;

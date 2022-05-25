@@ -7,7 +7,15 @@ use embassy::time::Duration;
 use heapless::Vec;
 use micromath::F32Ext;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
+pub struct SensorClient<C, const NUM_SENSORS: usize, const NUM_COLUMNS: usize>
+where
+    C: SensorConfig,
+{
+    _c: core::marker::PhantomData<C>,
+}
+
+#[derive(Clone, Debug)]
 pub struct SensorServer<C, const NUM_SENSORS: usize, const NUM_COLUMNS: usize>
 where
     C: SensorConfig,
@@ -27,7 +35,19 @@ where
     }
 }
 
-#[derive(Clone)]
+impl<C, const NUM_SENSORS: usize, const NUM_COLUMNS: usize>
+    SensorClient<C, NUM_SENSORS, NUM_COLUMNS>
+where
+    C: SensorConfig,
+{
+    pub fn new() -> Self {
+        Self {
+            _c: core::marker::PhantomData,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct SensorSetupServer<C, const NUM_SENSORS: usize, const NUM_COLUMNS: usize>
 where
     C: SensorSetupConfig,
@@ -380,6 +400,35 @@ where
         }
     }
 }
+
+impl<C, const NUM_SENSORS: usize, const NUM_COLUMNS: usize> Model
+    for SensorClient<C, NUM_SENSORS, NUM_COLUMNS>
+where
+    C: SensorConfig,
+{
+    const IDENTIFIER: ModelIdentifier = SENSOR_CLIENT;
+    type Message<'m> = SensorMessage<'m, C, NUM_SENSORS, NUM_COLUMNS>;
+
+    fn parse<'m>(
+        opcode: Opcode,
+        parameters: &'m [u8],
+    ) -> Result<Option<Self::Message<'m>>, ParseError> {
+        match opcode {
+            SENSOR_DESCRIPTOR_GET => Ok(Some(SensorMessage::DescriptorGet(DescriptorGet::parse(
+                parameters,
+            )?))),
+            SENSOR_GET => Ok(Some(SensorMessage::Get(SensorGet::parse(parameters)?))),
+            SENSOR_COLUMN_GET => Ok(Some(SensorMessage::ColumnGet(ColumnGet::parse::<C>(
+                parameters,
+            )?))),
+            SENSOR_SERIES_GET => Ok(Some(SensorMessage::SeriesGet(SeriesGet::parse::<C>(
+                parameters,
+            )?))),
+            _ => Ok(None),
+        }
+    }
+}
+
 impl<C, const NUM_SENSORS: usize, const NUM_COLUMNS: usize> Model
     for SensorSetupServer<C, NUM_SENSORS, NUM_COLUMNS>
 where
