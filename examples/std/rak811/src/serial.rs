@@ -1,5 +1,4 @@
-use embedded_hal_async::serial::{Error, ErrorKind, ErrorType, Read, Write};
-/// Copied from embassy project
+use nix::errno::Errno;
 use nix::fcntl::OFlag;
 use nix::sys::termios;
 use std::io;
@@ -10,7 +9,7 @@ pub struct SerialPort {
 }
 
 impl SerialPort {
-    pub fn new<'a, P: ?Sized + nix::NixPath>(
+    pub fn new<P: ?Sized + nix::NixPath>(
         path: &P,
         baudrate: termios::BaudRate,
     ) -> io::Result<Self> {
@@ -40,82 +39,30 @@ impl SerialPort {
 
         Ok(Self { fd })
     }
-
-    pub fn split(self) -> (SerialWriter, SerialReader) {
-        (SerialWriter { fd: self.fd }, SerialReader { fd: self.fd })
-    }
 }
 
-pub struct SerialWriter {
-    fd: RawFd,
-}
-
-pub struct SerialReader {
-    fd: RawFd,
-}
-
-impl AsRawFd for SerialWriter {
+impl AsRawFd for SerialPort {
     fn as_raw_fd(&self) -> RawFd {
         self.fd
     }
 }
 
-impl AsRawFd for SerialReader {
-    fn as_raw_fd(&self) -> RawFd {
-        self.fd
+impl io::Read for SerialPort {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        nix::unistd::read(self.fd, buf).map_err(to_io_error)
     }
 }
 
-impl ErrorType for SerialReader {
-    type Error = SerialError;
-}
-impl ErrorType for SerialWriter {
-    type Error = SerialError;
-}
+impl io::Write for SerialPort {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        nix::unistd::write(self.fd, buf).map_err(to_io_error)
+    }
 
-impl Error for SerialError {
-    fn kind(&self) -> ErrorKind {
-        ErrorKind::Other
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
     }
 }
 
-impl From<nix::Error> for SerialError {
-    fn from(e: nix::Error) -> Self {
-        Self(e)
-    }
-}
-
-#[derive(Debug)]
-pub struct SerialError(nix::Error);
-
-impl Read for SerialReader {
-    type ReadFuture<'m> = impl core::future::Future<Output = Result<(), Self::Error>> + 'm where Self: 'm;
-    fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m> {
-        async move {
-            nix::unistd::read(self.fd, buf)?;
-            Ok(())
-        }
-    }
-}
-
-impl Write for SerialWriter {
-    type WriteFuture<'m> = impl core::future::Future<Output = Result<(), Self::Error>> + 'm where Self: 'm;
-    fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
-        async move {
-            nix::unistd::write(self.fd, buf)?;
-            Ok(())
-        }
-    }
-
-    type FlushFuture<'m> = impl core::future::Future<Output = Result<(), Self::Error>> + 'm where Self: 'm;
-    fn flush<'m>(&'m mut self) -> Self::FlushFuture<'m> {
-        async move { Ok(()) }
-    }
-}
-
-fn to_io_error(e: nix::Error) -> io::Error {
-    match e {
-        nix::Error::Sys(errno) => errno.into(),
-        e => io::Error::new(io::ErrorKind::InvalidInput, e),
-    }
+fn to_io_error(e: Errno) -> io::Error {
+    e.into()
 }

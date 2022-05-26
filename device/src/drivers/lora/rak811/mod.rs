@@ -8,124 +8,43 @@ mod protocol;
 use crate::traits::lora::*;
 
 pub use buffer::*;
-use core::{
-    future::Future,
-    sync::atomic::{AtomicBool, Ordering},
-};
+use core::future::Future;
 use embassy::{
     blocking_mutex::raw::NoopRawMutex,
-    channel::{Channel, Receiver, Sender, Signal},
+    io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt},
 };
 use embedded_hal::digital::v2::OutputPin;
-use embedded_hal_async::serial::{Read, Write};
 pub use protocol::*;
 
 const RECV_BUFFER_LEN: usize = 256;
 type DriverMutex = NoopRawMutex;
 
-pub struct Initialized {
-    signal: Signal<Result<LoraRegion, LoraError>>,
-    initialized: AtomicBool,
-}
-
-impl Initialized {
-    pub const fn new() -> Self {
-        Self {
-            signal: Signal::new(),
-            initialized: AtomicBool::new(false),
-        }
-    }
-
-    async fn wait(&self) -> Result<Option<LoraRegion>, LoraError> {
-        if self.initialized.swap(true, Ordering::SeqCst) == false {
-            let region = self.signal.wait().await?;
-            return Ok(Some(region));
-        }
-        Ok(None)
-    }
-
-    pub fn signal(&self, result: Result<LoraRegion, LoraError>) {
-        self.signal.signal(result);
-    }
-}
-
-pub struct Rak811Driver {
-    initialized: Initialized,
-    response_channel: Channel<DriverMutex, Response, 2>,
-}
-
-pub struct Rak811Controller<'a, TX>
+pub struct Rak811Modem<T, RESET>
 where
-    TX: Write + 'static,
-{
-    config: LoraConfig,
-    initialized: &'a Initialized,
-    response_consumer: Receiver<'a, DriverMutex, Response, 2>,
-    tx: TX,
-}
-
-pub struct Rak811Modem<'a, RX, RESET>
-where
-    RX: Read + 'static,
+    T: AsyncBufRead + AsyncWrite + Unpin,
     RESET: OutputPin,
 {
-    initialized: &'a Initialized,
-    rx: RX,
+    transport: T,
     reset: RESET,
     parse_buffer: Buffer,
-    response_producer: Sender<'a, DriverMutex, Response, 2>,
+    config: LoraConfig,
 }
 
-impl Rak811Driver {
-    pub const fn new() -> Self {
-        Self {
-            initialized: Initialized::new(),
-            response_channel: Channel::new(),
-        }
-    }
-
-    pub fn initialize<'a, TX, RX, RESET>(
-        &'a mut self,
-        tx: TX,
-        rx: RX,
-        reset: RESET,
-    ) -> (Rak811Controller<'a, TX>, Rak811Modem<'a, RX, RESET>)
-    where
-        TX: Write + 'static,
-        RX: Read + 'static,
-        RESET: OutputPin + 'static,
-    {
-        let rp = self.response_channel.sender();
-        let rc = self.response_channel.receiver();
-
-        let modem = Rak811Modem::new(&self.initialized, rx, reset, rp);
-        let controller = Rak811Controller::new(&self.initialized, tx, rc);
-
-        (controller, modem)
-    }
-}
-
-impl<'a, RX, RESET> Rak811Modem<'a, RX, RESET>
+impl<T, RESET> Rak811Modem<T, RESET>
 where
-    RX: Read + 'static,
-    RESET: OutputPin + 'static,
+    T: AsyncBufRead + AsyncWrite + Unpin,
+    RESET: OutputPin,
 {
-    pub fn new(
-        initialized: &'a Initialized,
-        rx: RX,
-        reset: RESET,
-        response_producer: Sender<'a, DriverMutex, Response, 2>,
-    ) -> Self {
+    pub fn new(transport: T, reset: RESET) -> Self {
         Self {
-            initialized,
-            rx,
+            transport,
             reset,
+            config: LoraConfig::new(),
             parse_buffer: Buffer::new(),
-            response_producer,
         }
     }
 
-    async fn initialize(&mut self) -> Result<LoraRegion, LoraError> {
+    pub async fn initialize(&mut self) -> Result<(), LoraError> {
         self.reset.set_high().ok();
         self.reset.set_low().ok();
         loop {
@@ -135,7 +54,8 @@ where
                 match response {
                     Response::Initialized(region) => {
                         info!("Got initialize response with region {:?}", region);
-                        return Ok(region);
+                        self.config.region.replace(region);
+                        return Ok(());
                     }
                     e => {
                         error!("Got unexpected repsonse: {:?}", e);
@@ -148,7 +68,7 @@ where
 
     async fn process(&mut self) -> Result<(), LoraError> {
         let mut buf = [0; 1];
-        self.rx
+        self.transport
             .read(&mut buf[..])
             .await
             .map_err(|_| LoraError::RecvError)?;
@@ -169,23 +89,17 @@ where
         None
     }
 
-    async fn digest(&mut self) {
-        if let Some(response) = self.parse() {
-            let _ = self.response_producer.send(response).await;
-        }
-    }
-
-    pub async fn run(&mut self) -> ! {
-        let result = self.initialize().await;
-        self.initialized.signal(result);
+    async fn recv(&mut self) -> Result<Response, LoraError> {
+        let mut buf = [0; 1];
         loop {
-            let mut buf = [0; 1];
-            match self.rx.read(&mut buf[..]).await {
-                Ok(()) => {
-                    for b in &buf[..] {
+            match self.transport.read(&mut buf[..]).await {
+                Ok(len) => {
+                    for b in &buf[..len] {
                         self.parse_buffer.write(*b).unwrap();
                     }
-                    self.digest().await;
+                    if let Some(response) = self.parse() {
+                        return Ok(response);
+                    }
                 }
                 Err(_) => {
                     error!("Error reading from uart");
@@ -193,42 +107,54 @@ where
             }
         }
     }
-}
 
-/*
-    /// Send reset command to lora module. Depending on the mode, this will restart
-    /// the module or reload its configuration from EEPROM.
-    pub fn reset(&mut self, mode: ResetMode) -> Result<(), DriverError> {
-        let response = self.send_command(Command::Reset(mode))?;
-        match response {
-            Response::Ok => {
-                let response = self.recv_response()?;
-                match response {
-                    Response::Initialized(band) => {
-                        self.lora_band = band;
-                        Ok(())
-                    }
-                    _ => Err(DriverError::NotInitialized),
-                }
-            }
-            r => log_unexpected(r),
+    async fn send_command<'m>(&mut self, command: Command<'m>) -> Result<Response, LoraError> {
+        let mut s = Command::buffer();
+        command.encode(&mut s);
+        debug!("Sending command {}", s.as_str());
+        s.push_str("\r\n").unwrap();
+        self.transport
+            .write(s.as_bytes())
+            .await
+            .map_err(|_| LoraError::SendError)?;
+
+        self.recv().await
+    }
+
+    async fn send_command_ok<'m>(&mut self, command: Command<'m>) -> Result<(), LoraError> {
+        match self.send_command(command).await? {
+            Response::Ok => Ok(()),
+            _ => Err(LoraError::OtherError),
         }
     }
-*/
 
-fn log_unexpected(r: Response) -> Result<(), LoraError> {
-    error!("Unexpected response: {:?}", r);
-    Err(LoraError::OtherError)
+    pub async fn configure(&mut self, config: &LoraConfig) -> Result<(), LoraError> {
+        info!("Applying config: {:?}", config);
+        if let Some(region) = config.region {
+            if self.config.region != config.region {
+                self.send_command_ok(Command::SetBand(region)).await?;
+                self.config.region.replace(region);
+            }
+        }
+        if let Some(lora_mode) = config.lora_mode {
+            if self.config.lora_mode != config.lora_mode {
+                self.send_command_ok(Command::SetMode(lora_mode)).await?;
+                self.config.lora_mode.replace(lora_mode);
+            }
+        }
+        debug!("Config applied");
+        Ok(())
+    }
 }
 
-impl<'a, TX> LoraDriver for Rak811Controller<'a, TX>
+impl<T, RESET> LoraDriver for Rak811Modem<T, RESET>
 where
-    TX: Write,
+    T: AsyncBufRead + AsyncWrite + Unpin,
+    RESET: OutputPin,
 {
     type JoinFuture<'m> = impl Future<Output = Result<(), LoraError>> + 'm
     where
-        Self: 'm,
-        'a: 'm;
+        Self: 'm;
     fn join<'m>(&'m mut self, mode: JoinMode) -> Self::JoinFuture<'m> {
         async move {
             let mode = match mode {
@@ -262,7 +188,7 @@ where
             let response = self.send_command(Command::Join(mode)).await?;
             match response {
                 Response::Ok => {
-                    let response = self.response_consumer.recv().await;
+                    let response = self.recv().await?;
                     match response {
                         Response::Recv(EventCode::JoinedSuccess, _, _, _) => Ok(()),
                         r => log_unexpected(r),
@@ -275,14 +201,13 @@ where
 
     type SendFuture<'m> = impl Future<Output = Result<(), LoraError>> + 'm
     where
-        Self: 'm,
-        'a: 'm;
+        Self: 'm;
     fn send<'m>(&'m mut self, qos: QoS, port: Port, data: &'m [u8]) -> Self::SendFuture<'m> {
         async move {
             let response = self.send_command(Command::Send(qos, port, data)).await?;
             match response {
                 Response::Ok => {
-                    let response = self.response_consumer.recv().await;
+                    let response = self.recv().await?;
                     let expected_code = match qos {
                         QoS::Unconfirmed => EventCode::TxUnconfirmed,
                         QoS::Confirmed => EventCode::TxConfirmed,
@@ -299,8 +224,7 @@ where
 
     type SendRecvFuture<'m> = impl Future<Output = Result<usize, LoraError>> + 'm
     where
-        Self: 'm,
-        'a: 'm;
+        Self: 'm;
     fn send_recv<'m>(
         &'m mut self,
         _qos: QoS,
@@ -312,65 +236,7 @@ where
     }
 }
 
-impl<'a, TX> Rak811Controller<'a, TX>
-where
-    TX: Write,
-{
-    pub fn new(
-        initialized: &'a Initialized,
-        tx: TX,
-        response_consumer: Receiver<'a, DriverMutex, Response, 2>,
-    ) -> Self {
-        Self {
-            config: LoraConfig::new(),
-            initialized,
-            tx,
-            response_consumer,
-        }
-    }
-
-    async fn send_command<'m>(&mut self, command: Command<'m>) -> Result<Response, LoraError> {
-        if let Some(region) = self.initialized.wait().await? {
-            self.config.region.replace(region);
-        }
-        let mut s = Command::buffer();
-        command.encode(&mut s);
-        debug!("Sending command {}", s.as_str());
-        s.push_str("\r\n").unwrap();
-        self.tx
-            .write(s.as_bytes())
-            .await
-            .map_err(|_| LoraError::SendError)?;
-
-        let response = self.response_consumer.recv().await;
-        Ok(response)
-    }
-
-    async fn send_command_ok<'m>(&mut self, command: Command<'m>) -> Result<(), LoraError> {
-        match self.send_command(command).await? {
-            Response::Ok => Ok(()),
-            _ => Err(LoraError::OtherError),
-        }
-    }
-
-    pub async fn configure(&mut self, config: &LoraConfig) -> Result<(), LoraError> {
-        if let Some(region) = self.initialized.wait().await? {
-            self.config.region.replace(region);
-        }
-        info!("Applying config: {:?}", config);
-        if let Some(region) = config.region {
-            if self.config.region != config.region {
-                self.send_command_ok(Command::SetBand(region)).await?;
-                self.config.region.replace(region);
-            }
-        }
-        if let Some(lora_mode) = config.lora_mode {
-            if self.config.lora_mode != config.lora_mode {
-                self.send_command_ok(Command::SetMode(lora_mode)).await?;
-                self.config.lora_mode.replace(lora_mode);
-            }
-        }
-        debug!("Config applied");
-        Ok(())
-    }
+fn log_unexpected(r: Response) -> Result<(), LoraError> {
+    error!("Unexpected response: {:?}", r);
+    Err(LoraError::OtherError)
 }

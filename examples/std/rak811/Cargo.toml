@@ -21,4 +21,7 @@ rand = "0.8"
 cfg-if = "1.0.0"
 embedded-hal = {version = "0.2.4", features = ["unproven"] }
 embedded-hal-async = { version = "0.0.1", git = "https://github.com/embassy-rs/embedded-hal", branch = "embassy2" }
-nix = "0.19.1"
+async-io = "1.6.0"
+nix = "0.22.1"
+futures = { version = "0.3.17" }
+libc = "0.2.101"
