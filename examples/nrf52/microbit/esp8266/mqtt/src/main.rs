@@ -14,18 +14,17 @@ use panic_probe as _;
 use drogue_device::traits::button::Button;
 
 use drogue_device::bsp::boards::nrf52::microbit::LedMatrix;
-use drogue_device::drivers::wifi::esp8266::*;
 use drogue_device::{
-    bsp::boards::nrf52::microbit::*, drivers::dns::*, drivers::wifi::esp8266::Esp8266Controller, *,
+    bsp::boards::nrf52::microbit::*, drivers::dns::*, drivers::wifi::esp8266::Esp8266Modem, *,
 };
 use embassy::time::{Duration, Timer};
+use embassy::util::Forever;
 use embassy_nrf::{
+    buffered_uarte::{BufferedUarte, State},
     gpio::{Level, Output, OutputDrive},
     interrupt,
-    peripherals::{P0_09, P0_10, UARTE0},
-    uarte,
-    uarte::{Uarte, UarteRx, UarteTx},
-    Peripherals,
+    peripherals::{P0_09, P0_10, TIMER0, UARTE0},
+    uarte, Peripherals,
 };
 
 use drogue_device::network::connection::{
@@ -51,8 +50,7 @@ const PASSWORD: &str = drogue::config!("mqtt-password");
 const TOPIC: &str = drogue::config!("mqtt-topic");
 const TOPIC_S: &str = drogue::config!("mqtt-command-topic");
 
-type TX = UarteTx<'static, UARTE0>;
-type RX = UarteRx<'static, UARTE0>;
+type SERIAL = BufferedUarte<'static, UARTE0, TIMER0>;
 type ENABLE = Output<'static, P0_09>;
 type RESET = Output<'static, P0_10>;
 
@@ -64,25 +62,32 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     config.parity = uarte::Parity::EXCLUDED;
     config.baudrate = uarte::Baudrate::BAUD115200;
 
+    static mut TX_BUFFER: [u8; 4096] = [0u8; 4096];
+    static mut RX_BUFFER: [u8; 4096] = [0u8; 4096];
     let irq = interrupt::take!(UARTE0_UART0);
-    let uart = Uarte::new_with_rtscts(
+    static STATE: Forever<State<'static, UARTE0, TIMER0>> = Forever::new();
+    let state = STATE.put(State::new());
+    let uart = BufferedUarte::new(
+        state,
         board.uarte0,
+        board.timer0,
+        board.ppi_ch0,
+        board.ppi_ch1,
         irq,
         board.p15,
         board.p14,
         board.p1,
         board.p2,
         config,
+        unsafe { &mut RX_BUFFER },
+        unsafe { &mut TX_BUFFER },
     );
-
-    let (tx, rx) = uart.split();
 
     let enable_pin = Output::new(board.p9, Level::Low, OutputDrive::Standard);
     let reset_pin = Output::new(board.p8, Level::Low, OutputDrive::Standard);
 
-    static WIFI: Esp8266Driver = Esp8266Driver::new();
-    let (mut network, modem) = WIFI.initialize(tx, rx, enable_pin, reset_pin);
-    spawner.spawn(wifi(modem)).unwrap();
+    let mut network = Esp8266Modem::new(uart, enable_pin, reset_pin);
+    network.initialize().await.unwrap();
 
     network
         .join(Join::Wpa {
@@ -92,7 +97,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         .await
         .expect("Error joining WiFi network");
 
-    static NETWORK: TcpStackState<Esp8266Controller<'static, TX>> = TcpStackState::new();
+    static NETWORK: TcpStackState<Esp8266Modem<SERIAL, ENABLE, RESET>> = TcpStackState::new();
     let network = NETWORK.initialize(network);
 
     let mut conn_factory = {
@@ -155,17 +160,12 @@ static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
     ),
 ]);
 
-#[embassy::task]
-pub async fn wifi(mut modem: Esp8266Modem<'static, RX, ENABLE, RESET>) {
-    modem.run().await;
-}
-
 pub struct Receiver {
     display: LedMatrix,
     connection: Option<
         TlsNetworkConnection<
             'static,
-            Handle<'static, Esp8266Controller<'static, UarteTx<'static, UARTE0>>>,
+            Handle<'static, Esp8266Modem<SERIAL, ENABLE, RESET>>,
             Aes128GcmSha256,
         >,
     >,
@@ -176,7 +176,7 @@ impl Receiver {
         display: LedMatrix,
         connection: TlsNetworkConnection<
             'static,
-            Handle<'static, Esp8266Controller<'static, UarteTx<'static, UARTE0>>>,
+            Handle<'static, Esp8266Modem<SERIAL, ENABLE, RESET>>,
             Aes128GcmSha256,
         >,
     ) -> Self {
@@ -211,7 +211,7 @@ impl Actor for Receiver {
         let mut client = MqttClient::<
             TlsNetworkConnection<
                 '_,
-                Handle<'_, Esp8266Controller<'static, UarteTx<'static, UARTE0>>>,
+                Handle<'static, Esp8266Modem<SERIAL, ENABLE, RESET>>,
                 Aes128GcmSha256,
             >,
             20,

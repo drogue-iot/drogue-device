@@ -4,27 +4,29 @@
 
 mod serial;
 
+use async_io::Async;
 use drogue_device::{
     domain::temperature::Celsius, drivers::wifi::esp8266::*, network::tcp::*, traits::wifi::*, *,
 };
 use drogue_temperature::*;
+use embassy::io::FromStdIo;
 use embassy::time::Duration;
 use embedded_hal::digital::v2::OutputPin;
+use futures::io::BufReader;
 use nix::sys::termios;
 use serial::*;
 
 const WIFI_SSID: &str = drogue::config!("wifi-ssid");
 const WIFI_PSK: &str = drogue::config!("wifi-password");
 
-type TX = SerialWriter;
-type RX = SerialReader;
+type SERIAL = FromStdIo<BufReader<Async<SerialPort>>>;
 type ENABLE = DummyPin;
 type RESET = DummyPin;
 
 pub struct StdBoard;
 
 impl TemperatureBoard for StdBoard {
-    type Network = SharedTcpStack<'static, Esp8266Controller<'static, TX>>;
+    type Network = SharedTcpStack<'static, Esp8266Modem<SERIAL, ENABLE, RESET>>;
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = FakeSensor;
@@ -43,11 +45,11 @@ async fn main(spawner: embassy::executor::Spawner) {
 
     let baudrate = termios::BaudRate::B115200;
     let port = SerialPort::new("/dev/ttyUSB0", baudrate).unwrap();
-    let (tx, rx) = port.split();
+    let port = Async::new(port).unwrap();
+    let port = futures::io::BufReader::new(port);
+    let port = FromStdIo::new(port);
 
-    static WIFI: Esp8266Driver = Esp8266Driver::new();
-    let (mut network, modem) = WIFI.initialize(tx, rx, DummyPin, DummyPin);
-    spawner.spawn(wifi(modem)).unwrap();
+    let mut network = Esp8266Modem::new(port, DummyPin, DummyPin);
 
     network
         .join(Join::Wpa {
@@ -57,7 +59,7 @@ async fn main(spawner: embassy::executor::Spawner) {
         .await
         .expect("Error joining WiFi network");
 
-    static NETWORK: TcpStackState<Esp8266Controller<'static, TX>> = TcpStackState::new();
+    static NETWORK: TcpStackState<Esp8266Modem<SERIAL, ENABLE, RESET>> = TcpStackState::new();
     let network = NETWORK.initialize(network);
 
     DEVICE
@@ -73,11 +75,6 @@ async fn main(spawner: embassy::executor::Spawner) {
             },
         )
         .await;
-}
-
-#[embassy::task]
-pub async fn wifi(mut modem: Esp8266Modem<'static, RX, ENABLE, RESET>) {
-    modem.run().await;
 }
 
 pub struct DummyPin;

@@ -620,6 +620,7 @@ dependencies = [
 name = "esp8266"
 version = "0.1.0"
 dependencies = [
+ "async-io",
  "cfg-if",
  "drogue-device",
  "drogue-temperature",
@@ -628,8 +629,10 @@ dependencies = [
  "embedded-hal-async",
  "embedded-tls",
  "env_logger",
+ "futures",
+ "libc",
  "log",
- "nix",
+ "nix 0.22.3",
  "rand",
 ]
 
