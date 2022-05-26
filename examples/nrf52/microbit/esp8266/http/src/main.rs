@@ -19,27 +19,26 @@ use drogue_device::{
 };
 use drogue_device::{drogue, traits::wifi::*, DeviceContext};
 use drogue_temperature::*;
+use embassy::util::Forever;
 use embassy_nrf::{
+    buffered_uarte::{BufferedUarte, State},
     gpio::{Level, Output, OutputDrive},
     interrupt,
-    peripherals::{P0_09, P0_10, UARTE0},
-    uarte,
-    uarte::{Uarte, UarteRx, UarteTx},
-    Peripherals,
+    peripherals::{P0_09, P0_10, TIMER0, UARTE0},
+    uarte, Peripherals,
 };
 
 const WIFI_SSID: &str = drogue::config!("wifi-ssid");
 const WIFI_PSK: &str = drogue::config!("wifi-password");
 
-type TX = UarteTx<'static, UARTE0>;
-type RX = UarteRx<'static, UARTE0>;
+type SERIAL = BufferedUarte<'static, UARTE0, TIMER0>;
 type ENABLE = Output<'static, P0_09>;
 type RESET = Output<'static, P0_10>;
 
 bind_bsp!(Microbit, BSP);
 
 impl TemperatureBoard for BSP {
-    type Network = SharedTcpStack<'static, Esp8266Controller<'static, TX>>;
+    type Network = SharedTcpStack<'static, Esp8266Modem<SERIAL, ENABLE, RESET>>;
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = TemperatureMonitor;
@@ -57,25 +56,32 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     config.parity = uarte::Parity::EXCLUDED;
     config.baudrate = uarte::Baudrate::BAUD115200;
 
+    static mut TX_BUFFER: [u8; 4096] = [0u8; 4096];
+    static mut RX_BUFFER: [u8; 4096] = [0u8; 4096];
     let irq = interrupt::take!(UARTE0_UART0);
-    let uart = Uarte::new_with_rtscts(
+    static STATE: Forever<State<'static, UARTE0, TIMER0>> = Forever::new();
+    let state = STATE.put(State::new());
+    let uart = BufferedUarte::new(
+        state,
         board.uarte0,
+        board.timer0,
+        board.ppi_ch0,
+        board.ppi_ch1,
         irq,
         board.p15,
         board.p14,
         board.p1,
         board.p2,
         config,
+        unsafe { &mut RX_BUFFER },
+        unsafe { &mut TX_BUFFER },
     );
-
-    let (tx, rx) = uart.split();
 
     let enable_pin = Output::new(board.p9, Level::Low, OutputDrive::Standard);
     let reset_pin = Output::new(board.p8, Level::Low, OutputDrive::Standard);
 
-    static WIFI: Esp8266Driver = Esp8266Driver::new();
-    let (mut network, modem) = WIFI.initialize(tx, rx, enable_pin, reset_pin);
-    spawner.spawn(wifi(modem)).unwrap();
+    let mut network = Esp8266Modem::new(uart, enable_pin, reset_pin);
+    network.initialize().await.unwrap();
 
     network
         .join(Join::Wpa {
@@ -85,7 +91,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         .await
         .expect("Error joining WiFi network");
 
-    static NETWORK: TcpStackState<Esp8266Controller<'static, TX>> = TcpStackState::new();
+    static NETWORK: TcpStackState<Esp8266Modem<SERIAL, ENABLE, RESET>> = TcpStackState::new();
     let network = NETWORK.initialize(network);
 
     let config = TemperatureBoardConfig {
@@ -110,9 +116,4 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         )
         .await;
     defmt::info!("Application initialized. Press 'A' button to send data");
-}
-
-#[embassy::task]
-pub async fn wifi(mut modem: Esp8266Modem<'static, RX, ENABLE, RESET>) {
-    modem.run().await;
 }

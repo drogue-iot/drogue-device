@@ -12,15 +12,14 @@ use crate::drivers::common::socket_pool::SocketPool;
 
 use crate::network::tcp::TcpError;
 use crate::traits::wifi::{Join, JoinError, WifiSupplicant};
-use atomic_polyfill::{AtomicBool, Ordering};
 use buffer::Buffer;
 use core::future::Future;
 use embassy::{
     blocking_mutex::raw::NoopRawMutex,
-    channel::{Channel, Receiver, Sender, Signal},
+    channel::Channel,
+    io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt},
 };
 use embedded_hal::digital::v2::OutputPin;
-use embedded_hal_async::serial::{Read, Write};
 use embedded_nal_async::*;
 use protocol::{Command, ConnectionType, Response as AtResponse};
 
@@ -41,148 +40,38 @@ pub enum DriverError {
     OperationNotSupported,
 }
 
-pub struct Initialized {
-    signal: Signal<Result<(), DriverError>>,
-    initialized: AtomicBool,
-}
-
-impl Initialized {
-    pub const fn new() -> Self {
-        Self {
-            signal: Signal::new(),
-            initialized: AtomicBool::new(false),
-        }
-    }
-
-    async fn wait(&self) -> Result<bool, DriverError> {
-        if self.initialized.swap(true, Ordering::SeqCst) == false {
-            self.signal.wait().await?;
-            Ok(true)
-        } else {
-            Ok(false)
-        }
-    }
-
-    pub fn signal(&self, result: Result<(), DriverError>) {
-        self.signal.signal(result);
-    }
-}
-
-pub struct Esp8266Controller<'a, TX>
+pub struct Esp8266Modem<T, ENABLE, RESET>
 where
-    TX: Write,
+    T: AsyncBufRead + AsyncWrite + Unpin,
+    ENABLE: OutputPin,
+    RESET: OutputPin,
 {
-    initialized: &'a Initialized,
-    tx: TX,
-    socket_pool: SocketPool,
-    response_consumer: Receiver<'a, DriverMutex, AtResponse, 2>,
-    notification_consumer: Receiver<'a, DriverMutex, AtResponse, 2>,
-}
-
-pub struct Esp8266Modem<'a, RX, ENABLE, RESET>
-where
-    RX: Read + 'static,
-    ENABLE: OutputPin + 'static,
-    RESET: OutputPin + 'static,
-{
-    initialized: &'a Initialized,
-    rx: RX,
+    transport: T,
     enable: ENABLE,
     reset: RESET,
     parse_buffer: Buffer,
-    response_producer: Sender<'a, DriverMutex, AtResponse, 2>,
-    notification_producer: Sender<'a, DriverMutex, AtResponse, 2>,
+    socket_pool: SocketPool,
+    notifications: Channel<DriverMutex, AtResponse, 2>,
 }
 
-pub struct Esp8266Driver {
-    initialized: Initialized,
-    response_channel: Channel<DriverMutex, AtResponse, 2>,
-    notification_channel: Channel<DriverMutex, AtResponse, 2>,
-}
-
-impl Esp8266Driver {
-    pub const fn new() -> Self {
-        Self {
-            initialized: Initialized::new(),
-            response_channel: Channel::new(),
-            notification_channel: Channel::new(),
-        }
-    }
-
-    pub fn initialize<'a, TX, RX, ENABLE, RESET>(
-        &'a self,
-        tx: TX,
-        rx: RX,
-        enable: ENABLE,
-        reset: RESET,
-    ) -> (
-        Esp8266Controller<'a, TX>,
-        Esp8266Modem<'a, RX, ENABLE, RESET>,
-    )
-    where
-        TX: Write + 'static,
-        RX: Read + 'static,
-        ENABLE: OutputPin + 'static,
-        RESET: OutputPin + 'static,
-    {
-        let modem = Esp8266Modem::new(
-            &self.initialized,
-            rx,
-            enable,
-            reset,
-            self.response_channel.sender(),
-            self.notification_channel.sender(),
-        );
-        let controller = Esp8266Controller::new(
-            &self.initialized,
-            tx,
-            self.response_channel.receiver(),
-            self.notification_channel.receiver(),
-        );
-
-        (controller, modem)
-    }
-}
-
-unsafe impl Sync for Esp8266Driver {}
-
-impl<'a, RX, ENABLE, RESET> Esp8266Modem<'a, RX, ENABLE, RESET>
+impl<T, ENABLE, RESET> Esp8266Modem<T, ENABLE, RESET>
 where
-    RX: Read + 'static,
-    ENABLE: OutputPin + 'static,
-    RESET: OutputPin + 'static,
+    T: AsyncBufRead + AsyncWrite + Unpin,
+    ENABLE: OutputPin,
+    RESET: OutputPin,
 {
-    pub fn new(
-        initialized: &'a Initialized,
-        rx: RX,
-        enable: ENABLE,
-        reset: RESET,
-        response_producer: Sender<'a, DriverMutex, AtResponse, 2>,
-        notification_producer: Sender<'a, DriverMutex, AtResponse, 2>,
-    ) -> Self {
+    pub fn new(transport: T, enable: ENABLE, reset: RESET) -> Self {
         Self {
-            initialized,
-            rx,
+            transport,
             enable,
             reset,
+            notifications: Channel::new(),
+            socket_pool: SocketPool::new(),
             parse_buffer: Buffer::new(),
-            response_producer,
-            notification_producer,
         }
     }
 
-    /*
-                            self.disable_echo().await?;
-                            trace!("Echo disabled");
-                            self.enable_mux().await?;
-                            trace!("Mux enabled");
-                            self.set_recv_mode().await?;
-                            trace!("Recv mode configured");
-                            self.set_mode().await?;
-                            return Ok(());
-    */
-
-    async fn initialize(&mut self) -> Result<(), DriverError> {
+    pub async fn initialize(&mut self) -> Result<(), DriverError> {
         self.enable.set_high().ok().unwrap();
         self.reset.set_high().ok().unwrap();
         let mut buffer: [u8; 1024] = [0; 1024];
@@ -197,13 +86,15 @@ where
 
         let mut rx_buf = [0; 1];
         loop {
-            let result = self.rx.read(&mut rx_buf[..]).await;
+            let result = self.transport.read(&mut rx_buf[..]).await;
             match result {
                 Ok(_) => {
                     buffer[pos] = rx_buf[0];
                     pos += 1;
                     if pos >= READY.len() && buffer[pos - READY.len()..pos] == READY {
                         info!("ESP8266 initialized");
+                        self.configure().await?;
+                        info!("ESP8266 configured");
                         return Ok(());
                     }
                 }
@@ -215,24 +106,7 @@ where
         }
     }
 
-    /// Run the processing loop until an error is encountered
-    pub async fn run(&mut self) -> ! {
-        let result = self.initialize().await;
-        self.initialized.signal(result);
-        let mut buf = [0; 1];
-        loop {
-            if let Ok(_) = self.rx.read(&mut buf).await {
-                for b in &buf[..] {
-                    self.parse_buffer.write(*b).unwrap();
-                }
-                if let Err(e) = self.digest().await {
-                    error!("Error digesting modem input: {:?}", e);
-                }
-            }
-        }
-    }
-
-    async fn digest(&mut self) -> Result<(), DriverError> {
+    fn digest(&mut self) -> Result<Option<AtResponse>, DriverError> {
         let result = self.parse_buffer.parse();
 
         if let Ok(response) = result {
@@ -255,11 +129,9 @@ where
                 | AtResponse::Resolvers(..)
                 | AtResponse::DnsFail
                 | AtResponse::UnlinkFail
-                | AtResponse::IpAddresses(..) => {
-                    self.response_producer.send(response).await;
-                }
+                | AtResponse::IpAddresses(..) => return Ok(Some(response)),
                 AtResponse::Closed(..) | AtResponse::DataAvailable { .. } => {
-                    self.notification_producer.send(response).await;
+                    let _ = self.notifications.try_send(response);
                 }
                 AtResponse::WifiConnected => {
                     debug!("wifi connected");
@@ -272,34 +144,10 @@ where
                 }
             }
         }
-        Ok(())
-    }
-}
-
-impl<'a, TX> Esp8266Controller<'a, TX>
-where
-    TX: Write,
-{
-    pub fn new(
-        initialized: &'a Initialized,
-        tx: TX,
-        response_consumer: Receiver<'a, DriverMutex, AtResponse, 2>,
-        notification_consumer: Receiver<'a, DriverMutex, AtResponse, 2>,
-    ) -> Self {
-        Self {
-            initialized,
-            socket_pool: SocketPool::new(),
-            tx,
-            response_consumer,
-            notification_consumer,
-        }
+        Ok(None)
     }
 
     async fn send<'c>(&mut self, command: Command<'c>) -> Result<AtResponse, DriverError> {
-        if self.initialized.wait().await? {
-            debug!("Device initialized, setting up parameters");
-            self.initialize().await?;
-        }
         let mut bytes = command.as_bytes();
         trace!(
             "writing command {}",
@@ -312,15 +160,29 @@ where
         self.send_recv(&bs).await
     }
 
+    async fn receive(&mut self) -> Result<AtResponse, DriverError> {
+        let mut buf = [0; 1];
+        loop {
+            if let Ok(_) = self.transport.read(&mut buf).await {
+                for b in &buf[..] {
+                    self.parse_buffer.write(*b).unwrap();
+                }
+                if let Some(response) = self.digest()? {
+                    return Ok(response);
+                }
+            }
+        }
+    }
+
     async fn send_recv(&mut self, data: &[u8]) -> Result<AtResponse, DriverError> {
-        self.tx
+        self.transport
             .write(data)
             .await
             .map_err(|_| DriverError::WriteError)?;
-        Ok(self.response_consumer.recv().await)
+        self.receive().await
     }
 
-    async fn initialize(&mut self) -> Result<(), DriverError> {
+    async fn configure(&mut self) -> Result<(), DriverError> {
         // Initialize
         self.send_recv(b"ATE0\r\n")
             .await
@@ -336,16 +198,6 @@ where
             .map_err(|_| DriverError::UnableToInitialize)?;
         Ok(())
     }
-
-    /*
-    async fn set_wifi_mode(&self, mode: WiFiMode) -> Result<(), ()> {
-        let command = Command::SetMode(mode);
-        match self.send(command).await {
-            Ok(AtResponse::Ok) => Ok(()),
-            _ => Err(()),
-        }
-    }
-    */
 
     async fn join_wep(&mut self, ssid: &str, password: &str) -> Result<IpAddr, JoinError> {
         let command = Command::JoinAp { ssid, password };
@@ -383,7 +235,7 @@ where
     }
 
     fn process_notifications(&mut self) {
-        while let Ok(response) = self.notification_consumer.try_recv() {
+        while let Ok(response) = self.notifications.try_recv() {
             match response {
                 AtResponse::DataAvailable { .. } => {
                     //  shared.socket_pool // [link_id].available += len;
@@ -398,14 +250,15 @@ where
     }
 }
 
-impl<'a, TX> WifiSupplicant for Esp8266Controller<'a, TX>
+impl<T, ENABLE, RESET> WifiSupplicant for Esp8266Modem<T, ENABLE, RESET>
 where
-    TX: Write,
+    T: AsyncBufRead + AsyncWrite + Unpin,
+    ENABLE: OutputPin,
+    RESET: OutputPin,
 {
     type JoinFuture<'m> = impl Future<Output = Result<IpAddr, JoinError>> + 'm
     where
-        Self: 'm,
-        'a: 'm;
+        Self: 'm;
     fn join<'m>(&'m mut self, join_info: Join<'m>) -> Self::JoinFuture<'m> {
         async move {
             match join_info {
@@ -416,9 +269,11 @@ where
     }
 }
 
-impl<'a, TX> TcpClientStack for Esp8266Controller<'a, TX>
+impl<T, ENABLE, RESET> TcpClientStack for Esp8266Modem<T, ENABLE, RESET>
 where
-    TX: Write,
+    T: AsyncBufRead + AsyncWrite + Unpin,
+    ENABLE: OutputPin,
+    RESET: OutputPin,
 {
     type TcpSocket = u8;
     type Error = TcpError;
@@ -478,12 +333,15 @@ where
 
             let result = match self.send(command).await {
                 Ok(AtResponse::Ok) => {
-                    match self.response_consumer.recv().await {
+                    match self.receive().await.map_err(|_| TcpError::WriteError)? {
                         AtResponse::ReadyForData => {
-                            self.tx.write(buf).await.map_err(|_| TcpError::WriteError)?;
+                            self.transport
+                                .write(buf)
+                                .await
+                                .map_err(|_| TcpError::WriteError)?;
                             let mut data_sent: Option<usize> = None;
                             loop {
-                                match self.response_consumer.recv().await {
+                                match self.receive().await.map_err(|_| TcpError::WriteError)? {
                                     AtResponse::ReceivedDataToSend(len) => {
                                         data_sent.replace(len);
                                     }
