@@ -2,9 +2,12 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
+use async_io::Async;
 use drogue_device::{drivers::lora::rak811::*, drogue, traits::lora::*, ActorContext};
+use embassy::io::FromStdIo;
 use embassy::time::{Duration, Timer};
 use embedded_hal::digital::v2::OutputPin;
+use futures::io::BufReader;
 
 mod app;
 mod serial;
@@ -17,12 +20,10 @@ const DEV_EUI: &str = drogue::config!("dev-eui");
 const APP_EUI: &str = drogue::config!("app-eui");
 const APP_KEY: &str = drogue::config!("app-key");
 
-type TX = SerialWriter;
-type RX = SerialReader;
+type SERIAL = FromStdIo<BufReader<Async<SerialPort>>>;
 type RESET = DummyPin;
 
-static APP: ActorContext<App<Rak811Controller<'static, TX>>> = ActorContext::new();
-static mut DRIVER: Rak811Driver = Rak811Driver::new();
+static APP: ActorContext<App<Rak811Modem<SERIAL, RESET>>> = ActorContext::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner) {
@@ -33,7 +34,15 @@ async fn main(spawner: embassy::executor::Spawner) {
 
     let baudrate = termios::BaudRate::B115200;
     let port = SerialPort::new("/dev/ttyUSB0", baudrate).unwrap();
-    let (tx, rx) = port.split();
+
+    let port = Async::new(port).unwrap();
+
+    // This implements futures's AsyncBufRead based on futures's AsyncRead
+    let port = futures::io::BufReader::new(port);
+
+    // We can then use FromStdIo to convert from futures's AsyncBufRead+AsyncWrite
+    // to embassy's AsyncBufRead+AsyncWrite
+    let port = FromStdIo::new(port);
 
     let reset_pin = DummyPin {};
 
@@ -47,22 +56,16 @@ async fn main(spawner: embassy::executor::Spawner) {
         .region(LoraRegion::EU868)
         .lora_mode(LoraMode::WAN);
 
-    let (mut controller, m) = unsafe { &mut DRIVER }.initialize(tx, rx, reset_pin);
-    spawner.spawn(modem(m)).unwrap();
+    let mut modem = Rak811Modem::new(port, reset_pin);
+    modem.initialize().await.unwrap();
+    modem.configure(&config).await.unwrap();
 
-    controller.configure(&config).await.unwrap();
-
-    let app = APP.mount(spawner, App::new(join_mode, controller));
+    let app = APP.mount(spawner, App::new(join_mode, modem));
 
     loop {
         let _ = app.notify(AppCommand::Send);
         Timer::after(Duration::from_secs(60)).await;
     }
-}
-
-#[embassy::task]
-async fn modem(mut m: Rak811Modem<'static, RX, RESET>) {
-    m.run().await;
 }
 
 pub struct DummyPin {}
