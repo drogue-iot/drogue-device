@@ -76,12 +76,12 @@ name = "browser"
 version = "0.1.0"
 dependencies = [
  "drogue-device",
- "drogue-wasm",
  "embassy",
  "embedded-hal 0.2.7",
  "log",
  "wasm-bindgen",
  "wasm-logger",
+ "web-embedded-hal",
 ]
 
 [[package]]
@@ -215,7 +215,7 @@ dependencies = [
  "embassy",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.8",
- "embedded-hal-async 0.1.0-alpha.1",
+ "embedded-hal-async",
  "futures",
 ]
 
@@ -231,7 +231,7 @@ dependencies = [
  "embassy",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.8",
- "embedded-hal-async 0.1.0-alpha.1",
+ "embedded-hal-async",
  "embedded-io",
  "embedded-nal",
  "embedded-nal-async",
@@ -257,19 +257,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "drogue-wasm"
-version = "0.1.0"
-source = "git+https://github.com/drogue-iot/drogue-wasm.git?branch=main#c1667887057e13c8d0d1cd8699169afce43b2f76"
-dependencies = [
- "embassy",
- "embedded-hal 0.2.7",
- "embedded-hal 1.0.0-alpha.7",
- "embedded-hal-async 0.0.1",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
 name = "embassy"
 version = "0.1.0"
 source = "git+https://github.com/embassy-rs/embassy.git?rev=e10fc2bada1c59420431f09a35f7aa09a5b45623#e10fc2bada1c59420431f09a35f7aa09a5b45623"
@@ -280,7 +267,8 @@ dependencies = [
  "critical-section",
  "embassy-macros",
  "embedded-hal 0.2.7",
- "embedded-hal-async 0.1.0-alpha.1",
+ "embedded-hal 1.0.0-alpha.8",
+ "embedded-hal-async",
  "futures",
  "heapless",
  "js-sys",
@@ -312,27 +300,11 @@ dependencies = [
 
 [[package]]
 name = "embedded-hal"
-version = "1.0.0-alpha.7"
-source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy2#bc0e0ca74a64d65d1b6c994f186bb89eeb364965"
-dependencies = [
- "nb 1.0.0",
-]
-
-[[package]]
-name = "embedded-hal"
 version = "1.0.0-alpha.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3babfc7fd332142a0b11aebf592992f211f4e01b6222fb04b03aba1bd80018d"
 dependencies = [
  "nb 1.0.0",
-]
-
-[[package]]
-name = "embedded-hal-async"
-version = "0.0.1"
-source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy2#bc0e0ca74a64d65d1b6c994f186bb89eeb364965"
-dependencies = [
- "embedded-hal 1.0.0-alpha.7",
 ]
 
 [[package]]
@@ -1076,6 +1048,21 @@ dependencies = [
  "pin-utils",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "web-embedded-hal"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f7d336d0ca229e7d8e405c83c5ebe88e7124781905661a94454eb18a0e3d8e8"
+dependencies = [
+ "critical-section",
+ "embedded-hal 0.2.7",
+ "embedded-hal 1.0.0-alpha.8",
+ "embedded-hal-async",
+ "futures",
+ "wasm-bindgen",
  "web-sys",
 ]
 

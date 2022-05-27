@@ -58,10 +58,7 @@ static WORKSPACES: &[&str] = &[
     "examples/stm32wl/nucleo-wl55",
     "examples/stm32h7/nucleo-h743zi",
     "examples/stm32u5/iot02a",
-    // The wasm browser example is currently skipped until
-    // https://github.com/drogue-iot/drogue-wasm/pull/2 has been merged and
-    // a git revision can be specified for the drogue-wasm depenency.
-    //"examples/wasm/browser",
+    "examples/wasm/browser",
     "examples/std",
     "docs/modules/ROOT/examples/basic",
 ];
