@@ -1,29 +1,25 @@
 use super::PAGE_SIZE;
 use crate::traits::firmware::FirmwareManager;
-use embedded_hal_async::serial::*;
+use embedded_io::asynch::{Read, Write};
 use postcard::{from_bytes, to_slice};
 
-pub struct SerialUpdater<'a, TX, RX, F>
+pub struct SerialUpdater<'a, S, F>
 where
-    TX: Write + 'static,
-    RX: Read + 'static,
+    S: Read + Write + 'static,
     F: FirmwareManager,
 {
-    tx: TX,
-    rx: RX,
+    serial: S,
     protocol: SerialUpdateProtocol<'a, F>,
 }
 
-impl<'a, TX, RX, F> SerialUpdater<'a, TX, RX, F>
+impl<'a, S, F> SerialUpdater<'a, S, F>
 where
-    TX: Write,
-    RX: Read,
+    S: Read + Write + 'static,
     F: FirmwareManager,
 {
-    pub fn new(tx: TX, rx: RX, dfu: F, version: &'a [u8]) -> Self {
+    pub fn new(serial: S, dfu: F, version: &'a [u8]) -> Self {
         Self {
-            tx,
-            rx,
+            serial,
             protocol: SerialUpdateProtocol::new(dfu, version),
         }
     }
@@ -34,13 +30,13 @@ where
 
         let response = self.protocol.initialize();
         if let Ok(_) = to_slice(&response, &mut buf) {
-            let _ = self.tx.write(&buf).await;
+            let _ = self.serial.write(&buf).await;
         } else {
             warn!("Error initializing serial");
         }
 
         loop {
-            if let Ok(_) = self.rx.read(&mut buf[..]).await {
+            if let Ok(_) = self.serial.read(&mut buf[..]).await {
                 let response: Result<Option<SerialResponse>, SerialError> = match from_bytes(&buf) {
                     Ok(command) => self.protocol.request(command).await,
                     Err(_e) => {
@@ -50,7 +46,7 @@ where
                 };
 
                 if let Ok(_) = to_slice(&response, &mut buf) {
-                    let _ = self.tx.write(&buf).await;
+                    let _ = self.serial.write(&buf).await;
                 } else {
                     warn!("Error serializing response");
                 }

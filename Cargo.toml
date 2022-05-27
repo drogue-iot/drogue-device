@@ -15,7 +15,7 @@ embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "e10f
 embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "e10fc2bada1c59420431f09a35f7aa09a5b45623" }
 embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "e10fc2bada1c59420431f09a35f7aa09a5b45623" }
 embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "e10fc2bada1c59420431f09a35f7aa09a5b45623" }
-embassy-traits = { git = "https://github.com/embassy-rs/embassy.git", rev = "e10fc2bada1c59420431f09a35f7aa09a5b45623" }
+#embassy-traits = { git = "https://github.com/embassy-rs/embassy.git", rev = "e10fc2bada1c59420431f09a35f7aa09a5b45623" }
 nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "a5026485151138112b522a27c4a340614d7a7512" }
 nrf-softdevice-s140 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "a5026485151138112b522a27c4a340614d7a7512" }
 nrf-softdevice-macro = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "a5026485151138112b522a27c4a340614d7a7512" }

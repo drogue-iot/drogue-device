@@ -150,9 +150,13 @@ impl<'a, E: ElementsHandler<'a>> Elements<'a, E> {
         let unicast_element_index = match &message.dst {
             Address::Unicast(addr) => {
                 let primary_addr = ctx.address().ok_or(DeviceError::NotProvisioned)?;
-                let element_index = *addr - primary_addr;
-                if element_index < composition.elements.len() as u8 {
-                    Some(element_index)
+                if *addr >= primary_addr {
+                    let element_index = *addr - primary_addr;
+                    if element_index < composition.elements.len() as u8 {
+                        Some(element_index)
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }

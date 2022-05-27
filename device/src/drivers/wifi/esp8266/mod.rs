@@ -14,12 +14,9 @@ use crate::network::tcp::TcpError;
 use crate::traits::wifi::{Join, JoinError, WifiSupplicant};
 use buffer::Buffer;
 use core::future::Future;
-use embassy::{
-    blocking_mutex::raw::NoopRawMutex,
-    channel::Channel,
-    io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt},
-};
+use embassy::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
 use embedded_hal::digital::v2::OutputPin;
+use embedded_io::asynch::{Read, Write};
 use embedded_nal_async::*;
 use protocol::{Command, ConnectionType, Response as AtResponse};
 
@@ -42,7 +39,7 @@ pub enum DriverError {
 
 pub struct Esp8266Modem<T, ENABLE, RESET>
 where
-    T: AsyncBufRead + AsyncWrite + Unpin,
+    T: Read + Write + Unpin,
     ENABLE: OutputPin,
     RESET: OutputPin,
 {
@@ -56,7 +53,7 @@ where
 
 impl<T, ENABLE, RESET> Esp8266Modem<T, ENABLE, RESET>
 where
-    T: AsyncBufRead + AsyncWrite + Unpin,
+    T: Read + Write + Unpin,
     ENABLE: OutputPin,
     RESET: OutputPin,
 {
@@ -246,7 +243,7 @@ where
 
 impl<T, ENABLE, RESET> WifiSupplicant for Esp8266Modem<T, ENABLE, RESET>
 where
-    T: AsyncBufRead + AsyncWrite + Unpin,
+    T: Read + Write + Unpin,
     ENABLE: OutputPin,
     RESET: OutputPin,
 {
@@ -265,7 +262,7 @@ where
 
 impl<T, ENABLE, RESET> TcpClientStack for Esp8266Modem<T, ENABLE, RESET>
 where
-    T: AsyncBufRead + AsyncWrite + Unpin,
+    T: Read + Write + Unpin,
     ENABLE: OutputPin,
     RESET: OutputPin,
 {

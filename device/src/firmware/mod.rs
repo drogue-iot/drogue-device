@@ -132,7 +132,7 @@ where
             self.flush().await?;
         }
         self.updater
-            .mark_update(self.config.state())
+            .update(self.config.state())
             .await
             .map_err(|e| e.kind())?;
         Ok(())
@@ -187,7 +187,7 @@ where
 /// Implementation for shared resource
 impl<'a, CONFIG> crate::traits::firmware::FirmwareManager for SharedFirmwareManager<'a, CONFIG>
 where
-    CONFIG: FirmwareConfig,
+    CONFIG: FirmwareConfig + 'a,
 {
     type StartFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
     where

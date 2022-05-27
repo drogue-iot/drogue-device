@@ -17,7 +17,7 @@ pub enum TcpError {
 pub type TcpStackState<T> = Shared<T>;
 pub type SharedTcpStack<'a, T> = Handle<'a, T>;
 
-impl<'a, T: TcpClientStack> TcpClientStack for Handle<'a, T> {
+impl<'a, T: TcpClientStack + 'a> TcpClientStack for Handle<'a, T> {
     type TcpSocket = T::TcpSocket;
     type Error = T::Error;
 

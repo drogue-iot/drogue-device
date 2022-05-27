@@ -9,14 +9,14 @@ pub type SharedFlash<'a, F> = Handle<'a, F>;
 
 impl<'a, F> ErrorType for SharedFlash<'a, F>
 where
-    F: AsyncNorFlash + AsyncReadNorFlash,
+    F: AsyncNorFlash + AsyncReadNorFlash + 'a,
 {
     type Error = F::Error;
 }
 
 impl<'a, F> AsyncReadNorFlash for SharedFlash<'a, F>
 where
-    F: AsyncNorFlash + AsyncReadNorFlash,
+    F: AsyncNorFlash + AsyncReadNorFlash + 'a,
 {
     const READ_SIZE: usize = F::READ_SIZE;
 
@@ -33,7 +33,7 @@ where
 
 impl<'a, F> AsyncNorFlash for SharedFlash<'a, F>
 where
-    F: AsyncNorFlash + AsyncReadNorFlash,
+    F: AsyncNorFlash + AsyncReadNorFlash + 'a,
 {
     const WRITE_SIZE: usize = F::WRITE_SIZE;
     const ERASE_SIZE: usize = F::ERASE_SIZE;

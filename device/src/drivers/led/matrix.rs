@@ -174,7 +174,7 @@ where
 
 impl<P, const ROWS: usize, const COLS: usize> TextDisplay for LedMatrix<P, ROWS, COLS>
 where
-    P: OutputPin,
+    P: OutputPin + 'static,
 {
     type Error = Infallible;
     type ScrollFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm where Self: 'm;

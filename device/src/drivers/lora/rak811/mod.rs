@@ -9,11 +9,9 @@ use crate::traits::lora::*;
 
 pub use buffer::*;
 use core::future::Future;
-use embassy::{
-    blocking_mutex::raw::NoopRawMutex,
-    io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt},
-};
+use embassy::blocking_mutex::raw::NoopRawMutex;
 use embedded_hal::digital::v2::OutputPin;
+use embedded_io::asynch::{Read, Write};
 pub use protocol::*;
 
 const RECV_BUFFER_LEN: usize = 256;
@@ -21,7 +19,7 @@ type DriverMutex = NoopRawMutex;
 
 pub struct Rak811Modem<T, RESET>
 where
-    T: AsyncBufRead + AsyncWrite + Unpin,
+    T: Read + Write + Unpin,
     RESET: OutputPin,
 {
     transport: T,
@@ -32,7 +30,7 @@ where
 
 impl<T, RESET> Rak811Modem<T, RESET>
 where
-    T: AsyncBufRead + AsyncWrite + Unpin,
+    T: Read + Write + Unpin,
     RESET: OutputPin,
 {
     pub fn new(transport: T, reset: RESET) -> Self {
@@ -149,7 +147,7 @@ where
 
 impl<T, RESET> LoraDriver for Rak811Modem<T, RESET>
 where
-    T: AsyncBufRead + AsyncWrite + Unpin,
+    T: Read + Write + Unpin,
     RESET: OutputPin,
 {
     type JoinFuture<'m> = impl Future<Output = Result<(), LoraError>> + 'm

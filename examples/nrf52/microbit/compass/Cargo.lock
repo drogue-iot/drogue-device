@@ -238,7 +238,7 @@ dependencies = [
  "drogue-device-macros",
  "embassy",
  "embedded-hal 0.2.7",
- "embedded-hal 1.0.0-alpha.7",
+ "embedded-hal 1.0.0-alpha.8",
  "embedded-hal-async",
  "futures",
 ]
@@ -256,8 +256,9 @@ dependencies = [
  "embassy",
  "embassy-nrf",
  "embedded-hal 0.2.7",
- "embedded-hal 1.0.0-alpha.7",
+ "embedded-hal 1.0.0-alpha.8",
  "embedded-hal-async",
+ "embedded-io",
  "embedded-nal",
  "embedded-nal-async",
  "embedded-storage",
@@ -283,7 +284,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e10fc2bada1c59420431f09a35f7aa09a5b45623#e10fc2bada1c59420431f09a35f7aa09a5b45623"
 dependencies = [
  "atomic-polyfill",
  "cfg-if",
@@ -301,18 +302,17 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e10fc2bada1c59420431f09a35f7aa09a5b45623#e10fc2bada1c59420431f09a35f7aa09a5b45623"
 dependencies = [
  "cortex-m",
  "embassy",
  "num-traits 0.2.15",
- "usb-device",
 ]
 
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e10fc2bada1c59420431f09a35f7aa09a5b45623#e10fc2bada1c59420431f09a35f7aa09a5b45623"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -323,7 +323,7 @@ dependencies = [
 [[package]]
 name = "embassy-nrf"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e10fc2bada1c59420431f09a35f7aa09a5b45623#e10fc2bada1c59420431f09a35f7aa09a5b45623"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -335,8 +335,9 @@ dependencies = [
  "embassy-usb",
  "embedded-dma",
  "embedded-hal 0.2.7",
- "embedded-hal 1.0.0-alpha.7",
+ "embedded-hal 1.0.0-alpha.8",
  "embedded-hal-async",
+ "embedded-io",
  "embedded-storage",
  "embedded-storage-async",
  "fixed",
@@ -348,7 +349,7 @@ dependencies = [
 [[package]]
 name = "embassy-usb"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=de7dd59fa9553a1a6b75ff09238c9529277b95e7#de7dd59fa9553a1a6b75ff09238c9529277b95e7"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e10fc2bada1c59420431f09a35f7aa09a5b45623#e10fc2bada1c59420431f09a35f7aa09a5b45623"
 dependencies = [
  "embassy",
  "heapless",
@@ -375,19 +376,27 @@ dependencies = [
 
 [[package]]
 name = "embedded-hal"
-version = "1.0.0-alpha.7"
-source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy2#bc0e0ca74a64d65d1b6c994f186bb89eeb364965"
+version = "1.0.0-alpha.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3babfc7fd332142a0b11aebf592992f211f4e01b6222fb04b03aba1bd80018d"
 dependencies = [
  "nb 1.0.0",
 ]
 
 [[package]]
 name = "embedded-hal-async"
-version = "0.0.1"
-source = "git+https://github.com/embassy-rs/embedded-hal?branch=embassy2#bc0e0ca74a64d65d1b6c994f186bb89eeb364965"
+version = "0.1.0-alpha.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "022249738afde9b2b755a28a367ae20c9367e8e9c24b9aaf60bcc9255a255ec5"
 dependencies = [
- "embedded-hal 1.0.0-alpha.7",
+ "embedded-hal 1.0.0-alpha.8",
 ]
+
+[[package]]
+name = "embedded-io"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36673b79844ff4ec0e3f00aeca0b2cfff564ff6739ab9801d13f45a8ec6cc1c7"
 
 [[package]]
 name = "embedded-nal"
@@ -789,9 +798,9 @@ checksum = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
 
 [[package]]
 name = "regex"
-version = "1.5.5"
+version = "1.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a11647b6b25ff05a515cb92c365cec08801e83423a235b51e231e1808747286"
+checksum = "d83f127d94bdbcda4c8cc2e50f6f84f4b611f69c902699ca385a39c3a75f9ff1"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -800,9 +809,9 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.6.25"
+version = "0.6.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
+checksum = "49b3de9ec5dc0a3417da371aab17d729997c15010e7fd24ff707773a33bddb64"
 
 [[package]]
 name = "riscv"
@@ -975,12 +984,6 @@ name = "unicode-ident"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d22af068fba1eb5edcb4aea19d382b2a3deb4c8f9d475c589b6ada9e0fd493ee"
-
-[[package]]
-name = "usb-device"
-version = "0.2.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6be90410d4772074ea49525e2e753b65920b94b57eee21a6ef7b6a6fe6296245"
 
 [[package]]
 name = "vcell"

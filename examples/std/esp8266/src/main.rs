@@ -9,9 +9,9 @@ use drogue_device::{
     domain::temperature::Celsius, drivers::wifi::esp8266::*, network::tcp::*, traits::wifi::*, *,
 };
 use drogue_temperature::*;
-use embassy::io::FromStdIo;
 use embassy::time::Duration;
 use embedded_hal::digital::v2::OutputPin;
+use embedded_io::adapters::FromFutures;
 use futures::io::BufReader;
 use nix::sys::termios;
 use serial::*;
@@ -19,7 +19,7 @@ use serial::*;
 const WIFI_SSID: &str = drogue::config!("wifi-ssid");
 const WIFI_PSK: &str = drogue::config!("wifi-password");
 
-type SERIAL = FromStdIo<BufReader<Async<SerialPort>>>;
+type SERIAL = FromFutures<BufReader<Async<SerialPort>>>;
 type ENABLE = DummyPin;
 type RESET = DummyPin;
 
@@ -47,7 +47,7 @@ async fn main(spawner: embassy::executor::Spawner) {
     let port = SerialPort::new("/dev/ttyUSB0", baudrate).unwrap();
     let port = Async::new(port).unwrap();
     let port = futures::io::BufReader::new(port);
-    let port = FromStdIo::new(port);
+    let port = FromFutures::new(port);
 
     let mut network = Esp8266Modem::new(port, DummyPin, DummyPin);
 

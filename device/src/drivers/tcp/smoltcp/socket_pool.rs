@@ -5,7 +5,7 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::Waker;
 use core::task::{Context, Poll};
-use embassy_net::TcpSocket;
+use embassy_net::tcp::TcpSocket;
 use heapless::spsc::Queue;
 use heapless::Vec;
 
