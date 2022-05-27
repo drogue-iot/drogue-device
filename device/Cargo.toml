@@ -14,8 +14,8 @@ doctest = false
 embassy = { version = "0.1.0", default-features = false, features = ["executor-agnostic", "nightly"] }
 
 # LoRa dependencies
-lorawan-device = { git = "https://github.com/ivajloip/rust-lorawan.git", rev = "607d7ee4917e26998b5f130304becde969b6b434", default-features = false, features = ["async"], optional = true }
-lorawan-encoding = { git = "https://github.com/ivajloip/rust-lorawan.git", rev = "607d7ee4917e26998b5f130304becde969b6b434", default-features = false, features = ["default-crypto"], optional = true }
+lorawan-device = { version = "0.7.1", default-features = false, features = ["async"], optional = true }
+lorawan-encoding = { package = "lorawan", version = "0.7.1", default-features = false, features = ["default-crypto"], optional = true }
 #lorawan-encoding = { path = "../../../rust-lorawan/encoding", default-features = false, features = ["default-crypto", "defmt"], optional = true }
 #lorawan-device = { path = "../../../rust-lorawan/device", default-features = false, optional = true, features = ["withdefmt", "async"] }
 

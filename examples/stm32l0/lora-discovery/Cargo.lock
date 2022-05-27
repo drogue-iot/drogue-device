@@ -475,8 +475,8 @@ dependencies = [
  "futures",
  "futures-intrusive",
  "heapless 0.7.13",
- "lorawan-device 0.2.0",
- "lorawan-encoding",
+ "lorawan",
+ "lorawan-device",
  "rand_core",
 ]
 
@@ -549,7 +549,7 @@ dependencies = [
  "embedded-hal-async",
  "futures",
  "lorawan",
- "lorawan-device 0.7.1",
+ "lorawan-device",
 ]
 
 [[package]]
@@ -972,20 +972,9 @@ version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d54ed101795a78f7c3d765545b7b721143a7573d2a1d8d40055361647328bba3"
 dependencies = [
+ "aes",
+ "cmac",
  "generic-array 0.14.5",
-]
-
-[[package]]
-name = "lorawan-device"
-version = "0.2.0"
-source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=607d7ee4917e26998b5f130304becde969b6b434#607d7ee4917e26998b5f130304becde969b6b434"
-dependencies = [
- "as-slice 0.2.1",
- "futures",
- "generic-array 0.14.5",
- "heapless 0.7.13",
- "lorawan-encoding",
- "rand_core",
 ]
 
 [[package]]
@@ -1000,16 +989,6 @@ dependencies = [
  "heapless 0.7.13",
  "lorawan",
  "rand_core",
-]
-
-[[package]]
-name = "lorawan-encoding"
-version = "0.6.2"
-source = "git+https://github.com/ivajloip/rust-lorawan.git?rev=607d7ee4917e26998b5f130304becde969b6b434#607d7ee4917e26998b5f130304becde969b6b434"
-dependencies = [
- "aes",
- "cmac",
- "generic-array 0.14.5",
 ]
 
 [[package]]

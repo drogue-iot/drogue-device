@@ -49,7 +49,7 @@ use embassy::time::{Duration, Timer};
 use embassy::util::Forever;
 use embassy::util::{select, Either};
 use embassy::{blocking_mutex::raw::NoopRawMutex, executor::Spawner};
-use embassy_boot_nrf::updater;
+use embassy_boot_nrf::FirmwareUpdater;
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::Peripherals;
@@ -154,7 +154,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
 
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
     defmt::info!("Running firmware version {}", version);
-    let dfu = FirmwareManager::new(flash, updater::new());
+    let dfu = FirmwareManager::new(flash, FirmwareUpdater::default());
 
     let elements = CustomElementsHandler {
         led: Led::new(board.red_led),

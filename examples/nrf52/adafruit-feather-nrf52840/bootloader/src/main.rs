@@ -50,6 +50,7 @@ pub struct NvmcFlashConfig<'d> {
 
 impl<'d> FlashConfig for NvmcFlashConfig<'d> {
     type FLASH = WatchdogFlash<'d>;
+    const ERASE_VALUE: u8 = 0xFF;
     const BLOCK_SIZE: usize = 4096;
 
     fn flash(&mut self) -> &mut Self::FLASH {
@@ -63,6 +64,7 @@ pub struct QspiFlashConfig<'d> {
 
 impl<'d> FlashConfig for QspiFlashConfig<'d> {
     type FLASH = ExternalFlash<'d>;
+    const ERASE_VALUE: u8 = 0xFF;
     const BLOCK_SIZE: usize = EXTERNAL_FLASH_BLOCK_SIZE;
 
     fn flash(&mut self) -> &mut Self::FLASH {
