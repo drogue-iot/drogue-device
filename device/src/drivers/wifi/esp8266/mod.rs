@@ -202,13 +202,7 @@ where
     async fn join_wep(&mut self, ssid: &str, password: &str) -> Result<IpAddr, JoinError> {
         let command = Command::JoinAp { ssid, password };
         match self.send(command).await {
-            Ok(AtResponse::Ok) => {
-                let address = self.get_ip_address().await.map_err(|_| JoinError::Unknown);
-                if let Ok(address) = address {
-                    info!("Joined network IP address {:?}", address);
-                }
-                address
-            }
+            Ok(AtResponse::Ok) => self.get_ip_address().await.map_err(|_| JoinError::Unknown),
             Ok(AtResponse::WifiConnectionFailure(reason)) => {
                 warn!("Error connecting to wifi: {:?}", reason);
                 Err(JoinError::Unknown)
