@@ -18,7 +18,10 @@ impl<T> Shared<T> {
 
 unsafe impl<T> Sync for Shared<T> {}
 
-pub struct Handle<'a, T> {
+pub struct Handle<'a, T>
+where
+    T: 'a,
+{
     handle: &'a LocalMutex<T>,
 }
 

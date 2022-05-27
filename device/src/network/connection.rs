@@ -159,7 +159,7 @@ mod tls {
     where
         A: TcpClientStack + Clone + 'static,
         RNG: CryptoRng + RngCore + 'static,
-        CipherSuite: TlsCipherSuite + 'a,
+        CipherSuite: TlsCipherSuite + 'static,
     {
         pub fn new<const TLS_BUFFER_SIZE: usize>(
             network: A,
@@ -188,7 +188,7 @@ mod tls {
     where
         A: TcpClientStack + Clone + 'static,
         RNG: CryptoRng + RngCore + 'static,
-        CipherSuite: TlsCipherSuite + 'a,
+        CipherSuite: TlsCipherSuite + 'static,
     {
         type Connection = TlsNetworkConnection<'a, A, CipherSuite>;
         type ConnectFuture<'m> = impl Future<Output = Result<Self::Connection, NetworkError>> + 'm
@@ -299,7 +299,7 @@ mod tls {
     impl<'a, A, CipherSuite> NetworkConnection for TlsNetworkConnection<'a, A, CipherSuite>
     where
         A: TcpClientStack + Clone + 'static,
-        CipherSuite: TlsCipherSuite + 'a,
+        CipherSuite: TlsCipherSuite + 'static,
     {
         type WriteFuture<'m> = impl Future<Output = Result<usize, NetworkError>> + 'm
         where

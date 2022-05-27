@@ -235,20 +235,21 @@ impl GattBearer<66> for SoftdeviceGattBearer {
 
     fn advertise<'m>(&'m self, adv_data: &'m Vec<u8, 64>) -> Self::AdvertiseFuture<'m> {
         async move {
+            let adv_data = adv_data.clone();
             if self.connected.load(Ordering::Relaxed) {
                 return Ok(());
             }
             let scan_data: Vec<u8, 16> = Vec::new();
 
             let adv = peripheral::ConnectableAdvertisement::ScannableUndirected {
-                adv_data,
+                adv_data: &adv_data,
                 scan_data: &scan_data,
             };
             let result = peripheral::advertise_connectable(
                 self.sd,
                 adv,
                 &peripheral::Config {
-                    timeout: Some(15),
+                    timeout: Some(5),
                     interval: 50,
                     ..Default::default()
                 },
@@ -327,6 +328,9 @@ impl AdvertisingBearer for SoftdeviceAdvertisingBearer {
             loop {
                 let result = central::scan::<_, Vec<u8, PB_ADV_MTU>>(self.sd, &config, |event| {
                     let data = event.data;
+                    if data.len as usize > PB_ADV_MTU {
+                        warn!("MUCH TOO LARGE");
+                    }
                     let data = unsafe { &*slice_from_raw_parts(data.p_data, data.len as usize) };
                     if data.len() >= 2 && (data[1] == PB_ADV || data[1] == MESH_MESSAGE) {
                         Some(Vec::from_slice(data).unwrap())

@@ -1,5 +1,4 @@
 #![allow(incomplete_features)]
-#![feature(const_fn_fn_ptr_basics)]
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
@@ -8,8 +7,8 @@ use drogue_device::{
     drivers::led::Led as LedDriver,
     *,
 };
-use drogue_wasm::*;
 use embassy::executor::Spawner;
+use web_embedded_hal::*;
 
 type AppLed = LedDriver<WebLed>;
 
@@ -35,7 +34,7 @@ async fn main(spawner: Spawner) {
         });
     }
 
-    static BUTTON: ActorContext<Button<WebButton, Address<Led<AppLed>>>> = ActorContext::new();
+    static BUTTON: ActorContext<Button<WebButton, LedMessage>> = ActorContext::new();
     static LED: ActorContext<Led<AppLed>> = ActorContext::new();
 
     let led = LED.mount(

@@ -13,7 +13,7 @@ where
 
 impl<F, T> Transformer<F, T>
 where
-    T: TryFrom<F>,
+    T: TryFrom<F> + 'static,
 {
     pub fn new(dest: Address<T>) -> Self {
         Self {
@@ -25,7 +25,8 @@ where
 
 impl<F, T> Actor for Transformer<F, T>
 where
-    T: TryFrom<F>,
+    T: TryFrom<F> + 'static,
+    F: 'static,
 {
     type Message<'m> = F;
 

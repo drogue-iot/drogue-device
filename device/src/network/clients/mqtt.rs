@@ -82,7 +82,7 @@ mod tls {
     impl<'a, A, CipherSuite> NetworkConnection for TlsNetworkConnection<'a, A, CipherSuite>
     where
         A: TcpClientStack + Clone + 'static,
-        CipherSuite: TlsCipherSuite + 'a,
+        CipherSuite: TlsCipherSuite + 'static,
     {
         type SendFuture<'m>
             = impl Future<Output=Result<(), ReasonCode>> + 'm

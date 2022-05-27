@@ -4,9 +4,9 @@
 
 use async_io::Async;
 use drogue_device::{drivers::lora::rak811::*, drogue, traits::lora::*, ActorContext};
-use embassy::io::FromStdIo;
 use embassy::time::{Duration, Timer};
 use embedded_hal::digital::v2::OutputPin;
+use embedded_io::adapters::FromFutures;
 use futures::io::BufReader;
 
 mod app;
@@ -20,7 +20,7 @@ const DEV_EUI: &str = drogue::config!("dev-eui");
 const APP_EUI: &str = drogue::config!("app-eui");
 const APP_KEY: &str = drogue::config!("app-key");
 
-type SERIAL = FromStdIo<BufReader<Async<SerialPort>>>;
+type SERIAL = FromFutures<BufReader<Async<SerialPort>>>;
 type RESET = DummyPin;
 
 static APP: ActorContext<App<Rak811Modem<SERIAL, RESET>>> = ActorContext::new();
@@ -34,15 +34,9 @@ async fn main(spawner: embassy::executor::Spawner) {
 
     let baudrate = termios::BaudRate::B115200;
     let port = SerialPort::new("/dev/ttyUSB0", baudrate).unwrap();
-
     let port = Async::new(port).unwrap();
-
-    // This implements futures's AsyncBufRead based on futures's AsyncRead
     let port = futures::io::BufReader::new(port);
-
-    // We can then use FromStdIo to convert from futures's AsyncBufRead+AsyncWrite
-    // to embassy's AsyncBufRead+AsyncWrite
-    let port = FromStdIo::new(port);
+    let port = FromFutures::new(port);
 
     let reset_pin = DummyPin {};
 

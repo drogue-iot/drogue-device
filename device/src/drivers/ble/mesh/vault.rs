@@ -127,7 +127,7 @@ pub struct StorageVault<'c, S: Storage> {
     configuration_manager: &'c ConfigurationManager<S>,
 }
 
-impl<'c, S: Storage> StorageVault<'c, S> {
+impl<'c, S: Storage + 'c> StorageVault<'c, S> {
     pub(crate) fn new(configuration_manager: &'c ConfigurationManager<S>) -> Self {
         Self {
             configuration_manager,
@@ -139,7 +139,7 @@ impl<'c, S: Storage> StorageVault<'c, S> {
     }
 }
 
-impl<'c, S: Storage> Vault for StorageVault<'c, S> {
+impl<'c, S: Storage + 'c> Vault for StorageVault<'c, S> {
     fn uuid(&self) -> Uuid {
         self.config().uuid().unwrap()
     }

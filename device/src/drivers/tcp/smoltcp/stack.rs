@@ -3,8 +3,8 @@ use super::socket_pool::SocketPool;
 use crate::network::tcp::TcpError;
 use core::future::Future;
 use core::marker::PhantomData;
-use embassy::io::{AsyncBufReadExt, AsyncWriteExt};
 use embassy_net::Ipv4Address;
+use embedded_io::asynch::{Read, Write};
 use embedded_nal_async::*;
 
 pub struct SmolTcpStack<

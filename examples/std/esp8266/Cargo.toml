@@ -14,6 +14,7 @@ log = "0.4"
 env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["log", "std", "wifi+esp8266"] }
 embedded-tls = { version = "0.6.0", default-features = false, features = ["async"], optional = true}
+embedded-io = { version = "0.3.0", features = ["async", "std", "futures"] }
 #drogue-tls = {path = "../../drogue-tls", default-features = false, optional = true}
 
 embassy = { version = "0.1.0", default-features = false, features = ["std"] }
@@ -21,7 +22,7 @@ rand = "0.8"
 cfg-if = "1.0.0"
 
 embedded-hal = {version = "0.2.4", features = ["unproven"] }
-embedded-hal-async = { version = "0.0.1", git = "https://github.com/embassy-rs/embedded-hal", branch = "embassy2" }
+embedded-hal-async = { version = "0.1.0-alpha.1" }
 drogue-temperature = { path = "../../apps/temperature" }
 
 async-io = "1.6.0"

@@ -21,7 +21,7 @@ use embassy::time::Ticker;
 use embassy::time::{Duration, Timer};
 use embassy::util::Forever;
 use embassy::util::{select, Either};
-use embassy_boot_nrf::updater;
+use embassy_boot_nrf::FirmwareUpdater;
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::Peripherals;
@@ -92,7 +92,7 @@ async fn main(s: Spawner, p: Peripherals) {
     static EVENTS: Channel<ThreadModeRawMutex, FirmwareServiceEvent, 10> = Channel::new();
     // The updater is the 'application' part of the bootloader that knows where bootloader
     // settings and the firmware update partition is located based on memory.x linker script.
-    let dfu = FirmwareManager::new(Flash::take(sd), updater::new());
+    let dfu = FirmwareManager::new(Flash::take(sd), FirmwareUpdater::default());
     let updater = FirmwareGattService::new(&server.firmware, dfu, version.as_bytes(), 64).unwrap();
     s.spawn(updater_task(updater, EVENTS.receiver().into()))
         .unwrap();

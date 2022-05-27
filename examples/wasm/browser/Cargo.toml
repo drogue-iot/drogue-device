@@ -18,14 +18,14 @@ wasm-logger = "0.2.0"
 log = "0.4"
 
 drogue-device = { path = "../../../device", features = ["log"], default-features = false }
-drogue-wasm = {git = "https://github.com/drogue-iot/drogue-wasm.git", branch = "main" }
-embassy = { version = "0.1.0", default-features = false, features = ["wasm", "executor-agnostic"] }
+web-embedded-hal = "0.1.0"
+embassy = { version = "0.1.0", default-features = false, features = ["wasm", "executor-agnostic", "nightly", "unstable-traits"] }
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "de7dd59fa9553a1a6b75ff09238c9529277b95e7" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "e10fc2bada1c59420431f09a35f7aa09a5b45623" }
 
 #embassy = { path = "../../../../../embassy/embassy" }
