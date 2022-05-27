@@ -12,7 +12,7 @@ use embassy_stm32::rng::Rng as HalRng;
 use embassy_stm32::Config;
 
 #[cfg(feature = "embassy-net")]
-use embassy_stm32::eth::lan8742a::LAN8742A;
+use embassy_stm32::eth::generic_smi::GenericSMI;
 #[cfg(feature = "embassy-net")]
 use embassy_stm32::eth::{Ethernet, State};
 #[cfg(feature = "embassy-net")]
@@ -31,7 +31,7 @@ pub type PinUserButton = Input<'static, PC13>;
 pub type UserButton = Button<ExtiInput<'static, PC13>>;
 
 #[cfg(feature = "embassy-net")]
-pub type EthernetDevice = Ethernet<'static, ETH, LAN8742A, 4, 4>;
+pub type EthernetDevice = Ethernet<'static, ETH, GenericSMI, 4, 4>;
 
 pub type Rng = HalRng<'static, RNG>;
 
@@ -66,7 +66,7 @@ impl Board for NucleoH743 {
             let state = ETH_STATE.put(State::new());
             Ethernet::new(
                 state, p.ETH, eth_int, p.PA1, p.PA2, p.PC1, p.PA7, p.PC4, p.PC5, p.PG13, p.PB13,
-                p.PG11, LAN8742A, mac_addr, 0,
+                p.PG11, GenericSMI, mac_addr, 0,
             )
         };
         Self {

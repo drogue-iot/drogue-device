@@ -27,6 +27,6 @@ critical-section = "0.2.5"
 rand_core = "0.6.3"
 
 embassy = { version = "0.1.0", default-features = false }
-embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32h743zi", "defmt", "memory-x", "net", "time-driver-tim2"] }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32h743zi", "defmt", "memory-x", "net", "time-driver-tim2", "unstable-traits", "unstable-pac", "nightly"] }
 embassy-net = { version = "0.1.0", default-features = false, features = ["defmt"] }
 embassy-macros = { version = "0.1.0" }
