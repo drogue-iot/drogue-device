@@ -326,7 +326,6 @@ impl AdvertisingBearer for SoftdeviceAdvertisingBearer {
                 ..Default::default()
             };
             loop {
-                defmt::debug!("SCAN start");
                 let result = central::scan::<_, Vec<u8, PB_ADV_MTU>>(self.sd, &config, |event| {
                     let data = event.data;
                     if data.len as usize > PB_ADV_MTU {
@@ -340,7 +339,6 @@ impl AdvertisingBearer for SoftdeviceAdvertisingBearer {
                     }
                 })
                 .await;
-                defmt::debug!("SCAN stopped");
 
                 match result {
                     Ok(data) => {
