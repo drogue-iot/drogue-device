@@ -1,7 +1,9 @@
 use crate::bsp::Board;
 use crate::drivers::button::Button;
 use crate::drivers::led::{ActiveHigh, ActiveLow, Led};
-use crate::drivers::wifi::eswifi::EsWifi as EsWifiController;
+use crate::drivers::wifi::eswifi::{
+    EsWifi as WifiDriver, EsWifiClient as WifiClient, SharedEsWifi as SharedWifi,
+};
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
 use embassy_stm32::i2c;
@@ -38,7 +40,9 @@ pub type WifiReady = ExtiInput<'static, PE1>;
 type SPI = spi::Spi<'static, SPI3, DMA2_CH2, DMA2_CH1>;
 type SpiError = spi::Error;
 
-pub type EsWifi = EsWifiController<SPI, WifiCs, WifiReset, WifiWake, WifiReady>;
+pub type EsWifi = WifiDriver<SPI, WifiCs, WifiReset, WifiWake, WifiReady>;
+pub type SharedEsWifi = SharedWifi<'static, SPI, WifiCs, WifiReset, WifiWake, WifiReady>;
+pub type EsWifiClient = WifiClient<'static, SPI, WifiCs, WifiReset, WifiWake, WifiReady>;
 
 pub struct Iot01a {
     pub led_blue: LedBlue,
@@ -105,7 +109,7 @@ impl Board for Iot01a {
         let ready = Input::new(p.PE1, Pull::Up);
         let ready = ExtiInput::new(ready, p.EXTI1);
 
-        let wifi = EsWifiController::new(spi, cs, reset, wake, ready);
+        let wifi = WifiDriver::new(spi, cs, reset, wake, ready);
         /*
         match wifi.start().await {
             Ok(()) => info!("Started..."),

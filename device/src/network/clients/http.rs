@@ -1,41 +1,32 @@
-use crate::network::connection::*;
-use core::fmt::{Display, Write};
+use core::fmt::{Display, Write as _};
 use core::{num::ParseIntError, str::Utf8Error};
-use embedded_nal_async::{AddrType, Dns, SocketAddr};
-
+use embedded_io::{
+    asynch::{Read, Write},
+    Error as _,
+};
 use heapless::String;
 
-pub struct HttpClient<'a, C, D>
+pub trait Network: Read + Write {}
+impl<N: Read + Write> Network for N {}
+
+pub struct HttpClient<'a, N>
 where
-    C: ConnectionFactory + 'a,
-    D: Dns + 'a,
+    N: Network + 'a,
 {
-    connection_factory: &'a mut C,
-    dns_resolver: &'a D,
+    connection: &'a mut N,
     host: &'a str,
-    port: u16,
     username: &'a str,
     password: &'a str,
 }
 
-impl<'a, C, D> HttpClient<'a, C, D>
+impl<'a, N> HttpClient<'a, N>
 where
-    C: ConnectionFactory + 'a,
-    D: Dns + 'a,
+    N: Network + 'a,
 {
-    pub fn new(
-        connection_factory: &'a mut C,
-        dns_resolver: &'a D,
-        host: &'a str,
-        port: u16,
-        username: &'a str,
-        password: &'a str,
-    ) -> Self {
+    pub fn new(connection: &'a mut N, host: &'a str, username: &'a str, password: &'a str) -> Self {
         Self {
-            connection_factory,
-            dns_resolver,
+            connection,
             host,
-            port,
             username,
             password,
         }
@@ -46,19 +37,6 @@ where
         request: Request<'m>,
         rx_buf: &'m mut [u8],
     ) -> Result<Response<'m>, Error> {
-        debug!("Resolving {}:{}", self.host, self.port);
-        let ip = self
-            .dns_resolver
-            .get_host_by_name(self.host, AddrType::IPv4)
-            .await
-            .map_err(|_| Error::DnsLookupFailed)?;
-        let mut connection = self
-            .connection_factory
-            .connect(self.host, SocketAddr::new(ip, self.port))
-            .await?;
-
-        debug!("Connected to {}:{}", self.host, self.port);
-
         let mut combined: String<128> = String::new();
         write!(combined, "{}:{}", self.username, self.password).unwrap();
         let mut authz = [0; 256];
@@ -90,20 +68,24 @@ where
         }
         write!(data, "\r\n").unwrap();
         trace!("Writing header");
-        let result = connection.write(&data.as_bytes()[..data.len()]).await;
+        let result = self
+            .connection
+            .write(&data.as_bytes()[..data.len()])
+            .await
+            .map_err(|e| e.kind());
         let result = match result {
             Ok(_) => {
                 trace!("Header written");
                 match request.payload {
-                    None => self.read_response(&mut connection, rx_buf).await,
+                    None => Self::read_response(&mut self.connection, rx_buf).await,
                     Some(payload) => {
                         trace!("Writing data");
-                        let result = connection.write(payload).await;
+                        let result = self.connection.write(payload).await;
                         match result {
-                            Ok(_) => self.read_response(&mut connection, rx_buf).await,
+                            Ok(_) => Self::read_response(&mut self.connection, rx_buf).await,
                             Err(e) => {
-                                warn!("Error sending data: {:?}", e);
-                                Err(e.into())
+                                warn!("Error sending data: {:?}", e.kind());
+                                Err(Error::Network(e.kind()))
                             }
                         }
                     }
@@ -114,20 +96,21 @@ where
                 Err(e.into())
             }
         };
-        connection.close().await?;
         result
     }
 
     async fn read_response<'m>(
-        &mut self,
-        connection: &mut C::Connection,
+        connection: &mut N,
         rx_buf: &'m mut [u8],
     ) -> Result<Response<'m>, Error> {
         let mut pos = 0;
         let mut buf: [u8; 1024] = [0; 1024];
         let mut header_end = 0;
         while pos < buf.len() {
-            let n = connection.read(&mut buf[pos..]).await?;
+            let n = connection
+                .read(&mut buf[pos..])
+                .await
+                .map_err(|e| e.kind())?;
 
             /*
             info!(
@@ -190,7 +173,8 @@ where
                 while pos < to_read {
                     let n = connection
                         .read(&mut rx_buf[to_copy + pos..to_copy + to_read])
-                        .await?;
+                        .await
+                        .map_err(|e| e.kind())?;
                     pos += n;
                 }
                 to_copy + to_read
@@ -268,13 +252,13 @@ impl Display for Method {
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Error {
-    Network(NetworkError),
+    Network(embedded_io::ErrorKind),
     DnsLookupFailed,
     Parse,
 }
 
-impl From<NetworkError> for Error {
-    fn from(e: NetworkError) -> Error {
+impl From<embedded_io::ErrorKind> for Error {
+    fn from(e: embedded_io::ErrorKind) -> Error {
         Error::Network(e)
     }
 }

@@ -14,11 +14,11 @@ use drogue_device::drivers::sensors::hts221::Hts221;
 use drogue_device::{
     bsp::{boards::stm32l4::iot01a::*, Board},
     domain::temperature::Celsius,
-    network::tcp::*,
     traits::wifi::*,
     *,
 };
 use drogue_temperature::*;
+use embassy::util::Forever;
 use embassy_stm32::Peripherals;
 
 const WIFI_SSID: &str = drogue::config!("wifi-ssid");
@@ -27,7 +27,7 @@ const WIFI_PSK: &str = drogue::config!("wifi-password");
 bind_bsp!(Iot01a, BSP);
 
 impl TemperatureBoard for BSP {
-    type Network = SharedTcpStack<'static, EsWifi>;
+    type Network = EsWifiClient;
     type TemperatureScale = Celsius;
     type SendTrigger = UserButton;
     type Sensor = Hts221<I2c2>;
@@ -56,17 +56,24 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     .expect("Error joining wifi");
     defmt::info!("WiFi network joined");
 
-    static NETWORK: TcpStackState<EsWifi> = TcpStackState::new();
-    let network = NETWORK.initialize(wifi);
+    static NETWORK: Forever<SharedEsWifi> = Forever::new();
+    let network = NETWORK.put(SharedEsWifi::new(wifi));
+    let client = network.new_client().await.unwrap();
+    spawner.spawn(network_task(network)).unwrap();
 
     let device = DEVICE.configure(TemperatureDevice::new());
     let config = TemperatureBoardConfig {
         send_trigger: board.user_button,
         sensor_ready: board.hts221_ready,
         sensor: Hts221::new(board.i2c2),
-        network,
+        network: client,
     };
     device.mount(spawner, board.rng, config).await;
 
     defmt::info!("Application initialized. Press 'User' button to send data");
+}
+
+#[embassy::task]
+async fn network_task(adapter: &'static SharedEsWifi) {
+    adapter.run().await;
 }

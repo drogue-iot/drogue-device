@@ -1,124 +1,58 @@
-use crate::drivers::common::socket_pool::SocketPool;
 use core::future::Future;
 use embedded_nal_async::*;
-use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
-pub struct StdTcpStack {
-    sockets: HashMap<u8, TcpStream>,
-    socket_pool: SocketPool,
-}
+pub struct StdTcpClient;
+pub struct StdTcpConn(TcpStream);
 
-impl StdTcpStack {
-    pub fn new() -> Self {
-        Self {
-            sockets: HashMap::new(),
-            socket_pool: SocketPool::new(),
-        }
-    }
-}
-
-impl Default for StdTcpStack {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl TcpClientStack for StdTcpStack {
-    type TcpSocket = u8;
+impl embedded_io::Io for StdTcpClient {
     type Error = std::io::Error;
+}
 
-    type SocketFuture<'m> = impl Future<Output = Result<Self::TcpSocket, Self::Error>> + 'm
+impl TcpClient for StdTcpClient {
+    type TcpConnection<'m> = StdTcpConn;
+    type ConnectFuture<'m> = impl Future<Output = Result<Self::TcpConnection<'m>, Self::Error>> + 'm
     where
         Self: 'm;
-    fn socket<'m>(&'m mut self) -> Self::SocketFuture<'m> {
-        async move {
-            self.socket_pool
-                .open()
-                .await
-                .map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, "Error opening socket"))
-        }
-    }
-
-    type ConnectFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm
-    where
-        Self: 'm;
-    fn connect<'m>(
-        &'m mut self,
-        socket: &'m mut Self::TcpSocket,
-        remote: SocketAddr,
-    ) -> Self::ConnectFuture<'m> {
+    fn connect<'m>(&'m mut self, remote: SocketAddr) -> Self::ConnectFuture<'m> {
         async move {
             match TcpStream::connect(format!("{}:{}", remote.ip(), remote.port())) {
-                Ok(stream) => {
-                    self.sockets.insert(*socket, stream);
-                    Ok(())
-                }
+                Ok(stream) => Ok(StdTcpConn(stream)),
                 Err(e) => Err(e),
             }
         }
     }
+}
 
-    type IsConnectedFuture<'m> =
-        impl Future<Output = Result<bool, Self::Error>> + 'm where Self: 'm;
-    fn is_connected<'m>(&'m mut self, _socket: &'m Self::TcpSocket) -> Self::IsConnectedFuture<'m> {
-        async move { todo!() }
+impl embedded_io::Io for StdTcpConn {
+    type Error = std::io::Error;
+}
+
+impl embedded_io::asynch::Read for StdTcpConn {
+    type ReadFuture<'m> = impl Future<Output = Result<usize, Self::Error>>
+    where
+        Self: 'm;
+
+    fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m> {
+        async move { self.0.read(buf) }
+    }
+}
+
+impl embedded_io::asynch::Write for StdTcpConn {
+    type WriteFuture<'m> = impl Future<Output = Result<usize, Self::Error>>
+    where
+        Self: 'm;
+
+    fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
+        async move { self.0.write(buf) }
     }
 
-    type SendFuture<'m> =
-        impl Future<Output = Result<usize, Self::Error>> + 'm where Self: 'm;
-    fn send<'m>(
-        &'m mut self,
-        handle: &'m mut Self::TcpSocket,
-        buffer: &'m [u8],
-    ) -> Self::SendFuture<'m> {
-        async move {
-            if let Some(mut s) = self.sockets.get(handle) {
-                trace!("Writing {} bytes to std stack", buffer.len());
-                s.write(buffer)
-            } else {
-                Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Error writing to socket",
-                ))
-            }
-        }
-    }
+    type FlushFuture<'m> = impl Future<Output = Result<(), Self::Error>>
+    where
+        Self: 'm;
 
-    type ReceiveFuture<'m> =
-        impl Future<Output = Result<usize, Self::Error>> + 'm where Self: 'm;
-    fn receive<'m>(
-        &'m mut self,
-        socket: &'m mut Self::TcpSocket,
-        buffer: &'m mut [u8],
-    ) -> Self::ReceiveFuture<'m> {
-        async move {
-            if let Some(mut s) = self.sockets.get(socket) {
-                let r = s.read(buffer);
-                if let Ok(r) = r {
-                    trace!("Receiving {} bytes from std stack", r);
-                }
-                r
-            } else {
-                Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Error reading from socket",
-                ))
-            }
-        }
-    }
-
-    type CloseFuture<'m> =
-        impl Future<Output = Result<(), Self::Error>> + 'm where Self: 'm;
-    fn close<'m>(&'m mut self, handle: Self::TcpSocket) -> Self::CloseFuture<'m> {
-        async move {
-            if self.sockets.remove(&handle).is_some() {
-                // Move through both close states
-                self.socket_pool.close(handle);
-                self.socket_pool.close(handle);
-            }
-            Ok(())
-        }
+    fn flush<'m>(&'m mut self) -> Self::FlushFuture<'m> {
+        async move { Ok(()) }
     }
 }

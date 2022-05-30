@@ -9,14 +9,32 @@ use crate::traits::wifi::{Join, JoinError, WifiSupplicant};
 
 use core::fmt::Write as FmtWrite;
 use core::future::Future;
+use core::marker::PhantomData;
 use embassy::time::{block_for, Duration, Timer};
+use embassy::{
+    blocking_mutex::raw::NoopRawMutex,
+    channel::{Channel, DynamicSender},
+};
 use embedded_hal_async::digital::Wait;
 use embedded_hal_async::spi::*;
 use embedded_nal_async::*;
+use futures_intrusive::sync::LocalMutex;
 use heapless::String;
+type DriverMutex = NoopRawMutex;
 
-use crate::network::tcp::TcpError;
 use parser::{CloseResponse, ConnectResponse, JoinResponse, ReadResponse, WriteResponse};
+
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum TcpError {
+    OpenError,
+    ConnectError,
+    ReadError,
+    WriteError,
+    CloseError,
+    IoError,
+    SocketClosed,
+}
 
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -327,6 +345,274 @@ where
 
         Ok(&response[0..pos])
     }
+
+    async fn socket(&mut self) -> Result<u8, TcpError> {
+        let h = self
+            .socket_pool
+            .open()
+            .await
+            .map_err(|_| TcpError::OpenError)?;
+        trace!("Opened socket {}", h);
+        Ok(h)
+    }
+
+    async fn connect(&mut self, handle: u8, remote: SocketAddr) -> Result<(), TcpError> {
+        let mut response = [0u8; 1024];
+
+        let result = async {
+            self.send_string(command!(8, "P0={}", handle), &mut response)
+                .await
+                .map_err(|_| TcpError::ConnectError)?;
+
+            self.send_string(command!(8, "P1=0"), &mut response)
+                .await
+                .map_err(|_| TcpError::ConnectError)?;
+            /*
+            IpProtocol::Udp => {
+                self.send_string(command!(8, "P1=1"), &mut response)
+                    .await
+                    .map_err(|_| TcpError::ConnectError)?;
+            }
+            */
+
+            self.send_string(command!(32, "P3={}", remote.ip()), &mut response)
+                .await
+                .map_err(|_| TcpError::ConnectError)?;
+
+            self.send_string(command!(32, "P4={}", remote.port()), &mut response)
+                .await
+                .map_err(|_| TcpError::ConnectError)?;
+
+            let response = self
+                .send_string(command!(8, "P6=1"), &mut response)
+                .await
+                .map_err(|_| TcpError::ConnectError)?;
+
+            if let Ok((_, ConnectResponse::Ok)) = parser::connect_response(&response) {
+                Ok(())
+            } else {
+                Err(TcpError::ConnectError)
+            }
+        }
+        .await;
+        result
+    }
+
+    async fn write(&mut self, handle: u8, buf: &[u8]) -> Result<usize, TcpError> {
+        let mut response = [0u8; 32];
+        let mut remaining = buf.len();
+        trace!("Write request with {} bytes", remaining);
+        self.send_string(command!(8, "P0={}", handle), &mut response)
+            .await
+            .map_err(|_| TcpError::WriteError)?;
+        while remaining > 0 {
+            // info!("Writing buf with len {}", len);
+
+            let to_send = core::cmp::min(1460, remaining);
+            trace!("Writing {} bytes to adapter", to_send);
+
+            async {
+                let mut prefix = command!(16, "S3={}", to_send).into_bytes();
+
+                let (prefix, data) = if prefix.len() % 2 == 0 {
+                    (&prefix[..], &buf[..to_send])
+                } else {
+                    prefix.push(buf[0]).unwrap();
+                    (&prefix[..], &buf[1..to_send])
+                };
+
+                self.wait_ready().await.map_err(|_| TcpError::WriteError)?;
+
+                {
+                    let _cs = Cs::new(&mut self.cs).map_err(|_| TcpError::WriteError)?;
+
+                    trace!("Writing prefix of {} bytes", prefix.len());
+                    for chunk in prefix.chunks(2) {
+                        let mut xfer: [u8; 2] = [0; 2];
+                        xfer[1] = chunk[0];
+                        if chunk.len() == 2 {
+                            xfer[0] = chunk[1]
+                        } else {
+                            xfer[0] = 0x0A
+                        }
+
+                        let a = xfer[0];
+                        let b = xfer[1];
+
+                        Self::spi_transfer(&mut self.spi, &mut xfer, &[a, b])
+                            .await
+                            .map_err(|_| TcpError::WriteError)?;
+                    }
+
+                    trace!("Writing data of {} bytes", data.len());
+                    for chunk in data.chunks(2) {
+                        let mut xfer: [u8; 2] = [0; 2];
+                        xfer[1] = chunk[0];
+                        if chunk.len() == 2 {
+                            xfer[0] = chunk[1]
+                        } else {
+                            xfer[0] = 0x0A
+                        }
+
+                        let a = xfer[0];
+                        let b = xfer[1];
+
+                        Self::spi_transfer(&mut self.spi, &mut xfer, &[a, b])
+                            .await
+                            .map_err(|_| TcpError::WriteError)?;
+                    }
+                }
+
+                let response = self
+                    .receive(&mut response, 0)
+                    .await
+                    .map_err(|_| TcpError::WriteError)?;
+
+                if let Ok((_, WriteResponse::Ok(len))) = parser::write_response(response) {
+                    remaining -= to_send;
+                    Ok(len)
+                } else {
+                    trace!("Error reading response");
+                    trace!("response:  {:?}", core::str::from_utf8(&response).unwrap());
+                    Err(TcpError::WriteError)
+                }
+            }
+            .await?;
+        }
+        Ok(buf.len())
+    }
+
+    async fn read(&mut self, handle: u8, buf: &mut [u8]) -> Result<usize, TcpError> {
+        let mut pos = 0;
+        //let buf_len = buf.len();
+        loop {
+            let result = async {
+                let mut response = [0u8; 1470];
+
+                self.send_string(command!(8, "P0={}", handle), &mut response)
+                    .await
+                    .map_err(|_| TcpError::ReadError)?;
+
+                let maxlen = buf.len() - pos;
+                let len = core::cmp::min(response.len() - 10, maxlen);
+
+                self.send_string(command!(16, "R1={}", len), &mut response)
+                    .await
+                    .map_err(|_| TcpError::ReadError)?;
+
+                /*
+                self.send_string(&command!(8, "R2=10000"), &mut response)
+                    .await
+                    .map_err(|_| TcpError::ReadError)?;
+                */
+
+                self.send_string(command!(8, "R3=1"), &mut response)
+                    .await
+                    .map_err(|_| TcpError::ReadError)?;
+
+                self.wait_ready().await.map_err(|_| TcpError::ReadError)?;
+
+                {
+                    let _cs = Cs::new(&mut self.cs).map_err(|_| TcpError::ReadError)?;
+
+                    let mut xfer = [b'0', b'R'];
+                    Self::spi_transfer(&mut self.spi, &mut xfer, &[b'0', b'R'])
+                        .await
+                        .map_err(|_| TcpError::ReadError)?;
+
+                    xfer = [b'\n', b'\r'];
+                    Self::spi_transfer(&mut self.spi, &mut xfer, &[b'\n', b'\r'])
+                        .await
+                        .map_err(|_| TcpError::ReadError)?;
+                }
+
+                trace!(
+                    "Receiving {} bytes, total buffer size is {}, pos is {}",
+                    len,
+                    buf.len(),
+                    pos
+                );
+                let response = self
+                    .receive(&mut response, len)
+                    .await
+                    .map_err(|_| TcpError::ReadError)?;
+
+                if let Ok((_, ReadResponse::Ok(data))) = parser::read_response(&response) {
+                    if pos + data.len() > buf.len() {
+                        trace!(
+                            "Buf len is {}, pos is {}, Len is {}, data len is {}",
+                            buf.len(),
+                            pos,
+                            len,
+                            data.len()
+                        );
+                        if let Ok(s) = core::str::from_utf8(&data) {
+                            warn!("response parsed:  {:?}", s);
+                        }
+                        warn!("response raw data: {:?}", response);
+                        Err(TcpError::ReadError)
+                    } else {
+                        for (i, b) in data.iter().enumerate() {
+                            buf[pos + i] = *b;
+                        }
+                        Ok(data.len())
+                    }
+                } else {
+                    /*info!(
+                        "ERR: response parsed:  {:?}",
+                        core::str::from_utf8(&response).unwrap()
+                    );*/
+                    Err(TcpError::ReadError)
+                }
+            }
+            .await;
+
+            match result {
+                Ok(len) => {
+                    pos += len;
+                    if len == 0 || pos == buf.len() {
+                        return Ok(pos);
+                    }
+                }
+                Err(e) => {
+                    if pos == 0 {
+                        return Err(e);
+                    } else {
+                        return Ok(pos);
+                    }
+                }
+            }
+        }
+    }
+
+    async fn close(&mut self, handle: u8) -> Result<(), TcpError> {
+        trace!("Closing connection for {}", handle);
+        self.socket_pool.close(handle);
+        let mut response = [0u8; 32];
+
+        self.send_string(command!(8, "P0={}", handle), &mut response)
+            .await
+            .map_err(|_| TcpError::CloseError)?;
+
+        let response = self
+            .send_string(command!(8, "P6=0"), &mut response)
+            .await
+            .map_err(|_| TcpError::CloseError)?;
+
+        if let Ok((_, CloseResponse::Ok)) = parser::close_response(&response) {
+            trace!("Connection closed");
+            self.socket_pool.close(handle);
+            Ok(())
+        } else {
+            trace!("Error closing connection");
+            /*info!(
+                "close response:  {:?}",
+                core::str::from_utf8(&response).unwrap()
+            );*/
+            self.socket_pool.close(handle);
+            Err(TcpError::CloseError)
+        }
+    }
 }
 
 impl<SPI, CS, RESET, WAKEUP, READY> WifiSupplicant for EsWifi<SPI, CS, RESET, WAKEUP, READY>
@@ -350,322 +636,205 @@ where
     }
 }
 
-impl<SPI, CS, RESET, WAKEUP, READY> TcpClientStack for EsWifi<SPI, CS, RESET, WAKEUP, READY>
+pub struct SharedEsWifi<'a, SPI, CS, RESET, WAKEUP, READY>
 where
-    SPI: SpiBus<u8>,
+    SPI: SpiBus<u8> + 'static,
     CS: OutputPin + 'static,
     RESET: OutputPin + 'static,
     WAKEUP: OutputPin + 'static,
     READY: InputPin + Wait + 'static,
 {
-    type TcpSocket = u8;
+    adapter: LocalMutex<EsWifi<SPI, CS, RESET, WAKEUP, READY>>,
+    _a: PhantomData<&'a SPI>,
+    control: Channel<DriverMutex, Control, 1>,
+}
+
+impl<'a, SPI, CS, RESET, WAKEUP, READY> SharedEsWifi<'a, SPI, CS, RESET, WAKEUP, READY>
+where
+    SPI: SpiBus<u8> + 'static,
+    CS: OutputPin + 'static,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
+    READY: InputPin + Wait + 'static,
+{
+    pub fn new(adapter: EsWifi<SPI, CS, RESET, WAKEUP, READY>) -> Self {
+        Self {
+            adapter: LocalMutex::new(adapter, true),
+            control: Channel::new(),
+            _a: PhantomData,
+        }
+    }
+
+    pub async fn new_client(
+        &'a self,
+    ) -> Result<EsWifiClient<'a, SPI, CS, RESET, WAKEUP, READY>, TcpError> {
+        let mut adapter = self.adapter.lock().await;
+        let handle = adapter.socket().await?;
+        Ok(EsWifiClient {
+            handle,
+            adapter: self,
+            control: self.control.sender().into(),
+        })
+    }
+
+    pub async fn run(&'a self) -> ! {
+        loop {
+            match self.control.recv().await {
+                Control::Close(id) => {
+                    let mut adapter = self.adapter.lock().await;
+                    let _ = adapter.close(id).await;
+                }
+            }
+        }
+    }
+}
+
+pub struct EsWifiClient<'a, SPI, CS, RESET, WAKEUP, READY>
+where
+    SPI: SpiBus<u8> + 'static,
+    CS: OutputPin + 'static,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
+    READY: InputPin + Wait + 'static,
+{
+    handle: u8,
+    adapter: &'a SharedEsWifi<'a, SPI, CS, RESET, WAKEUP, READY>,
+    control: DynamicSender<'a, Control>,
+}
+
+impl<'a, SPI, CS, RESET, WAKEUP, READY> embedded_io::Io
+    for EsWifiClient<'a, SPI, CS, RESET, WAKEUP, READY>
+where
+    SPI: SpiBus<u8> + 'static,
+    CS: OutputPin + 'static,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
+    READY: InputPin + Wait + 'static,
+{
     type Error = TcpError;
+}
 
-    type SocketFuture<'m> = impl Future<Output = Result<Self::TcpSocket, Self::Error>> + 'm
+impl embedded_io::Error for TcpError {
+    fn kind(&self) -> embedded_io::ErrorKind {
+        embedded_io::ErrorKind::Other
+    }
+}
+
+impl<'a, SPI, CS, RESET, WAKEUP, READY> TcpClient
+    for EsWifiClient<'a, SPI, CS, RESET, WAKEUP, READY>
+where
+    SPI: SpiBus<u8> + 'static,
+    CS: OutputPin + 'static,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
+    READY: InputPin + Wait + 'static,
+{
+    type TcpConnection<'m> = EsWifiConnection<'m, SPI, CS, RESET, WAKEUP, READY> where Self: 'm;
+    type ConnectFuture<'m> = impl Future<Output = Result<Self::TcpConnection<'m>, Self::Error>> + 'm
+	where
+		Self: 'm;
+
+    fn connect<'m>(&'m mut self, remote: SocketAddr) -> Self::ConnectFuture<'m> {
+        async move {
+            let mut adapter = self.adapter.adapter.lock().await;
+            adapter.connect(self.handle, remote).await?;
+            Ok(EsWifiConnection {
+                handle: self.handle,
+                adapter: self.adapter,
+                control: self.control.clone(),
+            })
+        }
+    }
+}
+
+pub struct EsWifiConnection<'a, SPI, CS, RESET, WAKEUP, READY>
+where
+    SPI: SpiBus<u8> + 'static,
+    CS: OutputPin + 'static,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
+    READY: InputPin + Wait + 'static,
+{
+    handle: u8,
+    control: DynamicSender<'a, Control>,
+    adapter: &'a SharedEsWifi<'a, SPI, CS, RESET, WAKEUP, READY>,
+}
+
+impl<'a, SPI, CS, RESET, WAKEUP, READY> embedded_io::Io
+    for EsWifiConnection<'a, SPI, CS, RESET, WAKEUP, READY>
+where
+    SPI: SpiBus<u8> + 'static,
+    CS: OutputPin + 'static,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
+    READY: InputPin + Wait + 'static,
+{
+    type Error = TcpError;
+}
+
+impl<'a, SPI, CS, RESET, WAKEUP, READY> embedded_io::asynch::Write
+    for EsWifiConnection<'a, SPI, CS, RESET, WAKEUP, READY>
+where
+    SPI: SpiBus<u8> + 'static,
+    CS: OutputPin + 'static,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
+    READY: InputPin + Wait + 'static,
+{
+    type WriteFuture<'m> = impl Future<Output = Result<usize, Self::Error>>
     where
         Self: 'm;
-    fn socket<'m>(&'m mut self) -> Self::SocketFuture<'m> {
+
+    fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
         async move {
-            let h = self
-                .socket_pool
-                .open()
-                .await
-                .map_err(|_| TcpError::OpenError)?;
-            trace!("Opened socket {}", h);
-            Ok(h)
+            let mut adapter = self.adapter.adapter.lock().await;
+            adapter.write(self.handle, buf).await
         }
     }
 
-    type ConnectFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm
+    type FlushFuture<'m> = impl Future<Output = Result<(), Self::Error>>
     where
         Self: 'm;
-    fn connect<'m>(
-        &'m mut self,
-        handle: &'m mut Self::TcpSocket,
-        remote: SocketAddr,
-    ) -> Self::ConnectFuture<'m> {
+
+    fn flush<'m>(&'m mut self) -> Self::FlushFuture<'m> {
+        async move { Ok(()) }
+    }
+}
+
+impl<'a, SPI, CS, RESET, WAKEUP, READY> embedded_io::asynch::Read
+    for EsWifiConnection<'a, SPI, CS, RESET, WAKEUP, READY>
+where
+    SPI: SpiBus<u8> + 'static,
+    CS: OutputPin + 'static,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
+    READY: InputPin + Wait + 'static,
+{
+    type ReadFuture<'m> = impl Future<Output = Result<usize, Self::Error>>
+    where
+        Self: 'm;
+
+    fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m> {
         async move {
-            let mut response = [0u8; 1024];
-
-            let result = async {
-                self.send_string(command!(8, "P0={}", handle), &mut response)
-                    .await
-                    .map_err(|_| TcpError::ConnectError)?;
-
-                self.send_string(command!(8, "P1=0"), &mut response)
-                    .await
-                    .map_err(|_| TcpError::ConnectError)?;
-                /*
-                IpProtocol::Udp => {
-                    self.send_string(command!(8, "P1=1"), &mut response)
-                        .await
-                        .map_err(|_| TcpError::ConnectError)?;
-                }
-                */
-
-                self.send_string(command!(32, "P3={}", remote.ip()), &mut response)
-                    .await
-                    .map_err(|_| TcpError::ConnectError)?;
-
-                self.send_string(command!(32, "P4={}", remote.port()), &mut response)
-                    .await
-                    .map_err(|_| TcpError::ConnectError)?;
-
-                let response = self
-                    .send_string(command!(8, "P6=1"), &mut response)
-                    .await
-                    .map_err(|_| TcpError::ConnectError)?;
-
-                if let Ok((_, ConnectResponse::Ok)) = parser::connect_response(&response) {
-                    Ok(())
-                } else {
-                    Err(TcpError::ConnectError)
-                }
-            }
-            .await;
-            result
+            let mut adapter = self.adapter.adapter.lock().await;
+            adapter.read(self.handle, buf).await
         }
     }
+}
 
-    type IsConnectedFuture<'m> =
-        impl Future<Output = Result<bool, Self::Error>> + 'm where Self: 'm;
-    fn is_connected<'m>(&'m mut self, handle: &'m Self::TcpSocket) -> Self::IsConnectedFuture<'m> {
-        async move { Ok(!self.socket_pool.is_closed(*handle)) }
+impl<'a, SPI, CS, RESET, WAKEUP, READY> Drop for EsWifiConnection<'a, SPI, CS, RESET, WAKEUP, READY>
+where
+    SPI: SpiBus<u8> + 'static,
+    CS: OutputPin + 'static,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
+    READY: InputPin + Wait + 'static,
+{
+    fn drop(&mut self) {
+        let _ = self.control.try_send(Control::Close(self.handle));
     }
+}
 
-    type SendFuture<'m> =
-        impl Future<Output = Result<usize, Self::Error>> + 'm where Self: 'm;
-    fn send<'m>(
-        &'m mut self,
-        handle: &'m mut Self::TcpSocket,
-        buf: &'m [u8],
-    ) -> Self::SendFuture<'m> {
-        async move {
-            let mut response = [0u8; 32];
-            let mut remaining = buf.len();
-            trace!("Write request with {} bytes", remaining);
-            self.send_string(command!(8, "P0={}", handle), &mut response)
-                .await
-                .map_err(|_| TcpError::WriteError)?;
-            while remaining > 0 {
-                // info!("Writing buf with len {}", len);
-
-                let to_send = core::cmp::min(1460, remaining);
-                trace!("Writing {} bytes to adapter", to_send);
-
-                async {
-                    let mut prefix = command!(16, "S3={}", to_send).into_bytes();
-
-                    let (prefix, data) = if prefix.len() % 2 == 0 {
-                        (&prefix[..], &buf[..to_send])
-                    } else {
-                        prefix.push(buf[0]).unwrap();
-                        (&prefix[..], &buf[1..to_send])
-                    };
-
-                    self.wait_ready().await.map_err(|_| TcpError::WriteError)?;
-
-                    {
-                        let _cs = Cs::new(&mut self.cs).map_err(|_| TcpError::WriteError)?;
-
-                        trace!("Writing prefix of {} bytes", prefix.len());
-                        for chunk in prefix.chunks(2) {
-                            let mut xfer: [u8; 2] = [0; 2];
-                            xfer[1] = chunk[0];
-                            if chunk.len() == 2 {
-                                xfer[0] = chunk[1]
-                            } else {
-                                xfer[0] = 0x0A
-                            }
-
-                            let a = xfer[0];
-                            let b = xfer[1];
-
-                            Self::spi_transfer(&mut self.spi, &mut xfer, &[a, b])
-                                .await
-                                .map_err(|_| TcpError::WriteError)?;
-                        }
-
-                        trace!("Writing data of {} bytes", data.len());
-                        for chunk in data.chunks(2) {
-                            let mut xfer: [u8; 2] = [0; 2];
-                            xfer[1] = chunk[0];
-                            if chunk.len() == 2 {
-                                xfer[0] = chunk[1]
-                            } else {
-                                xfer[0] = 0x0A
-                            }
-
-                            let a = xfer[0];
-                            let b = xfer[1];
-
-                            Self::spi_transfer(&mut self.spi, &mut xfer, &[a, b])
-                                .await
-                                .map_err(|_| TcpError::WriteError)?;
-                        }
-                    }
-
-                    let response = self
-                        .receive(&mut response, 0)
-                        .await
-                        .map_err(|_| TcpError::WriteError)?;
-
-                    if let Ok((_, WriteResponse::Ok(len))) = parser::write_response(response) {
-                        remaining -= to_send;
-                        Ok(len)
-                    } else {
-                        trace!("Error reading response");
-                        trace!("response:  {:?}", core::str::from_utf8(&response).unwrap());
-                        Err(TcpError::WriteError)
-                    }
-                }
-                .await?;
-            }
-            Ok(buf.len())
-        }
-    }
-
-    type ReceiveFuture<'m> =
-        impl Future<Output = Result<usize, Self::Error>> + 'm where Self: 'm;
-    fn receive<'m>(
-        &'m mut self,
-        handle: &'m mut Self::TcpSocket,
-        buf: &'m mut [u8],
-    ) -> Self::ReceiveFuture<'m> {
-        async move {
-            let mut pos = 0;
-            //let buf_len = buf.len();
-            loop {
-                let result = async {
-                    let mut response = [0u8; 1470];
-
-                    self.send_string(command!(8, "P0={}", handle), &mut response)
-                        .await
-                        .map_err(|_| TcpError::ReadError)?;
-
-                    let maxlen = buf.len() - pos;
-                    let len = core::cmp::min(response.len() - 10, maxlen);
-
-                    self.send_string(command!(16, "R1={}", len), &mut response)
-                        .await
-                        .map_err(|_| TcpError::ReadError)?;
-
-                    /*
-                    self.send_string(&command!(8, "R2=10000"), &mut response)
-                        .await
-                        .map_err(|_| TcpError::ReadError)?;
-                    */
-
-                    self.send_string(command!(8, "R3=1"), &mut response)
-                        .await
-                        .map_err(|_| TcpError::ReadError)?;
-
-                    self.wait_ready().await.map_err(|_| TcpError::ReadError)?;
-
-                    {
-                        let _cs = Cs::new(&mut self.cs).map_err(|_| TcpError::ReadError)?;
-
-                        let mut xfer = [b'0', b'R'];
-                        Self::spi_transfer(&mut self.spi, &mut xfer, &[b'0', b'R'])
-                            .await
-                            .map_err(|_| TcpError::ReadError)?;
-
-                        xfer = [b'\n', b'\r'];
-                        Self::spi_transfer(&mut self.spi, &mut xfer, &[b'\n', b'\r'])
-                            .await
-                            .map_err(|_| TcpError::ReadError)?;
-                    }
-
-                    trace!(
-                        "Receiving {} bytes, total buffer size is {}, pos is {}",
-                        len,
-                        buf.len(),
-                        pos
-                    );
-                    let response = self
-                        .receive(&mut response, len)
-                        .await
-                        .map_err(|_| TcpError::ReadError)?;
-
-                    if let Ok((_, ReadResponse::Ok(data))) = parser::read_response(&response) {
-                        if pos + data.len() > buf.len() {
-                            trace!(
-                                "Buf len is {}, pos is {}, Len is {}, data len is {}",
-                                buf.len(),
-                                pos,
-                                len,
-                                data.len()
-                            );
-                            if let Ok(s) = core::str::from_utf8(&data) {
-                                warn!("response parsed:  {:?}", s);
-                            }
-                            warn!("response raw data: {:?}", response);
-                            Err(TcpError::ReadError)
-                        } else {
-                            for (i, b) in data.iter().enumerate() {
-                                buf[pos + i] = *b;
-                            }
-                            Ok(data.len())
-                        }
-                    } else {
-                        /*info!(
-                            "ERR: response parsed:  {:?}",
-                            core::str::from_utf8(&response).unwrap()
-                        );*/
-                        Err(TcpError::ReadError)
-                    }
-                }
-                .await;
-
-                match result {
-                    Ok(len) => {
-                        pos += len;
-                        if len == 0 || pos == buf.len() {
-                            return Ok(pos);
-                        }
-                    }
-                    Err(e) => {
-                        if pos == 0 {
-                            return Err(e);
-                        } else {
-                            return Ok(pos);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    type CloseFuture<'m> =
-        impl Future<Output = Result<(), Self::Error>> + 'm where Self: 'm;
-    fn close<'m>(&'m mut self, handle: Self::TcpSocket) -> Self::CloseFuture<'m> {
-        async move {
-            trace!("Closing connection for {}", handle);
-            self.socket_pool.close(handle);
-            let mut response = [0u8; 32];
-
-            self.send_string(command!(8, "P0={}", handle), &mut response)
-                .await
-                .map_err(|_| TcpError::CloseError)?;
-
-            let response = self
-                .send_string(command!(8, "P6=0"), &mut response)
-                .await
-                .map_err(|_| TcpError::CloseError)?;
-
-            if let Ok((_, CloseResponse::Ok)) = parser::close_response(&response) {
-                trace!("Connection closed");
-                self.socket_pool.close(handle);
-                Ok(())
-            } else {
-                trace!("Error closing connection");
-                /*info!(
-                    "close response:  {:?}",
-                    core::str::from_utf8(&response).unwrap()
-                );*/
-                self.socket_pool.close(handle);
-                Err(TcpError::CloseError)
-            }
-        }
-    }
+pub enum Control {
+    Close(u8),
 }

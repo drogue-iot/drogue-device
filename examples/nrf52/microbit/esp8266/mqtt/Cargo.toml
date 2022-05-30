@@ -19,13 +19,13 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 rand_core = { version = "0.6.2", default-features = false }
 
 drogue-device = { path = "../../../../../device", features = ["bsp+microbit+temp", "wifi+esp8266", "defmt", "time", "mqtt", "tls"], default-features = false }
-embedded-tls = { version = "0.6.0", default-features = false, features = ["async", "defmt"]}
+embedded-tls = { version = "0.7.0", default-features = false, features = ["async", "defmt"]}
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 fixed = "1.10.0"
 nrf52833-pac = "0.11.0"
 
-embedded-nal-async = "0.1.0"
+embedded-nal-async = { version = "0.1.0", git = "https://github.com/lulf/embedded-nal.git", rev = "7e46d533090882ce9a449f544055c09e6d241e55" }
 embassy = { version = "0.1.0", default-features = false, features = ["defmt"] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
 cfg-if = "1.0.0"

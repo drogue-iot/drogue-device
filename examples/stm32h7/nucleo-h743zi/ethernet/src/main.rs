@@ -13,69 +13,62 @@ use drogue_device::{
     bsp::{boards::stm32h7::nucleo_h743zi::*, Board},
     domain::temperature::Celsius,
     drivers::tcp::smoltcp::*,
-    network::tcp::*,
     DeviceContext,
 };
 use drogue_temperature::*;
 use embassy::util::Forever;
-use embassy_net::StaticConfigurator;
-use embassy_net::{Config as NetConfig, Ipv4Address, Ipv4Cidr, StackResources};
+use embassy_net::{Stack, StackResources};
 use embassy_stm32::peripherals::RNG;
 use embassy_stm32::rng::Rng;
 use embassy_stm32::Peripherals;
-use heapless::Vec;
-
-type SmolTcp = SmolTcpStack<'static, 1, 2, 1024>;
+use rand_core::RngCore;
 
 // Creates a newtype named `BSP` around the `NucleoH743` to avoid
 // orphan rules and apply delegation boilerplate.
 bind_bsp!(NucleoH743, BSP);
 
 impl TemperatureBoard for BSP {
-    type Network = SharedTcpStack<'static, SmolTcp>;
+    type Network = SmolTcpClient<'static, EthernetDevice, 1024>;
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = FakeSensor;
     type SendTrigger = UserButton;
-    type Rng = TlsRand;
+    type Rng = Rng<'static, RNG>;
 }
 
 static DEVICE: DeviceContext<TemperatureDevice<BSP>> = DeviceContext::new();
-static ETH: Forever<EthernetDevice> = Forever::new();
-static CONFIG: Forever<StaticConfigurator> = Forever::new();
 static RESOURCES: Forever<StackResources<1, 2, 8>> = Forever::new();
+static STACK: Forever<Stack<EthernetDevice>> = Forever::new();
 
 #[embassy::task]
-async fn net() {
-    embassy_net::run().await
+async fn net_task(stack: &'static Stack<EthernetDevice>) -> ! {
+    stack.run().await
 }
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let board = NucleoH743::new(p);
 
-    unsafe {
-        RNG_INST.replace(board.rng);
-    }
+    // Generate random seed.
+    let mut rng = board.rng;
+    let mut seed = [0; 8];
+    rng.fill_bytes(&mut seed);
+    let seed = u64::from_le_bytes(seed);
 
-    let config = CONFIG.put(StaticConfigurator::new(NetConfig {
-        address: Ipv4Cidr::new(Ipv4Address::new(192, 168, 0, 111), 24),
-        dns_servers: Vec::new(),
-        gateway: Some(Ipv4Address::new(192, 168, 0, 1)),
-    }));
+    let config = embassy_net::ConfigStrategy::Dhcp;
 
-    let device = ETH.put(board.eth);
     let resources = RESOURCES.put(StackResources::new());
-    embassy_net::init(device, config, resources);
 
-    static NETWORK: TcpStackState<SmolTcp> = TcpStackState::new();
-    let network = NETWORK.initialize(SmolTcp::new());
+    let stack = STACK.put(Stack::new(board.eth, config, resources, seed));
+    spawner.spawn(net_task(stack)).unwrap();
+
+    let network = SmolTcpClient::new(stack);
 
     DEVICE
         .configure(TemperatureDevice::new())
         .mount(
             spawner,
-            TlsRand,
+            rng,
             TemperatureBoardConfig {
                 send_trigger: board.user_button,
                 sensor: FakeSensor(22.0),
@@ -86,37 +79,3 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         .await;
     defmt::info!("Application initialized. Press the blue button to send data");
 }
-
-static mut RNG_INST: Option<Rng<RNG>> = None;
-
-#[no_mangle]
-fn _embassy_rand(buf: &mut [u8]) {
-    use rand_core::RngCore;
-
-    critical_section::with(|_| unsafe {
-        defmt::unwrap!(RNG_INST.as_mut()).fill_bytes(buf);
-    });
-}
-
-pub struct TlsRand;
-
-impl rand_core::RngCore for TlsRand {
-    fn next_u32(&mut self) -> u32 {
-        critical_section::with(|_| unsafe { defmt::unwrap!(RNG_INST.as_mut()).next_u32() })
-    }
-    fn next_u64(&mut self) -> u64 {
-        critical_section::with(|_| unsafe { defmt::unwrap!(RNG_INST.as_mut()).next_u64() })
-    }
-    fn fill_bytes(&mut self, buf: &mut [u8]) {
-        critical_section::with(|_| unsafe {
-            defmt::unwrap!(RNG_INST.as_mut()).fill_bytes(buf);
-        });
-    }
-    fn try_fill_bytes(&mut self, buf: &mut [u8]) -> Result<(), rand_core::Error> {
-        critical_section::with(|_| unsafe {
-            defmt::unwrap!(RNG_INST.as_mut()).fill_bytes(buf);
-        });
-        Ok(())
-    }
-}
-impl rand_core::CryptoRng for TlsRand {}
