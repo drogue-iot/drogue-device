@@ -12,14 +12,14 @@ use heapless::Vec;
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct AccessMessage {
     pub ttl: Option<u8>,
-    pub(crate) network_key: NetworkKeyHandle,
-    pub(crate) ivi: u8,
-    pub(crate) nid: u8,
-    pub(crate) akf: bool,
-    pub(crate) aid: ApplicationKeyIdentifier,
-    pub(crate) src: UnicastAddress,
-    pub(crate) dst: Address,
-    pub(crate) payload: AccessPayload,
+    pub network_key: Option<NetworkKeyHandle>,
+    pub ivi: Option<u8>,
+    pub nid: Option<u8>,
+    pub akf: Option<bool>,
+    pub aid: ApplicationKeyIdentifier,
+    pub src: UnicastAddress,
+    pub dst: Address,
+    pub payload: AccessPayload,
 }
 
 #[allow(unused)]
@@ -40,15 +40,34 @@ impl AccessMessage {
     pub fn parse(access: &UpperAccess) -> Result<Self, ParseError> {
         Ok(Self {
             ttl: None,
-            network_key: access.network_key,
-            ivi: access.ivi,
-            nid: access.nid,
-            akf: access.akf,
+            network_key: Some(access.network_key),
+            ivi: Some(access.ivi),
+            nid: Some(access.nid),
+            akf: Some(access.akf),
             aid: access.aid,
             src: access.src,
             dst: access.dst,
             payload: AccessPayload::parse(&access.payload)?,
         })
+    }
+
+    pub fn new(
+        aid: ApplicationKeyIdentifier,
+        src: UnicastAddress,
+        dst: Address,
+        payload: AccessPayload,
+    ) -> Self {
+        Self {
+            ttl: None,
+            network_key: None,
+            ivi: None,
+            nid: None,
+            akf: None,
+            aid,
+            src,
+            dst,
+            payload,
+        }
     }
 
     pub fn emit<const N: usize>(&self, xmit: &mut Vec<u8, N>) -> Result<(), InsufficientBuffer> {

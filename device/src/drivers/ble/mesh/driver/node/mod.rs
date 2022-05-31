@@ -111,11 +111,11 @@ where
                     let model_key = publish.model_key();
                     let message = AccessMessage {
                         ttl: publication.publish_ttl,
-                        network_key: NetworkKeyHandle::from(network),
+                        network_key: Some(NetworkKeyHandle::from(network)),
                         // todo: ivi isn't always zero.
-                        ivi: 0,
-                        nid: network.nid,
-                        akf: true,
+                        ivi: Some(0),
+                        nid: Some(network.nid),
+                        akf: Some(true),
                         aid: app_key_details.aid,
                         src: publish.element_address,
                         dst: publication.publish_address,

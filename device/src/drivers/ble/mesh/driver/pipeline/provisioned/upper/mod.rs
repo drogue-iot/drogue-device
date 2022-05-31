@@ -65,10 +65,10 @@ impl Upper {
         message.emit(&mut payload)?;
         Ok(Some(UpperPDU::Access(UpperAccess {
             ttl: message.ttl,
-            network_key: message.network_key,
-            ivi: message.ivi,
-            nid: message.nid,
-            akf: message.akf,
+            network_key: message.network_key.unwrap_or_default(),
+            ivi: message.ivi.unwrap_or_default(),
+            nid: message.nid.unwrap_or_default(),
+            akf: message.akf.unwrap_or_default(),
             aid: message.aid,
             src: message.src,
             dst: message.dst,
