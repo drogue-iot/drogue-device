@@ -26,7 +26,7 @@ rand = { version = "0.8.4", default-features = false, features = ["small_rng"] }
 drogue-lorawan-app = { path = "../../apps/lorawan" }
 
 embassy = { version = "0.1.0", default-features = false, features = ["time-tick-32768hz"] }
-embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32l151cb-a", "time-driver-tim2", "memory-x", "unstable-pac"] }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32l151cb-a", "time-driver-any", "memory-x", "unstable-pac"] }
 embassy-lora = { version = "0.1.0", default-features = false, features = ["sx127x"] }
 
 [profile.release]

@@ -30,7 +30,7 @@ rand_core = { version = "0.6", default-features = false }
 
 embassy = { version = "0.1.0", default-features = false, features = ["time-tick-32768hz"] }
 embassy-lora = { version = "0.1.0", default-features = false, features = ["stm32wl"] }
-embassy-stm32 = { version = "0.1.0", default-features = false, features = ["defmt", "stm32wl55jc-cm4", "time-driver-tim2", "unstable-pac", "subghz"] }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["defmt", "stm32wl55jc-cm4", "time-driver-any", "unstable-pac", "subghz"] }
 
 [profile.release]
 codegen-units = 1
