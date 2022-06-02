@@ -621,6 +621,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
 dependencies = [
  "atomic-polyfill",
  "cfg-if",
@@ -638,6 +639,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
 dependencies = [
  "cortex-m",
  "embassy",
@@ -647,6 +649,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -657,6 +660,7 @@ dependencies = [
 [[package]]
 name = "embassy-net"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
 dependencies = [
  "as-slice 0.2.1",
  "atomic-pool",
@@ -674,6 +678,7 @@ dependencies = [
 [[package]]
 name = "embassy-stm32"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
 dependencies = [
  "atomic-polyfill",
  "bare-metal 1.0.0",
@@ -1740,6 +1745,7 @@ dependencies = [
 [[package]]
 name = "stm32-metapac"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
@@ -1750,6 +1756,7 @@ dependencies = [
 [[package]]
 name = "stm32-metapac-gen"
 version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
 dependencies = [
  "chiptool",
  "proc-macro2",
