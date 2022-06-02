@@ -65,7 +65,7 @@ mod tests {
         let mut kafka_ready = false;
         let mut ready = false;
         while retries > 0 && !kafka_ready && !ready {
-            let output = cmd!("drg", "get", "app", &app)
+            let output = cmd!("drg", "get", "application", &app, "-o", "json")
                 .stdout_capture()
                 .stderr_to_stdout()
                 .read();
