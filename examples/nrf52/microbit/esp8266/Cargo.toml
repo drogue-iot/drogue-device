@@ -38,10 +38,10 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "0adb4c926b15f9773fb83497a7bf1eb3789286da" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "0adb4c926b15f9773fb83497a7bf1eb3789286da" }
-rust-mqtt = { path = "../../../../../../rust-mqtt" }
-embedded-tls = { path = "../../../../../embedded-tls" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "dbff4779eb4c8950cd1dd1689f95646762c6dc55" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "dbff4779eb4c8950cd1dd1689f95646762c6dc55" }
+rust-mqtt = { git = "https://github.com/obabec/rust-mqtt.git", rev = "e0b22059053e779a2a8c80cadd25cad1472e6640" }
+#rust-mqtt = { path = "../../../../../../rust-mqtt" }
 
 #embassy = { path = "../../../../../../embassy/embassy" }
 #embassy-nrf = { path = "../../../../../../embassy/embassy-nrf" }

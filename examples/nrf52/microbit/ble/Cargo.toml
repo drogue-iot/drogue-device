@@ -79,10 +79,10 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "0adb4c926b15f9773fb83497a7bf1eb3789286da" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "0adb4c926b15f9773fb83497a7bf1eb3789286da" }
-embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "0adb4c926b15f9773fb83497a7bf1eb3789286da" }
-embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "0adb4c926b15f9773fb83497a7bf1eb3789286da" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "dbff4779eb4c8950cd1dd1689f95646762c6dc55" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "dbff4779eb4c8950cd1dd1689f95646762c6dc55" }
+embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "dbff4779eb4c8950cd1dd1689f95646762c6dc55" }
+embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "dbff4779eb4c8950cd1dd1689f95646762c6dc55" }
 nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "a5026485151138112b522a27c4a340614d7a7512" }
 nrf-softdevice-s113 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "a5026485151138112b522a27c4a340614d7a7512" }
 nrf-softdevice-macro = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "a5026485151138112b522a27c4a340614d7a7512" }

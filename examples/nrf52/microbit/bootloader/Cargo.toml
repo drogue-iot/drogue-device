@@ -67,10 +67,10 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "0adb4c926b15f9773fb83497a7bf1eb3789286da" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "0adb4c926b15f9773fb83497a7bf1eb3789286da" }
-embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "0adb4c926b15f9773fb83497a7bf1eb3789286da" }
-embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "0adb4c926b15f9773fb83497a7bf1eb3789286da" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "dbff4779eb4c8950cd1dd1689f95646762c6dc55" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "dbff4779eb4c8950cd1dd1689f95646762c6dc55" }
+embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "dbff4779eb4c8950cd1dd1689f95646762c6dc55" }
+embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "dbff4779eb4c8950cd1dd1689f95646762c6dc55" }
 
 #embassy = { path = "../../../../../../embassy/embassy" }
 #embassy-nrf = { path = "../../../../../../embassy/embassy-nrf" }

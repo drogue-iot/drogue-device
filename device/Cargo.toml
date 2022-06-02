@@ -39,7 +39,7 @@ embedded-nal = "0.6.0"
 embedded-nal-async = { version = "0.1.0", git = "https://github.com/lulf/embedded-nal.git", rev = "7e46d533090882ce9a449f544055c09e6d241e55" }
 
 # TLS dependency
-embedded-tls = { path = "../../embedded-tls", default-features = false, features = ["async"], optional = true}
+embedded-tls = { version = "0.8.0", default-features = false, features = ["async"], optional = true}
 #drogue-tls = {path = "../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
 rand_core = { version = "0.6.2", default-features = false }
 rand = { version = "0.8.4", default-features = false, features = ["small_rng"], optional = true }

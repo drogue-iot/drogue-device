@@ -23,7 +23,7 @@ cortex-m-rt = "0.7"
 cortex-m = "0.7"
 
 drogue-blinky-app = { path = "../../../apps/blinky" }
-embedded-tls = { version = "0.6.0", default-features = false, features = ["async", "defmt"], optional = true}
+embedded-tls = { version = "0.8.0", default-features = false, features = ["async", "defmt"], optional = true}
 cfg-if = "1.0.0"
 
 atomic-polyfill = "0.1"

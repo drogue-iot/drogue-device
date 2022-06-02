@@ -27,7 +27,7 @@ cortex-m = "0.7"
 
 # embassy = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features=["defmt"] }
 # embassy-stm32 = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features = ["defmt", "stm32l432kc"] }
-embedded-tls = { version = "0.6.0", default-features = false, features = ["async", "defmt"], optional = true}
+embedded-tls = { version = "0.8.0", default-features = false, features = ["async", "defmt"], optional = true}
 # drogue-tls = {path = "../../../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
 cfg-if = "1.0.0"
 
@@ -45,10 +45,8 @@ b-l4s5i-iot01a = ["embassy-stm32/stm32l4s5vi", "drogue-device/bsp+b_l4s5i_iot01a
 b-l475e-iot01a = ["embassy-stm32/stm32l475vg", "drogue-device/bsp+b_l475e_iot01a"]
 
 [patch.crates-io]
-embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "0adb4c926b15f9773fb83497a7bf1eb3789286da" }
-embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "0adb4c926b15f9773fb83497a7bf1eb3789286da" }
-
-embedded-tls = { path = "../../../../embedded-tls" }
+embassy = {git = "https://github.com/embassy-rs/embassy.git", rev = "dbff4779eb4c8950cd1dd1689f95646762c6dc55" }
+embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "dbff4779eb4c8950cd1dd1689f95646762c6dc55" }
 
 #embassy = { path = "../../../../../embassy/embassy" }
 #embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }

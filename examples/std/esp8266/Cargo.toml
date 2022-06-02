@@ -13,7 +13,7 @@ keywords = ["std", "wifi", "networking", "cloud"]
 log = "0.4"
 env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["log", "std", "wifi+esp8266"] }
-embedded-tls = { version = "0.6.0", default-features = false, features = ["async"], optional = true}
+embedded-tls = { version = "0.8.0", default-features = false, features = ["async"], optional = true}
 embedded-io = { version = "0.3.0", features = ["async", "std", "futures"] }
 #drogue-tls = {path = "../../drogue-tls", default-features = false, optional = true}
 
