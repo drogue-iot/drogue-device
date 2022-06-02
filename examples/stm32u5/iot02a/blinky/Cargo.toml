@@ -23,12 +23,12 @@ cortex-m-rt = "0.7"
 cortex-m = "0.7"
 
 drogue-blinky-app = { path = "../../../apps/blinky" }
-embedded-tls = { version = "0.6.0", default-features = false, features = ["async", "defmt"], optional = true}
+embedded-tls = { version = "0.8.0", default-features = false, features = ["async", "defmt"], optional = true}
 cfg-if = "1.0.0"
 
 atomic-polyfill = "0.1"
 embassy = { version = "0.1.0", default-features = false, features=["defmt", "time", "time-tick-32768hz"] }
-embassy-stm32 = {version = "0.1.0", default-features = false, features = ["defmt", "time-driver-tim2", "memory-x"] }
+embassy-stm32 = {version = "0.1.0", default-features = false, features = ["defmt", "time-driver-any", "memory-x"] }
 #drogue-temperature = { path = "../../../apps/temperature", features = ["defmt"] }
 
 embedded-hal = { version = "0.2.4", features = ["unproven"] }

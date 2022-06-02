@@ -85,9 +85,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "cortex-m"
-version = "0.7.4"
+version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37ff967e867ca14eba0c34ac25cd71ea98c678e741e3915d923999bb2fe7c826"
+checksum = "cd20d4ac4aa86f4f75f239d59e542ef67de87cce2c282818dc6e84155d3ea126"
 dependencies = [
  "bare-metal 0.2.5",
  "bitfield",
@@ -164,9 +164,9 @@ dependencies = [
 
 [[package]]
 name = "defmt"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9252abe43d4c0a5df0c5c865129fa8daad338bb33357ba40023a37cd34b4a7b9"
+checksum = "d3a0ae7494d9bff013d7b89471f4c424356a71e9752e0c78abe7e6c608a16bb3"
 dependencies = [
  "bitflags",
  "defmt-macros",
@@ -204,7 +204,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=e10fc2bada1c59420431f09a35f7aa09a5b45623#e10fc2bada1c59420431f09a35f7aa09a5b45623"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
 dependencies = [
  "atomic-polyfill",
  "cfg-if",
@@ -222,7 +222,7 @@ dependencies = [
 [[package]]
 name = "embassy-boot"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=e10fc2bada1c59420431f09a35f7aa09a5b45623#e10fc2bada1c59420431f09a35f7aa09a5b45623"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
 dependencies = [
  "defmt",
  "embassy",
@@ -233,7 +233,7 @@ dependencies = [
 [[package]]
 name = "embassy-boot-nrf"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=e10fc2bada1c59420431f09a35f7aa09a5b45623#e10fc2bada1c59420431f09a35f7aa09a5b45623"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -250,7 +250,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=e10fc2bada1c59420431f09a35f7aa09a5b45623#e10fc2bada1c59420431f09a35f7aa09a5b45623"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
 dependencies = [
  "cortex-m",
  "embassy",
@@ -260,7 +260,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=e10fc2bada1c59420431f09a35f7aa09a5b45623#e10fc2bada1c59420431f09a35f7aa09a5b45623"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -271,7 +271,7 @@ dependencies = [
 [[package]]
 name = "embassy-nrf"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=e10fc2bada1c59420431f09a35f7aa09a5b45623#e10fc2bada1c59420431f09a35f7aa09a5b45623"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -298,7 +298,7 @@ dependencies = [
 [[package]]
 name = "embassy-usb"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=e10fc2bada1c59420431f09a35f7aa09a5b45623#e10fc2bada1c59420431f09a35f7aa09a5b45623"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
 dependencies = [
  "defmt",
  "embassy",

@@ -5,11 +5,10 @@
 mod serial;
 
 use async_io::Async;
-use drogue_device::{
-    domain::temperature::Celsius, drivers::wifi::esp8266::*, network::tcp::*, traits::wifi::*, *,
-};
+use drogue_device::{domain::temperature::Celsius, drivers::wifi::esp8266::*, traits::wifi::*, *};
 use drogue_temperature::*;
 use embassy::time::Duration;
+use embassy::util::Forever;
 use embedded_hal::digital::v2::OutputPin;
 use embedded_io::adapters::FromFutures;
 use futures::io::BufReader;
@@ -26,7 +25,7 @@ type RESET = DummyPin;
 pub struct StdBoard;
 
 impl TemperatureBoard for StdBoard {
-    type Network = SharedTcpStack<'static, Esp8266Modem<SERIAL, ENABLE, RESET>>;
+    type Network = Esp8266Client<'static, SERIAL>;
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = FakeSensor;
@@ -50,6 +49,7 @@ async fn main(spawner: embassy::executor::Spawner) {
     let port = FromFutures::new(port);
 
     let mut network = Esp8266Modem::new(port, DummyPin, DummyPin);
+    network.initialize().await.unwrap();
 
     network
         .join(Join::Wpa {
@@ -59,8 +59,10 @@ async fn main(spawner: embassy::executor::Spawner) {
         .await
         .expect("Error joining WiFi network");
 
-    static NETWORK: TcpStackState<Esp8266Modem<SERIAL, ENABLE, RESET>> = TcpStackState::new();
-    let network = NETWORK.initialize(network);
+    static NETWORK: Forever<Esp8266Modem<SERIAL, ENABLE, RESET, 1>> = Forever::new();
+    let network = NETWORK.put(network);
+    spawner.spawn(net_task(network)).unwrap();
+    let client = network.new_client().unwrap();
 
     DEVICE
         .configure(TemperatureDevice::new())
@@ -68,13 +70,18 @@ async fn main(spawner: embassy::executor::Spawner) {
             spawner,
             rand::rngs::OsRng,
             TemperatureBoardConfig {
-                network,
+                network: client,
                 send_trigger: TimeTrigger(Duration::from_secs(10)),
                 sensor: FakeSensor(22.0),
                 sensor_ready: AlwaysReady,
             },
         )
         .await;
+}
+
+#[embassy::task]
+async fn net_task(modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1>) {
+    modem.run().await;
 }
 
 pub struct DummyPin;

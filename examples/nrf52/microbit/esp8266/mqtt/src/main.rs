@@ -8,10 +8,12 @@ mod rng;
 use rng::*;
 
 use defmt_rtt as _;
-use embedded_tls::Aes128GcmSha256;
 use panic_probe as _;
 
-use drogue_device::traits::button::Button;
+use drogue_device::{
+    drivers::wifi::esp8266::{Esp8266Client, Esp8266Connection},
+    traits::button::Button,
+};
 
 use drogue_device::bsp::boards::nrf52::microbit::LedMatrix;
 use drogue_device::{
@@ -26,12 +28,8 @@ use embassy_nrf::{
     peripherals::{P0_09, P0_10, TIMER0, UARTE0},
     uarte, Peripherals,
 };
+use embedded_tls::{Aes128GcmSha256, NoClock, TlsConfig, TlsConnection, TlsContext};
 
-use drogue_device::network::connection::{
-    ConnectionFactory, TlsConnectionFactory, TlsNetworkConnection,
-};
-use drogue_device::network::tcp::TcpStackState;
-use drogue_device::shared::Handle;
 use drogue_device::traits::wifi::{Join, WifiSupplicant};
 use embedded_nal_async::*;
 use rust_mqtt::client::client_config::MqttVersion::MQTTv5;
@@ -83,8 +81,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         unsafe { &mut TX_BUFFER },
     );
 
-    let enable_pin = Output::new(board.p9, Level::Low, OutputDrive::Standard);
-    let reset_pin = Output::new(board.p8, Level::Low, OutputDrive::Standard);
+    let enable_pin = Output::new(board.p9, Level::High, OutputDrive::Standard);
+    let reset_pin = Output::new(board.p8, Level::High, OutputDrive::Standard);
 
     let mut network = Esp8266Modem::new(uart, enable_pin, reset_pin);
     network.initialize().await.unwrap();
@@ -97,18 +95,15 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         .await
         .expect("Error joining WiFi network");
 
-    static NETWORK: TcpStackState<Esp8266Modem<SERIAL, ENABLE, RESET>> = TcpStackState::new();
-    let network = NETWORK.initialize(network);
+    static NETWORK: Forever<Esp8266Modem<SERIAL, ENABLE, RESET, 2>> = Forever::new();
+    let network = NETWORK.put(network);
+    spawner.spawn(net_task(network)).unwrap();
 
-    let mut conn_factory = {
-        static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
-        static mut TLS_BUFFER_SEC: [u8; 16384] = [0; 16384];
-        TlsConnectionFactory::<'static, _, Aes128GcmSha256, _, 2>::new(
-            network.clone(),
-            Rng::new(nrf52833_pac::Peripherals::take().unwrap().RNG),
-            unsafe { [&mut TLS_BUFFER, &mut TLS_BUFFER_SEC] },
-        )
-    };
+    static CLIENT_PUB: Forever<Esp8266Client<'static, SERIAL>> = Forever::new();
+    let client_pub = CLIENT_PUB.put(network.new_client().unwrap());
+
+    static CLIENT_SUB: Forever<Esp8266Client<'static, SERIAL>> = Forever::new();
+    let client_sub = CLIENT_SUB.put(network.new_client().unwrap());
 
     let ip = DNS
         .get_host_by_name(HOST, AddrType::IPv4)
@@ -118,8 +113,27 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     defmt::info!("Creating sockets");
     let addr = SocketAddr::new(ip, PORT.parse::<u16>().unwrap());
 
-    let connection_pub = conn_factory.connect(HOST, addr).await.unwrap();
-    let connection_recv = conn_factory.connect(HOST, addr).await.unwrap();
+    let mut rng = Rng::new(nrf52833_pac::Peripherals::take().unwrap().RNG);
+
+    let connection_pub = client_pub.connect(addr).await.unwrap();
+    let connection_recv = client_sub.connect(addr).await.unwrap();
+
+    static mut TLS_PUB_BUF: [u8; 16384] = [0; 16384];
+    static mut TLS_SUB_BUF: [u8; 16384] = [0; 16384];
+    let mut connection_pub: TlsConnection<'_, _, Aes128GcmSha256> =
+        TlsConnection::new(connection_pub, unsafe { &mut TLS_PUB_BUF });
+    let mut connection_recv: TlsConnection<'_, _, Aes128GcmSha256> =
+        TlsConnection::new(connection_recv, unsafe { &mut TLS_SUB_BUF });
+
+    let tls_config = TlsConfig::new().with_server_name(HOST);
+    connection_pub
+        .open::<_, NoClock, 1>(TlsContext::new(&tls_config, &mut rng))
+        .await
+        .unwrap();
+    connection_recv
+        .open::<_, NoClock, 1>(TlsContext::new(&tls_config, &mut rng))
+        .await
+        .unwrap();
 
     static RECEIVER: ActorContext<Receiver> = ActorContext::new();
     RECEIVER.mount(spawner, Receiver::new(board.display, connection_recv));
@@ -152,6 +166,11 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     }
 }
 
+#[embassy::task]
+async fn net_task(modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 2>) {
+    modem.run().await;
+}
+
 static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
     DnsEntry::new("localhost", IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
     DnsEntry::new(
@@ -160,26 +179,16 @@ static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
     ),
 ]);
 
+type Connection = TlsConnection<'static, Esp8266Connection<'static, SERIAL>, Aes128GcmSha256>;
+//type Connection = Esp8266Connection<'static, SERIAL>;
+
 pub struct Receiver {
     display: LedMatrix,
-    connection: Option<
-        TlsNetworkConnection<
-            'static,
-            Handle<'static, Esp8266Modem<SERIAL, ENABLE, RESET>>,
-            Aes128GcmSha256,
-        >,
-    >,
+    connection: Option<Connection>,
 }
 
 impl Receiver {
-    pub fn new(
-        display: LedMatrix,
-        connection: TlsNetworkConnection<
-            'static,
-            Handle<'static, Esp8266Modem<SERIAL, ENABLE, RESET>>,
-            Aes128GcmSha256,
-        >,
-    ) -> Self {
+    pub fn new(display: LedMatrix, connection: Connection) -> Self {
         Self {
             display,
             connection: Some(connection),
@@ -208,15 +217,7 @@ impl Actor for Receiver {
         let mut recv_buffer = [0; 1000];
         let mut write_buffer = [0; 1000];
 
-        let mut client = MqttClient::<
-            TlsNetworkConnection<
-                '_,
-                Handle<'static, Esp8266Modem<SERIAL, ENABLE, RESET>>,
-                Aes128GcmSha256,
-            >,
-            20,
-            CountingRng,
-        >::new(
+        let mut client = MqttClient::<Connection, 20, CountingRng>::new(
             self.connection.take().unwrap(),
             &mut write_buffer,
             1000,

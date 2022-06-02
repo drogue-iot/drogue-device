@@ -27,7 +27,7 @@ void = { version = "1", default-features = false }
 rand_core = { version = "0.6", default-features = false }
 
 embassy = { version = "0.1.0", default-features = false, features = ["time-tick-32768hz"] }
-embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32l072cz", "time-driver-tim2", "memory-x"] }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32l072cz", "time-driver-any", "memory-x"] }
 embassy-lora = { version = "0.1.0", default-features = false, features = ["sx127x"] }
 
 [profile.release]
@@ -40,9 +40,9 @@ incremental = false
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "e10fc2bada1c59420431f09a35f7aa09a5b45623" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "e10fc2bada1c59420431f09a35f7aa09a5b45623" }
-embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "e10fc2bada1c59420431f09a35f7aa09a5b45623" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "dbff4779eb4c8950cd1dd1689f95646762c6dc55" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "dbff4779eb4c8950cd1dd1689f95646762c6dc55" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "dbff4779eb4c8950cd1dd1689f95646762c6dc55" }
 
 # embassy = { path = "../../../../../embassy/embassy" }
 # embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }

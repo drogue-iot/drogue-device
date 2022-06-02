@@ -14,7 +14,6 @@ use drogue_device::{
     bsp::{boards::nrf52::microbit::*, Board},
     domain::temperature::Celsius,
     drivers::wifi::esp8266::*,
-    network::tcp::*,
     *,
 };
 use drogue_device::{drogue, traits::wifi::*, DeviceContext};
@@ -38,7 +37,7 @@ type RESET = Output<'static, P0_10>;
 bind_bsp!(Microbit, BSP);
 
 impl TemperatureBoard for BSP {
-    type Network = SharedTcpStack<'static, Esp8266Modem<SERIAL, ENABLE, RESET>>;
+    type Network = Esp8266Client<'static, SERIAL>;
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = TemperatureMonitor;
@@ -91,14 +90,16 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         .await
         .expect("Error joining WiFi network");
 
-    static NETWORK: TcpStackState<Esp8266Modem<SERIAL, ENABLE, RESET>> = TcpStackState::new();
-    let network = NETWORK.initialize(network);
+    static NETWORK: Forever<Esp8266Modem<SERIAL, ENABLE, RESET, 1>> = Forever::new();
+    let network = NETWORK.put(network);
+    spawner.spawn(net_task(network)).unwrap();
+    let client = network.new_client().unwrap();
 
     let config = TemperatureBoardConfig {
         send_trigger: board.btn_a,
         sensor: board.temp,
         sensor_ready: AlwaysReady,
-        network,
+        network: client,
     };
 
     #[cfg(feature = "tls")]
@@ -116,4 +117,9 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         )
         .await;
     defmt::info!("Application initialized. Press 'A' button to send data");
+}
+
+#[embassy::task]
+async fn net_task(modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1>) {
+    modem.run().await;
 }

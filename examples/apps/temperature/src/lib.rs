@@ -24,15 +24,13 @@ use drogue_device::{
 use embassy::executor::Spawner;
 use embedded_hal::digital::v2::InputPin;
 use embedded_hal_async::digital::Wait;
+use embedded_io::{Error, ErrorKind};
 use embedded_nal_async::*;
 use heapless::String;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "tls")]
-use embedded_tls::Aes128GcmSha256;
-
-#[cfg(feature = "tls")]
-use drogue_device::network::connection::TlsConnectionFactory;
+use embedded_tls::{Aes128GcmSha256, NoClock, TlsConfig, TlsConnection, TlsContext};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -65,20 +63,10 @@ where
     port: u16,
     username: &'static str,
     password: &'static str,
-    connection_factory: ConnectionFactory<B>,
+    network: B::Network,
+    #[allow(dead_code)]
+    rng: B::Rng,
 }
-
-#[cfg(feature = "tls")]
-type ConnectionFactory<B> = TlsConnectionFactory<
-    'static,
-    <B as TemperatureBoard>::Network,
-    Aes128GcmSha256,
-    <B as TemperatureBoard>::Rng,
-    1,
->;
-
-#[cfg(not(feature = "tls"))]
-type ConnectionFactory<B> = <B as TemperatureBoard>::Network;
 
 impl<B> App<B>
 where
@@ -89,14 +77,86 @@ where
         port: u16,
         username: &'static str,
         password: &'static str,
-        connection_factory: ConnectionFactory<B>,
+        network: B::Network,
+        rng: B::Rng,
     ) -> Self {
         Self {
             host,
             port,
             username,
             password,
-            connection_factory,
+            network,
+            rng,
+        }
+    }
+
+    async fn send(&mut self, sensor_data: &TemperatureData) -> Result<(), ErrorKind> {
+        debug!("Resolving {}:{}", self.host, self.port);
+        let ip = DNS
+            .get_host_by_name(self.host, AddrType::IPv4)
+            .await
+            .map_err(|_| ErrorKind::Other)?;
+
+        #[cfg(feature = "tls")]
+        let mut tls = [0; 16384];
+
+        #[allow(unused_mut)]
+        let mut connection = self
+            .network
+            .connect(SocketAddr::new(ip, self.port))
+            .await
+            .map_err(|e| {
+                debug!("CONNECT ERR");
+                e.kind()
+            })?;
+
+        #[cfg(feature = "tls")]
+        let mut connection = {
+            let mut connection: TlsConnection<'_, _, Aes128GcmSha256> =
+                TlsConnection::new(connection, &mut tls);
+            connection
+                .open::<_, NoClock, 1>(TlsContext::new(
+                    &TlsConfig::new().with_server_name(self.host),
+                    &mut self.rng,
+                ))
+                .await
+                .map_err(|_| ErrorKind::Other)?;
+            connection
+        };
+
+        debug!("Connected to {}:{}", self.host, self.port);
+
+        let mut client = HttpClient::new(&mut connection, self.host, self.username, self.password);
+
+        let tx: String<128> =
+            serde_json_core::ser::to_string(&sensor_data).map_err(|_| ErrorKind::Other)?;
+        let mut rx_buf = [0; 1024];
+        let response = client
+            .request(
+                Request::post()
+                    // Pass on schema
+                    .path("/v1/foo?data_schema=urn:drogue:iot:temperature")
+                    .payload(tx.as_bytes())
+                    .content_type(ContentType::ApplicationJson),
+                &mut rx_buf[..],
+            )
+            .await;
+
+        match response {
+            Ok(response) => {
+                info!("Response status: {:?}", response.status);
+                if let Some(payload) = response.payload {
+                    let s = core::str::from_utf8(payload).map_err(|_| ErrorKind::Other)?;
+                    trace!("Payload: {}", s);
+                } else {
+                    trace!("No response body");
+                }
+                Ok(())
+            }
+            Err(e) => {
+                warn!("Error doing HTTP request: {:?}", e);
+                Err(ErrorKind::Other)
+            }
         }
     }
 }
@@ -147,40 +207,13 @@ where
                         if let Some(sensor_data) = data.as_ref() {
                             info!("Sending temperature measurement number {}", counter);
                             counter += 1;
-                            let mut client = HttpClient::new(
-                                &mut self.connection_factory,
-                                &DNS,
-                                self.host,
-                                self.port,
-                                self.username,
-                                self.password,
-                            );
 
-                            let tx: String<128> =
-                                serde_json_core::ser::to_string(&sensor_data).unwrap();
-                            let mut rx_buf = [0; 1024];
-                            let response = client
-                                .request(
-                                    Request::post()
-                                        // Pass on schema
-                                        .path("/v1/foo?data_schema=urn:drogue:iot:temperature")
-                                        .payload(tx.as_bytes())
-                                        .content_type(ContentType::ApplicationJson),
-                                    &mut rx_buf[..],
-                                )
-                                .await;
-                            match response {
-                                Ok(response) => {
-                                    info!("Response status: {:?}", response.status);
-                                    if let Some(payload) = response.payload {
-                                        let s = core::str::from_utf8(payload).unwrap();
-                                        trace!("Payload: {}", s);
-                                    } else {
-                                        trace!("No response body");
-                                    }
+                            match self.send(sensor_data).await {
+                                Ok(_) => {
+                                    info!("Temperature measurement sent");
                                 }
                                 Err(e) => {
-                                    warn!("Error doing HTTP request: {:?}", e);
+                                    warn!("Error sending temperature measurement: {:?}", e);
                                 }
                             }
                         } else {
@@ -202,7 +235,7 @@ static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
 ]);
 
 pub trait TemperatureBoard {
-    type Network: TcpClientStack + Clone;
+    type Network: TcpClient;
     type TemperatureScale: TemperatureScale;
     type Sensor: TemperatureSensor<Self::TemperatureScale>;
     type SensorReadyIndicator: Wait + InputPin;
@@ -253,15 +286,10 @@ where
     pub async fn mount(
         &'static self,
         spawner: Spawner,
-        _rng: B::Rng,
+        rng: B::Rng,
         config: TemperatureBoardConfig<B>,
     ) {
         let network = config.network;
-        #[cfg(feature = "tls")]
-        let network = {
-            static mut TLS_BUFFER: [u8; 16384] = [0; 16384];
-            TlsConnectionFactory::new(network, _rng, [unsafe { &mut TLS_BUFFER }; 1])
-        };
 
         let app = self.app.mount(
             spawner,
@@ -271,6 +299,7 @@ where
                 USERNAME.trim_end(),
                 PASSWORD.trim_end(),
                 network,
+                rng,
             ),
         );
         let bridge = self.bridge.mount(spawner, Transformer::new(app.clone()));

@@ -14,7 +14,7 @@ pem-parser = "0.1.1"
 log = "0.4"
 env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["log", "std", "tls"] }
-embedded-tls = { version = "0.6.0", default-features = false, features = ["async", "log"]}
+embedded-tls = { version = "0.8.0", default-features = false, features = ["async", "log"]}
 #drogue-tls = {path = "../../../../drogue-tls", default-features = false, features = ["async", "defmt"]}
 
 embassy = { version = "0.1.0", default-features = false, features = ["std"] }
