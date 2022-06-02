@@ -154,7 +154,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
 
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
     defmt::info!("Running firmware version {}", version);
-    let dfu = FirmwareManager::new(flash, FirmwareUpdater::default());
+    let dfu = FirmwareManager::new(flash, FirmwareUpdater::default(), version.as_bytes());
 
     let elements = CustomElementsHandler {
         led: Led::new(board.red_led),
@@ -359,10 +359,19 @@ impl ElementsHandler<'static> for CustomElementsHandler {
                             FirmwareUpdateMessage::Control(control) => match control {
                                 FirmwareControl::Start => {
                                     self.fw_state.next_offset = 0;
-                                    self.dfu.start();
+                                    if let Err(e) =
+                                        self.dfu.start(&self.fw_state.next_version).await
+                                    {
+                                        defmt::warn!(
+                                            "Error starting DFU: {:?}",
+                                            defmt::Debug2Format(&e)
+                                        );
+                                    }
                                 }
                                 FirmwareControl::Update => {
-                                    if let Err(e) = self.dfu.finish().await {
+                                    if let Err(e) =
+                                        self.dfu.update(&self.fw_state.next_version, &[]).await
+                                    {
                                         defmt::warn!(
                                             "Error marking firmware to be swapped: {:?}",
                                             defmt::Debug2Format(&e)
@@ -375,7 +384,7 @@ impl ElementsHandler<'static> for CustomElementsHandler {
                                     }
                                 }
                                 FirmwareControl::MarkBooted => {
-                                    if let Err(e) = self.dfu.mark_booted().await {
+                                    if let Err(e) = self.dfu.synced().await {
                                         defmt::warn!(
                                             "Error marking firmware as good: {:?}",
                                             defmt::Debug2Format(&e)
@@ -391,7 +400,9 @@ impl ElementsHandler<'static> for CustomElementsHandler {
                                         self.fw_state.next_offset
                                     );
                                 } else {
-                                    if let Err(e) = self.dfu.write(write.payload).await {
+                                    if let Err(e) =
+                                        self.dfu.write(write.offset, write.payload).await
+                                    {
                                         defmt::warn!(
                                             "Error writing {} bytes at offset {}: {:?}",
                                             write.payload.len(),

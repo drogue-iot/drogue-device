@@ -22,6 +22,7 @@ lorawan-encoding = { package = "lorawan", version = "0.7.1", default-features = 
 bit_field = { version = "0.10", optional = true }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["exti", "unstable-traits", "nightly"], optional = true }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["unstable-traits", "nightly"], optional = true }
+embassy-embedded-hal = { version = "0.1.0", default-features = false, optional = true }
 embassy-lora = { version = "0.1.0", default-features = false, optional = true }
 embassy-net = { version = "0.1.0", default-features = false, optional = true, features= ["tcp", "medium-ethernet", "pool-16", "proto-ipv6", "dhcpv4" ]}
 #embassy-traits = { version = "0.1.0", default-features = false, optional = true }
@@ -31,12 +32,14 @@ nrf-softdevice-s113 = { version = "0.1.0", optional=true }
 nrf-softdevice-s140 = { version = "0.1.0", optional=true }
 
 # Wifi Dependencies
-nom = { version = "6.1.2", default-features = false, optional = true }
+nom = { version = "6", default-features = false, optional = true }
 moveslice = { version = "2.0", optional = true }
 
 # Networking dependencies
 embedded-nal = "0.6.0"
 embedded-nal-async = { version = "0.1.0", git = "https://github.com/lulf/embedded-nal.git", rev = "7e46d533090882ce9a449f544055c09e6d241e55" }
+#firmware-updater = { git = "https://github.com/drogue-iot/firmware-updater.git", branch = "main", default-features = false }
+embedded-update = { version = "0.2.0", default-features = false, features = ["full"] }
 
 # TLS dependency
 embedded-tls = { version = "0.8.0", default-features = false, features = ["async"], optional = true}
@@ -87,6 +90,9 @@ embedded-storage = { version = "0.3.0" }
 # Bootloader
 embassy-boot = { version = "0.1.0", optional = true }
 
+# DFU
+serde_cbor = { version = "0.11", optional = true, default-features = false }
+
 # MQTT
 rust-mqtt = { version = "0.1.3", default-features = false, features = ["defmt"], optional = true }
 
@@ -105,7 +111,7 @@ defmt = [
     "embassy/defmt",
     "embedded-tls/defmt",
 ]
-std = ["embassy/std", "embassy/time", "drogue-actor/std", "embedded-io/std"]
+std = ["embassy/std", "embassy/time", "drogue-actor/std", "embedded-io/std", "serde_cbor/std"]
 "lora+rak811" = ["nom", "moveslice"]
 "wifi+esp8266" = ["nom", "moveslice"]
 "tcp+smoltcp" = ["embassy-net" ]
@@ -115,7 +121,7 @@ lora = ["embassy-lora", "lorawan-device", "lorawan-encoding", "embassy/time"]
 wifi = []
 mqtt = ["rust-mqtt"]
 tls = ["embedded-tls"]
-dfu = ["embassy-boot", "cortex-m", "postcard", "serde"]
+dfu = ["embassy-boot", "postcard", "serde", "serde_cbor"]
 ble = [
     "p256",
     "p256/arithmetic",
@@ -167,8 +173,8 @@ nrf = [
 ]
 
 "bsp+b_u585i_iot02a" = [ "embassy-stm32" ]
-"bsp+b_l4s5i_iot01a" = [ "embassy-stm32" ]
-"bsp+b_l475e_iot01a" = [ "embassy-stm32" ]
+"bsp+b_l4s5i_iot01a" = [ "embassy-stm32", "embassy-embedded-hal" ]
+"bsp+b_l475e_iot01a" = [ "embassy-stm32", "embassy-embedded-hal" ]
 "bsp+nucleo_h743zi" = [ "embassy-stm32" ]
 "bsp+nucleo_wl55" = [ "embassy-stm32", "embassy-stm32/subghz", "embassy-stm32/unstable-pac" ]
 "bsp+microbit" = [ "embassy-nrf", "embassy-nrf/gpiote" ]

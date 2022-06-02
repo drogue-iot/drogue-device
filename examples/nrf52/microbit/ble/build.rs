@@ -6,6 +6,7 @@
 //! build script becomes required. Additionally, by requesting that
 //! Cargo re-run the build script whenever `memory.x` is changed,
 //! updating `memory.x` ensures a rebuild of the application with the
+
 //! new memory settings.
 
 use std::env;

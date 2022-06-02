@@ -5,6 +5,7 @@ use crate::drivers::wifi::eswifi::{
     EsWifi as WifiDriver, EsWifiClient as WifiClient, SharedEsWifi as SharedWifi,
 };
 use embassy_stm32::exti::ExtiInput;
+use embassy_stm32::flash::Flash;
 use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
 use embassy_stm32::i2c;
 use embassy_stm32::interrupt;
@@ -12,7 +13,9 @@ use embassy_stm32::peripherals::{
     DMA1_CH4, DMA1_CH5, DMA2_CH1, DMA2_CH2, I2C2, PA5, PB13, PB14, PC13, PD15, PE0, PE1, PE8, RNG,
     SPI3,
 };
-use embassy_stm32::rcc::{AHBPrescaler, ClockSrc, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv};
+use embassy_stm32::rcc::{
+    AHBPrescaler, ClockSrc, MSIRange, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv,
+};
 use embassy_stm32::rng;
 use embassy_stm32::spi;
 use embassy_stm32::time::Hertz;
@@ -52,17 +55,18 @@ pub struct Iot01a {
     pub hts221_ready: Hts221Ready,
     pub rng: Rng,
     pub wifi: EsWifi,
+    pub flash: Flash<'static>,
 }
 
 impl Iot01a {
     pub fn config(enable_debug: bool) -> Config {
         let mut config = Config::default();
         config.rcc.mux = ClockSrc::PLL(
-            PLLSource::HSI16,
-            PLLClkDiv::Div2,
+            PLLSource::MSI(MSIRange::Range10),
+            PLLClkDiv::Div4,
             PLLSrcDiv::Div2,
             PLLMul::Mul12,
-            Some(PLLClkDiv::Div2),
+            Some(PLLClkDiv::Div4),
         );
         config.rcc.ahb_pre = AHBPrescaler::Div8;
         config.enable_debug_during_sleep = enable_debug;
@@ -75,6 +79,7 @@ impl Board for Iot01a {
     type BoardConfig = ();
 
     fn new(p: Self::Peripherals) -> Self {
+        let flash = Flash::unlock(p.FLASH);
         let i2c2_irq = interrupt::take!(I2C2_EV);
         let i2c2 = i2c::I2c::new(
             p.I2C2,
@@ -98,7 +103,7 @@ impl Board for Iot01a {
             p.PC11,
             p.DMA2_CH2,
             p.DMA2_CH1,
-            Hertz(100_000),
+            Hertz(4_000_000),
             spi::Config::default(),
         );
 
@@ -125,6 +130,7 @@ impl Board for Iot01a {
             hts221_ready,
             rng,
             wifi,
+            flash,
         }
     }
 }

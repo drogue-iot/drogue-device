@@ -232,9 +232,9 @@ dependencies = [
 
 [[package]]
 name = "crypto-bigint"
-version = "0.4.3"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78a4e0fb04deabeb711eb20bd1179f1524c06f7e6975ebccc495f678a635887b"
+checksum = "40997c4145fd5570180f579db9fcea452c91a2b72411da899efb1fb041136eae"
 dependencies = [
  "generic-array",
  "rand_core",
@@ -389,6 +389,7 @@ dependencies = [
  "embedded-storage",
  "embedded-storage-async",
  "embedded-tls",
+ "embedded-update",
  "futures",
  "futures-intrusive",
  "heapless",
@@ -430,7 +431,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
 dependencies = [
  "atomic-polyfill",
  "cfg-if",
@@ -448,7 +449,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
 dependencies = [
  "cortex-m",
  "embassy",
@@ -458,7 +459,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -469,7 +470,7 @@ dependencies = [
 [[package]]
 name = "embassy-nrf"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -495,7 +496,7 @@ dependencies = [
 [[package]]
 name = "embassy-usb"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=dbff4779eb4c8950cd1dd1689f95646762c6dc55#dbff4779eb4c8950cd1dd1689f95646762c6dc55"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
 dependencies = [
  "embassy",
  "heapless",
@@ -612,6 +613,18 @@ dependencies = [
  "rand_core",
  "sha2",
  "typenum",
+]
+
+[[package]]
+name = "embedded-update"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ae0e0b1ec68dcdf84637f867f134041bc270b09f6bc692f161be6e0aadf52dc"
+dependencies = [
+ "embedded-hal-async",
+ "futures",
+ "heapless",
+ "serde 1.0.137",
 ]
 
 [[package]]
@@ -1186,6 +1199,9 @@ name = "serde"
 version = "1.0.137"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61ea8d54c77f8315140a05f4c7237403bf38b72704d031543aa1d16abbf517d1"
+dependencies = [
+ "serde_derive",
+]
 
 [[package]]
 name = "serde-hjson"
@@ -1197,6 +1213,17 @@ dependencies = [
  "num-traits 0.1.43",
  "regex",
  "serde 0.8.23",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.137"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f26faba0c3959972377d3b2d306ee9f71faee9714294e41bb777f83f88578be"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1256,9 +1283,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.95"
+version = "1.0.96"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbaf6116ab8924f39d52792136fb74fd60a80194cf1b1c6ffa6453eef1c3f942"
+checksum = "0748dd251e24453cb8717f0354206b91557e4ec8703673a4b30208f2abaf1ebf"
 dependencies = [
  "proc-macro2",
  "quote",

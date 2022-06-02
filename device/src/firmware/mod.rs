@@ -1,16 +1,31 @@
+pub mod remote;
 pub mod serial;
 
 use crate::flash::SharedFlash;
 use crate::shared::Handle;
-use crate::traits::firmware::Error;
 use core::future::Future;
 use embassy_boot::FirmwareUpdater;
 use embedded_storage::nor_flash::{NorFlashError, NorFlashErrorKind};
 use embedded_storage_async::nor_flash::{AsyncNorFlash, AsyncReadNorFlash};
+use embedded_update::{FirmwareDevice, FirmwareStatus};
+use heapless::Vec;
 
-pub const PAGE_SIZE: usize = 4096;
+pub const PAGE_SIZE: usize = 2048;
 
-pub type SharedFirmwareManager<'a, CONFIG> = Handle<'a, FirmwareManager<CONFIG>>;
+#[derive(Debug)]
+pub enum Error {
+    Flash,
+    WrongOffset,
+}
+
+impl From<NorFlashErrorKind> for Error {
+    fn from(_: NorFlashErrorKind) -> Self {
+        Error::Flash
+    }
+}
+
+pub type SharedFirmwareManager<'a, CONFIG, const MTU: usize> =
+    Handle<'a, FirmwareManager<CONFIG, MTU>>;
 
 pub trait FirmwareConfig {
     type STATE: AsyncNorFlash + AsyncReadNorFlash;
@@ -27,23 +42,27 @@ struct Aligned([u8; PAGE_SIZE]);
 /// Manages the firmware of an application using a STATE flash storage for storing
 /// the state of firmware and update process, and DFU flash storage for writing the
 /// firmware.
-pub struct FirmwareManager<CONFIG>
+pub struct FirmwareManager<CONFIG, const MTU: usize = 16>
 where
     CONFIG: FirmwareConfig,
 {
     config: CONFIG,
+    current_version: Vec<u8, 16>,
+    next_version: Option<Vec<u8, 16>>,
     updater: FirmwareUpdater,
     buffer: Aligned,
     b_offset: usize,
     f_offset: usize,
 }
 
-impl<CONFIG> FirmwareManager<CONFIG>
+impl<CONFIG, const MTU: usize> FirmwareManager<CONFIG, MTU>
 where
     CONFIG: FirmwareConfig,
 {
-    pub fn new(config: CONFIG, updater: FirmwareUpdater) -> Self {
+    pub fn new(config: CONFIG, updater: FirmwareUpdater, version: &[u8]) -> Self {
         Self {
+            current_version: Vec::from_slice(version).unwrap(),
+            next_version: Some(Vec::from_slice(b"0.2.0").unwrap()), //None,
             config,
             updater,
             buffer: Aligned([0; PAGE_SIZE]),
@@ -53,32 +72,54 @@ where
     }
 
     /// Start firmware update sequence
-    pub fn start(&mut self) {
+    pub async fn start(&mut self, version: &[u8]) -> Result<(), Error> {
         self.b_offset = 0;
         self.f_offset = 0;
+        self.next_version.replace(Vec::from_slice(version).unwrap());
+        Ok(())
     }
 
     /// Mark current firmware as successfully booted
-    pub async fn mark_booted(&mut self) -> Result<(), NorFlashErrorKind> {
+    pub async fn status(&self) -> Result<FirmwareStatus<Vec<u8, 16>>, Error> {
+        Ok(FirmwareStatus {
+            current_version: self.current_version.clone(),
+            next_offset: self.f_offset as u32 + self.b_offset as u32,
+            next_version: self.next_version.clone(),
+        })
+    }
+
+    /// Mark current firmware as successfully booted
+    pub async fn synced(&mut self) -> Result<(), Error> {
         let mut w = FlashWriter {
             f: self.config.state(),
         };
         self.updater
             // TODO: Support other erase sizes
-            .mark_booted::<FlashWriter<'_, CONFIG::STATE, 4>>(&mut w)
+            .mark_booted::<FlashWriter<'_, CONFIG::STATE, 8>>(&mut w)
             .await
-            .map_err(|e| e.kind())
+            .map_err(|e| e.kind())?;
+        Ok(())
     }
 
     /// Finish firmware update: instruct flash to swap and reset device.
-    pub async fn finish(&mut self) -> Result<(), NorFlashErrorKind> {
+    pub async fn update(&mut self, _: &[u8], _: &[u8]) -> Result<(), Error> {
         self.swap().await?;
+        #[cfg(feature = "cortex_m")]
         cortex_m::peripheral::SCB::sys_reset();
+        Ok(())
     }
 
     /// Write data to flash. Contents are not guaranteed to be written until finish is called.
-    pub async fn write(&mut self, data: &[u8]) -> Result<(), NorFlashErrorKind> {
-        info!("Writing {} bytes at b_offset {}", data.len(), self.b_offset);
+    pub async fn write(&mut self, offset: u32, data: &[u8]) -> Result<(), Error> {
+        // Make sure we flush in case last write failed
+        if self.b_offset == self.buffer.0.len() {
+            self.flush().await?;
+        }
+
+        if self.f_offset + self.b_offset != offset as usize {
+            return Err(Error::WrongOffset);
+        }
+        trace!("Writing {} bytes at b_offset {}", data.len(), self.b_offset);
         let mut remaining = data.len();
         while remaining > 0 {
             let to_copy = core::cmp::min(PAGE_SIZE - self.b_offset, remaining);
@@ -91,6 +132,7 @@ where
                 data.len(),
                 remaining
             );*/
+
             self.buffer.0[self.b_offset..self.b_offset + to_copy]
                 .copy_from_slice(&data[offset..offset + to_copy]);
             self.b_offset += to_copy;
@@ -109,7 +151,7 @@ where
         Ok(())
     }
 
-    async fn flush(&mut self) -> Result<(), NorFlashErrorKind> {
+    async fn flush(&mut self) -> Result<(), Error> {
         if self.b_offset > 0 {
             self.updater
                 .write_firmware(
@@ -126,7 +168,7 @@ where
         Ok(())
     }
 
-    async fn swap(&mut self) -> Result<(), NorFlashErrorKind> {
+    async fn swap(&mut self) -> Result<(), Error> {
         // Ensure buffer flushed before we
         if self.b_offset > 0 {
             for i in self.b_offset..self.buffer.0.len() {
@@ -141,7 +183,7 @@ where
         };
         self.updater
             // TODO: Support other erase sizes
-            .update::<FlashWriter<'_, CONFIG::STATE, 4>>(&mut w)
+            .update::<FlashWriter<'_, CONFIG::STATE, 8>>(&mut w)
             .await
             .map_err(|e| e.kind())?;
         Ok(())
@@ -195,94 +237,90 @@ where
     }
 }
 
-impl<CONFIG> crate::traits::firmware::FirmwareManager for FirmwareManager<CONFIG>
+impl<CONFIG, const MTU: usize> FirmwareDevice for FirmwareManager<CONFIG, MTU>
 where
     CONFIG: FirmwareConfig,
 {
+    const MTU: usize = MTU;
+    type Version = Vec<u8, 16>;
+    type Error = Error;
+    type StatusFuture<'m> = impl Future<Output = Result<FirmwareStatus<Self::Version>, Error>> + 'm
+    where
+        Self: 'm;
+    fn status<'m>(&'m mut self) -> Self::StatusFuture<'m> {
+        FirmwareManager::status(self)
+    }
+
     type StartFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
     where
         Self: 'm;
-    fn start<'m>(&'m mut self) -> Self::StartFuture<'m> {
-        async move {
-            FirmwareManager::start(self);
-            Ok(())
-        }
+    fn start<'m>(&'m mut self, version: &'m [u8]) -> Self::StartFuture<'m> {
+        FirmwareManager::start(self, version)
     }
 
-    type MarkBootedFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
+    type SyncedFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
     where
         Self: 'm;
-    fn mark_booted<'m>(&'m mut self) -> Self::MarkBootedFuture<'m> {
-        async move {
-            FirmwareManager::mark_booted(self).await?;
-            Ok(())
-        }
+    fn synced<'m>(&'m mut self) -> Self::SyncedFuture<'m> {
+        FirmwareManager::synced(self)
     }
 
-    type FinishFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
+    type UpdateFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
     where
         Self: 'm;
-    fn finish<'m>(&'m mut self) -> Self::FinishFuture<'m> {
-        async move {
-            FirmwareManager::finish(self).await?;
-            Ok(())
-        }
+    fn update<'m>(&'m mut self, version: &'m [u8], checksum: &'m [u8]) -> Self::UpdateFuture<'m> {
+        FirmwareManager::update(self, version, checksum)
     }
 
     type WriteFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
     where
         Self: 'm;
-    fn write<'m>(&'m mut self, data: &'m [u8]) -> Self::WriteFuture<'m> {
-        async move {
-            FirmwareManager::write(self, data).await?;
-            Ok(())
-        }
+    fn write<'m>(&'m mut self, offset: u32, data: &'m [u8]) -> Self::WriteFuture<'m> {
+        FirmwareManager::write(self, offset, data)
     }
 }
 
 /// Implementation for shared resource
-impl<'a, CONFIG> crate::traits::firmware::FirmwareManager for SharedFirmwareManager<'a, CONFIG>
+impl<'a, CONFIG, const MTU: usize> FirmwareDevice for SharedFirmwareManager<'a, CONFIG, MTU>
 where
     CONFIG: FirmwareConfig + 'a,
 {
+    const MTU: usize = MTU;
+    type Error = Error;
+    type Version = Vec<u8, 16>;
+    type StatusFuture<'m> = impl Future<Output = Result<FirmwareStatus<Self::Version>, Error>> + 'm
+    where
+        Self: 'm;
+    fn status<'m>(&'m mut self) -> Self::StatusFuture<'m> {
+        async move { self.lock().await.status().await }
+    }
+
     type StartFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
     where
         Self: 'm;
-    fn start<'m>(&'m mut self) -> Self::StartFuture<'m> {
-        async move {
-            self.lock().await.start();
-            Ok(())
-        }
+    fn start<'m>(&'m mut self, version: &'m [u8]) -> Self::StartFuture<'m> {
+        async move { self.lock().await.start(version).await }
     }
 
-    type MarkBootedFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
+    type SyncedFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
     where
         Self: 'm;
-    fn mark_booted<'m>(&'m mut self) -> Self::MarkBootedFuture<'m> {
-        async move {
-            self.lock().await.mark_booted().await?;
-            Ok(())
-        }
+    fn synced<'m>(&'m mut self) -> Self::SyncedFuture<'m> {
+        async move { self.lock().await.synced().await }
     }
 
-    type FinishFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
+    type UpdateFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
     where
         Self: 'm;
-    fn finish<'m>(&'m mut self) -> Self::FinishFuture<'m> {
-        async move {
-            self.lock().await.finish().await?;
-            Ok(())
-        }
+    fn update<'m>(&'m mut self, version: &'m [u8], checksum: &'m [u8]) -> Self::UpdateFuture<'m> {
+        async move { self.lock().await.update(version, checksum).await }
     }
 
     type WriteFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
     where
         Self: 'm;
-    fn write<'m>(&'m mut self, data: &'m [u8]) -> Self::WriteFuture<'m> {
-        async move {
-            self.lock().await.write(data).await?;
-            Ok(())
-        }
+    fn write<'m>(&'m mut self, offset: u32, data: &'m [u8]) -> Self::WriteFuture<'m> {
+        async move { self.lock().await.write(offset, data).await }
     }
 }
 
