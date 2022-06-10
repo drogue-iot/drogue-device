@@ -53,7 +53,7 @@ static WORKSPACES: &[&str] = &[
     "examples/nrf52/nrf52840-dk/ble-mesh",
     "examples/stm32l0/lora-discovery",
     "examples/stm32l1/rak811",
-    "examples/stm32l4/iot01a-wifi",
+    "examples/stm32l4/iot01a",
     "examples/rp/pico",
     "examples/stm32wl/nucleo-wl55",
     "examples/stm32h7/nucleo-h743zi",

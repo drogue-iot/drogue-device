@@ -1,4 +1,4 @@
-use core::fmt::{Display, Write as _};
+use core::fmt::Write as _;
 use core::{num::ParseIntError, str::Utf8Error};
 use embedded_io::{
     asynch::{Read, Write},
@@ -15,112 +15,115 @@ where
 {
     connection: &'a mut N,
     host: &'a str,
-    username: &'a str,
-    password: &'a str,
 }
 
 impl<'a, N> HttpClient<'a, N>
 where
     N: Network + 'a,
 {
-    pub fn new(connection: &'a mut N, host: &'a str, username: &'a str, password: &'a str) -> Self {
-        Self {
-            connection,
-            host,
-            username,
-            password,
-        }
+    pub fn new(connection: &'a mut N, host: &'a str) -> Self {
+        Self { connection, host }
+    }
+
+    async fn write_data(&mut self, data: &[u8]) -> Result<(), Error> {
+        self.connection.write(data).await.map_err(|e| e.kind())?;
+        Ok(())
+    }
+
+    async fn write_str(&mut self, data: &str) -> Result<(), Error> {
+        self.write_data(data.as_bytes()).await
+    }
+
+    async fn write_header(&mut self, key: &str, value: &str) -> Result<(), Error> {
+        self.write_str(key).await?;
+        self.write_str(": ").await?;
+        self.write_str(value).await?;
+        self.write_str("\r\n").await?;
+        Ok(())
     }
 
     pub async fn request<'m>(
-        &mut self,
+        &'m mut self,
         request: Request<'m>,
         rx_buf: &'m mut [u8],
     ) -> Result<Response<'m>, Error> {
-        let mut combined: String<128> = String::new();
-        write!(combined, "{}:{}", self.username, self.password).unwrap();
-        let mut authz = [0; 256];
-        let authz_len =
-            base64::encode_config_slice(combined.as_bytes(), base64::STANDARD, &mut authz);
-        let mut data: String<1024> = String::new();
-        write!(
-            data,
-            "{} {} HTTP/1.1\r\n",
-            request.method,
-            request.path.unwrap_or("/")
-        )
-        .unwrap();
-        write!(data, "Host: {}\r\n", self.host).unwrap();
-        write!(data, "Authorization: Basic {}\r\n", unsafe {
-            core::str::from_utf8_unchecked(&authz[..authz_len])
-        })
-        .unwrap();
+        self.write_str(request.method.as_str()).await?;
+        self.write_str(" ").await?;
+        self.write_str(request.path.unwrap_or("/")).await?;
+        self.write_str(" HTTP/1.1\r\n").await?;
+
+        self.write_header("Host", self.host).await?;
+
+        if let Some(auth) = request.auth {
+            match auth {
+                Auth::Basic { username, password } => {
+                    let mut combined: String<128> = String::new();
+                    write!(combined, "{}:{}", username, password).unwrap();
+                    let mut authz = [0; 256];
+                    let authz_len = base64::encode_config_slice(
+                        combined.as_bytes(),
+                        base64::STANDARD,
+                        &mut authz,
+                    );
+                    self.write_str("Authorization: Basic ").await?;
+                    self.write_str(unsafe { core::str::from_utf8_unchecked(&authz[..authz_len]) })
+                        .await?;
+                    self.write_str("\r\n").await?;
+                }
+            }
+        }
         if let Some(content_type) = request.content_type {
-            write!(data, "Content-Type: {}\r\n", content_type).unwrap();
+            self.write_header("Content-Type", content_type.as_str())
+                .await?;
         }
         if let Some(payload) = request.payload {
-            write!(data, "Content-Length: {}\r\n", payload.len()).unwrap();
+            let mut s: String<32> = String::new();
+            write!(s, "{}", payload.len()).map_err(|_| Error::Parse)?;
+            self.write_header("Content-Length", s.as_str()).await?;
         }
         if let Some(extra_headers) = request.extra_headers {
             for (header, value) in extra_headers.iter() {
-                write!(data, "{}: {}\r\n", header, value).unwrap();
+                self.write_header(header, value).await?;
             }
         }
-        write!(data, "\r\n").unwrap();
-        trace!("Writing header");
-        let result = self
-            .connection
-            .write(&data.as_bytes()[..data.len()])
-            .await
-            .map_err(|e| e.kind());
-        let result = match result {
-            Ok(_) => {
-                trace!("Header written");
-                match request.payload {
-                    None => Self::read_response(&mut self.connection, rx_buf).await,
-                    Some(payload) => {
-                        trace!("Writing data");
-                        let result = self.connection.write(payload).await;
-                        match result {
-                            Ok(_) => Self::read_response(&mut self.connection, rx_buf).await,
-                            Err(e) => {
-                                warn!("Error sending data: {:?}", e.kind());
-                                Err(Error::Network(e.kind()))
-                            }
-                        }
+        self.write_str("\r\n").await?;
+        trace!("Header written");
+        match request.payload {
+            None => Self::read_response(&mut self.connection, rx_buf).await,
+            Some(payload) => {
+                trace!("Writing data");
+                let result = self.connection.write(payload).await;
+                match result {
+                    Ok(_) => Self::read_response(&mut self.connection, rx_buf).await,
+                    Err(e) => {
+                        warn!("Error sending data: {:?}", e.kind());
+                        Err(Error::Network(e.kind()))
                     }
                 }
             }
-            Err(e) => {
-                warn!("Error sending headers: {:?}", e);
-                Err(e.into())
-            }
-        };
-        result
+        }
     }
 
     async fn read_response<'m>(
-        connection: &mut N,
+        connection: &'m mut N,
         rx_buf: &'m mut [u8],
     ) -> Result<Response<'m>, Error> {
         let mut pos = 0;
-        let mut buf: [u8; 1024] = [0; 1024];
         let mut header_end = 0;
-        while pos < buf.len() {
-            let n = connection
-                .read(&mut buf[pos..])
-                .await
-                .map_err(|e| e.kind())?;
+        while pos < rx_buf.len() {
+            let n = connection.read(&mut rx_buf[pos..]).await.map_err(|e| {
+                /*warn!(
+                    "error {:?}, but read data from socket:  {:?}",
+                    defmt::Debug2Format(&e),
+                    defmt::Debug2Format(&core::str::from_utf8(&buf[..pos])),
+                );*/
+                e.kind()
+            })?;
 
-            /*
-            info!(
-                "read data from socket:  {:?}",
-                core::str::from_utf8(&buf[pos..pos + n]).unwrap()
-            );*/
             pos += n;
 
             // Look for header end
-            if let Some(n) = find_sequence(&buf[..pos], b"\r\n\r\n") {
+            if let Some(n) = find_sequence(&rx_buf[..pos], b"\r\n\r\n") {
                 header_end = n + 4;
                 break;
             }
@@ -131,8 +134,7 @@ where
         let mut content_type = None;
         let mut content_length = 0;
 
-        let header = core::str::from_utf8(&mut buf[..header_end])?;
-
+        let header = core::str::from_utf8(&mut rx_buf[..header_end])?;
         trace!("Received header: {}", header);
 
         let lines = header.split("\r\n");
@@ -149,12 +151,19 @@ where
             }
         }
 
-        let mut payload = None;
-        if content_length > 0 {
-            //            trace!("READING {} bytes of content", content_length);
-            let to_read = core::cmp::min(rx_buf.len(), content_length);
+        // Copy to start of slice to save space
+        for i in 0..(pos - header_end) {
+            rx_buf[i] = rx_buf[header_end + i];
+        }
+        pos = pos - header_end;
 
-            let to_copy = core::cmp::min(to_read, pos - header_end);
+        let payload = if content_length > 0 {
+            // We might have data fetched already, keep that
+            let content_length = content_length - pos;
+            trace!("READING {} bytes of content", content_length);
+
+            let mut to_read = core::cmp::min(rx_buf.len() - pos, content_length);
+            //let to_copy = core::cmp::min(to_read, pos - header_end);
             /*
             trace!(
                 "to_read({}), to_copy({}), header_end({}), pos({})",
@@ -164,32 +173,31 @@ where
                 pos
             );
             */
-            rx_buf[..to_copy].copy_from_slice(&buf[header_end..header_end + to_copy]);
+            //rx_buf[..to_copy].copy_from_slice(&buf[header_end..header_end + to_copy]);
 
-            let len = if to_copy < to_read {
-                // Fetch rest from connection
-                let to_read = to_read - to_copy;
-                let mut pos = 0;
-                while pos < to_read {
-                    let n = connection
-                        .read(&mut rx_buf[to_copy + pos..to_copy + to_read])
-                        .await
-                        .map_err(|e| e.kind())?;
-                    pos += n;
-                }
-                to_copy + to_read
-            } else {
-                to_copy
-            };
-            payload.replace(&rx_buf[..len]);
-        }
+            // Fetch the remaining data
+            while to_read > 0 {
+                trace!("Fetching {} bytes", to_read);
+                let n = connection
+                    .read(&mut rx_buf[pos..pos + to_read])
+                    .await
+                    .map_err(|e| e.kind())?;
+                pos += n;
+                to_read -= n;
+            }
+            trace!("http response has {} bytes in payload", pos);
+            Some(&rx_buf[..pos])
+        } else {
+            trace!("0 bytes in payload");
+            None
+        };
 
         let response = Response {
             status,
             content_type,
             payload,
         };
-        trace!("HTTP response: {:?}", response);
+        //trace!("HTTP response: {:?}", response);
         Ok(response)
     }
 }
@@ -197,9 +205,17 @@ where
 pub struct Request<'a> {
     method: Method,
     path: Option<&'a str>,
+    auth: Option<Auth<'a>>,
     payload: Option<&'a [u8]>,
     content_type: Option<ContentType>,
     extra_headers: Option<&'a [(&'a str, &'a str)]>,
+}
+
+pub enum Auth<'a> {
+    Basic {
+        username: &'a str,
+        password: &'a str,
+    },
 }
 
 impl<'a> Request<'a> {
@@ -207,6 +223,7 @@ impl<'a> Request<'a> {
         Self {
             method: Method::POST,
             path: None,
+            auth: None,
             content_type: None,
             payload: None,
             extra_headers: None,
@@ -232,20 +249,22 @@ impl<'a> Request<'a> {
         self.content_type.replace(content_type);
         self
     }
+
+    pub fn basic_auth(mut self, username: &'a str, password: &'a str) -> Self {
+        self.auth.replace(Auth::Basic { username, password });
+        self
+    }
 }
 
 pub enum Method {
     POST,
 }
 
-impl Display for Method {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), core::fmt::Error> {
+impl Method {
+    fn as_str(&self) -> &str {
         match self {
-            Method::POST => {
-                write!(f, "POST")?;
-            }
+            Method::POST => "POST",
         }
-        Ok(())
     }
 }
 
@@ -283,7 +302,7 @@ pub struct Response<'a> {
     pub payload: Option<&'a [u8]>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Status {
     Ok = 200,
@@ -318,6 +337,7 @@ impl From<u32> for Status {
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ContentType {
     ApplicationJson,
+    ApplicationCbor,
     ApplicationOctetStream,
 }
 
@@ -325,22 +345,19 @@ impl<'a> From<&'a str> for ContentType {
     fn from(from: &'a str) -> ContentType {
         match from {
             "application/json" => ContentType::ApplicationJson,
+            "application/cbor" => ContentType::ApplicationCbor,
             _ => ContentType::ApplicationOctetStream,
         }
     }
 }
 
-impl Display for ContentType {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), core::fmt::Error> {
+impl ContentType {
+    fn as_str(&self) -> &str {
         match self {
-            ContentType::ApplicationJson => {
-                write!(f, "application/json")?;
-            }
-            ContentType::ApplicationOctetStream => {
-                write!(f, "application/octet-stream")?;
-            }
+            ContentType::ApplicationJson => "application/json",
+            ContentType::ApplicationCbor => "application/cbor",
+            ContentType::ApplicationOctetStream => "application/octet-stream",
         }
-        Ok(())
     }
 }
 

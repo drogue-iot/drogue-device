@@ -105,10 +105,7 @@ where
             .network
             .connect(SocketAddr::new(ip, self.port))
             .await
-            .map_err(|e| {
-                debug!("CONNECT ERR");
-                e.kind()
-            })?;
+            .map_err(|e| e.kind())?;
 
         #[cfg(feature = "tls")]
         let mut connection = {
@@ -126,7 +123,7 @@ where
 
         debug!("Connected to {}:{}", self.host, self.port);
 
-        let mut client = HttpClient::new(&mut connection, self.host, self.username, self.password);
+        let mut client = HttpClient::new(&mut connection, self.host);
 
         let tx: String<128> =
             serde_json_core::ser::to_string(&sensor_data).map_err(|_| ErrorKind::Other)?;
@@ -136,6 +133,7 @@ where
                 Request::post()
                     // Pass on schema
                     .path("/v1/foo?data_schema=urn:drogue:iot:temperature")
+                    .basic_auth(self.username, self.password)
                     .payload(tx.as_bytes())
                     .content_type(ContentType::ApplicationJson),
                 &mut rx_buf[..],

@@ -1,4 +1,4 @@
-use crate::traits::firmware::*;
+use embedded_update::FirmwareDevice;
 use heapless::Vec;
 
 // The FirmwareUpdate GATT service
@@ -31,7 +31,7 @@ pub struct FirmwareService {
 
 pub struct FirmwareGattService<'a, F>
 where
-    F: FirmwareManager + 'static,
+    F: FirmwareDevice + 'static,
 {
     service: &'a FirmwareService,
     dfu: F,
@@ -39,7 +39,7 @@ where
 
 impl<'a, F> FirmwareGattService<'a, F>
 where
-    F: FirmwareManager,
+    F: FirmwareDevice,
 {
     pub fn new(service: &'a FirmwareService, dfu: F, version: &[u8], mtu: u8) -> Result<Self, ()> {
         service
@@ -55,18 +55,22 @@ where
         match event {
             FirmwareServiceEvent::ControlWrite(value) => {
                 debug!("Write firmware control: {}", value);
+                let next_version = self.service.next_version_get().unwrap();
                 if *value == 1 {
                     self.service.offset_set(0).ok();
-                    self.dfu.start();
+                    self.dfu.start(&next_version[..]).await.map_err(|_| ())?;
                 } else if *value == 2 {
-                    let _ = self.dfu.finish().await;
+                    let _ = self.dfu.update(&next_version[..], &[]).await;
                 } else if *value == 3 {
-                    self.dfu.mark_booted().await.map_or(Err(()), |_| Ok(()))?;
+                    self.dfu.synced().await.map_or(Err(()), |_| Ok(()))?;
                 }
             }
             FirmwareServiceEvent::FirmwareWrite(value) => {
                 let offset = self.service.offset_get().unwrap();
-                self.dfu.write(value).await.map_or(Err(()), |_| Ok(()))?;
+                self.dfu
+                    .write(offset, value)
+                    .await
+                    .map_or(Err(()), |_| Ok(()))?;
                 self.service.offset_set(offset + value.len() as u32).ok();
             }
             _ => {}

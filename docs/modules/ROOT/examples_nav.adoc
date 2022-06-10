@@ -12,7 +12,7 @@
 *** xref:examples/nrf52/microbit/esp8266/mqtt/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter + MQTT]
 *** xref:examples/std/cloud/README.adoc[Example sending telemetry data from Drogue Device to Drogue Cloud]
 *** xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter]
-*** xref:examples/stm32l4/iot01a-wifi/README.adoc[STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi]
+*** xref:examples/stm32l4/iot01a/wifi/README.adoc[STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi]
 ** Display
 *** xref:examples/nrf52/microbit/compass/README.adoc[BBC micro:bit v2 compass showing direction in led display]
 *** xref:examples/nrf52/microbit/jukebox/README.adoc[BBC micro:bit v2 disco jukebox and light show]
@@ -26,10 +26,11 @@
 ** Other
 *** xref:examples/nrf52/adafruit-feather-nrf52840/bootloader/README.adoc[Bootloader for Adafruit nRF52840 chips]
 *** xref:examples/nrf52/microbit/bootloader/README.adoc[Bootloader for BBC Micro:bit chips]
+*** xref:examples/stm32l4/iot01a/bootloader/README.adoc[Bootloader for STM32L4 iot01a boards]
 ** Uart
 *** xref:examples/nrf52/microbit/uart/README.adoc[BBC micro:bit v2 uart and matrix display]
 ** Wifi
 *** xref:examples/nrf52/microbit/esp8266/http/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter + HTTP]
 *** xref:examples/nrf52/microbit/esp8266/mqtt/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter + MQTT]
 *** xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter]
-*** xref:examples/stm32l4/iot01a-wifi/README.adoc[STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi]
+*** xref:examples/stm32l4/iot01a/wifi/README.adoc[STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi]

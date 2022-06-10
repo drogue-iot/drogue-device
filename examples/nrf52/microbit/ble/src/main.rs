@@ -92,7 +92,11 @@ async fn main(s: Spawner, p: Peripherals) {
     static EVENTS: Channel<ThreadModeRawMutex, FirmwareServiceEvent, 10> = Channel::new();
     // The updater is the 'application' part of the bootloader that knows where bootloader
     // settings and the firmware update partition is located based on memory.x linker script.
-    let dfu = FirmwareManager::new(Flash::take(sd), FirmwareUpdater::default());
+    let dfu = FirmwareManager::new(
+        Flash::take(sd),
+        FirmwareUpdater::default(),
+        version.as_bytes(),
+    );
     let updater = FirmwareGattService::new(&server.firmware, dfu, version.as_bytes(), 64).unwrap();
     s.spawn(updater_task(updater, EVENTS.receiver().into()))
         .unwrap();
