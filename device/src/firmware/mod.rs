@@ -1,5 +1,4 @@
 pub mod remote;
-pub mod serial;
 
 use crate::flash::SharedFlash;
 use crate::shared::Handle;
