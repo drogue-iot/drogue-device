@@ -1,6 +1,6 @@
 = Drogue Device
 
-Drogue Device is a distribution of libraries and drivers for building embedded applications in Rust.
+Drogue Device is an SDK for building embedded applications in Rust.
 
 == Robustness
 
