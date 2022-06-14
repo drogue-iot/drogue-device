@@ -4,7 +4,7 @@ This example application runs out of the box on the BBC micro:bit v2.0. It start
 Low Energy) environment sensing service (as defined by specification) as well as a firmware update
 service.
 
-The example assumes that the nRF softdevice is installed. With this example, you can use BLE to update your microbit.
+The example assumes that the nRF softdevice is installed. With this example, you can use BLE  or UART to update your microbit.
 
 == Prerequisites
 

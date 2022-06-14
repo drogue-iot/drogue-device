@@ -615,6 +615,7 @@ dependencies = [
  "defmt",
  "embassy-macros",
  "embedded-hal 0.2.7",
+ "embedded-hal 1.0.0-alpha.8",
  "embedded-hal-async",
  "futures",
  "heapless",
@@ -823,12 +824,12 @@ dependencies = [
 [[package]]
 name = "embedded-update"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ae0e0b1ec68dcdf84637f867f134041bc270b09f6bc692f161be6e0aadf52dc"
 dependencies = [
  "embedded-hal-async",
+ "embedded-io",
  "futures",
  "heapless",
+ "postcard",
  "serde 1.0.137",
 ]
 
@@ -1131,6 +1132,7 @@ dependencies = [
  "embassy",
  "embassy-boot-nrf",
  "embassy-nrf",
+ "embedded-update",
  "futures",
  "heapless",
  "nrf-softdevice",

@@ -4,19 +4,23 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use drogue_device::drivers::ble::gatt::dfu::FirmwareGattService;
 use drogue_device::drivers::ble::gatt::{
     device_info::{DeviceInformationService, DeviceInformationServiceEvent},
     dfu::{FirmwareService, FirmwareServiceEvent},
     environment::*,
 };
 use drogue_device::firmware::FirmwareManager;
+use drogue_device::shared::Shared;
 use drogue_device::traits::led::ToFrame;
 use drogue_device::Board;
 use drogue_device::{bsp::boards::nrf52::microbit::Microbit, domain::led::matrix::Brightness};
+use drogue_device::{
+    drivers::ble::gatt::dfu::FirmwareGattService, firmware::SharedFirmwareManager,
+};
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy::channel::{Channel, DynamicReceiver, DynamicSender};
 use embassy::executor::Spawner;
+use embassy::time::Delay;
 use embassy::time::Ticker;
 use embassy::time::{Duration, Timer};
 use embassy::util::Forever;
@@ -24,7 +28,12 @@ use embassy::util::{select, Either};
 use embassy_boot_nrf::FirmwareUpdater;
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
-use embassy_nrf::Peripherals;
+use embassy_nrf::{
+    buffered_uarte::{BufferedUarte, State},
+    interrupt,
+    peripherals::{TIMER0, UARTE0},
+    uarte, Peripherals,
+};
 use futures::StreamExt;
 use heapless::Vec;
 use nrf_softdevice::ble::gatt_server;
@@ -39,6 +48,8 @@ use nrf_softdevice_defmt_rtt as _;
 
 #[cfg(feature = "panic-reset")]
 use panic_reset as _;
+
+type SERIAL = BufferedUarte<'static, UARTE0, TIMER0>;
 
 const FIRMWARE_VERSION: &str = env!("CARGO_PKG_VERSION");
 const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
@@ -92,12 +103,14 @@ async fn main(s: Spawner, p: Peripherals) {
     static EVENTS: Channel<ThreadModeRawMutex, FirmwareServiceEvent, 10> = Channel::new();
     // The updater is the 'application' part of the bootloader that knows where bootloader
     // settings and the firmware update partition is located based on memory.x linker script.
-    let dfu = FirmwareManager::new(
+    static DFU: Shared<FirmwareManager<Flash, 4096, 64>> = Shared::new();
+    let dfu = DFU.initialize(FirmwareManager::new(
         Flash::take(sd),
         FirmwareUpdater::default(),
         version.as_bytes(),
-    );
-    let updater = FirmwareGattService::new(&server.firmware, dfu, version.as_bytes(), 64).unwrap();
+    ));
+    let updater =
+        FirmwareGattService::new(&server.firmware, dfu.clone(), version.as_bytes(), 64).unwrap();
     s.spawn(updater_task(updater, EVENTS.receiver().into()))
         .unwrap();
 
@@ -110,6 +123,33 @@ async fn main(s: Spawner, p: Peripherals) {
         "Drogue Low Energy",
     ))
     .unwrap();
+
+    // Starts a serial updater task that allows updating firmware over UART
+    let mut config = uarte::Config::default();
+    config.parity = uarte::Parity::EXCLUDED;
+    config.baudrate = uarte::Baudrate::BAUD115200;
+
+    static mut TX_BUFFER: [u8; 4096] = [0u8; 4096];
+    static mut RX_BUFFER: [u8; 4096] = [0u8; 4096];
+    let irq = interrupt::take!(UARTE0_UART0);
+    static STATE: Forever<State<'static, UARTE0, TIMER0>> = Forever::new();
+    let state = STATE.put(State::new());
+    let uart = BufferedUarte::new(
+        state,
+        board.uarte0,
+        board.timer0,
+        board.ppi_ch0,
+        board.ppi_ch1,
+        irq,
+        board.p15,
+        board.p14,
+        board.p1,
+        board.p2,
+        config,
+        unsafe { &mut RX_BUFFER },
+        unsafe { &mut TX_BUFFER },
+    );
+    s.spawn(serial_task(uart, dfu)).unwrap();
 
     // Watchdog will prevent bootloader from resetting. If your application hangs for more than 5 seconds
     // (depending on bootloader config), it will enter bootloader which may swap the application back.
@@ -135,7 +175,7 @@ pub struct GattServer {
 
 #[embassy::task]
 pub async fn updater_task(
-    mut dfu: FirmwareGattService<'static, FirmwareManager<Flash>>,
+    mut dfu: FirmwareGattService<'static, SharedFirmwareManager<'static, Flash, 4096, 64>>,
     events: DynamicReceiver<'static, FirmwareServiceEvent>,
 ) {
     loop {
@@ -143,6 +183,29 @@ pub async fn updater_task(
         if let Err(e) = dfu.handle(&event).await {
             defmt::warn!("Error applying firmware event: {:?}", e);
         }
+    }
+}
+
+#[embassy::task]
+pub async fn serial_task(serial: SERIAL, mut dfu: SharedFirmwareManager<'static, Flash, 4096, 64>) {
+    let service = embedded_update::SerialUpdateService::new(serial);
+    let mut updater = embedded_update::FirmwareUpdater::new(
+        service,
+        embedded_update::UpdaterConfig {
+            timeout_ms: 40_000,
+            backoff_ms: 100,
+        },
+    );
+    loop {
+        match updater.run(&mut dfu, &mut Delay).await {
+            Ok(s) => {
+                defmt::info!("Updater finished with status: {:?}", s);
+            }
+            Err(e) => {
+                defmt::warn!("Error running updater: {:?}", e);
+            }
+        }
+        Timer::after(Duration::from_secs(10)).await;
     }
 }
 

@@ -283,7 +283,7 @@ async fn watchdog_task() {
 pub struct CustomElementsHandler {
     led: LedRed,
     composition: Composition,
-    dfu: FirmwareManager<SharedFlash<'static, Flash>>,
+    dfu: FirmwareManager<SharedFlash<'static, Flash, 4096, 16>>,
     publisher: DynamicSender<'static, PublisherMessage>,
     fw_state: MeshFirmwareState,
     ctx: Option<AppElementsContext<'static>>,
