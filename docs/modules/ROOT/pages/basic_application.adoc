@@ -1,4 +1,4 @@
-= A basic Drogue Device application
+= A basic application
 
 So you've got one of the xref:examples.adoc[examples] running, but what now? Let's go through a simple application for the BBC:microbit to understand it better.
 

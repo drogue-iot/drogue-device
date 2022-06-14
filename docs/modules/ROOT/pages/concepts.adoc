@@ -1,12 +1,12 @@
 = Actors
 
-An _actor system_ is a framework that allows for isolating state within narrow contexts, making it easier to reason about system. Within a actor system, the primary component is an _Actor_, which represents the boundary of state usage. Each actor has exclusive access to its own state and only communicates with other actors through message-passing.
+Drogue Actor is an actor framework for microcontrollers.  An _actor system_ is a framework that allows for isolating state within narrow contexts, making it easier to reason about system. Within a actor system, the primary component is an _Actor_, which represents the boundary of state usage. Each actor has exclusive access to its own state and only communicates with other actors through message-passing.
 
 image::actor-model.png[Actor model example]
 
 == Drogue Actor Model
 
-image::drogue-device-actor-model.png[Drogue Device Actor Model]
+image::drogue-device-actor-model.png[Actor Model]
 
 === Async
 
@@ -41,3 +41,78 @@ As with any embassy application, the entry point is specified using an async fun
 === Packages
 
 In some cases, it may be desirable to have two or more actors involve in a single semantic component or package. The `Package` trait may be implemented for any type.
+
+==  Writing an Actor
+
+An actor must implement the `Actor` trait, which will allow it to be spawned by the Embassy
+executor. An actor providing an atomic counter using the above driver is shown below:
+
+[source, rust]
+----
+#![feature(type_alias_impl_trait)]
+#![feature(generic_associated_types)]
+
+use drogue_device::*;
+
+pub struct AtomicCounter {
+    counter: MyCounter
+}
+
+pub enum CounterMessage {
+    Increment,
+    Add(u32),
+}
+
+#[actor]
+impl Actor for AtomicCounter {
+    type Message<'m> = CounterMessage;
+
+    async fn on_mount<M>(&mut self, _: Address<CounterMessage>, mut inbox: M)
+    where
+        M: Inbox<CounterMessage>
+    {
+        loop {
+            if let Some(mut m) = inbox.next().await {
+                match *m.message() {
+                    CounterMessage::Increment => self.counter.increment().await,
+                    CounterMessage::Add(value) => self.counter.add(*value).await,
+                }
+            }
+        }
+    }
+}
+----
+
+Notice the `actor` attribute, which handles a lot of the boilerplate of writing actors. This actor expands the code to the following:
+
+[source, rust]
+----
+impl Actor for AtomicCounter {
+    type Message<'m> = CounterMessage;
+
+    type OnMountFuture<'m> = impl Future<Output = ()> + 'm;
+    fn on_mount<'m, M>(
+        &'m mut self,
+        _: Address<CounterMessage>,
+        inbox: &'m mut M,
+    ) -> Self::OnMountFuture<'m, M>
+    where
+        M: Inbox<Self> + 'm
+    {
+        async move {
+            loop {
+                if let Some(mut m) = inbox.next().await {
+                    match *m.message() {
+                        CounterMessage::Increment => self.counter.increment().await,
+                        CounterMessage::Add(value) => self.counter.add(*value).await,
+                    }
+                }
+            }
+        }
+    }
+}
+----
+
+Once Rust has native support for async traits, the attribute will no longer be necessary.
+
+Although a very complex way to implement an atomic counter, it gives you an idea of how actors provide exclusive access to a resource.

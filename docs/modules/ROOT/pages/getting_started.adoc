@@ -1,15 +1,15 @@
 = Getting started
 
-So you want to try Drogue Device, great! To get started, there are a few tools you need to install:
+So you want to try using Rust embedded, great! To get started, there are a few tools you need to install:
 
 * link:https://rustup.rs/[rustup] - the Rust toolchain is needed to compile Rust code.
 * link:https://crates.io/crates/probe-run[probe-run] - to flash the firmware on your device. If you already have other tools like `OpenOCD` setup, you can use that as well.
 
-If you don't have any supported board, don't worry: you can also run drogue-device on your PC using the `std` examples.
+If you don't have any supported board, don't worry: you can also run the `std` on your PC.
 
 == Getting a board with examples
 
-Drogue Device supports many microcontroller families, but the easiest ways to get started is if you have one of the more common development kits that there are examples for already.
+Embassy supports many microcontroller families, but the easiest ways to get started is if you have one of the more common development kits that there are examples for already.
 
 === nRF kits
 
@@ -71,7 +71,7 @@ cargo xtask clone examples/nrf52/microbit/jukebox $HOME/myexample
 
 == Whats next?
 
-Congratulations, you have your first Drogue Device application running! Here are some alternatives on where to go from here:
+Congratulations, you have your first Rust async application running! Here are some alternatives on where to go from here:
 
 * xref:basic_application.adoc[Write your own application]
 * xref:concepts.adoc[Learn about Actors]

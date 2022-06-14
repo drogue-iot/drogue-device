@@ -1,35 +1,16 @@
 = Drivers 
 
-== Writing drogue device drivers
+== Writing async drivers
 
-Drogue-device contains device drivers for different boards and sensors.  Drivers follow a common set
-of patterns that makes it easier to write new drivers. Device drivers can be written in different
+Async Drivers follow a common set of patterns that makes it easier to write new drivers. Device drivers can be written in different
 ways, but the common approach is to implement one or more of the following:
 
-* A trait that defines the API that drivers implement. This may already exist, either in
-  drogue-device or elsewhere. We encourage re-using existing traits where it makes sense. The traits
-  are located in `device/src/traits`.
-* A driver that implements an API, either using a HAL or hardware directly. Drivers are located in
-  `device/src/drivers/`.
-* An actor implementation for the driver. This is useful for peripherals that require shared access
-  by multiple parts of the system, as the actor will ensure its only serving one user at a time.
-  Actors are located in `device/src/actors`.
-
-Which of the above you decide to implement depends on the driver. A Led may not need an Actor,
-because it is usually operated only by a single component, whereas it makes sense for a network
-stack/driver that is used by multiple components. The nice properties of actors is that they compose
-easily.
-
-Actors does carry with them some overhead of extra code to spawn the actor and holding incoming
-messages in a queue. Therefore, it sometimes makes sense using a layered approach for drivers: A
-driver that can be used for the cases where you don't need the shared access, and an Actor using
-that driver where you need shared access.
+* Create a new Rust crate that implements the driver.
+* Implement traits from `embedded-hal-async` if relevant.
 
 == Writing an async trait
 
-Drogue-device supports both sync and async APIs, and both have their uses. Sync traits are covered
-by the Rust documentation.  Unfortunately, the support in Rust for writing async traits is limited,
-but it is possible using features from Rust nightly.
+Unfortunately, the support in Rust for writing async traits is limited, but it is possible using features from Rust nightly.
 
 An async trait can be specified by enabling a feature named generic associcated types (GAT):
 
@@ -86,77 +67,4 @@ You'll notice that we've used yet another nightly feature that allows specifying
 At the expense of needing to define the associated type and a somewhat awkward return value, the
 driver can write blocks of async code to implement the trait.
 
-==  Writing an Actor
 
-An actor must implement the `Actor` trait, which will allow it to be mounted into the drogue device
-runtime. An actor providing an atomic counter using the above driver is shown below:
-
-[source, rust]
-----
-#![feature(type_alias_impl_trait)]
-#![feature(generic_associated_types)]
-
-use drogue_device::*;
-
-pub struct AtomicCounter {
-    counter: MyCounter
-}
-
-pub enum CounterMessage {
-    Increment,
-    Add(u32),
-}
-
-#[actor]
-impl Actor for AtomicCounter {
-    type Message<'m> = CounterMessage;
-
-    async fn on_mount<M>(&mut self, _: Address<CounterMessage>, mut inbox: M)
-    where
-        M: Inbox<CounterMessage>
-    {
-        loop {
-            if let Some(mut m) = inbox.next().await {
-                match *m.message() {
-                    CounterMessage::Increment => self.counter.increment().await,
-                    CounterMessage::Add(value) => self.counter.add(*value).await,
-                }
-            }
-        }
-    }
-}
-----
-
-Notice the `actor` attribute, which handles a lot of the boilerplate of writing actors. This actor expands the code to the following:
-
-[source, rust]
-----
-impl Actor for AtomicCounter {
-    type Message<'m> = CounterMessage;
-
-    type OnMountFuture<'m> = impl Future<Output = ()> + 'm;
-    fn on_mount<'m, M>(
-        &'m mut self,
-        _: Address<CounterMessage>,
-        inbox: &'m mut M,
-    ) -> Self::OnMountFuture<'m, M>
-    where
-        M: Inbox<Self> + 'm
-    {
-        async move {
-            loop {
-                if let Some(mut m) = inbox.next().await {
-                    match *m.message() {
-                        CounterMessage::Increment => self.counter.increment().await,
-                        CounterMessage::Add(value) => self.counter.add(*value).await,
-                    }
-                }
-            }
-        }
-    }
-}
-----
-
-Once Rust has native support for async traits, the attribute will no longer be necessary.
-
-Although a very complex way to implement an atomic counter, it gives you an idea of how actors provide exclusive access to a resource.

@@ -7,16 +7,15 @@
 [![Matrix](https://img.shields.io/matrix/drogue-iot:matrix.org)](https://matrix.to/#/#drogue-iot:matrix.org)
 [![Bors enabled](https://bors.tech/images/badge_small.svg)](https://app.bors.tech/repositories/40676)
 
-Drogue device is an SDK for building embedded applications in Rust.
+Drogue device is a distribution of utilities and examples for building embedded applications in Rust.
 
 * Built using [rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.
 * Based on [embassy](https://github.com/embassy-rs/embassy), the embedded async project. 
-* Offers built-in support for IoT with drivers for BLE, BLE Mesh, WiFi and LoRaWAN.
+* IoT examples for BLE, BLE Mesh, WiFi and LoRaWAN.
 * Async programming model for writing safe and efficient applications.
-* Provides an (optional) actor framework for encapsulating state and composing applications.
 * All software is licensed under the Apache 2.0 open source license.
 
-See the [documentation](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and for some examples.
+See the [documentation](https://book.drogue.io/drogue-device/dev/index.html) for more information and an overview of the examples.
 
 Go to our [homepage](https://www.drogue.io) to learn more about the Drogue IoT project.
 
@@ -82,7 +81,7 @@ cargo xtask update
   * `device/src/network` - network connectivity, common network implementations, HTTP clients,
   * `device/src/actors` - common actors that can be used in applications
   * `device/src/bsp` - board support packages for boards commonly used in drogue device 
-* `actor` - the actor framework
+* `actor` - an actor framework
 * `macros` - macros used by drogue-device and application code
 * `examples` - examples for different platforms and boards
 
