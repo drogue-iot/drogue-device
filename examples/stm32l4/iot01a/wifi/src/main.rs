@@ -99,7 +99,14 @@ async fn updater_task(network: EsWifiClient, flash: Flash<'static>) {
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
     defmt::info!("Running firmware version {}", version);
     let updater = embassy_boot_stm32::FirmwareUpdater::default();
-    drogue_update::run_updater(version.as_bytes(), updater, network, TlsRand, flash).await;
+    drogue_update::run_updater::<_, _, _, 2048, 4096>(
+        version.as_bytes(),
+        updater,
+        network,
+        TlsRand,
+        flash,
+    )
+    .await;
 }
 
 static mut RNG_INST: Option<Rng> = None;
