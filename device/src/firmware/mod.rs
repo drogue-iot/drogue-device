@@ -9,8 +9,6 @@ use embedded_storage_async::nor_flash::{AsyncNorFlash, AsyncReadNorFlash};
 use embedded_update::{FirmwareDevice, FirmwareStatus};
 use heapless::Vec;
 
-pub const PAGE_SIZE: usize = 2048;
-
 #[derive(Debug)]
 pub enum Error {
     Flash,
@@ -23,8 +21,8 @@ impl From<NorFlashErrorKind> for Error {
     }
 }
 
-pub type SharedFirmwareManager<'a, CONFIG, const MTU: usize> =
-    Handle<'a, FirmwareManager<CONFIG, MTU>>;
+pub type SharedFirmwareManager<'a, CONFIG, const PAGE_SIZE: usize, const MTU: usize> =
+    Handle<'a, FirmwareManager<CONFIG, PAGE_SIZE, MTU>>;
 
 pub trait FirmwareConfig {
     type STATE: AsyncNorFlash + AsyncReadNorFlash;
@@ -36,12 +34,12 @@ pub trait FirmwareConfig {
 }
 
 #[repr(C, align(128))]
-struct Aligned([u8; PAGE_SIZE]);
+struct Aligned<const PAGE_SIZE: usize>([u8; PAGE_SIZE]);
 
 /// Manages the firmware of an application using a STATE flash storage for storing
 /// the state of firmware and update process, and DFU flash storage for writing the
 /// firmware.
-pub struct FirmwareManager<CONFIG, const MTU: usize = 16>
+pub struct FirmwareManager<CONFIG, const PAGE_SIZE: usize = 4096, const MTU: usize = 16>
 where
     CONFIG: FirmwareConfig,
 {
@@ -49,12 +47,12 @@ where
     current_version: Vec<u8, 16>,
     next_version: Option<Vec<u8, 16>>,
     updater: FirmwareUpdater,
-    buffer: Aligned,
+    buffer: Aligned<PAGE_SIZE>,
     b_offset: usize,
     f_offset: usize,
 }
 
-impl<CONFIG, const MTU: usize> FirmwareManager<CONFIG, MTU>
+impl<CONFIG, const PAGE_SIZE: usize, const MTU: usize> FirmwareManager<CONFIG, PAGE_SIZE, MTU>
 where
     CONFIG: FirmwareConfig,
 {
@@ -236,7 +234,8 @@ where
     }
 }
 
-impl<CONFIG, const MTU: usize> FirmwareDevice for FirmwareManager<CONFIG, MTU>
+impl<CONFIG, const PAGE_SIZE: usize, const MTU: usize> FirmwareDevice
+    for FirmwareManager<CONFIG, PAGE_SIZE, MTU>
 where
     CONFIG: FirmwareConfig,
 {
@@ -280,7 +279,8 @@ where
 }
 
 /// Implementation for shared resource
-impl<'a, CONFIG, const MTU: usize> FirmwareDevice for SharedFirmwareManager<'a, CONFIG, MTU>
+impl<'a, CONFIG, const PAGE_SIZE: usize, const MTU: usize> FirmwareDevice
+    for SharedFirmwareManager<'a, CONFIG, PAGE_SIZE, MTU>
 where
     CONFIG: FirmwareConfig + 'a,
 {

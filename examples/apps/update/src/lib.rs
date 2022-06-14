@@ -15,7 +15,7 @@ use embedded_nal_async::{AddrType, Dns, IpAddr, Ipv4Addr, SocketAddr, TcpClient}
 use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
 use rand_core::{CryptoRng, RngCore};
 
-pub async fn run_updater<T: TcpClient, RNG: CryptoRng + RngCore, F: NorFlash + ReadNorFlash>(
+pub async fn run_updater<T: TcpClient, RNG: CryptoRng + RngCore, F: NorFlash + ReadNorFlash, const PAGE_SIZE: usize, const MTU: usize>(
     version: &'static [u8],
     updater: FirmwareUpdater,
     network: T,
@@ -27,7 +27,7 @@ pub async fn run_updater<T: TcpClient, RNG: CryptoRng + RngCore, F: NorFlash + R
         .await
         .unwrap();
 
-    let service: DrogueHttpUpdateService<'_, _, _, 4096> = DrogueHttpUpdateService::new(
+    let service: DrogueHttpUpdateService<'_, _, _, MTU> = DrogueHttpUpdateService::new(
         network,
         rng,
         SocketAddr::new(ip, PORT.parse::<u16>().unwrap()),
@@ -36,7 +36,7 @@ pub async fn run_updater<T: TcpClient, RNG: CryptoRng + RngCore, F: NorFlash + R
         PASSWORD.trim_end(),
     );
 
-    let mut device: FirmwareManager<FirmwareConfig<F>, 2048> =
+    let mut device: FirmwareManager<FirmwareConfig<F>, PAGE_SIZE, MTU> =
         FirmwareManager::new(FirmwareConfig::new(flash), updater, version);
     let mut updater = embedded_update::FirmwareUpdater::new(
         service,
