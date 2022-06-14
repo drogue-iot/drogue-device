@@ -1,4 +1,4 @@
+* xref:examples/nrf52/adafruit-feather-nrf52840/ble/README.adoc[Adafruit Feather nRF52840 BLE example] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/adafruit-feather-nrf52840/ble[github])
 * xref:examples/nrf52/adafruit-feather-nrf52840/bt-mesh/README.adoc[Adafruit Feather nRF52840 Bluetooth Mesh example] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/adafruit-feather-nrf52840/bt-mesh[github])
-* xref:examples/nrf52/adafruit-feather-nrf52840/serial/README.adoc[Adafruit Feather nRF52840 Bluetooth Mesh example] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/adafruit-feather-nrf52840/serial[github])
 * xref:examples/nrf52/microbit/ble/README.adoc[Microbit BLE Sensor example with DFU] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/ble[github])
 * xref:examples/nrf52/nrf52840-dk/ble-mesh/README.adoc[nrf52840-dk BLE Mesh example] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/nrf52840-dk/ble-mesh[github])
