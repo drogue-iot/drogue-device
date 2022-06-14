@@ -13,7 +13,6 @@ use drogue_device::{
     bsp::{boards::stm32h7::nucleo_h743zi::*, Board},
     domain::temperature::Celsius,
     drivers::tcp::smoltcp::*,
-    DeviceContext,
 };
 use drogue_temperature::*;
 use embassy::util::Forever;
@@ -36,7 +35,7 @@ impl TemperatureBoard for BSP {
     type Rng = Rng<'static, RNG>;
 }
 
-static DEVICE: DeviceContext<TemperatureDevice<BSP>> = DeviceContext::new();
+static DEVICE: Forever<TemperatureDevice<BSP>> = Forever::new();
 static RESOURCES: Forever<StackResources<1, 2, 8>> = Forever::new();
 static STACK: Forever<Stack<EthernetDevice>> = Forever::new();
 
@@ -65,7 +64,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let network = SmolTcpClient::new(stack);
 
     DEVICE
-        .configure(TemperatureDevice::new())
+        .put(TemperatureDevice::new())
         .mount(
             spawner,
             rng,

@@ -40,7 +40,7 @@ use drogue_device::{
     drivers::ble::mesh::model::Model,
     firmware::FirmwareManager,
     flash::{FlashState, SharedFlash},
-    Board, DeviceContext,
+    Board,
 };
 use drogue_device::{bsp::boards::nrf52::adafruit_feather_nrf52840::*, traits::button::Button};
 use embassy::channel::{Channel, DynamicReceiver, DynamicSender};
@@ -82,7 +82,7 @@ pub struct MyDevice {
     publisher: Channel<NoopRawMutex, PublisherMessage, 1>,
 }
 
-static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+static DEVICE: Forever<MyDevice> = Forever::new();
 
 // Application must run at a lower priority than softdevice
 fn config() -> Config {
@@ -133,7 +133,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
         input_oob_action: InputOOBActions::default(),
     };
 
-    let device = DEVICE.configure(MyDevice {
+    let device = DEVICE.put(MyDevice {
         mesh: Forever::new(),
         publisher: Channel::new(),
         control: Channel::new(),

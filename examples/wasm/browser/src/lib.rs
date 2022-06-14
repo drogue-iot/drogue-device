@@ -5,8 +5,8 @@
 use drogue_device::{
     actors::{button::*, led::*},
     drivers::led::Led as LedDriver,
-    *,
 };
+use ector::*;
 use embassy::executor::Spawner;
 use web_embedded_hal::*;
 

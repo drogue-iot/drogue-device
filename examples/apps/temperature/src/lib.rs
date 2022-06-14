@@ -19,8 +19,8 @@ use drogue_device::{
     network::clients::http::*,
     traits::button::Button,
     traits::sensors::temperature::TemperatureSensor,
-    Actor, ActorContext, Address, Inbox,
 };
+use ector::{Actor, ActorContext, Address, Inbox};
 use embassy::executor::Spawner;
 use embedded_hal::digital::v2::InputPin;
 use embedded_hal_async::digital::Wait;
@@ -332,6 +332,7 @@ impl<B> Actor for AppTrigger<B>
 where
     B: TemperatureBoard + 'static,
 {
+    type Message<'m> = ();
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         Self: 'm,

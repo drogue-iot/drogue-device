@@ -1,6 +1,6 @@
-use crate::{Actor, Address, Inbox};
 use core::convert::TryFrom;
 use core::future::Future;
+use ector::{Actor, Address, Inbox};
 
 pub struct Transformer<F, T>
 where

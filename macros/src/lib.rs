@@ -2,14 +2,11 @@
 #![feature(proc_macro_diagnostic)]
 
 extern crate proc_macro;
-mod actor;
 mod configure;
 
-use actor::{generate_actor, Item};
 use configure::configure;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::parse_macro_input;
 use syn::spanned::Spanned;
 use syn::{self};
 
@@ -93,14 +90,14 @@ pub fn test(_: TokenStream, item: TokenStream) -> TokenStream {
 
         #[test]
         fn #test_name() {
-            static DEVICE: ::drogue_device::DeviceContext<#device_type> = ::drogue_device::DeviceContext::new();
-            static RUNNER: ::embassy::util::Forever<TestRunner> = ::embassy::util::Forever::new();
+            static DEVICE: ::embassy::util::Forever<#device_type> = ::embassy::util::Forever::new();
+            static RUNNER: ::embassy::util::Forever<::ector::testutil::TestRunner> = ::embassy::util::Forever::new();
 
-            let runner = RUNNER.put(TestRunner::new());
+            let runner = RUNNER.put(::ector::testutil::TestRunner::default());
 
             runner.initialize(|spawner| {
                 let runner = unsafe { RUNNER.steal() };
-                spawner.spawn(#drogue_test_name(spawner, TestContext::new(runner, &DEVICE))).unwrap();
+                spawner.spawn(#drogue_test_name(spawner, ::ector::testutil::TestContext::new(runner, &DEVICE))).unwrap();
             });
 
             while !runner.is_done() {
@@ -109,13 +106,6 @@ pub fn test(_: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
     result.into()
-}
-
-#[proc_macro_attribute]
-pub fn actor(_: TokenStream, input: TokenStream) -> TokenStream {
-    let mut item = parse_macro_input!(input as Item);
-    generate_actor(&mut item);
-    TokenStream::from(quote!(#item))
 }
 
 #[proc_macro]

@@ -16,7 +16,7 @@ use drogue_device::{
     drivers::wifi::esp8266::*,
     *,
 };
-use drogue_device::{drogue, traits::wifi::*, DeviceContext};
+use drogue_device::{drogue, traits::wifi::*};
 use drogue_temperature::*;
 use embassy::util::Forever;
 use embassy_nrf::{
@@ -45,7 +45,7 @@ impl TemperatureBoard for BSP {
     type Rng = Rng;
 }
 
-static DEVICE: DeviceContext<TemperatureDevice<BSP>> = DeviceContext::new();
+static DEVICE: Forever<TemperatureDevice<BSP>> = Forever::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
@@ -109,7 +109,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     defmt::info!("Application configured to NOT use TLS");
 
     DEVICE
-        .configure(TemperatureDevice::new())
+        .put(TemperatureDevice::new())
         .mount(
             spawner,
             Rng::new(nrf52833_pac::Peripherals::take().unwrap().RNG),

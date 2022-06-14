@@ -9,11 +9,11 @@ use panic_probe as _;
 
 use core::convert::TryFrom;
 use drogue_device::{
-    actor,
     actors::button::{Button, ButtonEvent},
     bsp::boards::nrf52::microbit::*,
-    spawn_actor, Actor, Address, Board, Inbox,
+    Board,
 };
+use ector::{actor, spawn_actor, Actor, Address, Inbox};
 use embassy::time::{Duration, Ticker, Timer};
 use embassy_nrf::Peripherals;
 

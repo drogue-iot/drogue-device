@@ -3,14 +3,12 @@
 #![allow(dead_code)]
 #![feature(type_alias_impl_trait)]
 #![feature(generic_associated_types)]
-#![feature(associated_type_defaults)]
 //! Drogue device is a distribution of libraries and drivers for building embedded applications in Rust.
 //!
 //! * Built using [rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.
 //! * Based on [embassy](https://github.com/embassy-rs/embassy), the embedded async project.
 //! * Offers built-in support for IoT with drivers for BLE, BLE Mesh, WiFi and LoRaWAN.
 //! * Async programming model for writing safe and efficient applications.
-//! * Provides an (optional) actor framework for encapsulating state and composing applications.
 //! * All software is licensed under the Apache 2.0 open source license.
 //!
 //! See the [documentation](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and for some examples.
@@ -47,8 +45,6 @@
 //! ~~~
 pub(crate) mod fmt;
 
-pub use drogue_actor::{Actor, ActorContext, ActorSpawner, Address, DeviceContext, Inbox, Request};
-
 pub mod actors;
 
 pub mod traits;
@@ -71,7 +67,7 @@ pub use bsp::boards;
 pub use bsp::Board;
 
 #[doc(hidden)]
-pub use drogue_device_macros::{self as drogue, actor};
+pub use drogue_device_macros::{self as drogue, config, test as drogue_test};
 
 #[allow(unused_variables)]
 pub fn print_stack(file: &'static str, line: u32) {

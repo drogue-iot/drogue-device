@@ -20,6 +20,7 @@ log = "0.4"
 drogue-device = { path = "../../../device", features = ["log"], default-features = false }
 web-embedded-hal = "0.1.0"
 embassy = { version = "0.1.0", default-features = false, features = ["wasm", "executor-agnostic", "nightly", "unstable-traits"] }
+ector = { version = "0.1.0", default-features = false }
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.
@@ -27,5 +28,6 @@ opt-level = "s"
 
 [patch.crates-io]
 embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "77c7d8f31b89d13117a7294842d60f02950fdd23" }
+ector = { git = "https://github.com/drogue-iot/ector.git", rev = "53a28cfed7b1030c1e841175ff8a5577251f30c8" }
 
 #embassy = { path = "../../../../../embassy/embassy" }

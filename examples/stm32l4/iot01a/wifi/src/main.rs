@@ -45,7 +45,7 @@ impl TemperatureBoard for BSP {
 const FIRMWARE_VERSION: &str = env!("CARGO_PKG_VERSION");
 const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 
-static DEVICE: DeviceContext<TemperatureDevice<BSP>> = DeviceContext::new();
+static DEVICE: Forever<TemperatureDevice<BSP>> = Forever::new();
 
 #[embassy::main(config = "Iot01a::config(true)")]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
@@ -77,7 +77,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     spawner.spawn(network_task(network)).unwrap();
     spawner.spawn(updater_task(dfu, board.flash)).unwrap();
 
-    let device = DEVICE.configure(TemperatureDevice::new());
+    let device = DEVICE.put(TemperatureDevice::new());
     let config = TemperatureBoardConfig {
         send_trigger: TimeTrigger(Duration::from_secs(60)),
         sensor_ready: board.hts221_ready,

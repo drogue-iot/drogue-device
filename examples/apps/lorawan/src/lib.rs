@@ -10,8 +10,9 @@ use drogue_device::{
         led::Led,
         lora::{JoinMode, LoraDriver, QoS},
     },
-    Actor, ActorContext, Address, Inbox, *,
+    *,
 };
+use ector::{Actor, ActorContext, Address, Inbox};
 use embassy::executor::Spawner;
 use heapless::String;
 
@@ -246,6 +247,7 @@ impl<B> Actor for AppTrigger<B>
 where
     B: LoraBoard + 'static,
 {
+    type Message<'m> = ();
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         Self: 'm,

@@ -4,16 +4,16 @@
 
 #[cfg(feature = "std")]
 mod tests {
-    use drogue_actor::testutil::*;
-    use drogue_device::{actors::button::*, *};
+    use drogue_device::actors::button::*;
     #[allow(unused_imports)]
     use drogue_device_macros::test as drogue_test;
+    use ector::testutil::*;
     use embassy::executor::Spawner;
 
     #[allow(dead_code)]
     struct TestDevicePressed {
-        handler: ActorContext<TestHandler>,
-        button: ActorContext<Button<TestPin, TestMessage>>,
+        handler: ector::ActorContext<TestHandler>,
+        button: ector::ActorContext<Button<TestPin, TestMessage>>,
     }
 
     #[drogue_test]
@@ -23,8 +23,8 @@ mod tests {
         let notified = context.signal();
 
         let device = context.configure(TestDevicePressed {
-            handler: ActorContext::new(),
-            button: ActorContext::new(),
+            handler: ector::ActorContext::new(),
+            button: ector::ActorContext::new(),
         });
         let handler_addr = device.handler.mount(spawner, TestHandler::new(notified));
         device.button.mount(spawner, Button::new(pin, handler_addr));
@@ -37,8 +37,8 @@ mod tests {
 
     #[allow(dead_code)]
     struct TestDeviceReleased {
-        handler: ActorContext<TestHandler>,
-        button: ActorContext<Button<TestPin, TestMessage>>,
+        handler: ector::ActorContext<TestHandler>,
+        button: ector::ActorContext<Button<TestPin, TestMessage>>,
     }
 
     #[drogue_test]
@@ -48,8 +48,8 @@ mod tests {
         let notified = context.signal();
 
         let device = context.configure(TestDeviceReleased {
-            handler: ActorContext::new(),
-            button: ActorContext::new(),
+            handler: ector::ActorContext::new(),
+            button: ector::ActorContext::new(),
         });
 
         let handler_addr = device.handler.mount(spawner, TestHandler::new(notified));

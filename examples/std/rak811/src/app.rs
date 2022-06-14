@@ -1,5 +1,6 @@
 use core::future::Future;
-use drogue_device::{traits::lora::*, Actor, Address, Inbox};
+use drogue_device::traits::lora::*;
+use ector::{Actor, Address, Inbox};
 pub enum AppCommand {
     Send,
 }

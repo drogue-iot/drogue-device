@@ -6,7 +6,8 @@
 
 use actors::led::LedMessage;
 use defmt_rtt as _;
-use drogue_device::{actors, drivers, ActorContext};
+use drogue_device::{actors, drivers};
+use ector::*;
 use embassy_rp::{
     gpio::{Level, Output},
     peripherals::PIN_25,

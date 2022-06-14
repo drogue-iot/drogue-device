@@ -5,7 +5,7 @@
 use drogue_device::actors;
 use drogue_device::actors::led::LedMessage;
 use drogue_device::traits;
-use drogue_device::ActorContext;
+use ector::ActorContext;
 use embassy::executor::Spawner;
 
 /// This trait defines the trait-based capabilities

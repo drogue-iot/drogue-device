@@ -16,11 +16,12 @@ use drogue_device::{
 };
 use drogue_lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig};
 use embassy::executor::Spawner;
+use embassy::util::Forever;
 use embassy_stm32::Peripherals;
 
 bind_bsp!(NucleoWl55, BSP);
 
-static DEVICE: DeviceContext<LoraDevice<BSP>> = DeviceContext::new();
+static DEVICE: Forever<LoraDevice<BSP>> = Forever::new();
 
 impl LoraBoard for BSP {
     type JoinLed = LedBlue;
@@ -50,8 +51,5 @@ async fn main(spawner: Spawner, p: Peripherals) {
         send_trigger: board.user_button,
         driver: lora,
     };
-    DEVICE
-        .configure(LoraDevice::new())
-        .mount(spawner, config)
-        .await;
+    DEVICE.put(LoraDevice::new()).mount(spawner, config).await;
 }
