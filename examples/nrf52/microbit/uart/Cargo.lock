@@ -232,9 +232,9 @@ dependencies = [
 
 [[package]]
 name = "crypto-bigint"
-version = "0.4.4"
+version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40997c4145fd5570180f579db9fcea452c91a2b72411da899efb1fb041136eae"
+checksum = "ac961631d66e80ac7ac2ac01320628ce214ad2b5ef0a88ceb86eae459069e2b4"
 dependencies = [
  "generic-array",
  "rand_core",
@@ -369,24 +369,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "drogue-ajour-protocol"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "718e04a0c7e48362189d33cf913e0f2ea3b05e541c060d5b775b5849f1e985f0"
-dependencies = [
- "serde 1.0.137",
-]
-
-[[package]]
-name = "drogue-ajour-protocol"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e1731b60351e329d79707a303331cf8ce4e5ed0fd4629bfa96cbfab1b80e65b"
-dependencies = [
- "serde 1.0.137",
-]
-
-[[package]]
 name = "drogue-device"
 version = "0.1.0"
 dependencies = [
@@ -395,7 +377,6 @@ dependencies = [
  "critical-section",
  "defmt",
  "drogue-actor",
- "drogue-ajour-protocol 0.5.0",
  "drogue-device-macros",
  "embassy",
  "embassy-nrf",
@@ -408,7 +389,7 @@ dependencies = [
  "embedded-storage",
  "embedded-storage-async",
  "embedded-tls",
- "firmware-updater",
+ "embedded-update",
  "futures",
  "futures-intrusive",
  "heapless",
@@ -429,9 +410,9 @@ dependencies = [
 
 [[package]]
 name = "elliptic-curve"
-version = "0.12.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bdd8c93ccd534d6a9790f4455cd71e7adb53a12e9af7dd54d1e258473f100cea"
+checksum = "4f6664c6a37892ed55da8dda26a99e6ccc783f0c72fa3c2eeaa00ed30d8f4d9a"
 dependencies = [
  "base16ct",
  "crypto-bigint",
@@ -635,6 +616,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-update"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ebd280a1111d84512d6cc2e08d29c0405b104ba70c9ba698a0c2840063c7292"
+dependencies = [
+ "embedded-hal-async",
+ "embedded-io",
+ "futures",
+ "heapless",
+ "postcard",
+ "serde 1.0.137",
+]
+
+[[package]]
 name = "ff"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -642,16 +637,6 @@ checksum = "df689201f395c6b90dfe87127685f8dbfc083a5e779e613575d8bd7314300c3e"
 dependencies = [
  "rand_core",
  "subtle",
-]
-
-[[package]]
-name = "firmware-updater"
-version = "0.1.0"
-dependencies = [
- "drogue-ajour-protocol 0.6.0",
- "embedded-hal-async",
- "futures",
- "heapless",
 ]
 
 [[package]]
@@ -964,9 +949,9 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "p256"
-version = "0.11.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3e7336b74eb43c009656d53a65648b5ff3941b8421207e6a23f42d5aa3a89f3"
+checksum = "51f44edd08f51e2ade572f141051021c5af22677e42b7dd28a88155151c33594"
 dependencies = [
  "elliptic-curve",
 ]
@@ -1024,6 +1009,22 @@ dependencies = [
  "opaque-debug",
  "universal-hash",
 ]
+
+[[package]]
+name = "postcard"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a25c0b0ae06fcffe600ad392aabfa535696c8973f2253d9ac83171924c58a858"
+dependencies = [
+ "postcard-cobs",
+ "serde 1.0.137",
+]
+
+[[package]]
+name = "postcard-cobs"
+version = "0.1.5-pre"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c68cb38ed13fd7bc9dd5db8f165b7c8d9c1a315104083a2b10f11354c2af97f"
 
 [[package]]
 name = "proc-macro-error"
@@ -1138,7 +1139,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
 dependencies = [
- "semver 1.0.9",
+ "semver 1.0.10",
 ]
 
 [[package]]
@@ -1177,9 +1178,9 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "1.0.9"
+version = "1.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cb243bdfdb5936c8dc3c45762a19d12ab4550cdc753bc247637d4ec35a040fd"
+checksum = "a41d061efea015927ac527063765e73601444cdc344ba855bc7bd44578b25e1c"
 
 [[package]]
 name = "semver-parser"
@@ -1308,9 +1309,9 @@ checksum = "dcf81ac59edc17cc8697ff311e8f5ef2d99fcbd9817b34cec66f90b6c3dfd987"
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d22af068fba1eb5edcb4aea19d382b2a3deb4c8f9d475c589b6ada9e0fd493ee"
+checksum = "5bd2fe26506023ed7b5e1e315add59d6f584c621d037f9368fea9cfb988f368c"
 
 [[package]]
 name = "universal-hash"

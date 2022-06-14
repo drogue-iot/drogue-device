@@ -12,7 +12,7 @@ keywords = ["ignore"]
 [dependencies]
 embassy = { version = "0.1.0", default-features = false, features = ["time", "unstable-traits"] }
 embassy-embedded-hal = { version = "0.1.0", default-features = false }
-embedded-update = { version = "0.2.0", features = ["full"] }
+embedded-update = { version = "0.3.0", features = ["nightly"] }
 embassy-boot = { version = "0.1.0", default-features = false }
 drogue-device = { path = "../../../device", default-features = false, features = ["dfu"] }
 embedded-hal = { version = "0.2", features = ["unproven"] }
