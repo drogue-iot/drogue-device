@@ -18,6 +18,7 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 drogue-blinky-app = { path = "../../../apps/blinky" }
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 drogue-device = { path = "../../../../device", features = ["time", "defmt", "bsp+nucleo_h743zi"], default-features = false }
+ector = { version = "0.1.0", default-features = false }
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 heapless = "0.6"

@@ -392,19 +392,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "drogue-actor"
-version = "0.1.0"
-dependencies = [
- "atomic-polyfill",
- "drogue-device-macros",
- "embassy",
- "embedded-hal 0.2.7",
- "embedded-hal 1.0.0-alpha.8",
- "embedded-hal-async",
- "futures",
-]
-
-[[package]]
 name = "drogue-device"
 version = "0.1.0"
 dependencies = [
@@ -412,8 +399,8 @@ dependencies = [
  "base64",
  "critical-section",
  "defmt",
- "drogue-actor",
  "drogue-device-macros",
+ "ector",
  "embassy",
  "embassy-lora",
  "embedded-hal 0.2.7",
@@ -454,6 +441,30 @@ dependencies = [
  "drogue-device",
  "embassy",
  "heapless",
+]
+
+[[package]]
+name = "ector"
+version = "0.1.0"
+source = "git+https://github.com/drogue-iot/ector.git?rev=53a28cfed7b1030c1e841175ff8a5577251f30c8#53a28cfed7b1030c1e841175ff8a5577251f30c8"
+dependencies = [
+ "atomic-polyfill",
+ "ector-macros",
+ "embassy",
+ "embedded-hal 0.2.7",
+ "embedded-hal 1.0.0-alpha.8",
+ "embedded-hal-async",
+ "futures",
+]
+
+[[package]]
+name = "ector-macros"
+version = "0.1.0"
+source = "git+https://github.com/drogue-iot/ector.git?rev=53a28cfed7b1030c1e841175ff8a5577251f30c8#53a28cfed7b1030c1e841175ff8a5577251f30c8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

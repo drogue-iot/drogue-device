@@ -1,7 +1,7 @@
 use crate::domain::{temperature::TemperatureScale, SensorAcquisition};
 use crate::traits::sensors::temperature::TemperatureSensor;
-use crate::{Actor, Address, Inbox};
 use core::future::Future;
+use ector::{Actor, Address, Inbox};
 use embedded_hal::digital::v2::InputPin;
 use embedded_hal_async::digital::Wait;
 
@@ -43,6 +43,7 @@ where
     T: TemperatureSensor<C> + 'static,
     C: TemperatureScale + 'static,
 {
+    type Message<'m> = ();
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where Self: 'm, M: 'm + Inbox<Self::Message<'m>>;
 
     fn on_mount<'m, M>(

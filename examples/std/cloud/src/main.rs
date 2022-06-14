@@ -2,9 +2,10 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use drogue_device::{domain::temperature::Celsius, drivers::tcp::std::*, *};
+use drogue_device::{domain::temperature::Celsius, drivers::tcp::std::*};
 use drogue_temperature::*;
 use embassy::time::Duration;
+use embassy::util::Forever;
 use rand::rngs::OsRng;
 
 pub struct StdBoard;
@@ -18,7 +19,7 @@ impl TemperatureBoard for StdBoard {
     type Rng = OsRng;
 }
 
-static DEVICE: DeviceContext<TemperatureDevice<StdBoard>> = DeviceContext::new();
+static DEVICE: Forever<TemperatureDevice<StdBoard>> = Forever::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner) {
@@ -28,7 +29,7 @@ async fn main(spawner: embassy::executor::Spawner) {
         .init();
 
     DEVICE
-        .configure(TemperatureDevice::new())
+        .put(TemperatureDevice::new())
         .mount(
             spawner,
             OsRng,

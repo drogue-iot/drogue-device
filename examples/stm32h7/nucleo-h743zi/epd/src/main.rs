@@ -10,8 +10,9 @@ use panic_probe as _;
 
 use core::fmt::Write;
 use drogue_device::actors::button::{Button, ButtonEvent};
-use drogue_device::{Actor, ActorContext, Address, DeviceContext, Inbox};
+use ector::{Actor, ActorContext, Address, Inbox};
 use embassy::time::Delay;
+use embassy::util::Forever;
 use embassy_stm32::dma::NoDma;
 use embassy_stm32::peripherals::*;
 use embassy_stm32::rng::Rng as Random;
@@ -166,7 +167,7 @@ fn quantize_color(color: Rgb888) -> OctColor {
     }
 }
 
-#[drogue_device::actor]
+#[ector::actor]
 impl Actor for App {
     type Message<'m> = Command;
 
@@ -202,7 +203,7 @@ pub struct MyDevice {
     button: ActorContext<Button<ExtiInput<'static, PC13>, Command>>,
 }
 
-static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+static DEVICE: Forever<MyDevice> = Forever::new();
 
 #[embassy::main(config = "config()")]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
@@ -236,7 +237,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     let rng = Random::new(p.RNG);
 
-    let device = DEVICE.configure(MyDevice {
+    let device = DEVICE.put(MyDevice {
         app: ActorContext::new(),
         button: ActorContext::new(),
     });

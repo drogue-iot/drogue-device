@@ -36,7 +36,8 @@ use drogue_device::drivers::ble::mesh::provisioning::{
 use drogue_device::drivers::ble::mesh::storage::FlashStorage;
 use drogue_device::drivers::ActiveLow;
 use drogue_device::traits::button::Event;
-use drogue_device::{actors, drivers, Actor, ActorContext, Address, DeviceContext, Inbox};
+use drogue_device::{actors, drivers};
+use ector::{Actor, ActorContext, Address, Inbox};
 use embassy::channel::{Channel, DynamicReceiver, Sender};
 use embassy::executor::Spawner;
 use embassy::time::{Duration, Timer};
@@ -86,7 +87,7 @@ pub struct MyDevice {
     >,
 }
 
-static DEVICE: DeviceContext<MyDevice> = DeviceContext::new();
+static DEVICE: Forever<MyDevice> = Forever::new();
 
 // Application must run at a lower priority than softdevice
 fn config() -> Config {
@@ -132,7 +133,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
         input_oob_action: InputOOBActions::default(),
     };
 
-    let device = DEVICE.configure(MyDevice {
+    let device = DEVICE.put(MyDevice {
         led: ActorContext::new(),
         button: ActorContext::new(),
         button_publisher: ActorContext::new(),

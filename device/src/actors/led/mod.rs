@@ -1,8 +1,8 @@
 use crate::actors::button::ButtonEvent;
 use crate::traits;
-use crate::{Actor, Address, Inbox};
 use core::convert::TryFrom;
 use core::future::Future;
+use ector::{Actor, Address, Inbox};
 
 #[derive(Clone, Copy)]
 pub enum LedMessage {

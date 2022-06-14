@@ -3,7 +3,8 @@
 #![feature(type_alias_impl_trait)]
 
 use async_io::Async;
-use drogue_device::{drivers::lora::rak811::*, drogue, traits::lora::*, ActorContext};
+use drogue_device::{drivers::lora::rak811::*, drogue, traits::lora::*};
+use ector::ActorContext;
 use embassy::time::{Duration, Timer};
 use embedded_hal::digital::v2::OutputPin;
 use embedded_io::adapters::FromFutures;

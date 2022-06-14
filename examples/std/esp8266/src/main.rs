@@ -33,7 +33,7 @@ impl TemperatureBoard for StdBoard {
     type Rng = rand::rngs::OsRng;
 }
 
-static DEVICE: DeviceContext<TemperatureDevice<StdBoard>> = DeviceContext::new();
+static DEVICE: Forever<TemperatureDevice<StdBoard>> = Forever::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner) {
@@ -65,7 +65,7 @@ async fn main(spawner: embassy::executor::Spawner) {
     let client = network.new_client().unwrap();
 
     DEVICE
-        .configure(TemperatureDevice::new())
+        .put(TemperatureDevice::new())
         .mount(
             spawner,
             rand::rngs::OsRng,

@@ -41,6 +41,7 @@ overflow-checks = false
 embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "77c7d8f31b89d13117a7294842d60f02950fdd23" }
 embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "77c7d8f31b89d13117a7294842d60f02950fdd23" }
 rust-mqtt = { git = "https://github.com/obabec/rust-mqtt.git", rev = "e0b22059053e779a2a8c80cadd25cad1472e6640" }
+ector = { git = "https://github.com/drogue-iot/ector.git", rev = "53a28cfed7b1030c1e841175ff8a5577251f30c8" }
 #rust-mqtt = { path = "../../../../../../rust-mqtt" }
 
 #embassy = { path = "../../../../../../embassy/embassy" }

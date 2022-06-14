@@ -229,9 +229,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "3.2.1"
+version = "3.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a836566fa5f52f7ddf909a8a2f9029b9f78ca584cd95cf7e87f8073110f4c5c9"
+checksum = "8e538f9ee5aa3b3963f09a997035f883677966ed50fce0292611927ce6f6d8c6"
 dependencies = [
  "atty",
  "bitflags",
@@ -246,9 +246,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "3.2.1"
+version = "3.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "986fd75d1dfd2c34eb8c9275ae38ad87ea9478c9b79e87f1801f7d866dfb1e37"
+checksum = "a7f98063cac4652f23ccda556b8d04347a7fc4b2cff1f7577cc8c6546e0d8078"
 dependencies = [
  "heck",
  "proc-macro-error",
@@ -512,24 +512,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "drogue-actor"
-version = "0.1.0"
-dependencies = [
- "atomic-polyfill",
- "drogue-device-macros",
- "embassy",
- "embedded-hal 0.2.7",
- "embedded-hal 1.0.0-alpha.8",
- "embedded-hal-async",
- "futures",
-]
-
-[[package]]
 name = "drogue-blinky-app"
 version = "0.1.0"
 dependencies = [
  "defmt",
  "drogue-device",
+ "ector",
  "embassy",
 ]
 
@@ -541,8 +529,8 @@ dependencies = [
  "base64",
  "critical-section",
  "defmt",
- "drogue-actor",
  "drogue-device-macros",
+ "ector",
  "embassy",
  "embassy-net",
  "embassy-stm32",
@@ -580,6 +568,7 @@ version = "0.1.0"
 dependencies = [
  "defmt",
  "drogue-device",
+ "ector",
  "embassy",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.8",
@@ -591,6 +580,30 @@ dependencies = [
  "rand_core",
  "serde 1.0.137",
  "serde-json-core",
+]
+
+[[package]]
+name = "ector"
+version = "0.1.0"
+source = "git+https://github.com/drogue-iot/ector.git?rev=53a28cfed7b1030c1e841175ff8a5577251f30c8#53a28cfed7b1030c1e841175ff8a5577251f30c8"
+dependencies = [
+ "atomic-polyfill",
+ "ector-macros",
+ "embassy",
+ "embedded-hal 0.2.7",
+ "embedded-hal 1.0.0-alpha.8",
+ "embedded-hal-async",
+ "futures",
+]
+
+[[package]]
+name = "ector-macros"
+version = "0.1.0"
+source = "git+https://github.com/drogue-iot/ector.git?rev=53a28cfed7b1030c1e841175ff8a5577251f30c8#53a28cfed7b1030c1e841175ff8a5577251f30c8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1289,6 +1302,7 @@ dependencies = [
  "defmt-rtt",
  "drogue-blinky-app",
  "drogue-device",
+ "ector",
  "embassy",
  "embassy-stm32",
  "embedded-hal 0.2.7",
@@ -1307,6 +1321,7 @@ dependencies = [
  "defmt",
  "defmt-rtt",
  "drogue-device",
+ "ector",
  "embassy",
  "embassy-stm32",
  "embedded-graphics",
@@ -1330,6 +1345,7 @@ dependencies = [
  "defmt-rtt",
  "drogue-device",
  "drogue-temperature",
+ "ector",
  "embassy",
  "embassy-net",
  "embassy-stm32",

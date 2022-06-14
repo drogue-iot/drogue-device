@@ -240,7 +240,7 @@ fn check_crate(project_file: PathBuf) -> Result<(), anyhow::Error> {
 fn build_crate(project_file: PathBuf) -> Result<(), anyhow::Error> {
     println!("Building {}", project_file.to_str().unwrap_or(""));
     let _p = xshell::pushd(project_file)?;
-    cmd!("cargo build --release").run()?;
+    cmd!("cargo check").run()?;
     Ok(())
 }
 

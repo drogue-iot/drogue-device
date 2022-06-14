@@ -6,7 +6,8 @@
 #![feature(generic_associated_types)]
 
 use drogue_blinky_app::{BlinkyBoard, BlinkyConfiguration, BlinkyDevice};
-use drogue_device::{bind_bsp, Board, DeviceContext};
+use drogue_device::{bind_bsp, Board};
+use embassy::util::Forever;
 use embassy_stm32::Peripherals;
 
 use defmt_rtt as _;
@@ -24,14 +25,14 @@ impl BlinkyBoard for BSP {
     type ControlButton = UserButton;
 }
 
-static DEVICE: DeviceContext<BlinkyDevice<BSP>> = DeviceContext::new();
+static DEVICE: Forever<BlinkyDevice<BSP>> = Forever::new();
 
 #[embassy::main]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let board = BSP::new(p);
 
     DEVICE
-        .configure(BlinkyDevice::new())
+        .put(BlinkyDevice::new())
         .mount(
             spawner,
             BlinkyConfiguration {

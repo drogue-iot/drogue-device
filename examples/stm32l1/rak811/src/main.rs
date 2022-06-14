@@ -17,11 +17,12 @@ use drogue_device::{
 use drogue_lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig, TimeTrigger};
 use embassy::executor::Spawner;
 use embassy::time::Duration;
+use embassy::util::Forever;
 use embassy_stm32::Peripherals;
 
 bind_bsp!(Rak811, BSP);
 
-static DEVICE: DeviceContext<LoraDevice<BSP>> = DeviceContext::new();
+static DEVICE: Forever<LoraDevice<BSP>> = Forever::new();
 
 impl LoraBoard for BSP {
     type JoinLed = LedRed;
@@ -60,8 +61,5 @@ async fn main(spawner: Spawner, p: Peripherals) {
         send_trigger: TimeTrigger(Duration::from_secs(60)),
         driver: lora,
     };
-    DEVICE
-        .configure(LoraDevice::new())
-        .mount(spawner, config)
-        .await;
+    DEVICE.put(LoraDevice::new()).mount(spawner, config).await;
 }

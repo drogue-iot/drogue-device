@@ -24,8 +24,9 @@ embedded-hal-1 = { package = "embedded-hal", version = "1.0.0-alpha.8"}
 embedded-hal-async = { version = "0.1.0-alpha.1" }
 embedded-nal-async = { version = "0.1.0", git = "https://github.com/lulf/embedded-nal.git", rev = "7e46d533090882ce9a449f544055c09e6d241e55" }
 embedded-io = "0.3.0"
+ector = {version = "0.1.0", default-features = false}
 
 [features]
 default = ["std"]
 tls = ["embedded-tls", "drogue-device/tls"]
-std = ["serde-json-core/std", "embassy/std"]
+std = ["serde-json-core/std", "embassy/std", "ector/std"]

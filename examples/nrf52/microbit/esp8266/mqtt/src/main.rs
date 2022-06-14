@@ -19,6 +19,7 @@ use drogue_device::bsp::boards::nrf52::microbit::LedMatrix;
 use drogue_device::{
     bsp::boards::nrf52::microbit::*, drivers::dns::*, drivers::wifi::esp8266::Esp8266Modem, *,
 };
+use ector::{actor, Actor, ActorContext, Address, Inbox};
 use embassy::time::{Duration, Timer};
 use embassy::util::Forever;
 use embassy_nrf::{

@@ -1,7 +1,7 @@
 use crate::traits;
-use crate::{Actor, Address, Inbox};
 use core::convert::TryFrom;
 use core::future::Future;
+use ector::{Actor, Address, Inbox};
 
 pub use crate::traits::button::Event as ButtonEvent;
 
@@ -25,6 +25,7 @@ impl<P: traits::button::Button, H> Actor for Button<P, H>
 where
     H: TryFrom<ButtonEvent> + 'static,
 {
+    type Message<'m> = ();
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where Self: 'm, M: Inbox<()> + 'm;
     fn on_mount<'m, M>(&'m mut self, _: Address<()>, _: M) -> Self::OnMountFuture<'m, M>
     where
@@ -42,12 +43,12 @@ where
 }
 
 #[cfg(feature = "std")]
-impl TryFrom<ButtonEvent> for drogue_actor::testutil::TestMessage {
+impl TryFrom<ButtonEvent> for ector::testutil::TestMessage {
     type Error = core::convert::Infallible;
     fn try_from(event: ButtonEvent) -> Result<Self, Self::Error> {
         Ok(match event {
-            ButtonEvent::Pressed => drogue_actor::testutil::TestMessage(0),
-            ButtonEvent::Released => drogue_actor::testutil::TestMessage(1),
+            ButtonEvent::Pressed => ector::testutil::TestMessage(0),
+            ButtonEvent::Released => ector::testutil::TestMessage(1),
         })
     }
 }
