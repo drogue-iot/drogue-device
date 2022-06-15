@@ -81,7 +81,6 @@ cargo xtask update
   * `device/src/network` - network connectivity, common network implementations, HTTP clients,
   * `device/src/actors` - common actors that can be used in applications
   * `device/src/bsp` - board support packages for boards commonly used in drogue device 
-* `actor` - an actor framework
 * `macros` - macros used by drogue-device and application code
 * `examples` - examples for different platforms and boards
 
