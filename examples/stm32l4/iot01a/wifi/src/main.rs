@@ -73,9 +73,13 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     static NETWORK: Forever<SharedEsWifi> = Forever::new();
     let network = NETWORK.put(SharedEsWifi::new(wifi));
     let client = network.new_client().await.unwrap();
-    let dfu = network.new_client().await.unwrap();
+    #[cfg(feature = "dfu")]
+    {
+        let dfu = network.new_client().await.unwrap();
+        spawner.spawn(updater_task(dfu, board.flash)).unwrap();
+    }
+
     spawner.spawn(network_task(network)).unwrap();
-    spawner.spawn(updater_task(dfu, board.flash)).unwrap();
 
     let device = DEVICE.put(TemperatureDevice::new());
     let config = TemperatureBoardConfig {
@@ -94,6 +98,7 @@ async fn network_task(adapter: &'static SharedEsWifi) {
     adapter.run().await;
 }
 
+#[cfg(feature = "dfu")]
 #[embassy::task]
 async fn updater_task(network: EsWifiClient, flash: Flash<'static>) {
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);

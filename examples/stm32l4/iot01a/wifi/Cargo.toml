@@ -38,9 +38,10 @@ embedded-io = "0.3.0"
 atomic-polyfill = "0.1"
 embassy = { version = "0.1.0", default-features = false, features=["time", "time-tick-32768hz", "nightly", "unstable-traits"] }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["time-driver-any"] }
-embassy-boot-stm32 = { version = "0.1.0", default-features = false }
 drogue-temperature = { path = "../../../apps/temperature", default-features = false }
-drogue-update = { path = "../../../apps/update", default-features = false }
+
+drogue-update = { path = "../../../apps/update", default-features = false, optional = true }
+embassy-boot-stm32 = { version = "0.1.0", default-features = false, optional = true }
 
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 
@@ -59,3 +60,4 @@ debug = [
 tls = ["embedded-tls", "embedded-tls/defmt", "drogue-device/tls", "drogue-temperature/tls", "drogue-update/tls"]
 b-l4s5i-iot01a = ["embassy-stm32/stm32l4s5vi", "drogue-device/bsp+b_l4s5i_iot01a"]
 b-l475e-iot01a = ["embassy-stm32/stm32l475vg", "drogue-device/bsp+b_l475e_iot01a"]
+dfu = ["embassy-boot-stm32", "drogue-update"]
