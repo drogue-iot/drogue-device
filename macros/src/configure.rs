@@ -15,25 +15,26 @@ lazy_static! {
     // merge "wins". The CONFIG_FILE beneath $HOME has the lowest
     // precedence.
     static ref CONFIG: HashMap<String, String> = {
-        let mut config = Config::default();
+        let mut config = Config::builder();
         let global = PathBuf::from(env::var_os("HOME").unwrap()).join(CONFIG_FILE);
         if global.is_file() {
-            config.merge(File::from(global.as_path())).unwrap();
+            config = config.add_source(File::from(global.as_path()));
         }
         let mut path = PathBuf::new();
         for c in PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).components() {
             path.push(c);
             let local = path.join(CONFIG_FILE);
             if local.is_file() && local != global {
-                config.merge(File::from(local)).unwrap();
+                config = config.add_source(File::from(local));
             }
         }
 
         // Override using environment variable config
         if let Some(cfg) = env::var_os("DROGUE_CONFIG") {
-            config.merge(File::from(PathBuf::from(cfg))).unwrap();
+            config = config.add_source(File::from(PathBuf::from(cfg)));
         }
-        config.try_into().unwrap_or(HashMap::default())
+        let config = config.build().unwrap_or(Config::default());
+        config.try_deserialize().unwrap_or(HashMap::default())
     };
 }
 
