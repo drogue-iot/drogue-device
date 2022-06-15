@@ -7,7 +7,7 @@
 [![Matrix](https://img.shields.io/matrix/drogue-iot:matrix.org)](https://matrix.to/#/#drogue-iot:matrix.org)
 [![Bors enabled](https://bors.tech/images/badge_small.svg)](https://app.bors.tech/repositories/40676)
 
-Drogue device is a distribution of utilities and examples for building embedded applications in Rust.
+Drogue device is a distribution of tools and examples for building embedded applications in Rust.
 
 * Built using [rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.
 * Based on [embassy](https://github.com/embassy-rs/embassy), the embedded async project. 
