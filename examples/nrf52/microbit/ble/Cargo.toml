@@ -22,7 +22,7 @@ drogue-device = { version = "0.1.0", path = "../../../../device", default-featur
 embassy-boot-nrf = { version = "0.1.0", default-features = false, features = ["softdevice"] }
 embassy = { version = "0.1.0", default-features = false, features = ["unstable-traits"] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "gpiote", "time-driver-rtc1"]}
-embedded-update = { version = "0.3.0", features = ["nightly"], optional = true }
+embedded-update = { version = "0.4.0", features = ["nightly"], optional = true }
 
 cortex-m    = { version = "0.7.2" }
 cortex-m-rt = "0.7"

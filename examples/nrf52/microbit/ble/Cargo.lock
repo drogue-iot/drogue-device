@@ -258,6 +258,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "cobs"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67ba02a97a2bd10f4b59b25c7973101c79642302776489e030cd13cdab09ed15"
+
+[[package]]
 name = "config"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -593,7 +599,7 @@ dependencies = [
  "nrf-softdevice",
  "nrf-softdevice-s113",
  "p256 0.10.1",
- "postcard",
+ "postcard 0.7.3",
  "rand_core",
  "serde",
  "serde_cbor",
@@ -895,15 +901,15 @@ dependencies = [
 
 [[package]]
 name = "embedded-update"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ebd280a1111d84512d6cc2e08d29c0405b104ba70c9ba698a0c2840063c7292"
+checksum = "1b971bc1d7459ac960f60177059f8cebb210d45c364a270547769e7670bf6535"
 dependencies = [
  "embedded-hal-async",
  "embedded-io",
  "futures",
  "heapless",
- "postcard",
+ "postcard 1.0.0-alpha.3",
  "serde",
 ]
 
@@ -1131,9 +1137,9 @@ dependencies = [
 
 [[package]]
 name = "heapless"
-version = "0.7.13"
+version = "0.7.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a08e755adbc0ad283725b29f4a4883deee15336f372d5f61fae59efec40f983"
+checksum = "065681e99f9ef7e0e813702a0326aedbcbbde7db5e55f097aedd1bf50b9dca43"
 dependencies = [
  "atomic-polyfill",
  "defmt",
@@ -1551,6 +1557,16 @@ checksum = "a25c0b0ae06fcffe600ad392aabfa535696c8973f2253d9ac83171924c58a858"
 dependencies = [
  "heapless",
  "postcard-cobs",
+ "serde",
+]
+
+[[package]]
+name = "postcard"
+version = "1.0.0-alpha.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85907ada24e856e554bd8eebe0dc133697bf8b0313ff6063d46bad77a252cbb5"
+dependencies = [
+ "cobs",
  "serde",
 ]
 
