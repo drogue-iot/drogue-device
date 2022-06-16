@@ -2,9 +2,9 @@
 
 This example application runs out of the box on the BBC micro:bit v2.0. It starts a BLE (Bluetooth
 Low Energy) environment sensing service (as defined by specification) as well as a firmware update
-service.
+service if configured.
 
-The example assumes that the nRF softdevice is installed. With this example, you can use BLE  or UART to update your microbit.
+The example assumes that the nRF softdevice is installed. With this example, you can use BLE  or UART to update your microbit if you enable the `dfu` feature when compiling.
 
 == Prerequisites
 
@@ -22,13 +22,32 @@ Make sure you have the latest versions (`cargo install <tool>`) of these tools:
 * `cargo-flash`
 * `cargo-binutils`
 
-== Usage
+== Running
 
 === Erase current settings
 
 ```
 probe-rs-cli erase --chip nRF52833_xxAA
 ```
+
+=== Flash nRF Softdevice
+
+Download the softdevice version 7.3.0 link:https://www.nordicsemi.com/Products/Development-software/s113/download[here].
+
+```
+probe-rs-cli download s113_nrf52_7.3.0_softdevice.hex --chip nRF52833_xxAA --format Hex
+```
+
+=== Flash application
+
+```
+cargo flash --release --chip nRF52833_xxAA
+```
+
+When started, the device will blink the letter 'A' on the LED matrix.
+
+
+== Running with firmware updates enabled
 
 === Flash bootloader
 
@@ -44,10 +63,10 @@ Download the softdevice version 7.3.0 link:https://www.nordicsemi.com/Products/D
 probe-rs-cli download s113_nrf52_7.3.0_softdevice.hex --chip nRF52833_xxAA --format Hex
 ```
 
-=== Flash application
+=== Flash application with `dfu` flag enabled
 
 ```
-cargo flash --release --chip nRF52833_xxAA
+cargo flash --release --features dfu --chip nRF52833_xxAA
 ```
 
 When started, the device will blink the letter 'A' on the LED matrix.
