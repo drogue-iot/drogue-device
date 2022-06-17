@@ -630,6 +630,7 @@ dependencies = [
  "drogue-device-macros",
  "ector",
  "embassy",
+ "embassy-boot",
  "embassy-lora",
  "embassy-stm32",
  "embedded-hal 0.2.7",
@@ -645,9 +646,12 @@ dependencies = [
  "futures",
  "futures-intrusive",
  "heapless",
- "lorawan",
+ "lorawan 0.7.1",
  "lorawan-device",
+ "postcard 0.7.3",
  "rand_core",
+ "serde",
+ "serde_cbor",
 ]
 
 [[package]]
@@ -742,6 +746,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "embassy-boot"
+version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
+dependencies = [
+ "defmt",
+ "embassy",
+ "embedded-storage",
+ "embedded-storage-async",
+]
+
+[[package]]
+name = "embassy-boot-stm32"
+version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
+dependencies = [
+ "cfg-if",
+ "cortex-m",
+ "cortex-m-rt",
+ "defmt",
+ "embassy",
+ "embassy-boot",
+ "embassy-stm32",
+ "embedded-storage",
+ "embedded-storage-async",
+]
+
+[[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
 source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
@@ -764,7 +795,7 @@ dependencies = [
  "embedded-hal 1.0.0-alpha.8",
  "embedded-hal-async",
  "futures",
- "lorawan",
+ "lorawan 0.7.1",
  "lorawan-device",
 ]
 
@@ -938,7 +969,7 @@ dependencies = [
  "embedded-io",
  "futures",
  "heapless",
- "postcard",
+ "postcard 1.0.0-alpha.3",
  "serde",
 ]
 
@@ -1112,6 +1143,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "half"
+version = "1.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eabb4a44450da02c90444cf74558da904edde8fb4e9035a9a6a4e15445af0bd7"
+
+[[package]]
 name = "hash32"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1139,6 +1176,7 @@ dependencies = [
  "defmt",
  "hash32",
  "rustc_version 0.4.0",
+ "serde",
  "spin",
  "stable_deref_trait",
 ]
@@ -1205,6 +1243,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a257582fdcde896fd96463bf2d40eefea0580021c0712a0e2b028b60b47a837a"
 
 [[package]]
+name = "iot01a-bootloader"
+version = "0.1.0"
+dependencies = [
+ "cfg-if",
+ "cortex-m",
+ "cortex-m-rt",
+ "defmt",
+ "defmt-rtt",
+ "embassy",
+ "embassy-boot",
+ "embassy-boot-stm32",
+ "embassy-stm32",
+ "embedded-storage",
+ "embedded-storage-async",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1260,6 +1315,27 @@ dependencies = [
 
 [[package]]
 name = "lorawan"
+version = "0.1.0"
+dependencies = [
+ "cortex-m",
+ "cortex-m-rt",
+ "defmt",
+ "defmt-rtt",
+ "drogue-device",
+ "drogue-lorawan-app",
+ "embassy",
+ "embassy-boot-stm32",
+ "embassy-lora",
+ "embassy-stm32",
+ "embedded-hal 0.2.7",
+ "heapless",
+ "panic-probe",
+ "rand_core",
+ "void",
+]
+
+[[package]]
+name = "lorawan"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d54ed101795a78f7c3d765545b7b721143a7573d2a1d8d40055361647328bba3"
@@ -1279,8 +1355,29 @@ dependencies = [
  "futures",
  "generic-array 0.14.5",
  "heapless",
- "lorawan",
+ "lorawan 0.7.1",
  "rand_core",
+]
+
+[[package]]
+name = "lorawan-dfu"
+version = "0.1.0"
+dependencies = [
+ "cortex-m",
+ "cortex-m-rt",
+ "defmt",
+ "defmt-rtt",
+ "drogue-device",
+ "embassy",
+ "embassy-boot-stm32",
+ "embassy-lora",
+ "embassy-stm32",
+ "embedded-hal 0.2.7",
+ "embedded-update",
+ "heapless",
+ "panic-probe",
+ "rand_core",
+ "void",
 ]
 
 [[package]]
@@ -1339,26 +1436,6 @@ checksum = "a8903e5a29a317527874d0402f867152a3d21c908bb0b933e416c65e301d4c36"
 dependencies = [
  "memchr",
  "minimal-lexical",
-]
-
-[[package]]
-name = "nucleo-wl55"
-version = "0.1.0"
-dependencies = [
- "cortex-m",
- "cortex-m-rt",
- "defmt",
- "defmt-rtt",
- "drogue-device",
- "drogue-lorawan-app",
- "embassy",
- "embassy-lora",
- "embassy-stm32",
- "embedded-hal 0.2.7",
- "heapless",
- "panic-probe",
- "rand_core",
- "void",
 ]
 
 [[package]]
@@ -1528,6 +1605,17 @@ dependencies = [
 
 [[package]]
 name = "postcard"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a25c0b0ae06fcffe600ad392aabfa535696c8973f2253d9ac83171924c58a858"
+dependencies = [
+ "heapless",
+ "postcard-cobs",
+ "serde",
+]
+
+[[package]]
+name = "postcard"
 version = "1.0.0-alpha.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85907ada24e856e554bd8eebe0dc133697bf8b0313ff6063d46bad77a252cbb5"
@@ -1535,6 +1623,12 @@ dependencies = [
  "cobs",
  "serde",
 ]
+
+[[package]]
+name = "postcard-cobs"
+version = "0.1.5-pre"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c68cb38ed13fd7bc9dd5db8f165b7c8d9c1a315104083a2b10f11354c2af97f"
 
 [[package]]
 name = "proc-macro-error"
@@ -1750,6 +1844,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61ea8d54c77f8315140a05f4c7237403bf38b72704d031543aa1d16abbf517d1"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde_cbor"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2bef2ebfde456fb76bbcf9f59315333decc4fda0b2b44b420243c11e0f5ec1f5"
+dependencies = [
+ "half",
+ "serde",
 ]
 
 [[package]]

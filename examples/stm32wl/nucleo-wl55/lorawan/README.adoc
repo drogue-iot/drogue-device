@@ -1,0 +1,85 @@
+== STM32 Nucleo-WL55 example
+
+This example application runs out of the box on the STM32 Nucleo-WL55 Kit (NUCLEO-WL55JC2)
+
+=== Prerequisites
+
+==== Hardware
+
+* link:https://www.st.com/en/evaluation-tools/nucleo-wl55jc.html[STM32 NUCLEO-WL55JC2]
+
+==== Software
+
+To build and flash the example, you need to have https://rustup.rs/[rustup]. In practice you can use whatever tool you want to flash the device, but this guide will assume that `probe-run` is used (`cargo install probe-run`).
+
+=== Configuring
+
+_Over The Air Authentication_ (OTAA) credentials will come from these entries in `~/.drogue/config.toml`:
+
+....
+"dev-eui" = "..."
+"app-eui" = "..."
+"app-key" = "..."
+....
+
+=== Building
+
+To build the firmware:
+
+....
+cargo build --release
+....
+
+=== Running
+
+Flashing the firmware uses `probe-run` which auto-detects the probe connected to your device. 
+The following command will build and flash the firmware and open the
+debugger console so you can see the console debug output.
+
+....
+DEFMT_LOG=info cargo run --release
+....
+
+
+=== Usage
+
+Once the device is flashed, it will connect to the local LoRaWAN network. Once the network is joined, you can press the B1 button on the development kit to send a test message `ping:<num-clicks>`, where `num-clicks` is the number of times you pressed the button since resetting the board.
+
+==== LEDs
+
+The board features 3 user controllable LEDs. The program will use 3 of them to show the internal status:
+
+Blue:: Will light up when starting and turn off once it joined the LoRa network.
+Green:: Turns on while sending the uplink message.
+Red:: Can be controlled through the downlink message: `led:on` or `led:off`.
+
+=== Enabling firmware updates
+
+You can also use this example with `embassy-boot` to enable firmware updates over the air! To do
+that, you must flash the bootloader:
+
+....
+cargo flash --manifest-path ../bootloader/Cargo.toml --release --no-default-features --chip STM32WLE5JCIx
+....
+
+You can then run the application with the `dfu` parameter:
+
+....
+DEFMT_LOG=info cargo run --release --features dfu
+....
+
+
+
+=== Troubleshooting
+
+If you’re experiencing problems, try setting the `VID:PID` values to
+that of your probe (you can find that from lsusb once your board is
+powered).
+
+....
+cargo run --release -- --probe <VID>:<PID>
+....
+
+
+
+
