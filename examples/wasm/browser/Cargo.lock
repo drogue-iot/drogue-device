@@ -280,6 +280,7 @@ version = "0.1.0"
 dependencies = [
  "atomic-polyfill",
  "base64",
+ "cortex-m",
  "critical-section",
  "drogue-device-macros",
  "ector",
@@ -451,9 +452,9 @@ dependencies = [
 
 [[package]]
 name = "embedded-update"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b971bc1d7459ac960f60177059f8cebb210d45c364a270547769e7670bf6535"
+checksum = "1eec5abd09791d3b33a10da8d924e099c00f86cb8cf27019ff65a65dbe0f4484"
 dependencies = [
  "embedded-hal-async",
  "embedded-io",

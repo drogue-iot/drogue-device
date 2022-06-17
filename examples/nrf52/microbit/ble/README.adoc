@@ -4,7 +4,7 @@ This example application runs out of the box on the BBC micro:bit v2.0. It start
 Low Energy) environment sensing service (as defined by specification) as well as a firmware update
 service if configured.
 
-The example assumes that the nRF softdevice is installed. With this example, you can use BLE  or UART to update your microbit if you enable the `dfu` feature when compiling.
+The example assumes that the nRF softdevice is installed. With this example, you can use BLE  to update your microbit if you enable the `dfu` feature when compiling.
 
 == Prerequisites
 
@@ -76,7 +76,7 @@ When started, the device will blink the letter 'A' on the LED matrix.
 One change you can do is to set the REVISION environment variable, which will adjust the text that is printed on the LED matrix. We can then rebuild the application and flash it using the `drgdfu` tool.
 
 ```
-REVISION=myupdate cargo objcopy --release -- -O binary update.bin
+REVISION=myupdate cargo objcopy --features dfu --release -- -O binary update.bin
 ```
 
 Modifying the version in `Cargo.toml` or passing a `REVISION` environment variable will compile the firmware with a new version identifier. This identifier can be used to decide if a firmware update is needed at all by the `drgdfu`.

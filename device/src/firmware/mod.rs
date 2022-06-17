@@ -101,8 +101,13 @@ where
     /// Finish firmware update: instruct flash to swap and reset device.
     pub async fn update(&mut self, _: &[u8], _: &[u8]) -> Result<(), Error> {
         self.swap().await?;
-        #[cfg(feature = "cortex_m")]
-        cortex_m::peripheral::SCB::sys_reset();
+        #[cfg(cortex_m)]
+        {
+            debug!("Resetting device");
+            cortex_m::peripheral::SCB::sys_reset();
+        }
+
+        #[cfg(not(cortex_m))]
         Ok(())
     }
 
