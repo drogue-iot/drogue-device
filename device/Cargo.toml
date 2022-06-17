@@ -48,7 +48,7 @@ rand_core = { version = "0.6.2", default-features = false }
 rand = { version = "0.8.4", default-features = false, features = ["small_rng"], optional = true }
 
 # If needed
-cortex-m = { version = "0.7", features = ["inline-asm"] }
+cortex-m = { version = "0.7" }
 
 # Utilities
 futures = { version = "0.3", default-features = false }
