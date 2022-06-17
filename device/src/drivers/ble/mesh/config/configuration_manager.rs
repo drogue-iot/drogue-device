@@ -120,10 +120,10 @@ impl<S: Storage> ConfigurationManager<S> {
         .await
         .ok();
         // todo don't assume cortex-m some day
-        #[cfg(feature = "cortex-m")]
+        #[cfg(cortex_m)]
         cortex_m::peripheral::SCB::sys_reset();
 
-        #[cfg(not(feature = "cortex-m"))]
+        #[cfg(not(cortex_m))]
         loop {}
     }
 

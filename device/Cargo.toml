@@ -39,7 +39,7 @@ moveslice = { version = "2.0", optional = true }
 embedded-nal = "0.6.0"
 embedded-nal-async = { version = "0.1.0", git = "https://github.com/lulf/embedded-nal.git", rev = "7e46d533090882ce9a449f544055c09e6d241e55" }
 #firmware-updater = { git = "https://github.com/drogue-iot/firmware-updater.git", branch = "main", default-features = false }
-embedded-update = { version = "0.4.0", default-features = false, features = ["nightly"] }
+embedded-update = { version = "0.5.0", default-features = false, features = ["nightly"] }
 
 # TLS dependency
 embedded-tls = { version = "0.8.0", default-features = false, features = ["async"], optional = true}
@@ -48,7 +48,7 @@ rand_core = { version = "0.6.2", default-features = false }
 rand = { version = "0.8.4", default-features = false, features = ["small_rng"], optional = true }
 
 # If needed
-cortex-m = { version = "0.7", features = ["inline-asm"], optional = true }
+cortex-m = { version = "0.7", features = ["inline-asm"] }
 
 # Utilities
 futures = { version = "0.3", default-features = false }
@@ -182,4 +182,4 @@ nrf = [
 "bsp+microbit+temp" = ["bsp+microbit"]
 "bsp+adafruit_feather_nrf52840" = [ "nrf", "neopixel" ]
 "bsp+b_l072z_lrwan1" = [ "embassy-stm32" ]
-"bsp+rak811" = [ "embassy-stm32", "rand", "embassy-stm32/unstable-pac", "cortex-m" ]
+"bsp+rak811" = [ "embassy-stm32", "rand", "embassy-stm32/unstable-pac" ]
