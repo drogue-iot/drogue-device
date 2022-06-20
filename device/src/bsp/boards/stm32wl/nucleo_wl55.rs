@@ -4,6 +4,7 @@ use crate::drivers::led::{ActiveHigh, Led};
 use embassy_lora::stm32wl::*;
 use embassy_stm32::dma::NoDma;
 use embassy_stm32::exti::ExtiInput;
+use embassy_stm32::flash::Flash;
 use embassy_stm32::gpio::Pin;
 use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
 use embassy_stm32::interrupt;
@@ -41,6 +42,7 @@ pub struct NucleoWl55 {
     pub user_button_b3: UserButtonB3,
     pub rng: Rng,
     pub radio: Radio,
+    pub flash: Flash<'static>,
 }
 
 impl NucleoWl55 {
@@ -62,6 +64,7 @@ impl Board for NucleoWl55 {
                 w.set_rngsel(0b01);
             });
         }
+        let flash = Flash::unlock(p.FLASH);
 
         let led_blue = Led::new(Output::new(p.PB15, Level::Low, Speed::Low));
         let led_green = Led::new(Output::new(p.PB9, Level::Low, Speed::Low));
@@ -94,6 +97,7 @@ impl Board for NucleoWl55 {
             user_button_b3,
             rng,
             radio,
+            flash,
         }
     }
 }
