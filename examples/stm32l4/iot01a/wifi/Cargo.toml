@@ -37,7 +37,7 @@ embedded-io = "0.3.0"
 
 atomic-polyfill = "0.1"
 embassy = { version = "0.1.0", default-features = false, features=["time", "time-tick-32768hz", "nightly", "unstable-traits"] }
-embassy-stm32 = { version = "0.1.0", default-features = false, features = ["time-driver-any"] }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["time-driver-any", "unstable-traits"] }
 drogue-temperature = { path = "../../../apps/temperature", default-features = false }
 
 drogue-update = { path = "../../../apps/update", default-features = false, optional = true }

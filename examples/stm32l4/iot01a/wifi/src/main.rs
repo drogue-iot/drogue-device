@@ -13,7 +13,6 @@ use drogue_device::{
     bsp::{boards::stm32l4::iot01a::*, Board},
     domain::temperature::Celsius,
     traits::wifi::*,
-    *,
 };
 use drogue_temperature::*;
 use embassy::time::Duration;

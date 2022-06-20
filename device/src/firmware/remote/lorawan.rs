@@ -1,6 +1,4 @@
 use core::future::Future;
-use embassy::channel::{Channel, DynamicReceiver, DynamicSender};
-use embedded_nal_async::{SocketAddr, TcpClient};
 use embedded_update::{Command, Status, UpdateService};
 use serde::Serialize;
 
@@ -36,6 +34,17 @@ pub enum Error {
     Protocol,
 }
 
+#[cfg(feature = "defmt")]
+impl defmt::Format for Error {
+    fn format(&self, f: defmt::Formatter<'_>) {
+        match self {
+            Self::Network(e) => e.format(f),
+            Self::Codec(e) => defmt::write!(f, "{}", defmt::Debug2Format(&e)),
+            Self::Protocol => defmt::write!(f, "Protocol"),
+        }
+    }
+}
+
 impl<D> UpdateService for LorawanService<D>
 where
     D: LoraDriver,
@@ -50,18 +59,22 @@ where
             let writer = ser.into_inner();
             let size = writer.bytes_written();
 
+            debug!("Sending status update over lorawan link");
             let rx_len = self
                 .driver
-                .send_recv(QoS::Confirmed, 1, &self.tx[..size], &mut self.rx[..])
+                // Using port 223 for firmware updates
+                .send_recv(QoS::Confirmed, 223, &self.tx[..size], &mut self.rx[..])
                 .await
                 .map_err(|e| Error::Network(e))?;
-            if rx_len > 4 && &self.rx[..4] == b"dfu:" {
-                let command: Command<'m> =
-                    serde_cbor::de::from_mut_slice(&mut self.rx[4..rx_len - 4])
-                        .map_err(|e| Error::Codec(e))?;
+            if rx_len > 0 {
+                debug!("Received DFU command!");
+                let command: Command<'m> = serde_cbor::de::from_mut_slice(&mut self.rx[..rx_len])
+                    .map_err(|e| Error::Codec(e))?;
                 Ok(command)
             } else {
-                Err(Error::Protocol)
+                //debug!("Got RX len: {}, bytes: {:x}", rx_len, &self.rx[..rx_len]);
+                debug!("No command received, let's wait");
+                Ok(Command::new_wait(Some(60), None))
             }
         }
     }

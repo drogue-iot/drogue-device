@@ -5,6 +5,7 @@
 #![feature(type_alias_impl_trait)]
 
 use core::future::Future;
+use drogue_device::bsp::boards::nrf52::adafruit_feather_nrf52840::*;
 use drogue_device::drivers::ble::mesh::bearer::nrf52::{
     Nrf52BleMeshFacilities, SoftdeviceAdvertisingBearer, SoftdeviceRng,
 };
@@ -26,7 +27,6 @@ use drogue_device::drivers::ble::mesh::provisioning::{
 use drogue_device::drivers::ble::mesh::storage::FlashStorage;
 use drogue_device::drivers::ble::mesh::InsufficientBuffer;
 use drogue_device::drivers::led::Led;
-use drogue_device::traits::led::Led as _;
 use drogue_device::{
     actors::ble::mesh::{MeshNode, MeshNodeMessage},
     drivers::ble::mesh::model::firmware::{
@@ -42,7 +42,6 @@ use drogue_device::{
     flash::{FlashState, SharedFlash},
     Board,
 };
-use drogue_device::{bsp::boards::nrf52::adafruit_feather_nrf52840::*, traits::button::Button};
 use embassy::channel::{Channel, DynamicReceiver, DynamicSender};
 use embassy::time::Ticker;
 use embassy::time::{Duration, Timer};
