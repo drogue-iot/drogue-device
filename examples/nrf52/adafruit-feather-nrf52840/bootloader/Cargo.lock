@@ -972,9 +972,9 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "postcard"
-version = "1.0.0-alpha.3"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85907ada24e856e554bd8eebe0dc133697bf8b0313ff6063d46bad77a252cbb5"
+checksum = "beb9d9bc911a7aa6af3596bf01d9810069ac2ebb8b348f36a344af20f441700b"
 dependencies = [
  "cobs",
  "serde",

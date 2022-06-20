@@ -16,7 +16,6 @@ embedded-hal = { version = "0.2.4", features = ["unproven"] }
 defmt = "0.3"
 defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
-#panic-halt = "0.2"
 
 drogue-lorawan-app = { path = "../../../apps/lorawan" }
 drogue-device = { path = "../../../../device", features = ["lora", "defmt", "bsp+nucleo_wl55"], default-features = false }
@@ -29,7 +28,3 @@ rand_core = { version = "0.6", default-features = false }
 embassy = { version = "0.1.0", default-features = false, features = ["time-tick-32768hz"] }
 embassy-lora = { version = "0.1.0", default-features = false, features = ["stm32wl"] }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["defmt", "stm32wl55jc-cm4", "time-driver-any", "unstable-pac", "subghz"] }
-embassy-boot-stm32 = { version = "0.1.0", default-features = false, optional = true }
-
-[features]
-dfu = ["embassy-boot-stm32", "drogue-device/dfu"]

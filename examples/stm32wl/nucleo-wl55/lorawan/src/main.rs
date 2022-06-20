@@ -26,8 +26,8 @@ static DEVICE: Forever<LoraDevice<BSP>> = Forever::new();
 impl LoraBoard for BSP {
     type JoinLed = LedBlue;
     type TxLed = LedGreen;
-    type CommandLed = LedYellow;
-    type SendTrigger = UserButton;
+    type CommandLed = LedRed;
+    type SendTrigger = UserButtonB1;
     type Driver = Device<Radio, Rng>;
 }
 
@@ -45,10 +45,10 @@ async fn main(spawner: Spawner, p: Peripherals) {
     let lora = Device::new(&config, board.radio, board.rng).unwrap();
 
     let config = LoraDeviceConfig {
-        join_led: Some(board.led_blue),
-        tx_led: Some(board.led_green),
-        command_led: Some(board.led_yellow),
-        send_trigger: board.user_button,
+        join_led: Some(board.blue_led),
+        tx_led: Some(board.green_led),
+        command_led: Some(board.red_led),
+        send_trigger: board.user_button_b1,
         driver: lora,
     };
     DEVICE.put(LoraDevice::new()).mount(spawner, config).await;

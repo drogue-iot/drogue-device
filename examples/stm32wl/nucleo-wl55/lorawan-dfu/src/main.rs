@@ -10,6 +10,7 @@ use drogue_device::{
     drivers::lora::LoraDevice as Device,
     firmware::{remote::LorawanService, FirmwareManager},
     traits::lora::{JoinMode, LoraConfig, LoraDriver, LoraMode, LoraRegion, SpreadingFactor},
+    *,
 };
 use embassy::executor::Spawner;
 use embassy::time::Delay;
@@ -91,12 +92,9 @@ async fn main(_spawner: Spawner, p: Peripherals) {
     }
 }
 
-//const DEV_EUI: &str = drogue::config!("dev-eui");
-//const APP_EUI: &str = drogue::config!("app-eui");
-//const APP_KEY: &str = drogue::config!("app-key");
-const APP_EUI: &str = "0000000000000000";
-const DEV_EUI: &str = "72D71B613E086B02";
-const APP_KEY: &str = "A935CC58C4D99A99F59594F38F3E37D5";
+const DEV_EUI: &str = drogue::config!("dev-eui");
+const APP_EUI: &str = drogue::config!("app-eui");
+const APP_KEY: &str = drogue::config!("app-key");
 
 pub struct FirmwareConfig<F: NorFlash + ReadNorFlash> {
     flash: BlockingAsync<F>,
