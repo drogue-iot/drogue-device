@@ -13,13 +13,13 @@ use embassy_stm32::peripherals::{PA0, PA1, PB11, PB15, PB9, PC6, RNG};
 use embassy_stm32::subghz::*;
 
 pub type PinLedBlue = Output<'static, PB15>;
-pub type LedBlue = Led<PinLedBlue, ActiveLow>;
+pub type LedBlue = Led<PinLedBlue, ActiveHigh>;
 
 pub type PinLedGreen = Output<'static, PB9>;
-pub type LedGreen = Led<PinLedGreen, ActiveLow>;
+pub type LedGreen = Led<PinLedGreen, ActiveHigh>;
 
-pub type PinLedYellow = Output<'static, PB11>;
-pub type LedYellow = Led<PinLedYellow, ActiveLow>;
+pub type PinLedRed = Output<'static, PB11>;
+pub type LedRed = Led<PinLedRed, ActiveHigh>;
 
 pub type PinUserButtonB1 = Input<'static, PA0>;
 pub type UserButtonB1 = Button<ExtiInput<'static, PA0>>;
@@ -34,9 +34,9 @@ pub type Radio = SubGhzRadio<'static>;
 pub type Rng = embassy_stm32::rng::Rng<'static, RNG>;
 
 pub struct NucleoWl55 {
-    pub led_blue: LedBlue,
-    pub led_green: LedGreen,
-    pub led_yellow: LedYellow,
+    pub blue_led: LedBlue,
+    pub green_led: LedGreen,
+    pub red_led: LedRed,
     pub user_button_b1: UserButtonB1,
     pub user_button_b2: UserButtonB2,
     pub user_button_b3: UserButtonB3,
@@ -66,9 +66,9 @@ impl Board for NucleoWl55 {
         }
         let flash = Flash::unlock(p.FLASH);
 
-        let led_blue = Led::new(Output::new(p.PB15, Level::Low, Speed::Low));
-        let led_green = Led::new(Output::new(p.PB9, Level::Low, Speed::Low));
-        let led_yellow = Led::new(Output::new(p.PB11, Level::Low, Speed::Low));
+        let blue_led = Led::new(Output::new(p.PB15, Level::Low, Speed::Low));
+        let green_led = Led::new(Output::new(p.PB9, Level::Low, Speed::Low));
+        let red_led = Led::new(Output::new(p.PB11, Level::Low, Speed::Low));
 
         let button_b1 = Input::new(p.PA0, Pull::Up);
         let user_button_b1 = Button::new(ExtiInput::new(button_b1, p.EXTI0));
@@ -89,9 +89,9 @@ impl Board for NucleoWl55 {
         let radio = unsafe { SubGhzRadio::new(&mut RADIO_STATE, radio, rfs, irq) };
         let rng = Rng::new(p.RNG);
         Self {
-            led_blue,
-            led_green,
-            led_yellow,
+            blue_led,
+            green_led,
+            red_led,
             user_button_b1,
             user_button_b2,
             user_button_b3,
