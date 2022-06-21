@@ -608,24 +608,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "drogue-update"
-version = "0.1.0"
-dependencies = [
- "drogue-device",
- "embassy",
- "embassy-boot",
- "embassy-embedded-hal",
- "embedded-hal 0.2.7",
- "embedded-io",
- "embedded-nal-async",
- "embedded-storage",
- "embedded-tls",
- "embedded-update",
- "heapless",
- "rand_core",
-]
-
-[[package]]
 name = "ector"
 version = "0.1.0"
 source = "git+https://github.com/drogue-iot/ector.git?rev=53a28cfed7b1030c1e841175ff8a5577251f30c8#53a28cfed7b1030c1e841175ff8a5577251f30c8"
@@ -1218,7 +1200,6 @@ dependencies = [
  "defmt-rtt",
  "drogue-device",
  "drogue-temperature",
- "drogue-update",
  "embassy",
  "embassy-boot-stm32",
  "embassy-stm32",
@@ -1226,6 +1207,7 @@ dependencies = [
  "embedded-io",
  "embedded-nal-async",
  "embedded-tls",
+ "embedded-update",
  "panic-probe",
  "panic-reset",
  "rand_core",

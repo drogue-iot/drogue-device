@@ -22,7 +22,7 @@ lorawan-encoding = { package = "lorawan", version = "0.7.1", default-features = 
 bit_field = { version = "0.10", optional = true }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["exti", "unstable-traits", "nightly"], optional = true }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["unstable-traits", "nightly"], optional = true }
-embassy-embedded-hal = { version = "0.1.0", default-features = false, optional = true }
+embassy-embedded-hal = { version = "0.1.0", default-features = false }
 embassy-lora = { version = "0.1.0", default-features = false, optional = true }
 embassy-net = { version = "0.1.0", default-features = false, optional = true, features= ["tcp", "medium-ethernet", "pool-16", "proto-ipv6", "dhcpv4" ]}
 #embassy-traits = { version = "0.1.0", default-features = false, optional = true }
@@ -174,8 +174,8 @@ nrf = [
 ]
 
 "bsp+b_u585i_iot02a" = [ "embassy-stm32" ]
-"bsp+b_l4s5i_iot01a" = [ "embassy-stm32", "embassy-embedded-hal" ]
-"bsp+b_l475e_iot01a" = [ "embassy-stm32", "embassy-embedded-hal" ]
+"bsp+b_l4s5i_iot01a" = [ "embassy-stm32" ]
+"bsp+b_l475e_iot01a" = [ "embassy-stm32" ]
 "bsp+nucleo_h743zi" = [ "embassy-stm32" ]
 "bsp+nucleo_wl55" = [ "embassy-stm32", "embassy-stm32/subghz", "embassy-stm32/unstable-pac" ]
 "bsp+microbit" = [ "embassy-nrf", "embassy-nrf/gpiote" ]

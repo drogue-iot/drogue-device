@@ -5,7 +5,6 @@ members = [
     "xtask",
     "examples/apps/blinky",
     "examples/apps/temperature",
-    "examples/apps/update",
 ]
 resolver = "2"
 
