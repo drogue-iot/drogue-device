@@ -1,51 +1,51 @@
-[package]
-authors = [
-    "Ulf Lilleengen <lulf@redhat.com>",
-    "Bob McWhirter <bmcwhirt@redhat.com>"
-]
-edition = "2018"
-name = "nucleo-wl55"
-version = "0.1.0"
-resolver = "2"
-description = "STM32 Nucleo-WL55 using LoRaWAN connecting to The Things Network"
-keywords = ["lorawan", "lora", "stm32wl", "stm32wl55", "networking", "iot", "stm32"]
-
 [workspace]
+members = [
+    "lorawan",
+    "lorawan-dfu",
+    "bootloader",
+]
 
-[dependencies]
-embedded-hal = { version = "0.2.4", features = ["unproven"] }
+resolver = "2"
 
-defmt = "0.3"
-defmt-rtt = "0.3"
-panic-probe = { version = "0.3", features = ["print-defmt"] }
-#panic-halt = "0.2"
-
-drogue-lorawan-app = { path = "../../apps/lorawan" }
-drogue-device = { path = "../../../device", features = ["lora", "defmt", "bsp+nucleo_wl55"], default-features = false }
-cortex-m-rt = ">=0.6.15,<0.8" #"0.7"
-cortex-m = { version = "0.7", features = ["inline-asm"] }
-heapless = "0.7"
-void = { version = "1", default-features = false }
-rand_core = { version = "0.6", default-features = false }
-
-embassy = { version = "0.1.0", default-features = false, features = ["time-tick-32768hz"] }
-embassy-lora = { version = "0.1.0", default-features = false, features = ["stm32wl"] }
-embassy-stm32 = { version = "0.1.0", default-features = false, features = ["defmt", "stm32wl55jc-cm4", "time-driver-any", "unstable-pac", "subghz"] }
+[profile.dev]
+codegen-units = 1
+debug = 2
+debug-assertions = true
+incremental = false
+opt-level = 3
+overflow-checks = true
 
 [profile.release]
 codegen-units = 1
 debug = 2
-#opt-level = 2
-opt-level = "z"
-lto = "fat"
 debug-assertions = false
 incremental = false
+lto = "fat"
+opt-level = 's'
+overflow-checks = false
+
+# do not optimize proc-macro crates = faster builds from scratch
+[profile.dev.build-override]
+codegen-units = 8
+debug = false
+debug-assertions = false
+opt-level = 0
+overflow-checks = false
+
+[profile.release.build-override]
+codegen-units = 8
+debug = false
+debug-assertions = false
+opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
 embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "77c7d8f31b89d13117a7294842d60f02950fdd23" }
 embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "77c7d8f31b89d13117a7294842d60f02950fdd23" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "77c7d8f31b89d13117a7294842d60f02950fdd23" }
 embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "77c7d8f31b89d13117a7294842d60f02950fdd23" }
+embassy-boot = {git = "https://github.com/embassy-rs/embassy.git", rev = "77c7d8f31b89d13117a7294842d60f02950fdd23" }
+embassy-boot-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "77c7d8f31b89d13117a7294842d60f02950fdd23" }
 ector = { git = "https://github.com/drogue-iot/ector.git", rev = "53a28cfed7b1030c1e841175ff8a5577251f30c8" }
 
 #embassy = { path = "../../../../../embassy/embassy" }

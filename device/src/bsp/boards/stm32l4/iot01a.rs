@@ -13,9 +13,7 @@ use embassy_stm32::peripherals::{
     DMA1_CH4, DMA1_CH5, DMA2_CH1, DMA2_CH2, I2C2, PA5, PB13, PB14, PC13, PD15, PE0, PE1, PE8, RNG,
     SPI3,
 };
-use embassy_stm32::rcc::{
-    AHBPrescaler, ClockSrc, MSIRange, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv,
-};
+use embassy_stm32::rcc::{AHBPrescaler, ClockSrc, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv};
 use embassy_stm32::rng;
 use embassy_stm32::spi;
 use embassy_stm32::time::Hertz;
@@ -60,13 +58,13 @@ pub struct Iot01a {
 
 impl Iot01a {
     pub fn config(enable_debug: bool) -> Config {
-        let mut config = Config::default();
+        let mut config = embassy_stm32::Config::default();
         config.rcc.mux = ClockSrc::PLL(
-            PLLSource::MSI(MSIRange::Range10),
-            PLLClkDiv::Div4,
+            PLLSource::HSI16,
+            PLLClkDiv::Div2,
             PLLSrcDiv::Div2,
             PLLMul::Mul12,
-            Some(PLLClkDiv::Div4),
+            Some(PLLClkDiv::Div2),
         );
         config.rcc.ahb_pre = AHBPrescaler::Div8;
         config.enable_debug_during_sleep = enable_debug;

@@ -32,7 +32,7 @@ impl Active for ActiveLow {
     }
 }
 
-pub struct Button<P, ACTIVE = ActiveHigh>
+pub struct Button<P, ACTIVE = ActiveLow>
 where
     P: Wait + InputPin + 'static,
     ACTIVE: Active,
@@ -54,6 +54,42 @@ where
     }
 }
 
+impl<P, ACTIVE> Button<P, ACTIVE>
+where
+    P: Wait + InputPin + 'static,
+    ACTIVE: Active,
+{
+    pub async fn wait_pressed(&mut self) {
+        loop {
+            self.pin.wait_for_any_edge().await.unwrap();
+            if ACTIVE::is_pressed(&self.pin).unwrap_or(false) {
+                break;
+            };
+        }
+    }
+
+    pub async fn wait_released(&mut self) {
+        loop {
+            self.pin.wait_for_any_edge().await.unwrap();
+            if ACTIVE::is_released(&self.pin).unwrap_or(false) {
+                break;
+            };
+        }
+    }
+
+    pub async fn wait_any(&mut self) -> Event {
+        loop {
+            self.pin.wait_for_any_edge().await.unwrap();
+            if ACTIVE::is_pressed(&self.pin).unwrap_or(false) {
+                return Event::Pressed;
+            }
+            if ACTIVE::is_released(&self.pin).unwrap_or(false) {
+                return Event::Released;
+            }
+        }
+    }
+}
+
 impl<P, ACTIVE> crate::traits::button::Button for Button<P, ACTIVE>
 where
     P: Wait + InputPin + 'static,
@@ -65,14 +101,7 @@ where
     where
         Self: 'm,
     {
-        async move {
-            loop {
-                self.pin.wait_for_any_edge().await.unwrap();
-                if ACTIVE::is_pressed(&self.pin).unwrap_or(false) {
-                    break;
-                };
-            }
-        }
+        Button::wait_pressed(self)
     }
 
     type WaitReleased<'m> = impl Future<Output = ()> + 'm where Self: 'm;
@@ -81,14 +110,7 @@ where
     where
         Self: 'm,
     {
-        async move {
-            loop {
-                self.pin.wait_for_any_edge().await.unwrap();
-                if ACTIVE::is_released(&self.pin).unwrap_or(false) {
-                    break;
-                };
-            }
-        }
+        Button::wait_released(self)
     }
 
     type WaitAny<'m> = impl Future<Output = Event> + 'm where Self: 'm;
@@ -97,16 +119,6 @@ where
     where
         Self: 'm,
     {
-        async move {
-            loop {
-                self.pin.wait_for_any_edge().await.unwrap();
-                if ACTIVE::is_pressed(&self.pin).unwrap_or(false) {
-                    return Event::Pressed;
-                }
-                if ACTIVE::is_released(&self.pin).unwrap_or(false) {
-                    return Event::Released;
-                }
-            }
-        }
+        Button::wait_any(self)
     }
 }

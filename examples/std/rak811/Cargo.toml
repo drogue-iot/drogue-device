@@ -19,7 +19,6 @@ drogue-device = { path = "../../../device", features = ["std", "lora+rak811", "t
 embedded-io = { version = "0.3.0", features = ["async", "std", "futures"] }
 embassy = { version = "0.1.0", default-features = false, features = ["std"] }
 ector = { version = "0.1.0" }
-rand = "0.8"
 cfg-if = "1.0.0"
 embedded-hal = {version = "0.2.4", features = ["unproven"] }
 embedded-hal-async = { version = "0.1.0-alpha.1" }

@@ -58,6 +58,20 @@ where
     }
 }
 
+impl<P, ACTIVE> Led<P, ACTIVE>
+where
+    P: OutputPin,
+    ACTIVE: Active<P>,
+{
+    pub fn on(&mut self) -> Result<(), P::Error> {
+        ACTIVE::set(&mut self.pin, true)
+    }
+
+    pub fn off(&mut self) -> Result<(), P::Error> {
+        ACTIVE::set(&mut self.pin, false)
+    }
+}
+
 impl<P, ACTIVE> crate::traits::led::Led for Led<P, ACTIVE>
 where
     P: OutputPin,
@@ -66,11 +80,11 @@ where
     type Error = P::Error;
 
     fn on(&mut self) -> Result<(), Self::Error> {
-        ACTIVE::set(&mut self.pin, true)
+        Led::on(self)
     }
 
     fn off(&mut self) -> Result<(), Self::Error> {
-        ACTIVE::set(&mut self.pin, false)
+        Led::off(self)
     }
 }
 

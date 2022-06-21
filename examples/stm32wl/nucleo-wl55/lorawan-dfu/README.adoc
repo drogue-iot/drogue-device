@@ -1,6 +1,7 @@
 == STM32 Nucleo-WL55 example
 
-This example application runs out of the box on the STM32 Nucleo-WL55 Kit (NUCLEO-WL55JC2)
+This example application runs out of the box on the STM32 Nucleo-WL55 Kit (NUCLEO-WL55JC2) doing
+firmware updates OTA.
 
 === Prerequisites
 
@@ -22,32 +23,21 @@ _Over The Air Authentication_ (OTAA) credentials will come from these entries in
 "app-key" = "..."
 ....
 
-=== Building
 
-To build the firmware:
 
-....
-cargo build --release
-....
+=== Running
 
-=== Flashing
-
-Flashing the firmware uses `probe-run` which auto-detects the probe connected to your device. 
-The following command will build and flash the firmware and open the
-debugger console so you can see the console debug output.
+First, flash the bootloader:
 
 ....
-cargo run --release
+cargo flash --manifest-path ../bootloader/Cargo.toml --release --no-default-features --chip STM32WLE5JCIx
 ....
 
-If you’re experiencing problems, try setting the `VID:PID` values to
-that of your probe (you can find that from lsusb once your board is
-powered).
+You can then run the application with the `dfu` parameter:
 
 ....
-cargo run --release -- --probe <VID>:<PID>
+DEFMT_LOG=info cargo run --release
 ....
-
 
 === Usage
 
@@ -59,4 +49,19 @@ The board features 3 user controllable LEDs. The program will use 3 of them to s
 
 Blue:: Will light up when starting and turn off once it joined the LoRa network.
 Green:: Turns on while sending the uplink message.
-Red:: Can be controlled through the downlink message: `led:on` or `led:off`.
+Red:: Turns on when receiving a downlink message and waiting for next uplink message.
+
+
+=== Troubleshooting
+
+If you’re experiencing problems, try setting the `VID:PID` values to
+that of your probe (you can find that from lsusb once your board is
+powered).
+
+....
+cargo run --release -- --probe <VID>:<PID>
+....
+
+
+
+

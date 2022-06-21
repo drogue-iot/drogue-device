@@ -1,0 +1,11 @@
+# Bootloader for STM32
+
+The bootloader uses `embassy-boot` to interact with the flash.
+
+# Usage
+
+Flash the bootloader
+
+```
+cargo flash --features --release --chip STM32L475VG
+```

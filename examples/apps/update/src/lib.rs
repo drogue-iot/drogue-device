@@ -15,7 +15,13 @@ use embedded_nal_async::{AddrType, Dns, IpAddr, Ipv4Addr, SocketAddr, TcpClient}
 use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
 use rand_core::{CryptoRng, RngCore};
 
-pub async fn run_updater<T: TcpClient, RNG: CryptoRng + RngCore, F: NorFlash + ReadNorFlash, const PAGE_SIZE: usize, const MTU: usize>(
+pub async fn run_updater<
+    T: TcpClient,
+    RNG: CryptoRng + RngCore,
+    F: NorFlash + ReadNorFlash,
+    const PAGE_SIZE: usize,
+    const MTU: usize,
+>(
     version: &'static [u8],
     updater: FirmwareUpdater,
     network: T,

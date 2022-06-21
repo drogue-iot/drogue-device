@@ -40,7 +40,7 @@ overflow-checks = false
 [patch.crates-io]
 embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "77c7d8f31b89d13117a7294842d60f02950fdd23" }
 embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "77c7d8f31b89d13117a7294842d60f02950fdd23" }
-rust-mqtt = { git = "https://github.com/obabec/rust-mqtt.git", rev = "e0b22059053e779a2a8c80cadd25cad1472e6640" }
+rust-mqtt = { git = "https://github.com/obabec/rust-mqtt.git", rev = "03546536b2b0c85512bf3758968d97632a05c57c" }
 ector = { git = "https://github.com/drogue-iot/ector.git", rev = "53a28cfed7b1030c1e841175ff8a5577251f30c8" }
 #rust-mqtt = { path = "../../../../../../rust-mqtt" }
 

@@ -12,7 +12,7 @@ defmt = { version = "0.3", optional = true }
 defmt-rtt = { version = "0.3", optional = true }
 
 embassy = { version = "0.1.0", default-features = false }
-embassy-stm32 = { version = "0.1.0", default-features = false, features = ["nightly"] }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["nightly", "stm32wl55jc-cm4"] }
 embassy-boot = { version = "0.1.0", default-features = false }
 embassy-boot-stm32 = { version = "0.1.0", default-features = false }
 cortex-m = { version = "0.7" }
@@ -22,7 +22,6 @@ embedded-storage-async = "0.3.0"
 cfg-if = "1.0.0"
 
 [features]
-default = ["b-l4s5i-iot01a"]
 defmt = [
     "dep:defmt",
     "embassy-boot/defmt",

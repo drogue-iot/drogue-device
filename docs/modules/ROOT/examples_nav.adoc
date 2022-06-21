@@ -22,11 +22,13 @@
 *** xref:examples/std/rak811/README.adoc[RAK811 LoRa Adapter with AT command firmware]
 *** xref:examples/stm32l0/lora-discovery/README.adoc[STM32 LoRaWAN Discovery board connecting to The Things Network]
 *** xref:examples/stm32l1/rak811/README.adoc[RAK811 Tracker Node connecting to The Things Network]
-*** xref:examples/stm32wl/nucleo-wl55/README.adoc[STM32 Nucleo-WL55 using LoRaWAN connecting to The Things Network]
+*** xref:examples/stm32wl/nucleo-wl55/lorawan-dfu/README.adoc[STM32 Nucleo-WL55 LoRaWAN and firmware updates OTA]
+*** xref:examples/stm32wl/nucleo-wl55/lorawan/README.adoc[STM32 Nucleo-WL55 using LoRaWAN connecting to The Things Network]
 ** Other
 *** xref:examples/nrf52/adafruit-feather-nrf52840/bootloader/README.adoc[Bootloader for Adafruit nRF52840 chips]
 *** xref:examples/nrf52/microbit/bootloader/README.adoc[Bootloader for BBC Micro:bit chips]
 *** xref:examples/stm32l4/iot01a/bootloader/README.adoc[Bootloader for STM32L4 iot01a boards]
+*** xref:examples/stm32wl/nucleo-wl55/bootloader/README.adoc[Bootloader for STM32L4 iot01a boards]
 ** Uart
 *** xref:examples/nrf52/microbit/uart/README.adoc[BBC micro:bit v2 uart and matrix display]
 ** Wifi
