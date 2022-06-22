@@ -62,17 +62,21 @@ async fn main(_spawner: Spawner, p: Peripherals) {
 
     let service = LorawanService::new(driver);
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
-    let mut device: FirmwareManager<FirmwareConfig<Flash<'static>>, 2048, 8> = FirmwareManager::new(
-        FirmwareConfig::new(board.flash),
-        FirmwareUpdater::default(),
-        version.as_bytes(),
-    );
+    let mut device: FirmwareManager<FirmwareConfig<Flash<'static>>, 2048, 32> =
+        FirmwareManager::new(
+            FirmwareConfig::new(board.flash),
+            FirmwareUpdater::default(),
+            version.as_bytes(),
+        );
+
+    /// Matches fair usage policy of TTN
+    const INTERVAL_MS: u32 = 1_124_000;
 
     let mut updater = embedded_update::FirmwareUpdater::new(
         service,
         embedded_update::UpdaterConfig {
             timeout_ms: 30_000,
-            backoff_ms: 10000,
+            backoff_ms: INTERVAL_MS,
         },
     );
 
@@ -80,15 +84,19 @@ async fn main(_spawner: Spawner, p: Peripherals) {
         defmt::info!("Starting updater task");
         board.green_led.on().ok();
         match updater.run(&mut device, &mut Delay).await {
-            Ok(s) => {
-                defmt::info!("Updater finished with status: {:?}", s);
-            }
+            Ok(s) => match s {
+                embedded_update::DeviceStatus::Updated => {
+                    defmt::debug!("Resetting device");
+                    cortex_m::peripheral::SCB::sys_reset();
+                }
+                embedded_update::DeviceStatus::Synced(_) => {}
+            },
             Err(e) => {
                 defmt::warn!("Error running updater: {:?}", e);
             }
         }
         board.green_led.off().ok();
-        Timer::after(Duration::from_secs(300)).await;
+        Timer::after(Duration::from_millis(INTERVAL_MS as u64)).await;
     }
 }
 

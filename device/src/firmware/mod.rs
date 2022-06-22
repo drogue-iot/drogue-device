@@ -62,7 +62,7 @@ where
     pub fn new(config: CONFIG, updater: FirmwareUpdater, version: &[u8]) -> Self {
         Self {
             current_version: Vec::from_slice(version).unwrap(),
-            next_version: Some(Vec::from_slice(b"0.2.0").unwrap()), //None,
+            next_version: None,
             config,
             updater,
             buffer: Aligned([0; PAGE_SIZE]),
