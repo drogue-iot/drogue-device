@@ -177,12 +177,25 @@ async fn updater_task(network: EsWifiClient, flash: Flash<'static>) {
         match updater.run(&mut device, &mut Delay).await {
             Ok(s) => {
                 defmt::info!("Updater finished with status: {:?}", s);
+                match s {
+                    DeviceStatus::Updated => {
+                        defmt::debug!("Resetting device");
+                        cortex_m::peripheral::SCB::sys_reset();
+                    }
+                    DeviceStatus::Synced(delay) => {
+                        if let Some(delay) = delay {
+                            Timer::after(Duration::from_secs(delay as u64)).await;
+                        } else {
+                            Timer::after(Duration::from_secs(10)).await;
+                        }
+                    }
+                }
             }
             Err(e) => {
                 defmt::warn!("Error running updater: {:?}", e);
+                Timer::after(Duration::from_secs(10)).await;
             }
         }
-        Timer::after(Duration::from_secs(10)).await;
     }
 }
 

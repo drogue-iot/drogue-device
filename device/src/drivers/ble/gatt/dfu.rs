@@ -61,6 +61,8 @@ where
                     self.dfu.start(&next_version[..]).await.map_err(|_| ())?;
                 } else if *value == 2 {
                     let _ = self.dfu.update(&next_version[..], &[]).await;
+                    debug!("Resetting device");
+                    cortex_m::peripheral::SCB::sys_reset();
                 } else if *value == 3 {
                     self.dfu.synced().await.map_or(Err(()), |_| Ok(()))?;
                 }

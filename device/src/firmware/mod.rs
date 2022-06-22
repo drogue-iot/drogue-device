@@ -94,7 +94,7 @@ where
             f: self.config.state(),
         };
         self.updater
-            // TODO: Support other erase sizes
+            // TODO: Support other word sizes
             .mark_booted::<FlashWriter<'_, CONFIG::STATE, 8>>(&mut w)
             .await
             .map_err(|e| e.kind())?;
@@ -104,13 +104,6 @@ where
     /// Finish firmware update: instruct flash to swap and reset device.
     pub async fn update(&mut self, _: &[u8], _: &[u8]) -> Result<(), Error> {
         self.swap().await?;
-        #[cfg(cortex_m)]
-        {
-            debug!("Resetting device");
-            cortex_m::peripheral::SCB::sys_reset();
-        }
-
-        #[cfg(not(cortex_m))]
         Ok(())
     }
 

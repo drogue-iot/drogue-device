@@ -18,7 +18,7 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 
 rand_core = { version = "0.6.2", default-features = false }
 
-drogue-device = { path = "../../../../../device", features = ["bsp+microbit+temp", "wifi+esp8266", "defmt", "time", "mqtt", "tls"], default-features = false }
+drogue-device = { path = "../../../../../device", features = ["bsp+microbit+temp", "wifi+esp8266", "defmt", "time", "tls"], default-features = false }
 embedded-tls = { version = "0.8.0", default-features = false, features = ["async", "defmt"]}
 cortex-m-rt = "0.6"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
@@ -30,4 +30,4 @@ embedded-nal-async = { version = "0.1.0", git = "https://github.com/lulf/embedde
 embassy = { version = "0.1.0", default-features = false, features = ["defmt"] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
 cfg-if = "1.0.0"
-rust-mqtt = { version = "0.1.3", default-features = false, features = ["defmt", "tls"] }
+rust-mqtt = { version = "0.1.4", default-features = false, features = ["defmt", "tls"] }
