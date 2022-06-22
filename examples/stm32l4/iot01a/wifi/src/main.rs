@@ -15,10 +15,16 @@ use drogue_device::{
     traits::wifi::*,
     *,
 };
+use drogue_device::{
+    drivers::dns::{DnsEntry, StaticDnsResolver},
+    drogue,
+    firmware::{remote::DrogueHttpUpdateService, FirmwareManager},
+};
 use drogue_temperature::*;
 use embassy::time::Duration;
 use embassy::util::Forever;
 use embassy_stm32::{flash::Flash, Peripherals};
+use embedded_nal_async::{AddrType, Dns, IpAddr, Ipv4Addr, SocketAddr, TcpClient};
 
 #[cfg(feature = "panic-probe")]
 use panic_probe as _;
@@ -99,22 +105,6 @@ async fn network_task(adapter: &'static SharedEsWifi) {
     adapter.run().await;
 }
 
-#[cfg(feature = "dfu")]
-#[embassy::task]
-async fn updater_task(network: EsWifiClient, flash: Flash<'static>) {
-    let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
-    defmt::info!("Running firmware version {}", version);
-    let updater = embassy_boot_stm32::FirmwareUpdater::default();
-    drogue_update::run_updater::<_, _, _, 2048, 4096>(
-        version.as_bytes(),
-        updater,
-        network,
-        TlsRand,
-        flash,
-    )
-    .await;
-}
-
 static mut RNG_INST: Option<Rng> = None;
 
 #[no_mangle]
@@ -148,3 +138,76 @@ impl rand_core::RngCore for TlsRand {
     }
 }
 impl rand_core::CryptoRng for TlsRand {}
+
+#[cfg(feature = "dfu")]
+#[embassy::task]
+async fn updater_task(network: EsWifiClient, flash: Flash<'static>) {
+    use drogue_device::firmware::BlockingFlash;
+    use embassy::time::{Delay, Timer};
+
+    let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
+    defmt::info!("Running firmware version {}", version);
+    let updater = embassy_boot_stm32::FirmwareUpdater::default();
+
+    let ip = DNS
+        .get_host_by_name(HOST.trim_end(), AddrType::IPv4)
+        .await
+        .unwrap();
+
+    let service: DrogueHttpUpdateService<'_, _, _, 2048> = DrogueHttpUpdateService::new(
+        network,
+        TlsRand,
+        SocketAddr::new(ip, PORT.parse::<u16>().unwrap()),
+        HOST.trim_end(),
+        USERNAME.trim_end(),
+        PASSWORD.trim_end(),
+    );
+
+    let mut device: FirmwareManager<BlockingFlash<Flash<'static>>, 4096, 2048> =
+        FirmwareManager::new(BlockingFlash::new(flash), updater, version.as_bytes());
+    let mut updater = embedded_update::FirmwareUpdater::new(
+        service,
+        embedded_update::UpdaterConfig {
+            timeout_ms: 40_000,
+            backoff_ms: 100,
+        },
+    );
+    loop {
+        defmt::info!("Starting updater task");
+        match updater.run(&mut device, &mut Delay).await {
+            Ok(s) => {
+                defmt::info!("Updater finished with status: {:?}", s);
+                match s {
+                    DeviceStatus::Updated => {
+                        defmt::debug!("Resetting device");
+                        cortex_m::peripheral::SCB::sys_reset();
+                    }
+                    DeviceStatus::Synced(delay) => {
+                        if let Some(delay) = delay {
+                            Timer::after(Duration::from_secs(delay as u64)).await;
+                        } else {
+                            Timer::after(Duration::from_secs(10)).await;
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                defmt::warn!("Error running updater: {:?}", e);
+                Timer::after(Duration::from_secs(10)).await;
+            }
+        }
+    }
+}
+
+const HOST: &str = drogue::config!("hostname");
+const PORT: &str = drogue::config!("port");
+const USERNAME: &str = drogue::config!("http-username");
+const PASSWORD: &str = drogue::config!("http-password");
+
+static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
+    DnsEntry::new("localhost", IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
+    DnsEntry::new(
+        "http.sandbox.drogue.cloud",
+        IpAddr::V4(Ipv4Addr::new(65, 108, 135, 161)),
+    ),
+]);

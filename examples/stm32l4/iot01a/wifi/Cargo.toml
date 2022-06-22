@@ -25,6 +25,7 @@ cortex-m = "0.7"
 
 
 #embedded-update = { path = "../../../../../embedded-update" }
+embedded-update = { version = "0.6.0", features = ["nightly"] }
 critical-section = "0.2.5"
 rand_core = { version = "0.6.2", default-features = false }
 embedded-nal-async = { version = "0.1.0", git = "https://github.com/lulf/embedded-nal.git", rev = "7e46d533090882ce9a449f544055c09e6d241e55" }
@@ -40,7 +41,6 @@ embassy = { version = "0.1.0", default-features = false, features=["time", "time
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["time-driver-any", "unstable-traits"] }
 drogue-temperature = { path = "../../../apps/temperature", default-features = false }
 
-drogue-update = { path = "../../../apps/update", default-features = false, optional = true }
 embassy-boot-stm32 = { version = "0.1.0", default-features = false, optional = true }
 
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
@@ -57,7 +57,7 @@ debug = [
     #"embedded-update/defmt",
     "defmt-rtt",
 ]
-tls = ["embedded-tls", "embedded-tls/defmt", "drogue-device/tls", "drogue-temperature/tls", "drogue-update/tls"]
+tls = ["embedded-tls", "embedded-tls/defmt", "drogue-device/tls", "drogue-temperature/tls"]
 b-l4s5i-iot01a = ["embassy-stm32/stm32l4s5vi", "drogue-device/bsp+b_l4s5i_iot01a"]
 b-l475e-iot01a = ["embassy-stm32/stm32l475vg", "drogue-device/bsp+b_l475e_iot01a"]
-dfu = ["embassy-boot-stm32", "drogue-update"]
+dfu = ["embassy-boot-stm32"]

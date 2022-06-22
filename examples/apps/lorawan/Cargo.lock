@@ -470,6 +470,7 @@ dependencies = [
  "drogue-device-macros",
  "ector",
  "embassy",
+ "embassy-embedded-hal",
  "embassy-lora",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.8",
@@ -572,6 +573,20 @@ dependencies = [
  "futures",
  "heapless",
  "pin-project",
+]
+
+[[package]]
+name = "embassy-embedded-hal"
+version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
+dependencies = [
+ "embassy",
+ "embedded-hal 0.2.7",
+ "embedded-hal 1.0.0-alpha.8",
+ "embedded-hal-async",
+ "embedded-storage",
+ "embedded-storage-async",
+ "nb 1.0.0",
 ]
 
 [[package]]
@@ -717,9 +732,9 @@ dependencies = [
 
 [[package]]
 name = "embedded-update"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1eec5abd09791d3b33a10da8d924e099c00f86cb8cf27019ff65a65dbe0f4484"
+checksum = "f543d5c7fdb6a81ab4cbbb04bddfa3d3889cf0354be33e26ad185d34bea8f518"
 dependencies = [
  "embedded-hal-async",
  "embedded-io",

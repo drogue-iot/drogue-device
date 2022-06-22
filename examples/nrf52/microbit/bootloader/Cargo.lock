@@ -797,3 +797,8 @@ dependencies = [
 name = "ector"
 version = "0.1.0"
 source = "git+https://github.com/drogue-iot/ector.git?rev=53a28cfed7b1030c1e841175ff8a5577251f30c8#53a28cfed7b1030c1e841175ff8a5577251f30c8"
+
+[[patch.unused]]
+name = "embassy-embedded-hal"
+version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"

@@ -4,6 +4,8 @@ use crate::flash::SharedFlash;
 use crate::shared::Handle;
 use core::future::Future;
 use embassy_boot::FirmwareUpdater;
+use embassy_embedded_hal::adapter::BlockingAsync;
+use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
 use embedded_storage::nor_flash::{NorFlashError, NorFlashErrorKind};
 use embedded_storage_async::nor_flash::{AsyncNorFlash, AsyncReadNorFlash};
 use embedded_update::{FirmwareDevice, FirmwareStatus};
@@ -92,7 +94,7 @@ where
             f: self.config.state(),
         };
         self.updater
-            // TODO: Support other erase sizes
+            // TODO: Support other word sizes
             .mark_booted::<FlashWriter<'_, CONFIG::STATE, 8>>(&mut w)
             .await
             .map_err(|e| e.kind())?;
@@ -102,13 +104,6 @@ where
     /// Finish firmware update: instruct flash to swap and reset device.
     pub async fn update(&mut self, _: &[u8], _: &[u8]) -> Result<(), Error> {
         self.swap().await?;
-        #[cfg(cortex_m)]
-        {
-            debug!("Resetting device");
-            cortex_m::peripheral::SCB::sys_reset();
-        }
-
-        #[cfg(not(cortex_m))]
         Ok(())
     }
 
@@ -358,5 +353,31 @@ where
 
     fn dfu(&mut self) -> &mut Self::DFU {
         self
+    }
+}
+
+pub struct BlockingFlash<F: NorFlash + ReadNorFlash> {
+    flash: BlockingAsync<F>,
+}
+
+impl<F: NorFlash + ReadNorFlash> BlockingFlash<F> {
+    pub fn new(flash: F) -> Self {
+        Self {
+            flash: BlockingAsync::new(flash),
+        }
+    }
+}
+
+impl<F: NorFlash + ReadNorFlash> FirmwareConfig for BlockingFlash<F> {
+    type STATE = BlockingAsync<F>;
+    type DFU = BlockingAsync<F>;
+    const BLOCK_SIZE: usize = F::ERASE_SIZE;
+
+    fn state(&mut self) -> &mut Self::STATE {
+        &mut self.flash
+    }
+
+    fn dfu(&mut self) -> &mut Self::DFU {
+        &mut self.flash
     }
 }
