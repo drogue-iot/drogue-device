@@ -576,7 +576,7 @@ dependencies = [
  "nrf-softdevice",
  "nrf-softdevice-s140",
  "p256 0.10.1",
- "postcard 0.7.3",
+ "postcard",
  "rand_core",
  "serde",
  "uluru",
@@ -862,15 +862,15 @@ dependencies = [
 
 [[package]]
 name = "embedded-update"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f543d5c7fdb6a81ab4cbbb04bddfa3d3889cf0354be33e26ad185d34bea8f518"
+checksum = "cad2badd37b19dbcc2f17ba2ec157e0c42aa54d778e69f3a9aaef2418cb134f1"
 dependencies = [
  "embedded-hal-async",
  "embedded-io",
  "futures",
  "heapless",
- "postcard 1.0.0",
+ "postcard",
  "serde",
 ]
 
@@ -1476,30 +1476,14 @@ dependencies = [
 
 [[package]]
 name = "postcard"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a25c0b0ae06fcffe600ad392aabfa535696c8973f2253d9ac83171924c58a858"
-dependencies = [
- "heapless",
- "postcard-cobs",
- "serde",
-]
-
-[[package]]
-name = "postcard"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "beb9d9bc911a7aa6af3596bf01d9810069ac2ebb8b348f36a344af20f441700b"
 dependencies = [
  "cobs",
+ "heapless",
  "serde",
 ]
-
-[[package]]
-name = "postcard-cobs"
-version = "0.1.5-pre"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c68cb38ed13fd7bc9dd5db8f165b7c8d9c1a315104083a2b10f11354c2af97f"
 
 [[package]]
 name = "proc-macro-error"
