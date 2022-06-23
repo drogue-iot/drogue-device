@@ -687,9 +687,9 @@ dependencies = [
 
 [[package]]
 name = "embedded-update"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f543d5c7fdb6a81ab4cbbb04bddfa3d3889cf0354be33e26ad185d34bea8f518"
+checksum = "cad2badd37b19dbcc2f17ba2ec157e0c42aa54d778e69f3a9aaef2418cb134f1"
 dependencies = [
  "embedded-hal-async",
  "embedded-io",

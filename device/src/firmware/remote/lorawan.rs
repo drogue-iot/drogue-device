@@ -59,22 +59,34 @@ where
             let writer = ser.into_inner();
             let size = writer.bytes_written();
 
-            debug!("Sending status update over lorawan link");
-            let rx_len = self
-                .driver
-                // Using port 223 for firmware updates
-                .send_recv(QoS::Confirmed, 223, &self.tx[..size], &mut self.rx[..])
-                .await
-                .map_err(|e| Error::Network(e))?;
-            if rx_len > 0 {
-                debug!("Received DFU command!");
-                let command: Command<'m> = serde_cbor::de::from_mut_slice(&mut self.rx[..rx_len])
-                    .map_err(|e| Error::Codec(e))?;
-                Ok(command)
+            // If there is no status update, don't bother waiting for a response, it will be scheduled later so we need to wait for it.
+            if status.update.is_none() {
+                debug!("Sending initial status update");
+                self.driver
+                    // Using port 223 for firmware updates
+                    .send(QoS::Confirmed, 223, &self.tx[..size])
+                    .await
+                    .map_err(|e| Error::Network(e))?;
+                Ok(Command::new_wait(None, None))
             } else {
-                //debug!("Got RX len: {}, bytes: {:x}", rx_len, &self.rx[..rx_len]);
-                debug!("No command received, let's wait");
-                Ok(Command::new_wait(Some(60), None))
+                debug!("Sending status update over lorawan link");
+                let rx_len = self
+                    .driver
+                    // Using port 223 for firmware updates
+                    .send_recv(QoS::Confirmed, 223, &self.tx[..size], &mut self.rx[..])
+                    .await
+                    .map_err(|e| Error::Network(e))?;
+                if rx_len > 0 {
+                    debug!("Received DFU command!");
+                    let command: Command<'m> =
+                        serde_cbor::de::from_mut_slice(&mut self.rx[..rx_len])
+                            .map_err(|e| Error::Codec(e))?;
+                    Ok(command)
+                } else {
+                    //debug!("Got RX len: {}, bytes: {:x}", rx_len, &self.rx[..rx_len]);
+                    debug!("No command received, let's wait");
+                    Ok(Command::new_wait(None, None))
+                }
             }
         }
     }
