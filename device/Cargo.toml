@@ -66,7 +66,7 @@ log = { version = "0.4", optional = true }
 defmt = { version = "0.3", optional = true }
 
 # HTTP dependencies
-base64 = { version = "0.13.0", default-features = false }
+reqwless = "0.1"
 
 # Handy macros, e.g. drogue::config
 drogue-device-macros = { path = "../macros" }

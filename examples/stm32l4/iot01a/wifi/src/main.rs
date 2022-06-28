@@ -18,13 +18,15 @@ use drogue_device::{
 use drogue_device::{
     drivers::dns::{DnsEntry, StaticDnsResolver},
     drogue,
-    firmware::{remote::DrogueHttpUpdateService, FirmwareManager},
 };
 use drogue_temperature::*;
 use embassy::time::Duration;
 use embassy::util::Forever;
 use embassy_stm32::{flash::Flash, Peripherals};
 use embedded_nal_async::{AddrType, Dns, IpAddr, Ipv4Addr, SocketAddr, TcpClient};
+
+#[cfg(feature = "dfu")]
+use drogue_device::firmware::{remote::DrogueHttpUpdateService, FirmwareManager};
 
 #[cfg(feature = "panic-probe")]
 use panic_probe as _;

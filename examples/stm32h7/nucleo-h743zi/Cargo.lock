@@ -430,9 +430,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-utils"
-version = "0.8.9"
+version = "0.8.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ff1f980957787286a554052d03c7aee98d99cc32e09f6d45f0a814133c87978"
+checksum = "7d82ee10ce34d7bc12c2122495e7593a9c41347ecdd64185af4ecf72cb1a7f83"
 dependencies = [
  "cfg-if",
  "once_cell",
@@ -593,7 +593,6 @@ name = "drogue-device"
 version = "0.1.0"
 dependencies = [
  "atomic-polyfill",
- "base64",
  "cortex-m",
  "critical-section",
  "defmt",
@@ -617,6 +616,7 @@ dependencies = [
  "futures-intrusive",
  "heapless 0.7.14",
  "rand_core",
+ "reqwless",
 ]
 
 [[package]]
@@ -647,6 +647,7 @@ dependencies = [
  "embedded-tls",
  "heapless 0.7.14",
  "rand_core",
+ "reqwless",
  "serde",
  "serde-json-core",
 ]
@@ -1301,9 +1302,9 @@ checksum = "349d5a591cd28b49e1d1037471617a32ddcda5731b99419008085f72d5a53836"
 
 [[package]]
 name = "linked-hash-map"
-version = "0.5.4"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
+checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
 
 [[package]]
 name = "lock_api"
@@ -1732,6 +1733,18 @@ name = "regex-syntax"
 version = "0.6.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49b3de9ec5dc0a3417da371aab17d729997c15010e7fd24ff707773a33bddb64"
+
+[[package]]
+name = "reqwless"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4230e3de9cb5051527644ad81b16d423f92d1661053798b8417abfbdeea4ba7c"
+dependencies = [
+ "base64",
+ "defmt",
+ "embedded-io",
+ "heapless 0.7.14",
+]
 
 [[package]]
 name = "riscv"

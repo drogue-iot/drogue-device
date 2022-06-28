@@ -537,7 +537,7 @@ checksum = "546c37ac5d9e56f55e73b677106873d9d9f5190605e41a856503623648488cae"
 [[package]]
 name = "nrf-softdevice-mbr"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#a5026485151138112b522a27c4a340614d7a7512"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#60655f023612131ee7a44cf5c9415b4b9b11e4c0"
 
 [[package]]
 name = "nrf52833-pac"

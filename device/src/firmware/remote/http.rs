@@ -1,10 +1,11 @@
-use crate::network::clients::http::{
-    ContentType, Error as HttpError, HttpClient, Request, Status as ResponseStatus,
-};
 use core::future::Future;
 use embedded_nal_async::{SocketAddr, TcpClient};
 use embedded_update::{Command, Status, UpdateService};
 use rand_core::{CryptoRng, RngCore};
+use reqwless::{
+    client::{Error as HttpError, HttpClient},
+    request::{ContentType, Request, Status as ResponseStatus},
+};
 use serde::Serialize;
 
 #[cfg(feature = "tls")]
@@ -109,7 +110,8 @@ where
                 .path("/v1/dfu?ct=30")
                 .payload(&payload[..size])
                 .basic_auth(self.username, self.password)
-                .content_type(ContentType::ApplicationCbor);
+                .content_type(ContentType::ApplicationCbor)
+                .build();
 
             let mut rx_buf = [0; MTU];
             let response = client
