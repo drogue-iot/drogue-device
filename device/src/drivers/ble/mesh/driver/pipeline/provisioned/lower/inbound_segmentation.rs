@@ -74,7 +74,7 @@ struct InFlight {
     src: UnicastAddress,
     seq_zero: u16,
     seg_n: u8,
-    segments: Vec<Option<Vec<u8, 12>>, 32>,
+    segments: Vec<Option<Vec<u8, 12>>, 16>,
 }
 
 impl InFlight {

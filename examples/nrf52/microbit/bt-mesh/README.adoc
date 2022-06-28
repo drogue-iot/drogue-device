@@ -1,0 +1,58 @@
+= Microbit Bluetooth Mesh example
+
+This example application runs out of the box on the BBC micro:bit. It starts as a Bluetooth Mesh
+sensor server(as defined by specification) reporting from the on board temperature sensor.
+
+The example assumes that the nRF softdevice is installed.
+
+== Prerequisites
+
+=== Hardware
+
+* BBC Micro:bit v2
+
+=== Software
+
+Make sure you have the latest versions (`cargo install <tool>`) of these tools:
+
+* link:https://rustup.rs/[rustup] - To compile the example with the correct toolchain.
+* link:https://crates.io/crates/probe-rs-cli[probe-rs-cli] - To flash the BLE protocol stack from Nordic Semiconductor.
+* link:https://crates.io/crates/probe-run[probe-run] - To run the example.
+* `cargo-flash`
+* `cargo-binutils`
+
+== Usage
+
+=== Erase current settings
+
+```
+probe-rs-cli erase --chip nRF52833_xxAA
+```
+
+=== Flash bootloader
+
+```
+cargo flash --manifest-path ../bootloader/Cargo.toml --release --chip nRF52833_xxAA
+```
+
+=== Flash nRF Softdevice
+
+Download the softdevice version 7.3.0 link:https://www.nordicsemi.com/Products/Development-software/s140/download[here].
+
+```
+probe-rs-cli download s140_nrf52_7.3.0_softdevice.hex --chip nRF52833_xxAA --format Hex
+```
+
+=== Flash application
+
+```
+cargo flash --release --chip nRF52833_xxAA
+```
+
+When started, the device will blink an 'X' every 5 seconds.
+
+When started, the device will blink a check mark every 5 seconds.
+
+=== Provisioning
+
+See the link:https://github.com/drogue-iot/drogue-device/blob/main/examples/nrf52/nrf52840-dk/ble-mesh/README.adoc[nRF52840-DK mesh example) for how to provision the device.

@@ -7,6 +7,7 @@ MEMORY
   DFU                               : ORIGIN = 0x00049000, LENGTH = 188416
   FLASH                             : ORIGIN = 0x00077000, LENGTH = 24K
   BOOTLOADER_STATE                  : ORIGIN = 0x0007D000, LENGTH = 4K
+  STORAGE                           : ORIGIN = 0x0007E000, LENGTH = 4k
   RAM                         (rwx) : ORIGIN = 0x20000008, LENGTH = 0x1fff8
   uicr_bootloader_start_address (r) : ORIGIN = 0x10001014, LENGTH = 0x4
 }

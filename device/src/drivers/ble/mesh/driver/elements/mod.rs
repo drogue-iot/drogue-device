@@ -30,8 +30,8 @@ use heapless::Vec;
 
 #[derive(Clone)]
 pub struct AppElementsContext<'a> {
-    pub(crate) sender: ChannelSender<'a, ThreadModeRawMutex, OutboundPublishMessage, 3>,
-    pub(crate) access_sender: ChannelSender<'a, ThreadModeRawMutex, AccessMessage, 3>,
+    pub(crate) sender: ChannelSender<'a, ThreadModeRawMutex, OutboundPublishMessage, 1>,
+    pub(crate) access_sender: ChannelSender<'a, ThreadModeRawMutex, AccessMessage, 1>,
     pub(crate) address: UnicastAddress,
 }
 
@@ -61,7 +61,7 @@ impl<'a> AppElementsContext<'a> {
 
 #[derive(Clone)]
 pub struct AppElementContext<'a, M: Model> {
-    sender: ChannelSender<'a, ThreadModeRawMutex, OutboundPublishMessage, 3>,
+    sender: ChannelSender<'a, ThreadModeRawMutex, OutboundPublishMessage, 1>,
     address: UnicastAddress,
     _message: PhantomData<M>,
 }

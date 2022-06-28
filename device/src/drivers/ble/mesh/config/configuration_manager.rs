@@ -35,13 +35,29 @@ impl<S: Storage> ConfigurationManager<S> {
             .ok();
         composition.elements[0].models = models;
 
-        Self {
+        let me = Self {
             storage: RefCell::new(storage),
             config: RefCell::new(Default::default()),
             composition,
             force_reset: AtomicBool::new(force_reset),
             runtime_seq: RefCell::new(0),
-        }
+        };
+        /*
+        info!("CFG storage: {:?}", core::mem::size_of_val(&me.storage));
+        info!("CFG config: {:?}", core::mem::size_of_val(&me.config));
+        info!(
+            "CFG composition: {:?}",
+            core::mem::size_of_val(&me.composition)
+        );
+        info!(
+            "CFG force_reset: {:?}",
+            core::mem::size_of_val(&me.force_reset)
+        );
+        info!(
+            "CFG runtime_seq: {:?}",
+            core::mem::size_of_val(&me.runtime_seq)
+        );*/
+        me
     }
 
     pub(crate) async fn initialize<R: RngCore + CryptoRng>(

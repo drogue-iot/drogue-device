@@ -284,7 +284,7 @@ where
     fn find_label_uuids_by_address(
         &self,
         addr: Address,
-    ) -> Result<Option<Vec<LabelUuid, 10>>, DeviceError> {
+    ) -> Result<Option<Vec<LabelUuid, 3>>, DeviceError> {
         if let Address::Virtual(address) = addr {
             if let Some(network) = self.configuration_manager.configuration().network() {
                 network

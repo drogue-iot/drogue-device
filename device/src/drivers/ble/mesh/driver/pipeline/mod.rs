@@ -89,10 +89,24 @@ impl PipelineInner {
 
 impl Pipeline {
     pub fn new(capabilities: Capabilities) -> Self {
-        Self {
+        let me = Self {
             capabilities,
             inner: PipelineInner::Unconfigured,
-        }
+        };
+        info!(
+            "Pipeline capabilities: {:?}",
+            core::mem::size_of_val(&me.capabilities)
+        );
+        info!("Pipeline inner: {:?}", core::mem::size_of_val(&me.inner));
+        info!(
+            "Pipeline unprov: {:?}",
+            core::mem::size_of::<UnprovisionedPipeline>()
+        );
+        info!(
+            "Pipeline prov: {:?}",
+            core::mem::size_of::<ProvisionedPipeline>()
+        );
+        me
     }
 
     pub(crate) fn state(&mut self, state: State) {

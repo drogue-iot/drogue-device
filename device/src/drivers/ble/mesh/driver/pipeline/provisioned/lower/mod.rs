@@ -24,7 +24,7 @@ pub trait LowerContext: AuthenticationContext {
     fn find_label_uuids_by_address(
         &self,
         addr: Address,
-    ) -> Result<Option<Vec<LabelUuid, 10>>, DeviceError>;
+    ) -> Result<Option<Vec<LabelUuid, 3>>, DeviceError>;
 
     fn decrypt_device_key(
         &self,
@@ -454,7 +454,7 @@ impl Lower {
 }
 
 #[derive(Clone)]
-pub struct CleartextNetworkPDUSegments<const N: usize = 10> {
+pub struct CleartextNetworkPDUSegments<const N: usize = 3> {
     segments: Vec<Option<CleartextNetworkPDU>, N>,
 }
 

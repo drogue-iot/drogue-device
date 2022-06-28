@@ -11,7 +11,7 @@ struct CacheEntry {
 }
 
 pub struct NetworkMessageCache {
-    lru: LRUCache<CacheEntry, 100>,
+    lru: LRUCache<CacheEntry, 10>,
 }
 
 impl Default for NetworkMessageCache {

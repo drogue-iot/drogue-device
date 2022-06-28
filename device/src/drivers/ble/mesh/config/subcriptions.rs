@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Subscriptions {
-    subscriptions: Vec<Subscription, 10>,
+    subscriptions: Vec<Subscription, 2>,
 }
 
 impl Default for Subscriptions {
@@ -26,7 +26,7 @@ impl Subscriptions {
         element_address: &UnicastAddress,
         model_identifier: &ModelIdentifier,
     ) {
-        let mut matching: Vec<&Subscription, 10> = Vec::new();
+        let mut matching: Vec<&Subscription, 2> = Vec::new();
         for e in self.subscriptions.iter().filter(|e| {
             e.element_address == *element_address && e.model_identifier == *model_identifier
         }) {
@@ -105,7 +105,7 @@ impl Subscriptions {
     pub(crate) fn find_label_uuids_by_address(
         &self,
         addr: VirtualAddress,
-    ) -> Result<Vec<LabelUuid, 10>, InsufficientBuffer> {
+    ) -> Result<Vec<LabelUuid, 3>, InsufficientBuffer> {
         let mut uuids = Vec::new();
 
         for subscription in &self.subscriptions {
