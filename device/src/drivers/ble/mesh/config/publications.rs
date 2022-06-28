@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Publications {
-    publications: Vec<Publication, 10>,
+    publications: Vec<Publication, 2>,
 }
 
 impl Publications {

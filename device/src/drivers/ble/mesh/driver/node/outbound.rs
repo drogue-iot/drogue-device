@@ -8,7 +8,7 @@ use embassy::channel::{Channel, Sender};
 
 use embassy::util::{select, Either};
 
-const MAX_MESSAGE: usize = 3;
+const MAX_MESSAGE: usize = 1;
 
 pub(crate) struct OutboundAccessChannel<'a> {
     channel: Channel<NodeMutex, AccessMessage, MAX_MESSAGE>,

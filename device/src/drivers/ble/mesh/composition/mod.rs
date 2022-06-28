@@ -92,7 +92,7 @@ pub struct Composition {
     pub(crate) vid: VersionIdentifier,
     pub(crate) crpl: u16,
     pub(crate) features: Features,
-    pub(crate) elements: Vec<ElementDescriptor, 10>,
+    pub(crate) elements: Vec<ElementDescriptor, 4>,
 }
 
 impl Composition {
@@ -125,7 +125,7 @@ pub struct Location(pub u16);
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ElementDescriptor {
     pub(crate) loc: Location,
-    pub(crate) models: Vec<ModelIdentifier, 10>,
+    pub(crate) models: Vec<ModelIdentifier, 4>,
 }
 
 impl ElementDescriptor {

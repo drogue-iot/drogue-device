@@ -51,7 +51,7 @@ impl Item {
     }
 }
 
-pub(crate) struct Transmit<const N: usize = 15> {
+pub(crate) struct Transmit<const N: usize = 3> {
     items: Vec<Option<Item>, N>,
     interval: Duration,
     count: u8,

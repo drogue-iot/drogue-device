@@ -144,7 +144,7 @@ impl Network {
 #[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Networks {
-    networks: Vec<NetworkDetails, 3>,
+    networks: Vec<NetworkDetails, 1>,
 }
 
 impl Networks {
@@ -319,7 +319,7 @@ pub struct NetworkDetails {
     pub(crate) nid: u8,
     pub(crate) encryption_key: [u8; 16],
     pub(crate) privacy_key: [u8; 16],
-    app_keys: Vec<AppKeyDetails, 10>,
+    app_keys: Vec<AppKeyDetails, 1>,
     bindings: Bindings,
     publications: Publications,
 }

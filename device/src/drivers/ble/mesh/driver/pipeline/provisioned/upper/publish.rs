@@ -14,7 +14,7 @@ pub struct Entry {
     last: Instant,
 }
 
-pub struct Publish<const N: usize = 15> {
+pub struct Publish<const N: usize = 3> {
     cache: Vec<Option<Entry>, N>,
 }
 

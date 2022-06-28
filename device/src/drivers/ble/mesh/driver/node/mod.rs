@@ -82,7 +82,7 @@ where
         configuration_manager: ConfigurationManager<S>,
         rng: R,
     ) -> Self {
-        Self {
+        let me = Self {
             state: Cell::new(State::Unprovisioned),
             network,
             configuration_manager,
@@ -92,7 +92,19 @@ where
             //
             elements: RefCell::new(Elements::new(app_elements)),
             outbound: Default::default(),
-        }
+        };
+        info!("State: {:?}", core::mem::size_of_val(&me.state));
+        info!("Network: {:?}", core::mem::size_of_val(&me.network));
+        info!(
+            "COnfig: {:?}",
+            core::mem::size_of_val(&me.configuration_manager)
+        );
+        info!("Rng: {:?}", core::mem::size_of_val(&me.rng));
+        info!("Pipeline: {:?}", core::mem::size_of_val(&me.pipeline));
+        info!("Deadline: {:?}", core::mem::size_of_val(&me.deadline));
+        info!("Elements: {:?}", core::mem::size_of_val(&me.elements));
+        info!("Outbound: {:?}", core::mem::size_of_val(&me.outbound));
+        me
     }
 
     pub(crate) fn vault(&self) -> StorageVault<S> {
@@ -265,36 +277,25 @@ where
     }
 
     async fn do_loop(&'a self) -> Result<(), DeviceError> {
-        info!("loop-a");
         let current_state = self.state.get();
-        info!("loop-b");
 
         if let Some(next_state) = match current_state {
             State::Unprovisioned => self.loop_unprovisioned().await,
             State::Provisioning => self.loop_provisioning().await,
             State::Provisioned => self.loop_provisioned().await,
         }? {
-            info!("loop-c");
             if matches!(next_state, State::Provisioned) {
-                info!("loop-d");
                 if !matches!(current_state, State::Provisioned) {
-                    info!("loop-e");
                     // only connect during the first transition.
                     self.connect_elements()
                 }
             }
             if next_state != current_state {
-                info!("loop-f");
                 self.state.set(next_state);
-                info!("loop-g");
                 self.pipeline.borrow_mut().state(next_state);
-                info!("loop-h");
                 self.network.set_state(next_state);
-                info!("loop-i");
             };
-            info!("loop-j");
         }
-        info!("loop-k");
         Ok(())
     }
 

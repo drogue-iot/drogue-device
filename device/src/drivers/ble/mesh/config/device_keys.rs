@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct DeviceKeys {
-    random: Option<[u8; 16]>,
     private_key: Option<[u8; 32]>,
     shared_secret: Option<[u8; 32]>,
     device_key: Option<DeviceKey>,
