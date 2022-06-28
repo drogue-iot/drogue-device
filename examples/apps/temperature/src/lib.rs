@@ -16,7 +16,6 @@ use drogue_device::{
     },
     drivers::dns::*,
     drogue,
-    network::clients::http::*,
     traits::button::Button,
     traits::sensors::temperature::TemperatureSensor,
 };
@@ -27,6 +26,7 @@ use embedded_hal_async::digital::Wait;
 use embedded_io::{Error, ErrorKind};
 use embedded_nal_async::*;
 use heapless::String;
+use reqwless::{client::*, request::*};
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "tls")]
@@ -135,7 +135,8 @@ where
                     .path("/v1/foo?data_schema=urn:drogue:iot:temperature")
                     .basic_auth(self.username, self.password)
                     .payload(tx.as_bytes())
-                    .content_type(ContentType::ApplicationJson),
+                    .content_type(ContentType::ApplicationJson)
+                    .build(),
                 &mut rx_buf[..],
             )
             .await;

@@ -51,8 +51,6 @@ pub mod traits;
 
 pub mod drivers;
 
-pub mod network;
-
 pub mod domain;
 
 pub mod shared;
