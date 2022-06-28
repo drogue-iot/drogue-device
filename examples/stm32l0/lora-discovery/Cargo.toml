@@ -34,7 +34,9 @@ embassy-lora = { version = "0.1.0", default-features = false, features = ["sx127
 codegen-units = 1
 debug = 2
 opt-level = "s"
-lto = "fat"
+# Disabling link-time-optimization until https://github.com/rust-lang/rust/issues/96486
+# has been dealt with in rust nightly.
+#lto = "fat"
 debug-assertions = false
 incremental = false
 overflow-checks = false
