@@ -39,19 +39,30 @@ http-password = "..."
 
 For Drogue Cloud, the username/password is stored in this form: `device_id@application`.
 
+The example `config.toml` file for connecting to public Drogue cloud sandbox application could look like this:
+
+```toml
+hostname = "http.sandbox.drogue.cloud" # Replace with your own Drogue Cloud instance if you are not using the sandbox
+port = "443"
+wifi-ssid = "..."                      # The WiFi network SSID
+wifi-password = "..."                  # The WiFi network pre-shared key
+http-username = "device1@wifi-workshop"
+http-password = "mysecretpassword"
+```
+
+Just enter your wifi details and you should be ready to go.
+
 If you have the B-L4S5I-IOT01A board, set the following environment variables:
 
-....
-export CHIP=STM32L4S5VI
-export CHIP_FEATURE=b-l4s5i-iot01a
-....
+```shell
+export CHIP=STM32L4S5VI CHIP_FEATURE=b-l4s5i-iot01a
+```
 
 If you have the B-475E-IOT01A board, use the following settings instead:
 
-....
-export CHIP=STM32L475VGTx
-export CHIP_FEATURE=b-l475e-iot01a
-....
+```shell
+export CHIP=STM32L475VGTx CHIP_FEATURE=b-l475e-iot01a
+```
 
 
 === Running with plain TCP
@@ -59,13 +70,13 @@ export CHIP_FEATURE=b-l475e-iot01a
 You can configure the IP constant to point to any HTTP server to receive events, or you can use link:https://github.com/drogue-iot/drogue-cloud/[drogue cloud] locally. For simplicity, start a local HTTP server in python that echoes the HTTP payload back:
 
 ....
-curl -s https://raw.githubusercontent.com/drogue-iot/drogue-device/main/apps/drogue-temperature/server.py | python3 
+curl -s https://raw.githubusercontent.com/drogue-iot/drogue-device/main/apps/drogue-temperature/server.py | python3
 ....
 
 To run the firmware using a given chip:
 
 ....
-DEFMT_LOG=info PROBE_RUN_CHIP=${CHIP} --release --features ${CHIP_FEATURE},debug --no-default-features
+DEFMT_LOG=info PROBE_RUN_CHIP=${CHIP} cargo run --release --features ${CHIP_FEATURE},debug --no-default-features
 ....
 
 == Running with TLS
@@ -109,3 +120,21 @@ If you’re experiencing problems, try setting the `VID:PID` values to that of y
 ....
 <ENV> cargo run <ARGS> -- --probe <VID>:<PID>
 ....
+
+
+Additionally, the B-L4S5I-IOT01A board can have issues with running probe multiple times, leading to errors like
+
+```
+Error: An error with the usage of the probe occured
+
+Caused by:
+    Operation timed out
+```
+
+If you experience that, the best way to restore the board is to reconnect it and use `st-flash` utility to write any binary to it, like
+
+```
+st-flash write ../target/thumbv7em-none-eabihf/release/iot01a-wifi.d 0x8000000
+```
+
+After reconnecting the board again, you should be able to use `cargo run` again.
