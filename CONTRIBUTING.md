@@ -36,7 +36,7 @@ In any case, you will need:
 
 * **A supported development kit** - Drogue device is about ... devices, so having a kit that you can run will help you test and validate code for peripherals (see [examples](examples/) for what boards we have working examples for).
 
-* **Rust Nightly** – Drogue-device relies on features only available in Rust nightly. You can use nightly either by running all
+* **Rust Nightly** – Drogue-device relies on features only available in Rust nightly. You can install it by running `rustup toolchain install nightly`. You can use nightly either by running all
   rust commands with `+nightly`, or just change default to nightly by running `rustup default nightly`.
 
 * **An IDE** – Whatever works best for you. Eclipse, Emacs, IntelliJ, Vim, … [^1] should all be usable with this
@@ -67,6 +67,8 @@ All examples use either `cargo embed` or `cargo run`, and this may require insta
 
 * `cargo install cargo-embed`
 * `cargo install probe-run`
+
+Make sure you set [udev rules](https://probe.rs/docs/getting-started/probe-setup/) on Linux to allow users without root privileges access to the debug probes as well.
 
 ## Contributing your work
 
