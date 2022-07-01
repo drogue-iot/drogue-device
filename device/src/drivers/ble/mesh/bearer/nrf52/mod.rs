@@ -25,14 +25,14 @@ pub struct Nrf52BleMeshFacilities {
 }
 
 impl Nrf52BleMeshFacilities {
-    pub fn new(device_name: &'static str) -> Self {
+    pub fn new(device_name: &'static str, use_gatt: bool) -> Self {
         Self {
-            sd: Self::new_sd(device_name),
+            sd: Self::new_sd(device_name, use_gatt),
         }
     }
 
-    pub fn new_sd(device_name: &'static str) -> &'static Softdevice {
-        let config = nrf_softdevice::Config {
+    pub fn new_sd(device_name: &'static str, use_gatt: bool) -> &'static Softdevice {
+        let mut config = nrf_softdevice::Config {
             clock: Some(raw::nrf_clock_lf_cfg_t {
                 source: raw::NRF_CLOCK_LF_SRC_RC as u8,
                 rc_ctiv: 4,
@@ -64,6 +64,20 @@ impl Nrf52BleMeshFacilities {
 
             ..Default::default()
         };
+
+        if use_gatt {
+            config.conn_gatt = Some(raw::ble_gatt_conn_cfg_t { att_mtu: 517 });
+            config.gatts_attr_tab_size = Some(raw::ble_gatts_cfg_attr_tab_size_t {
+                attr_tab_size: 32768,
+            });
+            config.gap_role_count = Some(raw::ble_gap_cfg_role_count_t {
+                adv_set_count: 1,
+                periph_role_count: 2,
+                central_role_count: 2,
+                central_sec_count: 2,
+                _bitfield_1: Default::default(),
+            });
+        }
         let sd = Softdevice::enable(&config);
         sd
     }

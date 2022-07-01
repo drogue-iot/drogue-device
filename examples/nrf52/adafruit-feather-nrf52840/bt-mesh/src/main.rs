@@ -111,7 +111,7 @@ const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 #[embassy::main(config = "config()")]
 async fn main(spawner: Spawner, p: Peripherals) {
     let board = AdafruitFeatherNrf52840::new(p);
-    let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BT Mesh");
+    let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BT Mesh", true);
     spawner.spawn(softdevice_task(facilities.sd())).unwrap();
 
     static FLASH: FlashState<Flash> = FlashState::new();
