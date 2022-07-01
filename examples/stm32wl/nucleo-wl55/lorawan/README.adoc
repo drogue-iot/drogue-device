@@ -53,23 +53,6 @@ Blue:: Will light up when starting and turn off once it joined the LoRa network.
 Green:: Turns on while sending the uplink message.
 Red:: Can be controlled through the downlink message: `led:on` or `led:off`.
 
-=== Enabling firmware updates
-
-You can also use this example with `embassy-boot` to enable firmware updates over the air! To do
-that, you must flash the bootloader:
-
-....
-cargo flash --manifest-path ../bootloader/Cargo.toml --release --no-default-features --chip STM32WLE5JCIx
-....
-
-You can then run the application with the `dfu` parameter:
-
-....
-DEFMT_LOG=info cargo run --release --features dfu
-....
-
-
-
 === Troubleshooting
 
 If you’re experiencing problems, try setting the `VID:PID` values to
