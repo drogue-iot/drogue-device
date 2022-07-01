@@ -29,12 +29,6 @@ Make sure you have the latest versions (`cargo install <tool>`) of these tools:
 probe-rs-cli erase --chip nRF52833_xxAA
 ```
 
-=== Flash bootloader
-
-```
-cargo flash --manifest-path ../bootloader/Cargo.toml --release --chip nRF52833_xxAA
-```
-
 === Flash nRF Softdevice
 
 Download the softdevice version 7.3.0 link:https://www.nordicsemi.com/Products/Development-software/s140/download[here].
