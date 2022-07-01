@@ -113,7 +113,7 @@ const FEATURES: Features = Features {
 
 #[embassy::main(config = "config()")]
 async fn main(spawner: Spawner, p: Peripherals) {
-    let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BLE Mesh");
+    let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BLE Mesh", true);
     let advertising_bearer = facilities.advertising_bearer();
     let gatt_bearer = facilities.gatt_bearer();
     let rng = facilities.rng();
