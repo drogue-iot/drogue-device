@@ -632,7 +632,6 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36673b79844ff4ec0e3f00aeca0b2cfff564ff6739ab9801d13f45a8ec6cc1c7"
 dependencies = [
- "defmt",
  "futures",
 ]
 
@@ -1435,7 +1434,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd5c2caf44800a429a2ffd38e092bc2959be8ca5a28d69292364d0d92e4511a2"
 dependencies = [
  "base64",
- "defmt",
  "embedded-io",
  "heapless",
 ]
