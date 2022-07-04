@@ -631,12 +631,29 @@ where
     }
 
     fn parse(parameters: &[u8]) -> Result<Self, ParseError> {
-        let mut pos = 0;
         let mut data = C::Data::default();
         for d in C::DESCRIPTORS {
-            pos += 2;
+            let mut pos = 0;
+            let format = parameters[0] & 0b1000_0000;
+            let (length, id, offset): (usize, u16, usize);
+
+            if format == 0 {
+                length = ((parameters[0] & 0b0111_1000) >> 3) as usize;
+                id = ((parameters[0] & 0b0000_0111) | parameters[1]).into();
+                offset = 2;
+            } else {
+                length = (parameters[0] & 0b0111_1111) as usize;
+                id = ((parameters[1] as u16) << 8) | parameters[2] as u16;
+                offset = 3;
+            }
+
+            if id == d.id.0 && d.size == length {
+                pos += offset;
+            } else {
+                return Err(ParseError::InvalidValue);
+            }
+
             let parameters = &parameters[pos..(pos + d.size)];
-            //TODO: parse and check property ids
             data.decode(d.id, parameters)?;
         }
         Ok(Self { data })
