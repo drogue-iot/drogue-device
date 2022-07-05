@@ -59,28 +59,12 @@ static DEVICE: Forever<TemperatureDevice<BSP>> = Forever::new();
 #[embassy::main(config = "Iot01a::config(true)")]
 async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let board = Iot01a::new(p);
-    let mut wifi = board.wifi;
-
-    match wifi.start().await {
-        Ok(()) => defmt::info!("Started..."),
-        Err(err) => defmt::info!("Error... {}", defmt::Debug2Format(&err)),
-    }
-
-    defmt::info!("Joining WiFi network...");
-    wifi.join(Join::Wpa {
-        ssid: WIFI_SSID.trim_end(),
-        password: WIFI_PSK.trim_end(),
-    })
-    .await
-    .expect("Error joining wifi");
-    defmt::info!("WiFi network joined");
-
     unsafe {
         RNG_INST.replace(board.rng);
     }
 
     static NETWORK: Forever<SharedEsWifi> = Forever::new();
-    let network = NETWORK.put(SharedEsWifi::new(wifi));
+    let network = NETWORK.put(SharedEsWifi::new(board.wifi));
     let client = network.new_client().await.unwrap();
     #[cfg(feature = "dfu")]
     {
@@ -88,7 +72,13 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         spawner.spawn(updater_task(dfu, board.flash)).unwrap();
     }
 
-    spawner.spawn(network_task(network)).unwrap();
+    spawner
+        .spawn(network_task(
+            network,
+            WIFI_SSID.trim_end(),
+            WIFI_PSK.trim_end(),
+        ))
+        .unwrap();
 
     let device = DEVICE.put(TemperatureDevice::new());
     let config = TemperatureBoardConfig {
@@ -103,8 +93,10 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 }
 
 #[embassy::task]
-async fn network_task(adapter: &'static SharedEsWifi) {
-    adapter.run().await;
+async fn network_task(adapter: &'static SharedEsWifi, ssid: &'static str, psk: &'static str) {
+    loop {
+        let _ = adapter.run(ssid, psk).await;
+    }
 }
 
 static mut RNG_INST: Option<Rng> = None;
