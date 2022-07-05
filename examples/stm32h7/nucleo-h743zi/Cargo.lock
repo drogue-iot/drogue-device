@@ -452,9 +452,9 @@ dependencies = [
 
 [[package]]
 name = "crypto-common"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57952ca27b5e3606ff4dd79b0020231aaf9d6aa76dc05fd30137538c50bd3ce8"
+checksum = "5999502d32b9c48d492abe66392408144895020ec4709e549e840799f3bb74c0"
 dependencies = [
  "generic-array 0.14.5",
  "typenum",
@@ -614,7 +614,7 @@ dependencies = [
  "embedded-update",
  "futures",
  "futures-intrusive",
- "heapless 0.7.14",
+ "heapless 0.7.15",
  "rand_core",
  "reqwless",
 ]
@@ -645,7 +645,7 @@ dependencies = [
  "embedded-io",
  "embedded-nal-async",
  "embedded-tls",
- "heapless 0.7.14",
+ "heapless 0.7.15",
  "rand_core",
  "reqwless",
  "serde",
@@ -684,9 +684,9 @@ checksum = "3f107b87b6afc2a64fd13cac55fe06d6c8859f12d4b14cbcdd2c67d0976781be"
 
 [[package]]
 name = "elliptic-curve"
-version = "0.12.1"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f6664c6a37892ed55da8dda26a99e6ccc783f0c72fa3c2eeaa00ed30d8f4d9a"
+checksum = "c47abd0a791d2ac0c7aa1118715f85b83689e4522c4e3a244e159d4fc9848a8d"
 dependencies = [
  "base16ct",
  "crypto-bigint",
@@ -716,7 +716,7 @@ dependencies = [
  "embedded-hal 0.2.7",
  "embedded-hal-async",
  "futures",
- "heapless 0.7.14",
+ "heapless 0.7.15",
  "pin-project",
 ]
 
@@ -767,7 +767,7 @@ dependencies = [
  "embedded-io",
  "futures",
  "generic-array 0.14.5",
- "heapless 0.7.14",
+ "heapless 0.7.15",
  "managed",
  "smoltcp",
  "stable_deref_trait",
@@ -816,7 +816,7 @@ source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7
 dependencies = [
  "defmt",
  "embassy",
- "heapless 0.7.14",
+ "heapless 0.7.15",
 ]
 
 [[package]]
@@ -885,7 +885,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db9efecb57ab54fa918730f2874d7d37647169c50fa1357fecb81abee840b113"
 dependencies = [
- "heapless 0.7.14",
+ "heapless 0.7.15",
  "nb 1.0.0",
  "no-std-net",
 ]
@@ -895,7 +895,7 @@ name = "embedded-nal"
 version = "0.6.0"
 source = "git+https://github.com/lulf/embedded-nal.git?rev=7e46d533090882ce9a449f544055c09e6d241e55#7e46d533090882ce9a449f544055c09e6d241e55"
 dependencies = [
- "heapless 0.7.14",
+ "heapless 0.7.15",
  "nb 1.0.0",
  "no-std-net",
 ]
@@ -907,7 +907,7 @@ source = "git+https://github.com/lulf/embedded-nal.git?rev=7e46d533090882ce9a449
 dependencies = [
  "embedded-io",
  "embedded-nal 0.6.0 (git+https://github.com/lulf/embedded-nal.git?rev=7e46d533090882ce9a449f544055c09e6d241e55)",
- "heapless 0.7.14",
+ "heapless 0.7.15",
  "no-std-net",
 ]
 
@@ -937,7 +937,7 @@ dependencies = [
  "digest 0.10.3",
  "embedded-io",
  "generic-array 0.14.5",
- "heapless 0.7.14",
+ "heapless 0.7.15",
  "hkdf",
  "hmac",
  "p256",
@@ -955,7 +955,7 @@ dependencies = [
  "embedded-hal-async",
  "embedded-io",
  "futures",
- "heapless 0.7.14",
+ "heapless 0.7.15",
  "postcard",
  "serde",
 ]
@@ -1198,9 +1198,9 @@ dependencies = [
 
 [[package]]
 name = "heapless"
-version = "0.7.14"
+version = "0.7.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "065681e99f9ef7e0e813702a0326aedbcbbde7db5e55f097aedd1bf50b9dca43"
+checksum = "9f6733da246dc2af610133c8be0667170fd68e8ca5630936b520300eee8846f9"
 dependencies = [
  "atomic-polyfill",
  "defmt",
@@ -1441,7 +1441,7 @@ dependencies = [
  "embedded-graphics-core",
  "embedded-hal 0.2.7",
  "epd-waveshare",
- "heapless 0.7.14",
+ "heapless 0.7.15",
  "panic-probe",
  "tinybmp",
  "void",
@@ -1464,7 +1464,7 @@ dependencies = [
  "embassy-stm32",
  "embedded-hal 0.2.7",
  "embedded-tls",
- "heapless 0.7.14",
+ "heapless 0.7.15",
  "panic-probe",
  "rand_core",
  "void",
@@ -1491,9 +1491,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.12.0"
+version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7709cef83f0c1f58f666e746a08b21e0085f7440fa6a29cc194d68aac97a4225"
+checksum = "18a6dbe30758c9f83eb00cbea4ac95966305f5a7772f3f42ebfc7fc7eddbd8e1"
 
 [[package]]
 name = "opaque-debug"
@@ -1593,18 +1593,18 @@ dependencies = [
 
 [[package]]
 name = "pin-project"
-version = "1.0.10"
+version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58ad3879ad3baf4e44784bc6a718a8698867bb991f8ce24d1bcbe2cfb4c3a75e"
+checksum = "78203e83c48cffbe01e4a2d35d566ca4de445d79a85372fc64e378bfc812a260"
 dependencies = [
  "pin-project-internal",
 ]
 
 [[package]]
 name = "pin-project-internal"
-version = "1.0.10"
+version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "744b6f092ba29c3650faf274db506afd39944f48420f6c86b17cfe0ee1cb36bb"
+checksum = "710faf75e1b33345361201d36d04e98ac1ed8909151a017ed384700836104c74"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1743,7 +1743,7 @@ dependencies = [
  "base64",
  "defmt",
  "embedded-io",
- "heapless 0.7.14",
+ "heapless 0.7.15",
 ]
 
 [[package]]
@@ -1866,9 +1866,9 @@ checksum = "5a9f47faea3cad316faa914d013d24f471cd90bfca1a0c70f05a3f42c6441e99"
 
 [[package]]
 name = "serde"
-version = "1.0.137"
+version = "1.0.138"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61ea8d54c77f8315140a05f4c7237403bf38b72704d031543aa1d16abbf517d1"
+checksum = "1578c6245786b9d168c5447eeacfb96856573ca56c9d68fdcf394be134882a47"
 dependencies = [
  "serde_derive",
 ]
@@ -1879,16 +1879,16 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8014aeea272bca0f0779778d43253f2f3375b414185b30e6ecc4d3e4a9994781"
 dependencies = [
- "heapless 0.7.14",
+ "heapless 0.7.15",
  "ryu",
  "serde",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.137"
+version = "1.0.138"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f26faba0c3959972377d3b2d306ee9f71faee9714294e41bb777f83f88578be"
+checksum = "023e9b1467aef8a10fb88f25611870ada9800ef7e22afce356bb0d2387b6f27c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1950,7 +1950,7 @@ dependencies = [
  "byteorder",
  "cfg-if",
  "defmt",
- "heapless 0.7.14",
+ "heapless 0.7.15",
  "managed",
 ]
 
