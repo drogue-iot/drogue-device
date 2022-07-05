@@ -11,7 +11,7 @@ use core::fmt::Debug;
 use core::fmt::Write as FmtWrite;
 use core::future::Future;
 use core::marker::PhantomData;
-use embassy::time::{block_for, Duration, Timer};
+use embassy::time::{block_for, with_timeout, Duration, Timer};
 use embassy::{
     blocking_mutex::raw::NoopRawMutex,
     channel::{Channel, DynamicSender},
@@ -47,6 +47,8 @@ pub enum Error<SPI, CS, RESET, READY> {
     SPI(SPI),
     READY(READY),
     Transmitting,
+    Tcp(TcpError),
+    Join(JoinError),
 }
 
 const NAK: u8 = 0x15;
@@ -347,7 +349,6 @@ where
 
     async fn connect(&mut self, handle: u8, remote: SocketAddr) -> Result<(), TcpError> {
         let mut response = [0u8; 1024];
-
         let result = async {
             self.send_string(command!(8, "P0={}", handle), &mut response)
                 .await
@@ -741,18 +742,56 @@ where
         })
     }
 
-    pub async fn run(&'a self) -> ! {
+    pub async fn reset(
+        &'a self,
+        ssid: &str,
+        psk: &str,
+    ) -> Result<(), Error<SPI::Error, CS::Error, RESET::Error, READY::Error>> {
+        let mut adapter = self.adapter.lock().await;
+        adapter.start().await?;
+        debug!("Joining WiFi network...");
+        adapter
+            .join_wep(ssid, psk)
+            .await
+            .map_err(|e| Error::Join(e))?;
+        debug!("WiFi network joined");
+        Ok(())
+    }
+
+    pub async fn run(
+        &'a self,
+        ssid: &'a str,
+        psk: &'a str,
+    ) -> Result<(), Error<SPI::Error, CS::Error, RESET::Error, READY::Error>> {
+        self.reset(ssid, psk).await?;
         loop {
             match self.control.recv().await {
-                Control::Close(id) => loop {
-                    let mut adapter = self.adapter.lock().await;
-                    if let Err(e) = adapter.close(id).await {
-                        warn!("Error closing connection {}: {:?}", id, e);
-                        Timer::after(Duration::from_millis(50)).await;
-                    } else {
-                        break;
+                Control::Close(id) => {
+                    let mut retries = 3;
+                    while retries > 0 {
+                        let mut adapter = self.adapter.lock().await;
+                        match with_timeout(Duration::from_secs(10), adapter.close(id)).await {
+                            Ok(r) => {
+                                if let Err(e) = r {
+                                    warn!("Error closing connection {}: {:?}", id, e);
+                                    Timer::after(Duration::from_millis(50)).await;
+                                    retries -= 1;
+                                } else {
+                                    break;
+                                }
+                            }
+                            Err(_) => {
+                                warn!("Timed out closing connection");
+                                Timer::after(Duration::from_millis(50)).await;
+                                retries -= 1;
+                            }
+                        }
                     }
-                },
+                    // Resetting adapter to get it out of the bad state.
+                    if retries == 0 {
+                        self.reset(ssid, psk).await?;
+                    }
+                }
             }
         }
     }
