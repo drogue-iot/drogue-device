@@ -432,7 +432,7 @@ impl ElementsHandler<'static> for CustomElementsHandler {
 #[derive(Clone, defmt::Format)]
 pub struct SensorModel;
 
-#[derive(Clone, defmt::Format)]
+#[derive(Clone, defmt::Format, Default)]
 pub struct Temperature(i8);
 
 impl SensorConfig for SensorModel {

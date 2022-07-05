@@ -81,8 +81,9 @@ pub trait SensorConfig: Clone {
     const DESCRIPTORS: &'static [SensorDescriptor];
 }
 
-pub trait SensorData {
+pub trait SensorData: Default {
     fn decode(&mut self, property: PropertyId, data: &[u8]) -> Result<(), ParseError>;
+
     fn encode<const N: usize>(
         &self,
         property: PropertyId,
@@ -168,7 +169,7 @@ pub struct SensorStatus<'a, C>
 where
     C: SensorConfig,
 {
-    data: C::Data<'a>,
+    pub data: C::Data<'a>,
 }
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -418,6 +419,9 @@ where
                 parameters,
             )?))),
             SENSOR_GET => Ok(Some(SensorMessage::Get(SensorGet::parse(parameters)?))),
+            SENSOR_STATUS => Ok(Some(SensorMessage::Status(SensorStatus::parse(
+                parameters,
+            )?))),
             SENSOR_COLUMN_GET => Ok(Some(SensorMessage::ColumnGet(ColumnGet::parse::<C>(
                 parameters,
             )?))),
@@ -625,6 +629,36 @@ where
     pub fn new(data: C::Data<'a>) -> Self {
         Self { data }
     }
+
+    fn parse(parameters: &[u8]) -> Result<Self, ParseError> {
+        let mut data = C::Data::default();
+        for d in C::DESCRIPTORS {
+            let mut pos = 0;
+            let format = parameters[0] & 0b1000_0000;
+            let (length, id, offset): (usize, u16, usize);
+
+            if format == 0 {
+                length = ((parameters[0] & 0b0111_1000) >> 3) as usize;
+                id = ((parameters[0] & 0b0000_0111) | parameters[1]).into();
+                offset = 2;
+            } else {
+                length = (parameters[0] & 0b0111_1111) as usize;
+                id = ((parameters[1] as u16) << 8) | parameters[2] as u16;
+                offset = 3;
+            }
+
+            if id == d.id.0 && d.size == length {
+                pos += offset;
+            } else {
+                return Err(ParseError::InvalidValue);
+            }
+
+            let parameters = &parameters[pos..(pos + d.size)];
+            data.decode(d.id, parameters)?;
+        }
+        Ok(Self { data })
+    }
+
     fn emit_parameters<const N: usize>(
         &self,
         xmit: &mut heapless::Vec<u8, N>,
