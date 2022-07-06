@@ -439,6 +439,7 @@ dependencies = [
  "ector",
  "embassy",
  "embassy-embedded-hal",
+ "embassy-hal-common",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.8",
  "embedded-hal-async",

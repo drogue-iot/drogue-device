@@ -69,6 +69,7 @@ overflow-checks = false
 [patch.crates-io]
 embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
 embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
 embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
 embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
 embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }

@@ -457,6 +457,7 @@ dependencies = [
  "ector",
  "embassy",
  "embassy-embedded-hal",
+ "embassy-hal-common",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.8",
  "embedded-hal-async",
@@ -585,6 +586,16 @@ dependencies = [
  "embedded-storage",
  "embedded-storage-async",
  "nb 1.0.0",
+]
+
+[[package]]
+name = "embassy-hal-common"
+version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=6baddaf53982b75149cb7e91280c571f7fe2e7bc#6baddaf53982b75149cb7e91280c571f7fe2e7bc"
+dependencies = [
+ "cortex-m",
+ "embassy",
+ "num-traits",
 ]
 
 [[package]]
@@ -1171,6 +1182,15 @@ checksum = "a8903e5a29a317527874d0402f867152a3d21c908bb0b933e416c65e301d4c36"
 dependencies = [
  "memchr",
  "minimal-lexical",
+]
+
+[[package]]
+name = "num-traits"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "578ede34cf02f8924ab9447f50c28075b4d3e5b269972345e7e0372b38c6cdcd"
+dependencies = [
+ "autocfg",
 ]
 
 [[package]]

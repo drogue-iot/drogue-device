@@ -554,6 +554,7 @@ dependencies = [
  "embassy",
  "embassy-boot",
  "embassy-embedded-hal",
+ "embassy-hal-common",
  "embassy-stm32",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.8",
