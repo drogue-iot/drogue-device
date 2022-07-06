@@ -31,7 +31,7 @@ mod tests {
 
         assert!(notified.message().is_none());
         pin.set_high();
-        notified.wait_signaled().await.unwrap();
+        notified.wait_signaled().await;
         assert_eq!(0, notified.message().unwrap().0);
     }
 
@@ -57,7 +57,7 @@ mod tests {
 
         assert!(notified.message().is_none());
         pin.set_low();
-        notified.wait_signaled().await.unwrap();
+        notified.wait_signaled().await;
         assert_eq!(1, notified.message().unwrap().0);
     }
 }

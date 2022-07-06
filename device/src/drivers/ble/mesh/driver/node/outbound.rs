@@ -4,7 +4,7 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit:
 use crate::drivers::ble::mesh::model::ModelIdentifier;
 use crate::drivers::ble::mesh::pdu::access::{AccessMessage, AccessPayload};
 use core::marker::PhantomData;
-use embassy::channel::{Channel, Sender};
+use embassy::channel::mpmc::{Channel, Sender};
 
 use embassy::util::{select, Either};
 

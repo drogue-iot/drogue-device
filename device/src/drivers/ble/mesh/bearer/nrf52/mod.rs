@@ -13,7 +13,7 @@ use core::future::Future;
 use core::mem;
 use core::ptr::slice_from_raw_parts;
 use core::sync::atomic::Ordering;
-use embassy::channel::{Channel, Signal};
+use embassy::channel::{mpmc::Channel, signal::Signal};
 use heapless::Vec;
 use nrf_softdevice::ble::central::{ScanConfig, ScanError};
 use nrf_softdevice::ble::peripheral::AdvertiseError;

@@ -38,7 +38,7 @@ use drogue_device::drivers::ActiveLow;
 use drogue_device::traits::button::Event;
 use drogue_device::{actors, drivers};
 use ector::{Actor, ActorContext, Address, Inbox};
-use embassy::channel::{Channel, DynamicReceiver, Sender};
+use embassy::channel::mpmc::{Channel, DynamicReceiver, Sender};
 use embassy::executor::Spawner;
 use embassy::time::{Duration, Timer};
 use embassy::util::Forever;

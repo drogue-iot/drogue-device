@@ -25,7 +25,7 @@ use core::convert::TryInto;
 use core::future::Future;
 use core::marker::PhantomData;
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
-use embassy::channel::channel::Sender as ChannelSender;
+use embassy::channel::mpmc::Sender as ChannelSender;
 use heapless::Vec;
 
 #[derive(Clone)]

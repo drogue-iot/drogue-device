@@ -42,7 +42,7 @@ use drogue_device::{
     flash::{FlashState, SharedFlash},
     Board,
 };
-use embassy::channel::{Channel, DynamicReceiver, DynamicSender};
+use embassy::channel::mpmc::{Channel, DynamicReceiver, DynamicSender};
 use embassy::time::Ticker;
 use embassy::time::{Duration, Timer};
 use embassy::util::Forever;

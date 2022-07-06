@@ -18,7 +18,7 @@ use embassy::time::{Duration, Timer};
 use embassy::util::{select3, Either3};
 use embassy::{
     blocking_mutex::raw::NoopRawMutex,
-    channel::{Channel, DynamicReceiver, DynamicSender},
+    channel::mpmc::{Channel, DynamicReceiver, DynamicSender},
 };
 use embedded_hal::digital::v2::OutputPin;
 use embedded_io::asynch::{Read, Write};

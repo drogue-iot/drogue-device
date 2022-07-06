@@ -49,7 +49,7 @@ cfg_if::cfg_if! {
     }
 }
 
-use embassy::channel::{Channel, DynamicReceiver, DynamicSender};
+use embassy::channel::mpmc::{Channel, DynamicReceiver, DynamicSender};
 use embassy::time::Ticker;
 use embassy::time::{Duration, Timer};
 use embassy::util::Forever;

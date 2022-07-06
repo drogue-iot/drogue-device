@@ -176,6 +176,6 @@ nrf = [
 "bsp+nucleo_wl55" = [ "embassy-stm32", "embassy-stm32/subghz", "embassy-stm32/unstable-pac" ]
 "bsp+microbit" = [ "embassy-nrf", "embassy-nrf/gpiote" ]
 "bsp+microbit+temp" = ["bsp+microbit"]
-"bsp+adafruit_feather_nrf52840" = [ "nrf", "neopixel" ]
+"bsp+adafruit_feather_nrf52840" = [ "nrf" ]
 "bsp+b_l072z_lrwan1" = [ "embassy-stm32" ]
 "bsp+rak811" = [ "embassy-stm32", "rand", "embassy-stm32/unstable-pac" ]

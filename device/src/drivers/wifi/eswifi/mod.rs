@@ -14,7 +14,7 @@ use core::marker::PhantomData;
 use embassy::time::{block_for, with_timeout, Duration, Timer};
 use embassy::{
     blocking_mutex::raw::NoopRawMutex,
-    channel::{Channel, DynamicSender},
+    channel::mpmc::{Channel, DynamicSender},
 };
 use embedded_hal_async::digital::Wait;
 use embedded_hal_async::spi::*;

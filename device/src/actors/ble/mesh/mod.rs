@@ -8,7 +8,7 @@ use crate::drivers::ble::mesh::interface::NetworkInterfaces;
 use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
-use embassy::channel::{Channel, DynamicReceiver as ChannelReceiver};
+use embassy::channel::mpmc::{Channel, DynamicReceiver as ChannelReceiver};
 use heapless::Vec;
 use rand_core::{CryptoRng, RngCore};
 

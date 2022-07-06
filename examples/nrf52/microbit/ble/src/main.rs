@@ -19,7 +19,7 @@ use drogue_device::{
     firmware::{FirmwareManager, SharedFirmwareManager},
 };
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
-use embassy::channel::{Channel, DynamicReceiver, DynamicSender};
+use embassy::channel::mpmc::{Channel, DynamicReceiver, DynamicSender};
 use embassy::executor::Spawner;
 use embassy::time::Delay;
 use embassy::time::Ticker;

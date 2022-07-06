@@ -217,11 +217,12 @@ dependencies = [
 
 [[package]]
 name = "bxcan"
-version = "0.6.2"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b13b4b2ea9ab2ba924063ebb86ad895cb79f4a79bf90f27949eb20c335b30f9"
+checksum = "40ac3d0c0a542d0ab5521211f873f62706a7136df415676f676d347e5a41dd80"
 dependencies = [
  "bitflags",
+ "embedded-hal 0.2.7",
  "nb 1.0.0",
  "vcell",
 ]
@@ -678,7 +679,7 @@ dependencies = [
 [[package]]
 name = "ector"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/ector.git?rev=53a28cfed7b1030c1e841175ff8a5577251f30c8#53a28cfed7b1030c1e841175ff8a5577251f30c8"
+source = "git+https://github.com/drogue-iot/ector.git?rev=63c08489da17ff92c493f21411411ce5ddd6154a#63c08489da17ff92c493f21411411ce5ddd6154a"
 dependencies = [
  "atomic-polyfill",
  "ector-macros",
@@ -692,7 +693,7 @@ dependencies = [
 [[package]]
 name = "ector-macros"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/ector.git?rev=53a28cfed7b1030c1e841175ff8a5577251f30c8#53a28cfed7b1030c1e841175ff8a5577251f30c8"
+source = "git+https://github.com/drogue-iot/ector.git?rev=63c08489da17ff92c493f21411411ce5ddd6154a#63c08489da17ff92c493f21411411ce5ddd6154a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -728,7 +729,7 @@ dependencies = [
 [[package]]
 name = "embassy"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=6baddaf53982b75149cb7e91280c571f7fe2e7bc#6baddaf53982b75149cb7e91280c571f7fe2e7bc"
 dependencies = [
  "atomic-polyfill",
  "cfg-if",
@@ -744,9 +745,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "embassy-cortex-m"
+version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=6baddaf53982b75149cb7e91280c571f7fe2e7bc#6baddaf53982b75149cb7e91280c571f7fe2e7bc"
+dependencies = [
+ "atomic-polyfill",
+ "cfg-if",
+ "cortex-m",
+ "critical-section",
+ "embassy",
+ "embassy-hal-common",
+ "embassy-macros",
+]
+
+[[package]]
 name = "embassy-embedded-hal"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=6baddaf53982b75149cb7e91280c571f7fe2e7bc#6baddaf53982b75149cb7e91280c571f7fe2e7bc"
 dependencies = [
  "embassy",
  "embedded-hal 0.2.7",
@@ -760,7 +775,7 @@ dependencies = [
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=6baddaf53982b75149cb7e91280c571f7fe2e7bc#6baddaf53982b75149cb7e91280c571f7fe2e7bc"
 dependencies = [
  "cortex-m",
  "embassy",
@@ -770,7 +785,7 @@ dependencies = [
 [[package]]
 name = "embassy-lora"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=6baddaf53982b75149cb7e91280c571f7fe2e7bc#6baddaf53982b75149cb7e91280c571f7fe2e7bc"
 dependencies = [
  "bit_field",
  "embassy",
@@ -786,7 +801,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=6baddaf53982b75149cb7e91280c571f7fe2e7bc#6baddaf53982b75149cb7e91280c571f7fe2e7bc"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -797,7 +812,7 @@ dependencies = [
 [[package]]
 name = "embassy-stm32"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=6baddaf53982b75149cb7e91280c571f7fe2e7bc#6baddaf53982b75149cb7e91280c571f7fe2e7bc"
 dependencies = [
  "atomic-polyfill",
  "bare-metal 1.0.0",
@@ -807,6 +822,7 @@ dependencies = [
  "cortex-m-rt",
  "critical-section",
  "embassy",
+ "embassy-cortex-m",
  "embassy-hal-common",
  "embassy-macros",
  "embassy-usb",
@@ -831,7 +847,7 @@ dependencies = [
 [[package]]
 name = "embassy-usb"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=6baddaf53982b75149cb7e91280c571f7fe2e7bc#6baddaf53982b75149cb7e91280c571f7fe2e7bc"
 dependencies = [
  "embassy",
  "heapless",
@@ -1631,9 +1647,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.5.6"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d83f127d94bdbcda4c8cc2e50f6f84f4b611f69c902699ca385a39c3a75f9ff1"
+checksum = "4c4eb3267174b8c6c2f654116623910a0fef09c4753f8dd83db29c48a0df988b"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -1642,9 +1658,9 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.6.26"
+version = "0.6.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49b3de9ec5dc0a3417da371aab17d729997c15010e7fd24ff707773a33bddb64"
+checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
 
 [[package]]
 name = "reqwless"
@@ -1771,9 +1787,9 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "seq-macro"
-version = "0.2.2"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a9f47faea3cad316faa914d013d24f471cd90bfca1a0c70f05a3f42c6441e99"
+checksum = "70d9841243dbc9928f5fed7946d2862292eebd823d96e13e556924d3db0120d2"
 
 [[package]]
 name = "serde"
@@ -1868,7 +1884,7 @@ dependencies = [
 [[package]]
 name = "stm32-metapac"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=6baddaf53982b75149cb7e91280c571f7fe2e7bc#6baddaf53982b75149cb7e91280c571f7fe2e7bc"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
@@ -1879,7 +1895,7 @@ dependencies = [
 [[package]]
 name = "stm32-metapac-gen"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=77c7d8f31b89d13117a7294842d60f02950fdd23#77c7d8f31b89d13117a7294842d60f02950fdd23"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=6baddaf53982b75149cb7e91280c571f7fe2e7bc#6baddaf53982b75149cb7e91280c571f7fe2e7bc"
 dependencies = [
  "chiptool",
  "proc-macro2",
@@ -1977,9 +1993,9 @@ checksum = "dcf81ac59edc17cc8697ff311e8f5ef2d99fcbd9817b34cec66f90b6c3dfd987"
 
 [[package]]
 name = "ucd-trie"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56dee185309b50d1f11bfedef0fe6d036842e3fb77413abef29f8f8d1c5d4c1c"
+checksum = "89570599c4fe5585de2b388aab47e99f7fa4e9238a1399f707a02e356058141c"
 
 [[package]]
 name = "unicode-ident"
