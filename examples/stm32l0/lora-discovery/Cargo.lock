@@ -643,6 +643,7 @@ dependencies = [
  "ector",
  "embassy",
  "embassy-embedded-hal",
+ "embassy-hal-common",
  "embassy-lora",
  "embassy-stm32",
  "embedded-hal 0.2.7",

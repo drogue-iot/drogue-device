@@ -95,16 +95,6 @@ pub fn print_value_size<T>(name: &'static str, val: &T) {
     );*/
 }
 
-#[macro_export]
-macro_rules! unborrow {
-    ($($name:ident),*) => {
-        $(
-            #[allow(unused_mut)]
-            let mut $name = unsafe { $name.unborrow() };
-        )*
-    }
-}
-
 /// Spawn an actor given a spawner and the actors name, type and instance.
 #[macro_export]
 macro_rules! spawn_actor {

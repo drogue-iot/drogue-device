@@ -1,13 +1,11 @@
-use crate::unborrow;
+use crate::drivers::led::neopixel::filter::Filter;
+use crate::drivers::led::neopixel::{InvalidChannel, Pixel, RES};
 use core::mem::transmute;
 use core::ops::Add;
 use core::ops::Deref;
 use core::slice;
 use embassy::time::{Duration, Timer};
-use embassy_hal_common::Unborrow;
-//use embassy_hal_common::unborrow;
-use crate::drivers::led::neopixel::filter::Filter;
-use crate::drivers::led::neopixel::{InvalidChannel, Pixel, RES};
+use embassy_hal_common::{unborrow, Unborrow};
 use embassy_nrf::gpio::Pin;
 use embassy_nrf::pwm::{
     Config, Error, Instance, Prescaler, SequenceConfig, SequenceLoad, SequencePwm,
