@@ -11,7 +11,7 @@ use rand::rngs::OsRng;
 pub struct StdBoard;
 
 impl TemperatureBoard for StdBoard {
-    type Network = StdTcpClient;
+    type Network = StdTcpClientSocket;
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = FakeSensor;
@@ -37,7 +37,7 @@ async fn main(spawner: embassy::executor::Spawner) {
                 send_trigger: TimeTrigger(Duration::from_secs(10)),
                 sensor: FakeSensor(22.0),
                 sensor_ready: AlwaysReady,
-                network: StdTcpClient,
+                network: StdTcpClientSocket::default(),
             },
         )
         .await;

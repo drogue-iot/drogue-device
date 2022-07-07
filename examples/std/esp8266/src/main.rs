@@ -5,7 +5,7 @@
 mod serial;
 
 use async_io::Async;
-use drogue_device::{domain::temperature::Celsius, drivers::wifi::esp8266::*, traits::wifi::*, *};
+use drogue_device::{domain::temperature::Celsius, drivers::wifi::esp8266::*, *};
 use drogue_temperature::*;
 use embassy::time::Duration;
 use embassy::util::Forever;
@@ -25,7 +25,7 @@ type RESET = DummyPin;
 pub struct StdBoard;
 
 impl TemperatureBoard for StdBoard {
-    type Network = Esp8266Client<'static, SERIAL>;
+    type Network = Esp8266Socket<'static, SERIAL>;
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = FakeSensor;
@@ -48,21 +48,13 @@ async fn main(spawner: embassy::executor::Spawner) {
     let port = futures::io::BufReader::new(port);
     let port = FromFutures::new(port);
 
-    let mut network = Esp8266Modem::new(port, DummyPin, DummyPin);
-    network.initialize().await.unwrap();
-
-    network
-        .join(Join::Wpa {
-            ssid: WIFI_SSID.trim_end(),
-            password: WIFI_PSK.trim_end(),
-        })
-        .await
-        .expect("Error joining WiFi network");
-
+    let network = Esp8266Modem::new(port, DummyPin, DummyPin);
     static NETWORK: Forever<Esp8266Modem<SERIAL, ENABLE, RESET, 1>> = Forever::new();
     let network = NETWORK.put(network);
-    spawner.spawn(net_task(network)).unwrap();
-    let client = network.new_client().unwrap();
+    spawner
+        .spawn(net_task(network, WIFI_SSID.trim_end(), WIFI_PSK.trim_end()))
+        .unwrap();
+    let client = network.new_socket().unwrap();
 
     DEVICE
         .put(TemperatureDevice::new())
@@ -80,8 +72,14 @@ async fn main(spawner: embassy::executor::Spawner) {
 }
 
 #[embassy::task]
-async fn net_task(modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1>) {
-    modem.run().await;
+async fn net_task(
+    modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1>,
+    ssid: &'static str,
+    psk: &'static str,
+) {
+    loop {
+        let _ = modem.run(ssid, psk).await;
+    }
 }
 
 pub struct DummyPin;

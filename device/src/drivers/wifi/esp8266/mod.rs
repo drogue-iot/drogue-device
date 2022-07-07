@@ -12,6 +12,7 @@ use crate::traits::wifi::{Join, JoinError, WifiSupplicant};
 use atomic_polyfill::{AtomicU32, Ordering};
 use buffer::Buffer;
 use core::cell::Cell;
+use core::cell::RefCell;
 use core::future::Future;
 use core::marker::PhantomData;
 use embassy::time::{Duration, Timer};
@@ -33,7 +34,7 @@ type DriverMutex = NoopRawMutex;
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DriverError {
-    NoClient,
+    NoSocket,
     UnableToInitialize,
     NoAvailableSockets,
     Timeout,
@@ -45,6 +46,7 @@ pub enum DriverError {
     SocketClosed,
     InvalidSocket,
     OperationNotSupported,
+    JoinError(JoinError),
 }
 
 struct Inner<T> {
@@ -59,7 +61,7 @@ where
 {
     fn digest(
         &mut self,
-        notifications: &dyn ClientsNotifier,
+        notifications: &dyn SocketsNotifier,
     ) -> Result<Option<AtResponse>, DriverError> {
         let result = self.parse_buffer.parse();
 
@@ -107,7 +109,7 @@ where
     async fn send_command<'c>(
         &mut self,
         command: Command<'c>,
-        notifications: &dyn ClientsNotifier,
+        notifications: &dyn SocketsNotifier,
     ) -> Result<AtResponse, DriverError> {
         let mut bytes = command.as_bytes();
         trace!(
@@ -123,7 +125,7 @@ where
 
     async fn receive_response(
         &mut self,
-        notifications: &dyn ClientsNotifier,
+        notifications: &dyn SocketsNotifier,
     ) -> Result<AtResponse, DriverError> {
         loop {
             if let Some(r) = self.inbound.dequeue() {
@@ -141,7 +143,7 @@ where
         }
     }
 
-    async fn process(&mut self, notifications: &dyn ClientsNotifier) -> Result<(), DriverError> {
+    async fn process(&mut self, notifications: &dyn SocketsNotifier) -> Result<(), DriverError> {
         if self.inbound.is_empty() {
             let mut buf = [0; 1];
             if let Ok(len) = self.transport.read(&mut buf).await {
@@ -167,7 +169,7 @@ where
     async fn send_recv(
         &mut self,
         data: &[u8],
-        notifications: &dyn ClientsNotifier,
+        notifications: &dyn SocketsNotifier,
     ) -> Result<AtResponse, DriverError> {
         self.transport
             .write(data)
@@ -188,7 +190,7 @@ impl<T> Esp8266Handle<T>
 where
     T: Read + Write,
 {
-    async fn configure(&self, notifications: &dyn ClientsNotifier) -> Result<(), DriverError> {
+    async fn configure(&self, notifications: &dyn SocketsNotifier) -> Result<(), DriverError> {
         // Initialize
         let mut inner = self.inner.lock().await;
         inner
@@ -214,7 +216,7 @@ where
         &self,
         ssid: &str,
         password: &str,
-        notifications: &dyn ClientsNotifier,
+        notifications: &dyn SocketsNotifier,
     ) -> Result<IpAddr, JoinError> {
         let mut inner = self.inner.lock().await;
         let command = Command::JoinAp { ssid, password };
@@ -248,7 +250,7 @@ where
         &self,
         id: usize,
         buf: &[u8],
-        notifications: &dyn ClientsNotifier,
+        notifications: &dyn SocketsNotifier,
     ) -> Result<usize, DriverError> {
         let command = Command::Send {
             link_id: id,
@@ -294,7 +296,7 @@ where
         &self,
         id: usize,
         buf: &mut [u8],
-        notifications: &dyn ClientsNotifier,
+        notifications: &dyn SocketsNotifier,
     ) -> Result<usize, DriverError> {
         let mut inner = self.inner.lock().await;
         debug!("[{}] in receive", id);
@@ -349,7 +351,7 @@ where
         Ok(rp)
     }
 
-    async fn process(&self, notifications: &dyn ClientsNotifier) -> Result<(), DriverError> {
+    async fn process(&self, notifications: &dyn SocketsNotifier) -> Result<(), DriverError> {
         let mut inner = self.inner.lock().await;
         inner.process(notifications).await?;
         Ok(())
@@ -359,7 +361,7 @@ where
         &self,
         id: usize,
         remote: SocketAddr,
-        notifications: &dyn ClientsNotifier,
+        notifications: &dyn SocketsNotifier,
     ) -> Result<(), DriverError> {
         let mut inner = self.inner.lock().await;
         debug!("[{}] in connect_client", id);
@@ -372,10 +374,10 @@ where
         }
     }
 
-    async fn close_client(
+    async fn close_socket(
         &self,
         id: usize,
-        notifications: &dyn ClientsNotifier,
+        notifications: &dyn SocketsNotifier,
     ) -> Result<(), DriverError> {
         debug!("[{}] in drop/close", id);
         let mut inner = self.inner.lock().await;
@@ -387,7 +389,7 @@ where
     }
 }
 
-pub struct Esp8266Modem<'a, T, ENABLE, RESET, const MAX_CLIENTS: usize>
+pub struct Esp8266Modem<'a, T, ENABLE, RESET, const MAX_SOCKETS: usize>
 where
     T: Read + Write,
     ENABLE: OutputPin,
@@ -395,14 +397,14 @@ where
 {
     clients: AtomicU32,
     handle: Esp8266Handle<T>,
-    enable: ENABLE,
-    reset: RESET,
-    notifications: [Channel<DriverMutex, AtResponse, 2>; MAX_CLIENTS],
+    enable: RefCell<ENABLE>,
+    reset: RefCell<RESET>,
+    notifications: [Channel<DriverMutex, AtResponse, 2>; MAX_SOCKETS],
     control: Channel<DriverMutex, Control, 2>,
     _a: PhantomData<&'a T>,
 }
 
-impl<'a, T, ENABLE, RESET, const MAX_CLIENTS: usize> Esp8266Modem<'a, T, ENABLE, RESET, MAX_CLIENTS>
+impl<'a, T, ENABLE, RESET, const MAX_SOCKETS: usize> Esp8266Modem<'a, T, ENABLE, RESET, MAX_SOCKETS>
 where
     T: Read + Write,
     ENABLE: OutputPin,
@@ -422,25 +424,25 @@ where
                 ),
             },
             clients: AtomicU32::new(0),
-            enable,
-            reset,
+            enable: RefCell::new(enable),
+            reset: RefCell::new(reset),
             control: Channel::new(),
-            notifications: [C; MAX_CLIENTS],
+            notifications: [C; MAX_SOCKETS],
             _a: PhantomData,
         }
     }
 
-    pub async fn initialize(&mut self) -> Result<(), DriverError> {
-        self.enable.set_low().ok().unwrap();
-        self.reset.set_low().ok().unwrap();
+    async fn initialize(&self) -> Result<(), DriverError> {
+        self.enable.borrow_mut().set_low().ok().unwrap();
+        self.reset.borrow_mut().set_low().ok().unwrap();
         let mut buffer: [u8; 1024] = [0; 1024];
         let mut pos = 0;
 
         const READY: [u8; 7] = *b"ready\r\n";
 
         info!("Initializing ESP8266");
-        self.enable.set_high().ok().unwrap();
-        self.reset.set_high().ok().unwrap();
+        self.enable.borrow_mut().set_high().ok().unwrap();
+        self.reset.borrow_mut().set_high().ok().unwrap();
 
         let mut rx_buf = [0; 1];
         loop {
@@ -471,25 +473,31 @@ where
         }
     }
 
-    pub fn new_client(&'a self) -> Result<Esp8266Client<'a, T>, DriverError> {
+    pub fn new_socket(&'a self) -> Result<Esp8266Socket<'a, T>, DriverError> {
         let id = self.clients.fetch_add(1, Ordering::SeqCst) as usize;
-        if id < MAX_CLIENTS {
+        if id < MAX_SOCKETS {
             debug!("[{}] client created", id);
             let notifications = self.notifications[id].receiver().into();
-            Ok(Esp8266Client {
+            Ok(Esp8266Socket {
                 id,
                 handle: &self.handle,
                 notifier: &self.notifications,
                 notifications,
                 control: self.control.sender().into(),
                 state: Cell::new(SocketState::Closed),
+                available: 0,
             })
         } else {
-            Err(DriverError::NoClient)
+            Err(DriverError::NoSocket)
         }
     }
 
-    pub async fn run(&'a self) -> ! {
+    pub async fn run(&'a self, ssid: &'a str, psk: &'a str) -> Result<(), DriverError> {
+        self.initialize().await?;
+        self.handle
+            .join_wep(ssid, psk, &self.notifications)
+            .await
+            .map_err(DriverError::JoinError)?;
         loop {
             let t = Timer::after(Duration::from_secs(1));
             match select3(
@@ -501,7 +509,7 @@ where
             {
                 Either3::First(control) => match control {
                     Control::Close(id) => {
-                        let _ = self.handle.close_client(id, &self.notifications).await;
+                        let _ = self.handle.close_socket(id, &self.notifications).await;
                     }
                 },
                 Either3::Second(_) => {}
@@ -520,12 +528,12 @@ enum Control {
     Close(usize),
 }
 
-pub trait ClientsNotifier {
+pub trait SocketsNotifier {
     fn notify(&self, link_id: usize, response: AtResponse);
 }
 
-impl<const MAX_CLIENTS: usize> ClientsNotifier
-    for [Channel<DriverMutex, AtResponse, 2>; MAX_CLIENTS]
+impl<const MAX_SOCKETS: usize> SocketsNotifier
+    for [Channel<DriverMutex, AtResponse, 2>; MAX_SOCKETS]
 {
     fn notify(&self, link_id: usize, response: AtResponse) {
         debug!("[{}] Got notification: {:?}", link_id, response);
@@ -536,16 +544,17 @@ impl<const MAX_CLIENTS: usize> ClientsNotifier
     }
 }
 
-pub struct Esp8266Client<'a, T>
+pub struct Esp8266Socket<'a, T>
 where
     T: Read + Write,
 {
     id: usize,
     handle: &'a Esp8266Handle<T>,
-    notifier: &'a dyn ClientsNotifier,
+    notifier: &'a dyn SocketsNotifier,
     notifications: DynamicReceiver<'a, AtResponse>,
     control: DynamicSender<'a, Control>,
     state: Cell<SocketState>,
+    available: usize,
 }
 
 #[derive(PartialEq, Clone, Copy)]
@@ -562,9 +571,9 @@ impl Default for SocketState {
     }
 }
 
-impl<'a, T> Esp8266Client<'a, T> where T: Read + Write {}
+impl<'a, T> Esp8266Socket<'a, T> where T: Read + Write {}
 
-impl<'a, T> embedded_io::Io for Esp8266Client<'a, T>
+impl<'a, T> embedded_io::Io for Esp8266Socket<'a, T>
 where
     T: Read + Write,
 {
@@ -577,15 +586,13 @@ impl embedded_io::Error for DriverError {
     }
 }
 
-impl<'a, T> embedded_nal_async::TcpClient for Esp8266Client<'a, T>
+impl<'a, T> embedded_nal_async::TcpClientSocket for Esp8266Socket<'a, T>
 where
     T: Read + Write + 'a,
 {
-    type TcpConnection<'m> = Esp8266Connection<'m, T> where Self: 'm;
-    type ConnectFuture<'m> = impl Future<Output = Result<Self::TcpConnection<'m>, Self::Error>> + 'm
+    type ConnectFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm
 	where
 		Self: 'm;
-
     fn connect<'m>(&'m mut self, remote: SocketAddr) -> Self::ConnectFuture<'m> {
         async move {
             self.state.set(SocketState::Open);
@@ -593,33 +600,24 @@ where
                 .connect_client(self.id, remote, self.notifier)
                 .await?;
             self.state.set(SocketState::Connected);
-            Ok(Esp8266Connection {
-                handle: self.handle,
-                id: self.id,
-                state: &self.state,
-                notifier: self.notifier,
-                notifications: self.notifications.clone(),
-                control: self.control.clone(),
-                available: 0,
-            })
+            Ok(())
         }
+    }
+
+    type IsConnectedFuture<'m> = impl Future<Output = Result<bool, Self::Error>> + 'm
+    where
+        Self: 'm;
+    fn is_connected<'m>(&'m mut self) -> Self::IsConnectedFuture<'m> {
+        async move { Ok(self.state.get() == SocketState::Connected) }
+    }
+
+    fn disconnect(&mut self) -> Result<(), Self::Error> {
+        let _ = self.control.try_send(Control::Close(self.id));
+        Ok(())
     }
 }
 
-pub struct Esp8266Connection<'a, T>
-where
-    T: Read + Write + 'a,
-{
-    handle: &'a Esp8266Handle<T>,
-    id: usize,
-    notifier: &'a dyn ClientsNotifier,
-    notifications: DynamicReceiver<'a, AtResponse>,
-    control: DynamicSender<'a, Control>,
-    available: usize,
-    state: &'a Cell<SocketState>,
-}
-
-impl<'a, T> Esp8266Connection<'a, T>
+impl<'a, T> Esp8266Socket<'a, T>
 where
     T: Read + Write,
 {
@@ -674,14 +672,7 @@ where
     }
 }
 
-impl<'a, T> embedded_io::Io for Esp8266Connection<'a, T>
-where
-    T: Read + Write + 'a,
-{
-    type Error = DriverError;
-}
-
-impl<'a, T> embedded_io::asynch::Write for Esp8266Connection<'a, T>
+impl<'a, T> embedded_io::asynch::Write for Esp8266Socket<'a, T>
 where
     T: Read + Write + 'a,
 {
@@ -711,7 +702,7 @@ where
     }
 }
 
-impl<'a, T> embedded_io::asynch::Read for Esp8266Connection<'a, T>
+impl<'a, T> embedded_io::asynch::Read for Esp8266Socket<'a, T>
 where
     T: Read + Write + 'a,
 {
@@ -740,7 +731,7 @@ where
     }
 }
 
-impl<'a, T> Drop for Esp8266Connection<'a, T>
+impl<'a, T> Drop for Esp8266Socket<'a, T>
 where
     T: Read + Write + 'a,
 {
@@ -752,8 +743,8 @@ where
     }
 }
 
-impl<'a, T, ENABLE, RESET, const MAX_CLIENTS: usize> WifiSupplicant
-    for Esp8266Modem<'a, T, ENABLE, RESET, MAX_CLIENTS>
+impl<'a, T, ENABLE, RESET, const MAX_SOCKETS: usize> WifiSupplicant
+    for Esp8266Modem<'a, T, ENABLE, RESET, MAX_SOCKETS>
 where
     T: Read + Write + 'a,
     ENABLE: OutputPin + 'a,
