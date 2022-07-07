@@ -27,7 +27,7 @@ use rand_core::RngCore;
 bind_bsp!(NucleoH743, BSP);
 
 impl TemperatureBoard for BSP {
-    type Network = SmolTcpClient<'static, EthernetDevice, 1024>;
+    type Network = SmolTcpSocket<'static>;
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = FakeSensor;
@@ -61,7 +61,9 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let stack = STACK.put(Stack::new(board.eth, config, resources, seed));
     spawner.spawn(net_task(stack)).unwrap();
 
-    let network = SmolTcpClient::new(stack);
+    static mut TX: [u8; 1024] = [0; 1024];
+    static mut RX: [u8; 1024] = [0; 1024];
+    let network = SmolTcpSocket::new(stack, unsafe { &mut TX }, unsafe { &mut RX });
 
     DEVICE
         .put(TemperatureDevice::new())

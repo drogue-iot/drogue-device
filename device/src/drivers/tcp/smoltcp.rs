@@ -32,72 +32,41 @@ impl From<ConnectError> for Error {
     }
 }
 
-pub struct SmolTcpSocket<'a, D, const BUF_SIZE: usize>
-where
-    D: Device,
-{
-    tx: [u8; BUF_SIZE],
-    rx: [u8; BUF_SIZE],
-    stack: &'a Stack<D>,
-    socket: Option<TcpSocket<'a>>,
+pub struct SmolTcpSocket<'a> {
+    socket: TcpSocket<'a>,
+    connected: bool,
 }
 
-impl<'a, D, const BUF_SIZE: usize> SmolTcpSocket<'a, D, BUF_SIZE>
-where
-    D: Device + 'a,
-{
-    pub fn new(stack: &'a Stack<D>) -> Self {
+impl<'a> SmolTcpSocket<'a> {
+    pub fn new<D: Device + 'a>(stack: &'a Stack<D>, tx: &'a mut [u8], rx: &'a mut [u8]) -> Self {
         Self {
-            tx: [0; BUF_SIZE],
-            rx: [0; BUF_SIZE],
-            stack,
-            socket: None,
+            socket: TcpSocket::new(stack, rx, tx),
+            connected: false,
         }
     }
 }
 
-impl<'a, D, const BUF_SIZE: usize> Io for SmolTcpSocket<'a, D, BUF_SIZE>
-where
-    D: Device + 'a,
-{
+impl<'a> Io for SmolTcpSocket<'a> {
     type Error = Error;
 }
 
-impl<'a, D, const BUF_SIZE: usize> embedded_io::asynch::Read for SmolTcpSocket<'a, D, BUF_SIZE>
-where
-    D: Device + 'a,
-{
+impl<'a> embedded_io::asynch::Read for SmolTcpSocket<'a> {
     type ReadFuture<'m> = impl Future<Output = Result<usize, Self::Error>>
     where
         Self: 'm;
 
     fn read<'m>(&'m mut self, buf: &'m mut [u8]) -> Self::ReadFuture<'m> {
-        async move {
-            if let Some(socket) = &mut self.socket {
-                Ok(socket.read(buf).await?)
-            } else {
-                Err(Error::NotConnected)
-            }
-        }
+        async move { Ok(self.socket.read(buf).await?) }
     }
 }
 
-impl<'a, D, const BUF_SIZE: usize> embedded_io::asynch::Write for SmolTcpSocket<'a, D, BUF_SIZE>
-where
-    D: Device + 'a,
-{
+impl<'a> embedded_io::asynch::Write for SmolTcpSocket<'a> {
     type WriteFuture<'m> = impl Future<Output = Result<usize, Self::Error>>
     where
         Self: 'm;
 
     fn write<'m>(&'m mut self, buf: &'m [u8]) -> Self::WriteFuture<'m> {
-        async move {
-            if let Some(socket) = &mut self.socket {
-                Ok(socket.write(buf).await?)
-            } else {
-                Err(Error::NotConnected)
-            }
-        }
+        async move { Ok(self.socket.write(buf).await?) }
     }
 
     type FlushFuture<'m> = impl Future<Output = Result<(), Self::Error>>
@@ -105,37 +74,24 @@ where
         Self: 'm;
 
     fn flush<'m>(&'m mut self) -> Self::FlushFuture<'m> {
-        async move {
-            if let Some(socket) = &mut self.socket {
-                Ok(socket.flush().await?)
-            } else {
-                Err(Error::NotConnected)
-            }
-        }
+        async move { Ok(self.socket.flush().await?) }
     }
 }
 
-impl<'a, D, const BUF_SIZE: usize> TcpClientSocket for SmolTcpSocket<'a, D, BUF_SIZE>
-where
-    D: Device + 'a,
-{
+impl<'a> TcpClientSocket for SmolTcpSocket<'a> {
     type ConnectFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm
 	where
 		Self: 'm;
 
     fn connect<'m>(&'m mut self, remote: SocketAddr) -> Self::ConnectFuture<'m> {
         async move {
-            if self.socket.is_some() {
-                let _ = self.socket.take();
-            }
-            let mut socket = TcpSocket::new(&self.stack, &mut self.rx, &mut self.tx);
             let addr: IpAddress = match remote.ip() {
                 IpAddr::V4(addr) => IpAddress::Ipv4(Ipv4Address::from_bytes(&addr.octets())),
                 IpAddr::V6(addr) => IpAddress::Ipv6(Ipv6Address::from_bytes(&addr.octets())),
             };
             let remote_endpoint = (addr, remote.port());
-            socket.connect(remote_endpoint).await?;
-            self.socket.replace(socket);
+            self.socket.connect(remote_endpoint).await?;
+            self.connected = true;
             Ok(())
         }
     }
@@ -144,11 +100,12 @@ where
     where
         Self: 'm;
     fn is_connected<'m>(&'m mut self) -> Self::IsConnectedFuture<'m> {
-        async move { Ok(self.socket.is_some()) }
+        async move { Ok(self.connected) }
     }
 
     fn disconnect(&mut self) -> Result<(), Self::Error> {
-        let _ = self.socket.take();
+        self.socket.close();
+        self.connected = false;
         Ok(())
     }
 }
