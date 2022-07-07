@@ -347,6 +347,10 @@ where
         Ok(h)
     }
 
+    fn is_connected(&mut self, handle: u8) -> Result<bool, TcpError> {
+        Ok(self.socket_pool.is_connected(handle))
+    }
+
     async fn connect(&mut self, handle: u8, remote: SocketAddr) -> Result<(), TcpError> {
         let mut response = [0u8; 1024];
         let result = async {
@@ -395,7 +399,10 @@ where
                 })?;
 
             match parser::connect_response(&response) {
-                Ok((_, ConnectResponse::Ok)) => Ok(()),
+                Ok((_, ConnectResponse::Ok)) => {
+                    self.socket_pool.set_connected(handle);
+                    Ok(())
+                }
                 Ok((_, _)) => {
                     trace!("[{}] CONNECT 6", handle);
                     Err(TcpError::ConnectError)
@@ -730,15 +737,16 @@ where
         }
     }
 
-    pub async fn new_client(
+    pub async fn new_socket(
         &'a self,
-    ) -> Result<EsWifiClient<'a, SPI, CS, RESET, WAKEUP, READY>, TcpError> {
+    ) -> Result<EsWifiSocket<'a, SPI, CS, RESET, WAKEUP, READY>, TcpError> {
         let mut adapter = self.adapter.lock().await;
         let handle = adapter.socket().await?;
-        Ok(EsWifiClient {
+        Ok(EsWifiSocket {
             handle,
             adapter: self,
             control: self.control.sender().into(),
+            connect_timeout: Duration::from_secs(60),
         })
     }
 
@@ -797,7 +805,7 @@ where
     }
 }
 
-pub struct EsWifiClient<'a, SPI, CS, RESET, WAKEUP, READY>
+pub struct EsWifiSocket<'a, SPI, CS, RESET, WAKEUP, READY>
 where
     SPI: SpiBus<u8> + 'static,
     CS: OutputPin + 'static,
@@ -808,10 +816,11 @@ where
     handle: u8,
     adapter: &'a SharedEsWifi<'a, SPI, CS, RESET, WAKEUP, READY>,
     control: DynamicSender<'a, Control>,
+    connect_timeout: Duration,
 }
 
 impl<'a, SPI, CS, RESET, WAKEUP, READY> embedded_io::Io
-    for EsWifiClient<'a, SPI, CS, RESET, WAKEUP, READY>
+    for EsWifiSocket<'a, SPI, CS, RESET, WAKEUP, READY>
 where
     SPI: SpiBus<u8> + 'static,
     CS: OutputPin + 'static,
@@ -828,8 +837,8 @@ impl embedded_io::Error for TcpError {
     }
 }
 
-impl<'a, SPI, CS, RESET, WAKEUP, READY> TcpClient
-    for EsWifiClient<'a, SPI, CS, RESET, WAKEUP, READY>
+impl<'a, SPI, CS, RESET, WAKEUP, READY> TcpClientSocket
+    for EsWifiSocket<'a, SPI, CS, RESET, WAKEUP, READY>
 where
     SPI: SpiBus<u8> + 'static,
     CS: OutputPin + 'static,
@@ -837,51 +846,42 @@ where
     WAKEUP: OutputPin + 'static,
     READY: InputPin + Wait + 'static,
 {
-    type TcpConnection<'m> = EsWifiConnection<'m, SPI, CS, RESET, WAKEUP, READY> where Self: 'm;
-    type ConnectFuture<'m> = impl Future<Output = Result<Self::TcpConnection<'m>, Self::Error>> + 'm
+    type ConnectFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm
 	where
 		Self: 'm;
 
     fn connect<'m>(&'m mut self, remote: SocketAddr) -> Self::ConnectFuture<'m> {
         async move {
             let mut adapter = self.adapter.adapter.lock().await;
-            adapter.connect(self.handle, remote).await?;
-            Ok(EsWifiConnection {
-                handle: self.handle,
-                adapter: self.adapter,
-                control: self.control.clone(),
-            })
+            if adapter.is_connected(self.handle)? {
+                adapter.close(self.handle).await?;
+            }
+
+            match with_timeout(self.connect_timeout, adapter.connect(self.handle, remote)).await {
+                Ok(r) => r,
+                Err(_) => Err(TcpError::ConnectError),
+            }
         }
+    }
+
+    type IsConnectedFuture<'m> = impl Future<Output = Result<bool, Self::Error>> + 'm
+    where
+        Self: 'm;
+    fn is_connected<'m>(&'m mut self) -> Self::IsConnectedFuture<'m> {
+        async move {
+            let mut adapter = self.adapter.adapter.lock().await;
+            Ok(adapter.is_connected(self.handle)?)
+        }
+    }
+
+    fn disconnect(&mut self) -> Result<(), Self::Error> {
+        let _ = self.control.try_send(Control::Close(self.handle));
+        Ok(())
     }
 }
 
-pub struct EsWifiConnection<'a, SPI, CS, RESET, WAKEUP, READY>
-where
-    SPI: SpiBus<u8> + 'static,
-    CS: OutputPin + 'static,
-    RESET: OutputPin + 'static,
-    WAKEUP: OutputPin + 'static,
-    READY: InputPin + Wait + 'static,
-{
-    handle: u8,
-    control: DynamicSender<'a, Control>,
-    adapter: &'a SharedEsWifi<'a, SPI, CS, RESET, WAKEUP, READY>,
-}
-
-impl<'a, SPI, CS, RESET, WAKEUP, READY> embedded_io::Io
-    for EsWifiConnection<'a, SPI, CS, RESET, WAKEUP, READY>
-where
-    SPI: SpiBus<u8> + 'static,
-    CS: OutputPin + 'static,
-    RESET: OutputPin + 'static,
-    WAKEUP: OutputPin + 'static,
-    READY: InputPin + Wait + 'static,
-{
-    type Error = TcpError;
-}
-
 impl<'a, SPI, CS, RESET, WAKEUP, READY> embedded_io::asynch::Write
-    for EsWifiConnection<'a, SPI, CS, RESET, WAKEUP, READY>
+    for EsWifiSocket<'a, SPI, CS, RESET, WAKEUP, READY>
 where
     SPI: SpiBus<u8> + 'static,
     CS: OutputPin + 'static,
@@ -910,7 +910,7 @@ where
 }
 
 impl<'a, SPI, CS, RESET, WAKEUP, READY> embedded_io::asynch::Read
-    for EsWifiConnection<'a, SPI, CS, RESET, WAKEUP, READY>
+    for EsWifiSocket<'a, SPI, CS, RESET, WAKEUP, READY>
 where
     SPI: SpiBus<u8> + 'static,
     CS: OutputPin + 'static,
@@ -930,7 +930,7 @@ where
     }
 }
 
-impl<'a, SPI, CS, RESET, WAKEUP, READY> Drop for EsWifiConnection<'a, SPI, CS, RESET, WAKEUP, READY>
+impl<'a, SPI, CS, RESET, WAKEUP, READY> Drop for EsWifiSocket<'a, SPI, CS, RESET, WAKEUP, READY>
 where
     SPI: SpiBus<u8> + 'static,
     CS: OutputPin + 'static,

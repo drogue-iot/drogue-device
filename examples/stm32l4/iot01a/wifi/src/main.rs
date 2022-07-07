@@ -23,7 +23,7 @@ use drogue_temperature::*;
 use embassy::time::Duration;
 use embassy::util::Forever;
 use embassy_stm32::{flash::Flash, Peripherals};
-use embedded_nal_async::{AddrType, Dns, IpAddr, Ipv4Addr, SocketAddr, TcpClient};
+use embedded_nal_async::{AddrType, Dns, IpAddr, Ipv4Addr, SocketAddr, TcpClientSocket};
 
 #[cfg(feature = "dfu")]
 use drogue_device::firmware::{remote::DrogueHttpUpdateService, FirmwareManager};
@@ -43,7 +43,7 @@ const WIFI_PSK: &str = drogue::config!("wifi-password");
 bind_bsp!(Iot01a, BSP);
 
 impl TemperatureBoard for BSP {
-    type Network = EsWifiClient;
+    type Network = EsWifiSocket;
     type TemperatureScale = Celsius;
     type SendTrigger = TimeTrigger;
     type Sensor = Hts221<I2c2>;
@@ -65,10 +65,10 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     static NETWORK: Forever<SharedEsWifi> = Forever::new();
     let network = NETWORK.put(SharedEsWifi::new(board.wifi));
-    let client = network.new_client().await.unwrap();
+    let client = network.new_socket().await.unwrap();
     #[cfg(feature = "dfu")]
     {
-        let dfu = network.new_client().await.unwrap();
+        let dfu = network.new_socket().await.unwrap();
         spawner.spawn(updater_task(dfu, board.flash)).unwrap();
     }
 
@@ -135,7 +135,7 @@ impl rand_core::CryptoRng for TlsRand {}
 
 #[cfg(feature = "dfu")]
 #[embassy::task]
-async fn updater_task(network: EsWifiClient, flash: Flash<'static>) {
+async fn updater_task(network: EsWifiSocket, flash: Flash<'static>) {
     use drogue_device::firmware::BlockingFlash;
     use embassy::time::{Delay, Timer};
 

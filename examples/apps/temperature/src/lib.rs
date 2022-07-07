@@ -101,11 +101,10 @@ where
         let mut tls = [0; 16384];
 
         #[allow(unused_mut)]
-        let mut connection = self
-            .network
-            .connect(SocketAddr::new(ip, self.port))
-            .await
-            .map_err(|e| e.kind())?;
+        let mut connection =
+            TcpConnection::connect(&mut self.network, SocketAddr::new(ip, self.port))
+                .await
+                .map_err(|e| e.kind())?;
 
         #[cfg(feature = "tls")]
         let mut connection = {
@@ -238,7 +237,7 @@ static DNS: StaticDnsResolver<'static, 3> = StaticDnsResolver::new(&[
 ]);
 
 pub trait TemperatureBoard {
-    type Network: TcpClient;
+    type Network: TcpClientSocket;
     type TemperatureScale: TemperatureScale;
     type Sensor: TemperatureSensor<Self::TemperatureScale>;
     type SensorReadyIndicator: Wait + InputPin;
