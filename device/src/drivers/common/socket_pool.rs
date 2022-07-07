@@ -36,6 +36,18 @@ impl SocketPool {
         OpenFuture::new(self).await
     }
 
+    pub(crate) fn set_connected<'a>(&'a self, socket: u8) {
+        let mut sockets = self.sockets.borrow_mut();
+        let index = socket as usize;
+        sockets[index] = SocketState::Connected;
+    }
+
+    pub(crate) fn is_connected<'a>(&'a self, socket: u8) -> bool {
+        let sockets = self.sockets.borrow();
+        let index = socket as usize;
+        SocketState::Connected == sockets[index]
+    }
+
     pub(crate) fn close<'a>(&'a self, socket: u8) {
         let mut sockets = self.sockets.borrow_mut();
         let index = socket as usize;

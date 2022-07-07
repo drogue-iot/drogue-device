@@ -26,7 +26,7 @@ fixed = "1.10.0"
 nrf52833-pac = "0.11.0"
 ector = { version = "0.1.0", default-features = false }
 
-embedded-nal-async = { version = "0.1.0", git = "https://github.com/lulf/embedded-nal.git", rev = "7e46d533090882ce9a449f544055c09e6d241e55" }
+embedded-nal-async = { version = "0.1.0", git = "https://github.com/lulf/embedded-nal.git", rev = "98e43c624c053aae3b4547998b83ddf4775d4d45" }
 embassy = { version = "0.1.0", default-features = false, features = ["defmt"] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
 cfg-if = "1.0.0"

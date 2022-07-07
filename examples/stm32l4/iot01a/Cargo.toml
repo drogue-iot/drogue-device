@@ -45,6 +45,7 @@ embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = 
 embassy-boot = {git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
 embassy-boot-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
 ector = { git = "https://github.com/drogue-iot/ector.git", rev = "63c08489da17ff92c493f21411411ce5ddd6154a" }
+#embedded-nal-async = { path = "../../../../../embedded-nal/embedded-nal-async" }
 #embassy = { path = "../../../../../embassy/embassy" }
 #embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
 #embassy-embedded-hal = { path = "../../../../../embassy/embassy-embedded-hal" }

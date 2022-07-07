@@ -2,7 +2,7 @@ use crate::bsp::Board;
 use crate::drivers::button::Button;
 use crate::drivers::led::{ActiveHigh, ActiveLow, Led};
 use crate::drivers::wifi::eswifi::{
-    EsWifi as WifiDriver, EsWifiClient as WifiClient, SharedEsWifi as SharedWifi,
+    EsWifi as WifiDriver, EsWifiSocket as WifiSocket, SharedEsWifi as SharedWifi,
 };
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::flash::Flash;
@@ -43,7 +43,7 @@ type SpiError = spi::Error;
 
 pub type EsWifi = WifiDriver<SPI, WifiCs, WifiReset, WifiWake, WifiReady>;
 pub type SharedEsWifi = SharedWifi<'static, SPI, WifiCs, WifiReset, WifiWake, WifiReady>;
-pub type EsWifiClient = WifiClient<'static, SPI, WifiCs, WifiReset, WifiWake, WifiReady>;
+pub type EsWifiSocket = WifiSocket<'static, SPI, WifiCs, WifiReset, WifiWake, WifiReady>;
 
 pub struct Iot01a {
     pub led_blue: LedBlue,
