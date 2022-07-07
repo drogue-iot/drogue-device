@@ -11,7 +11,6 @@ mod protocol;
 use crate::traits::wifi::{Join, JoinError, WifiSupplicant};
 use atomic_polyfill::{AtomicU32, Ordering};
 use buffer::Buffer;
-use core::cell::Cell;
 use core::cell::RefCell;
 use core::future::Future;
 use core::marker::PhantomData;
@@ -484,8 +483,9 @@ where
                 notifier: &self.notifications,
                 notifications,
                 control: self.control.sender().into(),
-                state: Cell::new(SocketState::Closed),
+                state: SocketState::Open,
                 available: 0,
+                buffer: Buf::new(),
             })
         } else {
             Err(DriverError::NoSocket)
@@ -553,13 +553,15 @@ where
     notifier: &'a dyn SocketsNotifier,
     notifications: DynamicReceiver<'a, AtResponse>,
     control: DynamicSender<'a, Control>,
-    state: Cell<SocketState>,
+    state: SocketState,
     available: usize,
+    buffer: Buf<BUFSIZE>,
 }
+
+const BUFSIZE: usize = 1500;
 
 #[derive(PartialEq, Clone, Copy)]
 enum SocketState {
-    HalfClosed,
     Closed,
     Open,
     Connected,
@@ -567,7 +569,7 @@ enum SocketState {
 
 impl Default for SocketState {
     fn default() -> Self {
-        Self::Closed
+        Self::Open
     }
 }
 
@@ -595,11 +597,11 @@ where
 		Self: 'm;
     fn connect<'m>(&'m mut self, remote: SocketAddr) -> Self::ConnectFuture<'m> {
         async move {
-            self.state.set(SocketState::Open);
+            self.process_notifications();
             self.handle
                 .connect_client(self.id, remote, self.notifier)
                 .await?;
-            self.state.set(SocketState::Connected);
+            self.state = SocketState::Connected;
             Ok(())
         }
     }
@@ -608,7 +610,7 @@ where
     where
         Self: 'm;
     fn is_connected<'m>(&'m mut self) -> Self::IsConnectedFuture<'m> {
-        async move { Ok(self.state.get() == SocketState::Connected) }
+        async move { Ok(self.state == SocketState::Connected) }
     }
 
     fn disconnect(&mut self) -> Result<(), Self::Error> {
@@ -622,22 +624,18 @@ where
     T: Read + Write,
 {
     fn close(&mut self) {
-        match self.state.get() {
-            SocketState::HalfClosed => {
-                self.state.set(SocketState::Closed);
+        match self.state {
+            SocketState::Closed => {
+                self.state = SocketState::Open;
             }
             SocketState::Open | SocketState::Connected => {
-                self.state.set(SocketState::HalfClosed);
-            }
-            SocketState::Closed => {
-                // nothing
+                self.state = SocketState::Closed;
             }
         }
     }
 
     fn is_closed(&self) -> bool {
-        let state = self.state.get();
-        state == SocketState::Closed || state == SocketState::HalfClosed
+        self.state == SocketState::Closed
     }
 
     fn process_notifications(&mut self) {
@@ -672,6 +670,38 @@ where
     }
 }
 
+struct Buf<const SZ: usize> {
+    buf: [u8; SZ],
+    wp: usize,
+}
+
+impl<const SZ: usize> Buf<SZ> {
+    fn new() -> Self {
+        Self {
+            buf: [0; SZ],
+            wp: 0,
+        }
+    }
+
+    fn reduce(&mut self, nbytes: usize) {
+        for i in 0..nbytes {
+            self.buf[i] = self.buf[i + nbytes - 1];
+        }
+        self.wp -= nbytes;
+    }
+
+    fn write(&mut self, buf: &[u8]) -> usize {
+        let to_copy = core::cmp::min(buf.len(), self.buf.len() - self.wp);
+        self.buf[self.wp..self.wp + to_copy].copy_from_slice(&buf[..to_copy]);
+        self.wp += to_copy;
+        to_copy
+    }
+
+    fn slice(&self) -> &[u8] {
+        &self.buf[..self.wp]
+    }
+}
+
 impl<'a, T> embedded_io::asynch::Write for Esp8266Socket<'a, T>
 where
     T: Read + Write + 'a,
@@ -687,7 +717,13 @@ where
             if self.is_closed() {
                 return Err(DriverError::SocketClosed);
             }
-            self.handle.send(self.id, buf, self.notifier).await
+
+            let mut written = self.buffer.write(buf);
+            while written < buf.len() {
+                self.flush().await?;
+                written += self.buffer.write(&buf[written..]);
+            }
+            Ok(written)
         }
     }
 
@@ -698,7 +734,12 @@ where
 
     /// Flush this output stream, ensuring that all intermediately buffered contents reach their destination.
     fn flush<'m>(&'m mut self) -> Self::FlushFuture<'m> {
-        async move { Ok(()) }
+        async move {
+            let written = self.buffer.slice();
+            let written = self.handle.send(self.id, written, self.notifier).await?;
+            self.buffer.reduce(written);
+            Ok(())
+        }
     }
 }
 
