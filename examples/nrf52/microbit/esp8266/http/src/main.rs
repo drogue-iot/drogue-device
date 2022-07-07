@@ -10,13 +10,13 @@ use panic_probe as _;
 mod rng;
 use rng::*;
 
+use drogue_device::drogue;
 use drogue_device::{
     bsp::{boards::nrf52::microbit::*, Board},
     domain::temperature::Celsius,
     drivers::wifi::esp8266::*,
     *,
 };
-use drogue_device::{drogue, traits::wifi::*};
 use drogue_temperature::*;
 use embassy::util::Forever;
 use embassy_nrf::{
@@ -37,7 +37,7 @@ type RESET = Output<'static, P0_10>;
 bind_bsp!(Microbit, BSP);
 
 impl TemperatureBoard for BSP {
-    type Network = Esp8266Client<'static, SERIAL>;
+    type Network = Esp8266Socket<'static, SERIAL>;
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = TemperatureMonitor;
@@ -79,21 +79,13 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let enable_pin = Output::new(board.p9, Level::Low, OutputDrive::Standard);
     let reset_pin = Output::new(board.p8, Level::Low, OutputDrive::Standard);
 
-    let mut network = Esp8266Modem::new(uart, enable_pin, reset_pin);
-    network.initialize().await.unwrap();
-
-    network
-        .join(Join::Wpa {
-            ssid: WIFI_SSID.trim_end(),
-            password: WIFI_PSK.trim_end(),
-        })
-        .await
-        .expect("Error joining WiFi network");
-
+    let network = Esp8266Modem::new(uart, enable_pin, reset_pin);
     static NETWORK: Forever<Esp8266Modem<SERIAL, ENABLE, RESET, 1>> = Forever::new();
     let network = NETWORK.put(network);
-    spawner.spawn(net_task(network)).unwrap();
-    let client = network.new_client().unwrap();
+    spawner
+        .spawn(net_task(network, WIFI_SSID.trim_end(), WIFI_PSK.trim_end()))
+        .unwrap();
+    let client = network.new_socket().unwrap();
 
     let config = TemperatureBoardConfig {
         send_trigger: board.btn_a,
@@ -120,6 +112,12 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 }
 
 #[embassy::task]
-async fn net_task(modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1>) {
-    modem.run().await;
+async fn net_task(
+    modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1>,
+    ssid: &'static str,
+    psk: &'static str,
+) {
+    loop {
+        let _ = modem.run(ssid, psk).await;
+    }
 }

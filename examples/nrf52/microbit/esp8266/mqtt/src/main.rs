@@ -10,10 +10,7 @@ use rng::*;
 use defmt_rtt as _;
 use panic_probe as _;
 
-use drogue_device::{
-    drivers::wifi::esp8266::{Esp8266Client, Esp8266Connection},
-    traits::button::Button,
-};
+use drogue_device::{drivers::wifi::esp8266::Esp8266Socket, traits::button::Button};
 
 use drogue_device::bsp::boards::nrf52::microbit::LedMatrix;
 use drogue_device::{
@@ -31,7 +28,6 @@ use embassy_nrf::{
 };
 use embedded_tls::{Aes128GcmSha256, NoClock, TlsConfig, TlsConnection, TlsContext};
 
-use drogue_device::traits::wifi::{Join, WifiSupplicant};
 use embedded_nal_async::*;
 use rust_mqtt::client::client_config::MqttVersion::MQTTv5;
 use rust_mqtt::utils::rng_generator::CountingRng;
@@ -85,26 +81,18 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let enable_pin = Output::new(board.p9, Level::High, OutputDrive::Standard);
     let reset_pin = Output::new(board.p8, Level::High, OutputDrive::Standard);
 
-    let mut network = Esp8266Modem::new(uart, enable_pin, reset_pin);
-    network.initialize().await.unwrap();
-
-    network
-        .join(Join::Wpa {
-            ssid: WIFI_SSID.trim_end(),
-            password: WIFI_PSK.trim_end(),
-        })
-        .await
-        .expect("Error joining WiFi network");
-
+    let network = Esp8266Modem::new(uart, enable_pin, reset_pin);
     static NETWORK: Forever<Esp8266Modem<SERIAL, ENABLE, RESET, 2>> = Forever::new();
     let network = NETWORK.put(network);
-    spawner.spawn(net_task(network)).unwrap();
+    spawner
+        .spawn(net_task(network, WIFI_SSID.trim_end(), WIFI_PSK.trim_end()))
+        .unwrap();
 
-    static CLIENT_PUB: Forever<Esp8266Client<'static, SERIAL>> = Forever::new();
-    let client_pub = CLIENT_PUB.put(network.new_client().unwrap());
+    static SOCKET_PUB: Forever<Esp8266Socket<'static, SERIAL>> = Forever::new();
+    let socket_pub = SOCKET_PUB.put(network.new_socket().unwrap());
 
-    static CLIENT_SUB: Forever<Esp8266Client<'static, SERIAL>> = Forever::new();
-    let client_sub = CLIENT_SUB.put(network.new_client().unwrap());
+    static SOCKET_SUB: Forever<Esp8266Socket<'static, SERIAL>> = Forever::new();
+    let socket_sub = SOCKET_SUB.put(network.new_socket().unwrap());
 
     let ip = DNS
         .get_host_by_name(HOST, AddrType::IPv4)
@@ -116,15 +104,15 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     let mut rng = Rng::new(nrf52833_pac::Peripherals::take().unwrap().RNG);
 
-    let connection_pub = client_pub.connect(addr).await.unwrap();
-    let connection_recv = client_sub.connect(addr).await.unwrap();
+    socket_pub.connect(addr).await.unwrap();
+    socket_sub.connect(addr).await.unwrap();
 
     static mut TLS_PUB_BUF: [u8; 16384] = [0; 16384];
     static mut TLS_SUB_BUF: [u8; 16384] = [0; 16384];
     let mut connection_pub: TlsConnection<'_, _, Aes128GcmSha256> =
-        TlsConnection::new(connection_pub, unsafe { &mut TLS_PUB_BUF });
+        TlsConnection::new(socket_pub, unsafe { &mut TLS_PUB_BUF });
     let mut connection_recv: TlsConnection<'_, _, Aes128GcmSha256> =
-        TlsConnection::new(connection_recv, unsafe { &mut TLS_SUB_BUF });
+        TlsConnection::new(socket_sub, unsafe { &mut TLS_SUB_BUF });
 
     let tls_config = TlsConfig::new().with_server_name(HOST);
     connection_pub
@@ -168,8 +156,14 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 }
 
 #[embassy::task]
-async fn net_task(modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 2>) {
-    modem.run().await;
+async fn net_task(
+    modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 2>,
+    ssid: &'static str,
+    psk: &'static str,
+) {
+    loop {
+        let _ = modem.run(ssid, psk).await;
+    }
 }
 
 static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
@@ -180,7 +174,8 @@ static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
     ),
 ]);
 
-type Connection = TlsConnection<'static, Esp8266Connection<'static, SERIAL>, Aes128GcmSha256>;
+type Connection =
+    TlsConnection<'static, &'static mut Esp8266Socket<'static, SERIAL>, Aes128GcmSha256>;
 //type Connection = Esp8266Connection<'static, SERIAL>;
 
 pub struct Receiver {
