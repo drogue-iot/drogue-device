@@ -1534,9 +1534,9 @@ checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
 
 [[package]]
 name = "reqwless"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd5c2caf44800a429a2ffd38e092bc2959be8ca5a28d69292364d0d92e4511a2"
+checksum = "23c3c58066f1b9590fded1d4585fe13a74571572d5e270b41569fdd6b928ea8c"
 dependencies = [
  "base64",
  "embedded-io",
