@@ -23,10 +23,14 @@ use drogue_temperature::*;
 use embassy::time::Duration;
 use embassy::util::Forever;
 use embassy_stm32::{flash::Flash, Peripherals};
-use embedded_nal_async::{AddrType, Dns, IpAddr, Ipv4Addr, SocketAddr, TcpClientSocket};
+use embedded_nal_async::{AddrType, Dns, IpAddr, Ipv4Addr, SocketAddr, TcpConnect};
 
 #[cfg(feature = "dfu")]
-use drogue_device::firmware::{remote::DrogueHttpUpdateService, FirmwareManager};
+use drogue_device::firmware::FirmwareManager;
+
+#[cfg(feature = "dfu")]
+use embedded_update::{DeviceStatus, service::DrogueHttp};
+
 
 #[cfg(feature = "panic-probe")]
 use panic_probe as _;
@@ -43,7 +47,7 @@ const WIFI_PSK: &str = drogue::config!("wifi-password");
 bind_bsp!(Iot01a, BSP);
 
 impl TemperatureBoard for BSP {
-    type Network = EsWifiSocket;
+    type Network = &'static SharedEsWifi;
     type TemperatureScale = Celsius;
     type SendTrigger = TimeTrigger;
     type Sensor = Hts221<I2c2>;
@@ -64,12 +68,10 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     }
 
     static NETWORK: Forever<SharedEsWifi> = Forever::new();
-    let network = NETWORK.put(SharedEsWifi::new(board.wifi));
-    let client = network.new_socket().await.unwrap();
+    let network: &'static SharedEsWifi = NETWORK.put(SharedEsWifi::new(board.wifi));
     #[cfg(feature = "dfu")]
     {
-        let dfu = network.new_socket().await.unwrap();
-        spawner.spawn(updater_task(dfu, board.flash)).unwrap();
+        spawner.spawn(updater_task(network, board.flash)).unwrap();
     }
 
     spawner
@@ -85,7 +87,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         send_trigger: TimeTrigger(Duration::from_secs(60)),
         sensor_ready: board.hts221_ready,
         sensor: Hts221::new(board.i2c2),
-        network: client,
+        network,
     };
     device.mount(spawner, TlsRand, config).await;
 
@@ -135,7 +137,7 @@ impl rand_core::CryptoRng for TlsRand {}
 
 #[cfg(feature = "dfu")]
 #[embassy::task]
-async fn updater_task(network: EsWifiSocket, flash: Flash<'static>) {
+async fn updater_task(network: &'static SharedEsWifi, flash: Flash<'static>) {
     use drogue_device::firmware::BlockingFlash;
     use embassy::time::{Delay, Timer};
 
@@ -148,7 +150,7 @@ async fn updater_task(network: EsWifiSocket, flash: Flash<'static>) {
         .await
         .unwrap();
 
-    let service: DrogueHttpUpdateService<'_, _, _, 2048> = DrogueHttpUpdateService::new(
+    let service: DrogueHttp<'_, _, _, 2048> = DrogueHttp::new(
         network,
         TlsRand,
         SocketAddr::new(ip, PORT.parse::<u16>().unwrap()),
@@ -186,7 +188,7 @@ async fn updater_task(network: EsWifiSocket, flash: Flash<'static>) {
                 }
             }
             Err(e) => {
-                defmt::warn!("Error running updater: {:?}", e);
+                defmt::warn!("Error running updater: {:?}", defmt::Debug2Format(&e));
                 Timer::after(Duration::from_secs(10)).await;
             }
         }

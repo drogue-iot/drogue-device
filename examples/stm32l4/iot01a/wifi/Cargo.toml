@@ -54,7 +54,7 @@ debug = [
     "embassy/defmt",
     #"embassy-stm32/defmt",
     #"embassy-boot-stm32/defmt",
-    #"embedded-update/defmt",
+    "embedded-update/defmt",
     "defmt-rtt",
 ]
 tls = ["embedded-tls", "embedded-tls/defmt", "drogue-device/tls", "drogue-temperature/tls"]

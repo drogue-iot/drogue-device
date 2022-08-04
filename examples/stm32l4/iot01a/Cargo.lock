@@ -903,6 +903,7 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e16ff6629d83cc3682fccb72cf9e3a5a882b36760608bf2051aecda9aa2ca99"
 dependencies = [
+ "defmt",
  "embedded-hal-async",
  "embedded-io",
  "embedded-nal-async",
