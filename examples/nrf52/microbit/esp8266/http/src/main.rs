@@ -37,7 +37,7 @@ type RESET = Output<'static, P0_10>;
 bind_bsp!(Microbit, BSP);
 
 impl TemperatureBoard for BSP {
-    type Network = Esp8266Socket<'static, SERIAL>;
+    type Network = &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1>;
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = TemperatureMonitor;
@@ -81,17 +81,17 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     let network = Esp8266Modem::new(uart, enable_pin, reset_pin);
     static NETWORK: Forever<Esp8266Modem<SERIAL, ENABLE, RESET, 1>> = Forever::new();
-    let network = NETWORK.put(network);
+    let network: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1> = NETWORK.put(network);
+
     spawner
         .spawn(net_task(network, WIFI_SSID.trim_end(), WIFI_PSK.trim_end()))
         .unwrap();
-    let client = network.new_socket().unwrap();
 
     let config = TemperatureBoardConfig {
         send_trigger: board.btn_a,
         sensor: board.temp,
         sensor_ready: AlwaysReady,
-        network: client,
+        network,
     };
 
     #[cfg(feature = "tls")]

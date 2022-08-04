@@ -21,6 +21,9 @@ embassy = { version = "0.1.0", default-features = false, features = ["std"] }
 rand = "0.8"
 cfg-if = "1.0.0"
 
-embedded-hal = {version = "0.2.4", features = ["unproven"] }
+embedded-hal = { version = "0.2.4", features = ["unproven"] }
+embedded-nal-async = "0.2.0"
+embedded-io = { version = "0.3.0", features = ["futures"] }
 drogue-temperature = { path = "../../apps/temperature", features = ["log", "tls"] }
-futures = { version = "0.3.8", default-features = false, features = ["async-await"] }
+futures = { version = "0.3.17", features = ["async-await"] }
+async-io = "1.6.0"

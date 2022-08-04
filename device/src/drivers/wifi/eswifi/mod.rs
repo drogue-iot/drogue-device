@@ -737,7 +737,7 @@ where
         }
     }
 
-    pub async fn new_socket(
+    async fn new_socket(
         &'a self,
     ) -> Result<EsWifiSocket<'a, SPI, CS, RESET, WAKEUP, READY>, TcpError> {
         let mut adapter = self.adapter.lock().await;
@@ -837,8 +837,8 @@ impl embedded_io::Error for TcpError {
     }
 }
 
-impl<'a, SPI, CS, RESET, WAKEUP, READY> TcpClientSocket
-    for EsWifiSocket<'a, SPI, CS, RESET, WAKEUP, READY>
+impl<'a, SPI, CS, RESET, WAKEUP, READY> TcpConnect
+    for SharedEsWifi<'a, SPI, CS, RESET, WAKEUP, READY>
 where
     SPI: SpiBus<u8> + 'static,
     CS: OutputPin + 'static,
@@ -846,37 +846,40 @@ where
     WAKEUP: OutputPin + 'static,
     READY: InputPin + Wait + 'static,
 {
-    type ConnectFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm
+    type Error = TcpError;
+    type Connection<'m> = EsWifiSocket<'m, SPI, CS, RESET, WAKEUP, READY> where Self: 'm;
+    type ConnectFuture<'m> = impl Future<Output = Result<Self::Connection<'m>, Self::Error>> + 'm
 	where
 		Self: 'm;
 
-    fn connect<'m>(&'m mut self, remote: SocketAddr) -> Self::ConnectFuture<'m> {
+    fn connect<'m>(&'m self, remote: SocketAddr) -> Self::ConnectFuture<'m> {
         async move {
-            let mut adapter = self.adapter.adapter.lock().await;
-            if adapter.is_connected(self.handle)? {
-                adapter.close(self.handle).await?;
-            }
-
-            match with_timeout(self.connect_timeout, adapter.connect(self.handle, remote)).await {
-                Ok(r) => r,
-                Err(_) => Err(TcpError::ConnectError),
-            }
+            let mut socket = self.new_socket().await?;
+            socket.connect(remote).await?;
+            Ok(socket)
         }
     }
+}
 
-    type IsConnectedFuture<'m> = impl Future<Output = Result<bool, Self::Error>> + 'm
-    where
-        Self: 'm;
-    fn is_connected<'m>(&'m mut self) -> Self::IsConnectedFuture<'m> {
-        async move {
-            let mut adapter = self.adapter.adapter.lock().await;
-            Ok(adapter.is_connected(self.handle)?)
+impl<'a, SPI, CS, RESET, WAKEUP, READY> EsWifiSocket<'a, SPI, CS, RESET, WAKEUP, READY>
+where
+    SPI: SpiBus<u8> + 'static,
+    CS: OutputPin + 'static,
+    RESET: OutputPin + 'static,
+    WAKEUP: OutputPin + 'static,
+    READY: InputPin + Wait + 'static,
+{
+    async fn connect(&mut self, remote: SocketAddr) -> Result<(), TcpError> {
+        let mut adapter = self.adapter.adapter.lock().await;
+
+        if adapter.is_connected(self.handle)? {
+            adapter.close(self.handle).await?;
         }
-    }
 
-    fn disconnect(&mut self) -> Result<(), Self::Error> {
-        let _ = self.control.try_send(Control::Close(self.handle));
-        Ok(())
+        match with_timeout(self.connect_timeout, adapter.connect(self.handle, remote)).await {
+            Ok(r) => r,
+            Err(_) => Err(TcpError::ConnectError),
+        }
     }
 }
 

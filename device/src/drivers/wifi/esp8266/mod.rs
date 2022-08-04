@@ -9,7 +9,7 @@ mod parser;
 mod protocol;
 
 use crate::traits::wifi::{Join, JoinError, WifiSupplicant};
-use atomic_polyfill::{AtomicU32, Ordering};
+use atomic_polyfill::{AtomicBool, Ordering};
 use buffer::Buffer;
 use core::cell::RefCell;
 use core::future::Future;
@@ -394,7 +394,7 @@ where
     ENABLE: OutputPin,
     RESET: OutputPin,
 {
-    clients: AtomicU32,
+    sockets: [AtomicBool; MAX_SOCKETS],
     handle: Esp8266Handle<T>,
     enable: RefCell<ENABLE>,
     reset: RefCell<RESET>,
@@ -411,6 +411,7 @@ where
 {
     pub fn new(transport: T, enable: ENABLE, reset: RESET) -> Self {
         const C: Channel<DriverMutex, AtResponse, 2> = Channel::new();
+        const UNUSED: AtomicBool = AtomicBool::new(false);
         Self {
             handle: Esp8266Handle {
                 inner: LocalMutex::new(
@@ -422,7 +423,7 @@ where
                     true,
                 ),
             },
-            clients: AtomicU32::new(0),
+            sockets: [UNUSED; MAX_SOCKETS],
             enable: RefCell::new(enable),
             reset: RefCell::new(reset),
             control: Channel::new(),
@@ -473,23 +474,23 @@ where
     }
 
     pub fn new_socket(&'a self) -> Result<Esp8266Socket<'a, T>, DriverError> {
-        let id = self.clients.fetch_add(1, Ordering::SeqCst) as usize;
-        if id < MAX_SOCKETS {
-            debug!("[{}] client created", id);
-            let notifications = self.notifications[id].receiver().into();
-            Ok(Esp8266Socket {
-                id,
-                handle: &self.handle,
-                notifier: &self.notifications,
-                notifications,
-                control: self.control.sender().into(),
-                state: SocketState::Open,
-                available: 0,
-                buffer: Buf::new(),
-            })
-        } else {
-            Err(DriverError::NoSocket)
+        for id in 0..MAX_SOCKETS {
+            if self.sockets[id].swap(true, Ordering::SeqCst) == false {
+                debug!("[{}] client created", id);
+                let notifications = self.notifications[id].receiver().into();
+                return Ok(Esp8266Socket {
+                    id,
+                    handle: &self.handle,
+                    notifier: &self.notifications,
+                    notifications,
+                    control: self.control.sender().into(),
+                    state: SocketState::Open,
+                    available: 0,
+                    buffer: Buf::new(),
+                });
+            }
         }
+        Err(DriverError::NoSocket)
     }
 
     pub async fn run(&'a self, ssid: &'a str, psk: &'a str) -> Result<(), DriverError> {
@@ -510,6 +511,7 @@ where
                 Either3::First(control) => match control {
                     Control::Close(id) => {
                         let _ = self.handle.close_socket(id, &self.notifications).await;
+                        self.sockets[id].store(false, Ordering::SeqCst);
                     }
                 },
                 Either3::Second(_) => {}
@@ -588,34 +590,29 @@ impl embedded_io::Error for DriverError {
     }
 }
 
-impl<'a, T> embedded_nal_async::TcpClientSocket for Esp8266Socket<'a, T>
+impl<'a, T, ENABLE, RESET, const MAX_SOCKETS: usize> embedded_nal_async::TcpConnect
+    for Esp8266Modem<'a, T, ENABLE, RESET, MAX_SOCKETS>
 where
-    T: Read + Write + 'a,
+    T: Read + Write,
+    ENABLE: OutputPin,
+    RESET: OutputPin,
 {
-    type ConnectFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm
+    type Error = DriverError;
+    type Connection<'m> = Esp8266Socket<'m, T> where Self: 'm;
+    type ConnectFuture<'m> = impl Future<Output = Result<Self::Connection<'m>, Self::Error>> + 'm
 	where
 		Self: 'm;
-    fn connect<'m>(&'m mut self, remote: SocketAddr) -> Self::ConnectFuture<'m> {
+    fn connect<'m>(&'m self, remote: SocketAddr) -> Self::ConnectFuture<'m> {
         async move {
-            self.process_notifications();
-            self.handle
-                .connect_client(self.id, remote, self.notifier)
+            let mut socket = self.new_socket()?;
+            socket.process_notifications();
+            socket
+                .handle
+                .connect_client(socket.id, remote, socket.notifier)
                 .await?;
-            self.state = SocketState::Connected;
-            Ok(())
+            socket.state = SocketState::Connected;
+            Ok(socket)
         }
-    }
-
-    type IsConnectedFuture<'m> = impl Future<Output = Result<bool, Self::Error>> + 'm
-    where
-        Self: 'm;
-    fn is_connected<'m>(&'m mut self) -> Self::IsConnectedFuture<'m> {
-        async move { Ok(self.state == SocketState::Connected) }
-    }
-
-    fn disconnect(&mut self) -> Result<(), Self::Error> {
-        let _ = self.control.try_send(Control::Close(self.id));
-        Ok(())
     }
 }
 

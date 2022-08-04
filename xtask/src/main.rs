@@ -256,7 +256,7 @@ fn update_crate(project_file: PathBuf) -> Result<(), anyhow::Error> {
 
 fn fmt_crate(project_file: PathBuf) -> Result<(), anyhow::Error> {
     println!("Formatting {}", project_file.to_str().unwrap_or(""));
-    let _p = xshell::pushd(project_file.parent().unwrap())?;
+    let _p = xshell::pushd(project_file)?;
     cmd!("cargo fmt").run()?;
     Ok(())
 }

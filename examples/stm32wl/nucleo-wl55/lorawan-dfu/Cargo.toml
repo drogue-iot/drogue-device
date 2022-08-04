@@ -24,7 +24,7 @@ cortex-m = { version = "0.7", features = ["inline-asm"] }
 heapless = "0.7"
 void = { version = "1", default-features = false }
 rand_core = { version = "0.6", default-features = false }
-embedded-update = { version = "0.6.1", features = ["nightly"] }
+embedded-update = { version = "0.7", features = ["nightly"] }
 
 embassy = { version = "0.1.0", default-features = false, features = ["time-tick-32768hz", "nightly", "unstable-traits"] }
 embassy-lora = { version = "0.1.0", default-features = false, features = ["stm32wl"] }
