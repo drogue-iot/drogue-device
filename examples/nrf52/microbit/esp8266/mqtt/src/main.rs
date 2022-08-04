@@ -168,8 +168,7 @@ static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
     ),
 ]);
 
-type Connection =
-    TlsConnection<'static, Esp8266Socket<'static, SERIAL>, Aes128GcmSha256>;
+type Connection = TlsConnection<'static, Esp8266Socket<'static, SERIAL>, Aes128GcmSha256>;
 //type Connection = Esp8266Connection<'static, SERIAL>;
 
 pub struct Receiver {

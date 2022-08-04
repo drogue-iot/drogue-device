@@ -29,8 +29,7 @@ use embedded_nal_async::{AddrType, Dns, IpAddr, Ipv4Addr, SocketAddr, TcpConnect
 use drogue_device::firmware::FirmwareManager;
 
 #[cfg(feature = "dfu")]
-use embedded_update::{DeviceStatus, service::DrogueHttp};
-
+use embedded_update::{service::DrogueHttp, DeviceStatus};
 
 #[cfg(feature = "panic-probe")]
 use panic_probe as _;
