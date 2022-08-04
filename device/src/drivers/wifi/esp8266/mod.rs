@@ -9,7 +9,7 @@ mod parser;
 mod protocol;
 
 use crate::traits::wifi::{Join, JoinError, WifiSupplicant};
-use atomic_polyfill::{Ordering, AtomicBool};
+use atomic_polyfill::{AtomicBool, Ordering};
 use buffer::Buffer;
 use core::cell::RefCell;
 use core::future::Future;
@@ -487,7 +487,7 @@ where
                     state: SocketState::Open,
                     available: 0,
                     buffer: Buf::new(),
-                })
+                });
             }
         }
         Err(DriverError::NoSocket)
@@ -590,8 +590,8 @@ impl embedded_io::Error for DriverError {
     }
 }
 
-
-impl<'a, T, ENABLE, RESET, const MAX_SOCKETS: usize> embedded_nal_async::TcpConnect for Esp8266Modem<'a, T, ENABLE, RESET, MAX_SOCKETS>
+impl<'a, T, ENABLE, RESET, const MAX_SOCKETS: usize> embedded_nal_async::TcpConnect
+    for Esp8266Modem<'a, T, ENABLE, RESET, MAX_SOCKETS>
 where
     T: Read + Write,
     ENABLE: OutputPin,
@@ -606,7 +606,8 @@ where
         async move {
             let mut socket = self.new_socket()?;
             socket.process_notifications();
-            socket.handle
+            socket
+                .handle
                 .connect_client(socket.id, remote, socket.notifier)
                 .await?;
             socket.state = SocketState::Connected;

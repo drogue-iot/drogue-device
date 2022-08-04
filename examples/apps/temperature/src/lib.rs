@@ -101,9 +101,11 @@ where
         let mut tls = [0; 16384];
 
         #[allow(unused_mut)]
-        let mut connection = self.network.connect(SocketAddr::new(ip, self.port))
-                .await
-                .map_err(|e| e.kind())?;
+        let mut connection = self
+            .network
+            .connect(SocketAddr::new(ip, self.port))
+            .await
+            .map_err(|e| e.kind())?;
 
         #[cfg(feature = "tls")]
         let mut connection = {

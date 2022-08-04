@@ -837,7 +837,8 @@ impl embedded_io::Error for TcpError {
     }
 }
 
-impl<'a, SPI, CS, RESET, WAKEUP, READY> TcpConnect for SharedEsWifi<'a, SPI, CS, RESET, WAKEUP, READY>
+impl<'a, SPI, CS, RESET, WAKEUP, READY> TcpConnect
+    for SharedEsWifi<'a, SPI, CS, RESET, WAKEUP, READY>
 where
     SPI: SpiBus<u8> + 'static,
     CS: OutputPin + 'static,
@@ -860,7 +861,6 @@ where
     }
 }
 
-
 impl<'a, SPI, CS, RESET, WAKEUP, READY> EsWifiSocket<'a, SPI, CS, RESET, WAKEUP, READY>
 where
     SPI: SpiBus<u8> + 'static,
@@ -871,7 +871,7 @@ where
 {
     async fn connect(&mut self, remote: SocketAddr) -> Result<(), TcpError> {
         let mut adapter = self.adapter.adapter.lock().await;
-            
+
         if adapter.is_connected(self.handle)? {
             adapter.close(self.handle).await?;
         }

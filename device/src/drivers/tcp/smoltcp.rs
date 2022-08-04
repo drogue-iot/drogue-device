@@ -1,30 +1,40 @@
 use core::future::Future;
+use core::mem::MaybeUninit;
+use core::ptr::NonNull;
+use core::sync::atomic::{AtomicBool, Ordering};
 use embassy_net::{
     tcp::{Error as SocketError, TcpSocket},
     Device, IpAddress, Ipv4Address, Ipv6Address, Stack,
 };
-use embedded_nal_async::{IpAddr};
-use core::sync::atomic::{Ordering, AtomicBool};
-use core::mem::MaybeUninit;
-use core::ptr::NonNull;
+use embedded_nal_async::IpAddr;
 
-pub struct TcpClient<'d, D: Device, const N: usize, const TX_SZ: usize = 1024, const RX_SZ: usize = 1024> {
+pub struct TcpClient<
+    'd,
+    D: Device,
+    const N: usize,
+    const TX_SZ: usize = 1024,
+    const RX_SZ: usize = 1024,
+> {
     stack: &'d Stack<D>,
     tx: &'d Pool<[u8; TX_SZ], N>,
     rx: &'d Pool<[u8; RX_SZ], N>,
 }
 
-impl<'d, D: Device, const N: usize, const TX_SZ: usize, const RX_SZ: usize> TcpClient<'d, D, N, TX_SZ, RX_SZ> {
-    pub fn new(stack: &'d Stack<D>, tx: &'d Pool<[u8; TX_SZ], N>, rx: &'d Pool<[u8; RX_SZ], N>) -> Self {
-        Self {
-            stack,
-            tx,
-            rx,
-        }
+impl<'d, D: Device, const N: usize, const TX_SZ: usize, const RX_SZ: usize>
+    TcpClient<'d, D, N, TX_SZ, RX_SZ>
+{
+    pub fn new(
+        stack: &'d Stack<D>,
+        tx: &'d Pool<[u8; TX_SZ], N>,
+        rx: &'d Pool<[u8; RX_SZ], N>,
+    ) -> Self {
+        Self { stack, tx, rx }
     }
 }
 
-impl<'d, D: Device, const N: usize, const TX_SZ: usize, const RX_SZ: usize> embedded_nal_async::TcpConnect for TcpClient<'d, D, N, TX_SZ, RX_SZ> {
+impl<'d, D: Device, const N: usize, const TX_SZ: usize, const RX_SZ: usize>
+    embedded_nal_async::TcpConnect for TcpClient<'d, D, N, TX_SZ, RX_SZ>
+{
     type Error = SocketError;
     type Connection<'m> = TcpConnection<'m, N, TX_SZ, RX_SZ> where Self: 'm;
     type ConnectFuture<'m> = impl Future<Output = Result<Self::Connection<'m>, Self::Error>> + 'm
@@ -39,7 +49,11 @@ impl<'d, D: Device, const N: usize, const TX_SZ: usize, const RX_SZ: usize> embe
             };
             let remote_endpoint = (addr, remote.port());
             let mut socket = TcpConnection::new(&self.stack, self.tx, self.rx)?;
-            socket.socket.connect(remote_endpoint).await.map_err(|_| SocketError::ConnectionReset)?;
+            socket
+                .socket
+                .connect(remote_endpoint)
+                .await
+                .map_err(|_| SocketError::ConnectionReset)?;
             Ok(socket)
         }
     }
@@ -53,8 +67,14 @@ pub struct TcpConnection<'d, const N: usize, const TX_SZ: usize, const RX_SZ: us
     rxb: NonNull<[u8; RX_SZ]>,
 }
 
-impl<'d, const N: usize, const TX_SZ: usize, const RX_SZ: usize> TcpConnection<'d, N, TX_SZ, RX_SZ> {
-    pub fn new<D: Device>(stack: &'d Stack<D>, tx: &'d Pool<[u8; TX_SZ], N>, rx: &'d Pool<[u8; RX_SZ], N>) -> Result<Self, SocketError> {
+impl<'d, const N: usize, const TX_SZ: usize, const RX_SZ: usize>
+    TcpConnection<'d, N, TX_SZ, RX_SZ>
+{
+    pub fn new<D: Device>(
+        stack: &'d Stack<D>,
+        tx: &'d Pool<[u8; TX_SZ], N>,
+        rx: &'d Pool<[u8; RX_SZ], N>,
+    ) -> Result<Self, SocketError> {
         let mut txb = tx.alloc().ok_or(SocketError::ConnectionReset)?;
         let mut rxb = rx.alloc().ok_or(SocketError::ConnectionReset)?;
         Ok(Self {
@@ -67,7 +87,9 @@ impl<'d, const N: usize, const TX_SZ: usize, const RX_SZ: usize> TcpConnection<'
     }
 }
 
-impl<'d, const N: usize, const TX_SZ: usize, const RX_SZ: usize> Drop for TcpConnection<'d, N, TX_SZ, RX_SZ> {
+impl<'d, const N: usize, const TX_SZ: usize, const RX_SZ: usize> Drop
+    for TcpConnection<'d, N, TX_SZ, RX_SZ>
+{
     fn drop(&mut self) {
         unsafe {
             self.socket.close();
@@ -77,11 +99,15 @@ impl<'d, const N: usize, const TX_SZ: usize, const RX_SZ: usize> Drop for TcpCon
     }
 }
 
-impl<'d, const N: usize, const TX_SZ: usize, const RX_SZ: usize> embedded_io::Io for TcpConnection<'d, N, TX_SZ, RX_SZ> {
+impl<'d, const N: usize, const TX_SZ: usize, const RX_SZ: usize> embedded_io::Io
+    for TcpConnection<'d, N, TX_SZ, RX_SZ>
+{
     type Error = SocketError;
 }
 
-impl<'d, const N: usize, const TX_SZ: usize, const RX_SZ: usize> embedded_io::asynch::Read for TcpConnection<'d, N, TX_SZ, RX_SZ> {
+impl<'d, const N: usize, const TX_SZ: usize, const RX_SZ: usize> embedded_io::asynch::Read
+    for TcpConnection<'d, N, TX_SZ, RX_SZ>
+{
     type ReadFuture<'a> = impl Future<Output = Result<usize, Self::Error>>
     where
         Self: 'a;
@@ -91,7 +117,9 @@ impl<'d, const N: usize, const TX_SZ: usize, const RX_SZ: usize> embedded_io::as
     }
 }
 
-impl<'d, const N: usize, const TX_SZ: usize, const RX_SZ: usize> embedded_io::asynch::Write for TcpConnection<'d, N, TX_SZ, RX_SZ> {
+impl<'d, const N: usize, const TX_SZ: usize, const RX_SZ: usize> embedded_io::asynch::Write
+    for TcpConnection<'d, N, TX_SZ, RX_SZ>
+{
     type WriteFuture<'a> = impl Future<Output = Result<usize, Self::Error>>
     where
         Self: 'a;
@@ -109,14 +137,12 @@ impl<'d, const N: usize, const TX_SZ: usize, const RX_SZ: usize> embedded_io::as
     }
 }
 
-pub struct Pool<T, const N: usize>
-{
+pub struct Pool<T, const N: usize> {
     used: [AtomicBool; N],
     data: MaybeUninit<[T; N]>,
 }
 
-impl<T, const N: usize> Pool<T, N>
-{
+impl<T, const N: usize> Pool<T, N> {
     pub const fn new() -> Self {
         const VALUE: AtomicBool = AtomicBool::new(false);
         Self {
@@ -126,13 +152,12 @@ impl<T, const N: usize> Pool<T, N>
     }
 }
 
-impl<T, const N: usize> Pool<T, N>
-{
+impl<T, const N: usize> Pool<T, N> {
     fn alloc(&self) -> Option<NonNull<T>> {
         for n in 0..N {
             if self.used[n].swap(true, Ordering::SeqCst) == false {
                 let origin = self.data.as_ptr() as *mut T;
-                return Some(unsafe { NonNull::new_unchecked(origin.add(n)) })
+                return Some(unsafe { NonNull::new_unchecked(origin.add(n)) });
             }
         }
         None
@@ -147,4 +172,3 @@ impl<T, const N: usize> Pool<T, N>
         self.used[n as usize].store(false, Ordering::SeqCst);
     }
 }
-
