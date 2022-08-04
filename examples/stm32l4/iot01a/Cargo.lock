@@ -560,7 +560,7 @@ dependencies = [
  "embedded-hal 1.0.0-alpha.8",
  "embedded-hal-async",
  "embedded-io",
- "embedded-nal 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "embedded-nal",
  "embedded-nal-async",
  "embedded-storage",
  "embedded-storage-async",
@@ -851,22 +851,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "embedded-nal"
-version = "0.6.0"
-source = "git+https://github.com/lulf/embedded-nal.git?rev=98e43c624c053aae3b4547998b83ddf4775d4d45#98e43c624c053aae3b4547998b83ddf4775d4d45"
-dependencies = [
- "heapless",
- "nb 1.0.0",
- "no-std-net",
-]
-
-[[package]]
 name = "embedded-nal-async"
-version = "0.1.0"
-source = "git+https://github.com/lulf/embedded-nal.git?rev=98e43c624c053aae3b4547998b83ddf4775d4d45#98e43c624c053aae3b4547998b83ddf4775d4d45"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be6ff4a100fe482c345744cb854ac1c8237ea17be2579c92d9441c0c5b0f6c82"
 dependencies = [
  "embedded-io",
- "embedded-nal 0.6.0 (git+https://github.com/lulf/embedded-nal.git?rev=98e43c624c053aae3b4547998b83ddf4775d4d45)",
+ "embedded-nal",
  "heapless",
  "no-std-net",
 ]
@@ -908,16 +899,21 @@ dependencies = [
 
 [[package]]
 name = "embedded-update"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cad2badd37b19dbcc2f17ba2ec157e0c42aa54d778e69f3a9aaef2418cb134f1"
+checksum = "7e16ff6629d83cc3682fccb72cf9e3a5a882b36760608bf2051aecda9aa2ca99"
 dependencies = [
  "embedded-hal-async",
  "embedded-io",
+ "embedded-nal-async",
+ "embedded-tls",
  "futures",
  "heapless",
  "postcard",
+ "rand_core",
+ "reqwless",
  "serde",
+ "serde_cbor",
 ]
 
 [[package]]
