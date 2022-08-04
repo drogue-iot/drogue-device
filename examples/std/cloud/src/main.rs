@@ -2,16 +2,22 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use drogue_device::{domain::temperature::Celsius, drivers::tcp::std::*};
+use async_io::Async;
+use core::future::Future;
+use drogue_device::domain::temperature::Celsius;
 use drogue_temperature::*;
 use embassy::time::Duration;
 use embassy::util::Forever;
+use embedded_io::adapters::FromFutures;
+use embedded_nal_async::*;
+use futures::io::BufReader;
 use rand::rngs::OsRng;
+use std::net::TcpStream;
 
 pub struct StdBoard;
 
 impl TemperatureBoard for StdBoard {
-    type Network = StdTcpClientSocket;
+    type Network = TcpClient;
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = FakeSensor;
@@ -37,8 +43,31 @@ async fn main(spawner: embassy::executor::Spawner) {
                 send_trigger: TimeTrigger(Duration::from_secs(10)),
                 sensor: FakeSensor(22.0),
                 sensor_ready: AlwaysReady,
-                network: StdTcpClientSocket::default(),
+                network: TcpClient,
             },
         )
         .await;
+}
+
+pub struct TcpClient;
+
+impl TcpConnect for TcpClient {
+    type Error = std::io::Error;
+    type Connection<'m> = FromFutures<BufReader<Async<TcpStream>>>;
+    type ConnectFuture<'m> = impl Future<Output = Result<Self::Connection<'m>, Self::Error>> + 'm
+    where
+        Self: 'm;
+    fn connect<'m>(&'m self, remote: SocketAddr) -> Self::ConnectFuture<'m> {
+        async move {
+            match TcpStream::connect(format!("{}:{}", remote.ip(), remote.port())) {
+                Ok(stream) => {
+                    let stream = Async::new(stream).unwrap();
+                    let stream = futures::io::BufReader::new(stream);
+                    let stream = FromFutures::new(stream);
+                    Ok(stream)
+                }
+                Err(e) => Err(e),
+            }
+        }
+    }
 }

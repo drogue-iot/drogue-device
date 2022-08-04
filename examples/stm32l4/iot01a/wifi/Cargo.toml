@@ -25,10 +25,10 @@ cortex-m = "0.7"
 
 
 #embedded-update = { path = "../../../../../embedded-update" }
-embedded-update = { version = "0.6.1", features = ["nightly"] }
+embedded-update = { version = "0.7", features = ["nightly"] }
 critical-section = "0.2.5"
 rand_core = { version = "0.6.2", default-features = false }
-embedded-nal-async = { version = "0.1.0", git = "https://github.com/lulf/embedded-nal.git", rev = "98e43c624c053aae3b4547998b83ddf4775d4d45" }
+embedded-nal-async = "0.2.0"
 # embassy = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features=["defmt"] }
 # embassy-stm32 = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features = ["defmt", "stm32l432kc"] }
 embedded-tls = { version = "0.8.0", default-features = false, features = ["async"], optional = true}

@@ -33,8 +33,7 @@ impl From<ConnectError> for Error {
 }
 
 pub struct SmolTcpSocket<'a> {
-    socket: TcpSocket<'a>,
-    connected: bool,
+    socket: Stack<'a>,
 }
 
 impl<'a> SmolTcpSocket<'a> {

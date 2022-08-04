@@ -23,7 +23,7 @@ embedded-tls = { version = "0.8.0", default-features = false, features = ["async
 rand_core = { version = "0.6.2", default-features = false }
 embedded-hal-1 = { package = "embedded-hal", version = "1.0.0-alpha.8"}
 embedded-hal-async = { version = "0.1.0-alpha.1" }
-embedded-nal-async = { version = "0.1.0", git = "https://github.com/lulf/embedded-nal.git", rev = "98e43c624c053aae3b4547998b83ddf4775d4d45" }
+embedded-nal-async = "0.2.0"
 embedded-io = "0.3.0"
 ector = {version = "0.1.0", default-features = false}
 

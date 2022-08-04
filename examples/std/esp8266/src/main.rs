@@ -25,7 +25,7 @@ type RESET = DummyPin;
 pub struct StdBoard;
 
 impl TemperatureBoard for StdBoard {
-    type Network = Esp8266Socket<'static, SERIAL>;
+    type Network = &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1>;
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = FakeSensor;
@@ -54,7 +54,6 @@ async fn main(spawner: embassy::executor::Spawner) {
     spawner
         .spawn(net_task(network, WIFI_SSID.trim_end(), WIFI_PSK.trim_end()))
         .unwrap();
-    let client = network.new_socket().unwrap();
 
     DEVICE
         .put(TemperatureDevice::new())
@@ -62,7 +61,7 @@ async fn main(spawner: embassy::executor::Spawner) {
             spawner,
             rand::rngs::OsRng,
             TemperatureBoardConfig {
-                network: client,
+                network,
                 send_trigger: TimeTrigger(Duration::from_secs(10)),
                 sensor: FakeSensor(22.0),
                 sensor_ready: AlwaysReady,

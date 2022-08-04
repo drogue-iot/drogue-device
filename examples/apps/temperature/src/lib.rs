@@ -101,8 +101,7 @@ where
         let mut tls = [0; 16384];
 
         #[allow(unused_mut)]
-        let mut connection =
-            TcpConnection::connect(&mut self.network, SocketAddr::new(ip, self.port))
+        let mut connection = self.network.connect(SocketAddr::new(ip, self.port))
                 .await
                 .map_err(|e| e.kind())?;
 
@@ -237,7 +236,7 @@ static DNS: StaticDnsResolver<'static, 3> = StaticDnsResolver::new(&[
 ]);
 
 pub trait TemperatureBoard {
-    type Network: TcpClientSocket;
+    type Network: TcpConnect;
     type TemperatureScale: TemperatureScale;
     type Sensor: TemperatureSensor<Self::TemperatureScale>;
     type SensorReadyIndicator: Wait + InputPin;
