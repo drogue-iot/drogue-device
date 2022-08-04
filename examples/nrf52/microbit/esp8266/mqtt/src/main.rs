@@ -88,12 +88,6 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
         .spawn(net_task(network, WIFI_SSID.trim_end(), WIFI_PSK.trim_end()))
         .unwrap();
 
-    static SOCKET_PUB: Forever<Esp8266Socket<'static, SERIAL>> = Forever::new();
-    let socket_pub = SOCKET_PUB.put(network.new_socket().unwrap());
-
-    static SOCKET_SUB: Forever<Esp8266Socket<'static, SERIAL>> = Forever::new();
-    let socket_sub = SOCKET_SUB.put(network.new_socket().unwrap());
-
     let ip = DNS
         .get_host_by_name(HOST, AddrType::IPv4)
         .await
@@ -104,8 +98,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     let mut rng = Rng::new(nrf52833_pac::Peripherals::take().unwrap().RNG);
 
-    socket_pub.connect(addr).await.unwrap();
-    socket_sub.connect(addr).await.unwrap();
+    let socket_pub = network.connect(addr).await.unwrap();
+    let socket_sub = network.connect(addr).await.unwrap();
 
     static mut TLS_PUB_BUF: [u8; 16384] = [0; 16384];
     static mut TLS_SUB_BUF: [u8; 16384] = [0; 16384];
@@ -175,7 +169,7 @@ static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
 ]);
 
 type Connection =
-    TlsConnection<'static, &'static mut Esp8266Socket<'static, SERIAL>, Aes128GcmSha256>;
+    TlsConnection<'static, Esp8266Socket<'static, SERIAL>, Aes128GcmSha256>;
 //type Connection = Esp8266Connection<'static, SERIAL>;
 
 pub struct Receiver {
