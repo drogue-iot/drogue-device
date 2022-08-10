@@ -7,7 +7,7 @@
 
 use drogue_blinky_app::{BlinkyBoard, BlinkyConfiguration, BlinkyDevice};
 use drogue_device::{bind_bsp, Board};
-use embassy::util::Forever;
+use embassy_util::Forever;
 use embassy_stm32::Peripherals;
 
 use defmt_rtt as _;
@@ -27,8 +27,8 @@ impl BlinkyBoard for BSP {
 
 static DEVICE: Forever<BlinkyDevice<BSP>> = Forever::new();
 
-#[embassy::main]
-async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
+#[embassy_executor::main]
+async fn main(spawner: embassy_executor::executor::Spawner, p: Peripherals) {
     let board = BSP::new(p);
 
     DEVICE

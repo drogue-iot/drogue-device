@@ -42,11 +42,11 @@ use drogue_device::{
     flash::{FlashState, SharedFlash},
     Board,
 };
-use embassy::channel::mpmc::{Channel, DynamicReceiver, DynamicSender};
-use embassy::time::Ticker;
-use embassy::time::{Duration, Timer};
-use embassy::util::Forever;
-use embassy::util::{select, Either};
+use embassy_util::channel::mpmc::{Channel, DynamicReceiver, DynamicSender};
+use embassy_executor::time::Ticker;
+use embassy_executor::time::{Duration, Timer};
+use embassy_util::Forever;
+use embassy_util::{select, Either};
 use embassy::{blocking_mutex::raw::NoopRawMutex, executor::Spawner};
 use embassy_boot_nrf::FirmwareUpdater;
 use embassy_nrf::config::Config;
@@ -61,8 +61,8 @@ use nrf_softdevice::Flash;
 #[cfg(feature = "panic-probe")]
 use panic_probe as _;
 
-#[cfg(feature = "nrf-softdevice-defmt-rtt")]
-use nrf_softdevice_defmt_rtt as _;
+#[cfg(feature = "defmt-rtt")]
+use defmt_rtt as _;
 
 #[cfg(feature = "panic-reset")]
 use panic_reset as _;
@@ -108,7 +108,7 @@ const FEATURES: Features = Features {
 const FIRMWARE_VERSION: &str = env!("CARGO_PKG_VERSION");
 const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 
-#[embassy::main(config = "config()")]
+#[embassy_executor::main(config = "config()")]
 async fn main(spawner: Spawner, p: Peripherals) {
     let board = AdafruitFeatherNrf52840::new(p);
     let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BT Mesh", true);
@@ -202,12 +202,12 @@ async fn main(spawner: Spawner, p: Peripherals) {
     }
 }
 
-#[embassy::task]
+#[embassy_executor::task]
 async fn softdevice_task(sd: &'static Softdevice) {
     sd.run().await;
 }
 
-#[embassy::task]
+#[embassy_executor::task]
 pub async fn mesh_task(
     node: &'static mut ConcreteMeshNode,
     control: DynamicReceiver<'static, MeshNodeMessage>,
@@ -215,7 +215,7 @@ pub async fn mesh_task(
     node.run(control).await;
 }
 
-#[embassy::task]
+#[embassy_executor::task]
 pub async fn reset_task(mut button: Switch, control: DynamicSender<'static, MeshNodeMessage>) {
     loop {
         button.wait_released().await;
@@ -223,7 +223,7 @@ pub async fn reset_task(mut button: Switch, control: DynamicSender<'static, Mesh
     }
 }
 
-#[embassy::task]
+#[embassy_executor::task]
 async fn publisher_task(
     interval: Duration,
     sd: &'static Softdevice,
@@ -269,7 +269,7 @@ async fn publisher_task(
 }
 
 // Keeps our system alive
-#[embassy::task]
+#[embassy_executor::task]
 async fn watchdog_task() {
     let mut handle = unsafe { embassy_nrf::wdt::WatchdogHandle::steal(0) };
     loop {

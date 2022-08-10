@@ -1,4 +1,4 @@
-use embassy::util::Forever;
+use embassy_util::Forever;
 use futures_intrusive::sync::{LocalMutex, LocalMutexGuard};
 
 pub struct Shared<T> {

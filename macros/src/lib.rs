@@ -83,15 +83,15 @@ pub fn test(_: TokenStream, item: TokenStream) -> TokenStream {
 
     let result = quote! {
 
-        #[::embassy::task]
+        #[::embassy_executor::task]
         async fn #drogue_test_name(#args) {
             #task_fn_body
         }
 
         #[test]
         fn #test_name() {
-            static DEVICE: ::embassy::util::Forever<#device_type> = ::embassy::util::Forever::new();
-            static RUNNER: ::embassy::util::Forever<::ector::testutil::TestRunner> = ::embassy::util::Forever::new();
+            static DEVICE: ::embassy_util::Forever<#device_type> = ::embassy_util::Forever::new();
+            static RUNNER: ::embassy_util::Forever<::ector::testutil::TestRunner> = ::embassy_util::Forever::new();
 
             let runner = RUNNER.put(::ector::testutil::TestRunner::default());
 

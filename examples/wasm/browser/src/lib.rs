@@ -7,13 +7,13 @@ use drogue_device::{
     drivers::led::Led as LedDriver,
 };
 use ector::*;
-use embassy::executor::Spawner;
+use embassy_executor::executor::Spawner;
 use web_embedded_hal::*;
 
 type AppLed = LedDriver<WebLed>;
 
 // Called when the wasm module is instantiated
-#[embassy::main]
+#[embassy_executor::main]
 async fn main(spawner: Spawner) {
     wasm_logger::init(wasm_logger::Config::default());
 

@@ -1,4 +1,4 @@
-use embassy::time::{Instant, Timer};
+use embassy_executor::time::{Instant, Timer};
 use futures::future::pending;
 
 #[derive(Copy, Clone)]

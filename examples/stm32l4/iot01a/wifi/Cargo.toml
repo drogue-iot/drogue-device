@@ -29,7 +29,7 @@ embedded-update = { version = "0.7", features = ["nightly"] }
 critical-section = "0.2.5"
 rand_core = { version = "0.6.2", default-features = false }
 embedded-nal-async = "0.2.0"
-# embassy = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features=["defmt"] }
+# embassy-executor = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features=["defmt"] }
 # embassy-stm32 = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features = ["defmt", "stm32l432kc"] }
 embedded-tls = { version = "0.8.0", default-features = false, features = ["async"], optional = true}
 # drogue-tls = {path = "../../../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
@@ -37,7 +37,7 @@ cfg-if = "1.0.0"
 embedded-io = "0.3.0"
 
 atomic-polyfill = "0.1"
-embassy = { version = "0.1.0", default-features = false, features=["time", "time-tick-32768hz", "nightly", "unstable-traits"] }
+embassy-executor = { version = "0.1.0", default-features = false, features=["time", "time-tick-32768hz", "nightly", "unstable-traits"] }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["time-driver-any", "unstable-traits"] }
 drogue-temperature = { path = "../../../apps/temperature", default-features = false }
 

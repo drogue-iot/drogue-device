@@ -4,8 +4,8 @@ use core::mem::transmute;
 use core::ops::Add;
 use core::ops::Deref;
 use core::slice;
-use embassy::time::{Duration, Timer};
-use embassy_hal_common::{unborrow, Unborrow};
+use embassy_executor::time::{Duration, Timer};
+use embassy_hal_common::{into_ref, Peripheral};
 use embassy_nrf::gpio::Pin;
 use embassy_nrf::pwm::{
     Config, Error, Instance, Prescaler, SequenceConfig, SequenceLoad, SequencePwm,
@@ -129,11 +129,11 @@ pub struct NeoPixelRgbw<'d, T: Instance, const N: usize = 1> {
 
 impl<'d, T: Instance, const N: usize> NeoPixelRgbw<'d, T, N> {
     pub fn new(
-        pwm: impl Unborrow<Target = T>,
-        pin: impl Unborrow<Target = impl Pin> + 'd,
+        pwm: impl Peripheral<P = T> + 'd,
+        pin: impl Peripheral<P = impl Pin> + 'd,
     ) -> Result<Self, Error> {
-        unborrow!(pwm);
-        unborrow!(pin);
+        into_ref!(pwm);
+        into_ref!(pin);
         let mut config = Config::default();
         config.sequence_load = SequenceLoad::Common;
         config.prescaler = Prescaler::Div1;

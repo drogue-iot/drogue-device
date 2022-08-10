@@ -15,5 +15,5 @@ keywords = ["ignore"]
 defmt = "0.3"
 drogue-device = { path = "../../../device", default-features = false }
 ector = { version = "0.1.0", default-features = false }
-embassy = { version = "0.1.0", default-features = false }
+embassy-executor = { version = "0.1.0", default-features = false }
 #, features=["defmt", "time", "time-tick-32768hz"] }

@@ -24,8 +24,8 @@ use core::cell::Ref;
 use core::convert::TryInto;
 use core::future::Future;
 use core::marker::PhantomData;
-use embassy::blocking_mutex::raw::ThreadModeRawMutex;
-use embassy::channel::mpmc::Sender as ChannelSender;
+use embassy_util::blocking_mutex::raw::ThreadModeRawMutex;
+use embassy_util::channel::mpmc::Sender as ChannelSender;
 use heapless::Vec;
 
 #[derive(Clone)]

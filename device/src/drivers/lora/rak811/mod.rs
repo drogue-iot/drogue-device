@@ -9,7 +9,7 @@ use crate::traits::lora::*;
 
 pub use buffer::*;
 use core::future::Future;
-use embassy::blocking_mutex::raw::NoopRawMutex;
+use embassy_util::blocking_mutex::raw::NoopRawMutex;
 use embedded_hal::digital::v2::OutputPin;
 use embedded_io::asynch::{Read, Write};
 pub use protocol::*;

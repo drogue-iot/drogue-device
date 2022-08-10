@@ -3,7 +3,7 @@ pub mod gatt;
 
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
 use core::future::Future;
-use embassy::util::{select, Either};
+use embassy_util::{select, Either};
 use futures::future::join;
 
 use crate::drivers::ble::mesh::device::Uuid;

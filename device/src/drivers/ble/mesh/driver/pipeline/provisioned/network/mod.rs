@@ -1,5 +1,5 @@
 use crate::drivers::ble::mesh::driver::pipeline::mesh::MeshContext;
-use embassy::time::Instant;
+use embassy_executor::time::Instant;
 
 pub mod authentication;
 pub mod network_message_cache;

@@ -27,5 +27,5 @@ embedded-graphics-core = { version = "0.3.2" }
 epd-waveshare = { git = "https://github.com/Caemor/epd-waveshare.git", features = [ "graphics"] }
 tinybmp = "0.3.1"
 
-embassy = { version = "0.1.0", default-features = false, features = ["time-tick-32768hz"] }
+embassy-executor = { version = "0.1.0", default-features = false, features = ["time-tick-32768hz"] }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32h743zi", "defmt", "memory-x", "time-driver-any", "exti", "nightly", "unstable-traits"] }

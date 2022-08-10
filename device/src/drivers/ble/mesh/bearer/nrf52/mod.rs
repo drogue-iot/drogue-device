@@ -13,7 +13,7 @@ use core::future::Future;
 use core::mem;
 use core::ptr::slice_from_raw_parts;
 use core::sync::atomic::Ordering;
-use embassy::channel::{mpmc::Channel, signal::Signal};
+use embassy_util::channel::{mpmc::Channel, signal::Signal};
 use heapless::Vec;
 use nrf_softdevice::ble::central::{ScanConfig, ScanError};
 use nrf_softdevice::ble::peripheral::AdvertiseError;
@@ -21,7 +21,7 @@ use nrf_softdevice::ble::{central, gatt_server, peripheral, Connection};
 use nrf_softdevice::{raw, Flash, Softdevice};
 
 pub struct Nrf52BleMeshFacilities {
-    pub(crate) sd: &'static Softdevice,
+    pub(crate) sd: &'static mut Softdevice,
 }
 
 impl Nrf52BleMeshFacilities {
@@ -31,7 +31,7 @@ impl Nrf52BleMeshFacilities {
         }
     }
 
-    pub fn new_sd(device_name: &'static str, use_gatt: bool) -> &'static Softdevice {
+    pub fn new_sd(device_name: &'static str, use_gatt: bool) -> &'static mut Softdevice {
         let mut config = nrf_softdevice::Config {
             clock: Some(raw::nrf_clock_lf_cfg_t {
                 source: raw::NRF_CLOCK_LF_SRC_RC as u8,
@@ -82,15 +82,15 @@ impl Nrf52BleMeshFacilities {
         sd
     }
 
-    pub fn sd(&self) -> &'static Softdevice {
+    pub fn sd(&self) -> &Softdevice {
         self.sd
     }
 
-    pub fn advertising_bearer(&self) -> SoftdeviceAdvertisingBearer {
+    pub fn advertising_bearer(&mut self) -> SoftdeviceAdvertisingBearer {
         SoftdeviceAdvertisingBearer::new(self.sd)
     }
 
-    pub fn gatt_bearer(&self) -> SoftdeviceGattBearer {
+    pub fn gatt_bearer(&mut self) -> SoftdeviceGattBearer {
         SoftdeviceGattBearer::new(self.sd)
     }
 
@@ -122,10 +122,11 @@ pub struct SoftdeviceGattBearer {
 }
 
 impl SoftdeviceGattBearer {
-    pub fn new(sd: &'static Softdevice) -> Self {
+    pub fn new(sd: &'static mut Softdevice) -> Self {
+        let server = MeshGattServer::new(sd).unwrap();
         Self {
             sd,
-            server: gatt_server::register(sd).unwrap(),
+            server,
             connection: Signal::new(),
             connected: AtomicBool::new(false),
             current_connection: RefCell::new(None),

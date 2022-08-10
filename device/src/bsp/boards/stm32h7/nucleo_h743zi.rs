@@ -1,8 +1,6 @@
 use crate::bsp::Board;
 use crate::drivers::button::Button;
 use crate::drivers::led::{ActiveHigh, Led};
-#[allow(unused_imports)]
-use embassy::util::Forever;
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
 #[allow(unused_imports)]
@@ -10,6 +8,8 @@ use embassy_stm32::interrupt;
 use embassy_stm32::peripherals::{PB0, PB14, PC13, PE1, RNG};
 use embassy_stm32::rng::Rng as HalRng;
 use embassy_stm32::Config;
+#[allow(unused_imports)]
+use embassy_util::Forever;
 
 #[cfg(feature = "embassy-net")]
 use embassy_stm32::eth::generic_smi::GenericSMI;

@@ -19,7 +19,7 @@ log = "0.4"
 
 drogue-device = { path = "../../../device", features = ["log"], default-features = false }
 web-embedded-hal = "0.1.0"
-embassy = { version = "0.1.0", default-features = false, features = ["wasm", "executor-agnostic", "nightly", "unstable-traits"] }
+embassy-executor = { version = "0.1.0", default-features = false, features = ["wasm", "executor-agnostic", "nightly", "unstable-traits"] }
 ector = { version = "0.1.0", default-features = false }
 
 [profile.release]
@@ -27,9 +27,9 @@ ector = { version = "0.1.0", default-features = false }
 opt-level = "s"
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "ba67f6d3a8c84262fcc9b2020670515d192555f1" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "ba67f6d3a8c84262fcc9b2020670515d192555f1" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "ba67f6d3a8c84262fcc9b2020670515d192555f1" }
 ector = { git = "https://github.com/drogue-iot/ector.git", rev = "63c08489da17ff92c493f21411411ce5ddd6154a" }
 
-#embassy = { path = "../../../../../embassy/embassy" }
+#embassy-executor = { path = "../../../../../embassy/embassy" }

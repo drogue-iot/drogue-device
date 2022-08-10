@@ -1,6 +1,6 @@
 use crate::bsp::Board;
 use crate::drivers::led::{ActiveHigh, Led};
-use embassy::time::{block_for, Duration};
+use embassy_executor::time::{block_for, Duration};
 use embassy_lora::sx127x::*;
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};

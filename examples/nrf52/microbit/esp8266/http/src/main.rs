@@ -18,7 +18,7 @@ use drogue_device::{
     *,
 };
 use drogue_temperature::*;
-use embassy::util::Forever;
+use embassy_util::Forever;
 use embassy_nrf::{
     buffered_uarte::{BufferedUarte, State},
     gpio::{Level, Output, OutputDrive},
@@ -47,8 +47,8 @@ impl TemperatureBoard for BSP {
 
 static DEVICE: Forever<TemperatureDevice<BSP>> = Forever::new();
 
-#[embassy::main]
-async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
+#[embassy_executor::main]
+async fn main(spawner: embassy_executor::executor::Spawner, p: Peripherals) {
     let board = Microbit::new(p);
 
     let mut config = uarte::Config::default();
@@ -111,7 +111,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     defmt::info!("Application initialized. Press 'A' button to send data");
 }
 
-#[embassy::task]
+#[embassy_executor::task]
 async fn net_task(
     modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1>,
     ssid: &'static str,

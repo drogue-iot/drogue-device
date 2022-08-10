@@ -6,7 +6,7 @@ use drogue_device::actors;
 use drogue_device::actors::led::LedMessage;
 use drogue_device::traits;
 use ector::ActorContext;
-use embassy::executor::Spawner;
+use embassy_executor::executor::Spawner;
 
 /// This trait defines the trait-based capabilities
 /// required by a board and provides associated-types

@@ -14,7 +14,7 @@ use drogue_device::{
     Board,
 };
 use ector::{actor, spawn_actor, Actor, Address, Inbox};
-use embassy::time::{Duration, Ticker, Timer};
+use embassy_executor::time::{Duration, Ticker, Timer};
 use embassy_nrf::Peripherals;
 
 use futures::{
@@ -119,8 +119,8 @@ impl Actor for Game {
     }
 }
 
-#[embassy::main]
-async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
+#[embassy_executor::main]
+async fn main(spawner: embassy_executor::executor::Spawner, p: Peripherals) {
     // Using a board support package to simplify setup
     let board = Microbit::new(p);
 

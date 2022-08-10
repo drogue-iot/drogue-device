@@ -13,7 +13,7 @@ use drogue_device::{
     *,
 };
 use ector::{Actor, ActorContext, Address, Inbox};
-use embassy::executor::Spawner;
+use embassy_executor::executor::Spawner;
 use heapless::String;
 
 pub trait LoraBoard
@@ -271,13 +271,13 @@ where
     }
 }
 
-pub struct TimeTrigger(pub embassy::time::Duration);
+pub struct TimeTrigger(pub embassy_executor::time::Duration);
 impl SendTrigger for TimeTrigger {
     type TriggerFuture<'m> = impl Future + 'm
     where
         Self: 'm;
     fn wait<'m>(&'m mut self) -> Self::TriggerFuture<'m> {
-        embassy::time::Timer::after(self.0)
+        embassy_executor::time::Timer::after(self.0)
     }
 }
 

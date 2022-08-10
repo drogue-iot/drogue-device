@@ -2,7 +2,7 @@ use crate::traits::led::ToFrame;
 use crate::{domain::led::matrix::*, traits::led::TextDisplay};
 use core::convert::Infallible;
 use core::future::Future;
-use embassy::time::{block_for, Duration, Instant, Timer};
+use embassy_executor::time::{block_for, Duration, Instant, Timer};
 use embedded_hal::digital::v2::OutputPin;
 
 const REFRESH_INTERVAL: Duration = Duration::from_micros(500);

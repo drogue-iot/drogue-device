@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::traits::lora::{LoraDriver, LoraError, QoS};
 
 const MTU: usize = 256;
-pub type Mutex = embassy::blocking_mutex::raw::NoopRawMutex;
+pub type Mutex = embassy_util::blocking_mutex::raw::NoopRawMutex;
 pub type Payload = heapless::Vec<u8, MTU>;
 
 pub struct LorawanService<D: LoraDriver> {

@@ -7,8 +7,8 @@ mod serial;
 use async_io::Async;
 use drogue_device::{domain::temperature::Celsius, drivers::wifi::esp8266::*, *};
 use drogue_temperature::*;
-use embassy::time::Duration;
-use embassy::util::Forever;
+use embassy_executor::time::Duration;
+use embassy_util::Forever;
 use embedded_hal::digital::v2::OutputPin;
 use embedded_io::adapters::FromFutures;
 use futures::io::BufReader;
@@ -35,8 +35,8 @@ impl TemperatureBoard for StdBoard {
 
 static DEVICE: Forever<TemperatureDevice<StdBoard>> = Forever::new();
 
-#[embassy::main]
-async fn main(spawner: embassy::executor::Spawner) {
+#[embassy_executor::main]
+async fn main(spawner: embassy_executor::executor::Spawner) {
     env_logger::builder()
         .filter_level(log::LevelFilter::Trace)
         .format_timestamp_nanos()
@@ -70,7 +70,7 @@ async fn main(spawner: embassy::executor::Spawner) {
         .await;
 }
 
-#[embassy::task]
+#[embassy_executor::task]
 async fn net_task(
     modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1>,
     ssid: &'static str,

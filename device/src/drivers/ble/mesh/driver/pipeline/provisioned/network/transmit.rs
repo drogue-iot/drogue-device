@@ -1,5 +1,5 @@
 use crate::drivers::ble::mesh::pdu::network::ObfuscatedAndEncryptedNetworkPDU;
-use embassy::time::{Duration, Instant};
+use embassy_executor::time::{Duration, Instant};
 
 use crate::drivers::ble::mesh::address::UnicastAddress;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::NetworkRetransmitDetails;

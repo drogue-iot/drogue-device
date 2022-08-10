@@ -216,7 +216,7 @@ fn test_device() -> Result<(), anyhow::Error> {
     cmd!("cargo fmt --check").run()?;
     cmd!("cargo test --all --features 'std wifi+esp8266 wifi+eswifi tcp+smoltcp tls'").run()?;
     // Sanity check that we can build on cortex-m
-    cmd!("cargo build --no-default-features --features 'wifi+esp8266 wifi+eswifi tcp+smoltcp tls ble+nrf52840 embassy-nrf/nrf52840 embassy-nrf/time-driver-rtc1 embassy/time' --target thumbv7em-none-eabihf").run()?;
+    cmd!("cargo build --no-default-features --features 'wifi+esp8266 wifi+eswifi tcp+smoltcp tls ble+nrf52840 embassy-nrf/nrf52840 embassy-nrf/time-driver-rtc1 embassy-executor/time' --target thumbv7em-none-eabihf").run()?;
     Ok(())
 }
 

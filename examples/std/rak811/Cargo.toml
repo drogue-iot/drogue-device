@@ -17,7 +17,7 @@ env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["std", "lora+rak811", "time"], default-features = false }
 
 embedded-io = { version = "0.3.0", features = ["async", "std", "futures"] }
-embassy = { version = "0.1.0", default-features = false, features = ["std"] }
+embassy-executor = { version = "0.1.0", default-features = false, features = ["std"] }
 ector = { version = "0.1.0" }
 cfg-if = "1.0.0"
 embedded-hal = {version = "0.2.4", features = ["unproven"] }

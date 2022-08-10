@@ -10,7 +10,7 @@ version = "0.1.0"
 keywords = ["ignore"]
 
 [dependencies]
-embassy = { version = "0.1.0", default-features = false, features = ["time"] }
+embassy-executor = { version = "0.1.0", default-features = false, features = ["time"] }
 drogue-device = { path = "../../../device", default-features = false }
 embedded-hal = { version = "0.2", features = ["unproven"] }
 defmt = { version = "0.3", optional = true }
@@ -34,4 +34,4 @@ defmt = [
     "reqwless/defmt",
 ]
 tls = ["embedded-tls", "drogue-device/tls"]
-std = ["serde-json-core/std", "embassy/std", "ector/std"]
+std = ["serde-json-core/std", "embassy-executor/std", "ector/std"]

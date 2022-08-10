@@ -15,7 +15,7 @@ use drogue_device::{
     drivers::tcp::smoltcp::*,
 };
 use drogue_temperature::*;
-use embassy::util::Forever;
+use embassy_util::Forever;
 use embassy_net::{Stack, StackResources};
 use embassy_stm32::peripherals::RNG;
 use embassy_stm32::rng::Rng;
@@ -39,13 +39,13 @@ static DEVICE: Forever<TemperatureDevice<BSP>> = Forever::new();
 static RESOURCES: Forever<StackResources<1, 2, 8>> = Forever::new();
 static STACK: Forever<Stack<EthernetDevice>> = Forever::new();
 
-#[embassy::task]
+#[embassy_executor::task]
 async fn net_task(stack: &'static Stack<EthernetDevice>) -> ! {
     stack.run().await
 }
 
-#[embassy::main]
-async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
+#[embassy_executor::main]
+async fn main(spawner: embassy_executor::executor::Spawner, p: Peripherals) {
     let board = NucleoH743::new(p);
 
     // Generate random seed.

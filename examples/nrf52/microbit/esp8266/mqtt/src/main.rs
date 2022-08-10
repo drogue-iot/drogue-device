@@ -17,8 +17,8 @@ use drogue_device::{
     bsp::boards::nrf52::microbit::*, drivers::dns::*, drivers::wifi::esp8266::Esp8266Modem, *,
 };
 use ector::{actor, Actor, ActorContext, Address, Inbox};
-use embassy::time::{Duration, Timer};
-use embassy::util::Forever;
+use embassy_executor::time::{Duration, Timer};
+use embassy_util::Forever;
 use embassy_nrf::{
     buffered_uarte::{BufferedUarte, State},
     gpio::{Level, Output, OutputDrive},
@@ -49,8 +49,8 @@ type SERIAL = BufferedUarte<'static, UARTE0, TIMER0>;
 type ENABLE = Output<'static, P0_09>;
 type RESET = Output<'static, P0_10>;
 
-#[embassy::main]
-async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
+#[embassy_executor::main]
+async fn main(spawner: embassy_executor::executor::Spawner, p: Peripherals) {
     let board = Microbit::new(p);
     defmt::info!("Started");
     let mut config = uarte::Config::default();
@@ -149,7 +149,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     }
 }
 
-#[embassy::task]
+#[embassy_executor::task]
 async fn net_task(
     modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 2>,
     ssid: &'static str,

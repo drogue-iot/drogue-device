@@ -1,7 +1,7 @@
 use crate::drivers::ble::mesh::model::foundation::configuration::network_transmit::NetworkTransmitConfig;
 #[cfg(feature = "ble-mesh-relay")]
 use crate::drivers::ble::mesh::model::foundation::configuration::relay::RelayConfig;
-use embassy::time::Duration;
+use embassy_executor::time::Duration;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Default)]

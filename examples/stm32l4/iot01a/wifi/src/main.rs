@@ -20,8 +20,8 @@ use drogue_device::{
     drogue,
 };
 use drogue_temperature::*;
-use embassy::time::Duration;
-use embassy::util::Forever;
+use embassy_executor::time::Duration;
+use embassy_util::Forever;
 use embassy_stm32::{flash::Flash, Peripherals};
 use embedded_nal_async::{AddrType, Dns, IpAddr, Ipv4Addr, SocketAddr, TcpConnect};
 
@@ -59,8 +59,8 @@ const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 
 static DEVICE: Forever<TemperatureDevice<BSP>> = Forever::new();
 
-#[embassy::main(config = "Iot01a::config(true)")]
-async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
+#[embassy_executor::main(config = "Iot01a::config(true)")]
+async fn main(spawner: embassy_executor::executor::Spawner, p: Peripherals) {
     let board = Iot01a::new(p);
     unsafe {
         RNG_INST.replace(board.rng);
@@ -93,7 +93,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     defmt::info!("Application running");
 }
 
-#[embassy::task]
+#[embassy_executor::task]
 async fn network_task(adapter: &'static SharedEsWifi, ssid: &'static str, psk: &'static str) {
     loop {
         let _ = adapter.run(ssid, psk).await;
@@ -135,10 +135,10 @@ impl rand_core::RngCore for TlsRand {
 impl rand_core::CryptoRng for TlsRand {}
 
 #[cfg(feature = "dfu")]
-#[embassy::task]
+#[embassy_executor::task]
 async fn updater_task(network: &'static SharedEsWifi, flash: Flash<'static>) {
     use drogue_device::firmware::BlockingFlash;
-    use embassy::time::{Delay, Timer};
+    use embassy_executor::time::{Delay, Timer};
 
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
     defmt::info!("Running firmware version {}", version);

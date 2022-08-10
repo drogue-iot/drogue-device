@@ -27,8 +27,8 @@ embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf528
 futures = { version = "0.3", default-features = false }
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
+embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "ba67f6d3a8c84262fcc9b2020670515d192555f1" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "ba67f6d3a8c84262fcc9b2020670515d192555f1" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "ba67f6d3a8c84262fcc9b2020670515d192555f1" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "ba67f6d3a8c84262fcc9b2020670515d192555f1" }
 ector = { git = "https://github.com/drogue-iot/ector.git", rev = "63c08489da17ff92c493f21411411ce5ddd6154a" }

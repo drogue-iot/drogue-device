@@ -27,6 +27,6 @@ void = { version = "1", default-features = false }
 critical-section = "0.2.5"
 rand_core = "0.6.3"
 
-embassy = { version = "0.1.0", default-features = false, features = ["time-tick-32768hz"] }
+embassy-executor = { version = "0.1.0", default-features = false, features = ["time-tick-32768hz"] }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32h743zi", "defmt", "memory-x", "net", "time-driver-any", "unstable-traits", "unstable-pac", "nightly"] }
 embassy-net = { version = "0.1.0", default-features = false, features = ["defmt"] }

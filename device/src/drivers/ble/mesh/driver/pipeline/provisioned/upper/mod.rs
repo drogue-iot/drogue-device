@@ -1,7 +1,7 @@
 use crate::drivers::ble::mesh::driver::DeviceError;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
 use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
-use embassy::time::Instant;
+use embassy_executor::time::Instant;
 
 use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
 use crate::drivers::ble::mesh::driver::pipeline::mesh::PublishRetransmitDetails;

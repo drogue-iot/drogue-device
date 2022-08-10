@@ -20,7 +20,7 @@ use drogue_device::{
     traits::sensors::temperature::TemperatureSensor,
 };
 use ector::{Actor, ActorContext, Address, Inbox};
-use embassy::executor::Spawner;
+use embassy_executor::executor::Spawner;
 use embedded_hal::digital::v2::InputPin;
 use embedded_hal_async::digital::Wait;
 use embedded_io::{Error, ErrorKind};
@@ -371,11 +371,11 @@ where
     }
 }
 
-pub struct TimeTrigger(pub embassy::time::Duration);
+pub struct TimeTrigger(pub embassy_executor::time::Duration);
 impl SendTrigger for TimeTrigger {
     type TriggerFuture<'m> = impl Future + 'm where Self: 'm;
     fn wait<'m>(&'m mut self) -> Self::TriggerFuture<'m> {
-        embassy::time::Timer::after(self.0)
+        embassy_executor::time::Timer::after(self.0)
     }
 }
 

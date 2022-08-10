@@ -25,5 +25,5 @@ heapless = "0.6"
 void = { version = "1", default-features = false }
 rand_core = { version = "0.6", default-features = false }
 
-embassy = { version = "0.1.0", default-features = false }
+embassy-executor = { version = "0.1.0", default-features = false }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32h743zi", "defmt", "memory-x", "time-driver-any"] }

@@ -37,11 +37,11 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
-embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "ba67f6d3a8c84262fcc9b2020670515d192555f1" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "ba67f6d3a8c84262fcc9b2020670515d192555f1" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "ba67f6d3a8c84262fcc9b2020670515d192555f1" }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "ba67f6d3a8c84262fcc9b2020670515d192555f1" }
 ector = { git = "https://github.com/drogue-iot/ector.git", rev = "63c08489da17ff92c493f21411411ce5ddd6154a" }
 
-#embassy = { path = "../../../../../embassy/embassy" }
+#embassy-executor = { path = "../../../../../embassy/embassy" }
 #embassy-rp = { path = "../../../../../embassy/embassy-rp" }

@@ -11,7 +11,7 @@ description = "Bootloader for STM32L4 iot01a boards"
 defmt = { version = "0.3", optional = true }
 defmt-rtt = { version = "0.3", optional = true }
 
-embassy = { version = "0.1.0", default-features = false }
+embassy-executor = { version = "0.1.0", default-features = false }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["nightly", "stm32wl55jc-cm4"] }
 embassy-boot = { version = "0.1.0", default-features = false }
 embassy-boot-stm32 = { version = "0.1.0", default-features = false }

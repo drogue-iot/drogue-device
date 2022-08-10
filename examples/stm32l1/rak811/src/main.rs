@@ -15,9 +15,9 @@ use drogue_device::{
     *,
 };
 use drogue_lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig, TimeTrigger};
-use embassy::executor::Spawner;
-use embassy::time::Duration;
-use embassy::util::Forever;
+use embassy_executor::executor::Spawner;
+use embassy_executor::time::Duration;
+use embassy_util::Forever;
 use embassy_stm32::Peripherals;
 
 bind_bsp!(Rak811, BSP);
@@ -32,7 +32,7 @@ impl LoraBoard for BSP {
     type Driver = Device<Radio, Rng>;
 }
 
-#[embassy::main(config = "Rak811::config()")]
+#[embassy_executor::main(config = "Rak811::config()")]
 async fn main(spawner: Spawner, p: Peripherals) {
     let board = Rak811::new(p);
 

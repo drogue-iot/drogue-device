@@ -38,10 +38,10 @@ use drogue_device::drivers::ActiveLow;
 use drogue_device::traits::button::Event;
 use drogue_device::{actors, drivers};
 use ector::{Actor, ActorContext, Address, Inbox};
-use embassy::channel::mpmc::{Channel, DynamicReceiver, Sender};
-use embassy::executor::Spawner;
-use embassy::time::{Duration, Timer};
-use embassy::util::Forever;
+use embassy_util::channel::mpmc::{Channel, DynamicReceiver, Sender};
+use embassy_executor::executor::Spawner;
+use embassy_executor::time::{Duration, Timer};
+use embassy_util::Forever;
 use embassy_nrf::config::Config;
 use embassy_nrf::gpio::{Level, OutputDrive, Pull};
 use embassy_nrf::interrupt::Priority;
@@ -111,7 +111,7 @@ const FEATURES: Features = Features {
     low_power: false,
 };
 
-#[embassy::main(config = "config()")]
+#[embassy_executor::main(config = "config()")]
 async fn main(spawner: Spawner, p: Peripherals) {
     let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BLE Mesh", true);
     let advertising_bearer = facilities.advertising_bearer();
@@ -202,7 +202,7 @@ async fn main(spawner: Spawner, p: Peripherals) {
     let _reset_button = device.reset_button.mount(spawner, reset_button);
 }
 
-#[embassy::task]
+#[embassy_executor::task]
 pub async fn run(
     node: &'static mut ConcreteMeshNode,
     control: DynamicReceiver<'static, MeshNodeMessage>,

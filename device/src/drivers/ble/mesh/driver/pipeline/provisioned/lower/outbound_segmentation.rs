@@ -2,7 +2,7 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::lower::{
     CleartextNetworkPDUSegments, LowerContext,
 };
 use crate::drivers::ble::mesh::driver::DeviceError;
-use embassy::time::{Duration, Instant};
+use embassy_executor::time::{Duration, Instant};
 use heapless::Vec;
 
 struct Entry {

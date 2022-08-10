@@ -18,14 +18,14 @@ use drogue_device::{
     drivers::ble::gatt::dfu::{FirmwareGattService, FirmwareService, FirmwareServiceEvent},
     firmware::{FirmwareManager, SharedFirmwareManager},
 };
-use embassy::blocking_mutex::raw::ThreadModeRawMutex;
-use embassy::channel::mpmc::{Channel, DynamicReceiver, DynamicSender};
-use embassy::executor::Spawner;
-use embassy::time::Delay;
-use embassy::time::Ticker;
-use embassy::time::{Duration, Timer};
-use embassy::util::Forever;
-use embassy::util::{select, Either};
+use embassy_util::blocking_mutex::raw::ThreadModeRawMutex;
+use embassy_util::channel::mpmc::{Channel, DynamicReceiver, DynamicSender};
+use embassy_executor::executor::Spawner;
+use embassy_executor::time::Delay;
+use embassy_executor::time::Ticker;
+use embassy_executor::time::{Duration, Timer};
+use embassy_util::Forever;
+use embassy_util::{select, Either};
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::{
@@ -46,8 +46,8 @@ use embassy_boot_nrf::FirmwareUpdater;
 #[cfg(feature = "panic-probe")]
 use panic_probe as _;
 
-#[cfg(feature = "nrf-softdevice-defmt-rtt")]
-use nrf_softdevice_defmt_rtt as _;
+#[cfg(feature = "defmt-rtt")]
+use defmt_rtt as _;
 
 #[cfg(feature = "panic-reset")]
 use panic_reset as _;
@@ -63,7 +63,7 @@ fn config() -> Config {
     config
 }
 
-#[embassy::main(config = "config()")]
+#[embassy_executor::main(config = "config()")]
 async fn main(s: Spawner, p: Peripherals) {
     let board = Microbit::new(p);
 
@@ -159,7 +159,7 @@ pub struct GattServer {
     pub device_info: DeviceInformationService,
 }
 
-#[embassy::task]
+#[embassy_executor::task]
 pub async fn updater_task(
     mut dfu: FirmwareGattService<'static, SharedFirmwareManager<'static, Flash, 4096, 64>>,
     events: DynamicReceiver<'static, FirmwareServiceEvent>,
@@ -172,7 +172,7 @@ pub async fn updater_task(
     }
 }
 
-#[embassy::task(pool_size = "4")]
+#[embassy_executor::task(pool_size = "4")]
 pub async fn gatt_server_task(
     sd: &'static Softdevice,
     conn: Connection,
@@ -231,7 +231,7 @@ pub async fn gatt_server_task(
     }
 }
 
-#[embassy::task]
+#[embassy_executor::task]
 pub async fn advertiser_task(
     spawner: Spawner,
     sd: &'static Softdevice,
@@ -305,13 +305,13 @@ fn enable_softdevice(name: &'static str) -> &'static Softdevice {
     Softdevice::enable(&config)
 }
 
-#[embassy::task]
+#[embassy_executor::task]
 async fn softdevice_task(sd: &'static Softdevice) {
     sd.run().await;
 }
 
 // Keeps our system alive
-#[embassy::task]
+#[embassy_executor::task]
 async fn watchdog_task() {
     let mut handle = unsafe { embassy_nrf::wdt::WatchdogHandle::steal(0) };
     loop {

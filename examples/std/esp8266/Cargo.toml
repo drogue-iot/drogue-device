@@ -17,7 +17,7 @@ embedded-tls = { version = "0.8.0", default-features = false, features = ["async
 embedded-io = { version = "0.3.0", features = ["async", "std", "futures"] }
 #drogue-tls = {path = "../../drogue-tls", default-features = false, optional = true}
 
-embassy = { version = "0.1.0", default-features = false, features = ["std"] }
+embassy-executor = { version = "0.1.0", default-features = false, features = ["std"] }
 rand = "0.8"
 cfg-if = "1.0.0"
 

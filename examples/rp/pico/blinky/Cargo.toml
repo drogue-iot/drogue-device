@@ -23,5 +23,5 @@ rp2040-pac = { version = "0.1.4", features = ["rt"] }
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["inline-asm"] }
 
-embassy = { version = "0.1.0", default-features = false }
+embassy-executor = { version = "0.1.0", default-features = false }
 embassy-rp = { version = "0.1.0", default-features = false }

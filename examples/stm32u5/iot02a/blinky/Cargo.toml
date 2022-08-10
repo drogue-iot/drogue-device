@@ -27,7 +27,7 @@ embedded-tls = { version = "0.8.0", default-features = false, features = ["async
 cfg-if = "1.0.0"
 
 atomic-polyfill = "0.1"
-embassy = { version = "0.1.0", default-features = false, features=["defmt", "time", "time-tick-32768hz"] }
+embassy-executor = { version = "0.1.0", default-features = false, features=["defmt", "time", "time-tick-32768hz"] }
 embassy-stm32 = {version = "0.1.0", default-features = false, features = ["defmt", "time-driver-any", "memory-x"] }
 #drogue-temperature = { path = "../../../apps/temperature", features = ["defmt"] }
 

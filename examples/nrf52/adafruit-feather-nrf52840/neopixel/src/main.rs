@@ -13,13 +13,13 @@ use drogue_device::{
     drivers::led::neopixel::rgbw::{NeoPixelRgbw, BLUE},
     Board,
 };
-use embassy::executor::Spawner;
-use embassy::time::{Duration, Timer};
+use embassy_executor::executor::Spawner;
+use embassy_executor::time::{Duration, Timer};
 use embassy_nrf::Peripherals;
 
 const STEP_SIZE: u8 = 2;
 
-#[embassy::main]
+#[embassy_executor::main]
 async fn main(_spawner: Spawner, p: Peripherals) {
     let board = AdafruitFeatherNrf52840::new(p);
     let mut neopixel = defmt::unwrap!(NeoPixelRgbw::<'_, _, 1>::new(board.pwm0, board.neopixel));
