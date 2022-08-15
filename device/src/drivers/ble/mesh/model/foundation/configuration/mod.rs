@@ -102,13 +102,8 @@ impl Message for ConfigurationMessage {
     }
 }
 
+#[derive(Clone, Debug, Default)]
 pub struct ConfigurationServer;
-
-impl Default for ConfigurationServer {
-    fn default() -> Self {
-        Self
-    }
-}
 
 impl Model for ConfigurationServer {
     const IDENTIFIER: ModelIdentifier = CONFIGURATION_SERVER;
@@ -182,6 +177,23 @@ impl Model for ConfigurationServer {
             )?))),
             _ => Ok(None),
         }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ConfigurationClient;
+
+impl Model for ConfigurationClient {
+    const IDENTIFIER: ModelIdentifier = CONFIGURATION_CLIENT;
+    const SUPPORTS_SUBSCRIPTION: bool = false;
+    const SUPPORTS_PUBLICATION: bool = false;
+    type Message<'m> = ConfigurationMessage;
+
+    fn parse<'m>(
+        _opcode: Opcode,
+        _parameters: &'m [u8],
+    ) -> Result<Option<Self::Message<'m>>, ParseError> {
+        todo!();
     }
 }
 
