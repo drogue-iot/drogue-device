@@ -192,22 +192,23 @@ where
     async fn configure(&self, notifications: &dyn SocketsNotifier) -> Result<(), DriverError> {
         // Initialize
         let mut inner = self.inner.lock().await;
+        let to_init_error = |_| DriverError::UnableToInitialize;
         inner
             .send_recv(b"ATE0\r\n", notifications)
             .await
-            .map_err(|_| DriverError::UnableToInitialize)?;
+            .map_err(to_init_error)?;
         inner
             .send_recv(b"AT+CIPMUX=1\r\n", notifications)
             .await
-            .map_err(|_| DriverError::UnableToInitialize)?;
+            .map_err(to_init_error)?;
         inner
             .send_recv(b"AT+CIPRECVMODE=1\r\n", notifications)
             .await
-            .map_err(|_| DriverError::UnableToInitialize)?;
+            .map_err(to_init_error)?;
         inner
             .send_recv(b"AT+CWMODE_CUR=1\r\n", notifications)
             .await
-            .map_err(|_| DriverError::UnableToInitialize)?;
+            .map_err(to_init_error)?;
         Ok(())
     }
 
