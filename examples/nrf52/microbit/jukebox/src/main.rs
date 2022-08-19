@@ -11,13 +11,13 @@ use drogue_device::{
 
 use embassy_nrf::{pwm::*, Peripherals};
 
-use embassy_executor::time::{Duration, Instant, Timer};
+use embassy_time::{Duration, Instant, Timer};
 use futures::future::join;
 
 use panic_probe as _;
 
 #[embassy_executor::main]
-async fn main(_spawner: embassy_executor::executor::Spawner, p: Peripherals) {
+async fn main(_spawner: embassy_executor::Spawner, p: Peripherals) {
     let board = Microbit::new(p);
     let mut disco = Disco::new(board.display);
 

@@ -17,7 +17,7 @@ use embassy_rp::{
 use panic_probe as _;
 
 #[embassy_executor::main]
-async fn main(spawner: embassy_executor::executor::Spawner, p: Peripherals) {
+async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
     static LED: ActorContext<actors::led::Led<drivers::led::Led<Output<'static, PIN_25>>>> =
         ActorContext::new();
     let led = LED.mount(

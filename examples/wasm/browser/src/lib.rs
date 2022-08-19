@@ -7,7 +7,7 @@ use drogue_device::{
     drivers::led::Led as LedDriver,
 };
 use ector::*;
-use embassy_executor::executor::Spawner;
+use embassy_executor::Spawner;
 use web_embedded_hal::*;
 
 type AppLed = LedDriver<WebLed>;

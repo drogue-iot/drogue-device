@@ -20,7 +20,7 @@ use drogue_device::{
     drogue,
 };
 use drogue_temperature::*;
-use embassy_executor::time::Duration;
+use embassy_time::Duration;
 use embassy_util::Forever;
 use embassy_stm32::{flash::Flash, Peripherals};
 use embedded_nal_async::{AddrType, Dns, IpAddr, Ipv4Addr, SocketAddr, TcpConnect};
@@ -60,7 +60,7 @@ const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 static DEVICE: Forever<TemperatureDevice<BSP>> = Forever::new();
 
 #[embassy_executor::main(config = "Iot01a::config(true)")]
-async fn main(spawner: embassy_executor::executor::Spawner, p: Peripherals) {
+async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
     let board = Iot01a::new(p);
     unsafe {
         RNG_INST.replace(board.rng);
@@ -138,7 +138,7 @@ impl rand_core::CryptoRng for TlsRand {}
 #[embassy_executor::task]
 async fn updater_task(network: &'static SharedEsWifi, flash: Flash<'static>) {
     use drogue_device::firmware::BlockingFlash;
-    use embassy_executor::time::{Delay, Timer};
+    use embassy_time::{Delay, Timer};
 
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
     defmt::info!("Running firmware version {}", version);

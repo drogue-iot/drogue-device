@@ -15,7 +15,7 @@ use drogue_device::{
     *,
 };
 use drogue_lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig};
-use embassy_executor::executor::Spawner;
+use embassy_executor::Spawner;
 use embassy_util::Forever;
 use embassy_stm32::Peripherals;
 

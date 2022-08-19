@@ -4,13 +4,13 @@ use core::mem::transmute;
 use core::ops::Add;
 use core::ops::Deref;
 use core::slice;
-use embassy_executor::time::{Duration, Timer};
 use embassy_hal_common::{into_ref, Peripheral};
 use embassy_nrf::gpio::Pin;
 use embassy_nrf::pwm::{
     Config, Error, Instance, Prescaler, SequenceConfig, SequenceLoad, SequencePwm,
     SingleSequenceMode, SingleSequencer,
 };
+use embassy_time::{Duration, Timer};
 
 pub const BLACK: Rgbw8 = Rgbw8::new(0x00, 0x00, 0x00, 0x00);
 pub const WHITE: Rgbw8 = Rgbw8::new(0x00, 0x00, 0x000, 0xFF);

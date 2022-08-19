@@ -43,8 +43,8 @@ use drogue_device::{
     Board,
 };
 use embassy_util::channel::mpmc::{Channel, DynamicReceiver, DynamicSender};
-use embassy_executor::time::Ticker;
-use embassy_executor::time::{Duration, Timer};
+use embassy_time::Ticker;
+use embassy_time::{Duration, Timer};
 use embassy_util::Forever;
 use embassy_util::{select, Either};
 use embassy::{blocking_mutex::raw::NoopRawMutex, executor::Spawner};

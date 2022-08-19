@@ -17,7 +17,7 @@ use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::authentic
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::replay_cache::ReplayCache;
 use crate::drivers::ble::mesh::pdu::upper::{UpperAccess, UpperPDU};
 use core::future::Future;
-use embassy_executor::time::Instant;
+use embassy_time::Instant;
 use heapless::Vec;
 
 pub trait LowerContext: AuthenticationContext {

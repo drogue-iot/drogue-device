@@ -33,7 +33,7 @@ use cmac::crypto_mac::Output;
 use cmac::Cmac;
 use core::cell::Ref;
 use core::future::Future;
-use embassy_executor::time::Instant;
+use embassy_time::Instant;
 use heapless::Vec;
 use p256::PublicKey;
 use rand_core::{CryptoRng, RngCore};

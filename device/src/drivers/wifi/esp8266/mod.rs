@@ -14,7 +14,7 @@ use buffer::Buffer;
 use core::cell::RefCell;
 use core::future::Future;
 use core::marker::PhantomData;
-use embassy_executor::time::{Duration, Timer};
+use embassy_time::{Duration, Timer};
 use embassy_util::{
     blocking_mutex::raw::NoopRawMutex,
     channel::mpmc::{Channel, DynamicReceiver, DynamicSender},

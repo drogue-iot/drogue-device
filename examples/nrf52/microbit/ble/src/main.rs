@@ -20,10 +20,10 @@ use drogue_device::{
 };
 use embassy_util::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy_util::channel::mpmc::{Channel, DynamicReceiver, DynamicSender};
-use embassy_executor::executor::Spawner;
-use embassy_executor::time::Delay;
-use embassy_executor::time::Ticker;
-use embassy_executor::time::{Duration, Timer};
+use embassy_executor::Spawner;
+use embassy_time::Delay;
+use embassy_time::Ticker;
+use embassy_time::{Duration, Timer};
 use embassy_util::Forever;
 use embassy_util::{select, Either};
 use embassy_nrf::config::Config;

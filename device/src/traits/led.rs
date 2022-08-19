@@ -40,7 +40,7 @@ pub trait TextDisplay {
     fn scroll_with_speed<'m>(
         &'m mut self,
         text: &'m str,
-        speed: embassy_executor::time::Duration,
+        speed: embassy_time::Duration,
     ) -> Self::ScrollWithSpeedFuture<'m>;
 
     type DisplayFuture<'m>: core::future::Future<Output = Result<(), Self::Error>>
@@ -49,7 +49,7 @@ pub trait TextDisplay {
     fn display<'m>(
         &'m mut self,
         c: char,
-        duration: embassy_executor::time::Duration,
+        duration: embassy_time::Duration,
     ) -> Self::DisplayFuture<'m>;
 }
 /*

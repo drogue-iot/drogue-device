@@ -17,7 +17,7 @@ use crate::drivers::ble::mesh::provisioning::Capabilities;
 use crate::drivers::ble::mesh::storage::Storage;
 use crate::drivers::ble::mesh::vault::StorageVault;
 use core::cell::{Cell, RefCell};
-use embassy_executor::time::{Duration, Ticker};
+use embassy_time::{Duration, Ticker};
 use embassy_util::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy_util::channel::mpmc::DynamicReceiver as ChannelReceiver;
 use embassy_util::{select, select4, Either, Either4};

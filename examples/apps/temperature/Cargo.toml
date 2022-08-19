@@ -10,7 +10,8 @@ version = "0.1.0"
 keywords = ["ignore"]
 
 [dependencies]
-embassy-executor = { version = "0.1.0", default-features = false, features = ["time"] }
+embassy-executor = { version = "0.1.0", default-features = false }
+embassy-time = { version = "0.1.0", default-features = false }
 drogue-device = { path = "../../../device", default-features = false }
 embedded-hal = { version = "0.2", features = ["unproven"] }
 defmt = { version = "0.3", optional = true }
@@ -26,6 +27,7 @@ embedded-hal-async = { version = "0.1.0-alpha.1" }
 embedded-nal-async = "0.2.0"
 embedded-io = "0.3.0"
 ector = {version = "0.1.0", default-features = false}
+critical-section = { version = "1.1" }
 
 [features]
 default = ["std"]
@@ -34,4 +36,4 @@ defmt = [
     "reqwless/defmt",
 ]
 tls = ["embedded-tls", "drogue-device/tls"]
-std = ["serde-json-core/std", "embassy-executor/std", "ector/std"]
+std = ["serde-json-core/std", "embassy-executor/std", "ector/std", "critical-section/std"]

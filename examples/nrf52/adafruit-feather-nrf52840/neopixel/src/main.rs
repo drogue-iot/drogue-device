@@ -13,8 +13,8 @@ use drogue_device::{
     drivers::led::neopixel::rgbw::{NeoPixelRgbw, BLUE},
     Board,
 };
-use embassy_executor::executor::Spawner;
-use embassy_executor::time::{Duration, Timer};
+use embassy_executor::Spawner;
+use embassy_time::{Duration, Timer};
 use embassy_nrf::Peripherals;
 
 const STEP_SIZE: u8 = 2;

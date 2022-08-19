@@ -7,7 +7,7 @@ use crate::drivers::ble::mesh::model::foundation::configuration::network_transmi
 #[cfg(feature = "ble-mesh-relay")]
 use crate::drivers::ble::mesh::model::foundation::configuration::relay::RelayConfig;
 use core::future::Future;
-use embassy_executor::time::Duration;
+use embassy_time::Duration;
 
 #[derive(Copy, Clone)]
 pub struct NetworkRetransmitDetails {

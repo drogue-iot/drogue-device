@@ -1,6 +1,5 @@
 use crate::bsp::Board;
 use crate::drivers::led::{ActiveHigh, Led};
-use embassy_executor::time::{block_for, Duration};
 use embassy_lora::sx127x::*;
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
@@ -10,6 +9,7 @@ use embassy_stm32::peripherals::{
 };
 use embassy_stm32::spi;
 use embassy_stm32::time::U32Ext;
+use embassy_time::{block_for, Duration};
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
 

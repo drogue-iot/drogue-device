@@ -8,7 +8,7 @@ mod tests {
     #[allow(unused_imports)]
     use drogue_device_macros::test as drogue_test;
     use ector::testutil::*;
-    use embassy_executor::executor::Spawner;
+    use embassy_executor::Spawner;
 
     #[allow(dead_code)]
     struct TestDevicePressed {

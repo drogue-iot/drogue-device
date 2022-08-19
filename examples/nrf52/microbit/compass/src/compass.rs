@@ -3,7 +3,7 @@ use drogue_device::bsp::boards::nrf52::microbit::LedMatrix;
 use drogue_device::domain::led::matrix::Frame;
 use drogue_device::drivers::led::matrix::fonts;
 use drogue_device::traits::led::ToFrame;
-use embassy_executor::time::{Duration, Timer};
+use embassy_time::{Duration, Timer};
 use lsm303agr::{
     interface::{ReadData, WriteData},
     mode::MagContinuous,

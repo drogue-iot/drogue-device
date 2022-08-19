@@ -11,7 +11,7 @@ use core::fmt::Debug;
 use core::fmt::Write as FmtWrite;
 use core::future::Future;
 use core::marker::PhantomData;
-use embassy_executor::time::{block_for, with_timeout, Duration, Timer};
+use embassy_time::{block_for, with_timeout, Duration, Timer};
 use embassy_util::{
     blocking_mutex::raw::NoopRawMutex,
     channel::mpmc::{Channel, DynamicSender},

@@ -45,7 +45,7 @@ async fn net_task(stack: &'static Stack<EthernetDevice>) -> ! {
 }
 
 #[embassy_executor::main]
-async fn main(spawner: embassy_executor::executor::Spawner, p: Peripherals) {
+async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
     let board = NucleoH743::new(p);
 
     // Generate random seed.

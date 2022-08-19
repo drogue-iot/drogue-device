@@ -5,7 +5,7 @@
 use async_io::Async;
 use drogue_device::{drivers::lora::rak811::*, drogue, traits::lora::*};
 use ector::ActorContext;
-use embassy_executor::time::{Duration, Timer};
+use embassy_time::{Duration, Timer};
 use embedded_hal::digital::v2::OutputPin;
 use embedded_io::adapters::FromFutures;
 use futures::io::BufReader;
@@ -27,7 +27,7 @@ type RESET = DummyPin;
 static APP: ActorContext<App<Rak811Modem<SERIAL, RESET>>> = ActorContext::new();
 
 #[embassy_executor::main]
-async fn main(spawner: embassy_executor::executor::Spawner) {
+async fn main(spawner: embassy_executor::Spawner) {
     env_logger::builder()
         .filter_level(log::LevelFilter::Trace)
         .format_timestamp_nanos()

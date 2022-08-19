@@ -17,7 +17,7 @@ use drogue_device::{
     bsp::boards::nrf52::microbit::*, drivers::dns::*, drivers::wifi::esp8266::Esp8266Modem, *,
 };
 use ector::{actor, Actor, ActorContext, Address, Inbox};
-use embassy_executor::time::{Duration, Timer};
+use embassy_time::{Duration, Timer};
 use embassy_util::Forever;
 use embassy_nrf::{
     buffered_uarte::{BufferedUarte, State},
@@ -50,7 +50,7 @@ type ENABLE = Output<'static, P0_09>;
 type RESET = Output<'static, P0_10>;
 
 #[embassy_executor::main]
-async fn main(spawner: embassy_executor::executor::Spawner, p: Peripherals) {
+async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
     let board = Microbit::new(p);
     defmt::info!("Started");
     let mut config = uarte::Config::default();

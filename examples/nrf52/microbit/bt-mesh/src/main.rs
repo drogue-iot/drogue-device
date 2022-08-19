@@ -50,12 +50,12 @@ cfg_if::cfg_if! {
 }
 
 use embassy_util::channel::mpmc::{Channel, DynamicReceiver, DynamicSender};
-use embassy_executor::time::Ticker;
-use embassy_executor::time::{Duration, Timer};
+use embassy_time::Ticker;
+use embassy_time::{Duration, Timer};
 use embassy_util::Forever;
 use embassy_util::{select, Either};
 use embassy_util::blocking_mutex::raw::NoopRawMutex;
-use embassy_executor::executor::Spawner;
+use embassy_executor::Spawner;
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::Peripherals;

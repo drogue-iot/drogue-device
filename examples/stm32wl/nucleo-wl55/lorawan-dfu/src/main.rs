@@ -12,10 +12,10 @@ use drogue_device::{
     traits::lora::{JoinMode, LoraConfig, LoraDriver, LoraMode, LoraRegion, SpreadingFactor},
     *,
 };
-use embassy_executor::executor::Spawner;
-use embassy_executor::time::Delay;
-use embassy_executor::time::Duration;
-use embassy_executor::time::Timer;
+use embassy_executor::Spawner;
+use embassy_time::Delay;
+use embassy_time::Duration;
+use embassy_time::Timer;
 use embassy_boot_stm32::FirmwareUpdater;
 use embassy_embedded_hal::adapter::BlockingAsync;
 use embassy_stm32::flash::Flash;

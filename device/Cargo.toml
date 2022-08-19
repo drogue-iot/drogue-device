@@ -12,6 +12,7 @@ doctest = false
 
 [dependencies]
 embassy-executor = { version = "0.1.0", default-features = false, features = ["nightly"] }
+embassy-time = { version = "0.1.0", default-features = false, features = ["nightly"] }
 embassy-util = { version = "0.1.0", default-features = false, features = ["nightly"] }
 
 # LoRa dependencies
@@ -98,8 +99,10 @@ serde_cbor = { version = "0.11", optional = true, default-features = false }
 
 [dev-dependencies]
 ector = { version = "0.1.0", features = ["std"] }
-embassy-executor = { version = "0.1.0", features = ["std", "time", "time-tick-1mhz"]}
-#embassy = {path = "../../../embassy/embassy", features = ["std", "time", "time-tick-1mhz"]}
+embassy-executor = { version = "0.1.0", features = ["std", "integrated-timers"]}
+embassy-time = { version = "0.1.0", features = ["std", "tick-1mhz"]}
+#embassy-executor = {path = "../../../embassy/embassy-executor", features = ["std", "integrated-timers"]}
+#embassy-time = {path = "../../../embassy/embassy-time", features = ["std", "tick-1mhz"]}
 
 futures = { version = "0.3", default-features = false, features = ["executor"] }
 arrayvec = { version = "0.6" }
@@ -112,13 +115,13 @@ defmt = [
     "embassy-util/defmt",
     "embedded-tls/defmt",
 ]
-std = ["embassy-executor/std", "embassy-executor/time", "ector/std", "embedded-io/std", "serde_cbor/std"]
+std = ["embassy-executor/std", "ector/std", "embedded-io/std", "serde_cbor/std"]
 "lora+rak811" = ["nom", "moveslice"]
 "wifi+esp8266" = ["nom", "moveslice"]
 "tcp+smoltcp" = ["embassy-net" ]
 "wifi+eswifi" = ["nom", "moveslice"]
 time = []
-lora = ["embassy-lora", "lorawan-device", "lorawan-encoding", "embassy-executor/time"]
+lora = ["embassy-lora", "lorawan-device", "lorawan-encoding"]
 wifi = []
 tls = ["embedded-tls"]
 dfu = ["embassy-boot", "postcard", "serde", "serde_cbor"]

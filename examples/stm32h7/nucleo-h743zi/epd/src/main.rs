@@ -11,7 +11,7 @@ use panic_probe as _;
 use core::fmt::Write;
 use drogue_device::actors::button::{Button, ButtonEvent};
 use ector::{Actor, ActorContext, Address, Inbox};
-use embassy_executor::time::Delay;
+use embassy_time::Delay;
 use embassy_util::Forever;
 use embassy_stm32::dma::NoDma;
 use embassy_stm32::peripherals::*;
@@ -206,7 +206,7 @@ pub struct MyDevice {
 static DEVICE: Forever<MyDevice> = Forever::new();
 
 #[embassy_executor::main(config = "config()")]
-async fn main(spawner: embassy_executor::executor::Spawner, p: Peripherals) {
+async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
     let button = Input::new(p.PC13, Pull::Down);
     let button = ExtiInput::new(button, p.EXTI13);
 

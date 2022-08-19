@@ -48,7 +48,7 @@ impl TemperatureBoard for BSP {
 static DEVICE: Forever<TemperatureDevice<BSP>> = Forever::new();
 
 #[embassy_executor::main]
-async fn main(spawner: embassy_executor::executor::Spawner, p: Peripherals) {
+async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
     let board = Microbit::new(p);
 
     let mut config = uarte::Config::default();

@@ -28,7 +28,7 @@ impl BlinkyBoard for BSP {
 static DEVICE: Forever<BlinkyDevice<BSP>> = Forever::new();
 
 #[embassy_executor::main]
-async fn main(spawner: embassy_executor::executor::Spawner, p: Peripherals) {
+async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
     let board = BSP::new(p);
 
     DEVICE

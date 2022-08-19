@@ -8,7 +8,7 @@ use defmt_rtt as _;
 use drogue_device::traits::led::ToFrame;
 use drogue_device::{bsp::boards::nrf52::microbit::*, Board};
 
-use embassy_executor::time::Duration;
+use embassy_time::Duration;
 use embassy_nrf::{interrupt, twim, Peripherals};
 use lsm303agr::{AccelOutputDataRate, Lsm303agr, MagOutputDataRate};
 
@@ -18,7 +18,7 @@ use compass::*;
 use panic_probe as _;
 
 #[embassy_executor::main]
-async fn main(_s: embassy_executor::executor::Spawner, p: Peripherals) {
+async fn main(_s: embassy_executor::Spawner, p: Peripherals) {
     let board = Microbit::new(p);
 
     let config = twim::Config::default();

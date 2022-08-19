@@ -1,7 +1,7 @@
 use crate::drivers::ble::mesh::driver::pipeline::mesh::PublishRetransmitDetails;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::network::transmit::ModelKey;
 use crate::drivers::ble::mesh::pdu::access::AccessMessage;
-use embassy_executor::time::Instant;
+use embassy_time::Instant;
 
 use crate::drivers::ble::mesh::driver::node::outbound::OutboundPublishMessage;
 use crate::drivers::ble::mesh::driver::pipeline::provisioned::upper::UpperContext;
