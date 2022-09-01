@@ -69,18 +69,11 @@ impl<'a, const N: usize> Dns for StaticDnsResolver<'a, N> {
 
 fn try_parse_ip(s: &str) -> Result<IpAddr, ()> {
     let mut octets: [u8; 4] = [0; 4];
-    let mut s = s.split('.');
-    if let Some(s) = s.next() {
-        octets[0] = s.parse::<u8>().map_err(|_| ())?;
-    }
-    if let Some(s) = s.next() {
-        octets[1] = s.parse::<u8>().map_err(|_| ())?;
-    }
-    if let Some(s) = s.next() {
-        octets[2] = s.parse::<u8>().map_err(|_| ())?;
-    }
-    if let Some(s) = s.next() {
-        octets[3] = s.parse::<u8>().map_err(|_| ())?;
+    for (i, item) in s.split('.').enumerate() {
+        octets[i] = item.parse::<u8>().map_err(|_| ())?;
+        if i == octets.len() - 1 {
+            break;
+        }
     }
 
     Ok(IpAddr::V4(Ipv4Addr::new(
@@ -95,6 +88,10 @@ mod tests {
     #[test]
     fn test_parse_ipv4() {
         let ip = try_parse_ip("192.168.1.2");
+        assert!(ip.is_ok());
+        assert_eq!(IpAddr::V4(Ipv4Addr::new(192, 168, 1, 2)), ip.unwrap());
+
+        let ip = try_parse_ip("192.168.1.2.2");
         assert!(ip.is_ok());
         assert_eq!(IpAddr::V4(Ipv4Addr::new(192, 168, 1, 2)), ip.unwrap());
     }
