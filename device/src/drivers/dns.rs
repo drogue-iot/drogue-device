@@ -48,11 +48,7 @@ impl<'a, const N: usize> Dns for StaticDnsResolver<'a, N> {
             }
 
             // Attempt to parse host as IPv4 IP
-            if let Ok(ip) = try_parse_ip(host) {
-                return Ok(ip);
-            }
-
-            Err(DnsError::NotFound)
+            try_parse_ip(host).map_err(|_| DnsError::NotFound)
         }
     }
 
