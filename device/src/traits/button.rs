@@ -59,7 +59,7 @@ impl<P: InputPin + Wait> Button for P {
         async move {
             loop {
                 self.wait_for_any_edge().await.unwrap();
-                if self.is_low().ok().unwrap() {
+                if self.is_high().ok().unwrap() {
                     break;
                 }
             }
