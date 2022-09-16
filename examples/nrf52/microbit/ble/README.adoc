@@ -26,23 +26,26 @@ Make sure you have the latest versions (`cargo install <tool>`) of these tools:
 
 === Erase current settings
 
-```
+[source]
+----
 probe-rs-cli erase --chip nRF52833_xxAA
-```
+----
 
 === Flash nRF Softdevice
 
 Download the softdevice version 7.3.0 link:https://www.nordicsemi.com/Products/Development-software/s113/download[here].
 
-```
+[source]
+----
 probe-rs-cli download s113_nrf52_7.3.0_softdevice.hex --chip nRF52833_xxAA --format Hex
-```
+----
 
 === Flash application
 
-```
+[source]
+----
 cargo flash --release --chip nRF52833_xxAA
-```
+----
 
 When started, the device will blink the letter 'A' on the LED matrix.
 
@@ -51,23 +54,26 @@ When started, the device will blink the letter 'A' on the LED matrix.
 
 === Flash bootloader
 
-```
+[source]
+----
 cargo flash --manifest-path ../bootloader/Cargo.toml --release --chip nRF52833_xxAA
-```
+----
 
 === Flash nRF Softdevice
 
 Download the softdevice version 7.3.0 link:https://www.nordicsemi.com/Products/Development-software/s113/download[here].
 
-```
+[source]
+----
 probe-rs-cli download s113_nrf52_7.3.0_softdevice.hex --chip nRF52833_xxAA --format Hex
-```
+----
 
 === Flash application with `dfu` flag enabled
 
-```
+[source]
+----
 cargo flash --release --features dfu --chip nRF52833_xxAA
-```
+----
 
 When started, the device will blink the letter 'A' on the LED matrix.
 
@@ -75,23 +81,26 @@ When started, the device will blink the letter 'A' on the LED matrix.
 
 One change you can do is to set the REVISION environment variable, which will adjust the text that is printed on the LED matrix. We can then rebuild the application and flash it using the `drgdfu` tool.
 
-```
+[source]
+----
 REVISION=myupdate cargo objcopy --features dfu --release -- -O binary update.bin
-```
+----
 
 Modifying the version in `Cargo.toml` or passing a `REVISION` environment variable will compile the firmware with a new version identifier. This identifier can be used to decide if a firmware update is needed at all by the `drgdfu`.
 
 To use the `drgdfu` tool to update over BLE, generate a metadata file first:
 
-```
+[source]
+----
 drgdfu generate --version myupdate --file update.bin > update.json
-```
+----
 
 We can then use refer to the metadata file when running the DFU process (The MAC address can be found from discovering your device using any tool like `bluetoothsctl` and the command `scan on`):
 
-```
+[source]
+----
 drgdfu upload ble-gatt --device F8:56:35:45:1C:3C file update.json
-```
+----
 
 Be patient! The firmware update process on the device takes up to 20-30 seconds.
 

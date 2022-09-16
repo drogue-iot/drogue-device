@@ -6,18 +6,25 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 
+use core::num::Wrapping;
+use core::sync::atomic::{AtomicU8, Ordering};
 use drogue_device::drivers::ble::gatt::{
     device_info::{DeviceInformationService, DeviceInformationServiceEvent},
     environment::*,
+    buttons::*,
 };
 use drogue_device::shared::Shared;
-use drogue_device::traits::led::ToFrame;
+use drogue_device::traits::{
+    button::Button,
+    led::ToFrame
+};
 use drogue_device::Board;
 use drogue_device::{bsp::boards::nrf52::microbit::Microbit, domain::led::matrix::Brightness};
 use drogue_device::{
     drivers::ble::gatt::dfu::{FirmwareGattService, FirmwareService, FirmwareServiceEvent},
     firmware::{FirmwareManager, SharedFirmwareManager},
 };
+use drogue_device::boards::nrf52::microbit::{PinButtonA, PinButtonB};
 use embassy::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy::channel::mpmc::{Channel, DynamicReceiver, DynamicSender};
 use embassy::executor::Spawner;
@@ -25,7 +32,7 @@ use embassy::time::Delay;
 use embassy::time::Ticker;
 use embassy::time::{Duration, Timer};
 use embassy::util::Forever;
-use embassy::util::{select, Either};
+use embassy::util::{select, select3, Either, Either3};
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::{
@@ -42,6 +49,7 @@ use nrf_softdevice::{ble::Connection, raw, temperature_celsius, Flash, Softdevic
 
 #[cfg(feature = "dfu")]
 use embassy_boot_nrf::FirmwareUpdater;
+use embassy_nrf::gpio::{AnyPin, Input};
 
 #[cfg(feature = "panic-probe")]
 use panic_probe as _;
@@ -68,7 +76,7 @@ async fn main(s: Spawner, p: Peripherals) {
     let board = Microbit::new(p);
 
     // Spawn the underlying softdevice task
-    let sd = enable_softdevice("Drogue Low Energy");
+    let sd = enable_softdevice("Drogue Presenter");
     s.spawn(softdevice_task(sd)).unwrap();
 
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
@@ -123,15 +131,27 @@ async fn main(s: Spawner, p: Peripherals) {
         s.spawn(watchdog_task()).unwrap();
     }
 
+    static BUTTONS: Forever<Buttons> = Forever::new();
+    let buttons = BUTTONS.put(Buttons {
+        a: AtomicU8::new(0),
+        b: AtomicU8::new(0),
+    });
+
+    // count button presses
+    s.spawn(button_watcher(board.btn_a, board.btn_b, buttons)).unwrap();
+
     // Starts the bluetooth advertisement and GATT server
     s.spawn(advertiser_task(
         s,
         sd,
         server,
         EVENTS.sender().into(),
-        "Drogue Low Energy",
+        "Drogue Presenter",
+        buttons,
     ))
     .unwrap();
+
+    defmt::info!("Running main loop");
 
     // Finally, a blinker application.
     let mut display = board.display;
@@ -144,11 +164,17 @@ async fn main(s: Spawner, p: Peripherals) {
     }
 }
 
+pub struct Buttons {
+    pub a: AtomicU8,
+    pub b: AtomicU8,
+}
+
 #[cfg(feature = "dfu")]
 #[nrf_softdevice::gatt_server]
 pub struct GattServer {
     pub firmware: FirmwareService,
     pub env: EnvironmentSensingService,
+    pub buttons: ButtonsService,
     pub device_info: DeviceInformationService,
 }
 
@@ -156,7 +182,27 @@ pub struct GattServer {
 #[nrf_softdevice::gatt_server]
 pub struct GattServer {
     pub env: EnvironmentSensingService,
+    pub buttons: ButtonsService,
     pub device_info: DeviceInformationService,
+}
+
+#[embassy::task]
+pub async fn button_watcher(mut a: PinButtonA, mut b: PinButtonB, buttons: &'static Buttons) {
+    let mut cnt_a = Wrapping(0u8);
+    let mut cnt_b = Wrapping(0u8);
+
+    loop {
+        match select(a.wait_pressed(), b.wait_pressed()).await {
+            Either::First(_) => {
+                cnt_a += 1;
+                buttons.a.store(cnt_a.0, Ordering::Release);
+            },
+            Either::Second(_) => {
+                cnt_b += 1;
+                buttons.b.store(cnt_b.0, Ordering::Release);
+            },
+        }
+    }
 }
 
 #[embassy::task]
@@ -172,20 +218,31 @@ pub async fn updater_task(
     }
 }
 
-#[embassy::task(pool_size = "4")]
+#[embassy::task(pool_size = "6")]
 pub async fn gatt_server_task(
     sd: &'static Softdevice,
     conn: Connection,
     server: &'static GattServer,
     events: DynamicSender<'static, FirmwareServiceEvent>,
+    buttons: &'static Buttons,
 ) {
     let mut notify = false;
     let mut ticker = Ticker::every(Duration::from_secs(5));
     let env_service = &server.env;
+
+    let mut notify_presses = false;
+    let mut reported_presses = [0u8;2];
+    let mut ticker_presses = Ticker::every(Duration::from_millis(250));
+    let buttons_service = &server.buttons;
+
     loop {
         let mut interval = None;
         let next = ticker.next();
-        match select(
+
+        let mut interval_presses = None;
+        let next_presses = ticker_presses.next();
+
+        match select3(
             gatt_server::run(&conn, server, |e| match e {
                 GattServerEvent::Env(e) => match e {
                     EnvironmentSensingServiceEvent::TemperatureCccdWrite { notifications } => {
@@ -196,6 +253,15 @@ pub async fn gatt_server_task(
                         interval.replace(Duration::from_secs(period as u64));
                     }
                 },
+                GattServerEvent::Buttons(e) => match e {
+                    ButtonsServiceEvent::PressesCccdWrite { notifications } => {
+                        notify_presses = notifications;
+                    }
+                    ButtonsServiceEvent::PeriodWrite(period) => {
+                        defmt::info!("Setting interval to {} seconds", period);
+                        interval_presses.replace(Duration::from_millis(period as u64));
+                    }
+                },
                 #[cfg(feature = "dfu")]
                 GattServerEvent::Firmware(e) => {
                     let _ = events.try_send(e);
@@ -203,16 +269,17 @@ pub async fn gatt_server_task(
                 _ => {}
             }),
             next,
+            next_presses,
         )
         .await
         {
-            Either::First(res) => {
+            Either3::First(res) => {
                 if let Err(e) = res {
                     defmt::warn!("gatt_server run exited with error: {:?}", e);
                     return;
                 }
             }
-            Either::Second(_) => {
+            Either3::Second(_) => {
                 let value: i8 = temperature_celsius(sd).unwrap().to_num();
                 defmt::info!("Measured temperature: {}℃", value);
                 let value = value as i16 * 10;
@@ -223,11 +290,34 @@ pub async fn gatt_server_task(
                     env_service.temperature_notify(&conn, value).unwrap();
                 }
             }
+            Either3::Third(_) => {
+
+                let a = buttons.a.load(Ordering::Acquire);
+                let b = buttons.b.load(Ordering::Acquire);
+
+                defmt::info!("Button presses - a: {}, b: {}", a, b);
+
+                if a != reported_presses[0] || b != reported_presses[1] {
+                    reported_presses[0] = a;
+                    reported_presses[1] = b;
+                    buttons_service.presses_set(reported_presses).unwrap();
+                }
+
+                if notify {
+                    defmt::trace!("Notifying");
+                    buttons_service.presses_notify(&conn, reported_presses).unwrap();
+                }
+            }
         }
 
         if let Some(interval) = interval.take() {
             ticker = Ticker::every(interval);
         }
+
+        /*
+        if let Some(interval_presses) = interval_presses.take() {
+            ticker_presses = Ticker::every(interval_presses);
+        }*/
     }
 }
 
@@ -238,6 +328,7 @@ pub async fn advertiser_task(
     server: &'static GattServer,
     events: DynamicSender<'static, FirmwareServiceEvent>,
     name: &'static str,
+    buttons: &'static Buttons,
 ) {
     let mut adv_data: Vec<u8, 31> = Vec::new();
     #[rustfmt::skip]
@@ -265,7 +356,7 @@ pub async fn advertiser_task(
             .unwrap();
 
         defmt::debug!("connection established");
-        if let Err(e) = spawner.spawn(gatt_server_task(sd, conn, server, events.clone())) {
+        if let Err(e) = spawner.spawn(gatt_server_task(sd, conn, server, events.clone(), buttons)) {
             defmt::warn!("Error spawning gatt task: {:?}", e);
         }
     }
