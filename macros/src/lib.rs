@@ -90,18 +90,19 @@ pub fn test(_: TokenStream, item: TokenStream) -> TokenStream {
 
         #[test]
         fn #test_name() {
-            static DEVICE: ::embassy_util::Forever<#device_type> = ::embassy_util::Forever::new();
-            static RUNNER: ::embassy_util::Forever<::ector::testutil::TestRunner> = ::embassy_util::Forever::new();
+            static DEVICE: ::static_cell::StaticCell<#device_type> = ::static_cell::StaticCell::new();
 
-            let runner = RUNNER.put(::ector::testutil::TestRunner::default());
+            let r = ::ector::testutil::TestRunner::default();
 
-            runner.initialize(|spawner| {
-                let runner = unsafe { RUNNER.steal() };
-                spawner.spawn(#drogue_test_name(spawner, ::ector::testutil::TestContext::new(runner, &DEVICE))).unwrap();
+            let r1: &'static mut ::ector::testutil::TestRunner = unsafe { core::mem::transmute(&r) };
+
+            r1.initialize(|spawner| {
+                let r2: &'static mut ::ector::testutil::TestRunner = unsafe { core::mem::transmute(&r) };
+                spawner.spawn(#drogue_test_name(spawner, ::ector::testutil::TestContext::new(r2, &DEVICE))).unwrap();
             });
 
-            while !runner.is_done() {
-                runner.run_until_idle();
+            while !r1.is_done() {
+                r1.run_until_idle();
             }
         }
     };

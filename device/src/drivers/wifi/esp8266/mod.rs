@@ -14,12 +14,12 @@ use buffer::Buffer;
 use core::cell::RefCell;
 use core::future::Future;
 use core::marker::PhantomData;
-use embassy_time::{Duration, Timer};
-use embassy_util::{
+use embassy_futures::select::{select3, Either3};
+use embassy_sync::{
     blocking_mutex::raw::NoopRawMutex,
-    channel::mpmc::{Channel, DynamicReceiver, DynamicSender},
+    channel::{Channel, DynamicReceiver, DynamicSender},
 };
-use embassy_util::{select3, Either3};
+use embassy_time::{Duration, Timer};
 use embedded_hal::digital::v2::OutputPin;
 use embedded_io::asynch::{Read, Write};
 use embedded_nal_async::*;

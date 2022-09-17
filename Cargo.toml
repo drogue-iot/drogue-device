@@ -9,22 +9,22 @@ members = [
 resolver = "2"
 
 [patch.crates-io]
-embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "aefa5275a2ab2cac6caef599e7adb76ce1beeddd" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "aefa5275a2ab2cac6caef599e7adb76ce1beeddd" }
-embassy-util = { git = "https://github.com/embassy-rs/embassy.git", rev = "aefa5275a2ab2cac6caef599e7adb76ce1beeddd" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "aefa5275a2ab2cac6caef599e7adb76ce1beeddd" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "aefa5275a2ab2cac6caef599e7adb76ce1beeddd" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "aefa5275a2ab2cac6caef599e7adb76ce1beeddd" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "aefa5275a2ab2cac6caef599e7adb76ce1beeddd" }
-embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "aefa5275a2ab2cac6caef599e7adb76ce1beeddd" }
-embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "aefa5275a2ab2cac6caef599e7adb76ce1beeddd" }
-embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "aefa5275a2ab2cac6caef599e7adb76ce1beeddd" }
-#embassy-traits = { git = "https://github.com/embassy-rs/embassy.git", rev = "aefa5275a2ab2cac6caef599e7adb76ce1beeddd" }
-nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "ab0ad770c729b4f034bf0a085b50347a3e6b2ea9" }
-nrf-softdevice-s140 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "ab0ad770c729b4f034bf0a085b50347a3e6b2ea9" }
-nrf-softdevice-macro = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "ab0ad770c729b4f034bf0a085b50347a3e6b2ea9" }
-#ector = { git = "https://github.com/drogue-iot/ector.git", rev = "508ed77bc0d3823f1510d7a30648dd88ba4198e9" }
-ector = { path = "../ector/ector" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+#embassy-traits = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "11c2728235bef45ba34b735e3975344e2641f0b9" }
+nrf-softdevice-s140 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "11c2728235bef45ba34b735e3975344e2641f0b9" }
+nrf-softdevice-macro = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "11c2728235bef45ba34b735e3975344e2641f0b9" }
+ector = { git = "https://github.com/drogue-iot/ector.git", rev = "794fba65755dc34490be7e4d860ea3703e2b5466" }
+#ector = { path = "../ector/ector" }
 
 # embassy = { path = "../../../../../embassy/embassy" }
 # embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }

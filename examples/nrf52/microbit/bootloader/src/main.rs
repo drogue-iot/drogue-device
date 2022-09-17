@@ -7,7 +7,7 @@ use cortex_m_rt::{entry, exception};
 use defmt_rtt as _;
 
 use embassy_boot_nrf::*;
-use embassy_nrf::nvmc::Nvmc;
+use embassy_nrf::nvmc::{Nvmc, PAGE_SIZE};
 
 #[entry]
 fn main() -> ! {
@@ -22,11 +22,9 @@ fn main() -> ! {
     */
 
     let mut bl = BootLoader::default();
-    let start = bl.prepare(&mut SingleFlashProvider::new(&mut WatchdogFlash::start(
-        Nvmc::new(p.NVMC),
-        p.WDT,
-        5,
-    )));
+    let start = bl.prepare(&mut SingleFlashConfig::new(
+        &mut BootFlash::<_, PAGE_SIZE>::new(&mut WatchdogFlash::start(Nvmc::new(p.NVMC), p.WDT, 5)),
+    ));
     unsafe { bl.load(start) }
 }
 

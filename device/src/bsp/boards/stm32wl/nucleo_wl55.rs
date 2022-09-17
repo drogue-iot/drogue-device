@@ -6,7 +6,7 @@ use embassy_stm32::dma::NoDma;
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::flash::Flash;
 use embassy_stm32::gpio::Pin;
-use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
+use embassy_stm32::gpio::{AnyPin, Input, Level, Output, Pull, Speed};
 use embassy_stm32::interrupt;
 use embassy_stm32::pac;
 use embassy_stm32::peripherals::{PA0, PA1, PB11, PB15, PB9, PC6, RNG};
@@ -30,7 +30,7 @@ pub type UserButtonB2 = Button<ExtiInput<'static, PA1>>;
 pub type PinUserButtonB3 = Input<'static, PC6>;
 pub type UserButtonB3 = Button<ExtiInput<'static, PC6>>;
 
-pub type Radio = SubGhzRadio<'static>;
+pub type Radio = SubGhzRadio<'static, RadioSwitch<'static>>;
 pub type Rng = embassy_stm32::rng::Rng<'static, RNG>;
 
 pub struct NucleoWl55 {
@@ -82,11 +82,11 @@ impl Board for NucleoWl55 {
         let ctrl3 = Output::new(p.PC5.degrade(), Level::High, Speed::High);
         let rfs = RadioSwitch::new(ctrl1, ctrl2, ctrl3);
 
-        let radio = SubGhz::new(p.SUBGHZSPI, p.PA5, p.PA7, p.PA6, NoDma, NoDma);
-
-        static mut RADIO_STATE: SubGhzState<'static> = SubGhzState::new();
+        let radio = SubGhz::new(p.SUBGHZSPI, NoDma, NoDma);
         let irq = interrupt::take!(SUBGHZ_RADIO);
-        let radio = unsafe { SubGhzRadio::new(&mut RADIO_STATE, radio, rfs, irq) };
+        let mut radio_config = SubGhzRadioConfig::default();
+        radio_config.calibrate_image = CalibrateImage::ISM_863_870;
+        let radio = SubGhzRadio::new(radio, rfs, irq, radio_config).unwrap();
         let rng = Rng::new(p.RNG);
         Self {
             blue_led,
@@ -99,5 +99,39 @@ impl Board for NucleoWl55 {
             radio,
             flash,
         }
+    }
+}
+
+pub struct RadioSwitch<'a> {
+    ctrl1: Output<'a, AnyPin>,
+    ctrl2: Output<'a, AnyPin>,
+    ctrl3: Output<'a, AnyPin>,
+}
+
+impl<'a> RadioSwitch<'a> {
+    fn new(
+        ctrl1: Output<'a, AnyPin>,
+        ctrl2: Output<'a, AnyPin>,
+        ctrl3: Output<'a, AnyPin>,
+    ) -> Self {
+        Self {
+            ctrl1,
+            ctrl2,
+            ctrl3,
+        }
+    }
+}
+
+impl<'a> embassy_lora::stm32wl::RadioSwitch for RadioSwitch<'a> {
+    fn set_rx(&mut self) {
+        self.ctrl1.set_high();
+        self.ctrl2.set_low();
+        self.ctrl3.set_high();
+    }
+
+    fn set_tx(&mut self) {
+        self.ctrl1.set_high();
+        self.ctrl2.set_high();
+        self.ctrl3.set_high();
     }
 }

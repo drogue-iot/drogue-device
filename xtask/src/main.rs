@@ -44,13 +44,11 @@ fn main() -> Result<(), anyhow::Error> {
 static WORKSPACES: &[&str] = &[
     "examples/nrf52/microbit/ble",
     "examples/nrf52/microbit/bootloader",
-    "examples/nrf52/microbit/compass",
     "examples/nrf52/microbit/esp8266",
-    "examples/nrf52/microbit/jukebox",
     "examples/nrf52/adafruit-feather-nrf52840/neopixel",
-    "examples/nrf52/adafruit-feather-nrf52840/bootloader",
-    "examples/nrf52/adafruit-feather-nrf52840/bt-mesh",
-    "examples/nrf52/nrf52840-dk/ble-mesh",
+    //    "examples/nrf52/adafruit-feather-nrf52840/bootloader",
+    //    "examples/nrf52/adafruit-feather-nrf52840/bt-mesh",
+    //    "examples/nrf52/nrf52840-dk/ble-mesh",
     "examples/stm32l0/lora-discovery",
     "examples/stm32l1/rak811",
     "examples/stm32l4/iot01a/wifi",
@@ -182,7 +180,7 @@ fn check_device() -> Result<(), anyhow::Error> {
     device.push("device");
     let _p = xshell::pushd(&device)?;
     cmd!("cargo fmt --check").run()?;
-    cmd!("cargo check --all --features 'std wifi+esp8266 wifi+eswifi tcp+smoltcp tls'").run()?;
+    cmd!("cargo check --all --features 'std wifi+esp8266 tls'").run()?;
     Ok(())
 }
 
@@ -214,9 +212,9 @@ fn test_device() -> Result<(), anyhow::Error> {
     device.push("device");
     let _p = xshell::pushd(&device)?;
     cmd!("cargo fmt --check").run()?;
-    cmd!("cargo test --all --features 'std wifi+esp8266 wifi+eswifi tcp+smoltcp tls'").run()?;
+    cmd!("cargo test --all --features 'std wifi+esp8266 tls'").run()?;
     // Sanity check that we can build on cortex-m
-    cmd!("cargo build --no-default-features --features 'wifi+esp8266 wifi+eswifi tcp+smoltcp tls ble+nrf52840 embassy-nrf/nrf52840 embassy-nrf/time-driver-rtc1' --target thumbv7em-none-eabihf").run()?;
+    cmd!("cargo build --no-default-features --features 'wifi+esp8266 tls ble+nrf52840 embassy-nrf/nrf52840 embassy-nrf/time-driver-rtc1' --target thumbv7em-none-eabihf").run()?;
     Ok(())
 }
 

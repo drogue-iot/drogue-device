@@ -49,19 +49,18 @@ cfg_if::cfg_if! {
     }
 }
 
-use embassy_util::channel::mpmc::{Channel, DynamicReceiver, DynamicSender};
-use embassy_time::Ticker;
-use embassy_time::{Duration, Timer};
-use embassy_util::Forever;
-use embassy_util::{select, Either};
-use embassy_util::blocking_mutex::raw::NoopRawMutex;
 use embassy_executor::Spawner;
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
-use embassy_nrf::Peripherals;
+use embassy_sync::channel::{Channel, DynamicReceiver, DynamicSender};
+use embassy_time::Ticker;
+use embassy_time::{Duration, Timer};
+use embassy_util::blocking_mutex::raw::NoopRawMutex;
+use embassy_util::{select, Either};
 use futures::StreamExt;
 use heapless::Vec;
 use nrf_softdevice::{temperature_celsius, Softdevice};
+use static_cell::StaticCell;
 
 use nrf_softdevice::Flash;
 
@@ -116,9 +115,9 @@ const FEATURES: Features = Features {
 const FIRMWARE_VERSION: &str = env!("CARGO_PKG_VERSION");
 const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 
-#[embassy_executor::main(config = "config()")]
-async fn main(spawner: Spawner, p: Peripherals) {
-    let board = Microbit::new(p);
+#[embassy_executor::main]
+async fn main(spawner: Spawner) {
+    let board = Microbit::new(embassy_nrf::init(config()));
     let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BT Mesh", false);
     spawner.spawn(softdevice_task(facilities.sd())).unwrap();
 

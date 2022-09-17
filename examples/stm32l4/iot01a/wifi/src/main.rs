@@ -20,10 +20,10 @@ use drogue_device::{
     drogue,
 };
 use drogue_temperature::*;
+use embassy_stm32::flash::Flash;
 use embassy_time::Duration;
-use embassy_util::Forever;
-use embassy_stm32::{flash::Flash, Peripherals};
 use embedded_nal_async::{AddrType, Dns, IpAddr, Ipv4Addr, SocketAddr, TcpConnect};
+use static_cell::StaticCell;
 
 #[cfg(feature = "dfu")]
 use drogue_device::firmware::FirmwareManager;
@@ -46,7 +46,7 @@ const WIFI_PSK: &str = drogue::config!("wifi-password");
 bind_bsp!(Iot01a, BSP);
 
 impl TemperatureBoard for BSP {
-    type Network = &'static SharedEsWifi;
+    type Network = &'static EsWifi;
     type TemperatureScale = Celsius;
     type SendTrigger = TimeTrigger;
     type Sensor = Hts221<I2c2>;
@@ -57,17 +57,17 @@ impl TemperatureBoard for BSP {
 const FIRMWARE_VERSION: &str = env!("CARGO_PKG_VERSION");
 const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 
-static DEVICE: Forever<TemperatureDevice<BSP>> = Forever::new();
+static DEVICE: StaticCell<TemperatureDevice<BSP>> = StaticCell::new();
 
-#[embassy_executor::main(config = "Iot01a::config(true)")]
-async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
-    let board = Iot01a::new(p);
+#[embassy_executor::main]
+async fn main(spawner: embassy_executor::Spawner) {
+    let board = Iot01a::new(embassy_stm32::init(Iot01a::config(true)));
     unsafe {
         RNG_INST.replace(board.rng);
     }
 
-    static NETWORK: Forever<SharedEsWifi> = Forever::new();
-    let network: &'static SharedEsWifi = NETWORK.put(SharedEsWifi::new(board.wifi));
+    static NETWORK: StaticCell<EsWifi> = StaticCell::new();
+    let network: &'static EsWifi = NETWORK.init(board.wifi);
     #[cfg(feature = "dfu")]
     {
         spawner.spawn(updater_task(network, board.flash)).unwrap();
@@ -81,7 +81,7 @@ async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
         ))
         .unwrap();
 
-    let device = DEVICE.put(TemperatureDevice::new());
+    let device = DEVICE.init(TemperatureDevice::new());
     let config = TemperatureBoardConfig {
         send_trigger: TimeTrigger(Duration::from_secs(60)),
         sensor_ready: board.hts221_ready,
@@ -94,7 +94,7 @@ async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
 }
 
 #[embassy_executor::task]
-async fn network_task(adapter: &'static SharedEsWifi, ssid: &'static str, psk: &'static str) {
+async fn network_task(adapter: &'static EsWifi, ssid: &'static str, psk: &'static str) {
     loop {
         let _ = adapter.run(ssid, psk).await;
     }
@@ -136,7 +136,7 @@ impl rand_core::CryptoRng for TlsRand {}
 
 #[cfg(feature = "dfu")]
 #[embassy_executor::task]
-async fn updater_task(network: &'static SharedEsWifi, flash: Flash<'static>) {
+async fn updater_task(network: &'static EsWifi, flash: Flash<'static>) {
     use drogue_device::firmware::BlockingFlash;
     use embassy_time::{Delay, Timer};
 

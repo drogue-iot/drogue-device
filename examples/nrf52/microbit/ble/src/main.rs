@@ -18,27 +18,27 @@ use drogue_device::{
     drivers::ble::gatt::dfu::{FirmwareGattService, FirmwareService, FirmwareServiceEvent},
     firmware::{FirmwareManager, SharedFirmwareManager},
 };
-use embassy_util::blocking_mutex::raw::ThreadModeRawMutex;
-use embassy_util::channel::mpmc::{Channel, DynamicReceiver, DynamicSender};
 use embassy_executor::Spawner;
-use embassy_time::Delay;
-use embassy_time::Ticker;
-use embassy_time::{Duration, Timer};
-use embassy_util::Forever;
-use embassy_util::{select, Either};
+use embassy_futures::select::{select, Either};
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
 use embassy_nrf::{
     buffered_uarte::{BufferedUarte, State},
     interrupt,
     peripherals::{TIMER0, UARTE0},
-    uarte, Peripherals,
+    uarte,
 };
+use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
+use embassy_sync::channel::{Channel, DynamicReceiver, DynamicSender};
+use embassy_time::Delay;
+use embassy_time::Ticker;
+use embassy_time::{Duration, Timer};
 use futures::StreamExt;
 use heapless::Vec;
 use nrf_softdevice::ble::gatt_server;
 use nrf_softdevice::ble::peripheral;
 use nrf_softdevice::{ble::Connection, raw, temperature_celsius, Flash, Softdevice};
+use static_cell::StaticCell;
 
 #[cfg(feature = "dfu")]
 use embassy_boot_nrf::FirmwareUpdater;
@@ -63,20 +63,19 @@ fn config() -> Config {
     config
 }
 
-#[embassy_executor::main(config = "config()")]
-async fn main(s: Spawner, p: Peripherals) {
-    let board = Microbit::new(p);
+#[embassy_executor::main]
+async fn main(s: Spawner) {
+    let board = Microbit::new(embassy_nrf::init(config()));
 
     // Spawn the underlying softdevice task
     let sd = enable_softdevice("Drogue Low Energy");
-    s.spawn(softdevice_task(sd)).unwrap();
 
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
     defmt::info!("Running firmware version {}", version);
 
     // Create a BLE GATT server and make it static
-    static GATT: Forever<GattServer> = Forever::new();
-    let server = GATT.put(gatt_server::register(sd).unwrap());
+    static GATT: StaticCell<GattServer> = StaticCell::new();
+    let server = GATT.init(GattServer::new(sd).unwrap());
     server
         .device_info
         .initialize(b"Drogue Low Energy", b"1.0", b"Red Hat", b"1.0")
@@ -99,6 +98,8 @@ async fn main(s: Spawner, p: Peripherals) {
         .env
         .trigger_set(TriggerSetting::FixedInterval(5).to_vec())
         .unwrap();
+
+    s.spawn(softdevice_task(sd)).unwrap();
 
     // Firmware update service event channel and task
     static EVENTS: Channel<ThreadModeRawMutex, FirmwareServiceEvent, 10> = Channel::new();
@@ -271,7 +272,7 @@ pub async fn advertiser_task(
     }
 }
 
-fn enable_softdevice(name: &'static str) -> &'static Softdevice {
+fn enable_softdevice(name: &'static str) -> &'static mut Softdevice {
     let config = nrf_softdevice::Config {
         clock: Some(raw::nrf_clock_lf_cfg_t {
             source: raw::NRF_CLOCK_LF_SRC_RC as u8,

@@ -11,18 +11,17 @@ use panic_probe as _;
 use core::fmt::Write;
 use drogue_device::actors::button::{Button, ButtonEvent};
 use ector::{Actor, ActorContext, Address, Inbox};
-use embassy_time::Delay;
-use embassy_util::Forever;
 use embassy_stm32::dma::NoDma;
 use embassy_stm32::peripherals::*;
 use embassy_stm32::rng::Rng as Random;
 use embassy_stm32::spi::{self, Spi};
-use embassy_stm32::time::U32Ext;
+use embassy_stm32::time::mhz;
 use embassy_stm32::{
     exti::ExtiInput,
     gpio::{Input, Level, Output, Pull, Speed},
-    Config, Peripherals,
+    Config,
 };
+use embassy_time::Delay;
 use embedded_graphics::geometry::Point;
 use embedded_graphics::image::{Image, ImageRaw};
 use embedded_graphics::mono_font::MonoTextStyleBuilder;
@@ -32,6 +31,7 @@ use embedded_graphics::Drawable;
 use epd_waveshare::epd5in65f::{Display5in65f, Epd5in65f};
 use epd_waveshare::prelude::*;
 use heapless::{String, Vec};
+use static_cell::StaticCell;
 use tinybmp::Bmp;
 
 type EpdSpi = Spi<'static, SPI1, NoDma, NoDma>;
@@ -203,10 +203,11 @@ pub struct MyDevice {
     button: ActorContext<Button<ExtiInput<'static, PC13>, Command>>,
 }
 
-static DEVICE: Forever<MyDevice> = Forever::new();
+static DEVICE: StaticCell<MyDevice> = StaticCell::new();
 
-#[embassy_executor::main(config = "config()")]
-async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
+#[embassy_executor::main]
+async fn main(spawner: embassy_executor::Spawner) {
+    let p = embassy_stm32::init(config());
     let button = Input::new(p.PC13, Pull::Down);
     let button = ExtiInput::new(button, p.EXTI13);
 
@@ -217,7 +218,7 @@ async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
         p.PA6,
         NoDma,
         NoDma,
-        4.mhz(),
+        mhz(4),
         spi::Config::default(),
     );
     let cs = Output::new(p.PD14, Level::High, Speed::Medium);
@@ -237,7 +238,7 @@ async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
 
     let rng = Random::new(p.RNG);
 
-    let device = DEVICE.put(MyDevice {
+    let device = DEVICE.init(MyDevice {
         app: ActorContext::new(),
         button: ActorContext::new(),
     });
@@ -251,8 +252,8 @@ async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
 #[allow(unused)]
 pub fn config() -> Config {
     let mut config = Config::default();
-    config.rcc.sys_ck = Some(400.mhz().into());
-    config.rcc.pll1.q_ck = Some(100.mhz().into());
+    config.rcc.sys_ck = Some(mhz(400).into());
+    config.rcc.pll1.q_ck = Some(mhz(100).into());
     config.enable_debug_during_sleep = true;
     config
 }

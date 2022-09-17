@@ -20,14 +20,16 @@ rand_core = { version = "0.6.2", default-features = false }
 
 drogue-device = { path = "../../../../../device", features = ["bsp+microbit+temp", "wifi+esp8266", "defmt", "time", "tls"], default-features = false }
 embedded-tls = { version = "0.8.0", default-features = false, features = ["async", "defmt"]}
-cortex-m-rt = "0.6"
-cortex-m = { version = "0.7", features = ["inline-asm"] }
+static_cell = "1"
+cortex-m-rt = "0.7"
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 fixed = "1.10.0"
 nrf52833-pac = "0.11.0"
 ector = { version = "0.1.0", default-features = false }
 
 embedded-nal-async = "0.2.0"
-embassy-executor = { version = "0.1.0", default-features = false, features = ["defmt"] }
+embassy-executor = { version = "0.1.0", default-features = false, features = ["defmt", "integrated-timers"] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
+embassy-time = { version = "0.1.0", default-features = false }
 cfg-if = "1.0.0"
 rust-mqtt = { version = "0.1.4", default-features = false, features = ["defmt", "tls"] }

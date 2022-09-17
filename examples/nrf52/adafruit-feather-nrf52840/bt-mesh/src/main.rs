@@ -51,7 +51,6 @@ use embassy::{blocking_mutex::raw::NoopRawMutex, executor::Spawner};
 use embassy_boot_nrf::FirmwareUpdater;
 use embassy_nrf::config::Config;
 use embassy_nrf::interrupt::Priority;
-use embassy_nrf::Peripherals;
 use futures::StreamExt;
 use heapless::Vec;
 use nrf_softdevice::{temperature_celsius, Softdevice};
@@ -108,9 +107,9 @@ const FEATURES: Features = Features {
 const FIRMWARE_VERSION: &str = env!("CARGO_PKG_VERSION");
 const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 
-#[embassy_executor::main(config = "config()")]
-async fn main(spawner: Spawner, p: Peripherals) {
-    let board = AdafruitFeatherNrf52840::new(p);
+#[embassy_executor::main]
+async fn main(spawner: Spawner) {
+    let board = AdafruitFeatherNrf52840::new(embassy_nrf::init(config()));
     let facilities = Nrf52BleMeshFacilities::new("Drogue IoT BT Mesh", true);
     spawner.spawn(softdevice_task(facilities.sd())).unwrap();
 

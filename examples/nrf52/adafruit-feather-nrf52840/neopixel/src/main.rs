@@ -15,12 +15,12 @@ use drogue_device::{
 };
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
-use embassy_nrf::Peripherals;
 
 const STEP_SIZE: u8 = 2;
 
 #[embassy_executor::main]
-async fn main(_spawner: Spawner, p: Peripherals) {
+async fn main(_spawner: Spawner) {
+    let p = embassy_nrf::init(Default::default());
     let board = AdafruitFeatherNrf52840::new(p);
     let mut neopixel = defmt::unwrap!(NeoPixelRgbw::<'_, _, 1>::new(board.pwm0, board.neopixel));
 

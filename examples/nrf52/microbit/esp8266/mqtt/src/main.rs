@@ -17,16 +17,16 @@ use drogue_device::{
     bsp::boards::nrf52::microbit::*, drivers::dns::*, drivers::wifi::esp8266::Esp8266Modem, *,
 };
 use ector::{actor, Actor, ActorContext, Address, Inbox};
-use embassy_time::{Duration, Timer};
-use embassy_util::Forever;
 use embassy_nrf::{
     buffered_uarte::{BufferedUarte, State},
     gpio::{Level, Output, OutputDrive},
     interrupt,
     peripherals::{P0_09, P0_10, TIMER0, UARTE0},
-    uarte, Peripherals,
+    uarte,
 };
+use embassy_time::{Duration, Timer};
 use embedded_tls::{Aes128GcmSha256, NoClock, TlsConfig, TlsConnection, TlsContext};
+use static_cell::StaticCell;
 
 use embedded_nal_async::*;
 use rust_mqtt::client::client_config::MqttVersion::MQTTv5;
@@ -50,8 +50,8 @@ type ENABLE = Output<'static, P0_09>;
 type RESET = Output<'static, P0_10>;
 
 #[embassy_executor::main]
-async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
-    let board = Microbit::new(p);
+async fn main(spawner: embassy_executor::Spawner) {
+    let board = Microbit::new(embassy_nrf::init(Default::default()));
     defmt::info!("Started");
     let mut config = uarte::Config::default();
     config.parity = uarte::Parity::EXCLUDED;
@@ -60,8 +60,8 @@ async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
     static mut TX_BUFFER: [u8; 4096] = [0u8; 4096];
     static mut RX_BUFFER: [u8; 4096] = [0u8; 4096];
     let irq = interrupt::take!(UARTE0_UART0);
-    static STATE: Forever<State<'static, UARTE0, TIMER0>> = Forever::new();
-    let state = STATE.put(State::new());
+    static STATE: StaticCell<State<'static, UARTE0, TIMER0>> = StaticCell::new();
+    let state = STATE.init(State::new());
     let uart = BufferedUarte::new(
         state,
         board.uarte0,
@@ -82,8 +82,8 @@ async fn main(spawner: embassy_executor::Spawner, p: Peripherals) {
     let reset_pin = Output::new(board.p8, Level::High, OutputDrive::Standard);
 
     let network = Esp8266Modem::new(uart, enable_pin, reset_pin);
-    static NETWORK: Forever<Esp8266Modem<SERIAL, ENABLE, RESET, 2>> = Forever::new();
-    let network = NETWORK.put(network);
+    static NETWORK: StaticCell<Esp8266Modem<SERIAL, ENABLE, RESET, 2>> = StaticCell::new();
+    let network = NETWORK.init(network);
     spawner
         .spawn(net_task(network, WIFI_SSID.trim_end(), WIFI_PSK.trim_end()))
         .unwrap();

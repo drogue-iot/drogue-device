@@ -15,9 +15,11 @@ env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["log", "std", "wifi+esp8266"] }
 embedded-tls = { version = "0.8.0", default-features = false, features = ["async"], optional = true}
 embedded-io = { version = "0.3.0", features = ["async", "std", "futures"] }
+static_cell = "1"
 #drogue-tls = {path = "../../drogue-tls", default-features = false, optional = true}
 
-embassy-executor = { version = "0.1.0", default-features = false, features = ["std"] }
+embassy-time = { version = "0.1.0", default-features = false, features = ["std"] }
+embassy-executor = { version = "0.1.0", default-features = false, features = ["std", "integrated-timers"] }
 rand = "0.8"
 cfg-if = "1.0.0"
 
