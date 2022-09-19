@@ -62,6 +62,7 @@ static WORKSPACES: &[&str] = &[
     "examples/std",
     "boards/microbit",
     "boards/microbit/examples",
+    "boards/adafruit-feather-nrf52",
     "docs/modules/ROOT/examples/basic",
 ];
 
