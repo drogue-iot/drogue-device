@@ -1,0 +1,21 @@
+[package]
+name = "adafruit-feather-nrf52"
+version = "0.1.0"
+edition = "2021"
+description = "An embassy-based boards support package (BSP) for the Adafruit Feather nRF52 variants"
+
+[workspace]
+
+[dependencies]
+embassy-nrf = { version = "0.1.0", default-features = false, features = ["gpiote", "time-driver-rtc1", "nightly", "unstable-traits"]}
+embassy-time = { version = "0.1.0", default-features = false }
+cortex-m = "0.7"
+
+[features]
+default = ["express"]
+# For the nRF52840 Feather Express
+express = ["embassy-nrf/nrf52840"]
+
+[patch.crates-io]
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", branch = "master" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", branch = "master" }
