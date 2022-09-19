@@ -9,13 +9,11 @@ use crate::traits::lora::*;
 
 pub use buffer::*;
 use core::future::Future;
-use embassy::blocking_mutex::raw::NoopRawMutex;
 use embedded_hal::digital::v2::OutputPin;
 use embedded_io::asynch::{Read, Write};
 pub use protocol::*;
 
 const RECV_BUFFER_LEN: usize = 256;
-type DriverMutex = NoopRawMutex;
 
 pub struct Rak811Modem<T, RESET>
 where

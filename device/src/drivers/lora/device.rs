@@ -1,37 +1,25 @@
 use crate::traits::lora::{LoraError, *};
 use core::future::Future;
 
+use embassy_lora::LoraTimer;
 use lorawan_device::async_device::{
     radio, region, Device as LorawanDevice, JoinMode as LoraJoinMode, Timings,
 };
 use lorawan_encoding::{default_crypto::DefaultFactory as Crypto, parser::DevAddr as LDevAddr};
 use rand_core::RngCore;
 
-pub trait Radio: radio::PhyRxTx + Timings {}
-
-impl<R: radio::PhyRxTx + Timings> Radio for R {}
-
-pub struct DriverTimer;
-
-impl radio::Timer for DriverTimer {
-    type DelayFuture<'m> = impl Future<Output = ()> + 'm;
-    fn delay_ms<'m>(&'m mut self, millis: u64) -> Self::DelayFuture<'m> {
-        embassy::time::Timer::after(embassy::time::Duration::from_millis(millis))
-    }
-}
-
 pub struct LoraDevice<R, RNG>
 where
-    R: Radio,
+    R: radio::PhyRxTx + Timings,
     RNG: RngCore,
 {
-    device: LorawanDevice<R, Crypto, DriverTimer, RNG>,
+    device: LorawanDevice<R, Crypto, LoraTimer, RNG>,
 }
 
 const RX_DELAY1: u32 = 5000;
 impl<R, RNG> LoraDevice<R, RNG>
 where
-    R: Radio,
+    R: radio::PhyRxTx + Timings,
     RNG: RngCore,
 {
     pub fn new(config: &LoraConfig, radio: R, rng: RNG) -> Result<Self, LoraError> {
@@ -42,7 +30,7 @@ where
         }
         let mut region = region.unwrap();
         region.set_receive_delay1(RX_DELAY1);
-        let mut device = LorawanDevice::new(region, radio, DriverTimer, rng);
+        let mut device = LorawanDevice::new(region, radio, LoraTimer::new(), rng);
         device.set_datarate(data_rate);
         Ok(Self { device })
     }
@@ -50,7 +38,7 @@ where
 
 impl<R, RNG> LoraDriver for LoraDevice<R, RNG>
 where
-    R: Radio,
+    R: radio::PhyRxTx + Timings,
     RNG: RngCore,
 {
     type JoinFuture<'m> = impl Future<Output = Result<(), LoraError>> + 'm

@@ -3,7 +3,7 @@ pub mod remote;
 use crate::flash::SharedFlash;
 use crate::shared::Handle;
 use core::future::Future;
-use embassy_boot::FirmwareUpdater;
+use embassy_boot::{AlignedBuffer, FirmwareUpdater};
 use embassy_embedded_hal::adapter::BlockingAsync;
 use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
 use embedded_storage::nor_flash::{NorFlashError, NorFlashErrorKind};
@@ -90,12 +90,10 @@ where
 
     /// Mark current firmware as successfully booted
     pub async fn synced(&mut self) -> Result<(), Error> {
-        let mut w = FlashWriter {
-            f: self.config.state(),
-        };
+        let mut aligned = AlignedBuffer([0; 8]);
         self.updater
             // TODO: Support other word sizes
-            .mark_booted::<FlashWriter<'_, CONFIG::STATE, 8>>(&mut w)
+            .mark_booted(self.config.state(), &mut aligned.0)
             .await
             .map_err(|e| e.kind())?;
         Ok(())
@@ -176,62 +174,12 @@ where
             self.flush().await?;
         }
 
-        let mut w = FlashWriter {
-            f: self.config.state(),
-        };
+        let mut aligned = AlignedBuffer([0; 8]);
         self.updater
-            // TODO: Support other erase sizes
-            .update::<FlashWriter<'_, CONFIG::STATE, 8>>(&mut w)
+            .mark_updated(self.config.state(), &mut aligned.0)
             .await
             .map_err(|e| e.kind())?;
         Ok(())
-    }
-}
-
-// Workaround for const generics
-struct FlashWriter<'a, F, const WRITE_SIZE: usize> {
-    f: &'a mut F,
-}
-
-impl<'a, F, const WRITE_SIZE: usize> embedded_storage::nor_flash::ErrorType
-    for FlashWriter<'a, F, WRITE_SIZE>
-where
-    F: AsyncNorFlash + AsyncReadNorFlash + 'a,
-{
-    type Error = F::Error;
-}
-
-impl<'a, F, const WRITE_SIZE: usize> AsyncReadNorFlash for FlashWriter<'a, F, WRITE_SIZE>
-where
-    F: AsyncNorFlash + AsyncReadNorFlash + 'a,
-{
-    const READ_SIZE: usize = F::READ_SIZE;
-
-    type ReadFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm where Self: 'm;
-    fn read<'m>(&'m mut self, address: u32, data: &'m mut [u8]) -> Self::ReadFuture<'m> {
-        async move { self.f.read(address, data).await }
-    }
-
-    fn capacity(&self) -> usize {
-        self.f.capacity()
-    }
-}
-
-impl<'a, F, const WRITE_SIZE: usize> AsyncNorFlash for FlashWriter<'a, F, WRITE_SIZE>
-where
-    F: AsyncNorFlash + AsyncReadNorFlash + 'a,
-{
-    const WRITE_SIZE: usize = WRITE_SIZE;
-    const ERASE_SIZE: usize = F::ERASE_SIZE;
-
-    type WriteFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm where Self: 'm;
-    fn write<'m>(&'m mut self, offset: u32, data: &'m [u8]) -> Self::WriteFuture<'m> {
-        async move { self.f.write(offset, data).await }
-    }
-
-    type EraseFuture<'m> = impl Future<Output = Result<(), Self::Error>> + 'm where Self: 'm;
-    fn erase<'m>(&'m mut self, from: u32, to: u32) -> Self::EraseFuture<'m> {
-        async move { self.f.erase(from, to).await }
     }
 }
 

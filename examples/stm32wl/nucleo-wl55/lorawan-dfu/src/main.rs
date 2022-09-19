@@ -12,14 +12,13 @@ use drogue_device::{
     traits::lora::{JoinMode, LoraConfig, LoraDriver, LoraMode, LoraRegion, SpreadingFactor},
     *,
 };
-use embassy::executor::Spawner;
-use embassy::time::Delay;
-use embassy::time::Duration;
-use embassy::time::Timer;
 use embassy_boot_stm32::FirmwareUpdater;
 use embassy_embedded_hal::adapter::BlockingAsync;
+use embassy_executor::Spawner;
 use embassy_stm32::flash::Flash;
-use embassy_stm32::Peripherals;
+use embassy_time::Delay;
+use embassy_time::Duration;
+use embassy_time::Timer;
 use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
 
 #[cfg(feature = "panic-probe")]
@@ -34,9 +33,9 @@ use panic_reset as _;
 const FIRMWARE_VERSION: &str = env!("CARGO_PKG_VERSION");
 const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 
-#[embassy::main(config = "NucleoWl55::config(true)")]
-async fn main(_spawner: Spawner, p: Peripherals) {
-    let mut board = NucleoWl55::new(p);
+#[embassy_executor::main]
+async fn main(_spawner: Spawner) {
+    let mut board = NucleoWl55::new(embassy_stm32::init(NucleoWl55::config(true)));
 
     let config = LoraConfig::new()
         .region(LoraRegion::EU868)

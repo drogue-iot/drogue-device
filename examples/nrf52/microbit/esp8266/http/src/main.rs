@@ -18,14 +18,14 @@ use drogue_device::{
     *,
 };
 use drogue_temperature::*;
-use embassy::util::Forever;
 use embassy_nrf::{
     buffered_uarte::{BufferedUarte, State},
     gpio::{Level, Output, OutputDrive},
     interrupt,
     peripherals::{P0_09, P0_10, TIMER0, UARTE0},
-    uarte, Peripherals,
+    uarte,
 };
+use static_cell::StaticCell;
 
 const WIFI_SSID: &str = drogue::config!("wifi-ssid");
 const WIFI_PSK: &str = drogue::config!("wifi-password");
@@ -45,11 +45,11 @@ impl TemperatureBoard for BSP {
     type Rng = Rng;
 }
 
-static DEVICE: Forever<TemperatureDevice<BSP>> = Forever::new();
+static DEVICE: StaticCell<TemperatureDevice<BSP>> = StaticCell::new();
 
-#[embassy::main]
-async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
-    let board = Microbit::new(p);
+#[embassy_executor::main]
+async fn main(spawner: embassy_executor::Spawner) {
+    let board = Microbit::new(embassy_nrf::init(Default::default()));
 
     let mut config = uarte::Config::default();
     config.parity = uarte::Parity::EXCLUDED;
@@ -58,8 +58,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     static mut TX_BUFFER: [u8; 4096] = [0u8; 4096];
     static mut RX_BUFFER: [u8; 4096] = [0u8; 4096];
     let irq = interrupt::take!(UARTE0_UART0);
-    static STATE: Forever<State<'static, UARTE0, TIMER0>> = Forever::new();
-    let state = STATE.put(State::new());
+    static STATE: StaticCell<State<'static, UARTE0, TIMER0>> = StaticCell::new();
+    let state = STATE.init(State::new());
     let uart = BufferedUarte::new(
         state,
         board.uarte0,
@@ -80,8 +80,8 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     let reset_pin = Output::new(board.p8, Level::Low, OutputDrive::Standard);
 
     let network = Esp8266Modem::new(uart, enable_pin, reset_pin);
-    static NETWORK: Forever<Esp8266Modem<SERIAL, ENABLE, RESET, 1>> = Forever::new();
-    let network: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1> = NETWORK.put(network);
+    static NETWORK: StaticCell<Esp8266Modem<SERIAL, ENABLE, RESET, 1>> = StaticCell::new();
+    let network: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1> = NETWORK.init(network);
 
     spawner
         .spawn(net_task(network, WIFI_SSID.trim_end(), WIFI_PSK.trim_end()))
@@ -101,7 +101,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     defmt::info!("Application configured to NOT use TLS");
 
     DEVICE
-        .put(TemperatureDevice::new())
+        .init(TemperatureDevice::new())
         .mount(
             spawner,
             Rng::new(nrf52833_pac::Peripherals::take().unwrap().RNG),
@@ -111,7 +111,7 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
     defmt::info!("Application initialized. Press 'A' button to send data");
 }
 
-#[embassy::task]
+#[embassy_executor::task]
 async fn net_task(
     modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1>,
     ssid: &'static str,

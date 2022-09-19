@@ -1,17 +1,19 @@
-use embassy::util::Forever;
 use futures_intrusive::sync::{LocalMutex, LocalMutexGuard};
+use static_cell::StaticCell;
 
 pub struct Shared<T> {
-    t: Forever<LocalMutex<T>>,
+    t: StaticCell<LocalMutex<T>>,
 }
 
 impl<T> Shared<T> {
     pub const fn new() -> Self {
-        Self { t: Forever::new() }
+        Self {
+            t: StaticCell::new(),
+        }
     }
 
     pub fn initialize<'a>(&'static self, t: T) -> Handle<'a, T> {
-        let handle = self.t.put(LocalMutex::new(t, true));
+        let handle = self.t.init(LocalMutex::new(t, true));
         Handle { handle }
     }
 }

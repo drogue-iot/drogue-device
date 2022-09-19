@@ -16,12 +16,13 @@ defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 drogue-device = { path = "../../../../device", features = ["defmt"], default-features = false }
 ector = { version = "0.1.0", default-features = false }
-atomic-polyfill = { version = "0.1" }
+static_cell = "1"
+atomic-polyfill = { version = "1" }
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 rp2040-pac = { version = "0.1.4", features = ["rt"] }
 
 cortex-m-rt = "0.7"
-cortex-m = { version = "0.7", features = ["inline-asm"] }
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 
-embassy = { version = "0.1.0", default-features = false }
+embassy-executor = { version = "0.1.0", default-features = false }
 embassy-rp = { version = "0.1.0", default-features = false }

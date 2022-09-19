@@ -21,9 +21,11 @@ fn main() -> ! {
         }
     */
 
-    let mut bl: BootLoader<ERASE_SIZE> = BootLoader::default();
+    let mut bl: BootLoader<ERASE_SIZE, 4> = BootLoader::default();
     let mut flash = Flash::unlock(p.FLASH);
-    let start = bl.prepare(&mut SingleFlashProvider::new(&mut flash));
+    let start = bl.prepare(&mut SingleFlashConfig::new(
+        &mut BootFlash::<_, ERASE_SIZE>::new(&mut flash),
+    ));
     core::mem::drop(flash);
     unsafe { bl.load(start) }
 }

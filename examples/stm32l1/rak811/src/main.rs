@@ -15,14 +15,13 @@ use drogue_device::{
     *,
 };
 use drogue_lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig, TimeTrigger};
-use embassy::executor::Spawner;
-use embassy::time::Duration;
-use embassy::util::Forever;
-use embassy_stm32::Peripherals;
+use embassy_executor::Spawner;
+use embassy_time::Duration;
+use static_cell::StaticCell;
 
 bind_bsp!(Rak811, BSP);
 
-static DEVICE: Forever<LoraDevice<BSP>> = Forever::new();
+static DEVICE: StaticCell<LoraDevice<BSP>> = StaticCell::new();
 
 impl LoraBoard for BSP {
     type JoinLed = LedRed;
@@ -32,9 +31,9 @@ impl LoraBoard for BSP {
     type Driver = Device<Radio, Rng>;
 }
 
-#[embassy::main(config = "Rak811::config()")]
-async fn main(spawner: Spawner, p: Peripherals) {
-    let board = Rak811::new(p);
+#[embassy_executor::main]
+async fn main(spawner: Spawner) {
+    let board = Rak811::new(embassy_stm32::init(Default::default()));
 
     let config = LoraConfig::new()
         .region(LoraRegion::EU868)
@@ -61,5 +60,5 @@ async fn main(spawner: Spawner, p: Peripherals) {
         send_trigger: TimeTrigger(Duration::from_secs(60)),
         driver: lora,
     };
-    DEVICE.put(LoraDevice::new()).mount(spawner, config).await;
+    DEVICE.init(LoraDevice::new()).mount(spawner, config).await;
 }

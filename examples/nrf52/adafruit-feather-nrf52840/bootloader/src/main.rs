@@ -13,7 +13,6 @@ use embassy_nrf::nvmc::Nvmc;
 
 #[entry]
 fn main() -> ! {
-    let p = embassy_nrf::init(Default::default());
 
     // Uncomment this if you are debugging the bootloader with debugger/RTT attached,
     // as it prevents a hard fault when accessing flash 'too early' after boot.
@@ -23,70 +22,41 @@ fn main() -> ! {
     }
     */
 
-    let board = AdafruitFeatherNrf52840::new(p);
     let mut bl = BootLoader::default();
-    let q = board.external_flash.configure();
-    let mut provider = ExampleFlashProvider {
-        nvmc: NvmcFlashConfig {
-            nvmc: WatchdogFlash::start(Nvmc::new(board.nvmc), board.wdt, 5),
-        },
-        qspi: QspiFlashConfig { qspi: q },
-    };
+    let p = embassy_nrf::init(Default::default());
+    let board = AdafruitFeatherNrf52840::new(p);
 
-    let start = bl.prepare(&mut provider);
-    core::mem::drop(provider);
+    let start = {
+        let start = bl.prepare(&mut ExampleFlashConfig {
+            nvmc: &mut BootFlash::new(&mut WatchdogFlash::start(Nvmc::new(board.nvmc), board.wdt, 5)),
+            qspi: &mut BootFlash::new(&mut board.external_flash.configure()),
+        });
+        start
+    };
 
     unsafe { bl.load(start) }
 }
 
-pub struct ExampleFlashProvider<'d> {
-    nvmc: NvmcFlashConfig<'d>,
-    qspi: QspiFlashConfig<'d>,
+pub struct ExampleFlashConfig<'d> {
+    nvmc: &'d mut BootFlash<'d, WatchdogFlash<'d>, 4096>,
+    qspi: &'d mut BootFlash<'d, ExternalFlash<'d>, EXTERNAL_FLASH_BLOCK_SIZE>,
 }
 
-pub struct NvmcFlashConfig<'d> {
-    nvmc: WatchdogFlash<'d>,
-}
-
-impl<'d> FlashConfig for NvmcFlashConfig<'d> {
-    type FLASH = WatchdogFlash<'d>;
-    const ERASE_VALUE: u8 = 0xFF;
-    const BLOCK_SIZE: usize = 4096;
-
-    fn flash(&mut self) -> &mut Self::FLASH {
-        &mut self.nvmc
-    }
-}
-
-pub struct QspiFlashConfig<'d> {
-    qspi: ExternalFlash<'d>,
-}
-
-impl<'d> FlashConfig for QspiFlashConfig<'d> {
-    type FLASH = ExternalFlash<'d>;
-    const ERASE_VALUE: u8 = 0xFF;
-    const BLOCK_SIZE: usize = EXTERNAL_FLASH_BLOCK_SIZE;
-
-    fn flash(&mut self) -> &mut Self::FLASH {
-        &mut self.qspi
-    }
-}
-
-impl<'d> FlashProvider for ExampleFlashProvider<'d> {
-    type STATE = NvmcFlashConfig<'d>;
-    type ACTIVE = NvmcFlashConfig<'d>;
-    type DFU = QspiFlashConfig<'d>;
+impl<'d> FlashConfig for ExampleFlashConfig<'d> {
+    type STATE = BootFlash<'d, WatchdogFlash<'d>, 4096>;
+    type ACTIVE = BootFlash<'d, WatchdogFlash<'d>, 4096>;
+    type DFU = BootFlash<'d, ExternalFlash<'d>, EXTERNAL_FLASH_BLOCK_SIZE>;
 
     fn active(&mut self) -> &mut Self::ACTIVE {
-        &mut self.nvmc
+        self.nvmc
     }
 
     fn state(&mut self) -> &mut Self::STATE {
-        &mut self.nvmc
+        self.nvmc
     }
 
     fn dfu(&mut self) -> &mut Self::DFU {
-        &mut self.qspi
+        self.qspi
     }
 }
 

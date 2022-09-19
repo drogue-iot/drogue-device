@@ -8,7 +8,7 @@ use embassy_stm32::peripherals::{
     DMA1_CH2, DMA1_CH3, PA15, PA5, PB2, PB4, PB5, PB6, PC0, RNG, SPI1,
 };
 use embassy_stm32::spi;
-use embassy_stm32::time::U32Ext;
+use embassy_stm32::time::hz;
 
 pub type PinLedRed = Output<'static, PB5>;
 pub type LedRed = Led<PinLedRed, ActiveHigh>;
@@ -74,7 +74,7 @@ impl Board for LoraDiscovery {
             p.PA6,
             p.DMA1_CH3,
             p.DMA1_CH2,
-            200_000.hz(),
+            hz(200_000),
             spi::Config::default(),
         );
 

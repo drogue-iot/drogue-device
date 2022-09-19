@@ -1,6 +1,5 @@
 use crate::bsp::Board;
 use crate::drivers::led::{ActiveHigh, Led};
-use embassy::time::{block_for, Duration};
 use embassy_lora::sx127x::*;
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
@@ -9,7 +8,8 @@ use embassy_stm32::peripherals::{
     DMA1_CH2, DMA1_CH3, PA11, PA12, PA4, PB0, PB13, PB6, PB7, PH1, SPI1,
 };
 use embassy_stm32::spi;
-use embassy_stm32::time::U32Ext;
+use embassy_stm32::time::hz;
+use embassy_time::{block_for, Duration};
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
 
@@ -99,7 +99,7 @@ impl Board for Rak811 {
             p.PA6,
             p.DMA1_CH3,
             p.DMA1_CH2,
-            200_000.hz(),
+            hz(200_000),
             spi::Config::default(),
         );
 

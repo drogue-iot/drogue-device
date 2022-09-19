@@ -15,18 +15,20 @@ defmt = "0.3"
 defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
+static_cell = "1"
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 drogue-device = { path = "../../../../device", features = ["defmt", "tcp+smoltcp", "tls", "bsp+nucleo_h743zi"], default-features = false }
 ector = { version = "0.1.0", default-features = false }
 embedded-tls = { version = "0.8.0", default-features = false, features = ["async", "defmt"]}
 drogue-temperature = { path = "../../../apps/temperature", features = ["defmt", "tls"], default-features = false}
-cortex-m-rt = "0.7"
-cortex-m = { version = "0.7", features = ["inline-asm"] }
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
+cortex-m-rt = { version = "0.7" }
 heapless = "0.7"
 void = { version = "1", default-features = false }
 critical-section = "0.2.5"
 rand_core = "0.6.3"
 
-embassy = { version = "0.1.0", default-features = false, features = ["time-tick-32768hz"] }
+embassy-executor = { version = "0.1.0", default-features = false, features = ["integrated-timers"] }
+embassy-time = { version = "0.1.0", default-features = false }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32h743zi", "defmt", "memory-x", "net", "time-driver-any", "unstable-traits", "unstable-pac", "nightly"] }
-embassy-net = { version = "0.1.0", default-features = false, features = ["defmt"] }
+embassy-net = { version = "0.1.0", default-features = false, features = ["defmt", "nightly", "unstable-traits"] }

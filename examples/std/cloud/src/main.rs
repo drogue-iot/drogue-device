@@ -6,12 +6,12 @@ use async_io::Async;
 use core::future::Future;
 use drogue_device::domain::temperature::Celsius;
 use drogue_temperature::*;
-use embassy::time::Duration;
-use embassy::util::Forever;
+use embassy_time::Duration;
 use embedded_io::adapters::FromFutures;
 use embedded_nal_async::*;
 use futures::io::BufReader;
 use rand::rngs::OsRng;
+use static_cell::StaticCell;
 use std::net::TcpStream;
 
 pub struct StdBoard;
@@ -25,17 +25,17 @@ impl TemperatureBoard for StdBoard {
     type Rng = OsRng;
 }
 
-static DEVICE: Forever<TemperatureDevice<StdBoard>> = Forever::new();
+static DEVICE: StaticCell<TemperatureDevice<StdBoard>> = StaticCell::new();
 
-#[embassy::main]
-async fn main(spawner: embassy::executor::Spawner) {
+#[embassy_executor::main]
+async fn main(spawner: embassy_executor::Spawner) {
     env_logger::builder()
         .filter_level(log::LevelFilter::Trace)
         .format_timestamp_nanos()
         .init();
 
     DEVICE
-        .put(TemperatureDevice::new())
+        .init(TemperatureDevice::new())
         .mount(
             spawner,
             OsRng,

@@ -1,9 +1,6 @@
 use crate::bsp::Board;
 use crate::drivers::button::Button;
 use crate::drivers::led::{ActiveHigh, ActiveLow, Led};
-use crate::drivers::wifi::eswifi::{
-    EsWifi as WifiDriver, EsWifiSocket as WifiSocket, SharedEsWifi as SharedWifi,
-};
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::flash::Flash;
 use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
@@ -18,6 +15,7 @@ use embassy_stm32::rng;
 use embassy_stm32::spi;
 use embassy_stm32::time::Hertz;
 use embassy_stm32::Config;
+use es_wifi_driver::{EsWifi as WifiDriver, EsWifiSocket as WifiSocket};
 
 pub type PinLedBlue = Output<'static, PA5>;
 pub type LedBlue = Led<PinLedBlue, ActiveHigh>;
@@ -42,8 +40,7 @@ type SPI = spi::Spi<'static, SPI3, DMA2_CH2, DMA2_CH1>;
 type SpiError = spi::Error;
 
 pub type EsWifi = WifiDriver<SPI, WifiCs, WifiReset, WifiWake, WifiReady>;
-pub type SharedEsWifi = SharedWifi<'static, SPI, WifiCs, WifiReset, WifiWake, WifiReady>;
-pub type EsWifiSocket = WifiSocket<'static, SPI, WifiCs, WifiReset, WifiWake, WifiReady>;
+pub type EsWifiSocket<'d> = WifiSocket<'d, SPI, WifiCs, WifiReset, WifiWake, WifiReady>;
 
 pub struct Iot01a {
     pub led_blue: LedBlue,
@@ -87,6 +84,7 @@ impl Board for Iot01a {
             p.DMA1_CH4,
             p.DMA1_CH5,
             Hertz(100_000),
+            Default::default(),
         );
 
         let hts221_ready_pin = Input::new(p.PD15, Pull::Down);

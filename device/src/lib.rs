@@ -32,7 +32,7 @@
 //! ### A basic blinky application
 //!
 //! ~~~rust
-//! #[embassy::main]
+//! #[embassy_executor::main]
 //! async fn main(_spawner: Spawner, p: Peripherals) {
 //!     let mut led = Output::new(p.P0_13, Level::Low, OutputDrive::Standard);
 //!     loop {

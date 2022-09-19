@@ -11,10 +11,14 @@ version = "0.1.0"
 doctest = false
 
 [dependencies]
-embassy = { version = "0.1.0", default-features = false, features = ["executor-agnostic", "nightly"] }
+embassy-executor = { version = "0.1.0", default-features = false, features = ["nightly", "integrated-timers"] }
+embassy-time = { version = "0.1.0", default-features = false, features = ["nightly"] }
+embassy-sync = { version = "0.1.0", default-features = false, features = ["nightly"] }
+embassy-futures = "0.1.0"
+static_cell = "1"
 
 # LoRa dependencies
-lorawan-device = { version = "0.7.1", default-features = false, features = ["async"], optional = true }
+lorawan-device = { version = "0.8", default-features = false, features = ["async"], optional = true }
 lorawan-encoding = { package = "lorawan", version = "0.7.1", default-features = false, features = ["default-crypto"], optional = true }
 #lorawan-encoding = { path = "../../../rust-lorawan/encoding", default-features = false, features = ["default-crypto", "defmt"], optional = true }
 #lorawan-device = { path = "../../../rust-lorawan/device", default-features = false, optional = true, features = ["withdefmt", "async"] }
@@ -24,7 +28,7 @@ embassy-stm32 = { version = "0.1.0", default-features = false, features = ["exti
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["unstable-traits", "nightly"], optional = true }
 embassy-embedded-hal = { version = "0.1.0", default-features = false }
 embassy-hal-common = { version = "0.1.0", default-features = false }
-embassy-lora = { version = "0.1.0", default-features = false, optional = true }
+embassy-lora = { version = "0.1.0", default-features = false, features = ["time"], optional = true }
 embassy-net = { version = "0.1.0", default-features = false, optional = true, features= ["tcp", "medium-ethernet", "pool-16", "proto-ipv6", "dhcpv4" ]}
 #embassy-traits = { version = "0.1.0", default-features = false, optional = true }
 #embassy-stm32 = {path = "../../../embassy/embassy-stm32", default-features = false, optional = true }
@@ -35,6 +39,7 @@ nrf-softdevice-s140 = { version = "0.1.0", optional=true }
 # Wifi Dependencies
 nom = { version = "6", default-features = false, optional = true }
 moveslice = { version = "2.0", optional = true }
+es-wifi-driver = { git = "https://github.com/lulf/es-wifi-driver.git", default-features = false, branch = "main", optional = true }
 
 # Networking dependencies
 embedded-nal = "0.6.0"
@@ -59,8 +64,8 @@ embedded-hal = { version = "0.2", features = ["unproven"] }
 embedded-hal-1 = { package = "embedded-hal", version = "1.0.0-alpha.8"}
 embedded-hal-async = { version = "0.1.0-alpha.1" }
 embedded-io = { version = "0.3.0", features = ["async"] }
-atomic-polyfill = "0.1"
-critical-section = "0.2.5"
+atomic-polyfill = "1"
+critical-section = "1"
 
 # Logging alternatives
 log = { version = "0.4", optional = true }
@@ -97,8 +102,10 @@ serde_cbor = { version = "0.11", optional = true, default-features = false }
 
 [dev-dependencies]
 ector = { version = "0.1.0", features = ["std"] }
-embassy = { version = "0.1.0", features = ["std", "time", "time-tick-1mhz"]}
-#embassy = {path = "../../../embassy/embassy", features = ["std", "time", "time-tick-1mhz"]}
+embassy-executor = { version = "0.1.0", features = ["std", "integrated-timers"]}
+embassy-time = { version = "0.1.0", features = ["std", "tick-hz-1_000_000"]}
+#embassy-executor = {path = "../../../embassy/embassy-executor", features = ["std", "integrated-timers"]}
+#embassy-time = {path = "../../../embassy/embassy-time", features = ["std", "tick-1mhz"]}
 
 futures = { version = "0.3", default-features = false, features = ["executor"] }
 arrayvec = { version = "0.6" }
@@ -107,16 +114,17 @@ arrayvec = { version = "0.6" }
 default = [ "std", "log", "time" ]
 defmt = [
     "dep:defmt",
-    "embassy/defmt",
+    "embassy-executor/defmt",
+    "embassy-sync/defmt",
     "embedded-tls/defmt",
 ]
-std = ["embassy/std", "embassy/time", "ector/std", "embedded-io/std", "serde_cbor/std"]
+std = ["embassy-executor/std", "ector/std", "embedded-io/std", "serde_cbor/std"]
 "lora+rak811" = ["nom", "moveslice"]
 "wifi+esp8266" = ["nom", "moveslice"]
 "tcp+smoltcp" = ["embassy-net" ]
-"wifi+eswifi" = ["nom", "moveslice"]
+"wifi+eswifi" = ["es-wifi-driver"]
 time = []
-lora = ["embassy-lora", "lorawan-device", "lorawan-encoding", "embassy/time"]
+lora = ["embassy-lora", "lorawan-device", "lorawan-encoding"]
 wifi = []
 tls = ["embedded-tls"]
 dfu = ["embassy-boot", "postcard", "serde", "serde_cbor"]

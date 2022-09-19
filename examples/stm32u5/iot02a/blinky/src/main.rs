@@ -7,8 +7,7 @@
 
 use drogue_blinky_app::{BlinkyBoard, BlinkyConfiguration, BlinkyDevice};
 use drogue_device::{bind_bsp, Board};
-use embassy::util::Forever;
-use embassy_stm32::Peripherals;
+use static_cell::StaticCell;
 
 use defmt_rtt as _;
 use drogue_device::bsp::boards::stm32u5::b_u585i_iot02a::{Iot02a, LedRed, UserButton};
@@ -25,15 +24,18 @@ impl BlinkyBoard for BSP {
     type ControlButton = UserButton;
 }
 
-static DEVICE: Forever<BlinkyDevice<BSP>> = Forever::new();
+static DEVICE: StaticCell<BlinkyDevice<BSP>> = StaticCell::new();
 
-#[embassy::main]
-async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
-    let board = BSP::new(p);
+#[embassy_executor::main]
+async fn main(spawner: embassy_executor::Spawner) {
+    let board = BSP::new(embassy_stm32::init(Default::default()));
 
     let config = BlinkyConfiguration {
         led: board.0.led_red,
         control_button: board.0.user_button,
     };
-    DEVICE.put(BlinkyDevice::new()).mount(spawner, config).await;
+    DEVICE
+        .init(BlinkyDevice::new())
+        .mount(spawner, config)
+        .await;
 }

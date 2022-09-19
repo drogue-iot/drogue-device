@@ -1,8 +1,6 @@
 use crate::bsp::Board;
 use crate::drivers::button::Button;
 use crate::drivers::led::{ActiveHigh, Led};
-#[allow(unused_imports)]
-use embassy::util::Forever;
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
 #[allow(unused_imports)]
@@ -10,6 +8,8 @@ use embassy_stm32::interrupt;
 use embassy_stm32::peripherals::{PB0, PB14, PC13, PE1, RNG};
 use embassy_stm32::rng::Rng as HalRng;
 use embassy_stm32::Config;
+#[allow(unused_imports)]
+use static_cell::StaticCell;
 
 #[cfg(feature = "embassy-net")]
 use embassy_stm32::eth::generic_smi::GenericSMI;
@@ -60,10 +60,10 @@ impl Board for NucleoH743 {
     fn new(p: Self::Peripherals) -> Self {
         #[cfg(feature = "embassy-net")]
         let eth = unsafe {
-            static ETH_STATE: Forever<State<'static, ETH, 4, 4>> = Forever::new();
+            static ETH_STATE: StaticCell<State<'static, ETH, 4, 4>> = StaticCell::new();
             let eth_int = interrupt::take!(ETH);
             let mac_addr = [0x10; 6];
-            let state = ETH_STATE.put(State::new());
+            let state = ETH_STATE.init(State::new());
             Ethernet::new(
                 state, p.ETH, eth_int, p.PA1, p.PA2, p.PC1, p.PA7, p.PC4, p.PC5, p.PG13, p.PB13,
                 p.PG11, GenericSMI, mac_addr, 0,

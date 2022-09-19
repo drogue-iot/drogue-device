@@ -12,15 +12,16 @@ use drogue_device::{
     bind_bsp,
     bsp::{boards::stm32h7::nucleo_h743zi::*, Board},
     domain::temperature::Celsius,
-    drivers::tcp::smoltcp::*,
 };
 use drogue_temperature::*;
-use embassy::util::Forever;
-use embassy_net::{Stack, StackResources};
+use embassy_net::{
+    tcp::client::{TcpClient, TcpClientState},
+    Stack, StackResources,
+};
 use embassy_stm32::peripherals::RNG;
 use embassy_stm32::rng::Rng;
-use embassy_stm32::Peripherals;
 use rand_core::RngCore;
+use static_cell::StaticCell;
 
 // Creates a newtype named `BSP` around the `NucleoH743` to avoid
 // orphan rules and apply delegation boilerplate.
@@ -35,18 +36,18 @@ impl TemperatureBoard for BSP {
     type Rng = Rng<'static, RNG>;
 }
 
-static DEVICE: Forever<TemperatureDevice<BSP>> = Forever::new();
-static RESOURCES: Forever<StackResources<1, 2, 8>> = Forever::new();
-static STACK: Forever<Stack<EthernetDevice>> = Forever::new();
+static DEVICE: StaticCell<TemperatureDevice<BSP>> = StaticCell::new();
+static RESOURCES: StaticCell<StackResources<1, 2, 8>> = StaticCell::new();
+static STACK: StaticCell<Stack<EthernetDevice>> = StaticCell::new();
 
-#[embassy::task]
+#[embassy_executor::task]
 async fn net_task(stack: &'static Stack<EthernetDevice>) -> ! {
     stack.run().await
 }
 
-#[embassy::main]
-async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
-    let board = NucleoH743::new(p);
+#[embassy_executor::main]
+async fn main(spawner: embassy_executor::Spawner) {
+    let board = NucleoH743::new(embassy_stm32::init(Default::default()));
 
     // Generate random seed.
     let mut rng = board.rng;
@@ -56,17 +57,16 @@ async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
 
     let config = embassy_net::ConfigStrategy::Dhcp;
 
-    let resources = RESOURCES.put(StackResources::new());
+    let resources = RESOURCES.init(StackResources::new());
 
-    let stack = STACK.put(Stack::new(board.eth, config, resources, seed));
+    let stack = STACK.init(Stack::new(board.eth, config, resources, seed));
     spawner.spawn(net_task(stack)).unwrap();
 
-    static mut TX: Pool<[u8; 1024], 1> = Pool::new();
-    static mut RX: Pool<[u8; 1024], 1> = Pool::new();
-    let network = TcpClient::new(stack, unsafe { &mut TX }, unsafe { &mut RX });
+    static mut STATE: TcpClientState<1, 1024, 1024> = TcpClientState::new();
+    let network = TcpClient::new(stack, unsafe { &mut STATE });
 
     DEVICE
-        .put(TemperatureDevice::new())
+        .init(TemperatureDevice::new())
         .mount(
             spawner,
             rng,

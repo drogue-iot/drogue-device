@@ -21,12 +21,13 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 drogue-device = { path = "../../../device", features = ["defmt", "lora", "bsp+b_l072z_lrwan1"], default-features = false }
 drogue-lorawan-app = { path = "../../apps/lorawan" }
 cortex-m-rt = "0.7"
-cortex-m = { version = "0.7", features = ["inline-asm"] }
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 heapless = "0.6"
 void = { version = "1", default-features = false }
 rand_core = { version = "0.6", default-features = false }
+static_cell = "1"
 
-embassy = { version = "0.1.0", default-features = false, features = ["time-tick-32768hz"] }
+embassy-executor = { version = "0.1.0", default-features = false }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["stm32l072cz", "time-driver-any", "memory-x"] }
 embassy-lora = { version = "0.1.0", default-features = false, features = ["sx127x"] }
 
@@ -42,12 +43,14 @@ incremental = false
 overflow-checks = false
 
 [patch.crates-io]
-embassy = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
-embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "6baddaf53982b75149cb7e91280c571f7fe2e7bc" }
-ector = { git = "https://github.com/drogue-iot/ector.git", rev = "63c08489da17ff92c493f21411411ce5ddd6154a" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+ector = { git = "https://github.com/drogue-iot/ector.git", rev = "794fba65755dc34490be7e4d860ea3703e2b5466" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
 
-# embassy = { path = "../../../../../embassy/embassy" }
+# embassy-executor = { path = "../../../../../embassy/embassy" }
 # embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }

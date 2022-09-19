@@ -15,8 +15,6 @@
 *** xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter]
 *** xref:examples/stm32l4/iot01a/wifi/README.adoc[STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi]
 ** Display
-*** xref:examples/nrf52/microbit/compass/README.adoc[BBC micro:bit v2 compass showing direction in led display]
-*** xref:examples/nrf52/microbit/jukebox/README.adoc[BBC micro:bit v2 disco jukebox and light show]
 *** xref:examples/stm32h7/nucleo-h743zi/epd/README.adoc[STM32 Nucleo-H743 7-color e-paper display]
 ** Lorawan
 *** xref:examples/std/rak811/README.adoc[RAK811 LoRa Adapter with AT command firmware]

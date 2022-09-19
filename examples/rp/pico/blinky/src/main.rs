@@ -11,13 +11,13 @@ use ector::*;
 use embassy_rp::{
     gpio::{Level, Output},
     peripherals::PIN_25,
-    Peripherals,
 };
 
 use panic_probe as _;
 
-#[embassy::main]
-async fn main(spawner: embassy::executor::Spawner, p: Peripherals) {
+#[embassy_executor::main]
+async fn main(spawner: embassy_executor::Spawner) {
+    let p = embassy_rp::init(Default::default());
     static LED: ActorContext<actors::led::Led<drivers::led::Led<Output<'static, PIN_25>>>> =
         ActorContext::new();
     let led = LED.mount(

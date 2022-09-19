@@ -20,14 +20,15 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 
 drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "time", "bsp+b_u585i_iot02a"] }
 cortex-m-rt = "0.7"
-cortex-m = "0.7"
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
+static_cell = "1"
 
 drogue-blinky-app = { path = "../../../apps/blinky" }
 embedded-tls = { version = "0.8.0", default-features = false, features = ["async", "defmt"], optional = true}
 cfg-if = "1.0.0"
 
-atomic-polyfill = "0.1"
-embassy = { version = "0.1.0", default-features = false, features=["defmt", "time", "time-tick-32768hz"] }
+atomic-polyfill = "1"
+embassy-executor = { version = "0.1.0", default-features = false, features=["defmt"] }
 embassy-stm32 = {version = "0.1.0", default-features = false, features = ["defmt", "time-driver-any", "memory-x"] }
 #drogue-temperature = { path = "../../../apps/temperature", features = ["defmt"] }
 

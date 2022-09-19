@@ -7,13 +7,13 @@ mod serial;
 use async_io::Async;
 use drogue_device::{domain::temperature::Celsius, drivers::wifi::esp8266::*, *};
 use drogue_temperature::*;
-use embassy::time::Duration;
-use embassy::util::Forever;
+use embassy_time::Duration;
 use embedded_hal::digital::v2::OutputPin;
 use embedded_io::adapters::FromFutures;
 use futures::io::BufReader;
 use nix::sys::termios;
 use serial::*;
+use static_cell::StaticCell;
 
 const WIFI_SSID: &str = drogue::config!("wifi-ssid");
 const WIFI_PSK: &str = drogue::config!("wifi-password");
@@ -33,10 +33,10 @@ impl TemperatureBoard for StdBoard {
     type Rng = rand::rngs::OsRng;
 }
 
-static DEVICE: Forever<TemperatureDevice<StdBoard>> = Forever::new();
+static DEVICE: StaticCell<TemperatureDevice<StdBoard>> = StaticCell::new();
 
-#[embassy::main]
-async fn main(spawner: embassy::executor::Spawner) {
+#[embassy_executor::main]
+async fn main(spawner: embassy_executor::Spawner) {
     env_logger::builder()
         .filter_level(log::LevelFilter::Trace)
         .format_timestamp_nanos()
@@ -49,14 +49,14 @@ async fn main(spawner: embassy::executor::Spawner) {
     let port = FromFutures::new(port);
 
     let network = Esp8266Modem::new(port, DummyPin, DummyPin);
-    static NETWORK: Forever<Esp8266Modem<SERIAL, ENABLE, RESET, 1>> = Forever::new();
-    let network = NETWORK.put(network);
+    static NETWORK: StaticCell<Esp8266Modem<SERIAL, ENABLE, RESET, 1>> = StaticCell::new();
+    let network = NETWORK.init(network);
     spawner
         .spawn(net_task(network, WIFI_SSID.trim_end(), WIFI_PSK.trim_end()))
         .unwrap();
 
     DEVICE
-        .put(TemperatureDevice::new())
+        .init(TemperatureDevice::new())
         .mount(
             spawner,
             rand::rngs::OsRng,
@@ -70,7 +70,7 @@ async fn main(spawner: embassy::executor::Spawner) {
         .await;
 }
 
-#[embassy::task]
+#[embassy_executor::task]
 async fn net_task(
     modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1>,
     ssid: &'static str,
