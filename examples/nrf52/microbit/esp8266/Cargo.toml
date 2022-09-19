@@ -1,9 +1,41 @@
-[workspace]
-members = [
-    "http",
-    "mqtt",
+[package]
+authors = [
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Bob McWhirter <bmcwhirt@redhat.com>",
+    "Ondrej Babec <ond.babec@gmail.com>"
 ]
+edition = "2018"
+name = "microbit-esp8266-mqtt"
+version = "0.1.0"
+description = "BBC micro:bit v2 + ESP8266 WiFi adapter + MQTT"
+keywords = ["networking", "wifi", "esp8266", "microbit", "nrf", "nrf52", "cloud", "mqtt"]
 resolver = "2"
+
+[workspace]
+
+[dependencies]
+defmt = "0.3"
+defmt-rtt = "0.3"
+panic-probe = { version = "0.3", features = ["print-defmt"] }
+
+rand_core = { version = "0.6.2", default-features = false }
+
+drogue-device = { path = "../../../../device", features = ["wifi+esp8266", "defmt", "time", "tls"], default-features = false }
+microbit-bsp = { path = "../../../../boards/microbit" }
+embedded-tls = { version = "0.8.0", default-features = false, features = ["async", "defmt"]}
+static_cell = "1"
+cortex-m-rt = "0.7"
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
+fixed = "1.10.0"
+nrf52833-pac = "0.11.0"
+ector = { version = "0.1.0", default-features = false }
+
+embedded-nal-async = "0.2.0"
+embassy-executor = { version = "0.1.0", default-features = false, features = ["defmt", "integrated-timers"] }
+embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "time-driver-rtc1", "gpiote"]}
+embassy-time = { version = "0.1.0", default-features = false }
+cfg-if = "1.0.0"
+rust-mqtt = { version = "0.1.4", default-features = false, features = ["defmt", "tls"] }
 
 [profile.dev]
 codegen-units = 1

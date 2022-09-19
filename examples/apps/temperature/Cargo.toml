@@ -12,7 +12,7 @@ keywords = ["ignore"]
 [dependencies]
 embassy-executor = { version = "0.1.0", default-features = false }
 embassy-time = { version = "0.1.0", default-features = false }
-drogue-device = { path = "../../../device", default-features = false }
+drogue-device = { path = "../../../device", default-features = false, features = ["actors"] }
 embedded-hal = { version = "0.2", features = ["unproven"] }
 defmt = { version = "0.3", optional = true }
 static_cell = "1"

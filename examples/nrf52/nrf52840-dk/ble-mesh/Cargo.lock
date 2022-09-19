@@ -263,7 +263,6 @@ checksum = "70858629a458fdfd39f9675c4dc309411f2a3f83bede76988d81bf1a0ecee9e0"
 dependencies = [
  "bare-metal 0.2.5",
  "bitfield",
- "critical-section 1.1.1",
  "embedded-hal 0.2.7",
  "volatile-register",
 ]
@@ -540,12 +539,10 @@ dependencies = [
  "critical-section 1.1.1",
  "defmt",
  "drogue-device-macros",
- "ector",
  "embassy-embedded-hal",
  "embassy-executor",
  "embassy-futures 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "embassy-hal-common",
- "embassy-nrf",
  "embassy-sync",
  "embassy-time",
  "embedded-hal 0.2.7",
@@ -674,9 +671,7 @@ dependencies = [
  "embassy-sync",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.8",
- "embedded-hal-async",
  "embedded-storage",
- "embedded-storage-async",
  "nb 1.0.0",
 ]
 
@@ -743,11 +738,8 @@ dependencies = [
  "embassy-time",
  "embassy-usb",
  "embedded-hal 0.2.7",
- "embedded-hal 1.0.0-alpha.8",
- "embedded-hal-async",
  "embedded-io",
  "embedded-storage",
- "embedded-storage-async",
  "fixed",
  "futures",
  "nrf52840-pac",
@@ -1166,9 +1158,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.132"
+version = "0.2.133"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8371e4e5341c3a96db127eb2465ac681ced4c433e01dd0e938adbef26ba93ba5"
+checksum = "c0f80d65747a3e43d1596c7c5492d95d5edddaabd45a7fcdb02b95f644164966"
 
 [[package]]
 name = "linked-hash-map"

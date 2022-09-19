@@ -17,7 +17,7 @@ defmt = { version = "0.3" }
 defmt-rtt = { version = "0.3", optional = true }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 
-drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "time", "bsp+microbit", "ble+nrf52840", "ble-mesh-relay"] }
+drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "time", "ble+nrf52840", "ble-mesh-relay"] }
 
 embassy-executor = { version = "0.1.0", default-features = false, features = [] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52840", "gpiote", "time-driver-rtc1"]}

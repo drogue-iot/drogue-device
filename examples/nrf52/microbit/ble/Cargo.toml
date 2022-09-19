@@ -18,7 +18,8 @@ panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 panic-reset = { version = "0.1.1", optional = true }
 static_cell = "1"
 
-drogue-device = { version = "0.1.0", path = "../../../../device", default-features = false, features = ["time", "bsp+microbit", "ble+nrf52833", "ble+nrf-softdevice-s113", "dfu"] }
+drogue-device = { version = "0.1.0", path = "../../../../device", default-features = false, features = ["time", "ble+nrf52833", "ble+nrf-softdevice-s113", "dfu"] }
+microbit-bsp = { version = "0.1.0", path = "../../../../boards/microbit" }
 
 embassy-boot-nrf = { version = "0.1.0", default-features = false, features = ["softdevice"] }
 embassy-executor = { version = "0.1.0", default-features = false, features = ["integrated-timers"] }
@@ -49,7 +50,6 @@ debug = [
     "embassy-boot-nrf/defmt",
     "defmt-rtt",
 ]
-dfu = []
 
 [profile.dev]
 codegen-units = 1
@@ -93,7 +93,6 @@ embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "3
 nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "11c2728235bef45ba34b735e3975344e2641f0b9" }
 nrf-softdevice-s113 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "11c2728235bef45ba34b735e3975344e2641f0b9" }
 nrf-softdevice-macro = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "11c2728235bef45ba34b735e3975344e2641f0b9" }
-ector = { git = "https://github.com/drogue-iot/ector.git", rev = "794fba65755dc34490be7e4d860ea3703e2b5466" }
 embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
 embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
 

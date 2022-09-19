@@ -77,7 +77,7 @@ reqwless = "0.1"
 # Handy macros, e.g. drogue::config
 drogue-device-macros = { path = "../macros" }
 
-ector = { version = "0.1.0", default-features = false }
+ector = { version = "0.1.0", default-features = false, optional = true }
 
 # BLE-Mesh
 p256 = { version = "0.10.0", default-features = false, optional=true }
@@ -112,6 +112,7 @@ arrayvec = { version = "0.6" }
 
 [features]
 default = [ "std", "log", "time" ]
+actors = ["ector"]
 defmt = [
     "dep:defmt",
     "embassy-executor/defmt",
@@ -183,8 +184,6 @@ nrf = [
 "bsp+b_l475e_iot01a" = [ "embassy-stm32" ]
 "bsp+nucleo_h743zi" = [ "embassy-stm32" ]
 "bsp+nucleo_wl55" = [ "embassy-stm32", "embassy-stm32/subghz", "embassy-stm32/unstable-pac" ]
-"bsp+microbit" = [ "embassy-nrf", "embassy-nrf/gpiote" ]
-"bsp+microbit+temp" = ["bsp+microbit"]
 "bsp+adafruit_feather_nrf52840" = [ "nrf", "neopixel" ]
 "bsp+b_l072z_lrwan1" = [ "embassy-stm32" ]
 "bsp+rak811" = [ "embassy-stm32", "rand", "embassy-stm32/unstable-pac" ]

@@ -7,8 +7,6 @@
 #![allow(unused_variables)]
 
 use drogue_device::{
-    bsp::boards::nrf52::microbit::Microbit,
-    domain::led::matrix::Brightness,
     drivers::ble::gatt::{
         device_info::{DeviceInformationService, DeviceInformationServiceEvent},
         dfu::{FirmwareGattService, FirmwareService, FirmwareServiceEvent},
@@ -16,7 +14,6 @@ use drogue_device::{
     },
     firmware::{FirmwareManager, SharedFirmwareManager},
     shared::Shared,
-    traits::led::ToFrame,
     Board,
 };
 use embassy_executor::Spawner;
@@ -36,13 +33,13 @@ use embassy_sync::{
 use embassy_time::{Delay, Duration, Ticker, Timer};
 use futures::StreamExt;
 use heapless::Vec;
+use microbit_bsp::*;
 use nrf_softdevice::{
     ble::{gatt_server, peripheral, Connection},
     raw, temperature_celsius, Flash, Softdevice,
 };
 use static_cell::StaticCell;
 
-#[cfg(feature = "dfu")]
 use embassy_boot_nrf::FirmwareUpdater;
 
 #[cfg(feature = "panic-probe")]
@@ -67,7 +64,7 @@ fn config() -> Config {
 
 #[embassy_executor::main]
 async fn main(s: Spawner) {
-    let board = Microbit::new(embassy_nrf::init(config()));
+    let board = Microbit::new(config());
 
     // Spawn the underlying softdevice task
     let sd = enable_softdevice("Drogue Low Energy");
@@ -105,26 +102,22 @@ async fn main(s: Spawner) {
 
     // Firmware update service event channel and task
     static EVENTS: Channel<ThreadModeRawMutex, FirmwareServiceEvent, 10> = Channel::new();
-    #[cfg(feature = "dfu")]
-    {
-        // The updater is the 'application' part of the bootloader that knows where bootloader
-        // settings and the firmware update partition is located based on memory.x linker script.
-        static DFU: Shared<FirmwareManager<Flash, 4096, 64>> = Shared::new();
-        let dfu = DFU.initialize(FirmwareManager::new(
-            Flash::take(sd),
-            FirmwareUpdater::default(),
-            version.as_bytes(),
-        ));
-        let updater =
-            FirmwareGattService::new(&server.firmware, dfu.clone(), version.as_bytes(), 64)
-                .unwrap();
-        s.spawn(updater_task(updater, EVENTS.receiver().into()))
-            .unwrap();
+    // The updater is the 'application' part of the bootloader that knows where bootloader
+    // settings and the firmware update partition is located based on memory.x linker script.
+    static DFU: Shared<FirmwareManager<Flash, 4096, 64>> = Shared::new();
+    let dfu = DFU.initialize(FirmwareManager::new(
+        Flash::take(sd),
+        FirmwareUpdater::default(),
+        version.as_bytes(),
+    ));
+    let updater =
+        FirmwareGattService::new(&server.firmware, dfu.clone(), version.as_bytes(), 64).unwrap();
+    s.spawn(updater_task(updater, EVENTS.receiver().into()))
+        .unwrap();
 
-        // Watchdog will prevent bootloader from resetting. If your application hangs for more than 5 seconds
-        // (depending on bootloader config), it will enter bootloader which may swap the application back.
-        s.spawn(watchdog_task()).unwrap();
-    }
+    // Watchdog will prevent bootloader from resetting. If your application hangs for more than 5 seconds
+    // (depending on bootloader config), it will enter bootloader which may swap the application back.
+    s.spawn(watchdog_task()).unwrap();
 
     // Starts the bluetooth advertisement and GATT server
     s.spawn(advertiser_task(
@@ -138,26 +131,16 @@ async fn main(s: Spawner) {
 
     // Finally, a blinker application.
     let mut display = board.display;
-    display.set_brightness(Brightness::MAX);
+    display.set_brightness(display::Brightness::MAX);
     loop {
-        let _ = display
-            .display('A'.to_frame(), Duration::from_secs(1))
-            .await;
+        let _ = display.display('A'.into(), Duration::from_secs(1)).await;
         Timer::after(Duration::from_secs(1)).await;
     }
 }
 
-#[cfg(feature = "dfu")]
 #[nrf_softdevice::gatt_server]
 pub struct GattServer {
     pub firmware: FirmwareService,
-    pub env: EnvironmentSensingService,
-    pub device_info: DeviceInformationService,
-}
-
-#[cfg(not(feature = "dfu"))]
-#[nrf_softdevice::gatt_server]
-pub struct GattServer {
     pub env: EnvironmentSensingService,
     pub device_info: DeviceInformationService,
 }
@@ -199,7 +182,6 @@ pub async fn gatt_server_task(
                         interval.replace(Duration::from_secs(period as u64));
                     }
                 },
-                #[cfg(feature = "dfu")]
                 GattServerEvent::Firmware(e) => {
                     let _ = events.try_send(e);
                 }

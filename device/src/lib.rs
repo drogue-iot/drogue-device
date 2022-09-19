@@ -45,6 +45,7 @@
 //! ~~~
 pub(crate) mod fmt;
 
+#[cfg(feature = "actors")]
 pub mod actors;
 
 pub mod traits;

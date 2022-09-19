@@ -17,7 +17,8 @@ defmt = "0.3"
 defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
-drogue-device = { path = "../../../../../device", default-features = false, features = ["defmt", "time", "bsp+microbit"] }
+drogue-device = { path = "../../../../../device", default-features = false, features = ["defmt", "time", "actors" ] }
+microbit-bsp = { path = "../../../../../boards/microbit" }
 ector = { version = "0.1.0", default-features = false }
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }

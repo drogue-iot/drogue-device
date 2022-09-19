@@ -1,0 +1,13 @@
+[workspace]
+members = [
+    "display",
+    "ble",
+]
+
+[patch.crates-io]
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", branch = "master" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", branch = "master" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", branch = "master" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", branch = "master" }
+nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", branch = "master" }
+nrf-softdevice-s113 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", branch = "master" }

@@ -957,7 +957,7 @@ dependencies = [
 [[package]]
 name = "es-wifi-driver"
 version = "0.1.0"
-source = "git+https://github.com/lulf/es-wifi-driver.git?branch=main#bbaf763b042677339590901fc175a9ad3d2417e5"
+source = "git+https://github.com/lulf/es-wifi-driver.git?branch=main#b88554dbaf32193e6b5046a401ae9be528ed97d9"
 dependencies = [
  "embassy-sync",
  "embassy-time",
@@ -1282,9 +1282,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.132"
+version = "0.2.133"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8371e4e5341c3a96db127eb2465ac681ced4c433e01dd0e938adbef26ba93ba5"
+checksum = "c0f80d65747a3e43d1596c7c5492d95d5edddaabd45a7fcdb02b95f644164966"
 
 [[package]]
 name = "linked-hash-map"

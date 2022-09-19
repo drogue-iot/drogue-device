@@ -41,6 +41,7 @@ fn main() -> Result<(), anyhow::Error> {
 
 static WORKSPACES: &[&str] = &[
     "examples/nrf52/microbit/ble",
+    "examples/nrf52/microbit/bt-mesh",
     "examples/nrf52/microbit/bootloader",
     "examples/nrf52/microbit/esp8266",
     "examples/nrf52/adafruit-feather-nrf52840/neopixel",
@@ -59,6 +60,8 @@ static WORKSPACES: &[&str] = &[
     "examples/stm32u5/iot02a",
     "examples/wasm/browser",
     "examples/std",
+    "boards/microbit",
+    "boards/microbit/examples",
     "docs/modules/ROOT/examples/basic",
 ];
 

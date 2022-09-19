@@ -416,12 +416,10 @@ dependencies = [
  "critical-section 1.1.1",
  "defmt",
  "drogue-device-macros",
- "ector",
  "embassy-embedded-hal",
  "embassy-executor",
  "embassy-futures 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "embassy-hal-common",
- "embassy-nrf",
  "embassy-sync",
  "embassy-time",
  "embedded-hal 0.2.7",
@@ -454,30 +452,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "drogue-temperature"
-version = "0.1.0"
-dependencies = [
- "critical-section 1.1.1",
- "defmt",
- "drogue-device",
- "ector",
- "embassy-executor",
- "embassy-time",
- "embedded-hal 0.2.7",
- "embedded-hal 1.0.0-alpha.8",
- "embedded-hal-async",
- "embedded-io",
- "embedded-nal-async",
- "embedded-tls",
- "heapless",
- "rand_core",
- "reqwless",
- "serde",
- "serde-json-core",
- "static_cell",
 ]
 
 [[package]]
@@ -1004,9 +978,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.132"
+version = "0.2.133"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8371e4e5341c3a96db127eb2465ac681ced4c433e01dd0e938adbef26ba93ba5"
+checksum = "c0f80d65747a3e43d1596c7c5492d95d5edddaabd45a7fcdb02b95f644164966"
 
 [[package]]
 name = "linked-hash-map"
@@ -1025,30 +999,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "lsm303agr"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aab0b8c3a75dfdebe9f79c738458da139e8111207d176e9fb6b360117432ac4f"
+dependencies = [
+ "embedded-hal 0.2.7",
+ "nb 1.0.0",
+]
+
+[[package]]
 name = "memchr"
 version = "2.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
 
 [[package]]
-name = "microbit-esp8266-http"
+name = "microbit-bsp"
 version = "0.1.0"
 dependencies = [
- "cfg-if",
  "cortex-m",
- "cortex-m-rt",
  "defmt",
- "defmt-rtt",
- "drogue-device",
- "drogue-temperature",
- "embassy-executor",
  "embassy-nrf",
- "embedded-tls",
- "fixed",
- "nrf52833-pac",
- "panic-probe",
- "rand_core",
- "static_cell",
+ "embassy-time",
+ "embedded-hal 1.0.0-alpha.8",
+ "lsm303agr",
 ]
 
 [[package]]
@@ -1068,6 +1043,7 @@ dependencies = [
  "embedded-nal-async",
  "embedded-tls",
  "fixed",
+ "microbit-bsp",
  "nrf52833-pac",
  "panic-probe",
  "rand_core",
@@ -1345,7 +1321,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23c3c58066f1b9590fded1d4585fe13a74571572d5e270b41569fdd6b928ea8c"
 dependencies = [
  "base64",
- "defmt",
  "embedded-io",
  "heapless",
 ]
@@ -1475,17 +1450,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f747710de3dcd43b88c9168773254e809d8ddbdf9653b84e2554ab219f17860"
 dependencies = [
  "serde_derive",
-]
-
-[[package]]
-name = "serde-json-core"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8014aeea272bca0f0779778d43253f2f3375b414185b30e6ecc4d3e4a9994781"
-dependencies = [
- "heapless",
- "ryu",
- "serde",
 ]
 
 [[package]]

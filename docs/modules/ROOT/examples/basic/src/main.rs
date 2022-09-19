@@ -8,17 +8,14 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use core::convert::TryFrom;
-use drogue_device::{
-    actors::button::{Button, ButtonEvent},
-    bsp::boards::nrf52::microbit::*,
-    Board,
-};
+use drogue_device::actors::button::{Button as ButtonActor, ButtonEvent};
 use ector::{actor, spawn_actor, Actor, Address, Inbox};
 use embassy_time::{Duration, Ticker, Timer};
 use futures::{
     future::{select, Either},
     pin_mut, StreamExt,
 };
+use microbit_bsp::*;
 
 /// A simple game where the led matrix is traversed at a fixed interval and you press the button
 /// to light a red. You win when the whole board is lit.
@@ -120,11 +117,11 @@ impl Actor for Game {
 #[embassy_executor::main]
 async fn main(spawner: embassy_executor::Spawner) {
     // Using a board support package to simplify setup
-    let board = Microbit::new(embassy_nrf::init(Default::default()));
+    let board = Microbit::default();
 
     // An actor for the game logic
     let game = spawn_actor!(spawner, GAME, Game, Game::new(board.display));
 
     // Actor for button 'A'
-    spawn_actor!(spawner, BUTTON_A, Button<PinButtonA, GameMessage>, Button::new(board.btn_a, game));
+    spawn_actor!(spawner, BUTTON_A, ButtonActor<Button, GameMessage>, ButtonActor::new(board.btn_a, game));
 }
