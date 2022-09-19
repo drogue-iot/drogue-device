@@ -1,11 +1,9 @@
 use crate::traits::button::Event;
-use core::future::Future;
-use core::marker::PhantomData;
+use core::{future::Future, marker::PhantomData};
 use embedded_hal::digital::v2::InputPin;
 use embedded_hal_async::digital::Wait;
 
-pub use crate::drivers::ActiveHigh;
-pub use crate::drivers::ActiveLow;
+pub use crate::drivers::{ActiveHigh, ActiveLow};
 
 pub trait Active {
     fn is_pressed<P: InputPin>(pin: &P) -> Result<bool, P::Error>;

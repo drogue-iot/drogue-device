@@ -1,9 +1,15 @@
-use crate::bsp::Board;
-use crate::drivers::button::Button;
-use crate::drivers::led::{ActiveHigh, ActiveLow, Led};
-use embassy_stm32::exti::ExtiInput;
-use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
-use embassy_stm32::peripherals::{PC13, PE13, PH6, PH7};
+use crate::{
+    bsp::Board,
+    drivers::{
+        button::Button,
+        led::{ActiveHigh, ActiveLow, Led},
+    },
+};
+use embassy_stm32::{
+    exti::ExtiInput,
+    gpio::{Input, Level, Output, Pull, Speed},
+    peripherals::{PC13, PE13, PH6, PH7},
+};
 
 pub type PinLedBlue = Output<'static, PE13>;
 pub type LedBlue = Led<PinLedBlue, ActiveHigh>;

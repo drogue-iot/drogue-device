@@ -12,9 +12,10 @@ use panic_probe as _;
 
 use drogue_device::{drivers::wifi::esp8266::Esp8266Socket, traits::button::Button};
 
-use drogue_device::bsp::boards::nrf52::microbit::LedMatrix;
 use drogue_device::{
-    bsp::boards::nrf52::microbit::*, drivers::dns::*, drivers::wifi::esp8266::Esp8266Modem, *,
+    bsp::boards::nrf52::microbit::{LedMatrix, *},
+    drivers::{dns::*, wifi::esp8266::Esp8266Modem},
+    *,
 };
 use ector::{actor, Actor, ActorContext, Address, Inbox};
 use embassy_nrf::{
@@ -29,11 +30,13 @@ use embedded_tls::{Aes128GcmSha256, NoClock, TlsConfig, TlsConnection, TlsContex
 use static_cell::StaticCell;
 
 use embedded_nal_async::*;
-use rust_mqtt::client::client_config::MqttVersion::MQTTv5;
-use rust_mqtt::utils::rng_generator::CountingRng;
 use rust_mqtt::{
-    client::{client::MqttClient, client_config::ClientConfig},
+    client::{
+        client::MqttClient,
+        client_config::{ClientConfig, MqttVersion::MQTTv5},
+    },
     packet::v5::publish_packet::QualityOfService,
+    utils::rng_generator::CountingRng,
 };
 
 const WIFI_SSID: &str = drogue::config!("wifi-ssid");

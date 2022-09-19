@@ -1,8 +1,8 @@
-use nix::errno::Errno;
-use nix::fcntl::OFlag;
-use nix::sys::termios;
-use std::io;
-use std::os::unix::io::{AsRawFd, RawFd};
+use nix::{errno::Errno, fcntl::OFlag, sys::termios};
+use std::{
+    io,
+    os::unix::io::{AsRawFd, RawFd},
+};
 
 pub struct SerialPort {
     fd: RawFd,

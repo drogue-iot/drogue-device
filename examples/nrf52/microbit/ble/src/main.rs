@@ -6,38 +6,40 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 
-use drogue_device::drivers::ble::gatt::{
-    device_info::{DeviceInformationService, DeviceInformationServiceEvent},
-    environment::*,
-};
-use drogue_device::shared::Shared;
-use drogue_device::traits::led::ToFrame;
-use drogue_device::Board;
-use drogue_device::{bsp::boards::nrf52::microbit::Microbit, domain::led::matrix::Brightness};
 use drogue_device::{
-    drivers::ble::gatt::dfu::{FirmwareGattService, FirmwareService, FirmwareServiceEvent},
+    bsp::boards::nrf52::microbit::Microbit,
+    domain::led::matrix::Brightness,
+    drivers::ble::gatt::{
+        device_info::{DeviceInformationService, DeviceInformationServiceEvent},
+        dfu::{FirmwareGattService, FirmwareService, FirmwareServiceEvent},
+        environment::*,
+    },
     firmware::{FirmwareManager, SharedFirmwareManager},
+    shared::Shared,
+    traits::led::ToFrame,
+    Board,
 };
 use embassy_executor::Spawner;
 use embassy_futures::select::{select, Either};
-use embassy_nrf::config::Config;
-use embassy_nrf::interrupt::Priority;
 use embassy_nrf::{
     buffered_uarte::{BufferedUarte, State},
+    config::Config,
     interrupt,
+    interrupt::Priority,
     peripherals::{TIMER0, UARTE0},
     uarte,
 };
-use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
-use embassy_sync::channel::{Channel, DynamicReceiver, DynamicSender};
-use embassy_time::Delay;
-use embassy_time::Ticker;
-use embassy_time::{Duration, Timer};
+use embassy_sync::{
+    blocking_mutex::raw::ThreadModeRawMutex,
+    channel::{Channel, DynamicReceiver, DynamicSender},
+};
+use embassy_time::{Delay, Duration, Ticker, Timer};
 use futures::StreamExt;
 use heapless::Vec;
-use nrf_softdevice::ble::gatt_server;
-use nrf_softdevice::ble::peripheral;
-use nrf_softdevice::{ble::Connection, raw, temperature_celsius, Flash, Softdevice};
+use nrf_softdevice::{
+    ble::{gatt_server, peripheral, Connection},
+    raw, temperature_celsius, Flash, Softdevice,
+};
 use static_cell::StaticCell;
 
 #[cfg(feature = "dfu")]

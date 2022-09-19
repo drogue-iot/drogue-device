@@ -1,8 +1,10 @@
 //! Types and traits related to temperature.
 
-use core::fmt::{Debug, Display, Formatter};
-use core::marker::PhantomData;
-use core::ops::{Add, Div, Sub};
+use core::{
+    fmt::{Debug, Display, Formatter},
+    marker::PhantomData,
+    ops::{Add, Div, Sub},
+};
 
 /// Trait representing a temperature scale.
 pub trait TemperatureScale: Send {

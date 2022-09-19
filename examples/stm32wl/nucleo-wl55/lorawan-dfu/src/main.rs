@@ -16,9 +16,7 @@ use embassy_boot_stm32::FirmwareUpdater;
 use embassy_embedded_hal::adapter::BlockingAsync;
 use embassy_executor::Spawner;
 use embassy_stm32::flash::Flash;
-use embassy_time::Delay;
-use embassy_time::Duration;
-use embassy_time::Timer;
+use embassy_time::{Delay, Duration, Timer};
 use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
 
 #[cfg(feature = "panic-probe")]

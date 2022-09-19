@@ -1,5 +1,4 @@
-use super::parser;
-use super::protocol::Response;
+use super::{parser, protocol::Response};
 use core::str::from_utf8;
 use moveslice::Moveslice;
 

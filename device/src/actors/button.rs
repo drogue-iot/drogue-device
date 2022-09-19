@@ -1,6 +1,5 @@
 use crate::traits;
-use core::convert::TryFrom;
-use core::future::Future;
+use core::{convert::TryFrom, future::Future};
 use ector::{Actor, Address, Inbox};
 
 pub use crate::traits::button::Event as ButtonEvent;

@@ -1,17 +1,18 @@
-use crate::bsp::Board;
-use crate::drivers::led::{ActiveHigh, Led};
-use embassy_lora::sx127x::*;
-use embassy_stm32::exti::ExtiInput;
-use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
-use embassy_stm32::pac;
-use embassy_stm32::peripherals::{
-    DMA1_CH2, DMA1_CH3, PA11, PA12, PA4, PB0, PB13, PB6, PB7, PH1, SPI1,
+use crate::{
+    bsp::Board,
+    drivers::led::{ActiveHigh, Led},
 };
-use embassy_stm32::spi;
-use embassy_stm32::time::hz;
+use embassy_lora::sx127x::*;
+use embassy_stm32::{
+    exti::ExtiInput,
+    gpio::{Input, Level, Output, Pull, Speed},
+    pac,
+    peripherals::{DMA1_CH2, DMA1_CH3, PA11, PA12, PA4, PB0, PB13, PB6, PB7, PH1, SPI1},
+    spi,
+    time::hz,
+};
 use embassy_time::{block_for, Duration};
-use rand::rngs::SmallRng;
-use rand::SeedableRng;
+use rand::{rngs::SmallRng, SeedableRng};
 
 pub type PinLedRed = Output<'static, PA12>;
 pub type LedRed = Led<PinLedRed, ActiveHigh>;

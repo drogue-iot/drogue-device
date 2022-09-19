@@ -18,8 +18,7 @@ use embassy_net::{
     tcp::client::{TcpClient, TcpClientState},
     Stack, StackResources,
 };
-use embassy_stm32::peripherals::RNG;
-use embassy_stm32::rng::Rng;
+use embassy_stm32::{peripherals::RNG, rng::Rng};
 use rand_core::RngCore;
 use static_cell::StaticCell;
 

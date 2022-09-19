@@ -61,8 +61,7 @@ pub mod firmware;
 pub mod flash;
 
 pub mod bsp;
-pub use bsp::boards;
-pub use bsp::Board;
+pub use bsp::{boards, Board};
 
 #[doc(hidden)]
 pub use drogue_device_macros::{self as drogue, config, test as drogue_test};

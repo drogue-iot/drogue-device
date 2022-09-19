@@ -1,5 +1,7 @@
-use crate::domain::{temperature::TemperatureScale, SensorAcquisition};
-use crate::traits::sensors::temperature::TemperatureSensor;
+use crate::{
+    domain::{temperature::TemperatureScale, SensorAcquisition},
+    traits::sensors::temperature::TemperatureSensor,
+};
 use core::future::Future;
 use ector::{Actor, Address, Inbox};
 use embedded_hal::digital::v2::InputPin;

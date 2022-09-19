@@ -11,25 +11,29 @@ use panic_probe as _;
 use core::fmt::Write;
 use drogue_device::actors::button::{Button, ButtonEvent};
 use ector::{Actor, ActorContext, Address, Inbox};
-use embassy_stm32::dma::NoDma;
-use embassy_stm32::peripherals::*;
-use embassy_stm32::rng::Rng as Random;
-use embassy_stm32::spi::{self, Spi};
-use embassy_stm32::time::mhz;
 use embassy_stm32::{
+    dma::NoDma,
     exti::ExtiInput,
     gpio::{Input, Level, Output, Pull, Speed},
+    peripherals::*,
+    rng::Rng as Random,
+    spi::{self, Spi},
+    time::mhz,
     Config,
 };
 use embassy_time::Delay;
-use embedded_graphics::geometry::Point;
-use embedded_graphics::image::{Image, ImageRaw};
-use embedded_graphics::mono_font::MonoTextStyleBuilder;
-use embedded_graphics::pixelcolor::{Rgb888, RgbColor};
-use embedded_graphics::text::{Baseline, Text, TextStyleBuilder};
-use embedded_graphics::Drawable;
-use epd_waveshare::epd5in65f::{Display5in65f, Epd5in65f};
-use epd_waveshare::prelude::*;
+use embedded_graphics::{
+    geometry::Point,
+    image::{Image, ImageRaw},
+    mono_font::MonoTextStyleBuilder,
+    pixelcolor::{Rgb888, RgbColor},
+    text::{Baseline, Text, TextStyleBuilder},
+    Drawable,
+};
+use epd_waveshare::{
+    epd5in65f::{Display5in65f, Epd5in65f},
+    prelude::*,
+};
 use heapless::{String, Vec};
 use static_cell::StaticCell;
 use tinybmp::Bmp;

@@ -1,14 +1,16 @@
-use crate::drivers::led::neopixel::filter::Filter;
-use crate::drivers::led::neopixel::{InvalidChannel, Pixel, RES};
-use core::mem::transmute;
-use core::ops::Add;
-use core::ops::Deref;
-use core::slice;
+use crate::drivers::led::neopixel::{filter::Filter, InvalidChannel, Pixel, RES};
+use core::{
+    mem::transmute,
+    ops::{Add, Deref},
+    slice,
+};
 use embassy_hal_common::{into_ref, Peripheral};
-use embassy_nrf::gpio::Pin;
-use embassy_nrf::pwm::{
-    Config, Error, Instance, Prescaler, SequenceConfig, SequenceLoad, SequencePwm,
-    SingleSequenceMode, SingleSequencer,
+use embassy_nrf::{
+    gpio::Pin,
+    pwm::{
+        Config, Error, Instance, Prescaler, SequenceConfig, SequenceLoad, SequencePwm,
+        SingleSequenceMode, SingleSequencer,
+    },
 };
 use embassy_time::{Duration, Timer};
 

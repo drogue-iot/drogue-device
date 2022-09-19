@@ -1,12 +1,10 @@
 pub mod remote;
 
-use crate::flash::SharedFlash;
-use crate::shared::Handle;
+use crate::{flash::SharedFlash, shared::Handle};
 use core::future::Future;
 use embassy_boot::{AlignedBuffer, FirmwareUpdater};
 use embassy_embedded_hal::adapter::BlockingAsync;
-use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
-use embedded_storage::nor_flash::{NorFlashError, NorFlashErrorKind};
+use embedded_storage::nor_flash::{NorFlash, NorFlashError, NorFlashErrorKind, ReadNorFlash};
 use embedded_storage_async::nor_flash::{AsyncNorFlash, AsyncReadNorFlash};
 use embedded_update::{FirmwareDevice, FirmwareStatus};
 use heapless::Vec;

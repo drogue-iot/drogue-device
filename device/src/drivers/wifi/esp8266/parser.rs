@@ -1,14 +1,7 @@
-use nom::alt;
-use nom::char;
-use nom::character::streaming::digit1;
-use nom::do_parse;
-use nom::named;
-use nom::opt;
-use nom::tag;
-use nom::take;
-use nom::take_until;
-use nom::tuple;
-use nom::IResult;
+use nom::{
+    alt, char, character::streaming::digit1, do_parse, named, opt, tag, take, take_until, tuple,
+    IResult,
+};
 
 use embedded_nal_async::Ipv4Addr;
 

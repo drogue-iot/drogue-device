@@ -1,8 +1,7 @@
 use core::marker::PhantomData;
 use embedded_hal::digital::v2::{OutputPin, PinState};
 
-pub use crate::drivers::ActiveHigh;
-pub use crate::drivers::ActiveLow;
+pub use crate::drivers::{ActiveHigh, ActiveLow};
 
 #[cfg(feature = "time")]
 pub mod matrix;

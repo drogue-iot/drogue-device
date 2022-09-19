@@ -1,7 +1,9 @@
-use core::cell::RefCell;
-use core::future::Future;
-use core::pin::Pin;
-use core::task::{Context, Poll, Waker};
+use core::{
+    cell::RefCell,
+    future::Future,
+    pin::Pin,
+    task::{Context, Poll, Waker},
+};
 
 use heapless::spsc::Queue;
 

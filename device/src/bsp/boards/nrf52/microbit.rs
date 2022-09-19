@@ -1,9 +1,11 @@
 //use crate::actors::led::matrix::LedMatrixActor as MatrixActor;
-use crate::bsp::Board;
-use crate::drivers::{button::Button, led::matrix::LedMatrix as LedMatrixDriver, ActiveLow};
 use crate::{
-    domain::temperature::Celsius,
-    domain::{temperature::Temperature, SensorAcquisition},
+    bsp::Board,
+    domain::{
+        temperature::{Celsius, Temperature},
+        SensorAcquisition,
+    },
+    drivers::{button::Button, led::matrix::LedMatrix as LedMatrixDriver, ActiveLow},
     traits::sensors::temperature::TemperatureSensor,
 };
 use core::future::Future;

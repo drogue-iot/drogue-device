@@ -1,20 +1,24 @@
-use crate::bsp::Board;
-use crate::drivers::button::Button;
-use crate::drivers::led::{ActiveHigh, ActiveLow, Led};
-use embassy_stm32::exti::ExtiInput;
-use embassy_stm32::flash::Flash;
-use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
-use embassy_stm32::i2c;
-use embassy_stm32::interrupt;
-use embassy_stm32::peripherals::{
-    DMA1_CH4, DMA1_CH5, DMA2_CH1, DMA2_CH2, I2C2, PA5, PB13, PB14, PC13, PD15, PE0, PE1, PE8, RNG,
-    SPI3,
+use crate::{
+    bsp::Board,
+    drivers::{
+        button::Button,
+        led::{ActiveHigh, ActiveLow, Led},
+    },
 };
-use embassy_stm32::rcc::{AHBPrescaler, ClockSrc, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv};
-use embassy_stm32::rng;
-use embassy_stm32::spi;
-use embassy_stm32::time::Hertz;
-use embassy_stm32::Config;
+use embassy_stm32::{
+    exti::ExtiInput,
+    flash::Flash,
+    gpio::{Input, Level, Output, Pull, Speed},
+    i2c, interrupt,
+    peripherals::{
+        DMA1_CH4, DMA1_CH5, DMA2_CH1, DMA2_CH2, I2C2, PA5, PB13, PB14, PC13, PD15, PE0, PE1, PE8,
+        RNG, SPI3,
+    },
+    rcc::{AHBPrescaler, ClockSrc, PLLClkDiv, PLLMul, PLLSource, PLLSrcDiv},
+    rng, spi,
+    time::Hertz,
+    Config,
+};
 use es_wifi_driver::{EsWifi as WifiDriver, EsWifiSocket as WifiSocket};
 
 pub type PinLedBlue = Output<'static, PA5>;

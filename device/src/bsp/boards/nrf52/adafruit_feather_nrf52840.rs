@@ -1,7 +1,9 @@
-use crate::bsp::Board;
-use crate::drivers::{
-    button::Button,
-    led::{ActiveHigh, ActiveLow, Led},
+use crate::{
+    bsp::Board,
+    drivers::{
+        button::Button,
+        led::{ActiveHigh, ActiveLow, Led},
+    },
 };
 use embassy_nrf::{
     gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},

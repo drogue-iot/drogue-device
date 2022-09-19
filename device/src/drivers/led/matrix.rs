@@ -1,7 +1,8 @@
-use crate::traits::led::ToFrame;
-use crate::{domain::led::matrix::*, traits::led::TextDisplay};
-use core::convert::Infallible;
-use core::future::Future;
+use crate::{
+    domain::led::matrix::*,
+    traits::led::{TextDisplay, ToFrame},
+};
+use core::{convert::Infallible, future::Future};
 use embassy_time::{block_for, Duration, Instant, Timer};
 use embedded_hal::digital::v2::OutputPin;
 

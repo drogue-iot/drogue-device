@@ -11,9 +11,7 @@ mod protocol;
 use crate::traits::wifi::{Join, JoinError, WifiSupplicant};
 use atomic_polyfill::{AtomicBool, Ordering};
 use buffer::Buffer;
-use core::cell::RefCell;
-use core::future::Future;
-use core::marker::PhantomData;
+use core::{cell::RefCell, future::Future, marker::PhantomData};
 use embassy_futures::select::{select3, Either3};
 use embassy_sync::{
     blocking_mutex::raw::NoopRawMutex,

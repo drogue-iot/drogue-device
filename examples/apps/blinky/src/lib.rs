@@ -2,9 +2,7 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use drogue_device::actors;
-use drogue_device::actors::led::LedMessage;
-use drogue_device::traits;
+use drogue_device::{actors, actors::led::LedMessage, traits};
 use ector::ActorContext;
 use embassy_executor::Spawner;
 

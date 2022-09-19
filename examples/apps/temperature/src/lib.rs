@@ -5,19 +5,16 @@
 
 pub(crate) mod fmt;
 
-use core::convert::TryFrom;
-use core::future::Future;
+use core::{convert::TryFrom, future::Future};
 use drogue_device::{
-    actors::sensors::Temperature,
-    actors::transformer::Transformer,
+    actors::{sensors::Temperature, transformer::Transformer},
     domain::{
         temperature::{Celsius, TemperatureScale},
         SensorAcquisition,
     },
     drivers::dns::*,
     drogue,
-    traits::button::Button,
-    traits::sensors::temperature::TemperatureSensor,
+    traits::{button::Button, sensors::temperature::TemperatureSensor},
 };
 use ector::{Actor, ActorContext, Address, Inbox};
 use embassy_executor::Spawner;

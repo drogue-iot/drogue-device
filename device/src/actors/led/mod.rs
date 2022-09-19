@@ -1,7 +1,5 @@
-use crate::actors::button::ButtonEvent;
-use crate::traits;
-use core::convert::TryFrom;
-use core::future::Future;
+use crate::{actors::button::ButtonEvent, traits};
+use core::{convert::TryFrom, future::Future};
 use ector::{Actor, Address, Inbox};
 
 #[derive(Clone, Copy)]

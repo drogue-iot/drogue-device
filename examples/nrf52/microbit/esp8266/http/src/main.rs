@@ -10,12 +10,11 @@ use panic_probe as _;
 mod rng;
 use rng::*;
 
-use drogue_device::drogue;
 use drogue_device::{
     bsp::{boards::nrf52::microbit::*, Board},
     domain::temperature::Celsius,
     drivers::wifi::esp8266::*,
-    *,
+    drogue, *,
 };
 use drogue_temperature::*;
 use embassy_nrf::{

@@ -1,13 +1,19 @@
-use crate::bsp::Board;
-use crate::drivers::button::Button;
-use crate::drivers::led::{ActiveHigh, Led};
-use embassy_stm32::exti::ExtiInput;
-use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
+use crate::{
+    bsp::Board,
+    drivers::{
+        button::Button,
+        led::{ActiveHigh, Led},
+    },
+};
 #[allow(unused_imports)]
 use embassy_stm32::interrupt;
-use embassy_stm32::peripherals::{PB0, PB14, PC13, PE1, RNG};
-use embassy_stm32::rng::Rng as HalRng;
-use embassy_stm32::Config;
+use embassy_stm32::{
+    exti::ExtiInput,
+    gpio::{Input, Level, Output, Pull, Speed},
+    peripherals::{PB0, PB14, PC13, PE1, RNG},
+    rng::Rng as HalRng,
+    Config,
+};
 #[allow(unused_imports)]
 use static_cell::StaticCell;
 

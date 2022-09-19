@@ -8,16 +8,16 @@
 #![feature(type_alias_impl_trait)]
 #![feature(concat_idents)]
 
-use drogue_device::drivers::sensors::hts221::Hts221;
 use drogue_device::{
     bsp::{boards::stm32l4::iot01a::*, Board},
     domain::temperature::Celsius,
+    drivers::{
+        dns::{DnsEntry, StaticDnsResolver},
+        sensors::hts221::Hts221,
+    },
+    drogue,
     traits::wifi::*,
     *,
-};
-use drogue_device::{
-    drivers::dns::{DnsEntry, StaticDnsResolver},
-    drogue,
 };
 use drogue_temperature::*;
 use embassy_stm32::flash::Flash;

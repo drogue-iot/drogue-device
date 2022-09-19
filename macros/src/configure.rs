@@ -1,8 +1,6 @@
 use config::{Config, File};
 use lazy_static::lazy_static;
-use std::collections::HashMap;
-use std::env;
-use std::path::PathBuf;
+use std::{collections::HashMap, env, path::PathBuf};
 
 const CONFIG_FILE: &str = ".drogue/config.toml";
 const CI_ENV_VAR: &str = "CI";

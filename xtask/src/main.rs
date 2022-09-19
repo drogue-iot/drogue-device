@@ -2,9 +2,7 @@
 #![deny(unused_must_use)]
 
 use core::str::FromStr;
-use std::collections::BTreeMap;
-use std::io::Write;
-use std::{env, fs, path::PathBuf};
+use std::{collections::BTreeMap, env, fs, io::Write, path::PathBuf};
 
 use xshell::cmd;
 

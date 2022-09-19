@@ -1,16 +1,20 @@
-use crate::bsp::Board;
-use crate::drivers::button::Button;
-use crate::drivers::led::{ActiveHigh, Led};
+use crate::{
+    bsp::Board,
+    drivers::{
+        button::Button,
+        led::{ActiveHigh, Led},
+    },
+};
 use embassy_lora::stm32wl::*;
-use embassy_stm32::dma::NoDma;
-use embassy_stm32::exti::ExtiInput;
-use embassy_stm32::flash::Flash;
-use embassy_stm32::gpio::Pin;
-use embassy_stm32::gpio::{AnyPin, Input, Level, Output, Pull, Speed};
-use embassy_stm32::interrupt;
-use embassy_stm32::pac;
-use embassy_stm32::peripherals::{PA0, PA1, PB11, PB15, PB9, PC6, RNG};
-use embassy_stm32::subghz::*;
+use embassy_stm32::{
+    dma::NoDma,
+    exti::ExtiInput,
+    flash::Flash,
+    gpio::{AnyPin, Input, Level, Output, Pin, Pull, Speed},
+    interrupt, pac,
+    peripherals::{PA0, PA1, PB11, PB15, PB9, PC6, RNG},
+    subghz::*,
+};
 
 pub type PinLedBlue = Output<'static, PB15>;
 pub type LedBlue = Led<PinLedBlue, ActiveHigh>;

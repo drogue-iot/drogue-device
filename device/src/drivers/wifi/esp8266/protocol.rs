@@ -1,6 +1,8 @@
 use super::BUFFER_LEN;
-use core::fmt;
-use core::fmt::{Debug, Write};
+use core::{
+    fmt,
+    fmt::{Debug, Write},
+};
 use embedded_nal_async::{IpAddr, Ipv4Addr, SocketAddr};
 use heapless::String;
 

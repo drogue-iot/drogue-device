@@ -7,8 +7,10 @@ mod configure;
 use configure::configure;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::spanned::Spanned;
-use syn::{self};
+use syn::{
+    spanned::Spanned,
+    {self},
+};
 
 #[proc_macro_attribute]
 pub fn test(_: TokenStream, item: TokenStream) -> TokenStream {

@@ -1,7 +1,4 @@
-use std::env;
-use std::fs::File;
-use std::io::Write;
-use std::path::PathBuf;
+use std::{env, fs::File, io::Write, path::PathBuf};
 
 fn main() {
     let memory_x = if env::var("CARGO_FEATURE_DFU").is_ok() {

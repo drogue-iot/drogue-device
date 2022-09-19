@@ -1,12 +1,4 @@
-use nom::alt;
-use nom::char;
-use nom::character::streaming::digit1;
-use nom::do_parse;
-use nom::named;
-use nom::opt;
-use nom::tag;
-use nom::take;
-use nom::IResult;
+use nom::{alt, char, character::streaming::digit1, do_parse, named, opt, tag, take, IResult};
 
 use super::{protocol::Decoder, EventCode, FirmwareInfo, LoraRegion, Response};
 

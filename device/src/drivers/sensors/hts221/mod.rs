@@ -1,15 +1,19 @@
 mod register;
-use crate::domain::{temperature::Celsius, SensorAcquisition};
-use crate::traits::{i2c::I2cAddress, sensors::temperature::TemperatureSensor};
+use crate::{
+    domain::{temperature::Celsius, SensorAcquisition},
+    traits::{i2c::I2cAddress, sensors::temperature::TemperatureSensor},
+};
 use core::future::Future;
 use embedded_hal_async::i2c::*;
-use register::calibration::*;
-use register::ctrl1::{BlockDataUpdate, Ctrl1, OutputDataRate};
-use register::ctrl2::Ctrl2;
-use register::ctrl3::Ctrl3;
-use register::h_out::Hout;
-use register::status::Status;
-use register::t_out::Tout;
+use register::{
+    calibration::*,
+    ctrl1::{BlockDataUpdate, Ctrl1, OutputDataRate},
+    ctrl2::Ctrl2,
+    ctrl3::Ctrl3,
+    h_out::Hout,
+    status::Status,
+    t_out::Tout,
+};
 
 pub const ADDR: u8 = 0x5F;
 
