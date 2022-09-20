@@ -417,6 +417,7 @@ dependencies = [
  "critical-section 1.1.1",
  "defmt",
  "drogue-device-macros",
+ "ector",
  "embassy-embedded-hal",
  "embassy-executor",
  "embassy-futures",

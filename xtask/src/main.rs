@@ -61,7 +61,8 @@ static WORKSPACES: &[&str] = &[
     "examples/wasm/browser",
     "examples/std",
     "boards/microbit",
-    "boards/microbit/examples",
+    "boards/microbit/examples/ble",
+    "boards/microbit/examples/display",
     "boards/adafruit-feather-nrf52",
     "docs/modules/ROOT/examples/basic",
 ];

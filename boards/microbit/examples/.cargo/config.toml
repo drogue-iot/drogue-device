@@ -1,0 +1,17 @@
+[unstable]
+build-std = ["core"]
+build-std-features = ["panic_immediate_abort"]
+
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+runner = "probe-run --chip nrf52833_xxAA"
+
+rustflags = [
+  # Code-size optimizations.
+  "-Z", "trap-unreachable=no",
+  "-C", "inline-threshold=5",
+  "-C", "no-vectorize-loops",
+  "-Z", "emit-stack-sizes",
+]
+
+[build]
+target = "thumbv7em-none-eabihf"

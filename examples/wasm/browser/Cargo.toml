@@ -17,7 +17,7 @@ embedded-hal = { version = "0.2", features = ["unproven"] }
 wasm-logger = "0.2.0"
 log = "0.4"
 
-drogue-device = { path = "../../../device", features = ["log"], default-features = false }
+drogue-device = { path = "../../../device", features = ["log", "actors"], default-features = false }
 web-embedded-hal = "0.1.0"
 embassy-executor = { version = "0.1.0", default-features = false, features = ["wasm", "nightly"] }
 ector = { version = "0.1.0", default-features = false }

@@ -14,7 +14,7 @@ keywords = ["rp", "rpi", "pico", "blinky", "basic"]
 defmt = "0.3"
 defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
-drogue-device = { path = "../../../../device", features = ["defmt"], default-features = false }
+drogue-device = { path = "../../../../device", features = ["defmt", "actors"], default-features = false }
 ector = { version = "0.1.0", default-features = false }
 static_cell = "1"
 atomic-polyfill = { version = "1" }
