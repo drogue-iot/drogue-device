@@ -446,6 +446,7 @@ dependencies = [
  "critical-section 1.1.1",
  "defmt",
  "drogue-device-macros",
+ "ector",
  "embassy-embedded-hal",
  "embassy-executor",
  "embassy-futures",
@@ -547,7 +548,7 @@ dependencies = [
 [[package]]
 name = "embassy-embedded-hal"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=336ebe54c0f32fd729d50889850032222c6c6ca4#336ebe54c0f32fd729d50889850032222c6c6ca4"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=11da25800bce338e39082e9d35b1af8db3e5875d#11da25800bce338e39082e9d35b1af8db3e5875d"
 dependencies = [
  "embassy-sync",
  "embedded-hal 0.2.7",
@@ -559,7 +560,7 @@ dependencies = [
 [[package]]
 name = "embassy-executor"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=336ebe54c0f32fd729d50889850032222c6c6ca4#336ebe54c0f32fd729d50889850032222c6c6ca4"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=11da25800bce338e39082e9d35b1af8db3e5875d#11da25800bce338e39082e9d35b1af8db3e5875d"
 dependencies = [
  "atomic-polyfill 1.0.1",
  "cfg-if",
@@ -580,7 +581,7 @@ checksum = "47e5367165d347c039360f784812f493b001583ab6a3dd8622f4ce9c30374ec3"
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=336ebe54c0f32fd729d50889850032222c6c6ca4#336ebe54c0f32fd729d50889850032222c6c6ca4"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=11da25800bce338e39082e9d35b1af8db3e5875d#11da25800bce338e39082e9d35b1af8db3e5875d"
 dependencies = [
  "num-traits",
 ]
@@ -588,7 +589,7 @@ dependencies = [
 [[package]]
 name = "embassy-lora"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=336ebe54c0f32fd729d50889850032222c6c6ca4#336ebe54c0f32fd729d50889850032222c6c6ca4"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=11da25800bce338e39082e9d35b1af8db3e5875d#11da25800bce338e39082e9d35b1af8db3e5875d"
 dependencies = [
  "bit_field",
  "embassy-hal-common",
@@ -605,7 +606,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=336ebe54c0f32fd729d50889850032222c6c6ca4#336ebe54c0f32fd729d50889850032222c6c6ca4"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=11da25800bce338e39082e9d35b1af8db3e5875d#11da25800bce338e39082e9d35b1af8db3e5875d"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -616,7 +617,7 @@ dependencies = [
 [[package]]
 name = "embassy-sync"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=336ebe54c0f32fd729d50889850032222c6c6ca4#336ebe54c0f32fd729d50889850032222c6c6ca4"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=11da25800bce338e39082e9d35b1af8db3e5875d#11da25800bce338e39082e9d35b1af8db3e5875d"
 dependencies = [
  "atomic-polyfill 1.0.1",
  "cfg-if",
@@ -630,7 +631,7 @@ dependencies = [
 [[package]]
 name = "embassy-time"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=336ebe54c0f32fd729d50889850032222c6c6ca4#336ebe54c0f32fd729d50889850032222c6c6ca4"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=11da25800bce338e39082e9d35b1af8db3e5875d#11da25800bce338e39082e9d35b1af8db3e5875d"
 dependencies = [
  "atomic-polyfill 1.0.1",
  "cfg-if",
@@ -1574,4 +1575,4 @@ checksum = "c394b5bd0c6f669e7275d9c20aa90ae064cb22e75a1cad54e1b34088034b149f"
 [[patch.unused]]
 name = "embassy-stm32"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=336ebe54c0f32fd729d50889850032222c6c6ca4#336ebe54c0f32fd729d50889850032222c6c6ca4"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=11da25800bce338e39082e9d35b1af8db3e5875d#11da25800bce338e39082e9d35b1af8db3e5875d"
