@@ -6,10 +6,10 @@ use cortex_m_rt::{entry, exception};
 #[cfg(feature = "defmt-rtt")]
 use defmt_rtt as _;
 
-use drogue_device::{boards::nrf52::adafruit_feather_nrf52840::*, Board};
 use embassy_boot::FlashConfig;
 use embassy_boot_nrf::*;
 use embassy_nrf::nvmc::Nvmc;
+use adafruit_feather_nrf52::*;
 
 #[entry]
 fn main() -> ! {
@@ -23,23 +23,23 @@ fn main() -> ! {
     */
 
     let mut bl = BootLoader::default();
-    let p = embassy_nrf::init(Default::default());
-    let board = AdafruitFeatherNrf52840::new(p);
 
-    let start = {
-        let start = bl.prepare(&mut ExampleFlashConfig {
-            nvmc: &mut BootFlash::new(&mut WatchdogFlash::start(Nvmc::new(board.nvmc), board.wdt, 5)),
-            qspi: &mut BootFlash::new(&mut board.external_flash.configure()),
-        });
-        start
-    };
+        let board = AdafruitFeatherNrf52::default();
+        let mut qspi = board.external_flash.configure();
+        let mut nvmc = WatchdogFlash::start(Nvmc::new(board.nvmc), board.wdt, 5);
+        let mut nvmc = BootFlash::new(&mut nvmc);
+        let mut qspi = BootFlash::new(&mut qspi);
+        let start = { bl.prepare(&mut ExampleFlashConfig {
+            nvmc,
+            qspi,
+        })};
 
     unsafe { bl.load(start) }
 }
 
 pub struct ExampleFlashConfig<'d> {
-    nvmc: &'d mut BootFlash<'d, WatchdogFlash<'d>, 4096>,
-    qspi: &'d mut BootFlash<'d, ExternalFlash<'d>, EXTERNAL_FLASH_BLOCK_SIZE>,
+    nvmc: BootFlash<'d, WatchdogFlash<'d>, 4096>,
+    qspi: BootFlash<'d, ExternalFlash<'d>, EXTERNAL_FLASH_BLOCK_SIZE>,
 }
 
 impl<'d> FlashConfig for ExampleFlashConfig<'d> {
@@ -48,15 +48,15 @@ impl<'d> FlashConfig for ExampleFlashConfig<'d> {
     type DFU = BootFlash<'d, ExternalFlash<'d>, EXTERNAL_FLASH_BLOCK_SIZE>;
 
     fn active(&mut self) -> &mut Self::ACTIVE {
-        self.nvmc
+        &mut self.nvmc
     }
 
     fn state(&mut self) -> &mut Self::STATE {
-        self.nvmc
+        &mut self.nvmc
     }
 
     fn dfu(&mut self) -> &mut Self::DFU {
-        self.qspi
+        &mut self.qspi
     }
 }
 
