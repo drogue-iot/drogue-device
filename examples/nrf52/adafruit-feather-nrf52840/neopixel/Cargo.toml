@@ -17,7 +17,8 @@ defmt = { version = "0.3" }
 defmt-rtt = { version = "0.3" }
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
-drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "time", "bsp+adafruit_feather_nrf52840"] }
+drogue-device = { path = "../../../../device", default-features = false, features = ["defmt", "time", "neopixel", "nrf"] }
+adafruit-feather-nrf52 = { path = "../../../../boards/adafruit-feather-nrf52" }
 
 ector = { version = "0.1.0", default-features = false }
 embassy-executor = { version = "0.1.0", default-features = false }
@@ -63,13 +64,13 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
 ector = { git = "https://github.com/drogue-iot/ector.git", rev = "794fba65755dc34490be7e4d860ea3703e2b5466" }
-embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
 
 #embassy-executor = { path = "../../../../../embassy/embassy" }
 #embassy-nrf = { path = "../../../../../embassy/embassy-nrf" }

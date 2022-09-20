@@ -3,13 +3,14 @@ build-std = ["core"]
 build-std-features = ["panic_immediate_abort"]
 
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
-runner = "probe-run --chip nrf52840_xxAA"
+runner = "probe-run --chip nrf52833_xxAA"
 
 rustflags = [
   # Code-size optimizations.
   "-Z", "trap-unreachable=no",
-  #"-C", "no-vectorize-loops",
-  "-C", "force-frame-pointers=yes",
+  "-C", "inline-threshold=5",
+  "-C", "no-vectorize-loops",
+  "-Z", "emit-stack-sizes",
 ]
 
 [build]

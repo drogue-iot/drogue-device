@@ -184,6 +184,5 @@ nrf = [
 "bsp+b_l475e_iot01a" = [ "embassy-stm32" ]
 "bsp+nucleo_h743zi" = [ "embassy-stm32" ]
 "bsp+nucleo_wl55" = [ "embassy-stm32", "embassy-stm32/subghz", "embassy-stm32/unstable-pac" ]
-"bsp+adafruit_feather_nrf52840" = [ "nrf", "neopixel" ]
 "bsp+b_l072z_lrwan1" = [ "embassy-stm32" ]
 "bsp+rak811" = [ "embassy-stm32", "rand", "embassy-stm32/unstable-pac" ]

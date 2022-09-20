@@ -10,16 +10,15 @@ description = "Bootloader for Adafruit nRF52840 chips"
 resolver = "2"
 
 [workspace]
-
 [dependencies]
 defmt = { version = "0.3", optional = true }
 defmt-rtt = { version = "0.3", optional = true }
-drogue-device = { path = "../../../../device", default-features = false, features = ["bsp+adafruit_feather_nrf52840"] }
 embassy-executor = { version = "0.1.0", default-features = false }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nightly", "nrf52840"] }
 embassy-boot = { version = "0.1.0", default-features = false }
 embassy-boot-nrf = { version = "0.1.0", default-features = false, features = ["softdevice"] }
 nrf-softdevice-mbr = { version = "0.1.0", git = "https://github.com/embassy-rs/nrf-softdevice.git", branch = "master" }
+adafruit-feather-nrf52 = { path = "../../../../boards/adafruit-feather-nrf52" }
 static_cell = "1"
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 cortex-m-rt = { version = "0.7" }
@@ -69,12 +68,21 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
-embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
-embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
+embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
+embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
 ector = { git = "https://github.com/drogue-iot/ector.git", rev = "794fba65755dc34490be7e4d860ea3703e2b5466" }
-embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "336ebe54c0f32fd729d50889850032222c6c6ca4" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
+
+#embassy-executor = { path = "../../../../../../embassy/embassy-executor" }
+#embassy-embedded-hal = { path = "../../../../../../embassy/embassy-embedded-hal" }
+#embassy-hal-common = { path = "../../../../../../embassy/embassy-hal-common" }
+#embassy-nrf= { path = "../../../../../../embassy/embassy-nrf" }
+#embassy-sync= { path = "../../../../../../embassy/embassy-sync" }
+#embassy-time = { path = "../../../../../../embassy/embassy-time" }
+#embassy-boot = { path = "../../../../../../embassy/embassy-boot/boot" }
+#embassy-boot-nrf = { path = "../../../../../../embassy/embassy-boot/nrf" }
