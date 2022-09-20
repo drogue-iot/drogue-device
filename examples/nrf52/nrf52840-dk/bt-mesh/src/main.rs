@@ -7,14 +7,13 @@
 use btmesh_device::{
     BluetoothMeshModel, BluetoothMeshModelContext, InboundModelPayload,
 };
-use embassy_nrf::gpio::{AnyPin, Input, Output};
+use embassy_nrf::gpio::{AnyPin, Input, OutputDrive, Level, Output, Pin, Pull};
 use btmesh_macro::{device, element};
 use btmesh_models::generic::onoff::{GenericOnOffClient, GenericOnOffServer, GenericOnOffMessage, Set as GenericOnOffSet};
 use btmesh_nrf_softdevice::*;
 use core::future::Future;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
-use adafruit_feather_nrf52::*;
 
 extern "C" {
     static __storage: u8;
@@ -32,7 +31,7 @@ use panic_reset as _;
 // Application main entry point. The spawner can be used to start async tasks.
 #[embassy_executor::main]
 async fn main(_s: Spawner) {
-    let board = AdafruitFeatherNrf52::new(config());
+    let p = embassy_nrf::init(config());
 
     // Don't remove. Give flash some time before accessing
     Timer::after(Duration::from_millis(100)).await;
@@ -46,7 +45,7 @@ async fn main(_s: Spawner) {
     );
 
     // An instance of our device with the models we'd like to expose.
-    let mut device = Device::new(board.blue_led, board.switch);
+    let mut device = Device::new(Output::new(p.P0_17.degrade(), Level::Low, OutputDrive::Standard), Input::new(p.P0_11.degrade(), Pull::Up));
 
     // Run the mesh stack
     let _ = driver.run(&mut device).await;

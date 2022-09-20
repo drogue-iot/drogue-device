@@ -6,9 +6,11 @@ build-std-features = ["panic_immediate_abort"]
 runner = "probe-run --chip nrf52840_xxAA"
 
 rustflags = [
-  "-C", "link-arg=--nmagic",
-  "-C", "link-arg=-Tlink.x",
-  "-C", "link-arg=-Tdefmt.x",
+  # Code-size optimizations.
+  "-Z", "trap-unreachable=no",
+  #"-C", "no-vectorize-loops",
+  "-C", "force-frame-pointers=yes",
 ]
+
 [build]
 target = "thumbv7em-none-eabihf"

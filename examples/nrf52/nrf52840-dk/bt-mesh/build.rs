@@ -8,10 +8,7 @@
 //! updating `memory.x` ensures a rebuild of the application with the
 //! new memory settings.
 
-use std::env;
-use std::fs::File;
-use std::io::Write;
-use std::path::PathBuf;
+use std::{env, fs::File, io::Write, path::PathBuf};
 
 fn main() {
     // Put `memory.x` in our output directory and ensure it's
@@ -28,4 +25,10 @@ fn main() {
     // here, we ensure the build script is only re-run when
     // `memory.x` is changed.
     println!("cargo:rerun-if-changed=memory.x");
+
+    println!("cargo:rustc-link-arg-bins=--nmagic");
+    println!("cargo:rustc-link-arg-bins=-Tlink.x");
+    if env::var("CARGO_FEATURE_DEBUG").is_ok() {
+        println!("cargo:rustc-link-arg-bins=-Tdefmt.x");
+    }
 }

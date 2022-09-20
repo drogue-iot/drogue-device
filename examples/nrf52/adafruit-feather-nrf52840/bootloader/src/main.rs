@@ -6,14 +6,13 @@ use cortex_m_rt::{entry, exception};
 #[cfg(feature = "defmt-rtt")]
 use defmt_rtt as _;
 
+use adafruit_feather_nrf52::*;
 use embassy_boot::FlashConfig;
 use embassy_boot_nrf::*;
 use embassy_nrf::nvmc::Nvmc;
-use adafruit_feather_nrf52::*;
 
 #[entry]
 fn main() -> ! {
-
     // Uncomment this if you are debugging the bootloader with debugger/RTT attached,
     // as it prevents a hard fault when accessing flash 'too early' after boot.
     /*
@@ -24,28 +23,25 @@ fn main() -> ! {
 
     let mut bl = BootLoader::default();
 
-        let board = AdafruitFeatherNrf52::default();
-        let mut qspi = board.external_flash.configure();
-        let mut nvmc = WatchdogFlash::start(Nvmc::new(board.nvmc), board.wdt, 5);
-        let mut nvmc = BootFlash::new(&mut nvmc);
-        let mut qspi = BootFlash::new(&mut qspi);
-        let start = { bl.prepare(&mut ExampleFlashConfig {
-            nvmc,
-            qspi,
-        })};
+    let board = AdafruitFeatherNrf52::default();
+    let qspi = board.external_flash.configure();
+    let nvmc = WatchdogFlash::start(Nvmc::new(board.nvmc), board.wdt, 5);
+    let nvmc = BootFlash::new(nvmc);
+    let qspi = BootFlash::new(qspi);
+    let start = bl.prepare(&mut ExampleFlashConfig { nvmc, qspi });
 
     unsafe { bl.load(start) }
 }
 
 pub struct ExampleFlashConfig<'d> {
-    nvmc: BootFlash<'d, WatchdogFlash<'d>, 4096>,
-    qspi: BootFlash<'d, ExternalFlash<'d>, EXTERNAL_FLASH_BLOCK_SIZE>,
+    nvmc: BootFlash<WatchdogFlash<'d>, 4096>,
+    qspi: BootFlash<ExternalFlash<'d>, EXTERNAL_FLASH_BLOCK_SIZE>,
 }
 
 impl<'d> FlashConfig for ExampleFlashConfig<'d> {
-    type STATE = BootFlash<'d, WatchdogFlash<'d>, 4096>;
-    type ACTIVE = BootFlash<'d, WatchdogFlash<'d>, 4096>;
-    type DFU = BootFlash<'d, ExternalFlash<'d>, EXTERNAL_FLASH_BLOCK_SIZE>;
+    type STATE = BootFlash<WatchdogFlash<'d>, 4096>;
+    type ACTIVE = BootFlash<WatchdogFlash<'d>, 4096>;
+    type DFU = BootFlash<ExternalFlash<'d>, EXTERNAL_FLASH_BLOCK_SIZE>;
 
     fn active(&mut self) -> &mut Self::ACTIVE {
         &mut self.nvmc

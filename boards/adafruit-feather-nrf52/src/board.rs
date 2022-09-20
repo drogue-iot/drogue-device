@@ -127,7 +127,7 @@ impl Default for AdafruitFeatherNrf52 {
 }
 
 impl AdafruitFeatherNrf52 {
-    fn new(config: embassy_nrf::config::Config) -> Self {
+    pub fn new(config: embassy_nrf::config::Config) -> Self {
         let p = embassy_nrf::init(config);
         Self {
             uarte0: p.UARTE0,
