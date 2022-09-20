@@ -4,17 +4,17 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use btmesh_device::{
-    BluetoothMeshModel, BluetoothMeshModelContext, InboundModelPayload,
-};
-use embassy_nrf::gpio::{AnyPin, Input, Output};
+use adafruit_feather_nrf52::*;
+use btmesh_device::{BluetoothMeshModel, BluetoothMeshModelContext, InboundModelPayload};
 use btmesh_macro::{device, element};
-use btmesh_models::generic::onoff::{GenericOnOffClient, GenericOnOffServer, GenericOnOffMessage, Set as GenericOnOffSet};
+use btmesh_models::generic::onoff::{
+    GenericOnOffClient, GenericOnOffMessage, GenericOnOffServer, Set as GenericOnOffSet,
+};
 use btmesh_nrf_softdevice::*;
 use core::future::Future;
 use embassy_executor::Spawner;
+use embassy_nrf::gpio::{AnyPin, Input, Output};
 use embassy_time::{Duration, Timer};
-use adafruit_feather_nrf52::*;
 
 extern "C" {
     static __storage: u8;

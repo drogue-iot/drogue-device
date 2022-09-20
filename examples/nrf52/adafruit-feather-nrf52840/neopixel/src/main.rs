@@ -7,13 +7,11 @@
 use defmt_rtt as _;
 use panic_probe as _;
 
-use drogue_device::{
-    drivers::led::neopixel::{
-        filter::{CyclicBrightness, Filter, Gamma},
-        rgbw::{NeoPixelRgbw, BLUE},
-    },
-};
 use adafruit_feather_nrf52::*;
+use drogue_device::drivers::led::neopixel::{
+    filter::{CyclicBrightness, Filter, Gamma},
+    rgbw::{NeoPixelRgbw, BLUE},
+};
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 

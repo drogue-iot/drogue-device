@@ -4,15 +4,15 @@
 #![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
-use btmesh_device::{
-    BluetoothMeshModel, BluetoothMeshModelContext, InboundModelPayload,
-};
-use embassy_nrf::gpio::{AnyPin, Input, OutputDrive, Level, Output, Pin, Pull};
+use btmesh_device::{BluetoothMeshModel, BluetoothMeshModelContext, InboundModelPayload};
 use btmesh_macro::{device, element};
-use btmesh_models::generic::onoff::{GenericOnOffClient, GenericOnOffServer, GenericOnOffMessage, Set as GenericOnOffSet};
+use btmesh_models::generic::onoff::{
+    GenericOnOffClient, GenericOnOffMessage, GenericOnOffServer, Set as GenericOnOffSet,
+};
 use btmesh_nrf_softdevice::*;
 use core::future::Future;
 use embassy_executor::Spawner;
+use embassy_nrf::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull};
 use embassy_time::{Duration, Timer};
 
 extern "C" {
@@ -45,7 +45,10 @@ async fn main(_s: Spawner) {
     );
 
     // An instance of our device with the models we'd like to expose.
-    let mut device = Device::new(Output::new(p.P0_17.degrade(), Level::Low, OutputDrive::Standard), Input::new(p.P0_11.degrade(), Pull::Up));
+    let mut device = Device::new(
+        Output::new(p.P0_17.degrade(), Level::Low, OutputDrive::Standard),
+        Input::new(p.P0_11.degrade(), Pull::Up),
+    );
 
     // Run the mesh stack
     let _ = driver.run(&mut device).await;
