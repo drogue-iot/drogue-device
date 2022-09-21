@@ -75,14 +75,14 @@ cargo xtask update
 
 ## Directory layout
 
-* `device` - the source of the drogue-device framework
+* `boards` - Board Support Package (BSP) for common boards
+* `examples` - examples for different platforms and boards
+* `device` - async traits, drivers and actors
   * `device/src/traits` - traits provided by drogue that can be used in async code, such as TCP, WiFi or LoRa
   * `device/src/drivers` - async drivers that implement traits for a one or more peripherals
   * `device/src/network` - network connectivity, common network implementations, HTTP clients,
   * `device/src/actors` - common actors that can be used in applications
-  * `device/src/bsp` - board support packages for boards commonly used in drogue device 
 * `macros` - macros used by drogue-device and application code
-* `examples` - examples for different platforms and boards
 
 
 ## Contributing
