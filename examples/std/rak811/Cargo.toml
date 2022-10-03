@@ -23,7 +23,7 @@ embassy-executor = { version = "0.1.0", default-features = false, features = ["s
 ector = { version = "0.1.0" }
 cfg-if = "1.0.0"
 embedded-hal = {version = "0.2.4", features = ["unproven"] }
-embedded-hal-async = { version = "0.1.0-alpha.1" }
+embedded-hal-async = { version = "=0.1.0-alpha.1" }
 async-io = "1.6.0"
 nix = "0.22.1"
 futures = { version = "0.3.17" }

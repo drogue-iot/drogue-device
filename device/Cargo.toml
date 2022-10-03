@@ -39,7 +39,7 @@ nrf-softdevice-s140 = { version = "0.1.0", optional=true }
 # Wifi Dependencies
 nom = { version = "6", default-features = false, optional = true }
 moveslice = { version = "2.0", optional = true }
-es-wifi-driver = { git = "https://github.com/lulf/es-wifi-driver.git", default-features = false, branch = "main", optional = true }
+es-wifi-driver = { git = "https://github.com/lulf/es-wifi-driver.git", default-features = false, rev = "2787996cc19c3de4feac2df5d6f8dc80b79a0abf", optional = true }
 
 # Networking dependencies
 embedded-nal = "0.6.0"
@@ -61,8 +61,8 @@ futures = { version = "0.3", default-features = false }
 futures-intrusive = { version = "0.4", default-features = false }
 heapless = { version = "0.7", features = ["defmt-impl"] }
 embedded-hal = { version = "0.2", features = ["unproven"] }
-embedded-hal-1 = { package = "embedded-hal", version = "1.0.0-alpha.8"}
-embedded-hal-async = { version = "0.1.0-alpha.1" }
+embedded-hal-1 = { package = "embedded-hal", version = "=1.0.0-alpha.8"}
+embedded-hal-async = { version = "=0.1.0-alpha.1" }
 embedded-io = { version = "0.3.0", features = ["async"] }
 atomic-polyfill = "1"
 critical-section = "1"

@@ -59,7 +59,7 @@ async fn main(_spawner: Spawner) {
 
     let service = LorawanService::new(driver);
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
-    let mut device: FirmwareManager<FirmwareConfig<Flash<'static>>, 2048, 32> =
+    let mut device: FirmwareManager<FirmwareConfig<Flash<'static>>, 2048, 4, 32> =
         FirmwareManager::new(
             FirmwareConfig::new(board.flash),
             FirmwareUpdater::default(),

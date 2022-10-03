@@ -54,15 +54,18 @@ where
     pub async fn handle(&mut self, event: &FirmwareServiceEvent) -> Result<(), ()> {
         match event {
             FirmwareServiceEvent::ControlWrite(value) => {
-                debug!("Write firmware control: {}", value);
+                info!("Write firmware control: {}", value);
                 let next_version = self.service.next_version_get().unwrap();
                 if *value == 1 {
                     self.service.offset_set(0).ok();
                     self.dfu.start(&next_version[..]).await.map_err(|_| ())?;
                 } else if *value == 2 {
-                    let _ = self.dfu.update(&next_version[..], &[]).await;
-                    debug!("Resetting device");
-                    cortex_m::peripheral::SCB::sys_reset();
+                    let r = self.dfu.update(&next_version[..], &[]).await;
+                    if let Err(_e) = r {
+                        warn!("Update error");
+                    } else {
+                        cortex_m::peripheral::SCB::sys_reset();
+                    }
                 } else if *value == 3 {
                     self.dfu.synced().await.map_or(Err(()), |_| Ok(()))?;
                 }

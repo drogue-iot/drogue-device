@@ -22,8 +22,13 @@ impl From<NorFlashErrorKind> for Error {
     }
 }
 
-pub type SharedFirmwareManager<'a, CONFIG, const PAGE_SIZE: usize, const MTU: usize> =
-    Handle<'a, FirmwareManager<CONFIG, PAGE_SIZE, MTU>>;
+pub type SharedFirmwareManager<
+    'a,
+    CONFIG,
+    const PAGE_SIZE: usize,
+    const WRITE_SIZE: usize,
+    const MTU: usize,
+> = Handle<'a, FirmwareManager<CONFIG, PAGE_SIZE, WRITE_SIZE, MTU>>;
 
 pub trait FirmwareConfig {
     type STATE: AsyncNorFlash + AsyncReadNorFlash;
@@ -40,8 +45,12 @@ struct Aligned<const PAGE_SIZE: usize>([u8; PAGE_SIZE]);
 /// Manages the firmware of an application using a STATE flash storage for storing
 /// the state of firmware and update process, and DFU flash storage for writing the
 /// firmware.
-pub struct FirmwareManager<CONFIG, const PAGE_SIZE: usize = 4096, const MTU: usize = 16>
-where
+pub struct FirmwareManager<
+    CONFIG,
+    const PAGE_SIZE: usize = 4096,
+    const WRITE_SIZE: usize = 4,
+    const MTU: usize = 16,
+> where
     CONFIG: FirmwareConfig,
 {
     config: CONFIG,
@@ -49,11 +58,13 @@ where
     next_version: Option<Vec<u8, 16>>,
     updater: FirmwareUpdater,
     buffer: Aligned<PAGE_SIZE>,
+    magic: AlignedBuffer<WRITE_SIZE>,
     b_offset: usize,
     f_offset: usize,
 }
 
-impl<CONFIG, const PAGE_SIZE: usize, const MTU: usize> FirmwareManager<CONFIG, PAGE_SIZE, MTU>
+impl<CONFIG, const PAGE_SIZE: usize, const WRITE_SIZE: usize, const MTU: usize>
+    FirmwareManager<CONFIG, PAGE_SIZE, WRITE_SIZE, MTU>
 where
     CONFIG: FirmwareConfig,
 {
@@ -64,6 +75,7 @@ where
             config,
             updater,
             buffer: Aligned([0; PAGE_SIZE]),
+            magic: AlignedBuffer([0; WRITE_SIZE]),
             b_offset: 0,
             f_offset: 0,
         }
@@ -88,10 +100,9 @@ where
 
     /// Mark current firmware as successfully booted
     pub async fn synced(&mut self) -> Result<(), Error> {
-        let mut aligned = AlignedBuffer([0; 8]);
         self.updater
             // TODO: Support other word sizes
-            .mark_booted(self.config.state(), &mut aligned.0)
+            .mark_booted(self.config.state(), &mut self.magic.0)
             .await
             .map_err(|e| e.kind())?;
         Ok(())
@@ -172,17 +183,16 @@ where
             self.flush().await?;
         }
 
-        let mut aligned = AlignedBuffer([0; 8]);
         self.updater
-            .mark_updated(self.config.state(), &mut aligned.0)
+            .mark_updated(self.config.state(), &mut self.magic.0)
             .await
             .map_err(|e| e.kind())?;
         Ok(())
     }
 }
 
-impl<CONFIG, const PAGE_SIZE: usize, const MTU: usize> FirmwareDevice
-    for FirmwareManager<CONFIG, PAGE_SIZE, MTU>
+impl<CONFIG, const PAGE_SIZE: usize, const WRITE_SIZE: usize, const MTU: usize> FirmwareDevice
+    for FirmwareManager<CONFIG, PAGE_SIZE, WRITE_SIZE, MTU>
 where
     CONFIG: FirmwareConfig,
 {
@@ -226,8 +236,8 @@ where
 }
 
 /// Implementation for shared resource
-impl<'a, CONFIG, const PAGE_SIZE: usize, const MTU: usize> FirmwareDevice
-    for SharedFirmwareManager<'a, CONFIG, PAGE_SIZE, MTU>
+impl<'a, CONFIG, const PAGE_SIZE: usize, const WRITE_SIZE: usize, const MTU: usize> FirmwareDevice
+    for SharedFirmwareManager<'a, CONFIG, PAGE_SIZE, WRITE_SIZE, MTU>
 where
     CONFIG: FirmwareConfig + 'a,
 {

@@ -104,7 +104,7 @@ async fn main(s: Spawner) {
     static EVENTS: Channel<ThreadModeRawMutex, FirmwareServiceEvent, 10> = Channel::new();
     // The updater is the 'application' part of the bootloader that knows where bootloader
     // settings and the firmware update partition is located based on memory.x linker script.
-    static DFU: Shared<FirmwareManager<Flash, 4096, 64>> = Shared::new();
+    static DFU: Shared<FirmwareManager<Flash, 4096, 4, 64>> = Shared::new();
     let dfu = DFU.initialize(FirmwareManager::new(
         Flash::take(sd),
         FirmwareUpdater::default(),
@@ -147,7 +147,7 @@ pub struct GattServer {
 
 #[embassy_executor::task]
 pub async fn updater_task(
-    mut dfu: FirmwareGattService<'static, SharedFirmwareManager<'static, Flash, 4096, 64>>,
+    mut dfu: FirmwareGattService<'static, SharedFirmwareManager<'static, Flash, 4096, 4, 64>>,
     events: DynamicReceiver<'static, FirmwareServiceEvent>,
 ) {
     loop {
