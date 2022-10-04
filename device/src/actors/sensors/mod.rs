@@ -45,7 +45,7 @@ where
     T: TemperatureSensor<C> + 'static,
     C: TemperatureScale + 'static,
 {
-    type Message<'m> = ();
+    type Message<'m> = () where Self: 'm;
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where Self: 'm, M: 'm + Inbox<Self::Message<'m>>;
 
     fn on_mount<'m, M>(

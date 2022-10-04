@@ -1,5 +1,4 @@
 #![allow(incomplete_features)]
-#![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
 use drogue_device::{

@@ -1,9 +1,7 @@
 #![no_std]
 #![feature(type_alias_impl_trait)]
-#![feature(generic_associated_types)]
 
-use core::fmt::Write;
-use core::future::Future;
+use core::{fmt::Write, future::Future};
 use drogue_device::{
     traits::{
         button::Button,

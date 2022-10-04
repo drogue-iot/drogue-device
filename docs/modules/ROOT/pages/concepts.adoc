@@ -50,7 +50,6 @@ executor. An actor providing an atomic counter using the above driver is shown b
 [source, rust]
 ----
 #![feature(type_alias_impl_trait)]
-#![feature(generic_associated_types)]
 
 use drogue_device::*;
 

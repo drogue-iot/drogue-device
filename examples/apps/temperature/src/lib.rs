@@ -1,7 +1,6 @@
 #![no_std]
 #![macro_use]
 #![feature(type_alias_impl_trait)]
-#![feature(generic_associated_types)]
 
 pub(crate) mod fmt;
 

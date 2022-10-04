@@ -19,7 +19,6 @@ microbit-bsp is a board support package (BSP) library for the BBC micro:bit v2 a
 ```
 #![no_std]
 #![no_main]
-#![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
 use defmt_rtt as _;

@@ -27,7 +27,7 @@ where
     T: TryFrom<F> + 'static,
     F: 'static,
 {
-    type Message<'m> = F;
+    type Message<'m> = F where Self: 'm;
 
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where

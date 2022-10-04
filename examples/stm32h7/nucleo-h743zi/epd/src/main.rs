@@ -3,7 +3,6 @@
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![allow(incomplete_features)]
-#![feature(generic_associated_types)]
 
 use defmt_rtt as _;
 use panic_probe as _;

@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
 use drogue_device::{actors, actors::led::LedMessage, traits};

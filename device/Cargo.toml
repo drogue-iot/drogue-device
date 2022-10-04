@@ -45,7 +45,7 @@ es-wifi-driver = { git = "https://github.com/lulf/es-wifi-driver.git", default-f
 embedded-nal = "0.6.0"
 embedded-nal-async = "0.2.0"
 #firmware-updater = { git = "https://github.com/drogue-iot/firmware-updater.git", branch = "main", default-features = false }
-embedded-update = { version = "0.7", default-features = false, features = ["nightly"] }
+embedded-update = { version = "0.8", default-features = false, features = ["nightly"] }
 
 # TLS dependency
 embedded-tls = { version = "0.8.0", default-features = false, features = ["async"], optional = true}
@@ -61,8 +61,8 @@ futures = { version = "0.3", default-features = false }
 futures-intrusive = { version = "0.4", default-features = false }
 heapless = { version = "0.7", features = ["defmt-impl"] }
 embedded-hal = { version = "0.2", features = ["unproven"] }
-embedded-hal-1 = { package = "embedded-hal", version = "=1.0.0-alpha.8"}
-embedded-hal-async = { version = "=0.1.0-alpha.1" }
+embedded-hal-1 = { package = "embedded-hal", version = "=1.0.0-alpha.9"}
+embedded-hal-async = { version = "=0.1.0-alpha.2" }
 embedded-io = { version = "0.3.0", features = ["async"] }
 atomic-polyfill = "1"
 critical-section = "1"

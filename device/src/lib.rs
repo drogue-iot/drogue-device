@@ -2,7 +2,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(dead_code)]
 #![feature(type_alias_impl_trait)]
-#![feature(generic_associated_types)]
 //! Drogue device is a distribution of libraries and drivers for building embedded applications in Rust.
 //!
 //! * Built using [rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.

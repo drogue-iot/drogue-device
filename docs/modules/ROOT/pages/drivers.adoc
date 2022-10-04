@@ -16,8 +16,6 @@ An async trait can be specified by enabling a feature named generic associcated 
 
 [source, rust]
 ----
-#![feature(generic_associated_types)]
-
 pub trait Counter {
     type IncrementFuture<'m>: Future<Output = u32> where Self: 'm;
     fn increment<'m>(&'m mut self) -> Self::IncrementFuture<'m>;
@@ -36,7 +34,6 @@ A driver is an implementation of the trait that applications use. With the trait
 [source, rust]
 ----
 #![feature(type_alias_impl_trait)]
-#![feature(generic_associated_types)]
 
 pub struct MyCounter {
     value: u32,

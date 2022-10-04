@@ -41,7 +41,7 @@ impl<P> Actor for Led<P>
 where
     P: traits::led::Led,
 {
-    type Message<'m> = LedMessage;
+    type Message<'m> = LedMessage where Self: 'm;
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where Self: 'm, M: Inbox<LedMessage> + 'm;
     fn on_mount<'m, M>(
         &'m mut self,

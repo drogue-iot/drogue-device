@@ -3,7 +3,6 @@
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![allow(incomplete_features)]
-#![feature(generic_associated_types)]
 
 use drogue_blinky_app::{BlinkyBoard, BlinkyConfiguration, BlinkyDevice};
 use drogue_device::{bind_bsp, Board};
