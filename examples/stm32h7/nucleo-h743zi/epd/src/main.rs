@@ -172,7 +172,7 @@ fn quantize_color(color: Rgb888) -> OctColor {
 
 #[ector::actor]
 impl Actor for App {
-    type Message<'m> = Command;
+    type Message<'m> = Command where Self: 'm;
 
     async fn on_mount<M>(&mut self, _: Address<Self::Message<'m>>, mut inbox: M)
     where

@@ -17,7 +17,7 @@ impl<D: LoraDriver> App<D> {
 }
 
 impl<D: LoraDriver> Actor for App<D> {
-    type Message<'m> = AppCommand;
+    type Message<'m> = AppCommand where Self: 'm;
 
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where

@@ -176,6 +176,7 @@ where
 {
     type Message<'m> = Command
     where
+        Self: 'm,
         B: 'm;
 
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
@@ -333,7 +334,7 @@ impl<B> Actor for AppTrigger<B>
 where
     B: TemperatureBoard + 'static,
 {
-    type Message<'m> = ();
+    type Message<'m> = () where Self: 'm;
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm
     where
         Self: 'm,
