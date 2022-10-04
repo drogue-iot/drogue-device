@@ -962,7 +962,7 @@ dependencies = [
 [[package]]
 name = "es-wifi-driver"
 version = "0.1.0"
-source = "git+https://github.com/lulf/es-wifi-driver.git?rev=2787996cc19c3de4feac2df5d6f8dc80b79a0abf#2787996cc19c3de4feac2df5d6f8dc80b79a0abf"
+source = "git+https://github.com/lulf/es-wifi-driver.git?rev=7d7a08717c6215caf7f32e9ded1c8d28c29b1b0e#7d7a08717c6215caf7f32e9ded1c8d28c29b1b0e"
 dependencies = [
  "embassy-sync",
  "embassy-time",
