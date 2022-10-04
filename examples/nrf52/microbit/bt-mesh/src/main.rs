@@ -40,6 +40,7 @@ async fn main(_s: Spawner) {
     let mut driver = Driver::new(
         "drogue",
         unsafe { &__storage as *const u8 as u32 },
+        None,
         100,
         BluetoothMeshDriverConfig::default(),
     );
