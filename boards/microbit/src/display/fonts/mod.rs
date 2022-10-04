@@ -43,7 +43,7 @@ mod bitmaps {
         0b00010,
         0b11111,
         0b00010,
-        0b01100,
+        0b00100,
     ]);
 
     /// Construct a 5x5 frame from a byte slice

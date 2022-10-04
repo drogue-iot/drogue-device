@@ -24,7 +24,7 @@ impl<P: traits::button::Button, H> Actor for Button<P, H>
 where
     H: TryFrom<ButtonEvent> + 'static,
 {
-    type Message<'m> = ();
+    type Message<'m> = () where Self: 'm;
     type OnMountFuture<'m, M> = impl Future<Output = ()> + 'm where Self: 'm, M: Inbox<()> + 'm;
     fn on_mount<'m, M>(&'m mut self, _: Address<()>, _: M) -> Self::OnMountFuture<'m, M>
     where

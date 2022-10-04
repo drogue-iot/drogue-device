@@ -1,7 +1,6 @@
 #![no_std]
 #![no_main]
 #![macro_use]
-#![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
 mod rng;
@@ -194,7 +193,7 @@ pub enum ReceiverMessage {
 
 #[actor]
 impl Actor for Receiver {
-    type Message<'m> = ReceiverMessage;
+    type Message<'m> = ReceiverMessage where Self: 'm;
 
     async fn on_mount<M>(&mut self, _: Address<ReceiverMessage>, mut _inbox: M)
     where

@@ -25,7 +25,7 @@ cortex-m-rt = "0.7.0"
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 
 #embedded-update = { path = "../../../../../embedded-update" }
-embedded-update = { version = "0.7", features = ["nightly"] }
+embedded-update = { version = "0.8", features = ["nightly"] }
 critical-section = "0.2.5"
 rand_core = { version = "0.6.2", default-features = false }
 embedded-nal-async = "0.2.0"

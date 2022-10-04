@@ -40,6 +40,11 @@ fn main() -> Result<(), anyhow::Error> {
 }
 
 static WORKSPACES: &[&str] = &[
+    "boards/microbit",
+    "boards/microbit/examples/ble",
+    "boards/microbit/examples/display",
+    "boards/adafruit-feather-nrf52",
+    "docs/modules/ROOT/examples/basic",
     "examples/nrf52/microbit/ble",
     "examples/nrf52/microbit/bt-mesh",
     "examples/nrf52/microbit/bootloader",
@@ -60,11 +65,6 @@ static WORKSPACES: &[&str] = &[
     "examples/stm32u5/iot02a",
     "examples/wasm/browser",
     "examples/std",
-    "boards/microbit",
-    "boards/microbit/examples/ble",
-    "boards/microbit/examples/display",
-    "boards/adafruit-feather-nrf52",
-    "docs/modules/ROOT/examples/basic",
 ];
 
 fn ci(batch: bool) -> Result<(), anyhow::Error> {

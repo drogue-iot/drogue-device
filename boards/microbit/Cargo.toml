@@ -9,11 +9,14 @@ description = "An embassy-based boards support package (BSP) for BBC Micro:bit v
 [dependencies]
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "gpiote", "time-driver-rtc1", "nightly", "unstable-traits"]}
 embassy-time = { version = "0.1.0", default-features = false }
+embassy-sync = { version = "0.1.0", default-features = false }
 cortex-m = "0.7"
-embedded-hal = "1.0.0-alpha.8"
+embedded-hal = "=1.0.0-alpha.9"
 lsm303agr = "0.2.2"
 defmt = "0.3"
+futures = { version = "0.3", default-features = false }
 
 [patch.crates-io]
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "11da25800bce338e39082e9d35b1af8db3e5875d" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }

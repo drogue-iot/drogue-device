@@ -23,8 +23,8 @@ serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde-json-core = { version = "0.4", default-features = false, features = ["heapless"] }
 embedded-tls = { version = "0.8.0", default-features = false, features = ["async"], optional = true}
 rand_core = { version = "0.6.2", default-features = false }
-embedded-hal-1 = { package = "embedded-hal", version = "=1.0.0-alpha.8"}
-embedded-hal-async = { version = "=0.1.0-alpha.1" }
+embedded-hal-1 = { package = "embedded-hal", version = "=1.0.0-alpha.9"}
+embedded-hal-async = { version = "=0.1.0-alpha.2" }
 embedded-nal-async = "0.2.0"
 embedded-io = "0.3.0"
 ector = {version = "0.1.0", default-features = false}

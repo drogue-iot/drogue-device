@@ -1,7 +1,6 @@
 #![no_std]
 #![no_main]
 #![macro_use]
-#![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
 use btmesh_common::{InsufficientBuffer, ParseError};
@@ -41,6 +40,7 @@ async fn main(_s: Spawner) {
     let mut driver = Driver::new(
         "drogue",
         unsafe { &__storage as *const u8 as u32 },
+        None,
         100,
         BluetoothMeshDriverConfig::default(),
     );

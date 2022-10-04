@@ -17,7 +17,6 @@ adafruit-feather-nrf52-bsp is a board support package (BSP) library for the [Ada
 ```
 #![no_std]
 #![no_main]
-#![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 
 use defmt_rtt as _;
