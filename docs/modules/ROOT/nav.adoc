@@ -4,4 +4,3 @@
 * xref:basic_application.adoc[Basic Application]
 * xref:drivers.adoc[Drivers]
 * xref:bsp.adoc[Board Support Packages]
-* xref:embassy::index.adoc[Embassy]

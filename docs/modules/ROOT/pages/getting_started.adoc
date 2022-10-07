@@ -76,5 +76,4 @@ Congratulations, you have your first Rust async application running! Here are so
 * xref:basic_application.adoc[Write your own application]
 * xref:concepts.adoc[Learn about Actors]
 * xref:drivers.adoc[Write an async driver]
-* xref:embassy::runtime.adoc[Learn about the Embassy runtime]
 * xref:drogue-cloud::index.adoc[Connect to the cloud]
