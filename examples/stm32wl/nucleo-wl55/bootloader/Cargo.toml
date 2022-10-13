@@ -3,7 +3,7 @@ authors = [
     "Ulf Lilleengen <lulf@redhat.com>",
 ]
 edition = "2021"
-name = "iot01a-bootloader"
+name = "nucleo-wl55-bootloader"
 version = "0.1.0"
 description = "Bootloader for STM32L4 iot01a boards"
 
