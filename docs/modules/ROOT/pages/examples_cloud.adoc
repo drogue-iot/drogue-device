@@ -1,3 +1,4 @@
+* xref:examples/drogue-cloud-http/README.adoc[Example sending telemetry data to and receiving commands from Drogue Cloud] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/drogue-cloud-http[github])
 * xref:examples/nrf52/microbit/esp8266/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter + MQTT] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/esp8266[github])
 * xref:examples/std/cloud/README.adoc[Example sending telemetry data from Drogue Device to Drogue Cloud] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/cloud[github])
 * xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/esp8266[github])

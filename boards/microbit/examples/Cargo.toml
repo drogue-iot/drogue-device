@@ -5,9 +5,7 @@ members = [
 ]
 
 [patch.crates-io]
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", branch = "master" }
-embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", branch = "master" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", branch = "master" }
-embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", branch = "master" }
-nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", branch = "master" }
-nrf-softdevice-s113 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", branch = "master" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", tag = "embassy-time-v0.1.0" }
+nrf-softdevice-s113 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", tag = "embassy-time-v0.1.0" }

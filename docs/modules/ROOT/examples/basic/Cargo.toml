@@ -1,9 +1,5 @@
 [package]
-authors = [
-    "Ulf Lilleengen <lulf@redhat.com>",
-    "Bob McWhirter <bmcwhirt@redhat.com>"
-]
-edition = "2018"
+edition = "2021"
 name = "microbit-basic"
 version = "0.1.0"
 description = "BBC micro:bit v2 basic example"
@@ -17,7 +13,7 @@ defmt = "0.3"
 defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
-drogue-device = { path = "../../../../../device", default-features = false, features = ["defmt", "time", "actors" ] }
+drogue-device = { path = "../../../../../device", features = ["actors"] }
 microbit-bsp = { path = "../../../../../boards/microbit" }
 ector = { version = "0.1.0", default-features = false }
 cortex-m-rt = "0.7"
@@ -29,10 +25,6 @@ embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf528
 futures = { version = "0.3", default-features = false }
 
 [patch.crates-io]
-embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
-ector = { git = "https://github.com/drogue-iot/ector.git", rev = "cacee7281933a29549fe17a9ddafd2eefc58f768" }
-embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+ector = { git = "https://github.com/drogue-iot/ector.git", rev = "embassy-time-v0.1.0" }

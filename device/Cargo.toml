@@ -10,6 +10,9 @@ embedded-hal-async = "=0.1.0-alpha.3"
 # Handy macros, e.g. drogue::config
 drogue-device-macros = { path = "../macros" }
 
+# Actor framework required for "actors" feature
+ector = { version = "0.1.0", default-features = false, optional = true }
+
 #embassy-executor = { version = "0.1.0", default-features = false, features = ["nightly", "integrated-timers"] }
 #embassy-time = { version = "0.1.0", default-features = false, features = ["nightly"] }
 #embassy-sync = { version = "0.1.0", default-features = false, features = ["nightly"] }
@@ -61,7 +64,6 @@ drogue-device-macros = { path = "../macros" }
 
 
 
-# ector = { version = "0.1.0", default-features = false, optional = true }
 
 # Storage
 # embedded-storage-async = { version = "0.3.0" }
@@ -84,6 +86,7 @@ drogue-device-macros = { path = "../macros" }
 #arrayvec = { version = "0.6" }
 
 [features]
+actors = ["ector"]
 std = []
 "board+b-l475e-iot01a" = []
 "board+nrf52-dk" = []

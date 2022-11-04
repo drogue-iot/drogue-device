@@ -13,25 +13,23 @@ fn main() -> Result<(), anyhow::Error> {
     match &args[..] {
         ["ci"] => ci(false),
         ["ci_batch"] => ci(true),
-        ["check_device"] => check_device(),
-        ["test_device"] => test_device(),
-        ["test_examples"] => test_examples(),
-        ["check", example] => check(&[example]),
-        ["build", example, board] => build_example(&example, board),
-        ["run", example, board] => run_example(&example, board),
+        ["check", board, example] => check_example(&example, board),
+        ["build", board, example] => build_example(&example, board),
+        ["debug", board, example] => debug_example(&example, board),
+        ["flash", board, example] => flash_example(&example, board),
         ["fmt"] => fmt(),
         ["fix"] => fix(),
         ["update"] => update(),
         ["docs"] => docs(),
-        ["clone", example, target] => clone(example, target),
         ["matrix"] => matrix(),
         ["clean"] => clean(root_dir()),
         _ => {
             println!("USAGE:");
             println!("\tcargo xtask ci");
-            println!("\tcargo xtask check examples/nrf52/microbit/jukebox");
-            println!("\tcargo xtask build examples/nrf52/microbit/jukebox");
-            println!("\tcargo xtask clone examples/nrf52/microbit/jukebox target-folder");
+            println!("\tcargo xtask check nrf52-dk examples/blinky");
+            println!("\tcargo xtask build nrf52-dk examples/blinky");
+            println!("\tcargo xtask flash nrf52-dk examples/blinky");
+            println!("\tcargo xtask debug nrf52-dk examples/blinky");
             println!("\tcargo xtask update");
             println!("\tcargo xtask docs");
             println!("\tcargo xtask clean");
@@ -56,27 +54,9 @@ static WORKSPACES: &[&str] = &[
     "boards/microbit/examples/display",
     "boards/adafruit-feather-nrf52",
     "docs/modules/ROOT/examples/basic",
-    "examples/nrf52/microbit/ble",
-    "examples/nrf52/microbit/bt-mesh",
-    "examples/nrf52/microbit/bootloader",
-    "examples/nrf52/microbit/esp8266",
-    "examples/nrf52/adafruit-feather-nrf52840/neopixel",
-    "examples/nrf52/adafruit-feather-nrf52840/bootloader",
-    "examples/nrf52/adafruit-feather-nrf52840/bt-mesh",
-    "examples/nrf52/nrf52840-dk/bt-mesh",
-    "examples/stm32l0/lora-discovery",
-    "examples/stm32l1/rak811",
-    "examples/stm32l4/iot01a/wifi",
-    "examples/stm32l4/iot01a/bootloader",
-    "examples/rp/pico",
-    "examples/stm32wl/nucleo-wl55/bootloader",
-    "examples/stm32wl/nucleo-wl55/lorawan",
-    "examples/stm32wl/nucleo-wl55/lorawan-dfu",
-    "examples/stm32h7/nucleo-h743zi",
-    "examples/stm32u5/iot02a",
-    "examples/wasm/browser",
-    "examples/std",
 ];
+
+static EXAMPLES: &[&str] = &["examples/blinky"];
 
 fn ci(batch: bool) -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("CI", "true");
@@ -84,6 +64,11 @@ fn ci(batch: bool) -> Result<(), anyhow::Error> {
     test_device()?;
     check(WORKSPACES)?;
     build(WORKSPACES, batch)?;
+    for example in EXAMPLES {
+        for board in BOARDS.keys() {
+            build_example(example, board)?;
+        }
+    }
     docs()?;
     Ok(())
 }
@@ -194,7 +179,7 @@ fn check_device() -> Result<(), anyhow::Error> {
     device.push("device");
     let _p = xshell::pushd(&device)?;
     cmd!("cargo fmt --check").run()?;
-    cmd!("cargo check --all --features 'std wifi+esp8266 tls'").run()?;
+    cmd!("cargo check --all").run()?;
     Ok(())
 }
 
@@ -205,6 +190,19 @@ fn build(workspaces: &[&str], batch: bool) -> Result<(), anyhow::Error> {
     } else {
         do_crates(workspaces, &mut build_crate)?;
     }
+    Ok(())
+}
+
+fn check_example(workspace: &str, board: &str) -> Result<(), anyhow::Error> {
+    let _e = xshell::pushenv("RUSTFLAGS", "-Dwarnings");
+    let mut crate_dir = root_dir();
+    crate_dir.push(workspace);
+    let _p = xshell::pushd(workspace)?;
+    let b = BOARDS
+        .get(board)
+        .expect(&format!("Unknown board {}", board));
+    let target = b.1;
+    cmd!("cargo check --target {target} --features board+{board}").run()?;
     Ok(())
 }
 
@@ -221,7 +219,21 @@ fn build_example(workspace: &str, board: &str) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn run_example(workspace: &str, board: &str) -> Result<(), anyhow::Error> {
+fn flash_example(workspace: &str, board: &str) -> Result<(), anyhow::Error> {
+    let _e = xshell::pushenv("RUSTFLAGS", "-Dwarnings");
+    let mut crate_dir = root_dir();
+    crate_dir.push(workspace);
+    let _p = xshell::pushd(workspace)?;
+    let b = BOARDS
+        .get(board)
+        .expect(&format!("Unknown board {}", board));
+    let chip = b.0;
+    let target = b.1;
+    cmd!("cargo flash --release --target {target} --features board+{board} --chip {chip}").run()?;
+    Ok(())
+}
+
+fn debug_example(workspace: &str, board: &str) -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("RUSTFLAGS", "-Dwarnings");
     let mut crate_dir = root_dir();
     crate_dir.push(workspace);
@@ -254,9 +266,8 @@ fn test_device() -> Result<(), anyhow::Error> {
     device.push("device");
     let _p = xshell::pushd(&device)?;
     cmd!("cargo fmt --check").run()?;
-    cmd!("cargo test --all --features 'std wifi+esp8266 tls'").run()?;
-    // Sanity check that we can build on cortex-m
-    cmd!("cargo build --no-default-features --features 'wifi+esp8266 tls ble+nrf52840 embassy-nrf/nrf52840 embassy-nrf/time-driver-rtc1' --target thumbv7em-none-eabihf").run()?;
+    cmd!("cargo test --all").run()?;
+    cmd!("cargo build --no-default-features --target thumbv7em-none-eabihf").run()?;
     Ok(())
 }
 

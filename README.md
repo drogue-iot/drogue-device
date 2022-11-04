@@ -11,7 +11,7 @@ Drogue device is a distribution of tools and examples for building embedded IoT 
 
 * Built using [rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.
 * Based on [embassy](https://github.com/embassy-rs/embassy), the embedded async project. 
-* IoT examples for BLE, BLE Mesh, WiFi and LoRaWAN.
+* IoT examples for BLE, BLE Mesh, WiFi and LoRaWAN that can run on multiple boards.
 * Async programming model for writing safe and efficient applications.
 * All software is licensed under the Apache 2.0 open source license.
 
@@ -19,7 +19,11 @@ See the [documentation](https://book.drogue.io/drogue-device/dev/index.html) for
 
 Go to our [homepage](https://www.drogue.io) to learn more about the Drogue IoT project.
 
-## Example application
+## Minimum Supported Rust Version
+
+Drogue Device requires the Rust nightly toolchain. If you installed rust using [rustup](rustup.rs), all the commands should "just work".
+
+## Example applications
 
 An overview of the examples can be found in the [documentation](https://book.drogue.io/drogue-device/dev/examples.html).
 
@@ -31,31 +35,34 @@ Drogue device runs on any hardware supported by embassy, which at the time of wr
 * Linux, Mac OS X or Windows
 * WASM (WebAssembly)
 
-Once you've found an example you like, you can run `cargo xtask clone <example_dir> <target_dir>` to create a copy with the correct dependencies and project files set up.
+You can copy the examples if you wish to create an application outside of this repository. Remember to update the corresponding dependencies to use versions from git or crates.io.
 
-### A basic blinky application
+## Flashing examples
 
-~~~rust
-#[embassy::main]
-async fn main(_spawner: Spawner, p: Peripherals) {
-    let mut led = Output::new(p.P0_13, Level::Low, OutputDrive::Standard);
-
-    loop {
-        led.set_high();
-        Timer::after(Duration::from_millis(300)).await;
-        led.set_low();
-        Timer::after(Duration::from_millis(300)).await;
-    }
-}
-~~~
-
-## Building
-
-To build drogue-device, you must install the [nightly rust toolchain](https://rustup.rs/). Once
-installed, you can build and test the framework by running
+To flash an example, connect one of the [supported boards](), and run:
 
 ~~~shell
-cargo build
+cargo xtask flash nrf52-dk examples/blinky
+~~~
+
+To debug an example, run `cargo xtask debug`:
+
+~~~shell
+cargo xtask debug nrf52-dk examples/blinky
+~~~
+
+To just build the example, run `cargo xtask build`:
+
+~~~shell
+cargo xtask build nrf52-dk examples/blinky
+~~~
+
+## Developing
+
+To test the tools themselves:
+
+~~~shell
+cargo test
 ~~~
 
 To do a full build of everything including examples:
@@ -64,25 +71,16 @@ To do a full build of everything including examples:
 cargo xtask ci
 ~~~
 
-This might require you do install additional toolchains for the examples to build. Recent versions
-of cargo should automatically install the toolchain from looking at the `rust-toolchain.toml` file.
+### Directory layout
 
-To update dependencies, run:
-
-~~~shell
-cargo xtask update
-~~~
-
-## Directory layout
-
-* `boards` - Board Support Package (BSP) for common boards
-* `examples` - examples for different platforms and boards
-* `device` - async traits, drivers and actors
-  * `device/src/traits` - traits provided by drogue that can be used in async code, such as TCP, WiFi or LoRa
-  * `device/src/drivers` - async drivers that implement traits for a one or more peripherals
-  * `device/src/network` - network connectivity, common network implementations, HTTP clients,
-  * `device/src/actors` - common actors that can be used in applications
-* `macros` - macros used by drogue-device and application code
+* `boards` - Board Support Package (BSP) and memory layout for supported boards
+* `examples` - examples that can run on different boards
+* `device` - Library for building IoT ready applications
+  * `device/src/http` - Client for using Drogue Cloud using HTTP.
+  * `device/src/mqtt` - Client for using Drogue Cloud using MQTT.
+  * `device/src/ota` - Over The Air firmware updates with Drogue Cloud.
+* `bootloader` - Bootloader for all supported boards (required for OTA).
+* `macros` - macros to load configuration files for the device firmware.
 
 
 ## Contributing

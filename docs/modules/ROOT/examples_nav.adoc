@@ -9,6 +9,7 @@
 *** xref:examples/nrf52/microbit/bt-mesh/README.adoc[Microbit Bluetooth Mesh example]
 *** xref:examples/nrf52/nrf52840-dk/bt-mesh/README.adoc[nrf52840-dk BLE Mesh example]
 ** Cloud
+*** xref:examples/drogue-cloud-http/README.adoc[Example sending telemetry data to and receiving commands from Drogue Cloud]
 *** xref:examples/nrf52/microbit/esp8266/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter + MQTT]
 *** xref:examples/std/cloud/README.adoc[Example sending telemetry data from Drogue Device to Drogue Cloud]
 *** xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter]
@@ -22,6 +23,9 @@
 *** xref:examples/stm32wl/nucleo-wl55/lorawan-dfu/README.adoc[STM32 Nucleo-WL55 LoRaWAN and firmware updates OTA]
 *** xref:examples/stm32wl/nucleo-wl55/lorawan/README.adoc[STM32 Nucleo-WL55 using LoRaWAN connecting to The Things Network]
 ** Other
+*** xref:examples/blinky/README.adoc[Blinky App]
+*** xref:examples/macros/README.adoc[Awesome example]
+*** xref:examples/metaboard/README.adoc[Awesome example]
 *** xref:examples/nrf52/adafruit-feather-nrf52840/bootloader/README.adoc[Bootloader for Adafruit nRF52840 chips]
 *** xref:examples/nrf52/microbit/bootloader/README.adoc[Bootloader for BBC Micro:bit chips]
 *** xref:examples/stm32l4/iot01a/bootloader/README.adoc[Bootloader for STM32L4 iot01a boards]

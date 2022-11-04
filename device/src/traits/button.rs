@@ -1,5 +1,5 @@
 use core::future::Future;
-use embedded_hal::digital::v2::InputPin;
+use embedded_hal::digital::InputPin;
 use embedded_hal_async::digital::Wait;
 
 pub enum Event {

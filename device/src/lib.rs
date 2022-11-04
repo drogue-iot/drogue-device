@@ -5,11 +5,9 @@
 #![doc = include_str!("../../README.md")]
 pub(crate) mod fmt;
 
-
-//#[cfg(feature = "actors")]
-//pub mod actors;
-//
-//pub mod traits;
+#[cfg(feature = "actors")]
+pub mod actors;
+pub mod traits;
 //
 //pub mod drivers;
 //
