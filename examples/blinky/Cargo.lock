@@ -372,13 +372,6 @@ dependencies = [
 [[package]]
 name = "drogue-metaboard"
 version = "0.1.0"
-dependencies = [
- "drogue-metaboard-gen",
-]
-
-[[package]]
-name = "drogue-metaboard-gen"
-version = "0.1.0"
 
 [[package]]
 name = "either"
