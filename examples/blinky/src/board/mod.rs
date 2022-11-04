@@ -1,6 +1,6 @@
 pub struct Board;
 
-#[cfg(feature = "board+b_l475e_iot01a")]
+#[cfg(feature = "board+b-l475e-iot01a")]
 mod board {
     use embassy_stm32::{
         exti::ExtiInput,
