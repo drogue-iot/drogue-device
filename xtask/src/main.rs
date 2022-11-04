@@ -17,7 +17,8 @@ fn main() -> Result<(), anyhow::Error> {
         ["test_device"] => test_device(),
         ["test_examples"] => test_examples(),
         ["check", example] => check(&[example]),
-        ["build", example, board] => build_example(&[example], board, false),
+        ["build", example, board] => build_example(&example, board),
+        ["run", example, board] => run_example(&example, board),
         ["fmt"] => fmt(),
         ["fix"] => fix(),
         ["update"] => update(),
@@ -39,10 +40,15 @@ fn main() -> Result<(), anyhow::Error> {
     }
 }
 
-static BOARDS: &[&str] = &[
-    "nrf52-dk",
-    "b-l475e-iot01a",
-]
+use std::collections::HashMap;
+lazy_static::lazy_static! {
+    static ref BOARDS: HashMap<&'static str, (&'static str, &'static str)> = {
+        let mut m = HashMap::new();
+        m.insert("nrf52-dk", ("nRF52832_xxAA", "thumbv7em-none-eabihf"));
+        m.insert("b-l475e-iot01a", ("STM32L475VG", "thumbv7em-none-eabihf"));
+        m
+    };
+}
 
 static WORKSPACES: &[&str] = &[
     "boards/microbit",
@@ -203,6 +209,31 @@ fn build(workspaces: &[&str], batch: bool) -> Result<(), anyhow::Error> {
 }
 
 fn build_example(workspace: &str, board: &str) -> Result<(), anyhow::Error> {
+    let _e = xshell::pushenv("RUSTFLAGS", "-Dwarnings");
+    let mut crate_dir = root_dir();
+    crate_dir.push(workspace);
+    let _p = xshell::pushd(workspace)?;
+    let b = BOARDS
+        .get(board)
+        .expect(&format!("Unknown board {}", board));
+    let target = b.1;
+    cmd!("cargo build --release --target {target} --features board+{board}").run()?;
+    Ok(())
+}
+
+fn run_example(workspace: &str, board: &str) -> Result<(), anyhow::Error> {
+    let _e = xshell::pushenv("RUSTFLAGS", "-Dwarnings");
+    let mut crate_dir = root_dir();
+    crate_dir.push(workspace);
+    let _p = xshell::pushd(workspace)?;
+    let b = BOARDS
+        .get(board)
+        .expect(&format!("Unknown board {}", board));
+    let chip = b.0;
+    let target = b.1;
+    cmd!("cargo run --release --target {target} --features board+{board} -- --chip {chip}")
+        .run()?;
+    Ok(())
 }
 
 fn test_examples() -> Result<(), anyhow::Error> {
