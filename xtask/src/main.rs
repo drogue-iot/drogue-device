@@ -17,7 +17,7 @@ fn main() -> Result<(), anyhow::Error> {
         ["test_device"] => test_device(),
         ["test_examples"] => test_examples(),
         ["check", example] => check(&[example]),
-        ["build", example] => build(&[example], false),
+        ["build", example, board] => build_example(&[example], board, false),
         ["fmt"] => fmt(),
         ["fix"] => fix(),
         ["update"] => update(),
@@ -38,6 +38,11 @@ fn main() -> Result<(), anyhow::Error> {
         }
     }
 }
+
+static BOARDS: &[&str] = &[
+    "nrf52-dk",
+    "b-l475e-iot01a",
+]
 
 static WORKSPACES: &[&str] = &[
     "boards/microbit",
@@ -195,6 +200,9 @@ fn build(workspaces: &[&str], batch: bool) -> Result<(), anyhow::Error> {
         do_crates(workspaces, &mut build_crate)?;
     }
     Ok(())
+}
+
+fn build_example(workspace: &str, board: &str) -> Result<(), anyhow::Error> {
 }
 
 fn test_examples() -> Result<(), anyhow::Error> {

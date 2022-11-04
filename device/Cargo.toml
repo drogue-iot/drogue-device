@@ -1,188 +1,89 @@
 [package]
-authors = [
-    "Ulf Lilleengen <lulf@redhat.com>",
-    "Bob McWhirter <bmcwhirt@redhat.com>"
-]
-edition = "2018"
+edition = "2021"
 name = "drogue-device"
 version = "0.1.0"
 
-[lib]
-doctest = false
-
 [dependencies]
-embassy-executor = { version = "0.1.0", default-features = false, features = ["nightly", "integrated-timers"] }
-embassy-time = { version = "0.1.0", default-features = false, features = ["nightly"] }
-embassy-sync = { version = "0.1.0", default-features = false, features = ["nightly"] }
-embassy-futures = "0.1.0"
-static_cell = "1"
-
-# LoRa dependencies
-lorawan-device = { version = "0.8", default-features = false, features = ["async"], optional = true }
-lorawan-encoding = { package = "lorawan", version = "0.7.1", default-features = false, features = ["default-crypto"], optional = true }
-#lorawan-encoding = { path = "../../../rust-lorawan/encoding", default-features = false, features = ["default-crypto", "defmt"], optional = true }
-#lorawan-device = { path = "../../../rust-lorawan/device", default-features = false, optional = true, features = ["withdefmt", "async"] }
-
-bit_field = { version = "0.10", optional = true }
-embassy-stm32 = { version = "0.1.0", default-features = false, features = ["exti", "unstable-traits", "nightly"], optional = true }
-embassy-nrf = { version = "0.1.0", default-features = false, features = ["unstable-traits", "nightly"], optional = true }
-embassy-embedded-hal = { version = "0.1.0", default-features = false }
-embassy-hal-common = { version = "0.1.0", default-features = false }
-embassy-lora = { version = "0.1.0", default-features = false, features = ["time"], optional = true }
-embassy-net = { version = "0.1.0", default-features = false, optional = true, features= ["tcp", "medium-ethernet", "pool-16", "proto-ipv6", "dhcpv4" ]}
-#embassy-traits = { version = "0.1.0", default-features = false, optional = true }
-#embassy-stm32 = {path = "../../../embassy/embassy-stm32", default-features = false, optional = true }
-nrf-softdevice = { version = "0.1.0", features = ["ble-peripheral", "ble-gatt-server"], optional=true }
-nrf-softdevice-s113 = { version = "0.1.0", optional=true }
-nrf-softdevice-s140 = { version = "0.1.0", optional=true }
-
-# Wifi Dependencies
-nom = { version = "6", default-features = false, optional = true }
-moveslice = { version = "2.0", optional = true }
-es-wifi-driver = { git = "https://github.com/lulf/es-wifi-driver.git", default-features = false, rev = "7d7a08717c6215caf7f32e9ded1c8d28c29b1b0e", optional = true }
-
-# Networking dependencies
-embedded-nal = "0.6.0"
-embedded-nal-async = "0.2.0"
-#firmware-updater = { git = "https://github.com/drogue-iot/firmware-updater.git", branch = "main", default-features = false }
-embedded-update = { version = "0.8", default-features = false, features = ["nightly"] }
-
-# TLS dependency
-embedded-tls = { version = "0.8.0", default-features = false, features = ["async"], optional = true}
-#drogue-tls = {path = "../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
-rand_core = { version = "0.6.2", default-features = false }
-rand = { version = "0.8.4", default-features = false, features = ["small_rng"], optional = true }
-
-# If needed
-cortex-m = { version = "0.7" }
-
-# Utilities
-futures = { version = "0.3", default-features = false }
-futures-intrusive = { version = "0.4", default-features = false }
-heapless = { version = "0.7", features = ["defmt-impl"] }
-embedded-hal = { version = "0.2", features = ["unproven"] }
-embedded-hal-1 = { package = "embedded-hal", version = "=1.0.0-alpha.9"}
-embedded-hal-async = { version = "=0.1.0-alpha.2" }
-embedded-io = { version = "0.3.0", features = ["async"] }
-atomic-polyfill = "1"
-critical-section = "1"
-
-# Logging alternatives
-log = { version = "0.4", optional = true }
-defmt = { version = "0.3", optional = true }
-
-# HTTP dependencies
-reqwless = "0.1"
+embedded-hal = "=1.0.0-alpha.9"
+embedded-hal-async = "=0.1.0-alpha.3"
 
 # Handy macros, e.g. drogue::config
 drogue-device-macros = { path = "../macros" }
 
-ector = { version = "0.1.0", default-features = false, optional = true }
+#embassy-executor = { version = "0.1.0", default-features = false, features = ["nightly", "integrated-timers"] }
+#embassy-time = { version = "0.1.0", default-features = false, features = ["nightly"] }
+#embassy-sync = { version = "0.1.0", default-features = false, features = ["nightly"] }
+#embassy-futures = "0.1.0"
+#static_cell = "1"
 
-# BLE-Mesh
-p256 = { version = "0.10.0", default-features = false, optional=true }
-cmac = { version = "0.6.0", default-features = false, optional=true }
-aes = { version = "0.7", default-features = false, optional = true }
-ccm = { version = "0.4.4", default-features = false, optional = true }
-serde = { version = "1.0", default-features = false, optional = true}
-postcard = { version = "1.0", optional = true }
-uluru = { version ="3.0.0", optional = true}
-micromath = { version = "2.0", optional = true }
-uuid = { version = "1.0.0-alpha.1", default-features = false, optional = true }
+# LoRa dependencies
+# lorawan-device = { version = "0.8", default-features = false, features = ["async"], optional = true }
+# lorawan-encoding = { package = "lorawan", version = "0.7.1", default-features = false, features = ["default-crypto"], optional = true }
+# lorawan-encoding = { path = "../../../rust-lorawan/encoding", default-features = false, features = ["default-crypto", "defmt"], optional = true }
+# lorawan-device = { path = "../../../rust-lorawan/device", default-features = false, optional = true, features = ["withdefmt", "async"] }
+
+# embassy-lora = { version = "0.1.0", default-features = false, features = ["time"], optional = true }
+# embassy-net = { version = "0.1.0", default-features = false, optional = true, features= ["tcp", "medium-ethernet", "pool-16", "proto-ipv6", "dhcpv4" ]}
+#embassy-traits = { version = "0.1.0", default-features = false, optional = true }
+#embassy-stm32 = {path = "../../../embassy/embassy-stm32", default-features = false, optional = true }
+#nrf-softdevice = { version = "0.1.0", features = ["ble-peripheral", "ble-gatt-server"], optional=true }
+#nrf-softdevice-s113 = { version = "0.1.0", optional=true }
+#nrf-softdevice-s140 = { version = "0.1.0", optional=true }
+
+# Wifi Dependencies
+# nom = { version = "6", default-features = false, optional = true }
+# moveslice = { version = "2.0", optional = true }
+# es-wifi-driver = { git = "https://github.com/lulf/es-wifi-driver.git", default-features = false, rev = "7d7a08717c6215caf7f32e9ded1c8d28c29b1b0e", optional = true }
+
+# Networking dependencies
+#embedded-nal = "0.6.0"
+#embedded-nal-async = "0.2.0"
+##firmware-updater = { git = "https://github.com/drogue-iot/firmware-updater.git", branch = "main", default-features = false }
+#embedded-update = { version = "0.8", default-features = false, features = ["nightly"] }
+#
+## TLS dependency
+#embedded-tls = { version = "0.8.0", default-features = false, features = ["async"], optional = true}
+##drogue-tls = {path = "../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
+#rand_core = { version = "0.6.2", default-features = false }
+#rand = { version = "0.8.4", default-features = false, features = ["small_rng"], optional = true }
+#
+#heapless = { version = "0.7", features = ["defmt-impl"] }
+#embedded-io = { version = "0.3.0", features = ["async"] }
+#atomic-polyfill = "1"
+#critical-section = "1"
+#
+## Logging alternatives
+#log = { version = "0.4", optional = true }
+#defmt = { version = "0.3", optional = true }
+#
+## HTTP dependencies
+#reqwless = "0.1"
+
+
+
+# ector = { version = "0.1.0", default-features = false, optional = true }
 
 # Storage
-embedded-storage-async = { version = "0.3.0" }
-embedded-storage = { version = "0.3.0" }
+# embedded-storage-async = { version = "0.3.0" }
+# embedded-storage = { version = "0.3.0" }
 
 # Bootloader
-embassy-boot = { version = "0.1.0", optional = true }
+# embassy-boot = { version = "0.1.0", optional = true }
 
 # DFU
-serde_cbor = { version = "0.11", optional = true, default-features = false }
+# serde_cbor = { version = "0.11", optional = true, default-features = false }
 
-[dev-dependencies]
-ector = { version = "0.1.0", features = ["std"] }
-embassy-executor = { version = "0.1.0", features = ["std", "integrated-timers"]}
-embassy-time = { version = "0.1.0", features = ["std", "tick-hz-1_000_000"]}
-#embassy-executor = {path = "../../../embassy/embassy-executor", features = ["std", "integrated-timers"]}
-#embassy-time = {path = "../../../embassy/embassy-time", features = ["std", "tick-1mhz"]}
-
-futures = { version = "0.3", default-features = false, features = ["executor"] }
-arrayvec = { version = "0.6" }
+#[dev-dependencies]
+## ector = { version = "0.1.0", features = ["std"] }
+#embassy-executor = { version = "0.1.0", features = ["std", "integrated-timers"]}
+#embassy-time = { version = "0.1.0", features = ["std", "tick-hz-1_000_000"]}
+##embassy-executor = {path = "../../../embassy/embassy-executor", features = ["std", "integrated-timers"]}
+##embassy-time = {path = "../../../embassy/embassy-time", features = ["std", "tick-1mhz"]}
+#
+#futures = { version = "0.3", default-features = false, features = ["executor"] }
+#arrayvec = { version = "0.6" }
 
 [features]
-default = [ "std", "log", "time" ]
-actors = ["ector"]
-defmt = [
-    "dep:defmt",
-    "embassy-executor/defmt",
-    "embassy-sync/defmt",
-    "embedded-tls/defmt",
-]
-std = ["embassy-executor/std", "ector/std", "embedded-io/std", "serde_cbor/std"]
-"lora+rak811" = ["nom", "moveslice"]
-"wifi+esp8266" = ["nom", "moveslice"]
-"tcp+smoltcp" = ["embassy-net" ]
-"wifi+eswifi" = ["es-wifi-driver"]
-time = []
-lora = ["embassy-lora", "lorawan-device", "lorawan-encoding"]
-wifi = []
-tls = ["embedded-tls"]
-dfu = ["embassy-boot", "postcard", "serde", "serde_cbor"]
-ble = [
-    "p256",
-    "p256/arithmetic",
-    "p256/ecdh",
-    "cmac",
-    "aes",
-    "ccm",
-    "ccm/heapless",
-    "serde",
-    "postcard",
-    "uluru",
-    "uuid",
-    "micromath"
-]
-ble-peripheral = []
-ble-mesh-relay = [ "ble" ]
-ble-mesh-lpn = [ "ble" ]
-"ble+nrf-softdevice" = [
-    "ble",
-    "nrf-softdevice",
-    "nrf-softdevice/ble-peripheral",
-]
-
-"ble+nrf-softdevice-s140" = [
-    "ble+nrf-softdevice",
-    "nrf-softdevice/ble-central",
-    "nrf-softdevice/s140",
-    "nrf-softdevice-s140",
-]
-
-"ble+nrf-softdevice-s113" = [
-    "ble-peripheral",
-    "ble+nrf-softdevice",
-    "nrf-softdevice-s113",
-]
-
-"ble+nrf52840" = [
-    "ble+nrf-softdevice-s140",
-    "nrf-softdevice/nrf52840",
-]
-
-"ble+nrf52833" = [
-    "nrf-softdevice/nrf52833",
-]
-
-neopixel = []
-nrf = [
-    "embassy-nrf"
-]
-
-"bsp+b_u585i_iot02a" = [ "embassy-stm32" ]
-"bsp+b_l4s5i_iot01a" = [ "embassy-stm32" ]
-"bsp+b_l475e_iot01a" = [ "embassy-stm32" ]
-"bsp+nucleo_h743zi" = [ "embassy-stm32" ]
-"bsp+nucleo_wl55" = [ "embassy-stm32", "embassy-stm32/subghz", "embassy-stm32/unstable-pac" ]
-"bsp+b_l072z_lrwan1" = [ "embassy-stm32" ]
-"bsp+rak811" = [ "embassy-stm32", "rand", "embassy-stm32/unstable-pac" ]
+std = []
+"board+b-l475e-iot01a" = []
+"board+nrf52-dk" = []

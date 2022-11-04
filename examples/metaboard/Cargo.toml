@@ -1,7 +1,8 @@
 [package]
-name = "drogue-metaboard"
+name = "drogue-device"
 version = "0.1.0"
 
 [features]
 "board+b-l475e-iot01a" = []
 "board+nrf52-dk" = []
+"board+std" = []
