@@ -1,0 +1,12 @@
+[package]
+name = "drogue-device-macros"
+version = "0.1.0"
+
+[dependencies]
+syn = { version = "1.0.76", features = ["full", "extra-traits"] }
+quote = "1.0.9"
+darling = "0.13.0"
+proc-macro2 = "1.0.29"
+
+[lib]
+proc-macro = true

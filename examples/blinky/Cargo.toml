@@ -1,0 +1,12 @@
+[package]
+edition = "2021"
+name = "drogue-blinky-app"
+version = "0.1.0"
+description = "Blinky App"
+
+[workspace]
+
+[dependencies]
+drogue-device = { path = "../device", default-features = false }
+embedded-hal = "1.0.0-alpha.8"
+embedded-hal-async = "0.1.0-alpha.3"
