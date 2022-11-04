@@ -17,5 +17,5 @@ default = ["express"]
 express = ["embassy-nrf/nrf52840"]
 
 [patch.crates-io]
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }

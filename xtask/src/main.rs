@@ -64,10 +64,36 @@ fn ci(batch: bool) -> Result<(), anyhow::Error> {
     test_device()?;
     check(WORKSPACES)?;
     build(WORKSPACES, batch)?;
-    for example in EXAMPLES {
-        for board in BOARDS.keys() {
-            build_example(example, board)?;
+
+    if !batch {
+        for example in EXAMPLES {
+            for board in BOARDS.keys() {
+                build_example(example, board)?;
+            }
         }
+    } else {
+        let mut c = xshell::Cmd::new("cargo");
+        c = c.arg("batch");
+
+        for example in EXAMPLES {
+            for (board, (_, target)) in BOARDS.iter() {
+                let board = format!("board+{}", board);
+                let cmds = vec![
+                    "build",
+                    "--release",
+                    "--target",
+                    target,
+                    "--features",
+                    &board,
+                ];
+                c = c
+                    .arg("---")
+                    .args(cmds.clone())
+                    .arg("--manifest-path")
+                    .arg(format!("{}/Cargo.toml", example));
+            }
+        }
+        c.run()?;
     }
     docs()?;
     Ok(())
