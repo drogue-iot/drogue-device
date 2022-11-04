@@ -1,0 +1,10 @@
+[package]
+name = "drogue-metaboard"
+version = "0.1.0"
+
+[build-dependencies]
+drogue-metaboard-gen = { path = "../metaboard-gen" }
+
+[features]
+"board+b-l475e-iot01a" = []
+"board+nrf52-dk" = []

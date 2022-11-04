@@ -12,6 +12,11 @@
 use std::{env, fs::File, io::Write, path::PathBuf};
 
 fn main() {
+    /*let mut v = Vec::new();
+    for (key, value) in env::vars() {
+        v.push(format!("{}={}", key, value));
+    }
+    panic!(" ENVS: {:?}", v);*/
     // Put `memory.x` in our output directory and ensure it's
     // on the linker search path.
     let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());

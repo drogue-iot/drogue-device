@@ -1,15 +1,21 @@
 #![no_std]
+#![no_main]
 #![feature(type_alias_impl_trait)]
 
-mod boards;
+use embassy_executor::Spawner;
 
-use boards::*;
-use drogue_device::*;
+#[cfg(feature = "panic-probe")]
+use panic_probe as _;
 
-/// This trait defines the trait-based capabilities
-/// required by a board and provides associated-types
-/// in order to make referencing them easier with fewer
-/// generics involved in the app itself.
+#[cfg(feature = "defmt-rtt")]
+use defmt_rtt as _;
+
+// Include the board mappings
+mod board;
+use board::*;
+
+/// This trait defines the trait-based capabilities required by a board and provides associated-types
+/// in order to make referencing them easier with fewer generics involved in the app itself.
 pub trait BlinkyBoard {
     type Led: embedded_hal::digital::OutputPin;
     type Button: embedded_hal::digital::InputPin + embedded_hal_async::digital::Wait;
@@ -17,7 +23,7 @@ pub trait BlinkyBoard {
     fn new() -> (Self::Led, Self::Button);
 }
 
-#[main]
+#[embassy_executor::main]
 async fn main(_s: Spawner) {
     let (mut led, mut button) = Board::new();
     loop {
@@ -29,13 +35,3 @@ async fn main(_s: Spawner) {
         }
     }
 }
-
-/*
-#[embassy_executor::spawnerentry]
-async fn main<B>(led: B::Led, button: B::Button)
-where
-    B: BlinkyBoard,
-{
-    loop {}
-}
-*/
