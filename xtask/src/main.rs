@@ -56,7 +56,7 @@ static WORKSPACES: &[&str] = &[
     "docs/modules/ROOT/examples/basic",
 ];
 
-static EXAMPLES: &[&str] = &["examples/blinky"];
+static EXAMPLES: &[&str] = &["examples/blinky", "examples/blinky-generic"];
 
 fn ci(batch: bool) -> Result<(), anyhow::Error> {
     let _e = xshell::pushenv("CI", "true");

@@ -1,4 +1,4 @@
-use embedded_hal::digital::{InputPin, OutputPin};
+use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 use embedded_hal_async::{digital::Wait, i2c::I2c, spi::SpiBus};
 use embedded_nal_async::TcpConnect;
 
@@ -22,21 +22,44 @@ pub trait Device {
         None
     }
 
-    type I2c1: I2c;
+    type I2c1<'m>: I2c + 'm
+    where
+        Self: 'm;
     /// Return the first i2c peripheral, if available
-    fn i2c1(&mut self) -> Option<Self::I2c1> {
+    fn i2c1<'m>(&'m mut self) -> Option<Self::I2c1<'m>> {
         None
     }
 
-    type Spi1: SpiBus;
+    type Spi1<'m>: SpiBus + 'm
+    where
+        Self: 'm;
     /// Return the first spi peripheral, if available
-    fn spi1(&mut self) -> Option<Self::Spi1> {
+    fn spi1<'m>(&'m mut self) -> Option<Self::Spi1<'m>> {
         None
     }
 
-    type Tcp: TcpConnect;
+    type Tcp<'m>: TcpConnect + 'm
+    where
+        Self: 'm;
     /// Return access to TCP stack, if available
-    fn tcp(&mut self) -> Option<Self::Tcp> {
+    fn tcp<'m>(&'m mut self) -> Option<Self::Tcp<'m>> {
         None
     }
 }
+
+impl ErrorType for DummyLed {
+    type Error = ();
+}
+
+pub struct DummyLed;
+impl OutputPin for DummyLed {
+    fn set_high(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    fn set_low(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
+}
+
+struct DummyButton;
