@@ -7,6 +7,9 @@ pub(crate) mod fmt;
 
 #[cfg(feature = "actors")]
 pub mod actors;
+
+pub mod boards;
+pub mod device;
 pub mod traits;
 //
 //pub mod drivers;

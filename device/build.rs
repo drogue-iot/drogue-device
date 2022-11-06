@@ -12,7 +12,7 @@ fn main() {
         });
 
     if let Some(board_name) = board_name {
-        let data_dir = PathBuf::from(format!("../boards/{}", board_name));
+        let data_dir = PathBuf::from(format!("src/boards/{}", board_name));
         let in_memory_x = std::fs::read(data_dir.join("memory.x")).unwrap();
 
         gen_memory(&board_name, &in_memory_x[..]);

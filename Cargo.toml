@@ -5,3 +5,8 @@ members = [
     "xtask",
 ]
 resolver = "2"
+
+[patch.crates-io]
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy", tag = "embassy-time-v0.1.0" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
