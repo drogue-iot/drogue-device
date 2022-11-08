@@ -9,12 +9,10 @@ use rng::*;
 use defmt_rtt as _;
 use panic_probe as _;
 
-use drogue_device::{drivers::wifi::esp8266::Esp8266Socket, traits::button::Button};
+use drogue_device::traits::button::Button;
+use esp8266_at_driver::{Esp8266Driver, Esp8266Socket};
 
-use drogue_device::{
-    drivers::{dns::*, wifi::esp8266::Esp8266Modem},
-    *,
-};
+use drogue_device::{drivers::dns::*, *};
 use ector::{actor, Actor, ActorContext, Address, Inbox};
 use embassy_nrf::{
     buffered_uarte::{BufferedUarte, State},
@@ -82,8 +80,8 @@ async fn main(spawner: embassy_executor::Spawner) {
     let enable_pin = Output::new(board.p9, Level::High, OutputDrive::Standard);
     let reset_pin = Output::new(board.p8, Level::High, OutputDrive::Standard);
 
-    let network = Esp8266Modem::new(uart, enable_pin, reset_pin);
-    static NETWORK: StaticCell<Esp8266Modem<SERIAL, ENABLE, RESET, 2>> = StaticCell::new();
+    let network = Esp8266Driver::new(uart, enable_pin, reset_pin);
+    static NETWORK: StaticCell<Esp8266Driver<SERIAL, ENABLE, RESET, 2>> = StaticCell::new();
     let network = NETWORK.init(network);
     spawner
         .spawn(net_task(network, WIFI_SSID.trim_end(), WIFI_PSK.trim_end()))
@@ -152,7 +150,7 @@ async fn main(spawner: embassy_executor::Spawner) {
 
 #[embassy_executor::task]
 async fn net_task(
-    modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 2>,
+    modem: &'static Esp8266Driver<'static, SERIAL, ENABLE, RESET, 2>,
     ssid: &'static str,
     psk: &'static str,
 ) {

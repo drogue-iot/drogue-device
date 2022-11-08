@@ -25,7 +25,7 @@ cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 heapless = "0.7"
 void = { version = "1", default-features = false }
 rand_core = { version = "0.6", default-features = false }
-embedded-update = { version = "0.8", features = ["nightly"] }
+embedded-update = { version = "0.9", features = ["nightly"] }
 
 embassy-executor = { version = "0.1.0", default-features = false, features = ["nightly", "integrated-timers"] }
 embassy-time = { version = "0.1.0", default-features = false, features = ["unstable-traits"] }

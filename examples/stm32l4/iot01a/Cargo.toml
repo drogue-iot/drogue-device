@@ -38,15 +38,15 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy-executor = {git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
-embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
-embassy-embedded-hal = {git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
-embassy-boot = {git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
-embassy-boot-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
-ector = { git = "https://github.com/drogue-iot/ector.git", rev = "cacee7281933a29549fe17a9ddafd2eefc58f768" }
-embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "99284b830455dde9cd91091e2c1f4dda92936f51" }
+embassy-executor = {git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-stm32 = {git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-embedded-hal = {git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-boot = {git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-boot-stm32 = {git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+ector = { git = "https://github.com/drogue-iot/ector.git", tag = "embassy-time-v0.1.0" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 #embedded-nal-async = { path = "../../../../../embedded-nal/embedded-nal-async" }
 #embassy-executor = { path = "../../../../../embassy/embassy" }
 #embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }
