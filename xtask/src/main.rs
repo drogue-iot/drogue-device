@@ -28,9 +28,10 @@ fn main() -> Result<(), anyhow::Error> {
         _ => {
             println!("USAGE:");
             println!("\tcargo xtask ci");
-            println!("\tcargo xtask check examples/nrf52/microbit/jukebox");
-            println!("\tcargo xtask build examples/nrf52/microbit/jukebox");
-            println!("\tcargo xtask clone examples/nrf52/microbit/jukebox target-folder");
+            println!("\tcargo xtask check examples/nrf52/microbit/ble");
+            println!("\tcargo xtask build examples/nrf52/microbit/ble");
+            println!("\tcargo xtask flash examples/nrf52/microbit/ble");
+            println!("\tcargo xtask debug examples/nrf52/microbit/ble");
             println!("\tcargo xtask update");
             println!("\tcargo xtask docs");
             println!("\tcargo xtask clean");
@@ -49,21 +50,17 @@ static WORKSPACES: &[&str] = &[
     "examples/nrf52/microbit/bt-mesh",
     "examples/nrf52/microbit/bootloader",
     "examples/nrf52/microbit/esp8266",
-    "examples/nrf52/adafruit-feather-nrf52840/neopixel",
     "examples/nrf52/adafruit-feather-nrf52840/bootloader",
     "examples/nrf52/adafruit-feather-nrf52840/bt-mesh",
     "examples/nrf52/nrf52840-dk/bt-mesh",
     "examples/stm32l0/lora-discovery",
     "examples/stm32l1/rak811",
-    "examples/stm32l4/iot01a/wifi",
+    "examples/stm32l4/iot01a/app",
     "examples/stm32l4/iot01a/bootloader",
-    "examples/rp/pico",
+//    "examples/rp/pico",
+    "examples/stm32wl/nucleo-wl55/app",
     "examples/stm32wl/nucleo-wl55/bootloader",
-    "examples/stm32wl/nucleo-wl55/lorawan",
-    "examples/stm32wl/nucleo-wl55/lorawan-dfu",
     "examples/stm32h7/nucleo-h743zi",
-    "examples/stm32u5/iot02a",
-    "examples/wasm/browser",
     "examples/std",
 ];
 

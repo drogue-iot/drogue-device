@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "blinky",
 ]
 resolver = "2"
 

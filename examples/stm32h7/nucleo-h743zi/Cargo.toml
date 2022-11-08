@@ -1,7 +1,5 @@
 [workspace]
 members = [
-    "blinky",
-    "epd",
     "ethernet",
 ]
 resolver = "2"

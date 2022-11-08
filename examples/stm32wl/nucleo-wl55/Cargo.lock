@@ -607,7 +607,6 @@ dependencies = [
  "critical-section 1.1.1",
  "defmt",
  "drogue-device-macros",
- "ector",
  "embassy-boot",
  "embassy-embedded-hal",
  "embassy-executor",
@@ -630,7 +629,7 @@ dependencies = [
  "futures",
  "futures-intrusive",
  "heapless",
- "lorawan 0.7.1",
+ "lorawan",
  "lorawan-device",
  "postcard",
  "rand_core",
@@ -647,45 +646,6 @@ dependencies = [
  "cfg-if",
  "config",
  "lazy_static",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "drogue-lorawan-app"
-version = "0.1.0"
-dependencies = [
- "defmt",
- "drogue-device",
- "ector",
- "embassy-executor",
- "embassy-time",
- "heapless",
- "static_cell",
-]
-
-[[package]]
-name = "ector"
-version = "0.1.0"
-source = "git+https://github.com/drogue-iot/ector.git?rev=cacee7281933a29549fe17a9ddafd2eefc58f768#cacee7281933a29549fe17a9ddafd2eefc58f768"
-dependencies = [
- "atomic-polyfill 1.0.1",
- "ector-macros",
- "embassy-executor",
- "embassy-sync",
- "embedded-hal 0.2.7",
- "embedded-hal 1.0.0-alpha.9",
- "embedded-hal-async",
- "futures",
- "static_cell",
-]
-
-[[package]]
-name = "ector-macros"
-version = "0.1.0"
-source = "git+https://github.com/drogue-iot/ector.git?rev=cacee7281933a29549fe17a9ddafd2eefc58f768#cacee7281933a29549fe17a9ddafd2eefc58f768"
-dependencies = [
  "proc-macro2",
  "quote",
  "syn",
@@ -822,7 +782,7 @@ dependencies = [
  "embedded-hal 1.0.0-alpha.9",
  "embedded-hal-async",
  "futures",
- "lorawan 0.7.1",
+ "lorawan",
  "lorawan-device",
 ]
 
@@ -1345,27 +1305,6 @@ dependencies = [
 
 [[package]]
 name = "lorawan"
-version = "0.1.0"
-dependencies = [
- "cortex-m",
- "cortex-m-rt",
- "defmt",
- "defmt-rtt",
- "drogue-device",
- "drogue-lorawan-app",
- "embassy-executor",
- "embassy-lora",
- "embassy-stm32",
- "embedded-hal 0.2.7",
- "heapless",
- "panic-probe",
- "rand_core",
- "static_cell",
- "void",
-]
-
-[[package]]
-name = "lorawan"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d54ed101795a78f7c3d765545b7b721143a7573d2a1d8d40055361647328bba3"
@@ -1385,7 +1324,7 @@ dependencies = [
  "futures",
  "generic-array",
  "heapless",
- "lorawan 0.7.1",
+ "lorawan",
  "rand_core",
 ]
 
@@ -2198,3 +2137,8 @@ name = "zeroize"
 version = "1.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c394b5bd0c6f669e7275d9c20aa90ae064cb22e75a1cad54e1b34088034b149f"
+
+[[patch.unused]]
+name = "ector"
+version = "0.1.0"
+source = "git+https://github.com/drogue-iot/ector.git?rev=cacee7281933a29549fe17a9ddafd2eefc58f768#cacee7281933a29549fe17a9ddafd2eefc58f768"

@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "bootloader",
-    "wifi",
+    "app",
 ]
 resolver = "2"
 

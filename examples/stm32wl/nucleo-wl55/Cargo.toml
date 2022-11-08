@@ -1,7 +1,6 @@
 [workspace]
 members = [
-    "lorawan",
-    "lorawan-dfu",
+    "app",
     "bootloader",
 ]
 

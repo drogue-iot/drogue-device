@@ -1,1 +1,0 @@
-* xref:examples/stm32h7/nucleo-h743zi/epd/README.adoc[STM32 Nucleo-H743 7-color e-paper display] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32h7/nucleo-h743zi/epd[github])
