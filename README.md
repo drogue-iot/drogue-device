@@ -11,17 +11,20 @@ Drogue device is a distribution of tools and examples for building embedded IoT 
 
 * Built using [rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.
 * Based on [embassy](https://github.com/embassy-rs/embassy), the embedded async project. 
-* IoT examples for BLE, Bluetooth Mesh, WiFi, Ethernet and LoRaWAN, all with OTA updates.
+* IoT examples for BLE, Bluetooth Mesh, WiFi and LoRaWAN with OTA functionality.
+* Works out of the box with the [Drogue Cloud](https://github.com/drogue-iot/drogue-cloud) connectivity layer.
 * Async programming model for writing safe and efficient applications.
 * All software is licensed under the Apache 2.0 open source license.
 
-See the [documentation](https://book.drogue.io/drogue-device/dev/index.html) for more information and an overview of the examples.
+See the [documentation](https://book.drogue.io/drogue-device/dev/index.html) for more information.
 
 Go to our [homepage](https://www.drogue.io) to learn more about the Drogue IoT project.
 
-## Example application
+## Minimum Supported Rust Version
 
-An overview of the examples can be found in the [documentation](https://book.drogue.io/drogue-device/dev/examples.html).
+Drogue Device requires the Rust nightly toolchain. If you installed rust using [rustup](https://rustup.rs), all the commands should "just work".
+
+## Hardware
 
 Drogue device runs on any hardware supported by embassy, which at the time of writing includes:
 
@@ -31,31 +34,34 @@ Drogue device runs on any hardware supported by embassy, which at the time of wr
 * Linux, Mac OS X or Windows
 * WASM (WebAssembly)
 
-Once you've found an example you like, you can run `cargo xtask clone <example_dir> <target_dir>` to create a copy with the correct dependencies and project files set up.
+We provide examples for a subset of hardware that we ensure works and that are relevant for IoT.
 
-### A basic blinky application
+## Example applications
 
-~~~rust
-#[embassy::main]
-async fn main(_spawner: Spawner, p: Peripherals) {
-    let mut led = Output::new(p.P0_13, Level::Low, OutputDrive::Standard);
+An overview of the examples can be found in the [documentation](https://book.drogue.io/drogue-device/dev/examples.html).
 
-    loop {
-        led.set_high();
-        Timer::after(Duration::from_millis(300)).await;
-        led.set_low();
-        Timer::after(Duration::from_millis(300)).await;
-    }
-}
-~~~
+You can copy the examples if you wish to create an application outside of this repository.
 
-## Building
+## Developing
 
-To build drogue-device, you must install the [nightly rust toolchain](https://rustup.rs/). Once
-installed, you can build and test the framework by running
+To make testing and developing examples a bit easier, we have defined a few commands that you can run from the root folder of the repository that should work with any example. These commands will also ensure that the appropriate bootloader is installed if needed.
+
+To flash an example, run `cargo xtask flash`:
 
 ~~~shell
-cargo build
+cargo xtask flash examples/nrf52/microbit/ble
+~~~
+
+To debug an example, run `cargo xtask debug`:
+
+~~~shell
+cargo xtask debug examples/nrf52/microbit/ble
+~~~
+
+To just build the example, run `cargo xtask build`:
+
+~~~shell
+cargo xtask build examples/nrf52/microbit/ble
 ~~~
 
 To do a full build of everything including examples:
@@ -64,26 +70,13 @@ To do a full build of everything including examples:
 cargo xtask ci
 ~~~
 
-This might require you do install additional toolchains for the examples to build. Recent versions
-of cargo should automatically install the toolchain from looking at the `rust-toolchain.toml` file.
+### Directory layout
 
-To update dependencies, run:
-
-~~~shell
-cargo xtask update
-~~~
-
-## Directory layout
-
-* `boards` - Board Support Package (BSP) for common boards
-* `examples` - examples for different platforms and boards
-* `device` - async traits, drivers and actors
-  * `device/src/traits` - traits provided by drogue that can be used in async code, such as TCP, WiFi or LoRa
-  * `device/src/drivers` - async drivers that implement traits for a one or more peripherals
-  * `device/src/network` - network connectivity, common network implementations, HTTP clients,
-  * `device/src/actors` - common actors that can be used in applications
-* `macros` - macros used by drogue-device and application code
-
+* `boards` - Board Support Package (BSP) for supported boards
+* `device` - Library for building IoT applications
+* `macros` - macros to load configuration files for the device firmware.
+* `bootloader` - Bootloader for all supported boards (required for OTA).
+* `examples` - examples that can run on different boards
 
 ## Contributing
 

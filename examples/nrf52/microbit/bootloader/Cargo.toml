@@ -7,6 +7,7 @@ edition = "2018"
 name = "microbit-bootloader"
 version = "0.1.0"
 description = "Bootloader for BBC Micro:bit chips"
+keywords = ["ignore"]
 resolver = "2"
 
 [workspace]

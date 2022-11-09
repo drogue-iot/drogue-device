@@ -1,4 +1,0 @@
-* xref:examples/nrf52/adafruit-feather-nrf52840/bootloader/README.adoc[Bootloader for Adafruit nRF52840 chips] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/adafruit-feather-nrf52840/bootloader[github])
-* xref:examples/nrf52/microbit/bootloader/README.adoc[Bootloader for BBC Micro:bit chips] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/bootloader[github])
-* xref:examples/stm32l4/iot01a/bootloader/README.adoc[Bootloader for STM32L4 iot01a boards] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32l4/iot01a/bootloader[github])
-* xref:examples/stm32wl/nucleo-wl55/bootloader/README.adoc[Bootloader for STM32L4 iot01a boards] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32wl/nucleo-wl55/bootloader[github])

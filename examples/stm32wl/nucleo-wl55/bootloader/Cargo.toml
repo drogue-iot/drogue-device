@@ -6,6 +6,7 @@ edition = "2021"
 name = "nucleo-wl55-bootloader"
 version = "0.1.0"
 description = "Bootloader for STM32L4 iot01a boards"
+keywords = ["ignore"]
 
 [dependencies]
 defmt = { version = "0.3", optional = true }

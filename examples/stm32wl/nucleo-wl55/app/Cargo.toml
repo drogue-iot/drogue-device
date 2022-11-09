@@ -4,11 +4,11 @@ authors = [
     "Bob McWhirter <bmcwhirt@redhat.com>"
 ]
 edition = "2021"
-name = "lorawan-dfu"
+name = "lorawan"
 version = "0.1.0"
 resolver = "2"
-description = "STM32 Nucleo-WL55 LoRaWAN and firmware updates OTA"
-keywords = ["lorawan", "lora", "stm32wl", "iot", "stm32", "dfu"]
+description = "STM32 Nucleo-WL55 LoRaWAN and OTA updates"
+keywords = ["lorawan", "lora", "stm32wl", "iot", "stm32", "ota"]
 
 [dependencies]
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
