@@ -630,7 +630,7 @@ dependencies = [
  "futures",
  "futures-intrusive",
  "heapless",
- "lorawan",
+ "lorawan 0.7.1",
  "lorawan-device",
  "postcard",
  "rand_core",
@@ -784,7 +784,7 @@ dependencies = [
  "embedded-hal 1.0.0-alpha.9",
  "embedded-hal-async",
  "futures",
- "lorawan",
+ "lorawan 0.7.1",
  "lorawan-device",
 ]
 
@@ -1317,31 +1317,6 @@ dependencies = [
 
 [[package]]
 name = "lorawan"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d54ed101795a78f7c3d765545b7b721143a7573d2a1d8d40055361647328bba3"
-dependencies = [
- "aes 0.6.0",
- "cmac",
- "generic-array",
-]
-
-[[package]]
-name = "lorawan-device"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9638593905cf76fd6564b898279b20de22724f65f764a91141d54bc4f0f89182"
-dependencies = [
- "as-slice",
- "futures",
- "generic-array",
- "heapless",
- "lorawan",
- "rand_core",
-]
-
-[[package]]
-name = "lorawan-dfu"
 version = "0.1.0"
 dependencies = [
  "cortex-m",
@@ -1364,6 +1339,31 @@ dependencies = [
  "rand_core",
  "static_cell",
  "void",
+]
+
+[[package]]
+name = "lorawan"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d54ed101795a78f7c3d765545b7b721143a7573d2a1d8d40055361647328bba3"
+dependencies = [
+ "aes 0.6.0",
+ "cmac",
+ "generic-array",
+]
+
+[[package]]
+name = "lorawan-device"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9638593905cf76fd6564b898279b20de22724f65f764a91141d54bc4f0f89182"
+dependencies = [
+ "as-slice",
+ "futures",
+ "generic-array",
+ "heapless",
+ "lorawan 0.7.1",
+ "rand_core",
 ]
 
 [[package]]

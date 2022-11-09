@@ -7,7 +7,7 @@ edition = "2018"
 name = "std-rak811"
 version = "0.1.0"
 description = "RAK811 LoRa Adapter with AT command firmware"
-keywords = ["networking", "lora", "lorawan", "rak811"]
+keywords = ["networking", "lora", "lorawan", "rak811", "std"]
 resolver = "2"
 
 [dependencies]

@@ -26,44 +26,26 @@ Then, what follows are some declarations on how to deal with panics and faults. 
 include::example$basic/src/main.rs[lines="7..8"]
 ----
 
-=== Defining actors
+== Main
 
-Lets define the basic game first. We'll model the game as an actor named `Game`, and it will drive the entire game logic and interact with the LED matrix and the 'A' button on the micro:bit board.
+The main entry point is defined using the `#[embassy::main]` macro. The entry point is also required to take a `Spawner` argument.
 
-Luckily, Drogue Device already have actors for buttons and a LED matrix driver, so we only need to create the `Game` actor.
+The `Spawner` is the way the main application spawns tasks and actors.
 
-Lets start with the types:
+For some boards, a Board Support Package (BSP) helps locating peripherals with a board-specific name. The board simply helps configuring the peripherals and giving them a name that maps to your particular board. In our case, we can use the `Microbit` board.
 
-[source,rust]
-----
-include::example$basic/src/main.rs[lines="26..50"]
-----
-
-The `Game` type holds on to the led matrix. In addition, we define the `GameMessage` message that our actor will expect to be notified of whenever the button is pressed.
-The `Address` type is a handle that you can use to send messages to an `Actor`. Our Game actor will be reachable using an `Address<GameCommand>` instance, which you get when mounting an actor. The predefined `Button` actor
-can work with any handle that implements the `TryFrom<ButtonEvent>` trait, so we'll add an implemented for our `GameMessage` type.
-
-We can now have our `Game` type implement the `Actor` trait:
+We'll model the game as an async task called `run_game`, which we will spawn from `main`. We then wait for button events and pass that to the game using a `Channel`.
 
 [source,rust]
 ----
-include::example$basic/src/main.rs[lines="52..59"]
+include::example$basic/src/main.rs[lines="18..47"]
 ----
 
-The `Message` of an `Actor` defines the messages that our actor expects to handle.
+We define a `GameMessage` type that our task will expect to be notified of whenever the button is pressed. The `DynamicReceiver` type is a handle that you can use to receive events that get sent to a `Channel`.
 
-NOTE: Why do you have to define the `actor` attribute? Rust does not yet support async methods in traits, and needs some assistance in knowing what to do. This is only temporary until Rust supports basic async traits, so for now we'll have to live with it.
+== Game logic
 
-We can now define the main actor logic in the `on_mount` implementation.
-
-The `on_mount` entry point is called only once, and should contain the Actor main loop. The actor is handed an address to itself. This can be useful if you need to register the `Actor` with other actors or types. The `Address` type can be cloned, so it's easy to pass around.
-
-The `Inbox` parameter is a handle that the actor can use to wait for incoming messages.
-
-
-==== Game logic
-
-Having the boilerplate out of the way, we can now focus on our application. The game logic can be described as follows:
+Having the setup code out of the way, we can now focus on our application. The game logic can be described as follows:
 
 .Game logic
 . Define a set of coordinates in a 5x5 matrix
@@ -80,39 +62,18 @@ The game logic is implemented here:
 
 [source,rust,indent=0]
 ----
-include::example$basic/src/main.rs[lines="60..118"]
+include::example$basic/src/main.rs[lines="48..-1"]
 ----
 
-The LedMatrix has an `on` and `off` method to toggle the LED at a given coordinate. In order to render the current LedMatrix state, we need
-to call a render function at the desired refresh interval. The "outer" loop does just that until one of the 'game logic' futures are completing.
+The LedMatrix has an `on` and `off` method to toggle the LED at a given coordinate. In order to render the current LedMatrix state, we need to call a render function at the desired refresh interval. The "outer" loop does just that until one of the 'game logic' futures are completing.
 
-The `inbox.next()` is an async funtion that completes when an event have been received (i.e. button has been pressed).
+The `events.recv()` is an async funtion that completes when an event have been received (i.e. button has been pressed).
 
-The `Timer` type can be used to asynchronously wait for an event. The `futures` `select` function can be used to "race" two async functions for completion.
+The `Timer` type can be used to asynchronously wait for an event. The `select` function can be used to "race" two async functions for completion.
 
-Therefore, the outer select races the rending loop and the `inbox.next()` and timer, whereas they are raced against eachother. If there is an event or timeout, we update the game state.
+Therefore, the outer select races the rending loop and the `events.recv()` and timer, whereas they are raced against eachother. If there is an event or timeout, we update the game state.
 
-=== Application main
-
-With the game logic defined, we can now wire our three actors together in the application main:
-
-[source,rust]
-----
-include::example$basic/src/main.rs[lines="122..-1"]
-----
-
-The main entry point is defined using the `#[embassy::main]` macro. The entry point is also required to take a `Spawner` and a `Peripherals` argument.
-
-The `Spawner` is the way the main application spawns tasks and actors. The `Peripherals` type holds all peripherals that the application may use.
-
-For some boards, Drogue Device provide a Board Support Package (BSP) that helps locating peripherals for a given board. You can also access all peripherals using
-the `Peripherals` type. The board simply helps setting them up and giving them a name that maps to your particular board. In our case, we can use the
-`Microbit` board.
-
-Finally, we spawn an instance for each of the actors in our system: LED_MATRIX, GAME, and BUTTON_A.
-
-An `Address` handle of the actor is returned when spawned, and can be used as a parameter to other actors, or directly in the main function.
 
 === Summary
 
-We've gone through a basic application written for the BBC micro:bit. We've created our own `Actor` instance to drive the game logic, and wired it together with two other actors already defined by Drogue Device, which was simple due to the composability of actors.
+We've gone through a basic application written for the BBC micro:bit. We've created an async task to drive the game logic, and wired it together with a channel receiving events from the main task.

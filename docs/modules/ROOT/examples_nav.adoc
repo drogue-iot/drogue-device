@@ -4,21 +4,21 @@
 *** xref:examples/nrf52/microbit/ble/README.adoc[Microbit BLE Sensor example with DFU]
 *** xref:examples/nrf52/microbit/bt-mesh/README.adoc[Microbit Bluetooth Mesh example]
 *** xref:examples/nrf52/nrf52840-dk/bt-mesh/README.adoc[nrf52840-dk BLE Mesh example]
-** Cloud
-*** xref:examples/nrf52/microbit/esp8266/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter + MQTT]
-*** xref:examples/std/cloud/README.adoc[Example sending telemetry data from Drogue Device to Drogue Cloud]
-*** xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter]
-*** xref:examples/stm32l4/iot01a/app/README.adoc[STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi]
+** Ethernet
+*** xref:examples/stm32h7/nucleo-h743zi/ethernet/README.adoc[STM32 Nucleo-H743 ethernet]
 ** Lorawan
 *** xref:examples/std/rak811/README.adoc[RAK811 LoRa Adapter with AT command firmware]
 *** xref:examples/stm32l0/lora-discovery/README.adoc[STM32 LoRaWAN Discovery board connecting to The Things Network]
 *** xref:examples/stm32l1/rak811/README.adoc[RAK811 Tracker Node connecting to The Things Network]
-*** xref:examples/stm32wl/nucleo-wl55/app/README.adoc[STM32 Nucleo-WL55 LoRaWAN and firmware updates OTA]
-** Other
-*** xref:examples/nrf52/adafruit-feather-nrf52840/bootloader/README.adoc[Bootloader for Adafruit nRF52840 chips]
-*** xref:examples/nrf52/microbit/bootloader/README.adoc[Bootloader for BBC Micro:bit chips]
-*** xref:examples/stm32l4/iot01a/bootloader/README.adoc[Bootloader for STM32L4 iot01a boards]
-*** xref:examples/stm32wl/nucleo-wl55/bootloader/README.adoc[Bootloader for STM32L4 iot01a boards]
+*** xref:examples/stm32wl/nucleo-wl55/app/README.adoc[STM32 Nucleo-WL55 LoRaWAN and OTA updates]
+** Ota
+*** xref:examples/nrf52/microbit/ble/README.adoc[Microbit BLE Sensor example with DFU]
+*** xref:examples/stm32l4/iot01a/app/README.adoc[STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi]
+*** xref:examples/stm32wl/nucleo-wl55/app/README.adoc[STM32 Nucleo-WL55 LoRaWAN and OTA updates]
+** Std
+*** xref:examples/std/cloud/README.adoc[Example using operating system networking]
+*** xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter]
+*** xref:examples/std/rak811/README.adoc[RAK811 LoRa Adapter with AT command firmware]
 ** Wifi
 *** xref:examples/nrf52/microbit/esp8266/README.adoc[BBC micro:bit v2 + ESP8266 WiFi adapter + MQTT]
 *** xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter]

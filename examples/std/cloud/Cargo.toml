@@ -6,7 +6,7 @@ authors = [
     "Bob McWhirter <bmcwhirt@redhat.com>",
     "Ulf Lilleengen <lulf@redhat.com>"
 ]
-description = "Example sending telemetry data from Drogue Device to Drogue Cloud"
+description = "Example using operating system networking"
 keywords = ["std", "networking", "cloud"]
 
 [dependencies]

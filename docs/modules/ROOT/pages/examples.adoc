@@ -1,12 +1,15 @@
 = Examples
 
-There are several examples for different chips to show how drogue device can be used. The examples
-are grouped by how advanced they are, and what they demonstrate such as networking, but may overlap for examples that cover more than one area.
+There are several examples for different chips to show how drogue device can be used. The examples are grouped by what sort
+of connectivity they use, and also by some capabilities such as over the air updates.
 
-All example can be run using `cargo run`, which in some cases require the `probe-run` tool (`cargo
-install probe-run`) to flash the program.
+All examples can be debugged using `cargo run`, which often require the `probe-run` tool (`cargo install probe-run`) to flash the program.
 
-Any examples requiring user credentials, e.g. WiFi, HTTP, OTAA, will expect them in the top-level keys of `.drogue/config.toml`. Similar to how link:https://doc.rust-lang.org/cargo/reference/config.html#hierarchical-structure[cargo
+You can also use the `cargo-flash` tool (`cargo install cargo-flash`) to run the examples in "production" mode.
+
+== Configuration
+
+All examples requiring user credentials, e.g. WiFi, HTTP, LoRaWAN, will expect them in the top-level keys of `.drogue/config.toml`. Similar to how link:https://doc.rust-lang.org/cargo/reference/config.html#hierarchical-structure[cargo
 configuration works], the build script for each example looks for that configuration file in the manifest directory, all of its parent directories, and finally in `$HOME/.drogue/config.toml`. If a key is specified in multiple config files, the values will be merged, with the value in the deeper directory taking precedence over its parents, the home directory having the lowest priority.
 
 Credentials for your local WiFi network:
@@ -21,7 +24,7 @@ http-username = "..."
 http-password = "..."
 ....
 
-_Over The Air Authentication_ (OTAA) credentials:
+_Over The Air Authentication_ (OTAA) credentials for LoRaWAN:
 ....
 "dev-eui" = "..."
 "app-eui" = "..."
@@ -30,50 +33,40 @@ _Over The Air Authentication_ (OTAA) credentials:
 
 These values will be read during compilation and stored in the executable.
 
-== Basic examples
+== WiFi examples
 
-Basic examples that only require a single board without any additional hardware.
-
-include::examples_basic.adoc[]
-
-== WiFi connectivity examples
-
-Examples that demonstrates network connectivity using WiFi, usually using an additional network adapter module.  May require setting up additional network services (locally or third party).
+Examples that demonstrates network connectivity using WiFi.
 
 include::examples_wifi.adoc[]
 
-== LoRaWAN connectivity examples
+== Ethernet examples
 
-Examples that demonstrates network connectivity using LoRaWAN. May require setting up additional network services (locally or third party).
+Examples that demonstrates network connectivity using Ethernet.
+
+include::examples_ethernet.adoc[]
+
+== LoRaWAN examples
+
+Examples that demonstrates network connectivity using LoRaWAN.
 
 include::examples_lorawan.adoc[]
 
-== BLE connectivity examples
+== Bluetooth examples
 
-Examples that demonstrates using Bluetooth Low Energy (BLE). May require running applications on a phone or PC.
+Examples that demonstrates using Bluetooth Low Energy (BLE) or Bluetooth Mesh (BT Mesh).
 
 include::examples_ble.adoc[]
 
-== Drogue Cloud connectivity examples
+== Std examples
 
-Examples that demonstrate connectivity to Drogue Cloud.
+Examples that runs out of the box on operating systems.
 
-include::examples_cloud.adoc[]
+include::examples_std.adoc[]
 
-== Display examples
+== Over The Air (OTA) examples
 
-Examples that demonstrates the use of displays, either on board or as external peripherals.
+Examples that have the capability of updating themselves over the air.
 
-include::examples_display.adoc[]
+NOTE: These examples require a bootloader to be flashed, which you can find alongside the example folder.
 
-== UART examples
-
-Examples that demonstrates the use of a UART.
-
-include::examples_uart.adoc[]
-
-== Other examples
-
-Other examples that does not belong in any major category
-
-include::examples_other.adoc[]
+include::examples_ota.adoc[]

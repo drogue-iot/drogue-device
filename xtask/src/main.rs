@@ -18,6 +18,8 @@ fn main() -> Result<(), anyhow::Error> {
         ["test_examples"] => test_examples(),
         ["check", example] => check(&[example]),
         ["build", example] => build(&[example], false),
+        ["flash", example] => flash(&example),
+        ["debug", example] => debug(&example),
         ["fmt"] => fmt(),
         ["fix"] => fix(),
         ["update"] => update(),
@@ -191,6 +193,22 @@ fn build(workspaces: &[&str], batch: bool) -> Result<(), anyhow::Error> {
     } else {
         do_crates(workspaces, &mut build_crate)?;
     }
+    Ok(())
+}
+
+fn flash(example: &str) -> Result<(), anyhow::Error> {
+    let _e = xshell::pushenv("RUSTFLAGS", "-Dwarnings");
+    let _p = xshell::pushd(example)?;
+    println!("Flashing {}", example);
+    cmd!("cargo flash --release --no-default-features --features panic-reset").run()?;
+    Ok(())
+}
+
+fn debug(example: &str) -> Result<(), anyhow::Error> {
+    let _e = xshell::pushenv("RUSTFLAGS", "-Dwarnings");
+    let _p = xshell::pushd(example)?;
+    println!("Running {}", example);
+    cmd!("cargo run --release").run()?;
     Ok(())
 }
 
@@ -380,9 +398,7 @@ fn clean(path: PathBuf) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-const MAIN_CATEGORIES: [&str; 8] = [
-    "basic", "ble", "wifi", "lorawan", "uart", "display", "other", "cloud",
-];
+const MAIN_CATEGORIES: [&str; 6] = ["ble", "ethernet", "wifi", "lorawan", "std", "ota"];
 fn generate_examples_page() -> Result<(), anyhow::Error> {
     let nav = root_dir()
         .join("docs")
@@ -408,16 +424,18 @@ fn generate_examples_page() -> Result<(), anyhow::Error> {
             let contents = fs::read_to_string(&project_file).expect("error reading file");
             let t = contents.parse::<toml::Value>().unwrap();
             let relative = project_file.strip_prefix(root_dir())?.parent();
-            let other = vec!["other".into()];
             if t.get("package").is_some() {
                 let keywords = t["package"]
                     .get("keywords")
                     .map(|k| k.as_array().unwrap())
-                    .unwrap_or(&other);
+                    .expect(&format!("missing keywords for example {:?}", project_file));
                 let description = t["package"]
                     .get("description")
                     .map(|s| s.as_str().unwrap())
-                    .unwrap_or("Awesome example");
+                    .expect(&format!(
+                        "missing description for example {:?}",
+                        project_file
+                    ));
                 for package_kw in keywords {
                     if let toml::Value::String(s) = package_kw {
                         if s == "ignore" {
