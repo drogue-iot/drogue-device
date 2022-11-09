@@ -11,7 +11,7 @@ Drogue device is a distribution of tools and examples for building embedded IoT 
 
 * Built using [rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.
 * Based on [embassy](https://github.com/embassy-rs/embassy), the embedded async project. 
-* IoT examples for BLE, BLE Mesh, WiFi and LoRaWAN.
+* IoT examples for BLE, Bluetooth Mesh, WiFi, Ethernet and LoRaWAN, all with OTA updates.
 * Async programming model for writing safe and efficient applications.
 * All software is licensed under the Apache 2.0 open source license.
 

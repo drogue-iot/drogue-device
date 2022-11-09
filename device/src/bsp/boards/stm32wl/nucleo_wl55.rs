@@ -68,7 +68,7 @@ impl Board for NucleoWl55 {
                 w.set_rngsel(0b01);
             });
         }
-        let flash = Flash::unlock(p.FLASH);
+        let flash = Flash::new(p.FLASH);
 
         let blue_led = Led::new(Output::new(p.PB15, Level::Low, Speed::Low));
         let green_led = Led::new(Output::new(p.PB9, Level::Low, Speed::Low));

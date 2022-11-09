@@ -28,9 +28,10 @@ fn main() -> Result<(), anyhow::Error> {
         _ => {
             println!("USAGE:");
             println!("\tcargo xtask ci");
-            println!("\tcargo xtask check examples/nrf52/microbit/jukebox");
-            println!("\tcargo xtask build examples/nrf52/microbit/jukebox");
-            println!("\tcargo xtask clone examples/nrf52/microbit/jukebox target-folder");
+            println!("\tcargo xtask check examples/nrf52/microbit/ble");
+            println!("\tcargo xtask build examples/nrf52/microbit/ble");
+            println!("\tcargo xtask flash examples/nrf52/microbit/ble");
+            println!("\tcargo xtask debug examples/nrf52/microbit/ble");
             println!("\tcargo xtask update");
             println!("\tcargo xtask docs");
             println!("\tcargo xtask clean");
@@ -49,21 +50,17 @@ static WORKSPACES: &[&str] = &[
     "examples/nrf52/microbit/bt-mesh",
     "examples/nrf52/microbit/bootloader",
     "examples/nrf52/microbit/esp8266",
-    "examples/nrf52/adafruit-feather-nrf52840/neopixel",
     "examples/nrf52/adafruit-feather-nrf52840/bootloader",
     "examples/nrf52/adafruit-feather-nrf52840/bt-mesh",
     "examples/nrf52/nrf52840-dk/bt-mesh",
     "examples/stm32l0/lora-discovery",
     "examples/stm32l1/rak811",
-    "examples/stm32l4/iot01a/wifi",
+    "examples/stm32l4/iot01a/app",
     "examples/stm32l4/iot01a/bootloader",
-    "examples/rp/pico",
+    //    "examples/rp/pico",
+    "examples/stm32wl/nucleo-wl55/app",
     "examples/stm32wl/nucleo-wl55/bootloader",
-    "examples/stm32wl/nucleo-wl55/lorawan",
-    "examples/stm32wl/nucleo-wl55/lorawan-dfu",
     "examples/stm32h7/nucleo-h743zi",
-    "examples/stm32u5/iot02a",
-    "examples/wasm/browser",
     "examples/std",
 ];
 
@@ -183,7 +180,7 @@ fn check_device() -> Result<(), anyhow::Error> {
     device.push("device");
     let _p = xshell::pushd(&device)?;
     cmd!("cargo fmt --check").run()?;
-    cmd!("cargo check --all --features 'std wifi+esp8266 tls'").run()?;
+    cmd!("cargo check --all --features 'std tls'").run()?;
     Ok(())
 }
 
@@ -215,9 +212,9 @@ fn test_device() -> Result<(), anyhow::Error> {
     device.push("device");
     let _p = xshell::pushd(&device)?;
     cmd!("cargo fmt --check").run()?;
-    cmd!("cargo test --all --features 'std wifi+esp8266 tls'").run()?;
+    cmd!("cargo test --all --features 'std tls'").run()?;
     // Sanity check that we can build on cortex-m
-    cmd!("cargo build --no-default-features --features 'wifi+esp8266 tls ble+nrf52840 embassy-nrf/nrf52840 embassy-nrf/time-driver-rtc1' --target thumbv7em-none-eabihf").run()?;
+    cmd!("cargo build --no-default-features --features 'tls ble+nrf52840 embassy-nrf/nrf52840 embassy-nrf/time-driver-rtc1' --target thumbv7em-none-eabihf").run()?;
     Ok(())
 }
 
@@ -288,14 +285,7 @@ fn clone(example: &str, target_dir: &str) -> Result<(), anyhow::Error> {
     let mut t = contents.parse::<toml::Value>().unwrap();
 
     if let Some(deps) = t.get_mut("dependencies") {
-        for dep in [
-            "drogue-device",
-            "drogue-lorawan-app",
-            "drogue-blinky-app",
-            "ble",
-        ]
-        .iter()
-        {
+        for dep in ["drogue-device", "drogue-lorawan-app", "ble"].iter() {
             if let Some(toml::Value::Table(table)) = deps.get_mut(dep) {
                 table.remove("path");
                 table.insert(

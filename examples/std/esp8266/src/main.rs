@@ -4,11 +4,12 @@
 mod serial;
 
 use async_io::Async;
-use drogue_device::{domain::temperature::Celsius, drivers::wifi::esp8266::*, *};
+use drogue_device::{domain::temperature::Celsius, *};
 use drogue_temperature::*;
 use embassy_time::Duration;
-use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::digital::{ErrorType, OutputPin};
 use embedded_io::adapters::FromFutures;
+use esp8266_at_driver::*;
 use futures::io::BufReader;
 use nix::sys::termios;
 use serial::*;
@@ -24,7 +25,7 @@ type RESET = DummyPin;
 pub struct StdBoard;
 
 impl TemperatureBoard for StdBoard {
-    type Network = &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1>;
+    type Network = &'static Esp8266Driver<'static, SERIAL, ENABLE, RESET, 1>;
     type TemperatureScale = Celsius;
     type SensorReadyIndicator = AlwaysReady;
     type Sensor = FakeSensor;
@@ -47,8 +48,8 @@ async fn main(spawner: embassy_executor::Spawner) {
     let port = futures::io::BufReader::new(port);
     let port = FromFutures::new(port);
 
-    let network = Esp8266Modem::new(port, DummyPin, DummyPin);
-    static NETWORK: StaticCell<Esp8266Modem<SERIAL, ENABLE, RESET, 1>> = StaticCell::new();
+    let network = Esp8266Driver::new(port, DummyPin, DummyPin);
+    static NETWORK: StaticCell<Esp8266Driver<SERIAL, ENABLE, RESET, 1>> = StaticCell::new();
     let network = NETWORK.init(network);
     spawner
         .spawn(net_task(network, WIFI_SSID.trim_end(), WIFI_PSK.trim_end()))
@@ -71,7 +72,7 @@ async fn main(spawner: embassy_executor::Spawner) {
 
 #[embassy_executor::task]
 async fn net_task(
-    modem: &'static Esp8266Modem<'static, SERIAL, ENABLE, RESET, 1>,
+    modem: &'static Esp8266Driver<'static, SERIAL, ENABLE, RESET, 1>,
     ssid: &'static str,
     psk: &'static str,
 ) {
@@ -81,8 +82,11 @@ async fn net_task(
 }
 
 pub struct DummyPin;
-impl OutputPin for DummyPin {
+impl ErrorType for DummyPin {
     type Error = ();
+}
+
+impl OutputPin for DummyPin {
     fn set_low(&mut self) -> Result<(), ()> {
         Ok(())
     }

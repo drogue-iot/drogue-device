@@ -78,7 +78,7 @@ impl Board for Iot01a {
     type BoardConfig = ();
 
     fn new(p: Self::Peripherals) -> Self {
-        let flash = Flash::unlock(p.FLASH);
+        let flash = Flash::new(p.FLASH);
         let i2c2_irq = interrupt::take!(I2C2_EV);
         let i2c2 = i2c::I2c::new(
             p.I2C2,

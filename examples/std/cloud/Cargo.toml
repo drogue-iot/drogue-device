@@ -14,7 +14,7 @@ keywords = ["std", "networking", "cloud"]
 log = "0.4"
 env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["log", "std", "tls"] }
-embedded-tls = { version = "0.8.0", default-features = false, features = ["async", "log"]}
+embedded-tls = { version = "0.9.0", default-features = false, features = ["async", "log"]}
 static_cell = "1"
 #drogue-tls = {path = "../../../../drogue-tls", default-features = false, features = ["async", "defmt"]}
 
@@ -25,7 +25,7 @@ cfg-if = "1.0.0"
 
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 embedded-nal-async = "0.2.0"
-embedded-io = { version = "0.3.0", features = ["futures"] }
+embedded-io = { version = "0.3", features = ["futures"] }
 drogue-temperature = { path = "../../apps/temperature", features = ["log", "tls"] }
 futures = { version = "0.3.17", features = ["async-await"] }
 async-io = "1.6.0"
