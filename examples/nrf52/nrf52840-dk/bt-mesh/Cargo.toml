@@ -18,7 +18,7 @@ defmt = { version = "0.3" }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 panic-reset = { version = "0.1.1", optional = true }
 
-drogue-device = { path = "../../../../device", default-features = false, features = ["time", "dfu", "ble+nrf52840"] }
+drogue-device = { path = "../../../../device", default-features = false }
 
 btmesh-device = { version = "0.1.0" }
 btmesh-macro = { version = "0.1.0" }
@@ -26,7 +26,7 @@ btmesh-common = { version = "0.1.0" }
 btmesh-models = { version = "0.1.0" }
 btmesh-nrf-softdevice = { version = "0.1.0", default-features = false, features = ["nrf52840", "gatt", "relay"] }
 
-embassy-executor = { version = "0.1.0", default-features = false, features = ["integrated-timers"] }
+embassy-executor = { version = "0.1.0", default-features = false, features = ["integrated-timers", "nightly"] }
 embassy-futures = { version = "0.1.0", default-features = false, features = [] }
 embassy-time = { version = "0.1.0", default-features = false, features = [] }
 static_cell = "1"
@@ -97,9 +97,9 @@ embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", tag = "e
 nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", tag = "embassy-time-v0.1.0" }
 nrf-softdevice-s140 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", tag = "embassy-time-v0.1.0" }
 nrf-softdevice-macro = { git = "https://github.com/embassy-rs/nrf-softdevice.git", tag = "embassy-time-v0.1.0" }
-ector = { git = "https://github.com/drogue-iot/ector.git", tag = "embassy-time-v0.1.0" }
 embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 embassy-time = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 
 btmesh-common = { git = "https://github.com/drogue-iot/btmesh.git", branch = "main" }
 btmesh-models = { git = "https://github.com/drogue-iot/btmesh.git", branch = "main" }

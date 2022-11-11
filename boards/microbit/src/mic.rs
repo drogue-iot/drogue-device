@@ -1,11 +1,13 @@
 //! micrphone peripheral
-use embassy_nrf::{
-    gpio::{Level, Output, OutputDrive},
-    interrupt,
-    peripherals::{P0_05, P0_20, SAADC},
-    saadc::*,
+use {
+    embassy_nrf::{
+        gpio::{Level, Output, OutputDrive},
+        interrupt,
+        peripherals::{P0_05, P0_20, SAADC},
+        saadc::*,
+    },
+    embassy_time::{Duration, Timer},
 };
-use embassy_time::{Duration, Timer};
 
 /// Microphone interface
 pub struct Microphone<'a> {

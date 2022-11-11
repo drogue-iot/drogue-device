@@ -1,0 +1,32 @@
+[package]
+edition = "2021"
+name = "iot01a-bootloader"
+keywords = ["ignore"]
+version = "0.1.0"
+description = "Bootloader for STM32L4 iot01a boards"
+
+[dependencies]
+defmt = { version = "0.3", optional = true }
+defmt-rtt = { version = "0.3", optional = true }
+
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["nightly"] }
+static_cell = "1"
+embassy-boot = { version = "0.1.0", default-features = false }
+embassy-boot-stm32 = { version = "0.1.0", default-features = false }
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
+cortex-m-rt = { version = "0.7" }
+embedded-storage = "0.3.0"
+embedded-storage-async = "0.3.0"
+cfg-if = "1.0.0"
+
+[features]
+defmt = [
+    "dep:defmt",
+    "embassy-boot/defmt",
+    "embassy-boot-stm32/defmt",
+    "embassy-stm32/defmt",
+]
+default = ["l475e"]
+debug = ["defmt-rtt"]
+l4s5i = ["embassy-stm32/stm32l4s5vi"]
+l475e = ["embassy-stm32/stm32l475vg"]

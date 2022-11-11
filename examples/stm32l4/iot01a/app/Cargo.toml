@@ -1,11 +1,5 @@
 [package]
-authors = [
-    "Ulf Lilleengen <lulf@redhat.com>",
-    "Bob McWhirter <bmcwhirt@redhat.com>",
-    "Jens Reimann <jreimann@redhat.com>",
-    "Dejan Bosanac <dbosanac@redhat.com>"
-]
-edition = "2018"
+edition = "2021"
 name = "iot01a-wifi"
 version = "0.1.0"
 resolver = "2"
@@ -14,51 +8,48 @@ keywords = ["wifi", "hts221", "stm32l4", "networking", "iot", "stm32", "cloud", 
 
 [dependencies]
 defmt = "0.3"
-defmt-rtt = { version = "0.3", optional = true }
+defmt-rtt = "0.3"
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 panic-reset = { version = "0.1.1", optional = true }
 
-drogue-device = { path = "../../../../device", default-features = false, features = ["time", "wifi+eswifi", "dfu"] }
+drogue-device = { path = "../../../../device", default-features = false, features = ["time"] }
 static_cell = "1"
 cortex-m-rt = "0.7.0"
-# cortex-m = { version = "0.7", features = ["inline-asm"] }
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+serde-json-core = { version = "0.4", default-features = false, features = ["heapless"] }
+heapless = "0.7"
 
-#embedded-update = { path = "../../../../../embedded-update" }
 embedded-update = { version = "0.9.1", features = ["nightly"] }
 critical-section = "0.2.5"
 rand_core = { version = "0.6.2", default-features = false }
 embedded-nal-async = "0.2.0"
-# embassy-executor = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features=["defmt"] }
-# embassy-stm32 = { git = "https://github.com/drogue-iot/embassy.git", branch = "master", default-features = false, features = ["defmt", "stm32l432kc"] }
-embedded-tls = { version = "0.9", default-features = false, features = ["async"], optional = true}
-# drogue-tls = {path = "../../../../drogue-tls", default-features = false, features = ["async", "defmt"], optional = true}
+disco-iot01a = { path = "../../../../boards/disco-iot01a" }
+reqwless = { version = "0.2", default-features = false, features = ["defmt"] }
 cfg-if = "1.0.0"
 embedded-io = "0.3"
+hts221-async = { version = "0.1.1", features = ["defmt"] }
 
 atomic-polyfill = "1"
 embassy-executor = { version = "0.1.0", default-features = false, features=["nightly", "integrated-timers"] }
 embassy-time = { version = "0.1.0", default-features = false }
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["time-driver-any", "unstable-traits"] }
-drogue-temperature = { path = "../../../apps/temperature", default-features = false }
+embassy-futures = { version = "0.1.0" }
 
-embassy-boot-stm32 = { version = "0.1.0", default-features = false, optional = true }
-
-embedded-hal = { version = "0.2.4", features = ["unproven"] }
+embassy-boot-stm32 = { version = "0.1.0", default-features = false }
 
 [features]
-default = ["b-l4s5i-iot01a", "panic-reset"]
+default = ["panic-reset", "l475e"]
 debug = [
     "panic-probe",
     "drogue-device/defmt",
-    "drogue-temperature/defmt",
     "embassy-executor/defmt",
     #"embassy-stm32/defmt",
     #"embassy-boot-stm32/defmt",
+    "disco-iot01a/defmt",
     "embedded-update/defmt",
-    "defmt-rtt",
+    "reqwless/defmt",
+    "hts221-async/defmt",
 ]
-tls = ["embedded-tls", "embedded-tls/defmt", "drogue-device/tls", "drogue-temperature/tls"]
-b-l4s5i-iot01a = ["embassy-stm32/stm32l4s5vi", "drogue-device/bsp+b_l4s5i_iot01a"]
-b-l475e-iot01a = ["embassy-stm32/stm32l475vg", "drogue-device/bsp+b_l475e_iot01a"]
-dfu = ["embassy-boot-stm32"]
+l4s5i = ["disco-iot01a/l4s5i"]
+l475e = ["disco-iot01a/l475e"]

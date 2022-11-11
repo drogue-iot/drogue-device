@@ -3,7 +3,7 @@ use core::future::Future;
 
 use embassy_lora::LoraTimer;
 use lorawan_device::async_device::{
-    radio, region, Device as LorawanDevice, JoinMode as LoraJoinMode, Timings,
+    radio, region, Device JoinMode as LoraJoinMode, Timings,
 };
 use lorawan_encoding::{default_crypto::DefaultFactory as Crypto, parser::DevAddr as LDevAddr};
 use rand_core::RngCore;
@@ -15,6 +15,9 @@ where
 {
     device: LorawanDevice<R, Crypto, LoraTimer, RNG>,
 }
+
+pub fn create(radio: R, rng: RNG, config: &LoraConfig) -> LorawanDevice<R, Crypto, LoraTimer, RNG> {
+
 
 const RX_DELAY1: u32 = 5000;
 impl<R, RNG> LoraDevice<R, RNG>

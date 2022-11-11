@@ -3,17 +3,18 @@
 #![macro_use]
 #![feature(type_alias_impl_trait)]
 
-use adafruit_feather_nrf52::*;
-use btmesh_device::{BluetoothMeshModel, BluetoothMeshModelContext, InboundModelPayload};
-use btmesh_macro::{device, element};
-use btmesh_models::generic::onoff::{
-    GenericOnOffClient, GenericOnOffMessage, GenericOnOffServer, Set as GenericOnOffSet,
+use {
+    adafruit_feather_nrf52::*,
+    btmesh_device::{BluetoothMeshModel, BluetoothMeshModelContext, InboundModelPayload},
+    btmesh_macro::{device, element},
+    btmesh_models::generic::onoff::{
+        GenericOnOffClient, GenericOnOffMessage, GenericOnOffServer, Set as GenericOnOffSet,
+    },
+    btmesh_nrf_softdevice::*,
+    core::future::Future,
+    embassy_executor::Spawner,
+    embassy_time::{Duration, Timer},
 };
-use btmesh_nrf_softdevice::*;
-use core::future::Future;
-use embassy_executor::Spawner;
-use embassy_nrf::gpio::{AnyPin, Input, Output};
-use embassy_time::{Duration, Timer};
 
 extern "C" {
     static __storage: u8;
@@ -53,10 +54,10 @@ async fn main(_s: Spawner) {
 }
 
 // Application must run at a lower priority than softdevice. DO NOT CHANGE
-fn config() -> embassy_nrf::config::Config {
-    let mut config = embassy_nrf::config::Config::default();
-    config.gpiote_interrupt_priority = embassy_nrf::interrupt::Priority::P2;
-    config.time_interrupt_priority = embassy_nrf::interrupt::Priority::P2;
+fn config() -> Config {
+    let mut config = Config::default();
+    config.gpiote_interrupt_priority = interrupt::Priority::P2;
+    config.time_interrupt_priority = interrupt::Priority::P2;
     config
 }
 
@@ -74,7 +75,7 @@ struct Front {
 }
 
 impl Device {
-    pub fn new(led: Output<'static, AnyPin>, button: Input<'static, AnyPin>) -> Self {
+    pub fn new(led: RedLed, button: Switch) -> Self {
         Self {
             front: Front {
                 led: MyOnOffServerHandler { led },
@@ -85,7 +86,7 @@ impl Device {
 }
 
 struct MyOnOffServerHandler {
-    led: Output<'static, AnyPin>,
+    led: RedLed,
 }
 
 impl BluetoothMeshModel<GenericOnOffServer> for MyOnOffServerHandler {
@@ -129,7 +130,7 @@ impl BluetoothMeshModel<GenericOnOffServer> for MyOnOffServerHandler {
 }
 
 struct MyOnOffClientHandler {
-    button: Input<'static, AnyPin>,
+    button: Switch,
 }
 
 impl BluetoothMeshModel<GenericOnOffClient> for MyOnOffClientHandler {

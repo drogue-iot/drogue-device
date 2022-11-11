@@ -2,14 +2,15 @@
 #![no_main]
 #![feature(type_alias_impl_trait)]
 
-use defmt_rtt as _;
-use panic_probe as _;
+use {defmt_rtt as _, panic_probe as _};
 
 use microbit_bsp::*;
 
-use embassy_executor::Spawner;
-use embassy_futures::select::{select, Either};
-use embassy_time::Duration;
+use {
+    embassy_executor::Spawner,
+    embassy_futures::select::{select, Either},
+    embassy_time::Duration,
+};
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {

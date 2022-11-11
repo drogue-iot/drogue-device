@@ -19,7 +19,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b613b8e1e3cf911a086f53f03bf286f52fd7a7258e4fa606f0ef220d39d8877"
 dependencies = [
  "generic-array",
- "heapless",
 ]
 
 [[package]]
@@ -30,6 +29,17 @@ checksum = "5c192eb8f11fc081b0fe4259ba5af04217d4e0faddd02417310a927911abd7c8"
 dependencies = [
  "crypto-common",
  "generic-array",
+]
+
+[[package]]
+name = "aes"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "884391ef1066acaa41e766ba8f596341b96e93ce34f9a43e7d24bf0a0eaf0561"
+dependencies = [
+ "aes-soft",
+ "aesni",
+ "cipher 0.2.5",
 ]
 
 [[package]]
@@ -70,6 +80,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "aes-soft"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be14c7498ea50828a38d0e24a765ed2effe92a705885b57d029cd67d45744072"
+dependencies = [
+ "cipher 0.2.5",
+ "opaque-debug",
+]
+
+[[package]]
+name = "aesni"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea2e11f5e94c2f7d386164cc2aa1f97823fed6f259e486940a71c174dd01b0ce"
+dependencies = [
+ "cipher 0.2.5",
+ "opaque-debug",
+]
+
+[[package]]
 name = "ahash"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -94,6 +124,15 @@ name = "arrayvec"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8da52d66c7071e2e3fa2a1e5c6d088fec47b593032b254f5e980de8ea54454d6"
+
+[[package]]
+name = "as-slice"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "516b6b4f0e40d50dcda9365d53964ec74560ad4284da2e7fc97122cd83174516"
+dependencies = [
+ "stable_deref_trait",
+]
 
 [[package]]
 name = "async-trait"
@@ -193,7 +232,7 @@ dependencies = [
 [[package]]
 name = "btmesh-bearer"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#d88984b8376cc7ebff0eb6be268555feb8289674"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
 dependencies = [
  "btmesh-common",
  "btmesh-pdu",
@@ -203,11 +242,11 @@ dependencies = [
 [[package]]
 name = "btmesh-common"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#d88984b8376cc7ebff0eb6be268555feb8289674"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
 dependencies = [
  "aes 0.7.5",
  "ccm",
- "cmac",
+ "cmac 0.6.0",
  "darling 0.14.2",
  "defmt",
  "hash32",
@@ -216,13 +255,13 @@ dependencies = [
  "rand_core",
  "serde",
  "syn",
- "uuid 1.1.2",
+ "uuid 1.2.2",
 ]
 
 [[package]]
 name = "btmesh-device"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#d88984b8376cc7ebff0eb6be268555feb8289674"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
 dependencies = [
  "btmesh-common",
  "btmesh-models",
@@ -236,7 +275,7 @@ dependencies = [
 [[package]]
 name = "btmesh-driver"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#d88984b8376cc7ebff0eb6be268555feb8289674"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
 dependencies = [
  "aes 0.7.5",
  "btmesh-bearer",
@@ -245,7 +284,7 @@ dependencies = [
  "btmesh-macro",
  "btmesh-models",
  "btmesh-pdu",
- "cmac",
+ "cmac 0.6.0",
  "embassy-futures",
  "embassy-sync",
  "embassy-time",
@@ -264,7 +303,7 @@ dependencies = [
 [[package]]
 name = "btmesh-macro"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#d88984b8376cc7ebff0eb6be268555feb8289674"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
 dependencies = [
  "btmesh-common",
  "darling 0.14.2",
@@ -278,7 +317,7 @@ dependencies = [
 [[package]]
 name = "btmesh-models"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#d88984b8376cc7ebff0eb6be268555feb8289674"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
 dependencies = [
  "btmesh-common",
  "heapless",
@@ -289,7 +328,7 @@ dependencies = [
 [[package]]
 name = "btmesh-nrf-softdevice"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#d88984b8376cc7ebff0eb6be268555feb8289674"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
 dependencies = [
  "atomic-polyfill 1.0.1",
  "btmesh-bearer",
@@ -311,7 +350,7 @@ dependencies = [
 [[package]]
 name = "btmesh-pdu"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#d88984b8376cc7ebff0eb6be268555feb8289674"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
 dependencies = [
  "btmesh-common",
  "heapless",
@@ -351,6 +390,15 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "cipher"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12f8e7987cbd042a63249497f41aed09f8e65add917ea6566effbc56578d6801"
+dependencies = [
+ "generic-array",
+]
+
+[[package]]
+name = "cipher"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ee52072ec15386f770805afd189a01c8841be8696bed250fa2f13c4c0d6dfb7"
@@ -370,11 +418,21 @@ dependencies = [
 
 [[package]]
 name = "cmac"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73d4de4f7724e5fe70addfb2bd37c2abd2f95084a429d7773b0b9645499b4272"
+dependencies = [
+ "crypto-mac 0.10.1",
+ "dbl",
+]
+
+[[package]]
+name = "cmac"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b70e37282d9624283878ffda1d1e53883bcf868cf441bddda44127620b39572d"
 dependencies = [
- "crypto-mac",
+ "crypto-mac 0.11.1",
  "dbl",
 ]
 
@@ -411,9 +469,9 @@ checksum = "e4c78c047431fee22c1a7bb92e00ad095a02a983affe4d8a72e2a2c62c1b94f3"
 
 [[package]]
 name = "const-oid"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "722e23542a15cea1f65d4a1419c4cfd7a26706c70871a13a04238ca3f40f1661"
+checksum = "cec318a675afcb6a1ea1d4340e2d377e56e47c266f28043ceccbf4412ddfdd3b"
 
 [[package]]
 name = "cortex-m"
@@ -512,6 +570,17 @@ checksum = "1bfb12502f3fc46cca1bb51ac28df9d618d813cdc3d2f25b9fe775a34af26bb3"
 dependencies = [
  "generic-array",
  "typenum",
+]
+
+[[package]]
+name = "crypto-mac"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bff07008ec701e8028e2ceb8f83f0e4274ee62bd2dbdc4fefff2e9a91824081a"
+dependencies = [
+ "cipher 0.2.5",
+ "generic-array",
+ "subtle",
 ]
 
 [[package]]
@@ -711,7 +780,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13dd2ae565c0a381dde7fade45fce95984c568bdcb4700a4fdbe3175e0380b2f"
 dependencies = [
- "const-oid 0.9.0",
+ "const-oid 0.9.1",
 ]
 
 [[package]]
@@ -735,22 +804,14 @@ checksum = "0688c2a7f92e427f44895cd63841bff7b29f8d7a1648b9e7e07a4a365b2e1257"
 name = "drogue-device"
 version = "0.1.0"
 dependencies = [
- "aes 0.7.5",
- "atomic-polyfill 1.0.1",
- "ccm",
- "cmac",
- "cortex-m",
- "critical-section 1.1.1",
  "defmt",
  "drogue-device-macros",
  "embassy-boot",
  "embassy-embedded-hal",
- "embassy-executor",
  "embassy-futures",
- "embassy-hal-common",
+ "embassy-lora",
  "embassy-sync",
  "embassy-time",
- "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.9",
  "embedded-hal-async",
  "embedded-io",
@@ -763,18 +824,14 @@ dependencies = [
  "futures",
  "futures-intrusive",
  "heapless",
- "micromath",
- "nrf-softdevice",
- "nrf-softdevice-s140",
- "p256 0.10.1",
- "postcard",
+ "lorawan",
+ "lorawan-device",
+ "minicbor",
  "rand_core",
  "reqwless",
  "serde",
  "serde_cbor",
  "static_cell",
- "uluru",
- "uuid 1.1.2",
 ]
 
 [[package]]
@@ -915,6 +972,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "embassy-lora"
+version = "0.1.0"
+source = "git+https://github.com/embassy-rs/embassy.git?tag=embassy-time-v0.1.0#61560e740dea1b4c7ca036dafd66c834a1ff92e2"
+dependencies = [
+ "bit_field",
+ "embassy-hal-common",
+ "embassy-sync",
+ "embassy-time",
+ "embedded-hal 0.2.7",
+ "embedded-hal 1.0.0-alpha.9",
+ "embedded-hal-async",
+ "futures",
+ "lorawan",
+ "lorawan-device",
+]
+
+[[package]]
 name = "embassy-macros"
 version = "0.1.0"
 source = "git+https://github.com/embassy-rs/embassy.git?tag=embassy-time-v0.1.0#61560e740dea1b4c7ca036dafd66c834a1ff92e2"
@@ -978,6 +1052,7 @@ dependencies = [
  "critical-section 1.1.1",
  "embassy-sync",
  "embedded-hal 0.2.7",
+ "embedded-hal 1.0.0-alpha.9",
  "embedded-hal-async",
  "futures-util",
  "heapless",
@@ -1349,6 +1424,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "httparse"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d897f394bad6a705d5f4104762e116a75639e470d80901eed05a860a95cb1904"
+
+[[package]]
 name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1409,6 +1490,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "lorawan"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d54ed101795a78f7c3d765545b7b721143a7573d2a1d8d40055361647328bba3"
+dependencies = [
+ "aes 0.6.0",
+ "cmac 0.5.1",
+ "generic-array",
+]
+
+[[package]]
+name = "lorawan-device"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9638593905cf76fd6564b898279b20de22724f65f764a91141d54bc4f0f89182"
+dependencies = [
+ "as-slice",
+ "futures",
+ "generic-array",
+ "heapless",
+ "lorawan",
+ "rand_core",
+]
+
+[[package]]
 name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1419,6 +1525,12 @@ name = "micromath"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39617bc909d64b068dcffd0e3e31679195b5576d0c83fadc52690268cc2b2b55"
+
+[[package]]
+name = "minicbor"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a20020e8e2d1881d8736f64011bb5ff99f1db9947ce3089706945c8915695cb"
 
 [[package]]
 name = "minimal-lexical"
@@ -1793,13 +1905,17 @@ checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 
 [[package]]
 name = "reqwless"
-version = "0.1.3"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23c3c58066f1b9590fded1d4585fe13a74571572d5e270b41569fdd6b928ea8c"
+checksum = "fc5603ce8760ef308bdc17c8e7aab9e2bd73dcb93e664033c7c801512251d305"
 dependencies = [
  "base64",
  "embedded-io",
+ "embedded-nal-async",
+ "embedded-tls",
  "heapless",
+ "httparse",
+ "rand_core",
 ]
 
 [[package]]
@@ -2110,9 +2226,9 @@ checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
 
 [[package]]
 name = "uuid"
-version = "1.1.2"
+version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd6469f4314d5f1ffec476e05f17cc9a78bc7a27a6a857842170bdf8d6f98d2f"
+checksum = "422ee0de9031b5b948b97a8fc04e3aa35230001a722ddd27943e0be31564ce4c"
 
 [[package]]
 name = "vcell"
@@ -2161,8 +2277,3 @@ name = "zeroize"
 version = "1.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c394b5bd0c6f669e7275d9c20aa90ae064cb22e75a1cad54e1b34088034b149f"
-
-[[patch.unused]]
-name = "ector"
-version = "0.1.0"
-source = "git+https://github.com/drogue-iot/ector.git?tag=embassy-time-v0.1.0#af5ea2fc702b19d92a9e0893ec336b822a7338f6"

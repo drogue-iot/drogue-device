@@ -7,11 +7,13 @@
 use defmt_rtt as _;
 use panic_probe as _;
 
-use embassy_futures::select::{select, Either};
-use embassy_sync::channel::{Channel, DynamicReceiver};
-use embassy_time::{Duration, Ticker, Timer};
-use futures::StreamExt;
-use microbit_bsp::*;
+use {
+    embassy_futures::select::{select, Either},
+    embassy_sync::channel::{Channel, DynamicReceiver},
+    embassy_time::{Duration, Ticker, Timer},
+    futures::StreamExt,
+    microbit_bsp::*,
+};
 
 type CS = embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
 

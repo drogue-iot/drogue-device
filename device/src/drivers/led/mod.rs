@@ -1,10 +1,9 @@
-use core::marker::PhantomData;
-use embedded_hal::digital::v2::{OutputPin, PinState};
+use {
+    core::marker::PhantomData,
+    embedded_hal::digital::{OutputPin, PinState},
+};
 
 pub use crate::drivers::{ActiveHigh, ActiveLow};
-
-#[cfg(all(feature = "neopixel", feature = "nrf", feature = "time"))]
-pub mod neopixel;
 
 pub trait Active<P>
 where
@@ -68,22 +67,6 @@ where
     }
 }
 
-impl<P, ACTIVE> crate::traits::led::Led for Led<P, ACTIVE>
-where
-    P: OutputPin,
-    ACTIVE: Active<P>,
-{
-    type Error = P::Error;
-
-    fn on(&mut self) -> Result<(), Self::Error> {
-        Led::on(self)
-    }
-
-    fn off(&mut self) -> Result<(), Self::Error> {
-        Led::off(self)
-    }
-}
-
 impl<P> From<P> for Led<P>
 where
     P: OutputPin,
@@ -121,8 +104,11 @@ mod tests {
         state: PinState,
     }
 
-    impl OutputPin for TestOutputPin {
+    impl embedded_hal::digital::ErrorType for TestOutputPin {
         type Error = ();
+    }
+
+    impl OutputPin for TestOutputPin {
         fn set_high(&mut self) -> Result<(), Self::Error> {
             Ok(())
         }

@@ -2,66 +2,19 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(dead_code)]
 #![feature(type_alias_impl_trait)]
-//! Drogue device is a distribution of libraries and drivers for building embedded applications in Rust.
-//!
-//! * Built using [rust](https://www.rust-lang.org), an efficient, memory safe and thread safe programming language.
-//! * Based on [embassy](https://github.com/embassy-rs/embassy), the embedded async project.
-//! * Offers built-in support for IoT with drivers for BLE, BLE Mesh, WiFi and LoRaWAN.
-//! * Async programming model for writing safe and efficient applications.
-//! * All software is licensed under the Apache 2.0 open source license.
-//!
-//! See the [documentation](https://book.drogue.io/drogue-device/dev/index.html) for more about the architecture, how to write device drivers, and for some examples.
-//!
-//! Go to our [homepage](https://www.drogue.io) to learn more about the Drogue IoT project.
-//!
-//! ## Example application
-//!
-//! An overview of the examples can be found in the [documentation](https://book.drogue.io/drogue-device/dev/examples.html).
-//!
-//! Drogue device runs on any hardware supported by embassy, which at the time of writing includes:
-//!
-//! * nRF52
-//! * STM32
-//! * Raspberry Pi Pico
-//! * Linux, Mac OS X or Windows
-//! * WASM (WebAssembly)
-//!
-//! Once you've found an example you like, you can run `cargo xtask clone <example_dir> <target_dir>` to create a copy with the correct dependencies and project files set up.
-//!
-//! ### A basic blinky application
-//!
-//! ~~~rust
-//! #[embassy_executor::main]
-//! async fn main(_spawner: Spawner, p: Peripherals) {
-//!     let mut led = Output::new(p.P0_13, Level::Low, OutputDrive::Standard);
-//!     loop {
-//!         led.set_high();
-//!         Timer::after(Duration::from_millis(300)).await;
-//!         led.set_low();
-//!         Timer::after(Duration::from_millis(300)).await;
-//!     }
-//! }
-//! ~~~
+#![doc = include_str!("../../README.md")]
+
 pub(crate) mod fmt;
-
-#[cfg(feature = "actors")]
-pub mod actors;
-
-pub mod traits;
 
 pub mod drivers;
 
-pub mod domain;
-
-pub mod shared;
-
-#[cfg(feature = "dfu")]
 pub mod firmware;
 
-pub mod flash;
+pub mod lora;
 
-pub mod bsp;
-pub use bsp::{boards, Board};
+pub mod net;
+
+pub mod ota;
 
 #[doc(hidden)]
 pub use drogue_device_macros::{self as drogue, config, test as drogue_test};

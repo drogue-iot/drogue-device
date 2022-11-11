@@ -1,9 +1,5 @@
 [package]
-authors = [
-    "Ulf Lilleengen <lulf@redhat.com>",
-    "Bob McWhirter <bmcwhirt@redhat.com>"
-]
-edition = "2018"
+edition = "2021"
 name = "microbit-ble"
 version = "0.1.0"
 description = "Microbit BLE Sensor example with DFU"
@@ -18,15 +14,14 @@ panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 panic-reset = { version = "0.1.1", optional = true }
 static_cell = "1"
 
-drogue-device = { version = "0.1.0", path = "../../../../device", default-features = false, features = ["time", "ble+nrf52833", "ble+nrf-softdevice-s113", "dfu"] }
+drogue-device = { version = "0.1.0", path = "../../../../device", default-features = false, features = ["time", "ble+softdevice"] }
 microbit-bsp = { version = "0.1.0", path = "../../../../boards/microbit" }
 
 embassy-boot-nrf = { version = "0.1.0", default-features = false, features = ["softdevice"] }
-embassy-executor = { version = "0.1.0", default-features = false, features = ["integrated-timers"] }
+embassy-executor = { version = "0.1.0", default-features = false, features = ["integrated-timers", "nightly"] }
 embassy-time = { version = "0.1.0", default-features = false }
 embassy-sync = { version = "0.1.0", default-features = false }
 embassy-futures = { version = "0.1.0", default-features = false }
-embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "gpiote", "time-driver-rtc1"]}
 
 cortex-m = { version = "0.7" }
 cortex-m-rt = "0.7"
@@ -46,7 +41,6 @@ debug = [
     "drogue-device/defmt",
     "nrf-softdevice/defmt",
     "embassy-executor/defmt",
-    "embassy-nrf/defmt",
     "embassy-boot-nrf/defmt",
     "defmt-rtt",
 ]
@@ -86,6 +80,7 @@ overflow-checks = false
 [patch.crates-io]
 embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }

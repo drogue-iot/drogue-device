@@ -4,19 +4,16 @@
 #![allow(dead_code)]
 #![feature(type_alias_impl_trait)]
 
-use drogue_device::{
-    bsp::{boards::stm32wl::nucleo_wl55::*, Board},
-    drivers::lora::LoraDevice as Device,
-    firmware::{remote::LorawanService, FirmwareManager},
-    traits::lora::{JoinMode, LoraConfig, LoraDriver, LoraMode, LoraRegion, SpreadingFactor},
-    *,
+use {
+    drogue_device::{firmware::FirmwareManager, lora::*, ota::lorawan::*, *},
+    embassy_boot_stm32::FirmwareUpdater,
+    embassy_embedded_hal::adapter::BlockingAsync,
+    embassy_executor::Spawner,
+    embassy_stm32::flash::Flash,
+    embassy_time::{Delay, Duration, Timer},
+    embedded_storage::nor_flash::{NorFlash, ReadNorFlash},
+    nucleo_wl55jc::*,
 };
-use embassy_boot_stm32::FirmwareUpdater;
-use embassy_embedded_hal::adapter::BlockingAsync;
-use embassy_executor::Spawner;
-use embassy_stm32::flash::Flash;
-use embassy_time::{Delay, Duration, Timer};
-use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
 
 #[cfg(feature = "panic-probe")]
 use panic_probe as _;
@@ -32,38 +29,39 @@ const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
-    let mut board = NucleoWl55::new(embassy_stm32::init(NucleoWl55::config(true)));
+    let mut board = NucleoWl55::default();
 
-    let config = LoraConfig::new()
-        .region(LoraRegion::EU868)
-        .lora_mode(LoraMode::WAN)
-        .spreading_factor(SpreadingFactor::SF12);
+    let mut region: region::Configuration = region::EU868::default().into();
 
-    defmt::info!("Configuring with config {:?}", config);
+    // NOTE: This is specific for TTN, as they have a special RX1 delay
+    region.set_receive_delay1(5000);
 
-    let mut driver = Device::new(&config, board.radio, board.rng).unwrap();
+    let mut device = NucleoWl55::lorawan(region, board.radio, board.rng);
+
+    // Depending on network, this might be part of JOIN
+    device.set_datarate(region::DR::_0); // SF12
 
     defmt::info!("Joining LoRaWAN network");
 
-    // TODO: Adjust the EUI and Keys according to your network credentials
     let join_mode = JoinMode::OTAA {
-        dev_eui: DEV_EUI.trim_end().into(),
-        app_eui: APP_EUI.trim_end().into(),
-        app_key: APP_KEY.trim_end().into(),
+        deveui: EUI::from(DEV_EUI.trim_end()).0,
+        appeui: EUI::from(APP_EUI.trim_end()).0,
+        appkey: AppKey::from(APP_KEY.trim_end()).0,
     };
-    board.blue_led.on().ok();
-    driver.join(join_mode).await.ok().unwrap();
-    board.blue_led.off().ok();
+    board.blue_led.set_high();
+    device.join(&join_mode).await.ok().unwrap();
+    board.blue_led.set_low();
     defmt::info!("LoRaWAN network joined");
 
-    let service = LorawanService::new(driver);
+    let service = LorawanService::new(device);
+
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
-    let mut device: FirmwareManager<FirmwareConfig<Flash<'static>>, 2048, 4, 32> =
-        FirmwareManager::new(
-            FirmwareConfig::new(board.flash),
-            FirmwareUpdater::default(),
-            version.as_bytes(),
-        );
+
+    let mut device: FirmwareManager<FirmwareConfig<Flash<'static>>, 4, 32> = FirmwareManager::new(
+        FirmwareConfig::new(board.flash),
+        FirmwareUpdater::default(),
+        version.as_bytes(),
+    );
 
     /// Matches fair usage policy of TTN
     const INTERVAL_MS: u32 = 1_124_000;
@@ -78,7 +76,7 @@ async fn main(_spawner: Spawner) {
 
     loop {
         defmt::info!("Starting updater task");
-        board.green_led.on().ok();
+        board.green_led.set_high();
         match updater.run(&mut device, &mut Delay).await {
             Ok(s) => match s {
                 embedded_update::DeviceStatus::Updated => {
@@ -91,7 +89,7 @@ async fn main(_spawner: Spawner) {
                 defmt::warn!("Error running updater: {:?}", e);
             }
         }
-        board.green_led.off().ok();
+        board.green_led.set_low();
         Timer::after(Duration::from_millis(INTERVAL_MS as u64)).await;
     }
 }
@@ -115,7 +113,6 @@ impl<F: NorFlash + ReadNorFlash> FirmwareConfig<F> {
 impl<F: NorFlash + ReadNorFlash> drogue_device::firmware::FirmwareConfig for FirmwareConfig<F> {
     type STATE = BlockingAsync<F>;
     type DFU = BlockingAsync<F>;
-    const BLOCK_SIZE: usize = F::ERASE_SIZE;
 
     fn state(&mut self) -> &mut Self::STATE {
         &mut self.flash

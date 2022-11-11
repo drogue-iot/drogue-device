@@ -4,40 +4,25 @@
 #![allow(dead_code)]
 #![feature(type_alias_impl_trait)]
 
-use defmt_rtt as _;
-use panic_probe as _;
+use {defmt_rtt as _, panic_probe as _};
 
-use drogue_device::{
-    bsp::{boards::stm32l0::lora_discovery::*, Board},
-    drivers::lora::LoraDevice as Device,
-    traits::lora::{LoraConfig, LoraMode, LoraRegion, SpreadingFactor},
-    *,
+use {
+    core::fmt::Write as _,
+    disco_l072z_lrwan1::*,
+    drogue_device::{lora::*, *},
+    embassy_executor::Spawner,
+    embassy_futures::select::select,
+    embassy_time::{Duration, Timer},
+    heapless::String,
 };
-use drogue_lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig};
-use embassy_executor::Spawner;
-use static_cell::StaticCell;
 
-bind_bsp!(LoraDiscovery, BSP);
-
-static DEVICE: StaticCell<LoraDevice<BSP>> = StaticCell::new();
-
-impl LoraBoard for BSP {
-    type JoinLed = LedRed;
-    type TxLed = LedGreen;
-    type CommandLed = LedYellow;
-    type SendTrigger = UserButton;
-    type Driver = Device<Radio, Rng>;
-}
+const DEV_EUI: &str = drogue::config!("dev-eui");
+const APP_EUI: &str = drogue::config!("app-eui");
+const APP_KEY: &str = drogue::config!("app-key");
 
 #[embassy_executor::main]
-async fn main(spawner: Spawner) {
-    let board = LoraDiscovery::new(embassy_stm32::init(LoraDiscovery::config()));
-    let config = LoraConfig::new()
-        .region(LoraRegion::EU868)
-        .lora_mode(LoraMode::WAN)
-        .spreading_factor(SpreadingFactor::SF12);
-
-    defmt::info!("Configuring with config {:?}", config);
+async fn main(_spawner: Spawner) {
+    let board = LoraDiscovery::default();
 
     let radio = Radio::new(
         board.spi1,
@@ -49,13 +34,77 @@ async fn main(spawner: Spawner) {
     .await
     .unwrap();
 
-    let config = LoraDeviceConfig {
-        join_led: Some(board.led_red),
-        tx_led: Some(board.led_green),
-        command_led: Some(board.led_yellow),
-        send_trigger: board.user_button,
-        driver: Device::new(&config, radio, board.rng).unwrap(),
+    let mut join_led = board.led_red;
+    let mut tx_led = board.led_green;
+    let mut command_led = board.led_yellow;
+    let mut button = board.user_button;
+
+    let mut region: region::Configuration = region::EU868::default().into();
+
+    // NOTE: This is specific for TTN, as they have a special RX1 delay
+    region.set_receive_delay1(5000);
+
+    let mut device = LoraDiscovery::lorawan(region, radio, board.rng);
+
+    let join_mode = JoinMode::OTAA {
+        deveui: EUI::from(DEV_EUI.trim_end()).0,
+        appeui: EUI::from(APP_EUI.trim_end()).0,
+        appkey: AppKey::from(APP_KEY.trim_end()).0,
     };
 
-    DEVICE.init(LoraDevice::new()).mount(spawner, config).await;
+    join_led.set_high();
+    defmt::info!("Joining LoRaWAN network");
+    device.join(&join_mode).await.ok().unwrap();
+    defmt::info!("LoRaWAN network joined");
+    join_led.set_low();
+
+    let mut counter = 0;
+    loop {
+        select(Timer::after(Duration::from_secs(60)), button.wait_for_low()).await;
+        counter += 1;
+
+        defmt::info!("Sending message...");
+        tx_led.set_high();
+
+        let mut tx = String::<32>::new();
+        write!(&mut tx, "ping:{}", counter).ok();
+        defmt::info!("Message: {}", &tx.as_str());
+        let tx = tx.into_bytes();
+
+        let mut rx = [0; 64];
+        let result = device.send_recv(&tx, &mut rx, 1, true).await;
+
+        match result {
+            Ok(rx_len) => {
+                defmt::info!("Message sent!");
+                if rx_len > 0 {
+                    let response = &rx[0..rx_len];
+                    match core::str::from_utf8(response) {
+                        Ok(str) => {
+                            defmt::info!("Received {} bytes from uplink:\n{}", rx_len, str)
+                        }
+                        Err(_) => defmt::info!(
+                            "Received {} bytes from uplink: {:x}",
+                            rx_len,
+                            &rx[0..rx_len]
+                        ),
+                    }
+                    match response {
+                        b"led:on" => {
+                            command_led.set_high();
+                        }
+                        b"led:off" => {
+                            command_led.set_low();
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            Err(_e) => {
+                defmt::error!("Error sending message");
+            }
+        }
+
+        tx_led.set_low();
+    }
 }

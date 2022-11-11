@@ -1,12 +1,9 @@
-#[cfg(feature = "ble")]
+#[cfg(feature = "ble+softdevice")]
 pub mod ble;
 
-pub mod button;
-pub(crate) mod common;
-pub mod dns;
 pub mod led;
-pub mod lora;
-pub mod sensors;
+
+pub mod button;
 
 pub trait ActiveLevel {}
 

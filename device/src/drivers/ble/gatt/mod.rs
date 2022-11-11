@@ -1,5 +1,4 @@
 pub mod device_info;
-#[cfg(feature = "dfu")]
 pub mod dfu;
 pub mod environment;
 pub mod temperature;

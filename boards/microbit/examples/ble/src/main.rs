@@ -3,17 +3,18 @@
 #![macro_use]
 #![feature(type_alias_impl_trait)]
 
-use embassy_executor::Spawner;
-use heapless::Vec;
-use microbit_bsp::*;
-use nrf_softdevice::{
-    ble::{gatt_server, peripheral, Connection},
-    raw, Softdevice,
+use {
+    embassy_executor::Spawner,
+    heapless::Vec,
+    microbit_bsp::*,
+    nrf_softdevice::{
+        ble::{gatt_server, peripheral, Connection},
+        raw, Softdevice,
+    },
+    static_cell::StaticCell,
 };
-use static_cell::StaticCell;
 
-use defmt_rtt as _;
-use panic_probe as _;
+use {defmt_rtt as _, panic_probe as _};
 
 #[nrf_softdevice::gatt_server]
 pub struct Server {

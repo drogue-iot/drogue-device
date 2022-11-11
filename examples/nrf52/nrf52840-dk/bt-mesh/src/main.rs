@@ -3,16 +3,18 @@
 #![macro_use]
 #![feature(type_alias_impl_trait)]
 
-use btmesh_device::{BluetoothMeshModel, BluetoothMeshModelContext, InboundModelPayload};
-use btmesh_macro::{device, element};
-use btmesh_models::generic::onoff::{
-    GenericOnOffClient, GenericOnOffMessage, GenericOnOffServer, Set as GenericOnOffSet,
+use {
+    btmesh_device::{BluetoothMeshModel, BluetoothMeshModelContext, InboundModelPayload},
+    btmesh_macro::{device, element},
+    btmesh_models::generic::onoff::{
+        GenericOnOffClient, GenericOnOffMessage, GenericOnOffServer, Set as GenericOnOffSet,
+    },
+    btmesh_nrf_softdevice::*,
+    core::future::Future,
+    embassy_executor::Spawner,
+    embassy_nrf::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},
+    embassy_time::{Duration, Timer},
 };
-use btmesh_nrf_softdevice::*;
-use core::future::Future;
-use embassy_executor::Spawner;
-use embassy_nrf::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull};
-use embassy_time::{Duration, Timer};
 
 extern "C" {
     static __storage: u8;

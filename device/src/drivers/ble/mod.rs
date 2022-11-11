@@ -1,2 +1,2 @@
-#[cfg(feature = "ble+nrf-softdevice")]
+#[cfg(feature = "ble+softdevice")]
 pub mod gatt;

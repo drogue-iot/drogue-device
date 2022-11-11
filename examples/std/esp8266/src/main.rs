@@ -3,37 +3,47 @@
 
 mod serial;
 
-use async_io::Async;
-use drogue_device::{domain::temperature::Celsius, *};
-use drogue_temperature::*;
-use embassy_time::Duration;
-use embedded_hal::digital::{ErrorType, OutputPin};
-use embedded_io::adapters::FromFutures;
-use esp8266_at_driver::*;
-use futures::io::BufReader;
-use nix::sys::termios;
-use serial::*;
-use static_cell::StaticCell;
+use {
+    async_io::Async,
+    drogue_device::*,
+    embassy_futures::select::{select, Either},
+    embassy_time::{Duration, Timer},
+    embedded_hal::digital::{ErrorType, OutputPin},
+    embedded_io::adapters::FromFutures,
+    esp8266_at_driver::*,
+    futures::io::BufReader,
+    nix::sys::termios,
+    reqwless::{client::*, request::*},
+    serial::*,
+    static_cell::StaticCell,
+};
 
-const WIFI_SSID: &str = drogue::config!("wifi-ssid");
-const WIFI_PSK: &str = drogue::config!("wifi-password");
+#[path = "../../../common/dns.rs"]
+mod dns;
+use dns::*;
+
+#[path = "../../../common/temperature.rs"]
+mod temperature;
+use temperature::*;
 
 type SERIAL = FromFutures<BufReader<Async<SerialPort>>>;
 type ENABLE = DummyPin;
 type RESET = DummyPin;
 
-pub struct StdBoard;
+const WIFI_SSID: &str = drogue::config!("wifi-ssid");
+const WIFI_PSK: &str = drogue::config!("wifi-password");
 
-impl TemperatureBoard for StdBoard {
-    type Network = &'static Esp8266Driver<'static, SERIAL, ENABLE, RESET, 1>;
-    type TemperatureScale = Celsius;
-    type SensorReadyIndicator = AlwaysReady;
-    type Sensor = FakeSensor;
-    type SendTrigger = TimeTrigger;
-    type Rng = rand::rngs::OsRng;
-}
+/// HTTP endpoint hostname
+const HOSTNAME: &str = drogue::config!("hostname");
 
-static DEVICE: StaticCell<TemperatureDevice<StdBoard>> = StaticCell::new();
+/// HTTP endpoint port
+const PORT: &str = drogue::config!("port");
+
+/// HTTP username
+const USERNAME: &str = drogue::config!("username");
+
+/// HTTP password
+const PASSWORD: &str = drogue::config!("password");
 
 #[embassy_executor::main]
 async fn main(spawner: embassy_executor::Spawner) {
@@ -55,19 +65,58 @@ async fn main(spawner: embassy_executor::Spawner) {
         .spawn(net_task(network, WIFI_SSID.trim_end(), WIFI_PSK.trim_end()))
         .unwrap();
 
-    DEVICE
-        .init(TemperatureDevice::new())
-        .mount(
-            spawner,
-            rand::rngs::OsRng,
-            TemperatureBoardConfig {
-                network,
-                send_trigger: TimeTrigger(Duration::from_secs(10)),
-                sensor: FakeSensor(22.0),
-                sensor_ready: AlwaysReady,
-            },
-        )
-        .await;
+    let url = format!(
+        "https://{}:{}/v1/temperature?data_schema=urn:drogue:iot:temperature",
+        HOSTNAME, PORT
+    );
+
+    let mut tls = [0; 8000];
+    let mut rng = rand::rngs::OsRng;
+    let mut client = HttpClient::new_with_tls(network, &DNS, TlsConfig::new(&mut rng, &mut tls));
+
+    loop {
+        let sensor_data = TemperatureData {
+            geoloc: None,
+            temp: Some(22.2),
+            hum: None,
+        };
+
+        match select(Timer::after(Duration::from_secs(20)), async {
+            let tx: heapless::String<1024> = serde_json_core::ser::to_string(&sensor_data).unwrap();
+            let mut rx_buf = [0; 1024];
+            let response = client
+                .request(Method::POST, &url)
+                .await
+                .unwrap()
+                .basic_auth(USERNAME.trim_end(), PASSWORD.trim_end())
+                .body(tx.as_bytes())
+                .content_type(ContentType::ApplicationJson)
+                .send(&mut rx_buf[..])
+                .await;
+
+            match response {
+                Ok(response) => {
+                    log::info!("Response status: {:?}", response.status);
+                    if let Some(payload) = response.body {
+                        let _s = core::str::from_utf8(payload).unwrap();
+                    }
+                }
+                Err(e) => {
+                    log::warn!("Error doing HTTP request: {:?}", e);
+                }
+            }
+        })
+        .await
+        {
+            Either::First(_) => {
+                log::info!("Request timeout");
+            }
+            Either::Second(_) => {
+                log::info!("Telemetry reported successfully");
+            }
+        }
+        Timer::after(Duration::from_secs(10)).await;
+    }
 }
 
 #[embassy_executor::task]

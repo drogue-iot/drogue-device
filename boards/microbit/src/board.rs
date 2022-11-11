@@ -1,14 +1,16 @@
-use crate::display::LedMatrix as LedMatrixDriver;
-use embassy_nrf::{
-    gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},
-    peripherals::{
-        P0_00, P0_01, P0_03, P0_04, P0_05, P0_06, P0_08, P0_09, P0_10, P0_12, P0_13, P0_16, P0_17,
-        P0_20, P0_26, P1_00, P1_02, P1_08, PPI_CH0, PPI_CH1, PWM0, RNG, SAADC, TIMER0, TWISPI0,
-        UARTE0,
+use {
+    crate::display::LedMatrix as LedMatrixDriver,
+    embassy_nrf::{
+        gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},
+        peripherals::{
+            P0_00, P0_01, P0_03, P0_04, P0_05, P0_06, P0_08, P0_09, P0_10, P0_12, P0_13, P0_16,
+            P0_17, P0_20, P0_26, P1_00, P1_02, P1_08, PPI_CH0, PPI_CH1, PWM0, RNG, SAADC, TIMER0,
+            TWISPI0, UARTE0,
+        },
     },
 };
 
-pub use embassy_nrf::{config::Config, interrupt::Priority};
+pub use embassy_nrf::{config::Config, interrupt::Priority, wdt};
 
 /// LED matrix peripheral for the micro:bit
 pub type LedMatrix = LedMatrixDriver<Output<'static, AnyPin>, 5, 5>;

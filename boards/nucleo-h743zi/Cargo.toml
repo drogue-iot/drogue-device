@@ -1,0 +1,19 @@
+[package]
+name = "nucleo-h743zi"
+version = "0.1.0"
+edition = "2021"
+description = "An embassy-based boards support package (BSP) for the STM32 Nucleo h743zi board"
+
+[workspace]
+
+[dependencies]
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["exti", "unstable-traits", "nightly", "stm32h743zi", "memory-x", "time-driver-any", "net", "unstable-pac"] }
+embassy-time = { version = "0.1.0", default-features = false }
+embassy-net = { version = "0.1.0", default-features = false, features= ["tcp", "medium-ethernet", "pool-16", "proto-ipv6", "dhcpv4" ]}
+static_cell = "1"
+cortex-m = "0.7"
+
+[patch.crates-io]
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
