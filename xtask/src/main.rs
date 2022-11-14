@@ -61,6 +61,7 @@ static WORKSPACES: &[&str] = &[
     "examples/nrf52/adafruit-feather-nrf52840/boot",
     "examples/nrf52/adafruit-feather-nrf52840/bt-mesh",
     "examples/nrf52/nrf52840-dk/bt-mesh",
+    "examples/rp2040/pico-w",
     "examples/stm32l0/lora-discovery",
     "examples/stm32l1/rak811",
     "examples/stm32l4/iot01a/app",

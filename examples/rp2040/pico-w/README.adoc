@@ -1,0 +1,81 @@
+== Raspberry Pi Pico W example
+
+This example application runs out of the box on the Raspberry Pi Pico W.
+
+It uses the on board WiFi peripheral to send data to Drogue Cloud.
+
+=== Prerequisites
+
+==== Hardware
+
+* link:https://www.raspberrypi.com/products/raspberry-pi-pico/[Raspberry Pi Pico W]
+* (Recommended) An SWD debug probe (another pico) to get RTT logs
+
+==== Software
+
+* To build the example, you need to have link:https://rustup.rs/[rustup].
+* To flash the example on the device, you need `probe-run` installed (`cargo install probe-run`).
+* A Drogue Cloud instance. See link:https://github.com/drogue-iot/drogue-cloud/[drogue-cloud] for how to run that, or use the link:https://sandbox.drogue.cloud/[sandbox] (requires TLS).
+* (Optional) If you do not have an SWD debug probe, you can use the link:https://github.com/JoNil/elf2uf2-rs[elf2uf2] utility to convert the elf file into a .uf2 image you can flash using the builting UF2 bootloader of the pico.
+
+
+=== Configuring
+
+Credentials for your local WiFi network will come from these entries in `~/.drogue/config.toml`:
+
+....
+wifi-ssid = "..."
+wifi-password = "..."
+....
+
+HTTP authentication will come from these entries in `~/.drogue/config.toml`:
+
+....
+username = "..."
+password = "..."
+....
+
+For Drogue Cloud, the username/password is stored in this form: `device_id@application`.
+
+The example `config.toml` file for connecting to public Drogue cloud sandbox application could look like this:
+
+```toml
+hostname = "http.sandbox.drogue.cloud" # Replace with your own Drogue Cloud instance if you are not using the sandbox
+port = "443"
+wifi-ssid = "..."                      # The WiFi network SSID
+wifi-password = "..."                  # The WiFi network pre-shared key
+username = "device1@wifi-workshop"
+password = "mysecretpassword"
+```
+
+== Running
+
+=== Flashing WiFi driver
+
+Before running the application for the first time, you must flash the WiFi driver blob.
+
+Download firmware from link:https://github.com/embassy-rs/cyw43/tree/master/firmware[]
+, and flash them with probe-rs-cli:
+
+````rust
+probe-rs-cli download 43439A0.bin --format bin --chip RP2040 --base-address 0x10100000
+probe-rs-cli download 43439A0.clm_blob --format bin --chip RP2040 --base-address 0x10140000
+````
+
+=== Running the application
+
+To run the application, connect your debug probe and run:
+
+....
+cargo run --release
+....
+
+Once flashed, the device will attempt to join the WiFi network and send telemetry data to Drogue Cloud every 30 seconds.
+
+== Troubleshooting
+
+If you’re experiencing problems, try setting the `VID:PID` values to that of your probe (you can find that from lsusb once your board is powered).
+
+....
+<ENV> cargo run <ARGS> -- --probe <VID>:<PID>
+....
