@@ -1,0 +1,1 @@
+* xref:examples/stm32h7/nucleo-h743zi/ethernet/README.adoc[STM32 Nucleo-H743 ethernet] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32h7/nucleo-h743zi/ethernet[github])

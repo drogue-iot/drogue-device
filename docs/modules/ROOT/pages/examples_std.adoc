@@ -1,0 +1,3 @@
+* xref:examples/std/cloud/README.adoc[Example using operating system networking] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/cloud[github])
+* xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/esp8266[github])
+* xref:examples/std/rak811/README.adoc[RAK811 LoRa Adapter with AT command firmware] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/rak811[github])
