@@ -56,7 +56,7 @@ mod tests {
         configure(&app, device, password);
 
         let spec = format!(
-            "{{\"credentials\":{{\"credentials\":[{{\"pass\":\"{}\"}}]}}}}",
+            "{{\"authentication\":{{\"credentials\":[{{\"pass\":\"{}\"}}]}}}}",
             password
         );
 
@@ -162,7 +162,7 @@ mod tests {
 
     fn configure(app: &str, device: &str, password: &str) {
         let contents = format!(
-            "http-username = \"{}@{}\"\nhttp-password = \"{}\"\nhostname = \"{}\"\nport = \"{}\"",
+            "username = \"{}@{}\"\npassword = \"{}\"\nhostname = \"{}\"\nport = \"{}\"",
             device, app, password, HOSTNAME, PORT,
         );
         fs::write(config_file(), contents).expect("unable to write config file");
