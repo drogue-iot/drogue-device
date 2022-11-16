@@ -56,7 +56,7 @@ mod tests {
         configure(&app, device, password);
 
         let spec = format!(
-            "{{\"authentication\":{{\"credentials\":[{{\"pass\":\"{}\"}}]}}}}",
+            "{{\"credentials\":{{\"credentials\":[{{\"pass\":\"{}\"}}]}}}}",
             password
         );
 
