@@ -47,7 +47,7 @@ embassy-boot-stm32 = {git = "https://github.com/embassy-rs/embassy.git", tag = "
 embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 embassy-time = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-reqwless = { path = "../../../../reqwless" }
+#reqwless = { path = "../../../../reqwless" }
 #embedded-nal-async = { path = "../../../../../embedded-nal/embedded-nal-async" }
 #embassy-executor = { path = "../../../../../embassy/embassy" }
 #embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }

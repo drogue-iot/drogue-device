@@ -1762,6 +1762,8 @@ dependencies = [
 [[package]]
 name = "reqwless"
 version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc5603ce8760ef308bdc17c8e7aab9e2bd73dcb93e664033c7c801512251d305"
 dependencies = [
  "base64",
  "defmt",
