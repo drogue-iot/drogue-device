@@ -75,7 +75,6 @@ cargo xtask ci
 * `boards` - Board Support Package (BSP) for supported boards
 * `device` - Library for building IoT applications
 * `macros` - macros to load configuration files for the device firmware.
-* `bootloader` - Bootloader for all supported boards (required for OTA).
 * `examples` - examples that can run on different boards
 
 ## Contributing
