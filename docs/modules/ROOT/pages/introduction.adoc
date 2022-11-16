@@ -13,23 +13,4 @@ The other way to handle blocking I/O operations is to support polling the state 
 
 In Rust, non-blocking operations can be implemented using async-await. Async-await works by transforming each async function into an object called a future. When a future blocks on I/O the future yields, and the scheduler, called an executor, can select a different future to execute. Compared to alternatives such as an RTOS, async can yield better performance and lower power consumption because the executor doesn’t have to guess when a future is ready to execute. However, program size may be higher than other alternatives, which may be a problem for certain space-constrained devices with very low memory. On the devices Embassy supports, such as stm32 and nrf, memory is generally large enough to accommodate the modestly-increased program size.
 
-== What is an actor
 
-Actors make it convenient to write stateful concurrent systems using message passing. Actors only process one message at a time, and communicate with other actors by sending messages to their addresses. Actors compose easily due to their decoupled nature, making it easier to maintain an expanding code base.
-
-Actors in `drogue-actor` are *async*, which means that they process messages using async-await support in Rust. This does not mean you have to write async code, but you will have the option to do so. The link:https://rust-lang.github.io/async-book/[async book] is a great way to learn more about async Rust.
-
-Read more about actors xref:concepts.adoc[here].
-
-== Actors vs Tasks
-
-Tasks are a good fit if:
-
-* You are doing 'standalone' work that doesn't require any input from other parts of your application
-* You are not going to reuse the task functionality in multiple applications
-
-Actors are a good fit if:
-
-* You want to run a process that handles messages through a channel
-* You want to reuse this process in multiple applications or for multiple purposes
-* You like the ability to compose your application and isolate the business logic in different units

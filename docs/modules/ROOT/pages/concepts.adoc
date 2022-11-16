@@ -1,6 +1,27 @@
 = Actors
 
-Drogue Actor is an actor framework for microcontrollers.  An _actor system_ is a framework that allows for isolating state within narrow contexts, making it easier to reason about system. Within a actor system, the primary component is an _Actor_, which represents the boundary of state usage. Each actor has exclusive access to its own state and only communicates with other actors through message-passing.
+An _actor system_ is a framework that allows for isolating state within narrow contexts, making it easier to reason about system. Within a actor system, the primary component is an _Actor_, which represents the boundary of state usage. Each actor has exclusive access to its own state and only communicates with other actors through message-passing.
+
+== What is an actor
+
+Actors make it convenient to write stateful concurrent systems using message passing. Actors only process one message at a time, and communicate with other actors by sending messages to their addresses. Actors compose easily due to their decoupled nature, making it easier to maintain an expanding code base.
+
+For microcontrollers, you can use the `ector` crate. Actors in `ector` are *async*, which means that they process messages using async-await support in Rust. This does not mean you have to write async code, but you will have the option to do so. The link:https://rust-lang.github.io/async-book/[async book] is a great way to learn more about async Rust.
+
+Read more about actors xref:concepts.adoc[here].
+
+== Actors vs Tasks
+
+Tasks are a good fit if:
+
+* You are doing 'standalone' work that doesn't require any input from other parts of your application
+* You are not going to reuse the task functionality in multiple applications
+
+Actors are a good fit if:
+
+* You want to run a process that handles messages through a channel
+* You want to reuse this process in multiple applications or for multiple purposes
+* You like the ability to compose your application and isolate the business logic in different units
 
 image::actor-model.png[Actor model example]
 

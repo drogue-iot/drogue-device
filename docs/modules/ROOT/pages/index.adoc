@@ -4,19 +4,29 @@ Drogue device is a distribution of tools and examples for building embedded IoT 
 
 == Robustness
 
-In a world without memory management or operating system it is more important than ever to avoid memory corruption and undefined behavior. link:https://www.rust-lang.org[Rust] is an efficient, memory safe and thread safe programming language.
+In a world without memory management or operating system it is more important than ever to avoid
+memory corruption and undefined behavior. link:https://www.rust-lang.org[Rust] is an efficient,
+memory safe and thread safe programming language.
 
 == Efficiency
 
-Embedded systems must make efficient uses of the resources available. At the same time, having a programming model that fits embedded devices is important. link:https://embassy.dev[Embassy], the embedded async project, delivers a fast and small runtime and hardware abstraction layer that also provides a great programming experience.
+Embedded systems must make efficient uses of the resources available. At the same time, having a
+programming model that fits embedded devices is important. link:https://embassy.dev[Embassy], the
+embedded async project, delivers a fast and small runtime and hardware abstraction layer that also
+provides a great programming experience.
 
 == Composition
 
-Code reuse and composition should be first class in embedded software! Use async task-based or actor-based programming models for writing efficient and composable applications. With actors, you can reuse application logic and compose other actors to build new functionality.
+Code reuse and composition should be first class in embedded software! Use async tasks for writing
+efficient and composable applications. With traits, you can reuse application logic and compose
+other types to build new functionality.
 
 == IoT Ready
 
-Many developers just want to have drivers and functionality ready to be used so they can focus on their application. Drogue Device provides out of the box examples for WiFi, LoRaWAN, BLE combined with different sensors available on boards. Some of the examples are ready to be used with xref:drogue-cloud::index.adoc[Drogue Cloud].
+Many developers just want to have drivers and functionality ready to be used so they can focus on
+their application. Drogue Device provides out of the box examples for WiFi, LoRaWAN, BLE combined
+with different sensors available on boards. Most examples are ready to be used with
+xref:drogue-cloud::index.adoc[Drogue Cloud], and some support Over The Air (OTA) updates.
 
 == Open Source
 

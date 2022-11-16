@@ -30,7 +30,7 @@ include::example$basic/src/main.rs[lines="7..8"]
 
 The main entry point is defined using the `#[embassy::main]` macro. The entry point is also required to take a `Spawner` argument.
 
-The `Spawner` is the way the main application spawns tasks and actors.
+The `Spawner` is the way the main application spawns tasks.
 
 For some boards, a Board Support Package (BSP) helps locating peripherals with a board-specific name. The board simply helps configuring the peripherals and giving them a name that maps to your particular board. In our case, we can use the `Microbit` board.
 
