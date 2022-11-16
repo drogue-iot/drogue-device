@@ -46,7 +46,7 @@ async fn main(_spawner: embassy_executor::Spawner) {
         HOSTNAME, PORT
     );
 
-    let mut tls = [0; 8000];
+    let mut tls = [0; 16384];
     let mut rng = rand::rngs::OsRng;
     let mut client = HttpClient::new_with_tls(&TcpClient, &DNS, TlsConfig::new(&mut rng, &mut tls));
 
@@ -87,9 +87,7 @@ async fn main(_spawner: embassy_executor::Spawner) {
             Either::First(_) => {
                 log::info!("Request timeout");
             }
-            Either::Second(_) => {
-                log::info!("Telemetry reported successfully");
-            }
+            Either::Second(_) => {}
         }
         Timer::after(Duration::from_secs(10)).await;
     }
