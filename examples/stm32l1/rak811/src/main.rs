@@ -4,44 +4,25 @@
 #![allow(dead_code)]
 #![feature(type_alias_impl_trait)]
 
-use defmt_rtt as _;
-use panic_probe as _;
+use {defmt_rtt as _, panic_probe as _};
 
-use drogue_device::{
-    bsp::{boards::stm32l1::rak811::*, Board},
-    drivers::lora::LoraDevice as Device,
-    traits::lora::{LoraConfig, LoraMode, LoraRegion, SpreadingFactor},
-    *,
+use {
+    core::fmt::Write as _,
+    drogue_device::{lora::*, *},
+    embassy_executor::Spawner,
+    embassy_time::{Duration, Timer},
+    heapless::String,
+    rak811::*,
 };
-use drogue_lorawan_app::{LoraBoard, LoraDevice, LoraDeviceConfig, TimeTrigger};
-use embassy_executor::Spawner;
-use embassy_time::Duration;
-use static_cell::StaticCell;
 
-bind_bsp!(Rak811, BSP);
-
-static DEVICE: StaticCell<LoraDevice<BSP>> = StaticCell::new();
-
-impl LoraBoard for BSP {
-    type JoinLed = LedRed;
-    type TxLed = LedRed;
-    type CommandLed = LedRed;
-    type SendTrigger = TimeTrigger;
-    type Driver = Device<Radio, Rng>;
-}
+const DEV_EUI: &str = drogue::config!("dev-eui");
+const APP_EUI: &str = drogue::config!("app-eui");
+const APP_KEY: &str = drogue::config!("app-key");
 
 #[embassy_executor::main]
-async fn main(spawner: Spawner) {
-    let board = Rak811::new(embassy_stm32::init(Default::default()));
+async fn main(_spawner: Spawner) {
+    let board = Rak811::default();
 
-    let config = LoraConfig::new()
-        .region(LoraRegion::EU868)
-        .lora_mode(LoraMode::WAN)
-        .spreading_factor(SpreadingFactor::SF12);
-
-    defmt::info!("Configuring with config {:?}", config);
-
-    static mut RADIO_BUF: [u8; 256] = [0; 256];
     let radio = Radio::new(
         board.spi1,
         board.radio_cs,
@@ -51,13 +32,45 @@ async fn main(spawner: Spawner) {
     )
     .await
     .unwrap();
-    let lora = Device::new(&config, radio, board.rng).unwrap();
-    let config = LoraDeviceConfig {
-        join_led: Some(board.led_red),
-        tx_led: None,
-        command_led: None,
-        send_trigger: TimeTrigger(Duration::from_secs(60)),
-        driver: lora,
+
+    let mut join_led = board.led_red;
+    let mut region: region::Configuration = region::EU868::default().into();
+
+    // NOTE: This is specific for TTN, as they have a special RX1 delay
+    region.set_receive_delay1(5000);
+
+    let mut device = Rak811::lorawan(region, radio, board.rng);
+
+    let join_mode = JoinMode::OTAA {
+        deveui: EUI::from(DEV_EUI.trim_end()).0,
+        appeui: EUI::from(APP_EUI.trim_end()).0,
+        appkey: AppKey::from(APP_KEY.trim_end()).0,
     };
-    DEVICE.init(LoraDevice::new()).mount(spawner, config).await;
+
+    join_led.set_high();
+    defmt::info!("Joining LoRaWAN network");
+    device.join(&join_mode).await.ok().unwrap();
+    defmt::info!("LoRaWAN network joined");
+    join_led.set_low();
+
+    let mut counter = 0;
+    loop {
+        counter += 1;
+
+        let mut tx = String::<32>::new();
+        write!(&mut tx, "ping:{}", counter).ok();
+        defmt::info!("Sending message: {}", &tx.as_str());
+        let tx = tx.into_bytes();
+
+        let result = device.send(&tx, 1, true).await;
+        match result {
+            Ok(_) => {
+                defmt::info!("Message sent!");
+            }
+            Err(_e) => {
+                defmt::error!("Error sending message");
+            }
+        }
+        Timer::after(Duration::from_secs(60)).await;
+    }
 }

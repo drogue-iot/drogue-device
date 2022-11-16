@@ -3,7 +3,6 @@ members = [
     "device",
     "macros",
     "xtask",
-    "examples/apps/temperature",
 ]
 resolver = "2"
 
@@ -11,16 +10,12 @@ resolver = "2"
 embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 embassy-time = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-embassy-net = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 #embassy-traits = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", tag = "embassy-time-v0.1.0" }
-nrf-softdevice-s140 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", tag = "embassy-time-v0.1.0" }
+#nrf-softdevice-s140 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", tag = "embassy-time-v0.1.0" }
 nrf-softdevice-macro = { git = "https://github.com/embassy-rs/nrf-softdevice.git", tag = "embassy-time-v0.1.0" }
 ector = { git = "https://github.com/drogue-iot/ector.git", tag = "embassy-time-v0.1.0" }
 #ector = { path = "../ector/ector" }

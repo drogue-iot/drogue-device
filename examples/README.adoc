@@ -29,8 +29,8 @@ wifi-password = "..."
 
 HTTP authentication:
 ....
-http-username = "..."
-http-password = "..."
+username = "..."
+password = "..."
 ....
 
 _Over The Air Authentication_ (OTAA) credentials:

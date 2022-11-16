@@ -30,7 +30,7 @@ _Over The Air Authentication_ (OTAA) credentials will come from these entries in
 First, flash the bootloader:
 
 ....
-cargo flash --manifest-path ../bootloader/Cargo.toml --release --no-default-features --chip STM32WLE5JCIx
+cargo flash --manifest-path ../boot/Cargo.toml --release --no-default-features --chip STM32WLE5JCIx
 ....
 
 You can then run the application with the `dfu` parameter:

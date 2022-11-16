@@ -39,7 +39,7 @@ probe-rs-cli download s113_nrf52_7.3.0_softdevice.hex --chip nRF52833_xxAA --for
 === Flash bootloader
 
 ```
-cargo flash --manifest-path ../bootloader/Cargo.toml --release --chip nRF52833_xxAA
+cargo flash --manifest-path ../boot/Cargo.toml --release --chip nRF52833_xxAA
 ```
 
 === Flash application

@@ -1,9 +1,13 @@
-use crate::traits::button::Event;
-use core::{future::Future, marker::PhantomData};
-use embedded_hal::digital::v2::InputPin;
-use embedded_hal_async::digital::Wait;
+use {
+    core::marker::PhantomData, embedded_hal::digital::InputPin, embedded_hal_async::digital::Wait,
+};
 
 pub use crate::drivers::{ActiveHigh, ActiveLow};
+
+pub enum Event {
+    Pressed,
+    Released,
+}
 
 pub trait Active {
     fn is_pressed<P: InputPin>(pin: &P) -> Result<bool, P::Error>;
@@ -85,38 +89,5 @@ where
                 return Event::Released;
             }
         }
-    }
-}
-
-impl<P, ACTIVE> crate::traits::button::Button for Button<P, ACTIVE>
-where
-    P: Wait + InputPin + 'static,
-    ACTIVE: Active,
-{
-    type WaitPressed<'m> = impl Future<Output = ()> + 'm where Self: 'm;
-
-    fn wait_pressed<'m>(&'m mut self) -> Self::WaitPressed<'m>
-    where
-        Self: 'm,
-    {
-        Button::wait_pressed(self)
-    }
-
-    type WaitReleased<'m> = impl Future<Output = ()> + 'm where Self: 'm;
-
-    fn wait_released<'m>(&'m mut self) -> Self::WaitReleased<'m>
-    where
-        Self: 'm,
-    {
-        Button::wait_released(self)
-    }
-
-    type WaitAny<'m> = impl Future<Output = Event> + 'm where Self: 'm;
-
-    fn wait_any<'m>(&'m mut self) -> Self::WaitAny<'m>
-    where
-        Self: 'm,
-    {
-        Button::wait_any(self)
     }
 }

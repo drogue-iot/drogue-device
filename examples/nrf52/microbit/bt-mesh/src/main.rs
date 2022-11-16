@@ -3,30 +3,32 @@
 #![macro_use]
 #![feature(type_alias_impl_trait)]
 
-use btmesh_common::{InsufficientBuffer, ParseError};
-use btmesh_device::{
-    BluetoothMeshModel, BluetoothMeshModelContext, Control, InboundModelPayload, PublicationCadence,
+use {
+    btmesh_common::{InsufficientBuffer, ParseError},
+    btmesh_device::{
+        BluetoothMeshModel, BluetoothMeshModelContext, Control, InboundModelPayload,
+        PublicationCadence,
+    },
+    btmesh_macro::{device, element},
+    btmesh_models::sensor::{
+        PropertyId, SensorConfig, SensorData, SensorDescriptor, SensorMessage as SM,
+        SensorServer as SS, SensorStatus,
+    },
+    btmesh_nrf_softdevice::*,
+    core::future::Future,
+    embassy_executor::Spawner,
+    embassy_futures::select::{select, Either},
+    embassy_time::{Duration, Ticker, Timer},
+    futures::StreamExt,
+    heapless::Vec,
+    nrf_softdevice::{temperature_celsius, Softdevice},
 };
-use btmesh_macro::{device, element};
-use btmesh_models::sensor::{
-    PropertyId, SensorConfig, SensorData, SensorDescriptor, SensorMessage as SM,
-    SensorServer as SS, SensorStatus,
-};
-use btmesh_nrf_softdevice::*;
-use core::future::Future;
-use embassy_executor::Spawner;
-use embassy_futures::select::{select, Either};
-use embassy_time::{Duration, Ticker, Timer};
-use futures::StreamExt;
-use heapless::Vec;
-use nrf_softdevice::{temperature_celsius, Softdevice};
 
 extern "C" {
     static __storage: u8;
 }
 
-use defmt_rtt as _;
-use panic_probe as _;
+use {defmt_rtt as _, panic_probe as _};
 
 // Application main entry point. The spawner can be used to start async tasks.
 #[embassy_executor::main]

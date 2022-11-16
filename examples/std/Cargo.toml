@@ -45,5 +45,7 @@ embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", tag = 
 ector = { git = "https://github.com/drogue-iot/ector.git", tag = "embassy-time-v0.1.0" }
 embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 embassy-time = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 
 #embassy-executor = { path = "../../../../../embassy/embassy" }

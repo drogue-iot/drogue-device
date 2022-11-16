@@ -4,12 +4,14 @@
 extern crate proc_macro;
 mod configure;
 
-use configure::configure;
-use proc_macro::TokenStream;
-use quote::{format_ident, quote};
-use syn::{
-    spanned::Spanned,
-    {self},
+use {
+    configure::configure,
+    proc_macro::TokenStream,
+    quote::{format_ident, quote},
+    syn::{
+        spanned::Spanned,
+        {self},
+    },
 };
 
 #[proc_macro_attribute]

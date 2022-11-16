@@ -1,16 +1,18 @@
 //! Accelerometer for the micro:bit
-use embassy_nrf::{
-    interrupt::SPIM0_SPIS0_TWIM0_TWIS0_SPI0_TWI0,
-    peripherals::{P0_08, P0_16, TWISPI0},
-    twim, Peripheral,
-};
-use embassy_sync::channel::DynamicSender;
-use embassy_time::{Duration, Ticker};
-use futures::StreamExt;
-use lsm303agr::{
-    interface::I2cInterface, mode::MagOneShot, AccelMode, Error as LsmError, Lsm303agr, Status,
-};
 pub use lsm303agr::{AccelOutputDataRate, Measurement};
+use {
+    embassy_nrf::{
+        interrupt::SPIM0_SPIS0_TWIM0_TWIS0_SPI0_TWI0,
+        peripherals::{P0_08, P0_16, TWISPI0},
+        twim, Peripheral,
+    },
+    embassy_sync::channel::DynamicSender,
+    embassy_time::{Duration, Ticker},
+    futures::StreamExt,
+    lsm303agr::{
+        interface::I2cInterface, mode::MagOneShot, AccelMode, Error as LsmError, Lsm303agr, Status,
+    },
+};
 
 type I2C<'d> = twim::Twim<'d, TWISPI0>;
 

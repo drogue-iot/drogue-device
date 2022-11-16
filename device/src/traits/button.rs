@@ -2,11 +2,6 @@ use core::future::Future;
 use embedded_hal::digital::v2::InputPin;
 use embedded_hal_async::digital::Wait;
 
-pub enum Event {
-    Pressed,
-    Released,
-}
-
 pub trait Button {
     type WaitPressed<'m>: Future<Output = ()>
     where

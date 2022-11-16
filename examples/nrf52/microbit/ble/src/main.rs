@@ -2,42 +2,32 @@
 #![no_main]
 #![macro_use]
 #![feature(type_alias_impl_trait)]
-#![allow(unused_imports)]
-#![allow(unused_variables)]
 
-use drogue_device::{
-    drivers::ble::gatt::{
-        device_info::{DeviceInformationService, DeviceInformationServiceEvent},
-        dfu::{FirmwareGattService, FirmwareService, FirmwareServiceEvent},
-        environment::*,
+use {
+    drogue_device::{
+        drivers::ble::gatt::{
+            device_info::{DeviceInformationService, DeviceInformationServiceEvent},
+            dfu::{FirmwareGattService, FirmwareService, FirmwareServiceEvent},
+            environment::*,
+        },
+        firmware::FirmwareManager,
     },
-    firmware::{FirmwareManager, SharedFirmwareManager},
-    shared::Shared,
-    Board,
+    embassy_executor::Spawner,
+    embassy_futures::select::{select, Either},
+    embassy_sync::{
+        blocking_mutex::raw::ThreadModeRawMutex,
+        channel::{Channel, DynamicReceiver, DynamicSender},
+    },
+    embassy_time::{Duration, Ticker, Timer},
+    futures::StreamExt,
+    heapless::Vec,
+    microbit_bsp::*,
+    nrf_softdevice::{
+        ble::{gatt_server, peripheral, Connection},
+        raw, temperature_celsius, Flash, Softdevice,
+    },
+    static_cell::StaticCell,
 };
-use embassy_executor::Spawner;
-use embassy_futures::select::{select, Either};
-use embassy_nrf::{
-    buffered_uarte::{BufferedUarte, State},
-    config::Config,
-    interrupt,
-    interrupt::Priority,
-    peripherals::{TIMER0, UARTE0},
-    uarte,
-};
-use embassy_sync::{
-    blocking_mutex::raw::ThreadModeRawMutex,
-    channel::{Channel, DynamicReceiver, DynamicSender},
-};
-use embassy_time::{Delay, Duration, Ticker, Timer};
-use futures::StreamExt;
-use heapless::Vec;
-use microbit_bsp::*;
-use nrf_softdevice::{
-    ble::{gatt_server, peripheral, Connection},
-    raw, temperature_celsius, Flash, Softdevice,
-};
-use static_cell::StaticCell;
 
 use embassy_boot_nrf::FirmwareUpdater;
 
@@ -55,7 +45,7 @@ const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 
 // Application must run at a lower priority than softdevice
 fn config() -> Config {
-    let mut config = embassy_nrf::config::Config::default();
+    let mut config = microbit_bsp::Config::default();
     config.gpiote_interrupt_priority = Priority::P2;
     config.time_interrupt_priority = Priority::P2;
     config
@@ -103,14 +93,12 @@ async fn main(s: Spawner) {
     static EVENTS: Channel<ThreadModeRawMutex, FirmwareServiceEvent, 10> = Channel::new();
     // The updater is the 'application' part of the bootloader that knows where bootloader
     // settings and the firmware update partition is located based on memory.x linker script.
-    static DFU: Shared<FirmwareManager<Flash, 4096, 4, 64>> = Shared::new();
-    let dfu = DFU.initialize(FirmwareManager::new(
+    let dfu: FirmwareManager<Flash, 4, 64> = FirmwareManager::new(
         Flash::take(sd),
         FirmwareUpdater::default(),
         version.as_bytes(),
-    ));
-    let updater =
-        FirmwareGattService::new(&server.firmware, dfu.clone(), version.as_bytes(), 64).unwrap();
+    );
+    let updater = FirmwareGattService::new(&server.firmware, dfu, version.as_bytes(), 64).unwrap();
     s.spawn(updater_task(updater, EVENTS.receiver().into()))
         .unwrap();
 
@@ -146,7 +134,7 @@ pub struct GattServer {
 
 #[embassy_executor::task]
 pub async fn updater_task(
-    mut dfu: FirmwareGattService<'static, SharedFirmwareManager<'static, Flash, 4096, 4, 64>>,
+    mut dfu: FirmwareGattService<'static, FirmwareManager<Flash, 4, 64>>,
     events: DynamicReceiver<'static, FirmwareServiceEvent>,
 ) {
     loop {
@@ -297,7 +285,7 @@ async fn softdevice_task(sd: &'static Softdevice) {
 // Keeps our system alive
 #[embassy_executor::task]
 async fn watchdog_task() {
-    let mut handle = unsafe { embassy_nrf::wdt::WatchdogHandle::steal(0) };
+    let mut handle = unsafe { microbit_bsp::wdt::WatchdogHandle::steal(0) };
     loop {
         handle.pet();
         Timer::after(Duration::from_secs(2)).await;

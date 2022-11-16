@@ -1,51 +1,96 @@
 #![macro_use]
 #![feature(type_alias_impl_trait)]
 
-use async_io::Async;
-use core::future::Future;
-use drogue_device::domain::temperature::Celsius;
-use drogue_temperature::*;
-use embassy_time::Duration;
-use embedded_io::adapters::FromFutures;
-use embedded_nal_async::*;
-use futures::io::BufReader;
-use rand::rngs::OsRng;
-use static_cell::StaticCell;
-use std::net::TcpStream;
+use {
+    async_io::Async,
+    core::future::Future,
+    drogue_device::*,
+    embassy_futures::select::{select, Either},
+    embassy_time::{Duration, Timer},
+    embedded_io::adapters::FromFutures,
+    embedded_nal_async::*,
+    futures::io::BufReader,
+    reqwless::{client::*, request::*},
+    std::net::TcpStream,
+};
 
-pub struct StdBoard;
+#[path = "../../../common/dns.rs"]
+mod dns;
+use dns::*;
 
-impl TemperatureBoard for StdBoard {
-    type Network = TcpClient;
-    type TemperatureScale = Celsius;
-    type SensorReadyIndicator = AlwaysReady;
-    type Sensor = FakeSensor;
-    type SendTrigger = TimeTrigger;
-    type Rng = OsRng;
-}
+#[path = "../../../common/temperature.rs"]
+mod temperature;
+use temperature::*;
 
-static DEVICE: StaticCell<TemperatureDevice<StdBoard>> = StaticCell::new();
+/// HTTP endpoint hostname
+const HOSTNAME: &str = drogue::config!("hostname");
+
+/// HTTP endpoint port
+const PORT: &str = drogue::config!("port");
+
+/// HTTP username
+const USERNAME: &str = drogue::config!("username");
+
+/// HTTP password
+const PASSWORD: &str = drogue::config!("password");
 
 #[embassy_executor::main]
-async fn main(spawner: embassy_executor::Spawner) {
+async fn main(_spawner: embassy_executor::Spawner) {
     env_logger::builder()
         .filter_level(log::LevelFilter::Trace)
         .format_timestamp_nanos()
         .init();
 
-    DEVICE
-        .init(TemperatureDevice::new())
-        .mount(
-            spawner,
-            OsRng,
-            TemperatureBoardConfig {
-                send_trigger: TimeTrigger(Duration::from_secs(10)),
-                sensor: FakeSensor(22.0),
-                sensor_ready: AlwaysReady,
-                network: TcpClient,
-            },
-        )
-        .await;
+    let url = format!(
+        "https://{}:{}/v1/temperature?data_schema=urn:drogue:iot:temperature",
+        HOSTNAME, PORT
+    );
+
+    let mut tls = [0; 16384];
+    let mut rng = rand::rngs::OsRng;
+    let mut client = HttpClient::new_with_tls(&TcpClient, &DNS, TlsConfig::new(&mut rng, &mut tls));
+
+    loop {
+        let sensor_data = TemperatureData {
+            geoloc: None,
+            temp: Some(22.2),
+            hum: None,
+        };
+
+        match select(Timer::after(Duration::from_secs(20)), async {
+            let tx: heapless::String<1024> = serde_json_core::ser::to_string(&sensor_data).unwrap();
+            let mut rx_buf = [0; 1024];
+            let response = client
+                .request(Method::POST, &url)
+                .await
+                .unwrap()
+                .basic_auth(USERNAME.trim_end(), PASSWORD.trim_end())
+                .body(tx.as_bytes())
+                .content_type(ContentType::ApplicationJson)
+                .send(&mut rx_buf[..])
+                .await;
+
+            match response {
+                Ok(response) => {
+                    log::info!("Response status: {:?}", response.status);
+                    if let Some(payload) = response.body {
+                        let _s = core::str::from_utf8(payload).unwrap();
+                    }
+                }
+                Err(e) => {
+                    log::warn!("Error doing HTTP request: {:?}", e);
+                }
+            }
+        })
+        .await
+        {
+            Either::First(_) => {
+                log::info!("Request timeout");
+            }
+            Either::Second(_) => {}
+        }
+        Timer::after(Duration::from_secs(10)).await;
+    }
 }
 
 pub struct TcpClient;

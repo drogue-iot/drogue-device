@@ -1,12 +1,10 @@
 == STM32 IOT01A example
 
-This example application runs out of the box on the STM32 IOT01A development kits. The example can also be compiled with a `dfu` flag to enable firmware update capabilities.
+This example application runs out of the box on the STM32 IOT01A development kits.
 
-It uses the on board peripherals such as WiFi and the temperature sensor to send data to an HTTP endpoint such as Drogue Cloud, and (if the `dfu` feature is enabled) retrieve firmware updates.
+It uses the on board peripherals such as WiFi and the temperature sensor to send data to Drogue Cloud, and retrieve firmware updates if available.
 
 NOTE: There are multiple variants of this kit, so the example must be compiled and run using feature flags.
-
-The example can operate using plain TCP, or using TLS by enabling the `tls` feature flag.
 
 === Prerequisites
 
@@ -33,8 +31,8 @@ wifi-password = "..."
 HTTP authentication will come from these entries in `~/.drogue/config.toml`:
 
 ....
-http-username = "..."
-http-password = "..."
+username = "..."
+password = "..."
 ....
 
 For Drogue Cloud, the username/password is stored in this form: `device_id@application`.
@@ -46,8 +44,8 @@ hostname = "http.sandbox.drogue.cloud" # Replace with your own Drogue Cloud inst
 port = "443"
 wifi-ssid = "..."                      # The WiFi network SSID
 wifi-password = "..."                  # The WiFi network pre-shared key
-http-username = "device1@wifi-workshop"
-http-password = "mysecretpassword"
+username = "device1@wifi-workshop"
+password = "mysecretpassword"
 ```
 
 Just enter your wifi details and you should be ready to go.
@@ -55,52 +53,26 @@ Just enter your wifi details and you should be ready to go.
 If you have the B-L4S5I-IOT01A board, set the following environment variables:
 
 ```shell
-export CHIP=STM32L4S5VI CHIP_FEATURE=b-l4s5i-iot01a
+export CHIP=STM32L4S5VI CHIP_FEATURE=l4s5i
 ```
 
 If you have the B-475E-IOT01A board, use the following settings instead:
 
 ```shell
-export CHIP=STM32L475VGTx CHIP_FEATURE=b-l475e-iot01a
+export CHIP=STM32L475VGTx CHIP_FEATURE=l475e
 ```
 
 
-=== Running with plain TCP
+== Running
 
-You can configure the IP constant to point to any HTTP server to receive events, or you can use link:https://github.com/drogue-iot/drogue-cloud/[drogue cloud] locally. For simplicity, start a local HTTP server in python that echoes the HTTP payload back:
-
-....
-curl -s https://raw.githubusercontent.com/drogue-iot/drogue-device/main/apps/drogue-temperature/server.py | python3
-....
-
-To run the firmware using a given chip:
-
-....
-DEFMT_LOG=info PROBE_RUN_CHIP=${CHIP} cargo run --release --features ${CHIP_FEATURE},debug --no-default-features
-....
-
-== Running with TLS
-
-When the `tls` flag is enabled, the example is configured to use the Drogue Cloud sandbox. To use this example with your own Drogue Cloud instance, you need to edit the HOST and PORT constants in `src/main.rs`.
-
-To run the firmware using a given chip:
-
-....
-DEFMT_LOG=info PROBE_RUN_CHIP=${CHIP} cargo run --release --features ${CHIP_FEATURE},tls,debug --no-default-features
-....
-
-Once flashed, the device will reset and attempt to join the WiFi network. If successful, it will print a message to the RTT log. You can then press the blue/user button on the board to send a test message from the device.
-
-== Enabling firmware update capabilities
-
-For this step, we need to flash a bootloader as well as the application. When the `dfu` flag is enabled, the example is configured to enable firmware updates using Drogue Cloud sandbox.
+For this step, we need to flash a bootloader as well as the application. The example is configured to enable firmware updates using Drogue Cloud sandbox.
 
 === Flashing the bootloader
 
 To flash the bootloader for a given chip:
 
 ....
-cargo flash --manifest-path ../bootloader/Cargo.toml --release --features ${CHIP_FEATURE} --no-default-features --chip ${CHIP}
+cargo flash --manifest-path ../boot/Cargo.toml --release --features ${CHIP_FEATURE} --no-default-features --chip ${CHIP}
 ....
 
 === Running the application
@@ -108,7 +80,7 @@ cargo flash --manifest-path ../bootloader/Cargo.toml --release --features ${CHIP
 To run the application using a given chip:
 
 ....
-DEFMT_LOG=info PROBE_RUN_CHIP=${CHIP} cargo run --release --features ${CHIP_FEATURE},tls,dfu,debug --no-default-features
+PROBE_RUN_CHIP=${CHIP} cargo run --release --features ${CHIP_FEATURE},debug --no-default-features
 ....
 
 Once flashed, the device will reset and attempt to join the WiFi network as before, in addition to polling the Drogue Cloud for firmware update commands.

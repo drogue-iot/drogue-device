@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "app",
-    "bootloader",
+    "boot",
 ]
 
 resolver = "2"
@@ -46,7 +46,6 @@ embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", tag = 
 embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 embassy-boot = {git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 embassy-boot-stm32 = {git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-ector = { git = "https://github.com/drogue-iot/ector.git", tag = "embassy-time-v0.1.0" }
 embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 embassy-time = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
 

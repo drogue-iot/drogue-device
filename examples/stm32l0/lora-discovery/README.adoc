@@ -10,14 +10,13 @@ This example application runs out of the box on the STM32 LoRa Discovery Kit (B-
 
 ==== Software
 
-To build and flash the example, you need to have
-https://rustup.rs/[rustup]. In practice
-you can use whatever tool you want to flash the device, but this guide
-will assume that `probe-run` is used (`cargo install probe-run`).
+To build and flash the example, you need to have https://rustup.rs/[rustup]. 
+You can use whatever tool you want to flash the device, but this guide assumes
+that `probe-run` is used (`cargo install probe-run`).
 
 === Configuring
 
-_Over The Air Authentication_ (OTAA) credentials will come from these entries in `~/.drogue/config.toml`:
+_Over The Air Activation_ (OTAA) credentials will come from these entries in `~/.drogue/config.toml`:
 
 ....
 "dev-eui" = "..."

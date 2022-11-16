@@ -1,9 +1,13 @@
 mod tests {
-    use duct::cmd;
-    use serde_json::Value;
-    use std::fs;
-    use std::path::PathBuf;
-    use std::time::{Duration, Instant};
+    use {
+        duct::cmd,
+        serde_json::Value,
+        std::{
+            fs,
+            path::PathBuf,
+            time::{Duration, Instant},
+        },
+    };
 
     #[test]
     fn test_std_cloud() {
@@ -55,16 +59,12 @@ mod tests {
 
         configure(&app, device, password);
 
-        let spec = format!(
-            "{{\"authentication\":{{\"credentials\":[{{\"pass\":\"{}\"}}]}}}}",
-            password
-        );
-
         cmd!("drg", "create", "app", &app).run().unwrap();
         let mut retries = 10;
         let mut kafka_ready = false;
         let mut ready = false;
-        while retries > 0 && !kafka_ready && !ready {
+        while retries > 0 && !(kafka_ready && ready) {
+            println!("Attempt {}", retries);
             let output = cmd!("drg", "get", "application", &app, "-o", "json")
                 .stdout_capture()
                 .stderr_to_stdout()
@@ -79,11 +79,13 @@ mod tests {
                                         if condition["type"] == "KafkaReady"
                                             && condition["status"] == "True"
                                         {
+                                            println!("Kafka Ready");
                                             kafka_ready = true;
                                         }
                                         if condition["type"] == "Ready"
                                             && condition["status"] == "True"
                                         {
+                                            println!("App Ready");
                                             ready = true;
                                         }
                                     }
@@ -108,15 +110,18 @@ mod tests {
         assert!(ready, "Application not ready within timeout");
         assert!(kafka_ready, "Kafka topic not ready within timeout");
 
+        cmd!("drg", "create", "device", "--application", &app, device,)
+            .run()
+            .unwrap();
+
         cmd!(
             "drg",
-            "create",
-            "device",
-            "--application",
-            &app,
+            "set",
+            "password",
             device,
-            "--spec",
-            spec
+            password,
+            "--application",
+            &app
         )
         .run()
         .unwrap();

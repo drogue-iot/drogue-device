@@ -1,5 +1,4 @@
-use embedded_update::FirmwareDevice;
-use heapless::Vec;
+use {embedded_update::FirmwareDevice, heapless::Vec};
 
 // The FirmwareUpdate GATT service
 #[nrf_softdevice::gatt_service(uuid = "00001000-b0cd-11ec-871f-d45ddf138840")]

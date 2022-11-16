@@ -1,0 +1,18 @@
+[unstable]
+build-std = ["core"]
+build-std-features = ["panic_immediate_abort"]
+
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+# replace your chip as listed in `probe-run --list-chips`
+runner = "probe-run --chip STM32WLE5JCIx"
+
+rustflags = [
+  # Code-size optimizations.
+  "-Z", "trap-unreachable=no",
+  "-C", "no-vectorize-loops",
+  "-Z", "emit-stack-sizes",
+  "-C", "embed-bitcode=yes",
+]
+
+[build]
+target = "thumbv7em-none-eabihf"

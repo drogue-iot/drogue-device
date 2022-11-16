@@ -1,0 +1,28 @@
+[package]
+name = "disco-l072z-lrwan1"
+version = "0.1.0"
+edition = "2021"
+description = "An embassy-based boards support package (BSP) for the STM32L0 Lora Discovery board"
+
+[workspace]
+
+[dependencies]
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["exti", "unstable-traits", "nightly", "stm32l072cz", "memory-x", "time-driver-any"] }
+embassy-time = { version = "0.1.0", default-features = false }
+embassy-lora = { version = "0.1.0", default-features = false, features = ["sx127x", "time"] }
+static_cell = "1"
+cortex-m = "0.7"
+lorawan-device = { version = "0.8", default-features = false, features = ["async"] }
+lorawan = { version = "0.7.1", default-features = false, features = ["default-crypto"] }
+
+[features]
+defmt = [
+    "embassy-lora/defmt",
+    "embassy-stm32/defmt",
+    "lorawan-device/defmt",
+]
+
+[patch.crates-io]
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }

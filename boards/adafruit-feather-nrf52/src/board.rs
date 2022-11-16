@@ -1,3 +1,4 @@
+pub use embassy_nrf::{config::Config, interrupt};
 use embassy_nrf::{
     gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},
     peripherals::{
