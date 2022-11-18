@@ -8,6 +8,8 @@ use embassy_nrf::{
     },
 };
 
+pub use embassy_nrf::wdt;
+
 /// Pin for red LED
 pub type RedLedPin = P1_15;
 

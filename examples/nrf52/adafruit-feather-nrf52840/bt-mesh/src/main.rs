@@ -31,11 +31,15 @@ use panic_reset as _;
 
 // Application main entry point. The spawner can be used to start async tasks.
 #[embassy_executor::main]
-async fn main(_s: Spawner) {
+async fn main(s: Spawner) {
     let board = AdafruitFeatherNrf52::new(config());
 
     // Don't remove. Give flash some time before accessing
     Timer::after(Duration::from_millis(100)).await;
+
+    // Watchdog will prevent bootloader from resetting. If your application hangs for more than 5 seconds
+    // (depending on bootloader config), it will enter bootloader which may swap the application back.
+    s.spawn(watchdog_task()).unwrap();
 
     // An instance of the Bluetooth Mesh stack
     let mut driver = Driver::new(
@@ -169,5 +173,15 @@ impl BluetoothMeshModel<GenericOnOffClient> for MyOnOffClientHandler {
                 tid += 1;
             }
         }
+    }
+}
+
+// Keeps our system alive
+#[embassy_executor::task]
+async fn watchdog_task() {
+    let mut handle = unsafe { wdt::WatchdogHandle::steal(0) };
+    loop {
+        handle.pet();
+        Timer::after(Duration::from_secs(2)).await;
     }
 }
