@@ -592,7 +592,7 @@ source = "git+https://github.com/embassy-rs/nrf-softdevice.git?tag=embassy-time-
 [[package]]
 name = "nrf-softdevice-mbr"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#8f9895f82069c8f4e388f5b92a50ccb6c2652be5"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#7a1385b4cc070687904e3adc6a495e93863728b4"
 
 [[package]]
 name = "nrf52833-pac"

@@ -80,6 +80,7 @@ defmt = [
     "embassy-executor/defmt",
     "embassy-sync/defmt",
     "embedded-tls/defmt",
+    "embedded-update/defmt"
 ]
 std = ["embassy-executor/std", "ector/std", "embedded-io/std", "serde_cbor/std"]
 time = []

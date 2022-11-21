@@ -232,7 +232,7 @@ dependencies = [
 [[package]]
 name = "btmesh-bearer"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
 dependencies = [
  "btmesh-common",
  "btmesh-pdu",
@@ -242,7 +242,7 @@ dependencies = [
 [[package]]
 name = "btmesh-common"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
 dependencies = [
  "aes 0.7.5",
  "ccm",
@@ -261,7 +261,7 @@ dependencies = [
 [[package]]
 name = "btmesh-device"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
 dependencies = [
  "btmesh-common",
  "btmesh-models",
@@ -275,7 +275,7 @@ dependencies = [
 [[package]]
 name = "btmesh-driver"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
 dependencies = [
  "aes 0.7.5",
  "btmesh-bearer",
@@ -303,7 +303,7 @@ dependencies = [
 [[package]]
 name = "btmesh-macro"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
 dependencies = [
  "btmesh-common",
  "darling 0.14.2",
@@ -317,7 +317,7 @@ dependencies = [
 [[package]]
 name = "btmesh-models"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
 dependencies = [
  "btmesh-common",
  "heapless",
@@ -328,7 +328,7 @@ dependencies = [
 [[package]]
 name = "btmesh-nrf-softdevice"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
 dependencies = [
  "atomic-polyfill 1.0.1",
  "btmesh-bearer",
@@ -350,7 +350,7 @@ dependencies = [
 [[package]]
 name = "btmesh-pdu"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#613841b8e8a3067a3e1277bea77f795fbd0cb1f7"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
 dependencies = [
  "btmesh-common",
  "heapless",
@@ -785,9 +785,9 @@ dependencies = [
 
 [[package]]
 name = "digest"
-version = "0.10.5"
+version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adfbc57365a37acbd2ebf2b64d7e69bb766e2fea813521ed536f5d0520dcf86c"
+checksum = "8168378f4e5023e7218c89c891c0fd8ecdb5e5e4f18cb78f38cf245dd021e76f"
 dependencies = [
  "block-buffer",
  "crypto-common",
@@ -1164,6 +1164,7 @@ version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eab6832de8b84bb7b274dc1d171b57be422bfbdb6360e69b40c862fb0d474af9"
 dependencies = [
+ "defmt",
  "embedded-hal-async",
  "embedded-io",
  "futures",
@@ -1607,7 +1608,7 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice-mbr"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#8f9895f82069c8f4e388f5b92a50ccb6c2652be5"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#7a1385b4cc070687904e3adc6a495e93863728b4"
 
 [[package]]
 name = "nrf-softdevice-s140"
@@ -2068,9 +2069,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.87"
+version = "1.0.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ce777b7b150d76b9cf60d28b55f5847135a003f7d7350c6be7a773508ce7d45"
+checksum = "8e8b3801309262e8184d9687fb697586833e939767aea0dda89f5a8e650e8bd7"
 dependencies = [
  "itoa",
  "ryu",
