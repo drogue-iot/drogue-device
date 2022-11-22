@@ -15,7 +15,9 @@ use {
     },
     embassy_rp::{
         gpio::{Flex, Level, Output},
-        peripherals::{PIN_23, PIN_24, PIN_25, PIN_29},
+        interrupt,
+        peripherals::{PIN_23, PIN_24, PIN_25, PIN_29, USB},
+        usb::Driver,
     },
     embassy_time::{Duration, Timer},
     embedded_hal_1::spi::ErrorType,
@@ -34,6 +36,8 @@ use {
 
 const WIFI_SSID: &str = drogue::config!("wifi-ssid");
 const WIFI_PSK: &str = drogue::config!("wifi-password");
+
+mod fmt;
 
 #[path = "../../../common/dns.rs"]
 mod dns;
@@ -71,9 +75,17 @@ async fn net_task(stack: &'static Stack<cyw43::NetDevice<'static>>) -> ! {
     stack.run().await
 }
 
+#[embassy_executor::task]
+async fn logger_task(driver: Driver<'static, USB>) {
+    embassy_usb_logger::run!(1024, log::LevelFilter::Info, driver);
+}
+
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
+    let irq = interrupt::take!(USBCTRL_IRQ);
+    let driver = Driver::new(p.USB, irq);
+    spawner.spawn(logger_task(driver)).unwrap();
 
     // NOTE: Download firmware from https://github.com/embassy-rs/cyw43/tree/master/firmware
     // to run this example, and flash them with probe-rs-cli:
@@ -82,6 +94,8 @@ async fn main(spawner: Spawner) {
     // probe-rs-cli download 43439A0.clm_blob --format bin --chip RP2040 --base-address 0x10140000
     let fw = unsafe { core::slice::from_raw_parts(0x10100000 as *const u8, 224190) };
     let clm = unsafe { core::slice::from_raw_parts(0x10140000 as *const u8, 4752) };
+    // let fw = include_bytes!("../firmware/43439A0.bin");
+    // let clm = include_bytes!("../firmware/43439A0_clm.bin");
 
     let pwr = Output::new(p.PIN_23, Level::Low);
     let cs = Output::new(p.PIN_25, Level::High);
@@ -116,7 +130,7 @@ async fn main(spawner: Spawner) {
     static STACK: StaticCell<Stack<cyw43::NetDevice<'static>>> = StaticCell::new();
     let stack = STACK.init(Stack::new(net_device, config, resources, seed));
 
-    defmt::unwrap!(spawner.spawn(net_task(stack)));
+    unwrap!(spawner.spawn(net_task(stack)));
 
     static CLIENT_STATE: TcpClientState<1, 1024, 1024> = TcpClientState::new();
     let client = TcpClient::new(&stack, &CLIENT_STATE);
@@ -128,7 +142,7 @@ async fn main(spawner: Spawner) {
     let mut tls = [0; 16384];
     let mut client = HttpClient::new_with_tls(&client, &DNS, TlsConfig::new(&mut rng, &mut tls));
 
-    defmt::info!("Application initialized.");
+    info!("Application initialized.");
     loop {
         Timer::after(Duration::from_secs(30)).await;
         let sensor_data = TemperatureData {
@@ -136,10 +150,8 @@ async fn main(spawner: Spawner) {
             temp: Some(22.2),
             hum: None,
         };
-        defmt::info!(
-            "Reporting sensor data: {:?}",
-            defmt::Debug2Format(&sensor_data)
-        );
+
+        info!("Reporting sensor data: {:?}", sensor_data.temp);
 
         let tx: String<128> = serde_json_core::ser::to_string(&sensor_data).unwrap();
         let mut rx_buf = [0; 1024];
@@ -155,16 +167,16 @@ async fn main(spawner: Spawner) {
 
         match response {
             Ok(response) => {
-                defmt::info!("Response status: {:?}", response.status);
+                info!("Response status: {:?}", response.status);
                 if let Some(payload) = response.body {
                     let _s = core::str::from_utf8(payload).unwrap();
                 }
             }
             Err(e) => {
-                defmt::warn!("Error doing HTTP request: {:?}", e);
+                warn!("Error doing HTTP request: {:?}", e);
             }
         }
-        defmt::info!("Telemetry reported successfully");
+        info!("Telemetry reported successfully");
     }
 }
 

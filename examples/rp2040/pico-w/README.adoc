@@ -9,14 +9,14 @@ It uses the on board WiFi peripheral to send data to Drogue Cloud.
 ==== Hardware
 
 * link:https://www.raspberrypi.com/products/raspberry-pi-pico/[Raspberry Pi Pico W]
-* (Recommended) An SWD debug probe (another pico) to get RTT logs
+* (Optional) A SWD debug probe
 
 ==== Software
 
 * To build the example, you need to have link:https://rustup.rs/[rustup].
-* To flash the example on the device, you need `probe-run` installed (`cargo install probe-run`).
+* To flash the example using a debug probe, you need `probe-run` installed (`cargo install probe-run`).
+* To flash the example using the UF2 bootloader on the pico, you can use the link:https://github.com/JoNil/elf2uf2-rs[elf2uf2] utility to convert the elf file into a .uf2 file that you can copy to the pico USB drive.
 * A Drogue Cloud instance. See link:https://github.com/drogue-iot/drogue-cloud/[drogue-cloud] for how to run that, or use the link:https://sandbox.drogue.cloud/[sandbox] (requires TLS).
-* (Optional) If you do not have an SWD debug probe, you can use the link:https://github.com/JoNil/elf2uf2-rs[elf2uf2] utility to convert the elf file into a .uf2 image you can flash using the builting UF2 bootloader of the pico.
 
 
 === Configuring
@@ -48,29 +48,63 @@ username = "device1@wifi-workshop"
 password = "mysecretpassword"
 ```
 
-== Running
+== Running with debug probe
 
-=== Flashing WiFi driver
+.Procedure
 
-Before running the application for the first time, you must flash the WiFi driver blob.
-
-Download firmware from link:https://github.com/embassy-rs/cyw43/tree/master/firmware[]
-, and flash them with probe-rs-cli:
-
-````rust
+. Download the WiFi firmware from link:https://github.com/embassy-rs/cyw43/tree/master/firmware[], and flash them with probe-rs-cli:
++
+----
 probe-rs-cli download 43439A0.bin --format bin --chip RP2040 --base-address 0x10100000
 probe-rs-cli download 43439A0.clm_blob --format bin --chip RP2040 --base-address 0x10140000
-````
+----
 
-=== Running the application
-
-To run the application, connect your debug probe and run:
-
-....
+. Connect your debug probe and run:
++
+----
 cargo run --release
-....
-
+----
++
 Once flashed, the device will attempt to join the WiFi network and send telemetry data to Drogue Cloud every 30 seconds.
+
+== Running with UF2 image
+
+.Procedure
+
+. Download the WiFi firmware from link:https://github.com/embassy-rs/cyw43/tree/master/firmware[], and modify main.rs to include it:
++
+----
+// let fw = unsafe { core::slice::from_raw_parts(0x10100000 as *const u8, 224190) };
+// let clm = unsafe { core::slice::from_raw_parts(0x10140000 as *const u8, 4752) };
+let fw = include_bytes!("../firmware/43439A0.bin");
+let clm = include_bytes!("../firmware/43439A0_clm.bin");
+----
+
+. Build the firmware
++
+----
+cargo build --release
+----
+
+. Convert the ELF output to UF2
++
+----
+elf2uf2-rs target/thumbv6m-none-eabi/release/rp2040-pico-w rp2040-pico-w.uf2
+----
+
+. Hold the Pico W button while powering up the board, and copy the uf2 file to the USB partition
++
+----
+cp rp2040-pico-w.uf2 /mount/point/of/usb/drive
+----
++
+Once flashed, the device will attempt to join the WiFi network and send telemetry data to Drogue Cloud every 30 seconds.
+
+. You can monitor the logs using a terminal emulator on the Pico W TTY
++
+----
+minicom -D /dev/ttyACM0
+----
 
 == Troubleshooting
 
