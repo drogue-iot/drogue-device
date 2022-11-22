@@ -20,5 +20,6 @@
 *** xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter]
 *** xref:examples/std/rak811/README.adoc[RAK811 LoRa Adapter with AT command firmware]
 ** Wifi
+*** xref:examples/rp2040/pico-w/README.adoc[Raspberry Pi Pico W reporting sensor data using WiFi]
 *** xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter]
 *** xref:examples/stm32l4/iot01a/app/README.adoc[STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi]

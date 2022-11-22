@@ -4,9 +4,9 @@ version = 3
 
 [[package]]
 name = "aho-corasick"
-version = "0.7.19"
+version = "0.7.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4f55bd91a0978cbfd91c457a164bab8b4001c833b7f323132c0a4e1922dd44e"
+checksum = "cc936419f96fa211c1b9166887b38e5e40b19958e5b895be7c1f93adec7071ac"
 dependencies = [
  "memchr",
 ]
@@ -592,7 +592,7 @@ source = "git+https://github.com/embassy-rs/nrf-softdevice.git?tag=embassy-time-
 [[package]]
 name = "nrf-softdevice-mbr"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#7a1385b4cc070687904e3adc6a495e93863728b4"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#74a9526c59c33e28d2dcc7357a9cb5288be58c60"
 
 [[package]]
 name = "nrf52833-pac"
