@@ -24,7 +24,7 @@ fn main() -> ! {
     let mut bl = BootLoader::default();
 
     let board = AdafruitFeatherNrf52::default();
-    let qspi = board.external_flash.configure();
+    let qspi = board.external_flash.configure(interrupt::take!(QSPI));
     let nvmc = WatchdogFlash::start(Nvmc::new(board.nvmc), board.wdt, 5);
     let nvmc = BootFlash::new(nvmc);
     let qspi = BootFlash::new(qspi);

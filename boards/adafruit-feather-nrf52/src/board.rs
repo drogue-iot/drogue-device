@@ -53,12 +53,11 @@ mod express {
 
     impl ExternalFlashPins {
         /// Configure an external flash instance based on pins
-        pub fn configure<'d>(self) -> ExternalFlash<'d> {
+        pub fn configure<'d>(self, irq: interrupt::QSPI) -> ExternalFlash<'d> {
             let mut config = qspi::Config::default();
             config.read_opcode = qspi::ReadOpcode::READ4IO;
             config.write_opcode = qspi::WriteOpcode::PP4O;
             config.write_page_size = qspi::WritePageSize::_256BYTES;
-            let irq = interrupt::take!(QSPI);
             let mut q: qspi::Qspi<'_, _, EXTERNAL_FLASH_SIZE> = qspi::Qspi::new(
                 self.qspi, irq, self.sck, self.csn, self.io0, self.io1, self.io2, self.io3, config,
             );
