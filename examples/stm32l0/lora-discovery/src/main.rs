@@ -3,6 +3,8 @@
 #![macro_use]
 #![allow(dead_code)]
 #![feature(type_alias_impl_trait)]
+#![feature(async_fn_in_trait)]
+#![allow(incomplete_features)]
 
 use {defmt_rtt as _, panic_probe as _};
 

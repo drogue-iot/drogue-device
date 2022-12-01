@@ -2,6 +2,8 @@
 #![no_main]
 #![macro_use]
 #![feature(type_alias_impl_trait)]
+#![feature(async_fn_in_trait)]
+#![allow(incomplete_features)]
 /// A simple game where the led matrix is traversed at a fixed interval and you press the button
 /// to light a red. You win when the whole board is lit.
 use defmt_rtt as _;

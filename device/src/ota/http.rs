@@ -1,9 +1,8 @@
 use {
-    core::future::Future,
     embedded_nal_async::{Dns, TcpConnect},
     embedded_update::{Command, Status, UpdateService},
     reqwless::{
-        client::{HttpClient, Tls},
+        client::HttpClient,
         request::{ContentType, Method, Status as ResponseStatus},
         Error as HttpError,
     },
@@ -11,30 +10,28 @@ use {
 };
 
 /// An update service implementation for the Drogue Cloud update service.
-pub struct HttpUpdater<'a, TCP, DNS, TLS, const MTU: usize>
+pub struct HttpUpdater<'a, TCP, DNS, const MTU: usize>
 where
     TCP: TcpConnect + 'a,
     DNS: Dns + 'a,
-    TLS: Tls + 'a,
 {
-    client: HttpClient<'a, TCP, DNS, TLS>,
+    client: HttpClient<'a, TCP, DNS>,
     url: &'a str,
     username: &'a str,
     password: &'a str,
     buf: [u8; MTU],
 }
 
-impl<'a, TCP, DNS, TLS, const MTU: usize> HttpUpdater<'a, TCP, DNS, TLS, MTU>
+impl<'a, TCP, DNS, const MTU: usize> HttpUpdater<'a, TCP, DNS, MTU>
 where
     TCP: TcpConnect + 'a,
     DNS: Dns + 'a,
-    TLS: Tls + 'a,
 {
     /// Construct a new Drogue update service
     pub fn new(
         client: &'a TCP,
         dns: &'a DNS,
-        tls: TLS,
+        tls: reqwless::client::TlsConfig<'a>,
         url: &'a str,
         username: &'a str,
         password: &'a str,
@@ -64,51 +61,47 @@ pub enum Error<N, H, C> {
     Protocol,
 }
 
-impl<'a, TCP, DNS, TLS, const MTU: usize> UpdateService for HttpUpdater<'a, TCP, DNS, TLS, MTU>
+impl<'a, TCP, DNS, const MTU: usize> UpdateService for HttpUpdater<'a, TCP, DNS, MTU>
 where
     TCP: TcpConnect + 'a,
     DNS: Dns + 'a,
-    TLS: Tls + 'a,
 {
     type Error = Error<TCP::Error, HttpError, serde_cbor::Error>;
 
-    type RequestFuture<'m> = impl Future<Output = Result<Command<'m>, Self::Error>> + 'm where Self: 'm;
-    fn request<'m>(&'m mut self, status: &'m Status<'m>) -> Self::RequestFuture<'m> {
-        async move {
-            let mut payload = [0; 64];
-            let writer = serde_cbor::ser::SliceWrite::new(&mut payload[..]);
-            let mut ser = serde_cbor::Serializer::new(writer).packed_format();
-            status.serialize(&mut ser).map_err(Error::Codec)?;
-            let writer = ser.into_inner();
-            let size = writer.bytes_written();
-            debug!("Status payload is {} bytes", size);
+    async fn request<'m>(&'m mut self, status: &'m Status<'m>) -> Result<Command<'m>, Self::Error> {
+        let mut payload = [0; 64];
+        let writer = serde_cbor::ser::SliceWrite::new(&mut payload[..]);
+        let mut ser = serde_cbor::Serializer::new(writer).packed_format();
+        status.serialize(&mut ser).map_err(Error::Codec)?;
+        let writer = ser.into_inner();
+        let size = writer.bytes_written();
+        debug!("Status payload is {} bytes", size);
 
-            let response = self
-                .client
-                .request(Method::POST, self.url)
-                .await
-                .map_err(Error::Http)?
-                .body(&payload[..size])
-                .basic_auth(self.username, self.password)
-                .content_type(ContentType::ApplicationCbor)
-                .send(&mut self.buf[..])
-                .await
-                .map_err(Error::Http)?;
+        let response = self
+            .client
+            .request(Method::POST, self.url)
+            .await
+            .map_err(Error::Http)?
+            .body(&payload[..size])
+            .basic_auth(self.username, self.password)
+            .content_type(ContentType::ApplicationCbor)
+            .send(&mut self.buf[..])
+            .await
+            .map_err(Error::Http)?;
 
-            if response.status == ResponseStatus::Ok
-                || response.status == ResponseStatus::Accepted
-                || response.status == ResponseStatus::Created
-            {
-                if let Some(payload) = response.body {
-                    let command: Command<'m> =
-                        serde_cbor::de::from_mut_slice(payload).map_err(Error::Codec)?;
-                    Ok(command)
-                } else {
-                    Ok(Command::new_wait(Some(10), None))
-                }
+        if response.status == ResponseStatus::Ok
+            || response.status == ResponseStatus::Accepted
+            || response.status == ResponseStatus::Created
+        {
+            if let Some(payload) = response.body {
+                let command: Command<'m> =
+                    serde_cbor::de::from_mut_slice(payload).map_err(Error::Codec)?;
+                Ok(command)
             } else {
-                Err(Error::Protocol)
+                Ok(Command::new_wait(Some(10), None))
             }
+        } else {
+            Err(Error::Protocol)
         }
     }
 }

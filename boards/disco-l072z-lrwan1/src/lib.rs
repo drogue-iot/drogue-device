@@ -1,4 +1,6 @@
 #![no_std]
+#![feature(async_fn_in_trait)]
+#![allow(incomplete_features)]
 #[allow(unused_imports)]
 use embassy_lora::sx127x::*;
 use {

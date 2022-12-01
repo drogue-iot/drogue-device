@@ -1,5 +1,7 @@
 #![macro_use]
 #![feature(type_alias_impl_trait)]
+#![feature(async_fn_in_trait)]
+#![allow(incomplete_features)]
 
 mod serial;
 
@@ -13,6 +15,7 @@ use {
     esp8266_at_driver::*,
     futures::io::BufReader,
     nix::sys::termios,
+    rand::RngCore,
     reqwless::{client::*, request::*},
     serial::*,
     static_cell::StaticCell,
@@ -72,7 +75,8 @@ async fn main(spawner: embassy_executor::Spawner) {
 
     let mut tls = [0; 8000];
     let mut rng = rand::rngs::OsRng;
-    let mut client = HttpClient::new_with_tls(network, &DNS, TlsConfig::new(&mut rng, &mut tls));
+    let mut client =
+        HttpClient::new_with_tls(network, &DNS, TlsConfig::new(rng.next_u64(), &mut tls));
 
     loop {
         let sensor_data = TemperatureData {

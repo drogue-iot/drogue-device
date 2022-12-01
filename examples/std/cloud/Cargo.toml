@@ -14,9 +14,8 @@ keywords = ["std", "networking", "cloud"]
 log = "0.4"
 env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["log", "std"] }
-embedded-tls = { version = "0.9.0", default-features = false, features = ["async", "log"]}
-embedded-nal-async = "0.2.0"
-reqwless = { version = "0.2.1" }
+embedded-nal-async = "0.3.0"
+reqwless = { version = "0.3" }
 #drogue-tls = {path = "../../../../drogue-tls", default-features = false, features = ["async", "defmt"]}
 
 embassy-time = { version = "0.1.0", default-features = false, features = ["std"] }
@@ -28,6 +27,6 @@ rand = "0.8"
 cfg-if = "1.0.0"
 
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
-embedded-io = { version = "0.3", features = ["futures"] }
+embedded-io = { version = "0.4", features = ["futures"] }
 futures = { version = "0.3.17", features = ["async-await"] }
 async-io = "1.6.0"

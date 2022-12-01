@@ -1,4 +1,4 @@
-use {core::future::Future, embedded_nal_async::*, heapless::String};
+use {embedded_nal_async::*, heapless::String};
 
 // DNS errors that can be returned by resolver.
 #[derive(Debug)]
@@ -32,36 +32,28 @@ impl<'a, const N: usize> StaticDnsResolver<'a, N> {
 impl<'a, const N: usize> Dns for StaticDnsResolver<'a, N> {
     type Error = DnsError;
 
-    type GetHostByNameFuture<'m> = impl Future<Output = Result<IpAddr, DnsError>> + 'm where 'a: 'm;
-    fn get_host_by_name<'m>(
-        &'m self,
-        host: &'m str,
+    async fn get_host_by_name<'m>(
+        &self,
+        host: &str,
         _addr_type: AddrType,
-    ) -> Self::GetHostByNameFuture<'m> {
-        async move {
-            for entry in self.entries.iter() {
-                if entry.host == host {
-                    return Ok(entry.ip);
-                }
+    ) -> Result<IpAddr, DnsError> {
+        for entry in self.entries.iter() {
+            if entry.host == host {
+                return Ok(entry.ip);
             }
-
-            // Attempt to parse host as IPv4 IP
-            try_parse_ip(host).map_err(|_| DnsError::NotFound)
         }
+
+        // Attempt to parse host as IPv4 IP
+        try_parse_ip(host).map_err(|_| DnsError::NotFound)
     }
 
-    type GetHostByAddressFuture<'m> = impl Future<Output = Result<String<256>, Self::Error>> + 'm
-    where
-        Self: 'm;
-    fn get_host_by_address<'m>(&'m self, addr: IpAddr) -> Self::GetHostByAddressFuture<'m> {
-        async move {
-            for entry in self.entries.iter() {
-                if entry.ip == addr {
-                    return Ok(entry.host.into()); //.map_err(|_| DnsError::ParseError)?);
-                }
+    async fn get_host_by_address(&self, addr: IpAddr) -> Result<String<256>, Self::Error> {
+        for entry in self.entries.iter() {
+            if entry.ip == addr {
+                return Ok(entry.host.into()); //.map_err(|_| DnsError::ParseError)?);
             }
-            Err(DnsError::NotFound)
         }
+        Err(DnsError::NotFound)
     }
 }
 

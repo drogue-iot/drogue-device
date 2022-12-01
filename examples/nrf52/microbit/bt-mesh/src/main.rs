@@ -2,6 +2,8 @@
 #![no_main]
 #![macro_use]
 #![feature(type_alias_impl_trait)]
+#![feature(async_fn_in_trait)]
+#![allow(incomplete_features)]
 
 use {
     btmesh_common::{InsufficientBuffer, ParseError},
@@ -15,7 +17,6 @@ use {
         SensorServer as SS, SensorStatus,
     },
     btmesh_nrf_softdevice::*,
-    core::future::Future,
     embassy_executor::Spawner,
     embassy_futures::select::{select, Either},
     embassy_time::{Duration, Ticker, Timer},
@@ -130,44 +131,34 @@ impl Sensor {
 }
 
 impl BluetoothMeshModel<SensorServer> for Sensor {
-    type RunFuture<'f, C> = impl Future<Output=Result<(), ()>> + 'f
-    where
-        Self: 'f,
-        C: BluetoothMeshModelContext<SensorServer> + 'f;
-
-    fn run<'run, C: BluetoothMeshModelContext<SensorServer> + 'run>(
-        &'run mut self,
-        ctx: C,
-    ) -> Self::RunFuture<'_, C> {
-        async move {
-            loop {
-                if let Some(ticker) = self.ticker.as_mut() {
-                    // When ticker is enabled, we emit sensor readings on each tick.
-                    match select(ctx.receive(), ticker.next()).await {
-                        Either::First(data) => self.process(&data).await,
-                        Either::Second(_) => match self.read().await {
-                            Ok(result) => {
-                                defmt::info!("Read sensor data: {:?}", result);
-                                let message = SensorMessage::Status(SensorStatus::new(result));
-                                match ctx.publish(message).await {
-                                    Ok(_) => {
-                                        defmt::info!("Published sensor reading");
-                                    }
-                                    Err(e) => {
-                                        defmt::warn!("Error publishing sensor reading: {:?}", e);
-                                    }
+    async fn run<C: BluetoothMeshModelContext<SensorServer>>(&mut self, ctx: C) -> Result<(), ()> {
+        loop {
+            if let Some(ticker) = self.ticker.as_mut() {
+                // When ticker is enabled, we emit sensor readings on each tick.
+                match select(ctx.receive(), ticker.next()).await {
+                    Either::First(data) => self.process(&data).await,
+                    Either::Second(_) => match self.read().await {
+                        Ok(result) => {
+                            defmt::info!("Read sensor data: {:?}", result);
+                            let message = SensorMessage::Status(SensorStatus::new(result));
+                            match ctx.publish(message).await {
+                                Ok(_) => {
+                                    defmt::info!("Published sensor reading");
+                                }
+                                Err(e) => {
+                                    defmt::warn!("Error publishing sensor reading: {:?}", e);
                                 }
                             }
-                            Err(e) => {
-                                defmt::warn!("Error reading sensor data: {:?}", e);
-                            }
-                        },
-                    }
-                } else {
-                    // When ticker is disabled, we wait for commands.
-                    let m = ctx.receive().await;
-                    self.process(&m).await;
+                        }
+                        Err(e) => {
+                            defmt::warn!("Error reading sensor data: {:?}", e);
+                        }
+                    },
                 }
+            } else {
+                // When ticker is disabled, we wait for commands.
+                let m = ctx.receive().await;
+                self.process(&m).await;
             }
         }
     }
