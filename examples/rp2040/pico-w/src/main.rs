@@ -1,11 +1,11 @@
 #![no_std]
 #![no_main]
 #![feature(type_alias_impl_trait)]
-
-use core::{convert::Infallible, future::Future};
+#![feature(async_fn_in_trait)]
+#![allow(incomplete_features)]
 
 use {
-    core::fmt::Write as _,
+    core::{convert::Infallible, fmt::Write as _},
     defmt_rtt as _,
     drogue_device::*,
     embassy_executor::Spawner,
@@ -25,8 +25,6 @@ use {
     embedded_nal_async::*,
     heapless::String,
     panic_probe as _,
-    rand::SeedableRng,
-    rand_chacha::ChaCha8Rng,
     reqwless::{
         client::{HttpClient, TlsConfig},
         request::{ContentType, Method},
@@ -138,9 +136,8 @@ async fn main(spawner: Spawner) {
     let mut url: String<128> = String::new();
     write!(url, "https://{}:{}/v1/pico", HOSTNAME, PORT).unwrap();
 
-    let mut rng = ChaCha8Rng::seed_from_u64(seed as u64);
     let mut tls = [0; 16384];
-    let mut client = HttpClient::new_with_tls(&client, &DNS, TlsConfig::new(&mut rng, &mut tls));
+    let mut client = HttpClient::new_with_tls(&client, &DNS, TlsConfig::new(seed as u64, &mut tls));
 
     info!("Application initialized.");
     loop {
@@ -201,74 +198,58 @@ impl ErrorType for MySpi {
 }
 
 impl SpiBusFlush for MySpi {
-    type FlushFuture<'a> = impl Future<Output = Result<(), Self::Error>>
-    where
-        Self: 'a;
-
-    fn flush<'a>(&'a mut self) -> Self::FlushFuture<'a> {
-        async move { Ok(()) }
+    async fn flush(&mut self) -> Result<(), Self::Error> {
+        Ok(())
     }
 }
 
 impl SpiBusRead<u32> for MySpi {
-    type ReadFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a
-    where
-        Self: 'a;
+    async fn read(&mut self, words: &mut [u32]) -> Result<(), Self::Error> {
+        self.dio.set_as_input();
+        for word in words {
+            let mut w = 0;
+            for _ in 0..32 {
+                w = w << 1;
 
-    fn read<'a>(&'a mut self, words: &'a mut [u32]) -> Self::ReadFuture<'a> {
-        async move {
-            self.dio.set_as_input();
-            for word in words {
-                let mut w = 0;
-                for _ in 0..32 {
-                    w = w << 1;
-
-                    // rising edge, sample data
-                    if self.dio.is_high() {
-                        w |= 0x01;
-                    }
-                    self.clk.set_high();
-
-                    // falling edge
-                    self.clk.set_low();
+                // rising edge, sample data
+                if self.dio.is_high() {
+                    w |= 0x01;
                 }
-                *word = w
-            }
+                self.clk.set_high();
 
-            Ok(())
+                // falling edge
+                self.clk.set_low();
+            }
+            *word = w
         }
+
+        Ok(())
     }
 }
 
 impl SpiBusWrite<u32> for MySpi {
-    type WriteFuture<'a> = impl Future<Output = Result<(), Self::Error>> + 'a
-    where
-        Self: 'a;
-
-    fn write<'a>(&'a mut self, words: &'a [u32]) -> Self::WriteFuture<'a> {
-        async move {
-            self.dio.set_as_output();
-            for word in words {
-                let mut word = *word;
-                for _ in 0..32 {
-                    // falling edge, setup data
-                    self.clk.set_low();
-                    if word & 0x8000_0000 == 0 {
-                        self.dio.set_low();
-                    } else {
-                        self.dio.set_high();
-                    }
-
-                    // rising edge
-                    self.clk.set_high();
-
-                    word = word << 1;
+    async fn write(&mut self, words: &[u32]) -> Result<(), Self::Error> {
+        self.dio.set_as_output();
+        for word in words {
+            let mut word = *word;
+            for _ in 0..32 {
+                // falling edge, setup data
+                self.clk.set_low();
+                if word & 0x8000_0000 == 0 {
+                    self.dio.set_low();
+                } else {
+                    self.dio.set_high();
                 }
-            }
-            self.clk.set_low();
 
-            self.dio.set_as_input();
-            Ok(())
+                // rising edge
+                self.clk.set_high();
+
+                word = word << 1;
+            }
         }
+        self.clk.set_low();
+
+        self.dio.set_as_input();
+        Ok(())
     }
 }

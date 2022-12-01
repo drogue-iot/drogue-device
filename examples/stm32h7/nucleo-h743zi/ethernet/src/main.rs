@@ -2,6 +2,7 @@
 #![no_main]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
+#![feature(async_fn_in_trait)]
 #![allow(incomplete_features)]
 
 use {defmt_rtt as _, panic_probe as _};
@@ -81,7 +82,7 @@ async fn main(spawner: embassy_executor::Spawner) {
     .unwrap();
 
     let mut tls = [0; 8000];
-    let mut client = HttpClient::new_with_tls(&network, &DNS, TlsConfig::new(&mut rng, &mut tls));
+    let mut client = HttpClient::new_with_tls(&network, &DNS, TlsConfig::new(seed, &mut tls));
 
     defmt::info!("Application initialized. Press the blue button to send data");
     loop {

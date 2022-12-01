@@ -1,5 +1,4 @@
 use {
-    core::future::Future,
     embassy_lora::LoraTimer,
     embedded_update::{Command, Status, UpdateService},
     lorawan::default_crypto::DefaultFactory as Crypto,
@@ -60,43 +59,39 @@ where
     RNG: RngCore,
 {
     type Error = Error;
-    type RequestFuture<'m> = impl Future<Output = Result<Command<'m>, Self::Error>> + 'm where Self: 'm;
-    fn request<'m>(&'m mut self, status: &'m Status<'m>) -> Self::RequestFuture<'m> {
-        async move {
-            let writer = serde_cbor::ser::SliceWrite::new(&mut self.tx[..]);
-            let mut ser = serde_cbor::Serializer::new(writer).packed_format();
-            status.serialize(&mut ser).map_err(|e| Error::Codec(e))?;
-            let writer = ser.into_inner();
-            let size = writer.bytes_written();
+    async fn request<'m>(&'m mut self, status: &'m Status<'m>) -> Result<Command<'m>, Self::Error> {
+        let writer = serde_cbor::ser::SliceWrite::new(&mut self.tx[..]);
+        let mut ser = serde_cbor::Serializer::new(writer).packed_format();
+        status.serialize(&mut ser).map_err(|e| Error::Codec(e))?;
+        let writer = ser.into_inner();
+        let size = writer.bytes_written();
 
-            // If there is no status update, don't bother waiting for a response, it will be scheduled later so we need to wait for it.
-            if status.update.is_none() {
-                debug!("Sending initial status update");
-                self.device
-                    // Using port 223 for firmware updates
-                    .send(&self.tx[..size], 1, true)
-                    .await
-                    .map_err(|_e| Error::Network)?;
-                Ok(Command::new_wait(None, None))
+        // If there is no status update, don't bother waiting for a response, it will be scheduled later so we need to wait for it.
+        if status.update.is_none() {
+            debug!("Sending initial status update");
+            self.device
+                // Using port 223 for firmware updates
+                .send(&self.tx[..size], 1, true)
+                .await
+                .map_err(|_e| Error::Network)?;
+            Ok(Command::new_wait(None, None))
+        } else {
+            debug!("Sending status update over lorawan link");
+            let rx_len = self
+                .device
+                // Using port 223 for firmware updates
+                .send_recv(&self.tx[..size], &mut self.rx[..], 223, true)
+                .await
+                .map_err(|_e| Error::Network)?;
+            if rx_len > 0 {
+                debug!("Received DFU command!");
+                let command: Command<'m> = serde_cbor::de::from_mut_slice(&mut self.rx[..rx_len])
+                    .map_err(|e| Error::Codec(e))?;
+                Ok(command)
             } else {
-                debug!("Sending status update over lorawan link");
-                let rx_len = self
-                    .device
-                    // Using port 223 for firmware updates
-                    .send_recv(&self.tx[..size], &mut self.rx[..], 223, true)
-                    .await
-                    .map_err(|_e| Error::Network)?;
-                if rx_len > 0 {
-                    debug!("Received DFU command!");
-                    let command: Command<'m> =
-                        serde_cbor::de::from_mut_slice(&mut self.rx[..rx_len])
-                            .map_err(|e| Error::Codec(e))?;
-                    Ok(command)
-                } else {
-                    //debug!("Got RX len: {}, bytes: {:x}", rx_len, &self.rx[..rx_len]);
-                    debug!("No command received, let's wait");
-                    Ok(Command::new_wait(None, None))
-                }
+                //debug!("Got RX len: {}, bytes: {:x}", rx_len, &self.rx[..rx_len]);
+                debug!("No command received, let's wait");
+                Ok(Command::new_wait(None, None))
             }
         }
     }

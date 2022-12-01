@@ -23,9 +23,9 @@ cortex-m = { version = "0.7", optional = true }
 
 # Networking dependencies
 embedded-nal = "0.6.0"
-embedded-nal-async = "0.2.0"
-embedded-update = { version = "0.9", default-features = false, features = ["nightly"] }
-embedded-tls = { version = "0.9.0", default-features = false, features = ["async"] }
+embedded-nal-async = "0.3.0"
+embedded-update = { version = "0.10", default-features = false, features = ["nightly"] }
+embedded-tls = { version = "0.10", default-features = false, features = ["async"] }
 
 rand_core = { version = "0.6.2", default-features = false }
 rand = { version = "0.8.4", default-features = false, features = ["small_rng"], optional = true }
@@ -37,8 +37,8 @@ futures = { version = "0.3", default-features = false }
 futures-intrusive = { version = "0.4", default-features = false }
 heapless = { version = "0.7", features = ["defmt-impl"] }
 embedded-hal = { version = "=1.0.0-alpha.9"}
-embedded-hal-async = { version = "=0.1.0-alpha.3" }
-embedded-io = { version = "0.3", features = ["async"] }
+embedded-hal-async = { version = "=0.2.0-alpha.0" }
+embedded-io = { version = "0.4", features = ["async"] }
 #atomic-polyfill = "1"
 #critical-section = "1"
 
@@ -47,7 +47,7 @@ log = { version = "0.4", optional = true }
 defmt = { version = "0.3", optional = true }
 
 # HTTP dependencies
-reqwless = "0.2.1"
+reqwless = "0.3.0"
 
 # Handy macros, e.g. drogue::config
 drogue-device-macros = { path = "../macros" }

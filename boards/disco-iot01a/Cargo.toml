@@ -9,7 +9,7 @@ description = "An embassy-based boards support package (BSP) for the STM32 B-L47
 [dependencies]
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["exti", "unstable-traits", "nightly"] }
 embassy-time = { version = "0.1.0", default-features = false }
-es-wifi-driver = { version = "0.1", default-features = false }
+es-wifi-driver = { version = "0.2", default-features = false }
 cortex-m = "0.7"
 
 [features]
@@ -19,5 +19,5 @@ defmt = ["es-wifi-driver/defmt"]
 default = ["l475e"]
 
 [patch.crates-io]
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }

@@ -6,7 +6,6 @@ use {
     embedded_update::{DeviceStatus, FirmwareDevice},
     heapless::String,
     http::HttpUpdater,
-    rand_core::{CryptoRng, RngCore},
     reqwless::client::TlsConfig,
 };
 
@@ -22,22 +21,21 @@ pub struct OtaConfig<'a> {
 }
 
 /// Async task checking for Over The Air updates from Drogue Cloud and applying
-pub async fn ota_task<TCP, DNS, DEVICE, RNG, RESET>(
+pub async fn ota_task<TCP, DNS, DEVICE, RESET>(
     network: TCP,
     dns: &DNS,
     mut device: DEVICE,
-    mut rng: RNG,
+    rng_seed: u64,
     config: OtaConfig<'_>,
     reset: RESET,
 ) where
     TCP: TcpConnect,
     DNS: Dns,
     DEVICE: FirmwareDevice,
-    RNG: RngCore + CryptoRng,
     RESET: FnOnce(),
 {
     let mut tls_buffer: [u8; 6000] = [0; 6000];
-    let tls = TlsConfig::new(&mut rng, &mut tls_buffer);
+    let tls = TlsConfig::new(rng_seed, &mut tls_buffer);
 
     let mut url: String<64> = String::new();
     let _ = write!(
@@ -46,7 +44,7 @@ pub async fn ota_task<TCP, DNS, DEVICE, RNG, RESET>(
         config.hostname, config.port
     );
 
-    let service: HttpUpdater<'_, _, _, TlsConfig<'_, RNG>, 2048> = HttpUpdater::new(
+    let service: HttpUpdater<'_, _, _, 2048> = HttpUpdater::new(
         &network,
         dns,
         tls,

@@ -2,6 +2,8 @@
 #![no_main]
 #![macro_use]
 #![feature(type_alias_impl_trait)]
+#![feature(async_fn_in_trait)]
+#![allow(incomplete_features)]
 
 use {
     btmesh_device::{BluetoothMeshModel, BluetoothMeshModelContext, InboundModelPayload},
@@ -10,7 +12,6 @@ use {
         GenericOnOffClient, GenericOnOffMessage, GenericOnOffServer, Set as GenericOnOffSet,
     },
     btmesh_nrf_softdevice::*,
-    core::future::Future,
     embassy_executor::Spawner,
     embassy_nrf::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull},
     embassy_time::{Duration, Timer},
@@ -93,38 +94,31 @@ struct MyOnOffServerHandler {
 }
 
 impl BluetoothMeshModel<GenericOnOffServer> for MyOnOffServerHandler {
-    type RunFuture<'f, C> = impl Future<Output=Result<(), ()>> + 'f
-    where
-        Self: 'f,
-        C: BluetoothMeshModelContext<GenericOnOffServer> + 'f;
-
-    fn run<'run, C: BluetoothMeshModelContext<GenericOnOffServer> + 'run>(
-        &'run mut self,
+    async fn run<C: BluetoothMeshModelContext<GenericOnOffServer>>(
+        &mut self,
         ctx: C,
-    ) -> Self::RunFuture<'_, C> {
-        async move {
-            loop {
-                let message = ctx.receive().await;
-                if let InboundModelPayload::Message(message, _) = message {
-                    match message {
-                        GenericOnOffMessage::Get => {}
-                        GenericOnOffMessage::Set(val) => {
-                            if val.on_off == 1 {
-                                self.led.set_high();
-                            } else {
-                                self.led.set_low();
-                            }
+    ) -> Result<(), ()> {
+        loop {
+            let message = ctx.receive().await;
+            if let InboundModelPayload::Message(message, _) = message {
+                match message {
+                    GenericOnOffMessage::Get => {}
+                    GenericOnOffMessage::Set(val) => {
+                        if val.on_off == 1 {
+                            self.led.set_high();
+                        } else {
+                            self.led.set_low();
                         }
-                        GenericOnOffMessage::SetUnacknowledged(val) => {
-                            if val.on_off == 1 {
-                                self.led.set_high();
-                            } else {
-                                self.led.set_low();
-                            }
+                    }
+                    GenericOnOffMessage::SetUnacknowledged(val) => {
+                        if val.on_off == 1 {
+                            self.led.set_high();
+                        } else {
+                            self.led.set_low();
                         }
-                        GenericOnOffMessage::Status(_) => {
-                            // not applicable
-                        }
+                    }
+                    GenericOnOffMessage::Status(_) => {
+                        // not applicable
                     }
                 }
             }
@@ -137,40 +131,33 @@ struct MyOnOffClientHandler {
 }
 
 impl BluetoothMeshModel<GenericOnOffClient> for MyOnOffClientHandler {
-    type RunFuture<'f, C> = impl Future<Output=Result<(), ()>> + 'f
-    where
-        Self: 'f,
-        C: BluetoothMeshModelContext<GenericOnOffClient> + 'f;
-
     #[allow(clippy::await_holding_refcell_ref)]
-    fn run<'run, C: BluetoothMeshModelContext<GenericOnOffClient> + 'run>(
-        &'run mut self,
+    async fn run<C: BluetoothMeshModelContext<GenericOnOffClient>>(
+        &mut self,
         ctx: C,
-    ) -> Self::RunFuture<'_, C> {
-        async move {
-            let mut tid = 0;
-            loop {
-                self.button.wait_for_falling_edge().await;
-                let message = GenericOnOffMessage::Set(GenericOnOffSet {
-                    on_off: if self.button.is_low() { 1 } else { 0 },
-                    tid,
-                    transition_time: None,
-                    delay: None,
-                });
+    ) -> Result<(), ()> {
+        let mut tid = 0;
+        loop {
+            self.button.wait_for_falling_edge().await;
+            let message = GenericOnOffMessage::Set(GenericOnOffSet {
+                on_off: if self.button.is_low() { 1 } else { 0 },
+                tid,
+                transition_time: None,
+                delay: None,
+            });
 
-                // Publish event
-                match ctx.publish(message).await {
-                    Ok(_) => {
-                        defmt::info!("Published button status ");
-                    }
-                    Err(e) => {
-                        defmt::warn!("Error publishing button status: {:?}", e);
-                    }
+            // Publish event
+            match ctx.publish(message).await {
+                Ok(_) => {
+                    defmt::info!("Published button status ");
                 }
-
-                // Increase transaction id
-                tid += 1;
+                Err(e) => {
+                    defmt::warn!("Error publishing button status: {:?}", e);
+                }
             }
+
+            // Increase transaction id
+            tid += 1;
         }
     }
 }

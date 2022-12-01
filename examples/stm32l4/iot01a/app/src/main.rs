@@ -21,9 +21,9 @@ use {
     embassy_time::{Duration, Timer},
     embedded_io::ErrorKind,
     embedded_nal_async::{AddrType, Dns, IpAddr, Ipv4Addr, SocketAddr, TcpConnect},
-    embedded_update::{service::DrogueHttp, DeviceStatus},
     heapless::String,
     hts221_async::*,
+    rand_core::RngCore,
     reqwless::{
         client::{HttpClient, TlsConfig},
         request::{ContentType, Method, Response},
@@ -71,9 +71,8 @@ const PASSWORD: &str = drogue::config!("password");
 async fn main(spawner: embassy_executor::Spawner) {
     let board = DiscoIot01a::default();
     // Create a globally shared random generator
-    unsafe {
-        RNG_INST.replace(board.rng);
-    }
+    let mut rng = board.rng;
+    let seed: u64 = rng.next_u64();
 
     static NETWORK: StaticCell<EsWifi> = StaticCell::new();
     let network: &'static EsWifi = NETWORK.init(board.wifi);
@@ -88,7 +87,9 @@ async fn main(spawner: embassy_executor::Spawner) {
         .unwrap();
 
     // Launch updater task
-    spawner.spawn(updater_task(network, board.flash)).unwrap();
+    spawner
+        .spawn(updater_task(network, board.flash, seed))
+        .unwrap();
 
     let mut sensor = Hts221::new(board.i2c2);
     sensor.initialize().await.ok().unwrap();
@@ -103,9 +104,7 @@ async fn main(spawner: embassy_executor::Spawner) {
     .unwrap();
 
     let mut tls = [0; 8000];
-    let mut rng = TlsRand;
-    let mut client =
-        HttpClient::new_with_tls(network, &dns::DNS, TlsConfig::new(&mut rng, &mut tls));
+    let mut client = HttpClient::new_with_tls(network, &dns::DNS, TlsConfig::new(seed, &mut tls));
 
     loop {
         // Wait until we have a sensor reading
@@ -171,7 +170,7 @@ async fn network_task(adapter: &'static EsWifi, ssid: &'static str, psk: &'stati
 }
 
 #[embassy_executor::task]
-async fn updater_task(network: &'static EsWifi, flash: Flash<'static>) {
+async fn updater_task(network: &'static EsWifi, flash: Flash<'static>, seed: u64) {
     use {
         drogue_device::firmware::BlockingFlash,
         embassy_time::{Delay, Timer},
@@ -192,42 +191,8 @@ async fn updater_task(network: &'static EsWifi, flash: Flash<'static>) {
     };
 
     Timer::after(Duration::from_secs(5)).await;
-    ota_task(network, &DNS, device, TlsRand, config, || {
+    ota_task(network, &DNS, device, seed, config, || {
         cortex_m::peripheral::SCB::sys_reset()
     })
     .await
 }
-
-static mut RNG_INST: Option<Rng> = None;
-
-#[no_mangle]
-fn _embassy_rand(buf: &mut [u8]) {
-    use rand_core::RngCore;
-
-    critical_section::with(|_| unsafe {
-        defmt::unwrap!(RNG_INST.as_mut()).fill_bytes(buf);
-    });
-}
-
-pub struct TlsRand;
-
-impl rand_core::RngCore for TlsRand {
-    fn next_u32(&mut self) -> u32 {
-        critical_section::with(|_| unsafe { defmt::unwrap!(RNG_INST.as_mut()).next_u32() })
-    }
-    fn next_u64(&mut self) -> u64 {
-        critical_section::with(|_| unsafe { defmt::unwrap!(RNG_INST.as_mut()).next_u64() })
-    }
-    fn fill_bytes(&mut self, buf: &mut [u8]) {
-        critical_section::with(|_| unsafe {
-            defmt::unwrap!(RNG_INST.as_mut()).fill_bytes(buf);
-        });
-    }
-    fn try_fill_bytes(&mut self, buf: &mut [u8]) -> Result<(), rand_core::Error> {
-        critical_section::with(|_| unsafe {
-            defmt::unwrap!(RNG_INST.as_mut()).fill_bytes(buf);
-        });
-        Ok(())
-    }
-}
-impl rand_core::CryptoRng for TlsRand {}

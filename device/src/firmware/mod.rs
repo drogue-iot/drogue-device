@@ -1,5 +1,4 @@
 use {
-    core::future::Future,
     embassy_boot::{AlignedBuffer, FirmwareUpdater, FirmwareWriter},
     embassy_embedded_hal::adapter::BlockingAsync,
     embedded_storage::nor_flash::{NorFlash, NorFlashError, NorFlashErrorKind, ReadNorFlash},
@@ -158,39 +157,25 @@ where
     const MTU: usize = MTU;
     type Version = Vec<u8, 16>;
     type Error = Error;
-    type StatusFuture<'m> = impl Future<Output = Result<FirmwareStatus<Self::Version>, Error>> + 'm
-    where
-        Self: 'm;
-    fn status<'m>(&'m mut self) -> Self::StatusFuture<'m> {
-        FirmwareManager::status(self)
+
+    async fn status(&mut self) -> Result<FirmwareStatus<Self::Version>, Error> {
+        FirmwareManager::status(self).await
     }
 
-    type StartFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
-    where
-        Self: 'm;
-    fn start<'m>(&'m mut self, version: &'m [u8]) -> Self::StartFuture<'m> {
-        FirmwareManager::start(self, version)
+    async fn start(&mut self, version: &[u8]) -> Result<(), Error> {
+        FirmwareManager::start(self, version).await
     }
 
-    type SyncedFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
-    where
-        Self: 'm;
-    fn synced<'m>(&'m mut self) -> Self::SyncedFuture<'m> {
-        FirmwareManager::synced(self)
+    async fn synced(&mut self) -> Result<(), Error> {
+        FirmwareManager::synced(self).await
     }
 
-    type UpdateFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
-    where
-        Self: 'm;
-    fn update<'m>(&'m mut self, version: &'m [u8], checksum: &'m [u8]) -> Self::UpdateFuture<'m> {
-        FirmwareManager::update(self, version, checksum)
+    async fn update(&mut self, version: &[u8], checksum: &[u8]) -> Result<(), Error> {
+        FirmwareManager::update(self, version, checksum).await
     }
 
-    type WriteFuture<'m> = impl Future<Output = Result<(), Error>> + 'm
-    where
-        Self: 'm;
-    fn write<'m>(&'m mut self, offset: u32, data: &'m [u8]) -> Self::WriteFuture<'m> {
-        FirmwareManager::write(self, offset, data)
+    async fn write(&mut self, offset: u32, data: &[u8]) -> Result<(), Error> {
+        FirmwareManager::write(self, offset, data).await
     }
 }
 

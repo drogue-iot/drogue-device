@@ -39,15 +39,15 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-embassy-boot = {git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-embassy-boot-stm32 = {git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", tag = "embassy-time-v0.1.0" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
+embassy-boot = {git = "https://github.com/embassy-rs/embassy.git", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
+embassy-boot-stm32 = {git = "https://github.com/embassy-rs/embassy.git", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
 
 #embassy-executor = { path = "../../../../../embassy/embassy" }
 #embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }

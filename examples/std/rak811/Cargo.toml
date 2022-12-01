@@ -13,14 +13,14 @@ env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["std"], default-features = false }
 static_cell = "1"
 
-embedded-io = { version = "0.3", features = ["async", "std", "futures"] }
+embedded-io = { version = "0.4", features = ["async", "std", "futures"] }
 embassy-time = { version = "0.1.0", default-features = false, features = ["std"] }
 embassy-executor = { version = "0.1.0", default-features = false, features = ["std", "integrated-timers", "nightly"] }
-rak811-at-driver = "0.1.0"
+rak811-at-driver = "0.2.0"
 ector = { version = "0.1.0" }
 cfg-if = "1.0.0"
 embedded-hal = { version = "=1.0.0-alpha.9"}
-embedded-hal-async = { version = "=0.1.0-alpha.3" }
+embedded-hal-async = { version = "=0.2.0-alpha.0" }
 async-io = "1.6.0"
 nix = "0.22.1"
 futures = { version = "0.3.17" }

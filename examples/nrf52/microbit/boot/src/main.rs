@@ -1,5 +1,7 @@
 #![no_std]
 #![no_main]
+#![feature(async_fn_in_trait)]
+#![allow(incomplete_features)]
 
 use cortex_m_rt::{entry, exception};
 

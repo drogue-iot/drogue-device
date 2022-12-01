@@ -173,9 +173,9 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.58"
+version = "0.1.59"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e805d94e6b5001b651426cf4cd446b1ab5f319d27bab5c644f61de0a804360c"
+checksum = "31e6e93155431f3931513b243d371981bb2770112b370c82745a1d19d2f99364"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -184,11 +184,11 @@ dependencies = [
 
 [[package]]
 name = "atomic-polyfill"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c041a8d9751a520ee19656232a18971f18946a7900f1520ee4400002244dd89"
+checksum = "e3ff7eb3f316534d83a8a2c3d1674ace8a5a71198eba31e2e2b597833f699b28"
 dependencies = [
- "critical-section 0.2.7",
+ "critical-section 1.1.1",
 ]
 
 [[package]]
@@ -269,7 +269,7 @@ dependencies = [
 [[package]]
 name = "btmesh-bearer"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cef635acaa59428c2792cbba9f1ebe7209bb059c"
 dependencies = [
  "btmesh-common",
  "btmesh-pdu",
@@ -279,7 +279,7 @@ dependencies = [
 [[package]]
 name = "btmesh-common"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cef635acaa59428c2792cbba9f1ebe7209bb059c"
 dependencies = [
  "aes 0.7.5",
  "ccm",
@@ -298,7 +298,7 @@ dependencies = [
 [[package]]
 name = "btmesh-device"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cef635acaa59428c2792cbba9f1ebe7209bb059c"
 dependencies = [
  "btmesh-common",
  "btmesh-models",
@@ -312,7 +312,7 @@ dependencies = [
 [[package]]
 name = "btmesh-driver"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cef635acaa59428c2792cbba9f1ebe7209bb059c"
 dependencies = [
  "aes 0.7.5",
  "btmesh-bearer",
@@ -340,7 +340,7 @@ dependencies = [
 [[package]]
 name = "btmesh-macro"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cef635acaa59428c2792cbba9f1ebe7209bb059c"
 dependencies = [
  "btmesh-common",
  "darling 0.14.2",
@@ -354,7 +354,7 @@ dependencies = [
 [[package]]
 name = "btmesh-models"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cef635acaa59428c2792cbba9f1ebe7209bb059c"
 dependencies = [
  "btmesh-common",
  "heapless",
@@ -365,7 +365,7 @@ dependencies = [
 [[package]]
 name = "btmesh-nrf-softdevice"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cef635acaa59428c2792cbba9f1ebe7209bb059c"
 dependencies = [
  "atomic-polyfill 1.0.1",
  "btmesh-bearer",
@@ -387,7 +387,7 @@ dependencies = [
 [[package]]
 name = "btmesh-pdu"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cfec2c11fc82841c6ed3e6116ee775bdae7549eb"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#cef635acaa59428c2792cbba9f1ebe7209bb059c"
 dependencies = [
  "btmesh-common",
  "heapless",
@@ -553,14 +553,12 @@ dependencies = [
 
 [[package]]
 name = "critical-section"
-version = "0.2.7"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95da181745b56d4bd339530ec393508910c909c784e8962d15d722bacf0bcbcd"
+checksum = "c1706d332edc22aef4d9f23a6bb1c92360a403013c291af51247a737472dcae6"
 dependencies = [
  "bare-metal 1.0.0",
- "cfg-if",
- "cortex-m",
- "riscv",
+ "critical-section 1.1.1",
 ]
 
 [[package]]
@@ -798,7 +796,7 @@ version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d2cbbbd58847d508d97629b32cd9730a2d28532f71e219714614406029f18b1"
 dependencies = [
- "critical-section 0.2.7",
+ "critical-section 0.2.8",
  "defmt",
 ]
 
@@ -923,8 +921,8 @@ dependencies = [
 
 [[package]]
 name = "embassy-boot"
-version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?tag=embassy-time-v0.1.0#61560e740dea1b4c7ca036dafd66c834a1ff92e2"
+version = "0.1.1"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=645fb66a5122bdc8180e0e65d076ca103431a426#645fb66a5122bdc8180e0e65d076ca103431a426"
 dependencies = [
  "defmt",
  "embassy-sync",
@@ -935,7 +933,7 @@ dependencies = [
 [[package]]
 name = "embassy-boot-nrf"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?tag=embassy-time-v0.1.0#61560e740dea1b4c7ca036dafd66c834a1ff92e2"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=645fb66a5122bdc8180e0e65d076ca103431a426#645fb66a5122bdc8180e0e65d076ca103431a426"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -952,7 +950,7 @@ dependencies = [
 [[package]]
 name = "embassy-cortex-m"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?tag=embassy-time-v0.1.0#61560e740dea1b4c7ca036dafd66c834a1ff92e2"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=645fb66a5122bdc8180e0e65d076ca103431a426#645fb66a5122bdc8180e0e65d076ca103431a426"
 dependencies = [
  "atomic-polyfill 1.0.1",
  "cfg-if",
@@ -967,7 +965,7 @@ dependencies = [
 [[package]]
 name = "embassy-embedded-hal"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?tag=embassy-time-v0.1.0#61560e740dea1b4c7ca036dafd66c834a1ff92e2"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=645fb66a5122bdc8180e0e65d076ca103431a426#645fb66a5122bdc8180e0e65d076ca103431a426"
 dependencies = [
  "defmt",
  "embassy-sync",
@@ -981,8 +979,8 @@ dependencies = [
 
 [[package]]
 name = "embassy-executor"
-version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?tag=embassy-time-v0.1.0#61560e740dea1b4c7ca036dafd66c834a1ff92e2"
+version = "0.1.1"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=645fb66a5122bdc8180e0e65d076ca103431a426#645fb66a5122bdc8180e0e65d076ca103431a426"
 dependencies = [
  "atomic-polyfill 1.0.1",
  "cfg-if",
@@ -1003,7 +1001,7 @@ checksum = "47e5367165d347c039360f784812f493b001583ab6a3dd8622f4ce9c30374ec3"
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?tag=embassy-time-v0.1.0#61560e740dea1b4c7ca036dafd66c834a1ff92e2"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=645fb66a5122bdc8180e0e65d076ca103431a426#645fb66a5122bdc8180e0e65d076ca103431a426"
 dependencies = [
  "num-traits",
 ]
@@ -1011,7 +1009,7 @@ dependencies = [
 [[package]]
 name = "embassy-lora"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?tag=embassy-time-v0.1.0#61560e740dea1b4c7ca036dafd66c834a1ff92e2"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=645fb66a5122bdc8180e0e65d076ca103431a426#645fb66a5122bdc8180e0e65d076ca103431a426"
 dependencies = [
  "bit_field",
  "embassy-hal-common",
@@ -1028,7 +1026,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?tag=embassy-time-v0.1.0#61560e740dea1b4c7ca036dafd66c834a1ff92e2"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=645fb66a5122bdc8180e0e65d076ca103431a426#645fb66a5122bdc8180e0e65d076ca103431a426"
 dependencies = [
  "darling 0.13.4",
  "proc-macro2",
@@ -1039,7 +1037,7 @@ dependencies = [
 [[package]]
 name = "embassy-nrf"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?tag=embassy-time-v0.1.0#61560e740dea1b4c7ca036dafd66c834a1ff92e2"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=645fb66a5122bdc8180e0e65d076ca103431a426#645fb66a5122bdc8180e0e65d076ca103431a426"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -1068,7 +1066,7 @@ dependencies = [
 [[package]]
 name = "embassy-sync"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?tag=embassy-time-v0.1.0#61560e740dea1b4c7ca036dafd66c834a1ff92e2"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=645fb66a5122bdc8180e0e65d076ca103431a426#645fb66a5122bdc8180e0e65d076ca103431a426"
 dependencies = [
  "atomic-polyfill 1.0.1",
  "cfg-if",
@@ -1082,7 +1080,7 @@ dependencies = [
 [[package]]
 name = "embassy-time"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?tag=embassy-time-v0.1.0#61560e740dea1b4c7ca036dafd66c834a1ff92e2"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=645fb66a5122bdc8180e0e65d076ca103431a426#645fb66a5122bdc8180e0e65d076ca103431a426"
 dependencies = [
  "atomic-polyfill 1.0.1",
  "cfg-if",
@@ -1098,7 +1096,7 @@ dependencies = [
 [[package]]
 name = "embassy-usb-driver"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?tag=embassy-time-v0.1.0#61560e740dea1b4c7ca036dafd66c834a1ff92e2"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=645fb66a5122bdc8180e0e65d076ca103431a426#645fb66a5122bdc8180e0e65d076ca103431a426"
 dependencies = [
  "defmt",
 ]
@@ -1121,18 +1119,18 @@ checksum = "129b101ddfee640565f7c07b301a31d95aa21e5acef21a491c307139f5fa4c91"
 
 [[package]]
 name = "embedded-hal-async"
-version = "0.1.0-alpha.3"
+version = "0.2.0-alpha.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c913f631bd08c253b85fdf0077061c64763d70e27803b04da5a49c5fb2a65057"
+checksum = "608a322808d65da06715e03109c0cb69f79a5459af756fba393ab83e875d4969"
 dependencies = [
  "embedded-hal 1.0.0-alpha.9",
 ]
 
 [[package]]
 name = "embedded-io"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33dfba9e6c113f2fd8537c943780a7345945e66c86972e356b1152e19481bcf5"
+checksum = "ef1a6892d9eef45c8fa6b9e0086428a2cca8491aca8f787c534a3d6d0bcb3ced"
 dependencies = [
  "defmt",
 ]
@@ -1145,19 +1143,19 @@ checksum = "db9efecb57ab54fa918730f2874d7d37647169c50fa1357fecb81abee840b113"
 dependencies = [
  "heapless",
  "nb 1.0.0",
- "no-std-net",
+ "no-std-net 0.5.0",
 ]
 
 [[package]]
 name = "embedded-nal-async"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be6ff4a100fe482c345744cb854ac1c8237ea17be2579c92d9441c0c5b0f6c82"
+checksum = "0dc8f5d837a6e95e9ecad9b5503fff6ef12e16407706abed1d33fc61eaf90da8"
 dependencies = [
  "embedded-io",
  "embedded-nal",
  "heapless",
- "no-std-net",
+ "no-std-net 0.6.0",
 ]
 
 [[package]]
@@ -1177,9 +1175,9 @@ dependencies = [
 
 [[package]]
 name = "embedded-tls"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "faa8022b0f1d2432ab7f9dbafaff58f291d0e4bb99cadfe1a7248bbb821753d3"
+checksum = "2a916cc9a8397e5c42fb41ed5e28016801a2aec2b3cac73a0574712bc831677d"
 dependencies = [
  "aes-gcm",
  "defmt",
@@ -1197,9 +1195,9 @@ dependencies = [
 
 [[package]]
 name = "embedded-update"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eab6832de8b84bb7b274dc1d171b57be422bfbdb6360e69b40c862fb0d474af9"
+checksum = "fbbd92885e6c86a4da132270e6fc1c245f802d83f1270f4b4eefab2ed57b1e27"
 dependencies = [
  "defmt",
  "embedded-hal-async",
@@ -1434,7 +1432,7 @@ version = "0.7.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db04bc24a18b9ea980628ecf00e6c0264f3c1426dac36c00cb49b6fbad8b0743"
 dependencies = [
- "atomic-polyfill 0.1.10",
+ "atomic-polyfill 0.1.11",
  "defmt",
  "hash32",
  "rustc_version 0.4.0",
@@ -1598,6 +1596,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1bcece43b12349917e096cddfa66107277f123e6c96a5aea78711dc601a47152"
 
 [[package]]
+name = "no-std-net"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43794a0ace135be66a25d3ae77d41b91615fb68ae937f904090203e81f755b65"
+
+[[package]]
 name = "nom"
 version = "7.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1610,11 +1614,10 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?tag=embassy-time-v0.1.0#8f9895f82069c8f4e388f5b92a50ccb6c2652be5"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=b71e18bc76d5704614d3eef27f3ce8e8c1f477d4#b71e18bc76d5704614d3eef27f3ce8e8c1f477d4"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
- "critical-section 0.2.7",
  "critical-section 1.1.1",
  "defmt",
  "embassy-sync",
@@ -1632,7 +1635,7 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice-macro"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?tag=embassy-time-v0.1.0#8f9895f82069c8f4e388f5b92a50ccb6c2652be5"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=b71e18bc76d5704614d3eef27f3ce8e8c1f477d4#b71e18bc76d5704614d3eef27f3ce8e8c1f477d4"
 dependencies = [
  "Inflector",
  "darling 0.10.2",
@@ -1645,12 +1648,12 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice-mbr"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#74a9526c59c33e28d2dcc7357a9cb5288be58c60"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#b71e18bc76d5704614d3eef27f3ce8e8c1f477d4"
 
 [[package]]
 name = "nrf-softdevice-s140"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?tag=embassy-time-v0.1.0#8f9895f82069c8f4e388f5b92a50ccb6c2652be5"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=b71e18bc76d5704614d3eef27f3ce8e8c1f477d4#b71e18bc76d5704614d3eef27f3ce8e8c1f477d4"
 
 [[package]]
 name = "nrf52840-pac"
@@ -1760,9 +1763,9 @@ checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
 
 [[package]]
 name = "pest"
-version = "2.4.1"
+version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a528564cc62c19a7acac4d81e01f39e53e25e17b934878f4c6d25cc2836e62f8"
+checksum = "cc8bed3549e0f9b0a2a78bf7c0018237a2cdf085eecbbc048e52612438e4e9d0"
 dependencies = [
  "thiserror",
  "ucd-trie",
@@ -1770,9 +1773,9 @@ dependencies = [
 
 [[package]]
 name = "pest_derive"
-version = "2.4.1"
+version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5fd9bc6500181952d34bd0b2b0163a54d794227b498be0b7afa7698d0a7b18f"
+checksum = "cdc078600d06ff90d4ed238f0119d84ab5d43dbaad278b0e33a8820293b32344"
 dependencies = [
  "pest",
  "pest_generator",
@@ -1780,9 +1783,9 @@ dependencies = [
 
 [[package]]
 name = "pest_generator"
-version = "2.4.1"
+version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2610d5ac5156217b4ff8e46ddcef7cdf44b273da2ac5bca2ecbfa86a330e7c4"
+checksum = "28a1af60b1c4148bb269006a750cff8e2ea36aff34d2d96cf7be0b14d1bed23c"
 dependencies = [
  "pest",
  "pest_meta",
@@ -1793,9 +1796,9 @@ dependencies = [
 
 [[package]]
 name = "pest_meta"
-version = "2.4.1"
+version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "824749bf7e21dd66b36fbe26b3f45c713879cccd4a009a917ab8e045ca8246fe"
+checksum = "fec8605d59fc2ae0c6c1aefc0c7c7a9769732017c0ce07f7a9cfffa7b4404f20"
 dependencies = [
  "once_cell",
  "pest",
@@ -1837,6 +1840,12 @@ dependencies = [
  "heapless",
  "serde",
 ]
+
+[[package]]
+name = "ppv-lite86"
+version = "0.2.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
 name = "prettyplease"
@@ -1891,6 +1900,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rand_chacha"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6c10a63a0fa32252be49d21e7709d4d4baf8d231c2dbce1eaa8141b9b127d88"
+dependencies = [
+ "ppv-lite86",
+ "rand_core",
+]
+
+[[package]]
 name = "rand_core"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1915,9 +1934,9 @@ checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 
 [[package]]
 name = "reqwless"
-version = "0.2.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc5603ce8760ef308bdc17c8e7aab9e2bd73dcb93e664033c7c801512251d305"
+checksum = "6ce481fcd174cb6b2404a5eaf092b55c3904df0ab21c27e16b63f9046f6947bb"
 dependencies = [
  "base64",
  "embedded-io",
@@ -1925,28 +1944,8 @@ dependencies = [
  "embedded-tls",
  "heapless",
  "httparse",
+ "rand_chacha",
  "rand_core",
-]
-
-[[package]]
-name = "riscv"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6907ccdd7a31012b70faf2af85cd9e5ba97657cc3987c4f13f8e4d2c2a088aba"
-dependencies = [
- "bare-metal 1.0.0",
- "bit_field",
- "riscv-target",
-]
-
-[[package]]
-name = "riscv-target"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88aa938cda42a0cf62a20cfe8d139ff1af20c2e681212b5b34adb5a58333f222"
-dependencies = [
- "lazy_static",
- "regex",
 ]
 
 [[package]]
@@ -2048,9 +2047,9 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "serde"
-version = "1.0.147"
+version = "1.0.148"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d193d69bae983fc11a79df82342761dfbf28a99fc8d203dca4c3c1b590948965"
+checksum = "e53f64bb4ba0191d6d0676e1b141ca55047d83b74f5607e6d8eb88126c52c2dc"
 dependencies = [
  "serde_derive",
 ]
@@ -2067,9 +2066,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.147"
+version = "1.0.148"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f1d362ca8fc9c3e3a7484440752472d68a6caa98f1ab81d99b5dfe517cec852"
+checksum = "a55492425aa53521babf6137309e7d34c20bbfbbfcfe2c7f3a047fd1f6b92c0c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2153,9 +2152,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.103"
+version = "1.0.105"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a864042229133ada95abf3b54fdc62ef5ccabe9515b64717bcb9a1919e59445d"
+checksum = "60b9b43d45702de4c839cb9b51d9f529c5dd26a4aff255b42b1ebc03e88ee908"
 dependencies = [
  "proc-macro2",
  "quote",

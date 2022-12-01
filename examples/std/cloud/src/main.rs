@@ -1,15 +1,17 @@
 #![macro_use]
 #![feature(type_alias_impl_trait)]
+#![feature(async_fn_in_trait)]
+#![allow(incomplete_features)]
 
 use {
     async_io::Async,
-    core::future::Future,
     drogue_device::*,
     embassy_futures::select::{select, Either},
     embassy_time::{Duration, Timer},
     embedded_io::adapters::FromFutures,
     embedded_nal_async::*,
     futures::io::BufReader,
+    rand::RngCore,
     reqwless::{client::*, request::*},
     std::net::TcpStream,
 };
@@ -48,7 +50,8 @@ async fn main(_spawner: embassy_executor::Spawner) {
 
     let mut tls = [0; 16384];
     let mut rng = rand::rngs::OsRng;
-    let mut client = HttpClient::new_with_tls(&TcpClient, &DNS, TlsConfig::new(&mut rng, &mut tls));
+    let mut client =
+        HttpClient::new_with_tls(&TcpClient, &DNS, TlsConfig::new(rng.next_u64(), &mut tls));
 
     loop {
         let sensor_data = TemperatureData {
@@ -98,20 +101,18 @@ pub struct TcpClient;
 impl TcpConnect for TcpClient {
     type Error = std::io::Error;
     type Connection<'m> = FromFutures<BufReader<Async<TcpStream>>>;
-    type ConnectFuture<'m> = impl Future<Output = Result<Self::Connection<'m>, Self::Error>> + 'm
+    async fn connect<'m>(&'m self, remote: SocketAddr) -> Result<Self::Connection<'m>, Self::Error>
     where
-        Self: 'm;
-    fn connect<'m>(&'m self, remote: SocketAddr) -> Self::ConnectFuture<'m> {
-        async move {
-            match TcpStream::connect(format!("{}:{}", remote.ip(), remote.port())) {
-                Ok(stream) => {
-                    let stream = Async::new(stream).unwrap();
-                    let stream = futures::io::BufReader::new(stream);
-                    let stream = FromFutures::new(stream);
-                    Ok(stream)
-                }
-                Err(e) => Err(e),
+        Self: 'm,
+    {
+        match TcpStream::connect(format!("{}:{}", remote.ip(), remote.port())) {
+            Ok(stream) => {
+                let stream = Async::new(stream).unwrap();
+                let stream = futures::io::BufReader::new(stream);
+                let stream = FromFutures::new(stream);
+                Ok(stream)
             }
+            Err(e) => Err(e),
         }
     }
 }
