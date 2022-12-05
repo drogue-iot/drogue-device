@@ -19,5 +19,5 @@ defmt = ["es-wifi-driver/defmt"]
 default = ["l475e"]
 
 [patch.crates-io]
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }

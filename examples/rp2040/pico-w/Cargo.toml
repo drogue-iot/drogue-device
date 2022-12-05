@@ -43,17 +43,17 @@ defmt = ["dep:defmt"]
 default = ["defmt"]
 
 [patch.crates-io]
-embassy-executor = { git = "https://github.com/embassy-rs/embassy", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
-embassy-futures = { git = "https://github.com/embassy-rs/embassy", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
-embassy-sync = { git = "https://github.com/embassy-rs/embassy", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
-embassy-boot = { git = "https://github.com/embassy-rs/embassy", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
-embassy-lora = { git = "https://github.com/embassy-rs/embassy", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
-embassy-rp = { git = "https://github.com/embassy-rs/embassy", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
-embassy-net = { git = "https://github.com/embassy-rs/embassy", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
-embassy-usb-logger = { git = "https://github.com/embassy-rs/embassy", rev = "645fb66a5122bdc8180e0e65d076ca103431a426" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-futures = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-boot = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-net = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-usb-logger = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
 cyw43 = { git = "https://github.com/embassy-rs/cyw43.git", rev = "432240162ac4131aca8aa7de61d83492f2fe3d32"}
 drogue-device = { path = "../../../device" }
 
