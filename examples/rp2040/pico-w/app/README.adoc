@@ -2,7 +2,7 @@
 
 This example application runs out of the box on the Raspberry Pi Pico W.
 
-It uses the on board WiFi peripheral to send data to Drogue Cloud.
+It uses the on board WiFi peripheral to send data to Drogue Cloud. The firmware can be updated remotely using [Drogue Ajour](https://github.com/drogue-iot/drogue-ajour).
 
 === Prerequisites
 
@@ -15,7 +15,7 @@ It uses the on board WiFi peripheral to send data to Drogue Cloud.
 
 * To build the example, you need to have link:https://rustup.rs/[rustup].
 * To flash the example using a debug probe, you need `probe-run` installed (`cargo install probe-run`).
-* To flash the example using the UF2 bootloader on the pico, you can use the link:https://github.com/JoNil/elf2uf2-rs[elf2uf2] utility to convert the elf file into a .uf2 file that you can copy to the pico USB drive.
+* To flash the example using the UF2 bootloader on the pico, you need the link:https://infocenter.nordicsemi.com/index.jsp?topic=%2Fug_nrf_cltools%2FUG%2Fcltools%2Fnrf_mergehex.html[mergehex] utility to merge the application and bootloader into a single file. Use the link:https://github.com/JoNil/elf2uf2-rs[elf2uf2] utility to convert the elf file into a .uf2 file that you can copy to the pico USB drive.
 * A Drogue Cloud instance. See link:https://github.com/drogue-iot/drogue-cloud/[drogue-cloud] for how to run that, or use the link:https://sandbox.drogue.cloud/[sandbox] (requires TLS).
 
 
@@ -57,9 +57,16 @@ password = "mysecretpassword"
 ----
 probe-rs-cli download 43439A0.bin --format bin --chip RP2040 --base-address 0x10100000
 probe-rs-cli download 43439A0.clm_blob --format bin --chip RP2040 --base-address 0x10140000
+
 ----
 
-. Connect your debug probe and run:
+. Flash the bootloader:
++
+----
+cargo flash --manifest-path ../boot/Cargo.toml --release --chip RP2040
+----
+
+. Run the application:
 +
 ----
 cargo run --release
@@ -79,17 +86,28 @@ Once flashed, the device will attempt to join the WiFi network and send telemetr
 let fw = include_bytes!("../firmware/43439A0.bin");
 let clm = include_bytes!("../firmware/43439A0_clm.bin");
 ----
+. Build the bootloader:
++
+----
+cargo build --manifest-path ../boot/Cargo.toml --release
+----
 
-. Build the firmware
+. Build the firmware:
 +
 ----
 cargo build --release
 ----
 
+. Merge the files:
++
+----
+mergehex ../boot/target/thumbv6m-none-eabi/release/rp-bootloader target/thumbv6m-none-eabi/release/rp2040-pico-w -f ELF -o firmware.elf
+----
+
 . Convert the ELF output to UF2
 +
 ----
-elf2uf2-rs target/thumbv6m-none-eabi/release/rp2040-pico-w rp2040-pico-w.uf2
+elf2uf2-rs firmware.elf rp2040-pico-w.uf2
 ----
 
 . Hold the Pico W button while powering up the board, and copy the uf2 file to the USB partition
