@@ -14,7 +14,7 @@ resolver = "2"
 
 [dependencies]
 defmt = { version = "0.3", optional = true }
-defmt-rtt = { version = "0.3", optional = true }
+defmt-rtt = { version = "0.4", optional = true }
 static_cell = "1"
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nightly", "nrf52833"] }
 embassy-boot = { version = "0.1.0", default-features = false }

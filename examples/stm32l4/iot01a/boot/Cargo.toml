@@ -7,7 +7,7 @@ description = "Bootloader for STM32L4 iot01a boards"
 
 [dependencies]
 defmt = { version = "0.3", optional = true }
-defmt-rtt = { version = "0.3", optional = true }
+defmt-rtt = { version = "0.4", optional = true }
 
 embassy-stm32 = { version = "0.1.0", default-features = false, features = ["nightly"] }
 static_cell = "1"

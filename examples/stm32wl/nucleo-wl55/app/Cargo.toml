@@ -10,7 +10,7 @@ keywords = ["lorawan", "lora", "stm32wl", "iot", "stm32", "ota"]
 embedded-hal = { version = "0.2.4", features = ["unproven"] }
 
 defmt = "0.3"
-defmt-rtt = { version = "0.3", optional = true }
+defmt-rtt = { version = "0.4", optional = true }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 panic-reset = { version = "0.1.1", optional = true }
 

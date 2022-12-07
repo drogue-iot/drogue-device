@@ -15,7 +15,7 @@ resolver = "2"
 [dependencies]
 defmt = { version = "0.3" }
 panic-probe = { version = "0.3", features = ["print-defmt"] }
-defmt-rtt = { version = "0.3.2" }
+defmt-rtt = { version = "0.4" }
 
 
 static_cell = "1"

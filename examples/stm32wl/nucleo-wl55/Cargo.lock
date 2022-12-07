@@ -120,7 +120,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3ff7eb3f316534d83a8a2c3d1674ace8a5a71198eba31e2e2b597833f699b28"
 dependencies = [
- "critical-section 1.1.1",
+ "critical-section",
 ]
 
 [[package]]
@@ -129,7 +129,7 @@ version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d299f547288d6db8d5c3a2916f7b2f66134b15b8c1ac1c4357dd3b8752af7bb2"
 dependencies = [
- "critical-section 1.1.1",
+ "critical-section",
 ]
 
 [[package]]
@@ -157,12 +157,6 @@ checksum = "5deb64efa5bd81e31fcd1938615a6d98c82eafcbcd787162b6f63b91d6bac5b3"
 dependencies = [
  "rustc_version 0.2.3",
 ]
-
-[[package]]
-name = "bare-metal"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8fe8f5a8a398345e52358e18ff07cc17a568fbca5c6f73873d3a62056309603"
 
 [[package]]
 name = "base16ct"
@@ -351,9 +345,9 @@ version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70858629a458fdfd39f9675c4dc309411f2a3f83bede76988d81bf1a0ecee9e0"
 dependencies = [
- "bare-metal 0.2.5",
+ "bare-metal",
  "bitfield",
- "critical-section 1.1.1",
+ "critical-section",
  "embedded-hal 0.2.7",
  "volatile-register",
 ]
@@ -385,16 +379,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28d997bd5e24a5928dd43e46dc529867e207907fe0b239c3477d924f7f2ca320"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "critical-section"
-version = "0.2.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1706d332edc22aef4d9f23a6bb1c92360a403013c291af51247a737472dcae6"
-dependencies = [
- "bare-metal 1.0.0",
- "critical-section 1.1.1",
 ]
 
 [[package]]
@@ -563,19 +547,19 @@ checksum = "0db23d29972d99baa3de2ee2ae3f104c10564a6d05a346eb3f4c4f2c0525a06e"
 
 [[package]]
 name = "defmt-rtt"
-version = "0.3.2"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d2cbbbd58847d508d97629b32cd9730a2d28532f71e219714614406029f18b1"
+checksum = "609923761264dd99ed9c7d209718cda4631c5fe84668e0f0960124cbb844c49f"
 dependencies = [
- "critical-section 0.2.8",
+ "critical-section",
  "defmt",
 ]
 
 [[package]]
 name = "der"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13dd2ae565c0a381dde7fade45fce95984c568bdcb4700a4fdbe3175e0380b2f"
+checksum = "f1a467a65c5e759bce6e65eaf91cc29f466cdc57cb65777bd646872a8a1fd4de"
 dependencies = [
  "const-oid",
 ]
@@ -704,7 +688,7 @@ dependencies = [
  "atomic-polyfill 1.0.1",
  "cfg-if",
  "cortex-m",
- "critical-section 1.1.1",
+ "critical-section",
  "embassy-executor",
  "embassy-hal-common",
  "embassy-macros",
@@ -733,7 +717,7 @@ source = "git+https://github.com/embassy-rs/embassy.git?rev=5e94b8060b7f1af8118c
 dependencies = [
  "atomic-polyfill 1.0.1",
  "cfg-if",
- "critical-section 1.1.1",
+ "critical-section",
  "defmt",
  "embassy-macros",
  "embassy-time",
@@ -800,7 +784,7 @@ dependencies = [
  "cfg-if",
  "cortex-m",
  "cortex-m-rt",
- "critical-section 1.1.1",
+ "critical-section",
  "defmt",
  "embassy-cortex-m",
  "embassy-embedded-hal",
@@ -836,7 +820,7 @@ source = "git+https://github.com/embassy-rs/embassy.git?rev=5e94b8060b7f1af8118c
 dependencies = [
  "atomic-polyfill 1.0.1",
  "cfg-if",
- "critical-section 1.1.1",
+ "critical-section",
  "defmt",
  "embedded-io",
  "futures-util",
@@ -850,7 +834,7 @@ source = "git+https://github.com/embassy-rs/embassy.git?rev=5e94b8060b7f1af8118c
 dependencies = [
  "atomic-polyfill 1.0.1",
  "cfg-if",
- "critical-section 1.1.1",
+ "critical-section",
  "embassy-sync",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.9",
@@ -2043,9 +2027,9 @@ dependencies = [
 
 [[package]]
 name = "typenum"
-version = "1.15.0"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcf81ac59edc17cc8697ff311e8f5ef2d99fcbd9817b34cec66f90b6c3dfd987"
+checksum = "497961ef93d974e23eb6f433eb5fe1b7930b659f06d12dec6fc44a8f554c0bba"
 
 [[package]]
 name = "ucd-trie"

@@ -8,7 +8,7 @@ keywords = ["wifi", "hts221", "stm32l4", "networking", "iot", "stm32", "cloud", 
 
 [dependencies]
 defmt = "0.3"
-defmt-rtt = "0.3"
+defmt-rtt = "0.4"
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 panic-reset = { version = "0.1.1", optional = true }
 

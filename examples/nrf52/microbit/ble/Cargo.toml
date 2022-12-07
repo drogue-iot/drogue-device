@@ -30,7 +30,7 @@ futures     = { version = "0.3.17", default-features = false, features = ["async
 
 nrf-softdevice = { version = "0.1.0", features = ["ble-peripheral", "ble-gatt-server", "s113", "nrf52833", "critical-section-impl"] }
 nrf-softdevice-s113 = { version = "0.1.0" }
-defmt-rtt = { version = "0.3.2", optional = true }
+defmt-rtt = { version = "0.4", optional = true }
 
 [features]
 default = [
