@@ -15,7 +15,7 @@ log = "0.4"
 env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["log", "std"] }
 embedded-nal-async = "0.3.0"
-reqwless = { version = "0.3" }
+reqwless = { version = "0.4" }
 #drogue-tls = {path = "../../../../drogue-tls", default-features = false, features = ["async", "defmt"]}
 
 embassy-time = { version = "0.1.0", default-features = false, features = ["std"] }

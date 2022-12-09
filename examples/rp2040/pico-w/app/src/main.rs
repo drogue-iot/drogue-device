@@ -31,7 +31,7 @@ use {
     heapless::String,
     panic_probe as _,
     reqwless::{
-        client::{HttpClient, TlsConfig},
+        client::{HttpClient, TlsConfig, TlsVerify},
         request::{ContentType, Method},
     },
     static_cell::StaticCell,
@@ -151,7 +151,11 @@ async fn main(spawner: Spawner) {
     write!(url, "https://{}:{}/v1/pico", HOSTNAME, PORT).unwrap();
 
     let mut tls = [0; 16384];
-    let mut client = HttpClient::new_with_tls(&client, &DNS, TlsConfig::new(seed as u64, &mut tls));
+    let mut client = HttpClient::new_with_tls(
+        &client,
+        &DNS,
+        TlsConfig::new(seed as u64, &mut tls, TlsVerify::None),
+    );
 
     info!("Application initialized.");
     loop {

@@ -16,7 +16,7 @@ drogue-device = { path = "../../../device", features = ["log", "std"] }
 esp8266-at-driver = "0.2.0"
 embedded-io = { version = "0.4", features = ["async", "std", "futures"] }
 embedded-nal-async = "0.3.0"
-reqwless = { version = "0.3" }
+reqwless = { version = "0.4" }
 static_cell = "1"
 heapless = "0.7"
 

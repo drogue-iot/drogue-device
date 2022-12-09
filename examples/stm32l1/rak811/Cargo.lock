@@ -909,9 +909,9 @@ dependencies = [
 
 [[package]]
 name = "embedded-tls"
-version = "0.10.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a916cc9a8397e5c42fb41ed5e28016801a2aec2b3cac73a0574712bc831677d"
+checksum = "49e0c9109ccc19efc0f5b2ddcc3545f778e4ef8e8bfec87ee72cc0cb697bb1bf"
 dependencies = [
  "aes-gcm",
  "defmt",
@@ -1649,9 +1649,9 @@ checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 
 [[package]]
 name = "reqwless"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ce481fcd174cb6b2404a5eaf092b55c3904df0ab21c27e16b63f9046f6947bb"
+checksum = "2a28069debd1491de7a13968e577759dee5d3a62f69c6a21015aa0efbd0bf215"
 dependencies = [
  "base64",
  "embedded-io",

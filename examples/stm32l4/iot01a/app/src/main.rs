@@ -25,7 +25,7 @@ use {
     hts221_async::*,
     rand_core::RngCore,
     reqwless::{
-        client::{HttpClient, TlsConfig},
+        client::{HttpClient, TlsConfig, TlsVerify},
         request::{ContentType, Method, Response},
     },
     static_cell::StaticCell,
@@ -104,7 +104,11 @@ async fn main(spawner: embassy_executor::Spawner) {
     .unwrap();
 
     let mut tls = [0; 8000];
-    let mut client = HttpClient::new_with_tls(network, &dns::DNS, TlsConfig::new(seed, &mut tls));
+    let mut client = HttpClient::new_with_tls(
+        network,
+        &dns::DNS,
+        TlsConfig::new(seed, &mut tls, TlsVerify::None),
+    );
 
     loop {
         // Wait until we have a sensor reading

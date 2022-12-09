@@ -35,7 +35,7 @@ pub async fn ota_task<TCP, DNS, DEVICE, RESET>(
     RESET: FnOnce(),
 {
     let mut tls_buffer: [u8; 6000] = [0; 6000];
-    let tls = TlsConfig::new(rng_seed, &mut tls_buffer);
+    let tls = TlsConfig::new(rng_seed, &mut tls_buffer, reqwless::client::TlsVerify::None);
 
     let mut url: String<64> = String::new();
     let _ = write!(

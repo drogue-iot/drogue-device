@@ -19,7 +19,7 @@ use {
     nucleo_h743zi::*,
     rand_core::RngCore,
     reqwless::{
-        client::{HttpClient, TlsConfig},
+        client::{HttpClient, TlsConfig, TlsVerify},
         request::{ContentType, Method},
     },
     static_cell::StaticCell,
@@ -82,7 +82,11 @@ async fn main(spawner: embassy_executor::Spawner) {
     .unwrap();
 
     let mut tls = [0; 8000];
-    let mut client = HttpClient::new_with_tls(&network, &DNS, TlsConfig::new(seed, &mut tls));
+    let mut client = HttpClient::new_with_tls(
+        &network,
+        &DNS,
+        TlsConfig::new(seed, &mut tls, TlsVerify::None),
+    );
 
     defmt::info!("Application initialized. Press the blue button to send data");
     loop {

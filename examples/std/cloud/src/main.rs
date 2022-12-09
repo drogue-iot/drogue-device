@@ -50,8 +50,11 @@ async fn main(_spawner: embassy_executor::Spawner) {
 
     let mut tls = [0; 16384];
     let mut rng = rand::rngs::OsRng;
-    let mut client =
-        HttpClient::new_with_tls(&TcpClient, &DNS, TlsConfig::new(rng.next_u64(), &mut tls));
+    let mut client = HttpClient::new_with_tls(
+        &TcpClient,
+        &DNS,
+        TlsConfig::new(rng.next_u64(), &mut tls, TlsVerify::None),
+    );
 
     loop {
         let sensor_data = TemperatureData {
