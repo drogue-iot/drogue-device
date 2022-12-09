@@ -7,6 +7,6 @@ pub static DNS: StaticDnsResolver<'static, 2> = StaticDnsResolver::new(&[
     DnsEntry::new("localhost", IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
     DnsEntry::new(
         "http.sandbox.drogue.cloud",
-        IpAddr::V4(Ipv4Addr::new(65, 108, 135, 161)),
+        IpAddr::V4(Ipv4Addr::new(54, 220, 224, 19)),
     ),
 ]);
