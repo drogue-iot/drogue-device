@@ -13,6 +13,7 @@
 *** xref:examples/stm32wl/nucleo-wl55/app/README.adoc[STM32 Nucleo-WL55 LoRaWAN and OTA updates]
 ** Ota
 *** xref:examples/nrf52/microbit/ble/README.adoc[Microbit BLE Sensor example with DFU]
+*** xref:examples/rp2040/pico-w/app/README.adoc[Raspberry Pi Pico W reporting sensor data using WiFi]
 *** xref:examples/stm32l4/iot01a/app/README.adoc[STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi]
 *** xref:examples/stm32wl/nucleo-wl55/app/README.adoc[STM32 Nucleo-WL55 LoRaWAN and OTA updates]
 ** Std
@@ -20,6 +21,6 @@
 *** xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter]
 *** xref:examples/std/rak811/README.adoc[RAK811 LoRa Adapter with AT command firmware]
 ** Wifi
-*** xref:examples/rp2040/pico-w/README.adoc[Raspberry Pi Pico W reporting sensor data using WiFi]
+*** xref:examples/rp2040/pico-w/app/README.adoc[Raspberry Pi Pico W reporting sensor data using WiFi]
 *** xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter]
 *** xref:examples/stm32l4/iot01a/app/README.adoc[STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi]

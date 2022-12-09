@@ -1,3 +1,3 @@
-* xref:examples/rp2040/pico-w/README.adoc[Raspberry Pi Pico W reporting sensor data using WiFi] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/rp2040/pico-w[github])
+* xref:examples/rp2040/pico-w/app/README.adoc[Raspberry Pi Pico W reporting sensor data using WiFi] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/rp2040/pico-w/app[github])
 * xref:examples/std/esp8266/README.adoc[Example using a USB-to-Serial adapter + ESP8266 adapter] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/std/esp8266[github])
 * xref:examples/stm32l4/iot01a/app/README.adoc[STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32l4/iot01a/app[github])

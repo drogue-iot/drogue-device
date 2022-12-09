@@ -1,3 +1,4 @@
 * xref:examples/nrf52/microbit/ble/README.adoc[Microbit BLE Sensor example with DFU] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf52/microbit/ble[github])
+* xref:examples/rp2040/pico-w/app/README.adoc[Raspberry Pi Pico W reporting sensor data using WiFi] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/rp2040/pico-w/app[github])
 * xref:examples/stm32l4/iot01a/app/README.adoc[STM32 IoT Discovery board (iot01a) reporting sensor data using WiFi] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32l4/iot01a/app[github])
 * xref:examples/stm32wl/nucleo-wl55/app/README.adoc[STM32 Nucleo-WL55 LoRaWAN and OTA updates] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/stm32wl/nucleo-wl55/app[github])

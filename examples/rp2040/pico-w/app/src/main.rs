@@ -7,16 +7,21 @@
 use {
     core::{convert::Infallible, fmt::Write as _},
     defmt_rtt as _,
-    drogue_device::*,
+    drogue_device::{
+        firmware::FirmwareManager,
+        ota::{ota_task, OtaConfig},
+        *,
+    },
     embassy_executor::Spawner,
     embassy_net::{
         tcp::client::{TcpClient, TcpClientState},
         Stack, StackResources,
     },
     embassy_rp::{
+        flash::Flash,
         gpio::{Flex, Level, Output},
         interrupt,
-        peripherals::{PIN_23, PIN_24, PIN_25, PIN_29, USB},
+        peripherals::{FLASH, PIN_23, PIN_24, PIN_25, PIN_29, USB},
         usb::Driver,
     },
     embassy_time::{Duration, Timer},
@@ -37,11 +42,11 @@ const WIFI_PSK: &str = drogue::config!("wifi-password");
 
 mod fmt;
 
-#[path = "../../../common/dns.rs"]
+#[path = "../../../../common/dns.rs"]
 mod dns;
 use dns::*;
 
-#[path = "../../../common/temperature.rs"]
+#[path = "../../../../common/temperature.rs"]
 mod temperature;
 use temperature::*;
 
@@ -56,6 +61,10 @@ const USERNAME: &str = drogue::config!("username");
 
 /// HTTP password
 const PASSWORD: &str = drogue::config!("password");
+
+const FLASH_SIZE: usize = 2 * 1024 * 1024;
+const FIRMWARE_VERSION: &str = env!("CARGO_PKG_VERSION");
+const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 
 #[embassy_executor::task]
 async fn wifi_task(
@@ -133,6 +142,11 @@ async fn main(spawner: Spawner) {
     static CLIENT_STATE: TcpClientState<1, 1024, 1024> = TcpClientState::new();
     let client = TcpClient::new(&stack, &CLIENT_STATE);
 
+    // Launch updater task
+    spawner
+        .spawn(updater_task(stack, Flash::new(p.FLASH), seed))
+        .unwrap();
+
     let mut url: String<128> = String::new();
     write!(url, "https://{}:{}/v1/pico", HOSTNAME, PORT).unwrap();
 
@@ -175,6 +189,38 @@ async fn main(spawner: Spawner) {
         }
         info!("Telemetry reported successfully");
     }
+}
+
+#[embassy_executor::task]
+async fn updater_task(
+    stack: &'static Stack<cyw43::NetDevice<'static>>,
+    flash: Flash<'static, FLASH, FLASH_SIZE>,
+    seed: u64,
+) {
+    use {drogue_device::firmware::BlockingFlash, embassy_time::Timer};
+
+    static CLIENT_STATE: TcpClientState<1, 1024, 1024> = TcpClientState::new();
+    let client = TcpClient::new(&stack, &CLIENT_STATE);
+
+    let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
+    defmt::info!("Running firmware version {}", version);
+    let updater = embassy_boot_rp::FirmwareUpdater::default();
+
+    let device: FirmwareManager<BlockingFlash<Flash<'static, FLASH, FLASH_SIZE>>, 1, 2048> =
+        FirmwareManager::new(BlockingFlash::new(flash), updater, version.as_bytes());
+
+    let config = OtaConfig {
+        hostname: HOSTNAME.trim_end(),
+        port: PORT.parse::<u16>().unwrap(),
+        username: USERNAME.trim_end(),
+        password: PASSWORD.trim_end(),
+    };
+
+    Timer::after(Duration::from_secs(5)).await;
+    ota_task(client, &DNS, device, seed, config, || {
+        cortex_m::peripheral::SCB::sys_reset()
+    })
+    .await
 }
 
 ///////////////////////////////////////////////////////////////////////
