@@ -3,7 +3,7 @@ name = "rp2040-pico-w"
 version = "0.1.0"
 edition = "2021"
 description = "Raspberry Pi Pico W reporting sensor data using WiFi"
-keywords = ["wifi", "rpi", "networking", "iot", "picow", "cloud"]
+keywords = ["wifi", "rpi", "networking", "iot", "picow", "cloud", "ota"]
 
 [workspace]
 

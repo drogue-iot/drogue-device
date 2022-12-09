@@ -4,6 +4,7 @@ name = "rp-bootloader"
 version = "0.1.0"
 description = "Bootloader for RP2040 chips"
 license = "MIT OR Apache-2.0"
+keywords = ["rp2040", "boot"]
 
 [workspace]
 
