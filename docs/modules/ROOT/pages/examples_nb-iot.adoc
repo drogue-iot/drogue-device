@@ -1,0 +1,1 @@
+* xref:examples/nrf91/nrf9160-dk/coap/README.adoc[nRF9160 DevKit sending data to Drogue Cloud using CoAP over LTE] (link:https://github.com/drogue-iot/drogue-device/tree/main/examples/nrf91/nrf9160-dk/coap[github])

@@ -404,7 +404,7 @@ fn clean(path: PathBuf) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-const MAIN_CATEGORIES: [&str; 6] = ["ble", "ethernet", "wifi", "lorawan", "std", "ota"];
+const MAIN_CATEGORIES: [&str; 7] = ["ble", "ethernet", "wifi", "lorawan", "std", "ota", "nb-iot"];
 fn generate_examples_page() -> Result<(), anyhow::Error> {
     let nav = root_dir()
         .join("docs")

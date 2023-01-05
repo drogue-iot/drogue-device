@@ -1,0 +1,57 @@
+= Nordic nRF9160 Development Kit example
+
+This example application runs out of the box on the Nordic nRF9160 Development Kit. It uses the LTE-M modem of the nRF9160 to transmit messages to a CoAP endpoint using DTLS.
+
+The device uses DTLS with a pre-shared key to authenticate against the Drogue IoT Sandbox.
+
+== Prerequisites
+
+=== Hardware
+
+* Nordic nRF9160 Development Kit
+
+=== Software
+
+Make sure you have the latest versions (`cargo install <tool>`) of these tools:
+
+* link:https://rustup.rs/[rustup] - To compile the example with the correct toolchain.
+* link:https://crates.io/crates/probe-rs-cli[probe-rs-cli] - To flash the Secure Partition Manager to load applications from the secure mode.
+* link:https://crates.io/crates/probe-run[probe-run] version 0.3.3 - To run the example. NOTE: Some version of probe-run does not work with this board.
+
+=== Configuring
+
+Your device credentials will come from these entries in `~/.drogue/config.toml`:
+
+....
+username = "..."
+password = "..."
+....
+
+For Drogue Cloud, the username is stored in this form: `device_id@application`.
+
+The example `config.toml` file for connecting to public Drogue cloud sandbox application could look like this:
+
+```toml
+hostname = "coap.sandbox.drogue.cloud" # Replace with your own Drogue Cloud instance if you are not using the sandbox
+port = "5684"
+username = "device1@coap-workshop"
+password = "mysecretpassword"
+```
+
+NOTE: Make sure to create your application and device is created in link:https://sandbox.drogue.cloud[Drogue Cloud] with the correct credentials (Make sure you use link:https://book.drogue.io/drogue-cloud/dev/user-guide/management-device.html#_setting_tls_psk_credentials[pre-shared keys].)
+
+== Running
+
+. Download the link:https://github.com/tweedegolf/nrf9160-rust-starter/raw/main/src/zephyr.hex[bootloader] and flash it to the device:
++
+```
+probe-rs-cli download zephyr.hex --chip nRF9160_xxAA --format Hex
+```
+
+. Flash and run the application running the following command:
++
+```
+cargo run --release
+```
++
+This will flash the application and show the debug output as the application is running.
