@@ -1,0 +1,43 @@
+[package]
+name = "esp32-c3-rust-board"
+version = "0.1.0"
+edition = "2021"
+description = "Esp32 C3 Rust Board reporting sensor data using WiFi"
+keywords = ["wifi", "rpi", "networking", "iot", "picow", "cloud", "ota"]
+
+[workspace]
+
+[dependencies]
+embassy-executor = { version = "0.1.0",  features = ["integrated-timers", "nightly"] }
+embassy-time = { version = "0.1.0" }
+#drogue-device = { version = "0.1.0", default-features = false }
+#atomic-polyfill = "0.1.5"
+static_cell = "1.0"
+r0                 = "1.0.0"
+riscv              = "0.10.0"
+riscv-rt           = { version = "0.10.0" }
+esp-backtrace     = { version = "0.4.0", features = ["esp32c3", "panic-handler", "exception-handler", "print-uart"] }
+esp32c3-hal = { version = "0.4.0", features = ["embassy", "embassy-time-systick", "async"], git = "https://github.com/esp-rs/esp-hal.git", rev = "1f6803776c10cfbb0fa444b45d3d88f5b68d9121" }
+esp-println       = { version = "0.3.1", features = ["esp32c3"] }
+
+#reqwless = { version = "0.3", default-features = false, features = ["defmt"] }
+
+embedded-hal-1 = { package = "embedded-hal", version = "1.0.0-alpha.9" }
+embedded-hal-async = { version = "0.2.0-alpha.0" }
+embedded-io = { version = "0.4.0", features = ["async"] }
+#heapless = "0.7.15"
+#serde = { version = "=1.0.148", default-features = false, features = ["derive"] }
+#serde-json-core = { version = "0.4", default-features = false, features = ["heapless"] }
+embedded-nal-async = "0.3.0"
+#rand = { version = "0.8.4", default-features = false }
+
+[patch.crates-io]
+embassy-executor = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-futures = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-boot = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+#drogue-device = { path = "../../../../device" }
