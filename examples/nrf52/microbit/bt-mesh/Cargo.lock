@@ -108,7 +108,7 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 [[package]]
 name = "btmesh-bearer"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#47ccc65fde4ae8046d7cb2ca8793447535c04c8b"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
 dependencies = [
  "btmesh-common",
  "btmesh-pdu",
@@ -119,7 +119,7 @@ dependencies = [
 [[package]]
 name = "btmesh-common"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#47ccc65fde4ae8046d7cb2ca8793447535c04c8b"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
 dependencies = [
  "aes",
  "ccm",
@@ -138,7 +138,7 @@ dependencies = [
 [[package]]
 name = "btmesh-device"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#47ccc65fde4ae8046d7cb2ca8793447535c04c8b"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
 dependencies = [
  "btmesh-common",
  "btmesh-models",
@@ -153,7 +153,7 @@ dependencies = [
 [[package]]
 name = "btmesh-driver"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#47ccc65fde4ae8046d7cb2ca8793447535c04c8b"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
 dependencies = [
  "aes",
  "btmesh-bearer",
@@ -182,7 +182,7 @@ dependencies = [
 [[package]]
 name = "btmesh-macro"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#47ccc65fde4ae8046d7cb2ca8793447535c04c8b"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
 dependencies = [
  "btmesh-common",
  "darling 0.14.2",
@@ -196,7 +196,7 @@ dependencies = [
 [[package]]
 name = "btmesh-models"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#47ccc65fde4ae8046d7cb2ca8793447535c04c8b"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
 dependencies = [
  "btmesh-common",
  "defmt",
@@ -208,7 +208,7 @@ dependencies = [
 [[package]]
 name = "btmesh-nrf-softdevice"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#47ccc65fde4ae8046d7cb2ca8793447535c04c8b"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
 dependencies = [
  "atomic-polyfill 1.0.1",
  "btmesh-bearer",
@@ -231,7 +231,7 @@ dependencies = [
 [[package]]
 name = "btmesh-pdu"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#47ccc65fde4ae8046d7cb2ca8793447535c04c8b"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
 dependencies = [
  "btmesh-common",
  "defmt",
@@ -303,9 +303,9 @@ checksum = "e4c78c047431fee22c1a7bb92e00ad095a02a983affe4d8a72e2a2c62c1b94f3"
 
 [[package]]
 name = "cortex-m"
-version = "0.7.6"
+version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70858629a458fdfd39f9675c4dc309411f2a3f83bede76988d81bf1a0ecee9e0"
+checksum = "8ec610d8f49840a5b376c69663b6369e71f4b34484b9b2eb29fb918d92516cb9"
 dependencies = [
  "bare-metal",
  "bitfield",
@@ -779,9 +779,9 @@ dependencies = [
 
 [[package]]
 name = "fixed"
-version = "1.20.0"
+version = "1.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "418922d2c280b8c68f82699494cc8c48f392233233a9a8b9a48a57a36c0ad0ef"
+checksum = "f1965703169d4c3581f1d853e6a0bacf2ad9ba5d161f58ac331de95b37584a50"
 dependencies = [
  "az",
  "bytemuck",
@@ -891,9 +891,9 @@ dependencies = [
 
 [[package]]
 name = "half"
-version = "2.1.0"
+version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad6a9459c9c30b177b925162351f97e7d967c7ea8bab3b8352805327daf45554"
+checksum = "02b4af3693f1b705df946e9fe5631932443781d0aabb423b62fcd4d73f6d2fd0"
 dependencies = [
  "crunchy",
 ]
@@ -947,9 +947,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.138"
+version = "0.2.139"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db6d7e329c562c5dfab7a46a2afabc8b987ab9a4834c9d1ca04dc54c1546cef8"
+checksum = "201de327520df007757c1f0adce6e827fe8562fbc28bfd9c15571c66ca1f5f79"
 
 [[package]]
 name = "lock_api"
@@ -1050,7 +1050,7 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice-mbr"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#c13a83e30396a810e5c2883eb63ba60968144417"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#a4294d7434ca5a3bfc067cb7fbcb11854ec54834"
 
 [[package]]
 name = "nrf-softdevice-s140"
@@ -1149,9 +1149,9 @@ dependencies = [
 
 [[package]]
 name = "prettyplease"
-version = "0.1.21"
+version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c142c0e46b57171fe0c528bee8c5b7569e80f0c17e377cd0e30ea57dbc11bb51"
+checksum = "e97e3215779627f01ee256d2fad52f3d95e8e1c11e9fc6fd08f7cd455d5d5c78"
 dependencies = [
  "proc-macro2",
  "syn",
@@ -1183,18 +1183,18 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.47"
+version = "1.0.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ea3d908b0e36316caf9e9e2c4625cdde190a7e6f440d794667ed17a1855e725"
+checksum = "57a8eca9f9c4ffde41714334dee777596264c7825420f521abc92b5b5deb63a5"
 dependencies = [
  "unicode-ident",
 ]
 
 [[package]]
 name = "quote"
-version = "1.0.21"
+version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbe448f377a7d6961e30f5955f9b8d106c3f5e449d493ee1b125c1d43c2b5179"
+checksum = "8856d8364d252a14d474036ea1358d63c9e6965c8e5c1885c18f73d70bff9c7b"
 dependencies = [
  "proc-macro2",
 ]
@@ -1237,7 +1237,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
 dependencies = [
- "semver 1.0.14",
+ "semver 1.0.16",
 ]
 
 [[package]]
@@ -1269,9 +1269,9 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "1.0.14"
+version = "1.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e25dfac463d778e353db5be2449d1cce89bd6fd23c9f1ea21310ce6e5a1b29c4"
+checksum = "58bc9567378fc7690d6b2addae4e60ac2eeea07becb2c64b9f218b53865cba2a"
 
 [[package]]
 name = "semver-parser"
@@ -1281,18 +1281,18 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "serde"
-version = "1.0.149"
+version = "1.0.152"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "256b9932320c590e707b94576e3cc1f7c9024d0ee6612dfbcf1cb106cbe8e055"
+checksum = "bb7d1f0d3021d347a83e556fc4683dea2ea09d87bccdf88ff5c12545d89d5efb"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.149"
+version = "1.0.152"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4eae9b04cbffdfd550eb462ed33bc6a1b68c935127d008b27444d08380f94e4"
+checksum = "af487d118eecd09402d70a5d72551860e788df87b464af30e5ea6a38c75c541e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1343,9 +1343,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.105"
+version = "1.0.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60b9b43d45702de4c839cb9b51d9f529c5dd26a4aff255b42b1ebc03e88ee908"
+checksum = "1f4064b5b16e03ae50984a5a8ed5d4f8803e6bc1fd170a3cda91a1be4b18e3f5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1369,9 +1369,9 @@ dependencies = [
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.5"
+version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ceab39d59e4c9499d4e5a8ee0e2735b891bb7308ac83dfb4e80cad195c9f6f3"
+checksum = "84a22b9f218b40614adcb3f4ff08b703773ad44fa9423e4e0d346d5db86e4ebc"
 
 [[package]]
 name = "uuid"
