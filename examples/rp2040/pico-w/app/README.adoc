@@ -2,7 +2,7 @@
 
 This example application runs out of the box on the Raspberry Pi Pico W.
 
-It uses the on board WiFi peripheral to send data to Drogue Cloud. The firmware can be updated remotely using [Drogue Ajour](https://github.com/drogue-iot/drogue-ajour).
+It uses the on board WiFi peripheral to send data to Drogue Cloud. The firmware can be updated remotely using link:https://github.com/drogue-iot/drogue-ajour[Drogue Ajour].
 
 === Prerequisites
 
@@ -101,19 +101,21 @@ cargo build --release
 . Merge the files:
 +
 ----
-mergehex ../boot/target/thumbv6m-none-eabi/release/rp-bootloader target/thumbv6m-none-eabi/release/rp2040-pico-w -f ELF -o firmware.elf
+cp ../boot/target/thumbv6m-none-eabi/release/rp-bootloader boot.elf
+cp target/thumbv6m-none-eabi/release/rp2040-pico-w app.elf
+mergehex -m boot.elf app.elf -o firmware.hex
 ----
 
-. Convert the ELF output to UF2
+. Clone the link:https://github.com/microsoft/uf2[uf2conv] repo and run the conversion tool:
 +
 ----
-elf2uf2-rs firmware.elf rp2040-pico-w.uf2
+/path/to/uf2conv.py -f 0xe48bff56 -c firmware.hex -o firmware.uf2
 ----
 
 . Hold the Pico W button while powering up the board, and copy the uf2 file to the USB partition
 +
 ----
-cp rp2040-pico-w.uf2 /mount/point/of/usb/drive
+cp firmware.uf2 /mount/point/of/usb/drive
 ----
 +
 Once flashed, the device will attempt to join the WiFi network and send telemetry data to Drogue Cloud every 30 seconds.
