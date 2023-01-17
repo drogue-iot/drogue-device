@@ -1,0 +1,91 @@
+[package]
+edition = "2021"
+name = "nrf9160-dk-coap"
+version = "0.1.0"
+description = "nRF9160 DevKit sending data to Drogue Cloud using CoAP over LTE"
+keywords = ["nrf9160", "nrf", "lte-m", "nb-iot"]
+resolver = "2"
+
+[workspace]
+
+[dependencies]
+defmt = { version = "0.3" }
+panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
+panic-reset = { version = "0.1.1", optional = true }
+static_cell = "1"
+
+embassy-executor = { version = "0.1.0", default-features = false, features = ["integrated-timers", "nightly"] }
+embassy-time = { version = "0.1.0", default-features = false }
+embassy-sync = { version = "0.1.0", default-features = false }
+embassy-futures = { version = "0.1.0", default-features = false }
+embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf9160-ns", "gpiote", "time-driver-rtc1", "nightly", "unstable-traits"]}
+drogue-device = { version = "0.1.0", path = "../../../../device", default-features = false }
+
+cortex-m = { version = "0.7", default-features = false, features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7"
+heapless = "0.7"
+futures     = { version = "0.3.17", default-features = false, features = ["async-await"] }
+nrf-modem = "0.1"
+alloc-cortex-m = "0.4.2"
+tinyrlibc = { git = "https://github.com/rust-embedded-community/tinyrlibc.git" }
+libm = "0.2.5"
+coap-lite = { version = "0.11.2", default-features = false }
+
+defmt-rtt = { version = "0.4", optional = true }
+
+[features]
+default = [
+    "panic-reset"
+]
+debug = [
+    "panic-probe",
+    "embassy-executor/defmt",
+    "defmt-rtt",
+]
+
+[profile.dev]
+codegen-units = 1
+debug = 2
+debug-assertions = true
+incremental = false
+opt-level = 3
+overflow-checks = true
+
+[profile.release]
+codegen-units = 1
+debug = 2
+debug-assertions = false
+incremental = false
+lto = "fat"
+opt-level = 's'
+overflow-checks = false
+
+# do not optimize proc-macro crates = faster builds from scratch
+[profile.dev.build-override]
+codegen-units = 8
+debug = 2
+debug-assertions = false
+opt-level = 0
+overflow-checks = false
+
+[profile.release.build-override]
+codegen-units = 8
+debug = 2
+debug-assertions = false
+opt-level = 0 
+overflow-checks = false
+
+[patch.crates-io]
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+
+#embassy-executor = { path = "../../../../../../embassy/embassy" }
+#embassy-nrf = { path = "../../../../../../embassy/embassy-nrf" }
+#embassy-boot = { path = "../../../../../../embassy/embassy-boot/boot" }
+#embassy-boot-nrf = { path = "../../../../../../embassy/embassy-boot/nrf" }
