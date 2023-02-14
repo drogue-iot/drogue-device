@@ -25,7 +25,7 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 reqwless = { version = "0.3", default-features = false, features = ["defmt"] }
 
 cortex-m = { version = "0.7.6", features = ["critical-section-single-core"]}
-cortex-m-rt = "0.7.0"
+cortex-m-rt = "0.7.3"
 futures = { version = "0.3.17", default-features = false, features = ["async-await", "cfg-target-has-atomic", "unstable"] }
 rand_core = { version = "0.6.2", default-features = false }
 
