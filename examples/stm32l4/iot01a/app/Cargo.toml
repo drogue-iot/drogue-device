@@ -14,7 +14,7 @@ panic-reset = { version = "0.1.1", optional = true }
 
 drogue-device = { path = "../../../../device", default-features = false, features = ["time"] }
 static_cell = "1"
-cortex-m-rt = "0.7.0"
+cortex-m-rt = "0.7.3"
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde-json-core = { version = "0.4", default-features = false, features = ["heapless"] }
