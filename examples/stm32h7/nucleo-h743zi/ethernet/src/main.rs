@@ -19,8 +19,9 @@ use {
     nucleo_h743zi::*,
     rand_core::RngCore,
     reqwless::{
-        client::{HttpClient, TlsConfig},
-        request::{ContentType, Method},
+        client::{HttpClient, TlsConfig, TlsVerify},
+        headers::ContentType,
+        request::{Method, RequestBuilder},
     },
     static_cell::StaticCell,
 };
@@ -45,7 +46,7 @@ const USERNAME: &str = drogue::config!("username");
 /// HTTP password
 const PASSWORD: &str = drogue::config!("password");
 
-static RESOURCES: StaticCell<StackResources<1, 2, 8>> = StaticCell::new();
+static RESOURCES: StaticCell<StackResources<3>> = StaticCell::new();
 static STACK: StaticCell<Stack<EthernetDevice>> = StaticCell::new();
 
 #[embassy_executor::task]
@@ -63,7 +64,7 @@ async fn main(spawner: embassy_executor::Spawner) {
     rng.fill_bytes(&mut seed);
     let seed = u64::from_le_bytes(seed);
 
-    let config = embassy_net::ConfigStrategy::Dhcp;
+    let config = embassy_net::Config::Dhcp(Default::default());
 
     let resources = RESOURCES.init(StackResources::new());
 
@@ -81,8 +82,13 @@ async fn main(spawner: embassy_executor::Spawner) {
     )
     .unwrap();
 
-    let mut tls = [0; 8000];
-    let mut client = HttpClient::new_with_tls(&network, &DNS, TlsConfig::new(seed, &mut tls));
+    let mut tls_tx = [0; 1024];
+    let mut tls_rx = [0; 16384];
+    let mut client = HttpClient::new_with_tls(
+        &network,
+        &DNS,
+        TlsConfig::new(seed, &mut tls_rx, &mut tls_tx, TlsVerify::None),
+    );
 
     defmt::info!("Application initialized. Press the blue button to send data");
     loop {
@@ -97,21 +103,23 @@ async fn main(spawner: embassy_executor::Spawner) {
 
         let tx: String<128> = serde_json_core::ser::to_string(&sensor_data).unwrap();
         let mut rx_buf = [0; 1024];
-        let response = client
+
+        let mut req = client
             .request(Method::POST, &url)
             .await
             .unwrap()
             .basic_auth(USERNAME.trim_end(), PASSWORD.trim_end())
             .body(tx.as_bytes())
-            .content_type(ContentType::ApplicationJson)
-            .send(&mut rx_buf[..])
-            .await;
+            .content_type(ContentType::ApplicationJson);
+        let response = req.send(&mut rx_buf[..]).await;
 
         match response {
             Ok(response) => {
                 defmt::info!("Response status: {:?}", response.status);
-                if let Some(payload) = response.body {
-                    let _s = core::str::from_utf8(payload).unwrap();
+                if let Ok(body) = response.body() {
+                    if let Ok(payload) = body.read_to_end().await {
+                        let _s = core::str::from_utf8(payload).unwrap();
+                    }
                 }
             }
             Err(e) => {

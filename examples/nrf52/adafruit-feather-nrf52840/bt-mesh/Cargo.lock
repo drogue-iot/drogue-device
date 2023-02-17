@@ -173,9 +173,9 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.61"
+version = "0.1.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "705339e0e4a9690e2908d2b3d049d85682cf19fbd5782494498fbf7003a6a282"
+checksum = "1cd7fce9ba8c3c042128ce72d8b2ddbf3a05747efb67ea0313c635e10bda47a2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -234,6 +234,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
+name = "base64"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4a4ddaa51a5bc52a6948f74c06d20aaaddb71924eab79b8c97a8c556e942d6a"
+
+[[package]]
 name = "bit_field"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -263,7 +269,7 @@ dependencies = [
 [[package]]
 name = "btmesh-bearer"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#2ae144055eb41075d6dbbcb2b7a645b58854569a"
 dependencies = [
  "btmesh-common",
  "btmesh-pdu",
@@ -273,12 +279,12 @@ dependencies = [
 [[package]]
 name = "btmesh-common"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#2ae144055eb41075d6dbbcb2b7a645b58854569a"
 dependencies = [
  "aes 0.7.5",
  "ccm",
  "cmac 0.6.0",
- "darling 0.14.2",
+ "darling 0.14.3",
  "defmt",
  "hash32",
  "hash32-derive",
@@ -286,13 +292,13 @@ dependencies = [
  "rand_core",
  "serde",
  "syn",
- "uuid 1.2.2",
+ "uuid",
 ]
 
 [[package]]
 name = "btmesh-device"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#2ae144055eb41075d6dbbcb2b7a645b58854569a"
 dependencies = [
  "btmesh-common",
  "btmesh-models",
@@ -306,7 +312,7 @@ dependencies = [
 [[package]]
 name = "btmesh-driver"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#2ae144055eb41075d6dbbcb2b7a645b58854569a"
 dependencies = [
  "aes 0.7.5",
  "btmesh-bearer",
@@ -334,10 +340,10 @@ dependencies = [
 [[package]]
 name = "btmesh-macro"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#2ae144055eb41075d6dbbcb2b7a645b58854569a"
 dependencies = [
  "btmesh-common",
- "darling 0.14.2",
+ "darling 0.14.3",
  "prettyplease",
  "proc-macro2",
  "quote",
@@ -348,7 +354,7 @@ dependencies = [
 [[package]]
 name = "btmesh-models"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#2ae144055eb41075d6dbbcb2b7a645b58854569a"
 dependencies = [
  "btmesh-common",
  "heapless",
@@ -359,7 +365,7 @@ dependencies = [
 [[package]]
 name = "btmesh-nrf-softdevice"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#2ae144055eb41075d6dbbcb2b7a645b58854569a"
 dependencies = [
  "atomic-polyfill 1.0.1",
  "btmesh-bearer",
@@ -381,7 +387,7 @@ dependencies = [
 [[package]]
 name = "btmesh-pdu"
 version = "0.1.0"
-source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#f15f189acf5b15f8577415ead59e9150039bc39f"
+source = "git+https://github.com/drogue-iot/btmesh.git?branch=main#2ae144055eb41075d6dbbcb2b7a645b58854569a"
 dependencies = [
  "btmesh-common",
  "heapless",
@@ -391,9 +397,9 @@ dependencies = [
 
 [[package]]
 name = "bytemuck"
-version = "1.12.3"
+version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aaa3a8d9a1ca92e282c96a32d6511b695d7d994d1d102ba85d279f9b2756947f"
+checksum = "c041d3eab048880cb0b86b256447da3f18859a163c3b8d8893f4e6368abe6393"
 
 [[package]]
 name = "byteorder"
@@ -633,16 +639,6 @@ dependencies = [
 
 [[package]]
 name = "darling"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d706e75d87e35569db781a9b5e2416cff1236a47ed380831f959382ccd5f858"
-dependencies = [
- "darling_core 0.10.2",
- "darling_macro 0.10.2",
-]
-
-[[package]]
-name = "darling"
 version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a01d95850c592940db9b8194bc39f4bc0e89dee5c4265e4b1807c34a9aba453c"
@@ -653,26 +649,12 @@ dependencies = [
 
 [[package]]
 name = "darling"
-version = "0.14.2"
+version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0dd3cd20dc6b5a876612a6e5accfe7f3dd883db6d07acfbf14c128f61550dfa"
+checksum = "c0808e1bd8671fb44a113a14e13497557533369847788fa2ae912b6ebfce9fa8"
 dependencies = [
- "darling_core 0.14.2",
- "darling_macro 0.14.2",
-]
-
-[[package]]
-name = "darling_core"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0c960ae2da4de88a91b2d920c2a7233b400bc33cb28453a2987822d8392519b"
-dependencies = [
- "fnv",
- "ident_case",
- "proc-macro2",
- "quote",
- "strsim 0.9.3",
- "syn",
+ "darling_core 0.14.3",
+ "darling_macro 0.14.3",
 ]
 
 [[package]]
@@ -685,32 +667,21 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "strsim 0.10.0",
+ "strsim",
  "syn",
 ]
 
 [[package]]
 name = "darling_core"
-version = "0.14.2"
+version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a784d2ccaf7c98501746bf0be29b2022ba41fd62a2e622af997a03e9f972859f"
+checksum = "001d80444f28e193f30c2f293455da62dcf9a6b29918a4253152ae2b1de592cb"
 dependencies = [
  "fnv",
  "ident_case",
  "proc-macro2",
  "quote",
- "strsim 0.10.0",
- "syn",
-]
-
-[[package]]
-name = "darling_macro"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9b5a2f4ac4969822c62224815d069952656cadc7084fdca9751e6d959189b72"
-dependencies = [
- "darling_core 0.10.2",
- "quote",
+ "strsim",
  "syn",
 ]
 
@@ -727,11 +698,11 @@ dependencies = [
 
 [[package]]
 name = "darling_macro"
-version = "0.14.2"
+version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7618812407e9402654622dd402b0a89dff9ba93badd6540781526117b92aab7e"
+checksum = "b36230598a2d5de7ec1c6f51f72d8a99a9208daff41de2084d06e3fd3ea56685"
 dependencies = [
- "darling_core 0.14.2",
+ "darling_core 0.14.3",
  "quote",
  "syn",
 ]
@@ -906,18 +877,19 @@ dependencies = [
 [[package]]
 name = "embassy-boot"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5e94b8060b7f1af8118ca1f943181ce70be92057#5e94b8060b7f1af8118ca1f943181ce70be92057"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e3f8020c3bdf726dfa451b5b190f27191507a18f#e3f8020c3bdf726dfa451b5b190f27191507a18f"
 dependencies = [
  "defmt",
  "embassy-sync",
  "embedded-storage",
  "embedded-storage-async",
+ "signature",
 ]
 
 [[package]]
 name = "embassy-boot-nrf"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5e94b8060b7f1af8118ca1f943181ce70be92057#5e94b8060b7f1af8118ca1f943181ce70be92057"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e3f8020c3bdf726dfa451b5b190f27191507a18f#e3f8020c3bdf726dfa451b5b190f27191507a18f"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -934,7 +906,7 @@ dependencies = [
 [[package]]
 name = "embassy-cortex-m"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5e94b8060b7f1af8118ca1f943181ce70be92057#5e94b8060b7f1af8118ca1f943181ce70be92057"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e3f8020c3bdf726dfa451b5b190f27191507a18f#e3f8020c3bdf726dfa451b5b190f27191507a18f"
 dependencies = [
  "atomic-polyfill 1.0.1",
  "cfg-if",
@@ -949,7 +921,7 @@ dependencies = [
 [[package]]
 name = "embassy-embedded-hal"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5e94b8060b7f1af8118ca1f943181ce70be92057#5e94b8060b7f1af8118ca1f943181ce70be92057"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e3f8020c3bdf726dfa451b5b190f27191507a18f#e3f8020c3bdf726dfa451b5b190f27191507a18f"
 dependencies = [
  "defmt",
  "embassy-sync",
@@ -964,7 +936,7 @@ dependencies = [
 [[package]]
 name = "embassy-executor"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5e94b8060b7f1af8118ca1f943181ce70be92057#5e94b8060b7f1af8118ca1f943181ce70be92057"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e3f8020c3bdf726dfa451b5b190f27191507a18f#e3f8020c3bdf726dfa451b5b190f27191507a18f"
 dependencies = [
  "atomic-polyfill 1.0.1",
  "cfg-if",
@@ -985,7 +957,7 @@ checksum = "47e5367165d347c039360f784812f493b001583ab6a3dd8622f4ce9c30374ec3"
 [[package]]
 name = "embassy-hal-common"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5e94b8060b7f1af8118ca1f943181ce70be92057#5e94b8060b7f1af8118ca1f943181ce70be92057"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e3f8020c3bdf726dfa451b5b190f27191507a18f#e3f8020c3bdf726dfa451b5b190f27191507a18f"
 dependencies = [
  "num-traits",
 ]
@@ -993,7 +965,7 @@ dependencies = [
 [[package]]
 name = "embassy-lora"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5e94b8060b7f1af8118ca1f943181ce70be92057#5e94b8060b7f1af8118ca1f943181ce70be92057"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e3f8020c3bdf726dfa451b5b190f27191507a18f#e3f8020c3bdf726dfa451b5b190f27191507a18f"
 dependencies = [
  "bit_field",
  "embassy-hal-common",
@@ -1010,7 +982,7 @@ dependencies = [
 [[package]]
 name = "embassy-macros"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5e94b8060b7f1af8118ca1f943181ce70be92057#5e94b8060b7f1af8118ca1f943181ce70be92057"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e3f8020c3bdf726dfa451b5b190f27191507a18f#e3f8020c3bdf726dfa451b5b190f27191507a18f"
 dependencies = [
  "darling 0.13.4",
  "proc-macro2",
@@ -1021,7 +993,7 @@ dependencies = [
 [[package]]
 name = "embassy-nrf"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5e94b8060b7f1af8118ca1f943181ce70be92057#5e94b8060b7f1af8118ca1f943181ce70be92057"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e3f8020c3bdf726dfa451b5b190f27191507a18f#e3f8020c3bdf726dfa451b5b190f27191507a18f"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -1050,9 +1022,8 @@ dependencies = [
 [[package]]
 name = "embassy-sync"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5e94b8060b7f1af8118ca1f943181ce70be92057#5e94b8060b7f1af8118ca1f943181ce70be92057"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e3f8020c3bdf726dfa451b5b190f27191507a18f#e3f8020c3bdf726dfa451b5b190f27191507a18f"
 dependencies = [
- "atomic-polyfill 1.0.1",
  "cfg-if",
  "critical-section",
  "defmt",
@@ -1064,7 +1035,7 @@ dependencies = [
 [[package]]
 name = "embassy-time"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5e94b8060b7f1af8118ca1f943181ce70be92057#5e94b8060b7f1af8118ca1f943181ce70be92057"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e3f8020c3bdf726dfa451b5b190f27191507a18f#e3f8020c3bdf726dfa451b5b190f27191507a18f"
 dependencies = [
  "atomic-polyfill 1.0.1",
  "cfg-if",
@@ -1080,7 +1051,7 @@ dependencies = [
 [[package]]
 name = "embassy-usb-driver"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/embassy.git?rev=5e94b8060b7f1af8118ca1f943181ce70be92057#5e94b8060b7f1af8118ca1f943181ce70be92057"
+source = "git+https://github.com/embassy-rs/embassy.git?rev=e3f8020c3bdf726dfa451b5b190f27191507a18f#e3f8020c3bdf726dfa451b5b190f27191507a18f"
 dependencies = [
  "defmt",
 ]
@@ -1132,9 +1103,9 @@ dependencies = [
 
 [[package]]
 name = "embedded-nal-async"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dc8f5d837a6e95e9ecad9b5503fff6ef12e16407706abed1d33fc61eaf90da8"
+checksum = "27ce84f518ca912777ec143db235f4d615e3bf8d4e46d507d6ef12daf5b1df98"
 dependencies = [
  "embedded-io",
  "embedded-nal",
@@ -1159,9 +1130,9 @@ dependencies = [
 
 [[package]]
 name = "embedded-tls"
-version = "0.10.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a916cc9a8397e5c42fb41ed5e28016801a2aec2b3cac73a0574712bc831677d"
+checksum = "198699fbf7768a87254e773ea9b4b98bd47dbeca5d827422c92fe6f92defc6ee"
 dependencies = [
  "aes-gcm",
  "defmt",
@@ -1214,9 +1185,9 @@ dependencies = [
 
 [[package]]
 name = "fixed"
-version = "1.21.0"
+version = "1.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1965703169d4c3581f1d853e6a0bacf2ad9ba5d161f58ac331de95b37584a50"
+checksum = "55f3be4cf4fc227d3a63bb77512a2b7d364200b2a715f389155785c4d3345495"
 dependencies = [
  "az",
  "bytemuck",
@@ -1232,9 +1203,9 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "futures"
-version = "0.3.25"
+version = "0.3.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38390104763dc37a5145a53c29c63c1290b5d316d6086ec32c293f6736051bb0"
+checksum = "13e2792b0ff0340399d58445b88fd9770e3489eff258a4cbc1523418f12abf84"
 dependencies = [
  "futures-channel",
  "futures-core",
@@ -1246,9 +1217,9 @@ dependencies = [
 
 [[package]]
 name = "futures-channel"
-version = "0.3.25"
+version = "0.3.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52ba265a92256105f45b719605a571ffe2d1f0fea3807304b522c1d778f79eed"
+checksum = "2e5317663a9089767a1ec00a487df42e0ca174b61b4483213ac24448e4664df5"
 dependencies = [
  "futures-core",
  "futures-sink",
@@ -1256,9 +1227,9 @@ dependencies = [
 
 [[package]]
 name = "futures-core"
-version = "0.3.25"
+version = "0.3.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04909a7a7e4633ae6c4a9ab280aeb86da1236243a77b694a49eacd659a4bd3ac"
+checksum = "ec90ff4d0fe1f57d600049061dc6bb68ed03c7d2fbd697274c41805dcb3f8608"
 
 [[package]]
 name = "futures-intrusive"
@@ -1272,15 +1243,15 @@ dependencies = [
 
 [[package]]
 name = "futures-io"
-version = "0.3.25"
+version = "0.3.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00f5fb52a06bdcadeb54e8d3671f8888a39697dcb0b81b23b55174030427f4eb"
+checksum = "bfb8371b6fb2aeb2d280374607aeabfc99d95c72edfe51692e42d3d7f0d08531"
 
 [[package]]
 name = "futures-macro"
-version = "0.3.25"
+version = "0.3.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bdfb8ce053d86b91919aad980c220b1fb8401a9394410e1c289ed7e66b61835d"
+checksum = "95a73af87da33b5acf53acfebdc339fe592ecf5357ac7c0a7734ab9d8c876a70"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1289,21 +1260,21 @@ dependencies = [
 
 [[package]]
 name = "futures-sink"
-version = "0.3.25"
+version = "0.3.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39c15cf1a4aa79df40f1bb462fb39676d0ad9e366c2a33b590d7c66f4f81fcf9"
+checksum = "f310820bb3e8cfd46c80db4d7fb8353e15dfff853a127158425f31e0be6c8364"
 
 [[package]]
 name = "futures-task"
-version = "0.3.25"
+version = "0.3.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ffb393ac5d9a6eaa9d3fdf37ae2776656b706e200c8e16b1bdb227f5198e6ea"
+checksum = "dcf79a1bf610b10f42aea489289c5a2c478a786509693b80cd39c44ccd936366"
 
 [[package]]
 name = "futures-util"
-version = "0.3.25"
+version = "0.3.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "197676987abd2f9cadff84926f410af1c183608d36641465df73ae8211dc65d6"
+checksum = "9c1d6de3acfef38d2be4b1f543f553131788603495be83da675e180c8d6b7bd1"
 dependencies = [
  "futures-core",
  "futures-macro",
@@ -1424,6 +1395,12 @@ dependencies = [
  "spin",
  "stable_deref_trait",
 ]
+
+[[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hkdf"
@@ -1596,9 +1573,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "nourl"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3c12edfda65fe16901d81d3bd93fd18ac07078b5007875a1c3b0d35f7725269"
+
+[[package]]
 name = "nrf-softdevice"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=b71e18bc76d5704614d3eef27f3ce8e8c1f477d4#b71e18bc76d5704614d3eef27f3ce8e8c1f477d4"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=e8ee783fdd9674a061c2479d0a29e87e4e2a6d2f#e8ee783fdd9674a061c2479d0a29e87e4e2a6d2f"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
@@ -1619,25 +1602,25 @@ dependencies = [
 [[package]]
 name = "nrf-softdevice-macro"
 version = "0.1.0"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=b71e18bc76d5704614d3eef27f3ce8e8c1f477d4#b71e18bc76d5704614d3eef27f3ce8e8c1f477d4"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=e8ee783fdd9674a061c2479d0a29e87e4e2a6d2f#e8ee783fdd9674a061c2479d0a29e87e4e2a6d2f"
 dependencies = [
  "Inflector",
- "darling 0.10.2",
+ "darling 0.13.4",
  "proc-macro2",
  "quote",
  "syn",
- "uuid 0.8.2",
+ "uuid",
 ]
 
 [[package]]
 name = "nrf-softdevice-mbr"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#59a8249873e13bbedfb14ea90d01611aa8708fe0"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?branch=master#e8ee783fdd9674a061c2479d0a29e87e4e2a6d2f"
 
 [[package]]
 name = "nrf-softdevice-s140"
 version = "0.1.1"
-source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=b71e18bc76d5704614d3eef27f3ce8e8c1f477d4#b71e18bc76d5704614d3eef27f3ce8e8c1f477d4"
+source = "git+https://github.com/embassy-rs/nrf-softdevice.git?rev=e8ee783fdd9674a061c2479d0a29e87e4e2a6d2f#e8ee783fdd9674a061c2479d0a29e87e4e2a6d2f"
 
 [[package]]
 name = "nrf52840-pac"
@@ -1661,18 +1644,18 @@ dependencies = [
 
 [[package]]
 name = "num_enum"
-version = "0.5.7"
+version = "0.5.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf5395665662ef45796a4ff5486c5d41d29e0c09640af4c5f17fd94ee2c119c9"
+checksum = "3e0072973714303aa6e3631c7e8e777970cf4bdd25dc4932e41031027b8bcc4e"
 dependencies = [
  "num_enum_derive",
 ]
 
 [[package]]
 name = "num_enum_derive"
-version = "0.5.7"
+version = "0.5.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b0498641e53dd6ac1a4f22547548caa6864cc4933784319cd1775271c5a46ce"
+checksum = "0629cbd6b897944899b1f10496d9c4a7ac5878d45fd61bc22e9e79bfbbc29597"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1681,9 +1664,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.17.0"
+version = "1.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f61fba1741ea2b3d6a1e3178721804bb716a68a6aeba1149b5d52e3d464ea66"
+checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
 
 [[package]]
 name = "opaque-debug"
@@ -1747,9 +1730,9 @@ checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
 
 [[package]]
 name = "pest"
-version = "2.5.3"
+version = "2.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4257b4a04d91f7e9e6290be5d3da4804dd5784fafde3a497d73eb2b4a158c30a"
+checksum = "028accff104c4e513bad663bbcd2ad7cfd5304144404c31ed0a77ac103d00660"
 dependencies = [
  "thiserror",
  "ucd-trie",
@@ -1757,9 +1740,9 @@ dependencies = [
 
 [[package]]
 name = "pest_derive"
-version = "2.5.3"
+version = "2.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "241cda393b0cdd65e62e07e12454f1f25d57017dcc514b1514cd3c4645e3a0a6"
+checksum = "2ac3922aac69a40733080f53c1ce7f91dcf57e1a5f6c52f421fadec7fbdc4b69"
 dependencies = [
  "pest",
  "pest_generator",
@@ -1767,9 +1750,9 @@ dependencies = [
 
 [[package]]
 name = "pest_generator"
-version = "2.5.3"
+version = "2.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46b53634d8c8196302953c74d5352f33d0c512a9499bd2ce468fc9f4128fa27c"
+checksum = "d06646e185566b5961b4058dd107e0a7f56e77c3f484549fb119867773c0f202"
 dependencies = [
  "pest",
  "pest_meta",
@@ -1780,9 +1763,9 @@ dependencies = [
 
 [[package]]
 name = "pest_meta"
-version = "2.5.3"
+version = "2.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ef4f1332a8d4678b41966bb4cc1d0676880e84183a1ecc3f4b69f03e99c7a51"
+checksum = "e6f60b2ba541577e2a0c307c8f39d1439108120eb7903adeb6497fa880c59616"
 dependencies = [
  "once_cell",
  "pest",
@@ -1815,9 +1798,9 @@ dependencies = [
 
 [[package]]
 name = "postcard"
-version = "1.0.2"
+version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c2b180dc0bade59f03fd005cb967d3f1e5f69b13922dad0cd6e047cb8af2363"
+checksum = "cfa512cd0d087cc9f99ad30a1bf64795b67871edbead083ffc3a4dfafa59aa00"
 dependencies = [
  "cobs",
  "defmt",
@@ -1867,9 +1850,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.50"
+version = "1.0.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ef7d57beacfaf2d8aee5937dab7b7f28de3cb8b1828479bb5de2a7106f2bae2"
+checksum = "5d727cae5b39d21da60fa540906919ad737832fe0b1c165da3a34d6548c849d6"
 dependencies = [
  "unicode-ident",
 ]
@@ -1918,16 +1901,18 @@ checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 
 [[package]]
 name = "reqwless"
-version = "0.3.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ce481fcd174cb6b2404a5eaf092b55c3904df0ab21c27e16b63f9046f6947bb"
+checksum = "5f5b2367f8a6a1847fa4e32f03caad161a4607a22ba0540ad952a572c8229dc4"
 dependencies = [
- "base64",
+ "base64 0.21.0",
  "embedded-io",
  "embedded-nal-async",
  "embedded-tls",
  "heapless",
+ "hex",
  "httparse",
+ "nourl",
  "rand_chacha",
  "rand_core",
 ]
@@ -1938,7 +1923,7 @@ version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "88073939a61e5b7680558e6be56b419e208420c2adb92be54921fa6b72283f1a"
 dependencies = [
- "base64",
+ "base64 0.13.1",
  "bitflags",
  "serde",
 ]
@@ -2061,9 +2046,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.91"
+version = "1.0.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "877c235533714907a8c2464236f5c4b2a17262ef1bd71f38f35ea592c8da6883"
+checksum = "cad406b69c91885b5107daf2c29572f6c8cdb3c66826821e286c533490c0bc76"
 dependencies = [
  "itoa",
  "ryu",
@@ -2082,10 +2067,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "spin"
-version = "0.9.4"
+name = "signature"
+version = "1.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f6002a767bff9e83f8eeecf883ecb8011875a21ae8da43bffb817a57e78cc09"
+checksum = "74233d3b3b2f6d4b006dc19dee745e73e2a6bfb6f93607cd3b02bd5b00797d7c"
+
+[[package]]
+name = "spin"
+version = "0.9.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7dccf47db1b41fa1573ed27ccf5e08e3ca771cb994f776668c5ebda893b248fc"
 dependencies = [
  "lock_api",
 ]
@@ -2104,12 +2095,6 @@ checksum = "e4c37c250d21f53fa7165e76e5401d7e6539c211a8d2cf449e3962956a5cc2ce"
 dependencies = [
  "atomic-polyfill 1.0.1",
 ]
-
-[[package]]
-name = "strsim"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6446ced80d6c486436db5c078dde11a9f73d42b57fb273121e160b84f63d894c"
 
 [[package]]
 name = "strsim"
@@ -2156,9 +2141,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.5.10"
+version = "0.5.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1333c76748e868a4d9d1017b5ab53171dfd095f70c712fdb4653a406547f598f"
+checksum = "f4f7f0dd8d50a853a531c426359045b1998f04219d88799810762cd4ad314234"
 dependencies = [
  "serde",
 ]
@@ -2202,15 +2187,9 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "0.8.2"
+version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
-
-[[package]]
-name = "uuid"
-version = "1.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "422ee0de9031b5b948b97a8fc04e3aa35230001a722ddd27943e0be31564ce4c"
+checksum = "1674845326ee10d37ca60470760d4288a6f80f304007d92e5c53bab78c9cfd79"
 
 [[package]]
 name = "vcell"

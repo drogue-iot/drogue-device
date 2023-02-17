@@ -6,7 +6,7 @@ use {
     embedded_update::{DeviceStatus, FirmwareDevice},
     heapless::String,
     http::HttpUpdater,
-    reqwless::client::TlsConfig,
+    reqwless::client::{TlsConfig, TlsVerify},
 };
 
 mod http;
@@ -34,8 +34,14 @@ pub async fn ota_task<TCP, DNS, DEVICE, RESET>(
     DEVICE: FirmwareDevice,
     RESET: FnOnce(),
 {
-    let mut tls_buffer: [u8; 6000] = [0; 6000];
-    let tls = TlsConfig::new(rng_seed, &mut tls_buffer);
+    let mut tls_rx_buffer: [u8; 6000] = [0; 6000];
+    let mut tls_tx_buffer: [u8; 1024] = [0; 1024];
+    let tls = TlsConfig::new(
+        rng_seed,
+        &mut tls_rx_buffer,
+        &mut tls_tx_buffer,
+        TlsVerify::None,
+    );
 
     let mut url: String<64> = String::new();
     let _ = write!(

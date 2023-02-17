@@ -1,7 +1,9 @@
+use embassy_boot::FirmwareUpdaterError;
+
 use {
     embassy_boot::{AlignedBuffer, FirmwareUpdater, FirmwareWriter},
     embassy_embedded_hal::adapter::BlockingAsync,
-    embedded_storage::nor_flash::{NorFlash, NorFlashError, NorFlashErrorKind, ReadNorFlash},
+    embedded_storage::nor_flash::{NorFlash, NorFlashErrorKind, ReadNorFlash},
     embedded_storage_async::nor_flash::{AsyncNorFlash, AsyncReadNorFlash},
     embedded_update::{FirmwareDevice, FirmwareStatus},
     heapless::Vec,
@@ -17,6 +19,12 @@ pub enum Error {
 
 impl From<NorFlashErrorKind> for Error {
     fn from(_: NorFlashErrorKind) -> Self {
+        Error::Flash
+    }
+}
+
+impl From<FirmwareUpdaterError> for Error {
+    fn from(_: FirmwareUpdaterError) -> Self {
         Error::Flash
     }
 }
@@ -86,8 +94,7 @@ where
         self.updater
             // TODO: Support other word sizes
             .mark_booted(self.config.state(), &mut self.buffer.0)
-            .await
-            .map_err(|e| e.kind())?;
+            .await?;
         Ok(())
     }
 
@@ -143,8 +150,7 @@ where
         // Ensure buffer flushed before we
         self.updater
             .mark_updated(self.config.state(), &mut self.buffer.0)
-            .await
-            .map_err(|e| e.kind())?;
+            .await?;
         Ok(())
     }
 }

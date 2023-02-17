@@ -3,7 +3,9 @@ use {
     embedded_update::{Command, Status, UpdateService},
     reqwless::{
         client::HttpClient,
-        request::{ContentType, Method, Status as ResponseStatus},
+        headers::ContentType,
+        request::{Method, RequestBuilder},
+        response::Status as ResponseStatus,
         Error as HttpError,
     },
     serde::Serialize,
@@ -77,23 +79,24 @@ where
         let size = writer.bytes_written();
         debug!("Status payload is {} bytes", size);
 
-        let response = self
+        let req = self
             .client
             .request(Method::POST, self.url)
             .await
-            .map_err(Error::Http)?
+            .map_err(Error::Http)?;
+
+        let mut req = req
             .body(&payload[..size])
             .basic_auth(self.username, self.password)
-            .content_type(ContentType::ApplicationCbor)
-            .send(&mut self.buf[..])
-            .await
-            .map_err(Error::Http)?;
+            .content_type(ContentType::ApplicationCbor);
+
+        let response = req.send(&mut self.buf[..]).await.map_err(Error::Http)?;
 
         if response.status == ResponseStatus::Ok
             || response.status == ResponseStatus::Accepted
             || response.status == ResponseStatus::Created
         {
-            if let Some(payload) = response.body {
+            if let Ok(payload) = response.body().map_err(Error::Http)?.read_to_end().await {
                 let command: Command<'m> =
                     serde_cbor::de::from_mut_slice(payload).map_err(Error::Codec)?;
                 Ok(command)

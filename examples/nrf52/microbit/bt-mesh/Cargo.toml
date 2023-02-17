@@ -73,17 +73,17 @@ overflow-checks = false
 #overflow-checks = false
 
 [patch.crates-io]
-embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "b71e18bc76d5704614d3eef27f3ce8e8c1f477d4" }
-nrf-softdevice-s140 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "b71e18bc76d5704614d3eef27f3ce8e8c1f477d4" }
-nrf-softdevice-macro = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "b71e18bc76d5704614d3eef27f3ce8e8c1f477d4" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "e8ee783fdd9674a061c2479d0a29e87e4e2a6d2f" }
+nrf-softdevice-s140 = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "e8ee783fdd9674a061c2479d0a29e87e4e2a6d2f" }
+nrf-softdevice-macro = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "e8ee783fdd9674a061c2479d0a29e87e4e2a6d2f" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
 
 btmesh-common = { git = "https://github.com/drogue-iot/btmesh.git", branch = "main" }
 btmesh-models = { git = "https://github.com/drogue-iot/btmesh.git", branch = "main" }

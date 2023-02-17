@@ -23,9 +23,9 @@ cortex-m = { version = "0.7", optional = true }
 
 # Networking dependencies
 embedded-nal = "0.6.0"
-embedded-nal-async = "0.3.0"
+embedded-nal-async = "0.4.0"
 embedded-update = { version = "0.10", default-features = false, features = ["nightly"] }
-embedded-tls = { version = "0.10", default-features = false, features = ["async"] }
+embedded-tls = { version = "0.12", default-features = false, features = ["async"] }
 
 rand_core = { version = "0.6.2", default-features = false }
 rand = { version = "0.8.4", default-features = false, features = ["small_rng"], optional = true }
@@ -47,7 +47,7 @@ log = { version = "0.4", optional = true }
 defmt = { version = "0.3", optional = true }
 
 # HTTP dependencies
-reqwless = "0.3.0"
+reqwless = "0.5.0"
 
 # Handy macros, e.g. drogue::config
 drogue-device-macros = { path = "../macros" }

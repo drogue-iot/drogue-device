@@ -10,7 +10,10 @@ use defmt_rtt as _;
 
 use {
     embassy_boot_nrf::*,
-    embassy_nrf::nvmc::{Nvmc, PAGE_SIZE},
+    embassy_nrf::{
+        nvmc::{Nvmc, PAGE_SIZE},
+        wdt,
+    },
 };
 
 #[entry]
@@ -26,8 +29,16 @@ fn main() -> ! {
     */
 
     let mut bl = BootLoader::default();
+    let mut wdt_config = wdt::Config::default();
+    wdt_config.timeout_ticks = 32768 * 5; // timeout seconds
+    wdt_config.run_during_sleep = true;
+    wdt_config.run_during_debug_halt = false;
     let start = bl.prepare(&mut SingleFlashConfig::new(
-        &mut BootFlash::<_, PAGE_SIZE>::new(WatchdogFlash::start(Nvmc::new(p.NVMC), p.WDT, 5)),
+        &mut BootFlash::<_, PAGE_SIZE>::new(WatchdogFlash::start(
+            Nvmc::new(p.NVMC),
+            p.WDT,
+            wdt_config,
+        )),
     ));
     unsafe { bl.load(start) }
 }

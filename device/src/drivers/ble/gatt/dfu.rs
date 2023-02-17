@@ -42,11 +42,11 @@ where
 {
     pub fn new(service: &'a FirmwareService, dfu: F, version: &[u8], mtu: u8) -> Result<Self, ()> {
         service
-            .version_set(Vec::from_slice(version)?)
+            .version_set(&Vec::from_slice(version)?)
             .map_err(|_| ())?;
-        service.next_version_set(Vec::new()).map_err(|_| ())?;
-        service.offset_set(0).map_err(|_| ())?;
-        service.mtu_set(mtu).map_err(|_| ())?;
+        service.next_version_set(&Vec::new()).map_err(|_| ())?;
+        service.offset_set(&0).map_err(|_| ())?;
+        service.mtu_set(&mtu).map_err(|_| ())?;
         Ok(Self { service, dfu })
     }
 
@@ -56,7 +56,7 @@ where
                 info!("Write firmware control: {}", value);
                 let next_version = self.service.next_version_get().unwrap();
                 if *value == 1 {
-                    self.service.offset_set(0).ok();
+                    self.service.offset_set(&0).ok();
                     self.dfu.start(&next_version[..]).await.map_err(|_| ())?;
                 } else if *value == 2 {
                     let r = self.dfu.update(&next_version[..], &[]).await;
@@ -75,7 +75,7 @@ where
                     .write(offset, value)
                     .await
                     .map_or(Err(()), |_| Ok(()))?;
-                self.service.offset_set(offset + value.len() as u32).ok();
+                self.service.offset_set(&(offset + value.len() as u32)).ok();
             }
             _ => {}
         }

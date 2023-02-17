@@ -9,8 +9,10 @@ use cortex_m_rt::{entry, exception};
 use defmt_rtt as _;
 
 use {
-    adafruit_feather_nrf52::*, embassy_boot::FlashConfig, embassy_boot_nrf::*,
-    embassy_nrf::nvmc::Nvmc,
+    adafruit_feather_nrf52::*,
+    embassy_boot::FlashConfig,
+    embassy_boot_nrf::*,
+    embassy_nrf::{nvmc::Nvmc, wdt},
 };
 
 #[entry]
@@ -27,7 +29,11 @@ fn main() -> ! {
 
     let board = AdafruitFeatherNrf52::default();
     let qspi = board.external_flash.configure(interrupt::take!(QSPI));
-    let nvmc = WatchdogFlash::start(Nvmc::new(board.nvmc), board.wdt, 5);
+    let mut wdt_config = wdt::Config::default();
+    wdt_config.timeout_ticks = 32768 * 5; // timeout seconds
+    wdt_config.run_during_sleep = true;
+    wdt_config.run_during_debug_halt = false;
+    let nvmc = WatchdogFlash::start(Nvmc::new(board.nvmc), board.wdt, wdt_config);
     let nvmc = BootFlash::new(nvmc);
     let qspi = BootFlash::new(qspi);
     let start = bl.prepare(&mut ExampleFlashConfig { nvmc, qspi });

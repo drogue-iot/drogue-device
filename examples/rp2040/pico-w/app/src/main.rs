@@ -31,8 +31,9 @@ use {
     heapless::String,
     panic_probe as _,
     reqwless::{
-        client::{HttpClient, TlsConfig},
-        request::{ContentType, Method},
+        client::{HttpClient, TlsConfig, TlsVerify},
+        headers::ContentType,
+        request::{Method, RequestBuilder},
     },
     static_cell::StaticCell,
 };
@@ -78,7 +79,7 @@ async fn wifi_task(
 }
 
 #[embassy_executor::task]
-async fn net_task(stack: &'static Stack<cyw43::NetDevice<'static>>) -> ! {
+async fn net_task(stack: &'static Stack<cyw43::NetDriver<'static>>) -> ! {
     stack.run().await
 }
 
@@ -116,25 +117,28 @@ async fn main(spawner: Spawner) {
 
     static STATE: StaticCell<cyw43::State> = StaticCell::new();
     let state = STATE.init(cyw43::State::new());
-    let (mut control, runner) = cyw43::new(state, pwr, spi, fw).await;
+    let (net_device, mut control, runner) = cyw43::new(state, pwr, spi, fw).await;
 
     spawner.spawn(wifi_task(runner)).unwrap();
 
-    let net_device = control.init(clm).await;
+    control.init(clm).await;
+    control
+        .set_power_management(cyw43::PowerManagementMode::PowerSave)
+        .await;
 
     control
         .join_wpa2(WIFI_SSID.trim_end(), WIFI_PSK.trim_end())
         .await;
 
-    let config = embassy_net::ConfigStrategy::Dhcp;
+    let config = embassy_net::Config::Dhcp(Default::default());
 
     // Generate random seed
     let seed = 0x0123_4567_89ab_cdef; // chosen by fair dice roll. guarenteed to be random.
 
-    static RESOURCES: StaticCell<StackResources<1, 2, 8>> = StaticCell::new();
+    static RESOURCES: StaticCell<StackResources<3>> = StaticCell::new();
     let resources = RESOURCES.init(StackResources::new());
 
-    static STACK: StaticCell<Stack<cyw43::NetDevice<'static>>> = StaticCell::new();
+    static STACK: StaticCell<Stack<cyw43::NetDriver<'static>>> = StaticCell::new();
     let stack = STACK.init(Stack::new(net_device, config, resources, seed));
 
     unwrap!(spawner.spawn(net_task(stack)));
@@ -150,8 +154,13 @@ async fn main(spawner: Spawner) {
     let mut url: String<128> = String::new();
     write!(url, "https://{}:{}/v1/pico", HOSTNAME, PORT).unwrap();
 
-    let mut tls = [0; 16384];
-    let mut client = HttpClient::new_with_tls(&client, &DNS, TlsConfig::new(seed as u64, &mut tls));
+    let mut tls_rx = [0; 16384];
+    let mut tls_tx = [0; 1024];
+    let mut client = HttpClient::new_with_tls(
+        &client,
+        &DNS,
+        TlsConfig::new(seed as u64, &mut tls_rx, &mut tls_tx, TlsVerify::None),
+    );
 
     info!("Application initialized.");
     loop {
@@ -166,21 +175,22 @@ async fn main(spawner: Spawner) {
 
         let tx: String<128> = serde_json_core::ser::to_string(&sensor_data).unwrap();
         let mut rx_buf = [0; 1024];
-        let response = client
+        let mut req = client
             .request(Method::POST, &url)
             .await
             .unwrap()
             .basic_auth(USERNAME.trim_end(), PASSWORD.trim_end())
             .body(tx.as_bytes())
-            .content_type(ContentType::ApplicationJson)
-            .send(&mut rx_buf[..])
-            .await;
+            .content_type(ContentType::ApplicationJson);
+        let response = req.send(&mut rx_buf[..]).await;
 
         match response {
             Ok(response) => {
                 info!("Response status: {:?}", response.status);
-                if let Some(payload) = response.body {
-                    let _s = core::str::from_utf8(payload).unwrap();
+                if let Ok(body) = response.body() {
+                    if let Ok(payload) = body.read_to_end().await {
+                        let _s = core::str::from_utf8(payload).unwrap();
+                    }
                 }
             }
             Err(e) => {
@@ -193,7 +203,7 @@ async fn main(spawner: Spawner) {
 
 #[embassy_executor::task]
 async fn updater_task(
-    stack: &'static Stack<cyw43::NetDevice<'static>>,
+    stack: &'static Stack<cyw43::NetDriver<'static>>,
     flash: Flash<'static, FLASH, FLASH_SIZE>,
     seed: u64,
 ) {

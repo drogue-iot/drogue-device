@@ -32,11 +32,7 @@ impl<'a, const N: usize> StaticDnsResolver<'a, N> {
 impl<'a, const N: usize> Dns for StaticDnsResolver<'a, N> {
     type Error = DnsError;
 
-    async fn get_host_by_name<'m>(
-        &self,
-        host: &str,
-        _addr_type: AddrType,
-    ) -> Result<IpAddr, DnsError> {
+    async fn get_host_by_name(&self, host: &str, _addr_type: AddrType) -> Result<IpAddr, DnsError> {
         for entry in self.entries.iter() {
             if entry.host == host {
                 return Ok(entry.ip);

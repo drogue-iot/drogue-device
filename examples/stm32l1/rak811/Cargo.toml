@@ -28,14 +28,14 @@ embassy-executor = { version = "0.1.0", default-features = false, features = ["i
 embassy-time = { version = "0.1.0", default-features = false } 
 
 [patch.crates-io]
-embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
 
 #embassy-executor = { path = "../../../../../embassy/embassy" }
 #embassy-stm32 = { path = "../../../../../embassy/embassy-stm32" }

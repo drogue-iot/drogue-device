@@ -14,7 +14,7 @@ use embassy_stm32::{
 use static_cell::StaticCell;
 
 use embassy_stm32::{
-    eth::{generic_smi::GenericSMI, Ethernet, State},
+    eth::{generic_smi::GenericSMI, Ethernet, PacketQueue},
     peripherals::ETH,
 };
 
@@ -23,7 +23,7 @@ pub type LedGreen = Output<'static, PB0>;
 pub type LedYellow = Output<'static, PE1>;
 pub type UserButton = ExtiInput<'static, PC13>;
 
-pub type EthernetDevice = Ethernet<'static, ETH, GenericSMI, 4, 4>;
+pub type EthernetDevice = Ethernet<'static, ETH, GenericSMI>;
 
 pub type Rng = HalRng<'static, RNG>;
 
@@ -47,16 +47,14 @@ impl Default for NucleoH743 {
 impl NucleoH743 {
     fn new(config: Config) -> Self {
         let p = embassy_stm32::init(config);
-        let eth = unsafe {
-            static ETH_STATE: StaticCell<State<'static, ETH, 4, 4>> = StaticCell::new();
-            let eth_int = interrupt::take!(ETH);
-            let mac_addr = [0x10; 6];
-            let state = ETH_STATE.init(State::new());
-            Ethernet::new(
-                state, p.ETH, eth_int, p.PA1, p.PA2, p.PC1, p.PA7, p.PC4, p.PC5, p.PG13, p.PB13,
-                p.PG11, GenericSMI, mac_addr, 0,
-            )
-        };
+        static PQUEUE: StaticCell<PacketQueue<16, 16>> = StaticCell::new();
+        let eth_int = interrupt::take!(ETH);
+        let mac_addr = [0x10; 6];
+        let pqueue = PQUEUE.init(PacketQueue::new());
+        let eth = Ethernet::new(
+            pqueue, p.ETH, eth_int, p.PA1, p.PA2, p.PC1, p.PA7, p.PC4, p.PC5, p.PG13, p.PB13,
+            p.PG11, GenericSMI, mac_addr, 0,
+        );
         Self {
             led_red: Output::new(p.PB14, Level::Low, Speed::Low),
             led_green: Output::new(p.PB0, Level::Low, Speed::Low),

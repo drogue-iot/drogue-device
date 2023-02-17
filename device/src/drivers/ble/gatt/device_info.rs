@@ -20,13 +20,13 @@ impl DeviceInformationService {
         manufacturer_name: &[u8],
         hardware_revision: &[u8],
     ) -> Result<(), ()> {
-        self.model_number_set(Vec::from_slice(model)?)
+        self.model_number_set(&Vec::from_slice(model)?)
             .map_err(|_| ())?;
-        self.serial_number_set(Vec::from_slice(serial_number)?)
+        self.serial_number_set(&Vec::from_slice(serial_number)?)
             .map_err(|_| ())?;
-        self.manufacturer_name_set(Vec::from_slice(manufacturer_name)?)
+        self.manufacturer_name_set(&Vec::from_slice(manufacturer_name)?)
             .map_err(|_| ())?;
-        self.hardware_revision_set(Vec::from_slice(hardware_revision)?)
+        self.hardware_revision_set(&Vec::from_slice(hardware_revision)?)
             .map_err(|_| ())?;
         Ok(())
     }

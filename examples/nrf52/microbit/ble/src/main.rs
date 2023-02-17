@@ -73,7 +73,7 @@ async fn main(s: Spawner) {
     server
         .env
         .descriptor_set(
-            MeasurementDescriptor {
+            &MeasurementDescriptor {
                 flags: 0,
                 sampling_fn: SamplingFunction::ArithmeticMean,
                 measurement_period: Period::Unknown,
@@ -86,7 +86,7 @@ async fn main(s: Spawner) {
         .unwrap();
     server
         .env
-        .trigger_set(TriggerSetting::FixedInterval(5).to_vec())
+        .trigger_set(&TriggerSetting::FixedInterval(5).to_vec())
         .unwrap();
 
     s.spawn(softdevice_task(sd)).unwrap();
@@ -191,10 +191,10 @@ pub async fn gatt_server_task(
                 defmt::info!("Measured temperature: {}℃", value);
                 let value = value as i16 * 10;
 
-                env_service.temperature_set(value).unwrap();
+                env_service.temperature_set(&value).unwrap();
                 if notify {
                     defmt::trace!("Notifying");
-                    env_service.temperature_notify(&conn, value).unwrap();
+                    env_service.temperature_notify(&conn, &value).unwrap();
                 }
             }
         }

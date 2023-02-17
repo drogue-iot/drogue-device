@@ -7,13 +7,13 @@ description = "An embassy-based boards support package (BSP) for the STM32 Nucle
 [workspace]
 
 [dependencies]
-embassy-stm32 = { version = "0.1.0", default-features = false, features = ["exti", "unstable-traits", "nightly", "stm32h743zi", "memory-x", "time-driver-any", "net", "unstable-pac"] }
+embassy-stm32 = { version = "0.1.0", default-features = false, features = ["exti", "unstable-traits", "nightly", "stm32h743zi", "memory-x", "time-driver-any", "unstable-pac"] }
 embassy-time = { version = "0.1.0", default-features = false }
-embassy-net = { version = "0.1.0", default-features = false, features= ["tcp", "medium-ethernet", "pool-16", "proto-ipv6", "dhcpv4" ]}
+embassy-net = { version = "0.1.0", default-features = false, features= ["tcp", "medium-ethernet", "proto-ipv6", "dhcpv4" ]}
 static_cell = "1"
 cortex-m = "0.7"
 
 [patch.crates-io]
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
-embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "5e94b8060b7f1af8118ca1f943181ce70be92057" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }

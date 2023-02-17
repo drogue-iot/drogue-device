@@ -12,7 +12,11 @@ use {
     embedded_nal_async::*,
     futures::io::BufReader,
     rand::RngCore,
-    reqwless::{client::*, request::*},
+    reqwless::{
+        client::{HttpClient, TlsConfig, TlsVerify},
+        headers::ContentType,
+        request::{Method, RequestBuilder},
+    },
     std::net::TcpStream,
 };
 
@@ -48,10 +52,14 @@ async fn main(_spawner: embassy_executor::Spawner) {
         HOSTNAME, PORT
     );
 
-    let mut tls = [0; 16384];
+    let mut tls_rx = [0; 16384];
+    let mut tls_tx = [0; 1024];
     let mut rng = rand::rngs::OsRng;
-    let mut client =
-        HttpClient::new_with_tls(&TcpClient, &DNS, TlsConfig::new(rng.next_u64(), &mut tls));
+    let mut client = HttpClient::new_with_tls(
+        &TcpClient,
+        &DNS,
+        TlsConfig::new(rng.next_u64(), &mut tls_rx, &mut tls_tx, TlsVerify::None),
+    );
 
     loop {
         let sensor_data = TemperatureData {
@@ -63,21 +71,23 @@ async fn main(_spawner: embassy_executor::Spawner) {
         match select(Timer::after(Duration::from_secs(20)), async {
             let tx: heapless::String<1024> = serde_json_core::ser::to_string(&sensor_data).unwrap();
             let mut rx_buf = [0; 1024];
-            let response = client
+
+            let mut req = client
                 .request(Method::POST, &url)
                 .await
                 .unwrap()
                 .basic_auth(USERNAME.trim_end(), PASSWORD.trim_end())
                 .body(tx.as_bytes())
-                .content_type(ContentType::ApplicationJson)
-                .send(&mut rx_buf[..])
-                .await;
+                .content_type(ContentType::ApplicationJson);
+            let response = req.send(&mut rx_buf[..]).await;
 
             match response {
                 Ok(response) => {
                     log::info!("Response status: {:?}", response.status);
-                    if let Some(payload) = response.body {
-                        let _s = core::str::from_utf8(payload).unwrap();
+                    if let Ok(body) = response.body() {
+                        if let Ok(payload) = body.read_to_end().await {
+                            let _s = core::str::from_utf8(payload).unwrap();
+                        }
                     }
                 }
                 Err(e) => {
