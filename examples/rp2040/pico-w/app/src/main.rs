@@ -14,6 +14,7 @@ use {
     },
     embassy_executor::Spawner,
     embassy_net::{
+        dns::DnsSocket,
         tcp::client::{TcpClient, TcpClientState},
         Stack, StackResources,
     },
@@ -43,10 +44,6 @@ const WIFI_PSK: &str = drogue::config!("wifi-password");
 
 mod fmt;
 
-#[path = "../../../../common/dns.rs"]
-mod dns;
-use dns::*;
-
 #[path = "../../../../common/temperature.rs"]
 mod temperature;
 use temperature::*;
@@ -67,6 +64,8 @@ const FLASH_SIZE: usize = 2 * 1024 * 1024;
 const FIRMWARE_VERSION: &str = env!("CARGO_PKG_VERSION");
 const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
 
+type NetDriver = cyw43::NetDriver<'static>;
+
 #[embassy_executor::task]
 async fn wifi_task(
     runner: cyw43::Runner<
@@ -79,7 +78,7 @@ async fn wifi_task(
 }
 
 #[embassy_executor::task]
-async fn net_task(stack: &'static Stack<cyw43::NetDriver<'static>>) -> ! {
+async fn net_task(stack: &'static Stack<NetDriver>) -> ! {
     stack.run().await
 }
 
@@ -138,7 +137,7 @@ async fn main(spawner: Spawner) {
     static RESOURCES: StaticCell<StackResources<3>> = StaticCell::new();
     let resources = RESOURCES.init(StackResources::new());
 
-    static STACK: StaticCell<Stack<cyw43::NetDriver<'static>>> = StaticCell::new();
+    static STACK: StaticCell<Stack<NetDriver>> = StaticCell::new();
     let stack = STACK.init(Stack::new(net_device, config, resources, seed));
 
     unwrap!(spawner.spawn(net_task(stack)));
@@ -156,9 +155,10 @@ async fn main(spawner: Spawner) {
 
     let mut tls_rx = [0; 16384];
     let mut tls_tx = [0; 1024];
+    let dns = DnsSocket::new(stack);
     let mut client = HttpClient::new_with_tls(
         &client,
-        &DNS,
+        &dns,
         TlsConfig::new(seed as u64, &mut tls_rx, &mut tls_tx, TlsVerify::None),
     );
 
@@ -203,7 +203,7 @@ async fn main(spawner: Spawner) {
 
 #[embassy_executor::task]
 async fn updater_task(
-    stack: &'static Stack<cyw43::NetDriver<'static>>,
+    stack: &'static Stack<NetDriver>,
     flash: Flash<'static, FLASH, FLASH_SIZE>,
     seed: u64,
 ) {
@@ -211,6 +211,8 @@ async fn updater_task(
 
     static CLIENT_STATE: TcpClientState<1, 1024, 1024> = TcpClientState::new();
     let client = TcpClient::new(&stack, &CLIENT_STATE);
+
+    let dns = DnsSocket::new(stack);
 
     let version = FIRMWARE_REVISION.unwrap_or(FIRMWARE_VERSION);
     defmt::info!("Running firmware version {}", version);
@@ -227,7 +229,7 @@ async fn updater_task(
     };
 
     Timer::after(Duration::from_secs(5)).await;
-    ota_task(client, &DNS, device, seed, config, || {
+    ota_task(client, &dns, device, seed, config, || {
         cortex_m::peripheral::SCB::sys_reset()
     })
     .await
