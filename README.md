@@ -32,9 +32,17 @@ Drogue device runs on any hardware supported by embassy, which at the time of wr
 * STM32
 * Raspberry Pi Pico
 * Linux, Mac OS X or Windows
+* Espressif ESP32
 * WASM (WebAssembly)
 
 We provide examples for a subset of hardware that we ensure works and that are relevant for IoT.
+
+## Minimal Quickstart
+
+```
+rustup update 
+cargo install probe-run
+```
 
 ## Example applications
 
