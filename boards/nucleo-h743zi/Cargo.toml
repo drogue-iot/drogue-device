@@ -14,6 +14,6 @@ static_cell = "1"
 cortex-m = "0.7"
 
 [patch.crates-io]
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
-embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-stm32 = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }

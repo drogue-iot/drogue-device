@@ -17,6 +17,6 @@ defmt = "0.3"
 futures = { version = "0.3", default-features = false }
 
 [patch.crates-io]
-embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
-embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }

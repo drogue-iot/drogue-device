@@ -95,15 +95,16 @@ async fn main(spawner: Spawner) {
     let driver = Driver::new(p.USB, irq);
     spawner.spawn(logger_task(driver)).unwrap();
 
-    // NOTE: Download firmware from https://github.com/embassy-rs/cyw43/tree/master/firmware
+    // NOTE: Download firmware from https://github.com/embassy-rs/embassy/tree/main/cyw43-firmware
     // to run this example, and flash them with probe-rs-cli:
     //
-    // probe-rs-cli download 43439A0.bin --format bin --chip RP2040 --base-address 0x10100000
-    // probe-rs-cli download 43439A0.clm_blob --format bin --chip RP2040 --base-address 0x10140000
-    let fw = unsafe { core::slice::from_raw_parts(0x10100000 as *const u8, 224190) };
-    let clm = unsafe { core::slice::from_raw_parts(0x10140000 as *const u8, 4752) };
-    // let fw = include_bytes!("../firmware/43439A0.bin");
-    // let clm = include_bytes!("../firmware/43439A0_clm.bin");
+    // probe-rs download 43439A0.bin --format bin --chip RP2040 --base-address 0x10100000
+    // probe-rs download 43439A0_clm.bin --format bin --chip RP2040 --base-address 0x10140000
+    //let fw = unsafe { core::slice::from_raw_parts(0x10100000 as *const u8, 224190) };
+    //let clm = unsafe { core::slice::from_raw_parts(0x10140000 as *const u8, 4752) };
+
+    let fw = include_bytes!("../firmware/43439A0.bin");
+    let clm = include_bytes!("../firmware/43439A0_clm.bin");
 
     let pwr = Output::new(p.PIN_23, Level::Low);
     let cs = Output::new(p.PIN_25, Level::High);

@@ -39,13 +39,13 @@ opt-level = 0
 overflow-checks = false
 
 [patch.crates-io]
-embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
-ector = { git = "https://github.com/drogue-iot/ector.git", rev = "411462aa4a03e61a10e5d00ca9e93166d8370eee" }
-embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
-embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
-embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "e3f8020c3bdf726dfa451b5b190f27191507a18f" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
+embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
+ector = { git = "https://github.com/drogue-iot/ector.git", rev = "602f26d72903f194d1f9e95c073d2c513b335623" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
+embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
+embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
 
 #embassy-executor = { path = "../../../../../embassy/embassy" }
