@@ -21,7 +21,7 @@ microbit-bsp = { path = "../../../../../boards/microbit" }
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 
-embassy-executor = { version = "0.1.0", default-features = false, features = ["defmt", "integrated-timers", "nightly"] }
+embassy-executor = { version = "0.3.0", default-features = false, features = ["defmt", "integrated-timers", "nightly"] }
 embassy-time = { version = "0.1.0", default-features = false }
 embassy-sync = { version = "0.1.0", default-features = false }
 embassy-futures = { version = "0.1.0", default-features = false }

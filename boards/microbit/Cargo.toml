@@ -11,7 +11,7 @@ embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf528
 embassy-time = { version = "0.1.0", default-features = false }
 embassy-sync = { version = "0.1.0", default-features = false }
 cortex-m = "0.7"
-embedded-hal = "=1.0.0-alpha.9"
+embedded-hal = "1.0.0-rc.1"
 lsm303agr = "0.2.2"
 defmt = "0.3"
 futures = { version = "0.3", default-features = false }

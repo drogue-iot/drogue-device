@@ -96,7 +96,7 @@ where
             || response.status == ResponseStatus::Accepted
             || response.status == ResponseStatus::Created
         {
-            if let Ok(payload) = response.body().map_err(Error::Http)?.read_to_end().await {
+            if let Ok(payload) = response.body().read_to_end().await {
                 let command: Command<'m> =
                     serde_cbor::de::from_mut_slice(payload).map_err(Error::Codec)?;
                 Ok(command)

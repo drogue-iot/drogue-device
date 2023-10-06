@@ -13,7 +13,7 @@ keywords = ["lorawan", "lora", "stm32l1", "networking", "iot", "stm32", "rak811"
 [workspace]
 
 [dependencies]
-embedded-hal = { version = "0.2.4", features = ["unproven"] }
+embedded-hal = "1.0.0-rc.1"
 defmt = "0.3"
 defmt-rtt = "0.4"
 panic-probe = { version = "0.3", features = ["print-defmt"] }

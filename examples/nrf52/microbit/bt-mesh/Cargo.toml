@@ -19,7 +19,7 @@ defmt-rtt = { version = "0.4" }
 
 
 static_cell = "1"
-embassy-executor = { version = "0.1.0", default-features = false, features = ["integrated-timers", "nightly"] }
+embassy-executor = { version = "0.3", default-features = false, features = ["integrated-timers", "nightly"] }
 embassy-time = { version = "0.1.0", default-features = false, features = ["defmt-timestamp-uptime", "defmt"] }
 embassy-nrf = { version = "0.1.0", default-features = false, features = ["nrf52833", "gpiote", "time-driver-rtc1"]}
 embassy-boot-nrf = { version = "0.1.0", default-features = false, features = ["softdevice"], optional = true }

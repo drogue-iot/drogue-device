@@ -14,19 +14,21 @@ keywords = ["std", "networking", "cloud"]
 log = "0.4"
 env_logger = "0.8"
 drogue-device = { path = "../../../device", features = ["log", "std"] }
-embedded-nal-async = "0.4.0"
-reqwless = { version = "0.5" }
+embedded-nal-async = "0.6.0"
+reqwless = { version = "0.8" }
 #drogue-tls = {path = "../../../../drogue-tls", default-features = false, features = ["async", "defmt"]}
 
 embassy-time = { version = "0.1.0", default-features = false, features = ["std"] }
 embassy-futures = { version = "0.1.0", default-features = false }
-embassy-executor = { version = "0.1.0", default-features = false, features = ["std", "integrated-timers"] }
+embassy-executor = { version = "0.3", default-features = false, features = ["std", "integrated-timers"] }
 serde-json-core = { version = "0.4", default-features = false, features = ["heapless", "std"] }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 rand = "0.8"
 cfg-if = "1.0.0"
 
-embedded-hal = { version = "0.2.4", features = ["unproven"] }
-embedded-io = { version = "0.4", features = ["futures"] }
+embedded-hal = "1.0.0-rc.1"
+embedded-io-async = "0.6"
+embedded-io = "0.6"
+embedded-io-adapters = { version = "0.6", features = ["std", "futures-03"] }
 futures = { version = "0.3.17", features = ["async-await"] }
 async-io = "1.6.0"

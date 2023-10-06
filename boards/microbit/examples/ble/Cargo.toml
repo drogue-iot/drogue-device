@@ -7,7 +7,7 @@ edition = "2021"
 microbit-bsp= { path = "../../" }
 
 embassy-futures = { version = "0.1.0", default-features = false }
-embassy-executor = { version = "0.1.0", default-features = false, features = ["integrated-timers", "defmt", "nightly"] }
+embassy-executor = { version = "0.3.0", default-features = false, features = ["integrated-timers", "defmt", "nightly"] }
 embassy-time = { version = "0.1.0", default-features = false, features = ["defmt-timestamp-uptime"] }
 
 nrf-softdevice = { version = "0.1.0", features = ["ble-peripheral", "ble-gatt-server", "s113", "nrf52833", "critical-section-impl", "defmt"] }

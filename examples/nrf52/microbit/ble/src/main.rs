@@ -5,15 +5,13 @@
 #![feature(async_fn_in_trait)]
 #![allow(incomplete_features)]
 
+mod device_info;
+mod dfu;
+mod environment;
+
 use {
-    drogue_device::{
-        drivers::ble::gatt::{
-            device_info::{DeviceInformationService, DeviceInformationServiceEvent},
-            dfu::{FirmwareGattService, FirmwareService, FirmwareServiceEvent},
-            environment::*,
-        },
-        firmware::FirmwareManager,
-    },
+    device_info::{DeviceInformationService, DeviceInformationServiceEvent},
+    dfu::{FirmwareGattService, FirmwareService, FirmwareServiceEvent},
     embassy_executor::Spawner,
     embassy_futures::select::{select, Either},
     embassy_sync::{
@@ -21,6 +19,7 @@ use {
         channel::{Channel, DynamicReceiver, DynamicSender},
     },
     embassy_time::{Duration, Ticker, Timer},
+    environment::*,
     futures::StreamExt,
     heapless::Vec,
     microbit_bsp::*,
@@ -44,6 +43,12 @@ use panic_reset as _;
 
 const FIRMWARE_VERSION: &str = env!("CARGO_PKG_VERSION");
 const FIRMWARE_REVISION: Option<&str> = option_env!("REVISION");
+
+bind_interrupts!(struct Irqs {
+    SPIM0_SPIS0_TWIM0_TWIS0_SPI0_TWI0 => spim::InterruptHandler<peripherals::TWISPI0>;
+    SPIM1_SPIS1_TWIM1_TWIS1_SPI1_TWI1 => twim::InterruptHandler<peripherals::TWISPI1>;
+    SAADC => saadc::InterruptHandler;
+});
 
 // Application must run at a lower priority than softdevice
 fn config() -> Config {

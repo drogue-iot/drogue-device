@@ -18,10 +18,10 @@ drogue-device = { version = "0.1.0", path = "../../../../device", default-featur
 microbit-bsp = { version = "0.1.0", path = "../../../../boards/microbit" }
 
 embassy-boot-nrf = { version = "0.1.0", default-features = false, features = ["softdevice"] }
-embassy-executor = { version = "0.1.0", default-features = false, features = ["integrated-timers", "nightly"] }
-embassy-time = { version = "0.1.0", default-features = false }
-embassy-sync = { version = "0.1.0", default-features = false }
-embassy-futures = { version = "0.1.0", default-features = false }
+embassy-executor = { version = "0.3", default-features = false, features = ["integrated-timers", "nightly"] }
+embassy-time = { version = "0.1", default-features = false }
+embassy-sync = { version = "0.1", default-features = false }
+embassy-futures = { version = "0.1", default-features = false }
 
 cortex-m = { version = "0.7" }
 cortex-m-rt = "0.7"
@@ -82,7 +82,6 @@ embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "5
 embassy-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
 embassy-lora = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
 embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
-embassy-hal-common = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
 embassy-boot = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
 embassy-boot-nrf = { git = "https://github.com/embassy-rs/embassy.git", rev = "59f706ee2f93252d1c040cea149dfd744f4d8c16" }
 nrf-softdevice = { git = "https://github.com/embassy-rs/nrf-softdevice.git", rev = "3b08bda268d343e100932cbf0df7e007826fa3be" }
